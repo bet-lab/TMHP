@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and a DHW tank sink. Overview: solves the closed refrigerant cycle against a borehole he..." />
 
-    <meta property="article:modified_time" content="2026-11-13T20:29:43+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T21:35:58+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -93,6 +93,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ground-response.html">Ground response</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ground-flow.html">Coupled ground-loop flow</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reference-state.html">Compressor reference state</a></li>
 </ul>
@@ -444,8 +445,12 @@ Each step <code class="docutils literal notranslate"><span class="pre">n</span><
 <code class="docutils literal notranslate"><span class="pre">[t_n,</span> <span class="pre">t_n</span> <span class="pre">+</span> <span class="pre">dt]</span></code>, including the response to that step’s own load; with an
 hourly load history the hourly means are the same for <code class="docutils literal notranslate"><span class="pre">dt</span></code> = 60, 600 or
 3600 s. Below one hour the g-function is the straight line from zero to its
-one-hour value (no grout or fluid heat capacity), so minute-scale start-up
-transients are approximate.</p>
+one-hour value and the borehole has no heat capacity, so minute-scale
+start-up transients are approximate on the default path.
+<a class="reference internal" href="../api/support/heat-transfer.html#tmhp.borehole_capacity.enable_borehole_dynamics" title="tmhp.borehole_capacity.enable_borehole_dynamics"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.borehole_capacity.enable_borehole_dynamics()</span></code></a> adds the heat
+capacity of fluid, pipe and grout, the short-time wall response and the fluid
+transit through the U-tube; bore fields other than a rectangular grid are set
+up with <a class="reference internal" href="../api/support/heat-transfer.html#module-tmhp.borefield" title="tmhp.borefield"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.borefield</span></code></a>. Both are described in <a class="reference internal" href="ground-response.html"><span class="doc">Ground response</span></a>.</p>
 <figure class="align-center" id="id2">
 <a class="reference internal image-reference" href="../_images/g_function_curve.svg"><img alt="g-function vs ln(t/t_s) for three rectangular borehole field geometries: 1×1, 2×2, and 4×4." src="../_images/g_function_curve.svg" style="width: 100%;" />
 </a>

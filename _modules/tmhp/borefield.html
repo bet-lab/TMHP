@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>tmhp.borefield - TMHP</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/TMHP/_modules/tmhp/borefield.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=4ea1e3a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/integration-diagrams.css?v=b297bf1e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>TMHP</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Start</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../integrations/index.html">Integrations</a></li><li class="link"><a href="../../api/index.html">API</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-response.html">Ground response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-flow.html">Coupled ground-loop flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/reference-state.html">Compressor reference state</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/fmu.html">FMI FMU export</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/TMHP">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">tmhp.borefield</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <h1>Source code for tmhp.borefield</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Bore-field layouts, pipe networks and the assembled field ground response.</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="sd">:class:`BoreField` describes where the boreholes are and how deep they go</span>
+</span><span data-line="4"><span class="sd">(any coordinates, per-borehole depth). :class:`BoreNetwork` adds the pipes,</span>
+</span><span data-line="5"><span class="sd">the total flow and how the boreholes are connected (parallel headers or</span>
+</span><span data-line="6"><span class="sd">series chains). :class:`FieldGroundResponse` puts them together into what a</span>
+</span><span data-line="7"><span class="sd">host model needs: the field g-function, the field resistance ``R_b`` for</span>
+</span><span data-line="8"><span class="sd">``T_f = T_wall − q&#39;·R_b`` (``q&#39; = Q/ΣH``), the flow in each borehole and the</span>
+</span><span data-line="9"><span class="sd">split of the field load between boreholes.</span>
+</span><span data-line="10">
+</span><span data-line="11"><span class="sd">All physics comes from pygfunction (Cimmino&#39;s g-functions, multipole</span>
+</span><span data-line="12"><span class="sd">resistances, network fluid coupling); this module only arranges inputs and</span>
+</span><span data-line="13"><span class="sd">checks them.</span>
+</span><span data-line="14"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="15">
+</span><span data-line="16"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="17">
+</span><span data-line="18"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="19"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+</span><span data-line="20"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+</span><span data-line="21"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span data-line="22">
+</span><span data-line="23"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="24">
+</span><span data-line="25"><span class="kn">from</span><span class="w"> </span><span class="nn">.borehole</span><span class="w"> </span><span class="kn">import</span> <span class="n">BoreholePipe</span>
+</span><span data-line="26"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">k_w</span><span class="p">,</span> <span class="n">mu_w</span><span class="p">,</span> <span class="n">rho_w</span>
+</span><span data-line="27"><span class="kn">from</span><span class="w"> </span><span class="nn">.g_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">GFunction</span>
+</span><span data-line="28">
+</span><span data-line="29"><span class="k">try</span><span class="p">:</span>
+</span><span data-line="30">    <span class="kn">import</span><span class="w"> </span><span class="nn">pygfunction</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gt</span>
+</span><span data-line="31">
+</span><span data-line="32">    <span class="n">HAS_PYGFUNCTION</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="33"><span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+</span><span data-line="34">    <span class="n">HAS_PYGFUNCTION</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="35">
+</span><span data-line="36">
+</span><span data-line="37"><span class="k">def</span><span class="w"> </span><span class="nf">_require_pygfunction</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="38">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
+</span><span data-line="39">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
+</span><span data-line="40">
+</span><span data-line="41">
+</span><span data-line="42"><span class="k">def</span><span class="w"> </span><span class="nf">_readonly</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span data-line="43">    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>  <span class="c1"># copy</span>
+</span><span data-line="44">    <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="45">        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="46">            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arr</span><span class="p">))</span>
+</span><span data-line="47">        <span class="k">elif</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">n</span><span class="p">,):</span>
+</span><span data-line="48">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be a scalar or have shape (</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">,), got </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="49">    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+</span><span data-line="50">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be finite&quot;</span><span class="p">)</span>
+</span><span data-line="51">    <span class="n">arr</span><span class="o">.</span><span class="n">setflags</span><span class="p">(</span><span class="n">write</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="52">    <span class="k">return</span> <span class="n">arr</span>
+</span><span data-line="53">
+</span><span data-line="54">
+<div class="viewcode-block" id="BoreField">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreField">[docs]</a>
+</span><span data-line="55"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="56"><span class="k">class</span><span class="w"> </span><span class="nc">BoreField</span><span class="p">:</span>
+</span><span data-line="57"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Vertical boreholes at arbitrary positions with per-borehole depths.</span>
+</span><span data-line="58">
+</span><span data-line="59"><span class="sd">    ``x``, ``y`` are the borehole head positions [m], ``H`` the active</span>
+</span><span data-line="60"><span class="sd">    lengths [m], ``D`` the buried depths of the borehole tops [m], ``r_b``</span>
+</span><span data-line="61"><span class="sd">    the common borehole radius [m]. Arrays are stored as read-only copies.</span>
+</span><span data-line="62"><span class="sd">    Boreholes must not touch: every centre-to-centre distance exceeds</span>
+</span><span data-line="63"><span class="sd">    ``2 r_b``.</span>
+</span><span data-line="64"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="65">
+</span><span data-line="66">    <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</span><span data-line="67">    <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</span><span data-line="68">    <span class="n">H</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</span><span data-line="69">    <span class="n">D</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</span><span data-line="70">    <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="71">
+</span><span data-line="72">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="73">        <span class="n">x</span> <span class="o">=</span> <span class="n">_readonly</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">)</span>
+</span><span data-line="74">        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="75">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x must be a non-empty 1-D array&quot;</span><span class="p">)</span>
+</span><span data-line="76">        <span class="n">n</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span>
+</span><span data-line="77">        <span class="n">y</span> <span class="o">=</span> <span class="n">_readonly</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span>
+</span><span data-line="78">        <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">n</span><span class="p">,):</span>
+</span><span data-line="79">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;y must have the same shape as x (</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">,), got </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="80">        <span class="n">H</span> <span class="o">=</span> <span class="n">_readonly</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="s2">&quot;H&quot;</span><span class="p">)</span>
+</span><span data-line="81">        <span class="n">D</span> <span class="o">=</span> <span class="n">_readonly</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="s2">&quot;D&quot;</span><span class="p">)</span>
+</span><span data-line="82">        <span class="n">r_b</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_b</span><span class="p">)</span>
+</span><span data-line="83">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">r_b</span><span class="p">)</span> <span class="ow">and</span> <span class="n">r_b</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="84">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;r_b must be positive and finite&quot;</span><span class="p">)</span>
+</span><span data-line="85">        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">H</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="86">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;borehole lengths H must be positive&quot;</span><span class="p">)</span>
+</span><span data-line="87">        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">D</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="88">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;buried depths D must be nonnegative&quot;</span><span class="p">)</span>
+</span><span data-line="89">        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="90">            <span class="n">dx</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+</span><span data-line="91">            <span class="n">dy</span> <span class="o">=</span> <span class="n">y</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+</span><span data-line="92">            <span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span>
+</span><span data-line="93">            <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+</span><span data-line="94">            <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dist</span><span class="p">),</span> <span class="n">dist</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span><span data-line="95">            <span class="k">if</span> <span class="ow">not</span> <span class="n">dist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">r_b</span><span class="p">:</span>
+</span><span data-line="96">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="97">                    <span class="sa">f</span><span class="s2">&quot;boreholes </span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="si">}</span><span class="s2"> are </span><span class="si">{</span><span class="n">dist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">]</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2"> m apart (centre to centre); &quot;</span>
+</span><span data-line="98">                    <span class="sa">f</span><span class="s2">&quot;they must be more than 2*r_b = </span><span class="si">{</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">r_b</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2"> m apart&quot;</span>
+</span><span data-line="99">                <span class="p">)</span>
+</span><span data-line="100">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</span><span data-line="101">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+</span><span data-line="102">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="n">H</span><span class="p">)</span>
+</span><span data-line="103">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+</span><span data-line="104">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;r_b&quot;</span><span class="p">,</span> <span class="n">r_b</span><span class="p">)</span>
+</span><span data-line="105">
+</span><span data-line="106">    <span class="c1"># -- constructors -------------------------------------------------------</span>
+<div class="viewcode-block" id="BoreField.from_coordinates">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreField.from_coordinates">[docs]</a>
+</span><span data-line="107">    <span class="nd">@classmethod</span>
+</span><span data-line="108">    <span class="k">def</span><span class="w"> </span><span class="nf">from_coordinates</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">xy</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">H</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.08</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoreField</span><span class="p">:</span>
+</span><span data-line="109"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Boreholes at ``xy`` (shape ``(n, 2)``, metres); ``H``/``D`` scalar or per borehole.&quot;&quot;&quot;</span>
+</span><span data-line="110">        <span class="n">xy_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">xy</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="111">        <span class="k">if</span> <span class="n">xy_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">xy_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">xy_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="112">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;xy must have shape (n, 2) with n &gt;= 1, got </span><span class="si">{</span><span class="n">xy_arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="113">        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">xy_arr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="n">xy_arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">H</span><span class="o">=</span><span class="n">H</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="n">D</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">)</span></div>
+
+</span><span data-line="114">
+<div class="viewcode-block" id="BoreField.rectangle">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreField.rectangle">[docs]</a>
+</span><span data-line="115">    <span class="nd">@classmethod</span>
+</span><span data-line="116">    <span class="k">def</span><span class="w"> </span><span class="nf">rectangle</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">N_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">N_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.08</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoreField</span><span class="p">:</span>
+</span><span data-line="117"><span class="w">        </span><span class="sd">&quot;&quot;&quot;``N_1 × N_2`` rectangle with spacing ``B`` [m], in pygfunction&#39;s order (x fastest).&quot;&quot;&quot;</span>
+</span><span data-line="118">        <span class="n">_check_counts</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="n">N_2</span><span class="p">)</span>
+</span><span data-line="119">        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N_1</span><span class="p">),</span> <span class="n">N_2</span><span class="p">)</span> <span class="o">*</span> <span class="n">B</span>
+</span><span data-line="120">        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N_2</span><span class="p">),</span> <span class="n">N_1</span><span class="p">)</span> <span class="o">*</span> <span class="n">B</span>
+</span><span data-line="121">        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">H</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">H</span><span class="p">)),</span> <span class="n">D</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">D</span><span class="p">)),</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">)</span></div>
+
+</span><span data-line="122">
+</span><span data-line="123">    <span class="nd">@classmethod</span>
+</span><span data-line="124">    <span class="k">def</span><span class="w"> </span><span class="nf">_from_pygfunction</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoreField</span><span class="p">:</span>
+</span><span data-line="125">        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">H</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">r_b</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
+</span><span data-line="126">
+<div class="viewcode-block" id="BoreField.l_shape">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreField.l_shape">[docs]</a>
+</span><span data-line="127">    <span class="nd">@classmethod</span>
+</span><span data-line="128">    <span class="k">def</span><span class="w"> </span><span class="nf">l_shape</span><span class="p">(</span>
+</span><span data-line="129">        <span class="bp">cls</span><span class="p">,</span> <span class="n">N_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">N_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">B_1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">B_2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.08</span>
+</span><span data-line="130">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoreField</span><span class="p">:</span>
+</span><span data-line="131"><span class="w">        </span><span class="sd">&quot;&quot;&quot;L-shaped field (pygfunction ``Borefield.L_shaped_field``).&quot;&quot;&quot;</span>
+</span><span data-line="132">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="133">        <span class="n">_check_counts</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="n">N_2</span><span class="p">)</span>
+</span><span data-line="134">        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_pygfunction</span><span class="p">(</span><span class="n">gt</span><span class="o">.</span><span class="n">borefield</span><span class="o">.</span><span class="n">Borefield</span><span class="o">.</span><span class="n">L_shaped_field</span><span class="p">(</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="p">,</span> <span class="n">B_1</span><span class="p">,</span> <span class="n">B_2</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">r_b</span><span class="p">))</span></div>
+
+</span><span data-line="135">
+<div class="viewcode-block" id="BoreField.u_shape">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreField.u_shape">[docs]</a>
+</span><span data-line="136">    <span class="nd">@classmethod</span>
+</span><span data-line="137">    <span class="k">def</span><span class="w"> </span><span class="nf">u_shape</span><span class="p">(</span>
+</span><span data-line="138">        <span class="bp">cls</span><span class="p">,</span> <span class="n">N_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">N_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">B_1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">B_2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.08</span>
+</span><span data-line="139">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoreField</span><span class="p">:</span>
+</span><span data-line="140"><span class="w">        </span><span class="sd">&quot;&quot;&quot;U-shaped field (pygfunction ``Borefield.U_shaped_field``).&quot;&quot;&quot;</span>
+</span><span data-line="141">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="142">        <span class="n">_check_counts</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="n">N_2</span><span class="p">)</span>
+</span><span data-line="143">        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_pygfunction</span><span class="p">(</span><span class="n">gt</span><span class="o">.</span><span class="n">borefield</span><span class="o">.</span><span class="n">Borefield</span><span class="o">.</span><span class="n">U_shaped_field</span><span class="p">(</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="p">,</span> <span class="n">B_1</span><span class="p">,</span> <span class="n">B_2</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">r_b</span><span class="p">))</span></div>
+
+</span><span data-line="144">
+<div class="viewcode-block" id="BoreField.box">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreField.box">[docs]</a>
+</span><span data-line="145">    <span class="nd">@classmethod</span>
+</span><span data-line="146">    <span class="k">def</span><span class="w"> </span><span class="nf">box</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">N_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">N_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">B_1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">B_2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.08</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoreField</span><span class="p">:</span>
+</span><span data-line="147"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Box-shaped field: the rectangle&#39;s perimeter (pygfunction ``Borefield.box_shaped_field``).&quot;&quot;&quot;</span>
+</span><span data-line="148">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="149">        <span class="n">_check_counts</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="n">N_2</span><span class="p">)</span>
+</span><span data-line="150">        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_pygfunction</span><span class="p">(</span><span class="n">gt</span><span class="o">.</span><span class="n">borefield</span><span class="o">.</span><span class="n">Borefield</span><span class="o">.</span><span class="n">box_shaped_field</span><span class="p">(</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="p">,</span> <span class="n">B_1</span><span class="p">,</span> <span class="n">B_2</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">r_b</span><span class="p">))</span></div>
+
+</span><span data-line="151">
+<div class="viewcode-block" id="BoreField.circle">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreField.circle">[docs]</a>
+</span><span data-line="152">    <span class="nd">@classmethod</span>
+</span><span data-line="153">    <span class="k">def</span><span class="w"> </span><span class="nf">circle</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">N</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">R</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.08</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoreField</span><span class="p">:</span>
+</span><span data-line="154"><span class="w">        </span><span class="sd">&quot;&quot;&quot;``N`` boreholes on a circle of radius ``R`` [m] (pygfunction ``Borefield.circle_field``).&quot;&quot;&quot;</span>
+</span><span data-line="155">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="156">        <span class="n">_check_counts</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+</span><span data-line="157">        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_pygfunction</span><span class="p">(</span><span class="n">gt</span><span class="o">.</span><span class="n">borefield</span><span class="o">.</span><span class="n">Borefield</span><span class="o">.</span><span class="n">circle_field</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">r_b</span><span class="p">))</span></div>
+
+</span><span data-line="158">
+</span><span data-line="159">    <span class="c1"># -- properties ---------------------------------------------------------</span>
+</span><span data-line="160">    <span class="nd">@property</span>
+</span><span data-line="161">    <span class="k">def</span><span class="w"> </span><span class="nf">n_boreholes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span data-line="162">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+</span><span data-line="163">
+</span><span data-line="164">    <span class="nd">@property</span>
+</span><span data-line="165">    <span class="k">def</span><span class="w"> </span><span class="nf">total_length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="166"><span class="w">        </span><span class="sd">&quot;&quot;&quot;ΣH [m]: the length the host&#39;s linear load ``q&#39; = Q/ΣH`` refers to.&quot;&quot;&quot;</span>
+</span><span data-line="167">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">))</span>
+</span><span data-line="168">
+</span><span data-line="169">    <span class="nd">@property</span>
+</span><span data-line="170">    <span class="k">def</span><span class="w"> </span><span class="nf">mean_depth</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="171"><span class="w">        </span><span class="sd">&quot;&quot;&quot;ΣH / n [m].&quot;&quot;&quot;</span>
+</span><span data-line="172">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_length</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_boreholes</span>
+</span><span data-line="173">
+</span><span data-line="174">    <span class="nd">@property</span>
+</span><span data-line="175">    <span class="k">def</span><span class="w"> </span><span class="nf">uniform_depth</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="176"><span class="w">        </span><span class="sd">&quot;&quot;&quot;True when every borehole has the same length and buried depth.&quot;&quot;&quot;</span>
+</span><span data-line="177">        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ptp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">ptp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span><span data-line="178">
+<div class="viewcode-block" id="BoreField.to_pygfunction">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreField.to_pygfunction">[docs]</a>
+</span><span data-line="179">    <span class="k">def</span><span class="w"> </span><span class="nf">to_pygfunction</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="180"><span class="w">        </span><span class="sd">&quot;&quot;&quot;``pygfunction.borefield.Borefield`` in this field&#39;s order.&quot;&quot;&quot;</span>
+</span><span data-line="181">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="182">        <span class="k">return</span> <span class="n">gt</span><span class="o">.</span><span class="n">borefield</span><span class="o">.</span><span class="n">Borefield</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span></div>
+
+</span><span data-line="183">
+<div class="viewcode-block" id="BoreField.boreholes">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreField.boreholes">[docs]</a>
+</span><span data-line="184">    <span class="k">def</span><span class="w"> </span><span class="nf">boreholes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="185"><span class="w">        </span><span class="sd">&quot;&quot;&quot;List of ``pygfunction.boreholes.Borehole`` in this field&#39;s order.&quot;&quot;&quot;</span>
+</span><span data-line="186">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="187">        <span class="k">return</span> <span class="p">[</span>
+</span><span data-line="188">            <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_b</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">xi</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">yi</span><span class="p">))</span>
+</span><span data-line="189">            <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">xi</span><span class="p">,</span> <span class="n">yi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="190">        <span class="p">]</span></div>
+</div>
+
+</span><span data-line="191">
+</span><span data-line="192">
+</span><span data-line="193"><span class="k">def</span><span class="w"> </span><span class="nf">_check_counts</span><span class="p">(</span><span class="o">**</span><span class="n">counts</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="194">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="195">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span> <span class="ow">or</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="196">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be a positive integer, got </span><span class="si">{</span><span class="n">n</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="197">
+</span><span data-line="198">
+</span><span data-line="199"><span class="k">def</span><span class="w"> </span><span class="nf">_check_connectivity</span><span class="p">(</span><span class="n">connectivity</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+</span><span data-line="200"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate pygfunction&#39;s ``bore_connectivity``: −1 = fed by the header, j = downstream of borehole j.&quot;&quot;&quot;</span>
+</span><span data-line="201">    <span class="k">if</span> <span class="n">connectivity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="202">        <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="n">n</span>
+</span><span data-line="203">    <span class="n">c</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">connectivity</span><span class="p">)</span>
+</span><span data-line="204">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">!=</span> <span class="n">n</span><span class="p">:</span>
+</span><span data-line="205">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;connectivity must have one entry per borehole (</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">), got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="206">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+</span><span data-line="207">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span><span class="n">j</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">):</span>
+</span><span data-line="208">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;connectivity[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">] must be -1 or a borehole index in [0, </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">), got </span><span class="si">{</span><span class="n">j</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="209">        <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>
+</span><span data-line="210">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;borehole </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> cannot be connected to itself&quot;</span><span class="p">)</span>
+</span><span data-line="211">    <span class="n">c</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">c</span><span class="p">)</span>
+</span><span data-line="212">    <span class="n">feeds</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span><span data-line="213">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">feeds</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">feeds</span><span class="p">)):</span>
+</span><span data-line="214">        <span class="n">dup</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">j</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">feeds</span> <span class="k">if</span> <span class="n">feeds</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
+</span><span data-line="215">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;borehole </span><span class="si">{</span><span class="n">dup</span><span class="si">}</span><span class="s2"> feeds more than one borehole; branches inside a circuit are not supported&quot;</span><span class="p">)</span>
+</span><span data-line="216">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+</span><span data-line="217">        <span class="n">j</span><span class="p">,</span> <span class="n">steps</span> <span class="o">=</span> <span class="n">i</span><span class="p">,</span> <span class="mi">0</span>
+</span><span data-line="218">        <span class="k">while</span> <span class="n">c</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+</span><span data-line="219">            <span class="n">j</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+</span><span data-line="220">            <span class="n">steps</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="221">            <span class="k">if</span> <span class="n">steps</span> <span class="o">&gt;</span> <span class="n">n</span><span class="p">:</span>
+</span><span data-line="222">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="223">                    <span class="sa">f</span><span class="s2">&quot;connectivity has a loop through borehole </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">; every circuit must start at the header&quot;</span>
+</span><span data-line="224">                <span class="p">)</span>
+</span><span data-line="225">    <span class="k">return</span> <span class="n">c</span>
+</span><span data-line="226">
+</span><span data-line="227">
+<div class="viewcode-block" id="BoreNetwork">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreNetwork">[docs]</a>
+</span><span data-line="228"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="229"><span class="k">class</span><span class="w"> </span><span class="nc">BoreNetwork</span><span class="p">:</span>
+</span><span data-line="230"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Pipes, total flow and connections of a bore field (pygfunction ``Network`` inputs).</span>
+</span><span data-line="231">
+</span><span data-line="232"><span class="sd">    ``connectivity`` follows pygfunction&#39;s ``bore_connectivity``: entry ``i``</span>
+</span><span data-line="233"><span class="sd">    is ``-1`` when borehole ``i`` is fed from the supply header and ``j`` when</span>
+</span><span data-line="234"><span class="sd">    it is fed by the outlet of borehole ``j`` (series). ``None`` connects every</span>
+</span><span data-line="235"><span class="sd">    borehole in parallel. Each circuit (a chain starting at the header)</span>
+</span><span data-line="236"><span class="sd">    receives ``m_flow_total / n_circuits`` — pygfunction&#39;s equal split; the</span>
+</span><span data-line="237"><span class="sd">    circuits are not hydraulically balanced by length. The same pipe</span>
+</span><span data-line="238"><span class="sd">    configuration ``pipe`` is used in every borehole.</span>
+</span><span data-line="239"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="240">
+</span><span data-line="241">    <span class="n">pipe</span><span class="p">:</span> <span class="n">BoreholePipe</span>
+</span><span data-line="242">    <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="243">    <span class="n">m_flow_total</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="244">    <span class="n">connectivity</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="245">    <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rho_w</span>
+</span><span data-line="246">    <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">mu_w</span>
+</span><span data-line="247">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span>
+</span><span data-line="248">    <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">k_w</span>
+</span><span data-line="249">
+</span><span data-line="250">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="251">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;k_s&quot;</span><span class="p">,</span> <span class="s2">&quot;m_flow_total&quot;</span><span class="p">,</span> <span class="s2">&quot;rho_f&quot;</span><span class="p">,</span> <span class="s2">&quot;mu_f&quot;</span><span class="p">,</span> <span class="s2">&quot;cp_f&quot;</span><span class="p">,</span> <span class="s2">&quot;k_f&quot;</span><span class="p">):</span>
+</span><span data-line="252">            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+</span><span data-line="253">            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="254">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be positive and finite, got </span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="255">            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</span><span data-line="256">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="257">            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;connectivity&quot;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span><span class="p">))</span>
+</span><span data-line="258">
+<div class="viewcode-block" id="BoreNetwork.resolved_connectivity">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.resolved_connectivity">[docs]</a>
+</span><span data-line="259">    <span class="k">def</span><span class="w"> </span><span class="nf">resolved_connectivity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+</span><span data-line="260">        <span class="k">return</span> <span class="n">_check_connectivity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span></div>
+
+</span><span data-line="261">
+<div class="viewcode-block" id="BoreNetwork.is_parallel">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.is_parallel">[docs]</a>
+</span><span data-line="262">    <span class="k">def</span><span class="w"> </span><span class="nf">is_parallel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="263">        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">j</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_connectivity</span><span class="p">(</span><span class="n">n</span><span class="p">))</span></div>
+
+</span><span data-line="264">
+<div class="viewcode-block" id="BoreNetwork.borehole_flows">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.borehole_flows">[docs]</a>
+</span><span data-line="265">    <span class="k">def</span><span class="w"> </span><span class="nf">borehole_flows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span data-line="266"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mass flow through each borehole [kg/s] (the flow of its circuit).&quot;&quot;&quot;</span>
+</span><span data-line="267">        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_connectivity</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="268">        <span class="n">n_circuits</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span><span data-line="269">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_flow_total</span> <span class="o">/</span> <span class="n">n_circuits</span><span class="p">)</span></div>
+
+</span><span data-line="270">
+<div class="viewcode-block" id="BoreNetwork.check_field">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.check_field">[docs]</a>
+</span><span data-line="271">    <span class="k">def</span><span class="w"> </span><span class="nf">check_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="n">BoreField</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="272">        <span class="bp">self</span><span class="o">.</span><span class="n">resolved_connectivity</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">n_boreholes</span><span class="p">)</span>
+</span><span data-line="273">        <span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">check_fits</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">r_b</span><span class="p">)</span></div>
+
+</span><span data-line="274">
+<div class="viewcode-block" id="BoreNetwork.to_pygfunction">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.to_pygfunction">[docs]</a>
+</span><span data-line="275">    <span class="k">def</span><span class="w"> </span><span class="nf">to_pygfunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="n">BoreField</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="276"><span class="w">        </span><span class="sd">&quot;&quot;&quot;pygfunction ``Network`` for ``field``, boreholes optionally reordered by ``order``.</span>
+</span><span data-line="277">
+</span><span data-line="278"><span class="sd">        ``order[k]`` is the field index of the network&#39;s ``k``-th borehole;</span>
+</span><span data-line="279"><span class="sd">        connections are renumbered accordingly.</span>
+</span><span data-line="280"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="281">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="282">        <span class="n">n</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">n_boreholes</span>
+</span><span data-line="283">        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_connectivity</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="284">        <span class="n">perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+</span><span data-line="285">        <span class="k">if</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">perm</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)):</span>
+</span><span data-line="286">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;order must be a permutation of the borehole indices&quot;</span><span class="p">)</span>
+</span><span data-line="287">        <span class="n">inverse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+</span><span data-line="288">        <span class="n">inverse</span><span class="p">[</span><span class="n">perm</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="289">        <span class="n">flows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">borehole_flows</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="290">        <span class="n">boreholes</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">boreholes</span><span class="p">()</span>
+</span><span data-line="291">        <span class="n">fluid</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rho_f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_f</span><span class="p">)</span>
+</span><span data-line="292">        <span class="n">pipes</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="293">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">perm</span><span class="p">:</span>
+</span><span data-line="294">            <span class="n">pipes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">pygfunction_pipe</span><span class="p">(</span><span class="n">boreholes</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_s</span><span class="p">,</span> <span class="n">flows</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="o">*</span><span class="n">fluid</span><span class="p">))</span>
+</span><span data-line="295">        <span class="n">conn</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">c</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">inverse</span><span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="n">k</span><span class="p">]])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">perm</span><span class="p">]</span>
+</span><span data-line="296">        <span class="k">return</span> <span class="n">gt</span><span class="o">.</span><span class="n">networks</span><span class="o">.</span><span class="n">Network</span><span class="p">(</span>
+</span><span data-line="297">            <span class="p">[</span><span class="n">boreholes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">perm</span><span class="p">],</span>
+</span><span data-line="298">            <span class="n">pipes</span><span class="p">,</span>
+</span><span data-line="299">            <span class="n">bore_connectivity</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span>
+</span><span data-line="300">            <span class="n">m_flow_network</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">m_flow_total</span><span class="p">,</span>
+</span><span data-line="301">            <span class="n">cp_f</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cp_f</span><span class="p">,</span>
+</span><span data-line="302">        <span class="p">)</span></div>
+
+</span><span data-line="303">
+<div class="viewcode-block" id="BoreNetwork.field_resistance">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.field_resistance">[docs]</a>
+</span><span data-line="304">    <span class="k">def</span><span class="w"> </span><span class="nf">field_resistance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="n">BoreField</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="305"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Field resistance ``R_field`` [m·K/W] (pygfunction ``network_thermal_resistance``).</span>
+</span><span data-line="306">
+</span><span data-line="307"><span class="sd">        ``(T_in + T_out)/2 = T_b − q&#39;·R_field`` for a uniform wall temperature</span>
+</span><span data-line="308"><span class="sd">        ``T_b`` and field load per metre ``q&#39; = Q/ΣH`` (extraction positive).</span>
+</span><span data-line="309"><span class="sd">        For identical parallel boreholes it equals one borehole&#39;s ``R_b*`` at</span>
+</span><span data-line="310"><span class="sd">        its share of the flow.</span>
+</span><span data-line="311"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="312">        <span class="n">network</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_pygfunction</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+</span><span data-line="313">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">gt</span><span class="o">.</span><span class="n">networks</span><span class="o">.</span><span class="n">network_thermal_resistance</span><span class="p">(</span><span class="n">network</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_flow_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_f</span><span class="p">))</span></div>
+</div>
+
+</span><span data-line="314">
+</span><span data-line="315">
+</span><span data-line="316"><span class="c1">#: Boundary conditions accepted by :class:`FieldGroundResponse`.</span>
+</span><span data-line="317"><span class="n">FIELD_BOUNDARY_CONDITIONS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;UBWT&quot;</span><span class="p">,</span> <span class="s2">&quot;UHTR&quot;</span><span class="p">,</span> <span class="s2">&quot;MIFT&quot;</span><span class="p">)</span>
+</span><span data-line="318">
+</span><span data-line="319">
+<div class="viewcode-block" id="FieldGroundResponse">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.FieldGroundResponse">[docs]</a>
+</span><span data-line="320"><span class="k">class</span><span class="w"> </span><span class="nc">FieldGroundResponse</span><span class="p">:</span>
+</span><span data-line="321"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ground response of a bore field, assembled for a host model.</span>
+</span><span data-line="322">
+</span><span data-line="323"><span class="sd">    Parameters</span>
+</span><span data-line="324"><span class="sd">    ----------</span>
+</span><span data-line="325"><span class="sd">    field : BoreField</span>
+</span><span data-line="326"><span class="sd">    pipe : BoreholePipe</span>
+</span><span data-line="327"><span class="sd">        Pipe configuration, the same in every borehole.</span>
+</span><span data-line="328"><span class="sd">    k_s, alpha_s : float</span>
+</span><span data-line="329"><span class="sd">        Ground conductivity [W/(m·K)] and diffusivity [m²/s].</span>
+</span><span data-line="330"><span class="sd">    m_flow_total : float</span>
+</span><span data-line="331"><span class="sd">        Total circulating mass flow [kg/s]; the resistance and, for MIFT, the</span>
+</span><span data-line="332"><span class="sd">        g-function are evaluated at this flow.</span>
+</span><span data-line="333"><span class="sd">    t_max_s : float</span>
+</span><span data-line="334"><span class="sd">        Expected simulation length [s].</span>
+</span><span data-line="335"><span class="sd">    rho_f, mu_f, cp_f, k_f : float</span>
+</span><span data-line="336"><span class="sd">        Fluid properties (default: water from :mod:`tmhp.constants`).</span>
+</span><span data-line="337"><span class="sd">    connectivity : sequence of int, optional</span>
+</span><span data-line="338"><span class="sd">        pygfunction ``bore_connectivity`` (−1 = from the header, j = downstream</span>
+</span><span data-line="339"><span class="sd">        of borehole j). Default: all parallel.</span>
+</span><span data-line="340"><span class="sd">    boundary_condition : {&#39;auto&#39;, &#39;UBWT&#39;, &#39;UHTR&#39;, &#39;MIFT&#39;}</span>
+</span><span data-line="341"><span class="sd">        ``&#39;auto&#39;``: ``&#39;UBWT&#39;`` when every borehole is in parallel and all have</span>
+</span><span data-line="342"><span class="sd">        the same length and buried depth (identical to the rectangular</span>
+</span><span data-line="343"><span class="sd">        constructor for a rectangle), otherwise ``&#39;MIFT&#39;``.</span>
+</span><span data-line="344"><span class="sd">    dt_s, num : as :class:`~tmhp.g_function.GFunction`.</span>
+</span><span data-line="345"><span class="sd">    method : str, optional</span>
+</span><span data-line="346"><span class="sd">        pygfunction solver, passed to :meth:`GFunction.from_field`. The</span>
+</span><span data-line="347"><span class="sd">        default ``&#39;equivalent&#39;`` groups boreholes of similar steady</span>
+</span><span data-line="348"><span class="sd">        temperature into clusters, so every member of a cluster gets the</span>
+</span><span data-line="349"><span class="sd">        cluster&#39;s load per metre in :meth:`borehole_load_shares` (an</span>
+</span><span data-line="350"><span class="sd">        irregular 12-borehole field: up to 0.01 off ``&#39;similarities&#39;`` in a</span>
+</span><span data-line="351"><span class="sd">        share of about 0.08, g within 0.15 %). Pass ``&#39;similarities&#39;`` for</span>
+</span><span data-line="352"><span class="sd">        per-borehole shares; it costs more for large fields.</span>
+</span><span data-line="353">
+</span><span data-line="354"><span class="sd">    Attributes</span>
+</span><span data-line="355"><span class="sd">    ----------</span>
+</span><span data-line="356"><span class="sd">    g : GFunction</span>
+</span><span data-line="357"><span class="sd">        Field g-function [m·K/W] for ``T_wall = T_s − Σ Δq&#39;·ḡ``.</span>
+</span><span data-line="358"><span class="sd">    R_b : float</span>
+</span><span data-line="359"><span class="sd">        Field resistance [m·K/W] for ``T_f = T_wall − q&#39;·R_b`` with</span>
+</span><span data-line="360"><span class="sd">        ``q&#39; = Q/ΣH``. Always the network&#39;s field resistance (uniform wall</span>
+</span><span data-line="361"><span class="sd">        temperature over the field); for MIFT it is the one the g-function&#39;s</span>
+</span><span data-line="362"><span class="sd">        effective wall temperature is defined with.</span>
+</span><span data-line="363"><span class="sd">    m_flow_boreholes : ndarray</span>
+</span><span data-line="364"><span class="sd">        Mass flow in each borehole [kg/s].</span>
+</span><span data-line="365"><span class="sd">    boundary_condition : str</span>
+</span><span data-line="366"><span class="sd">        The boundary condition used (``&#39;auto&#39;`` resolved).</span>
+</span><span data-line="367"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="368">
+<div class="viewcode-block" id="FieldGroundResponse.__init__">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.FieldGroundResponse.__init__">[docs]</a>
+</span><span data-line="369">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span data-line="370">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="371">        <span class="n">field</span><span class="p">:</span> <span class="n">BoreField</span><span class="p">,</span>
+</span><span data-line="372">        <span class="n">pipe</span><span class="p">:</span> <span class="n">BoreholePipe</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="373">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="374">        <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="375">        <span class="n">alpha_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="376">        <span class="n">m_flow_total</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="377">        <span class="n">t_max_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="378">        <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rho_w</span><span class="p">,</span>
+</span><span data-line="379">        <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">mu_w</span><span class="p">,</span>
+</span><span data-line="380">        <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span><span class="p">,</span>
+</span><span data-line="381">        <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">k_w</span><span class="p">,</span>
+</span><span data-line="382">        <span class="n">connectivity</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="383">        <span class="n">boundary_condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+</span><span data-line="384">        <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3600.0</span><span class="p">,</span>
+</span><span data-line="385">        <span class="n">num</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+</span><span data-line="386">        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="387">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="388">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="389">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">BoreField</span><span class="p">):</span>
+</span><span data-line="390">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;field must be a BoreField&quot;</span><span class="p">)</span>
+</span><span data-line="391">        <span class="n">pipe</span> <span class="o">=</span> <span class="n">BoreholePipe</span><span class="p">()</span> <span class="k">if</span> <span class="n">pipe</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pipe</span>
+</span><span data-line="392">        <span class="n">bc</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">boundary_condition</span><span class="p">)</span>
+</span><span data-line="393">        <span class="n">bc</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span> <span class="k">if</span> <span class="n">bc</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span> <span class="k">else</span> <span class="n">bc</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+</span><span data-line="394">        <span class="k">if</span> <span class="n">bc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">FIELD_BOUNDARY_CONDITIONS</span><span class="p">:</span>
+</span><span data-line="395">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="396">                <span class="sa">f</span><span class="s2">&quot;boundary_condition must be one of </span><span class="si">{</span><span class="n">FIELD_BOUNDARY_CONDITIONS</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">boundary_condition</span><span class="si">!r}</span><span class="s2">&quot;</span>
+</span><span data-line="397">            <span class="p">)</span>
+</span><span data-line="398">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">alpha_s</span><span class="p">)</span> <span class="ow">and</span> <span class="n">alpha_s</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="399">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;alpha_s must be positive and finite&quot;</span><span class="p">)</span>
+</span><span data-line="400">        <span class="n">network</span> <span class="o">=</span> <span class="n">BoreNetwork</span><span class="p">(</span>
+</span><span data-line="401">            <span class="n">pipe</span><span class="o">=</span><span class="n">pipe</span><span class="p">,</span>
+</span><span data-line="402">            <span class="n">k_s</span><span class="o">=</span><span class="n">k_s</span><span class="p">,</span>
+</span><span data-line="403">            <span class="n">m_flow_total</span><span class="o">=</span><span class="n">m_flow_total</span><span class="p">,</span>
+</span><span data-line="404">            <span class="n">connectivity</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">connectivity</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">connectivity</span><span class="p">),</span>
+</span><span data-line="405">            <span class="n">rho_f</span><span class="o">=</span><span class="n">rho_f</span><span class="p">,</span>
+</span><span data-line="406">            <span class="n">mu_f</span><span class="o">=</span><span class="n">mu_f</span><span class="p">,</span>
+</span><span data-line="407">            <span class="n">cp_f</span><span class="o">=</span><span class="n">cp_f</span><span class="p">,</span>
+</span><span data-line="408">            <span class="n">k_f</span><span class="o">=</span><span class="n">k_f</span><span class="p">,</span>
+</span><span data-line="409">        <span class="p">)</span>
+</span><span data-line="410">        <span class="n">network</span><span class="o">.</span><span class="n">check_field</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+</span><span data-line="411">        <span class="k">if</span> <span class="n">bc</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span><span class="p">:</span>
+</span><span data-line="412">            <span class="n">bc</span> <span class="o">=</span> <span class="s2">&quot;UBWT&quot;</span> <span class="k">if</span> <span class="n">network</span><span class="o">.</span><span class="n">is_parallel</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">n_boreholes</span><span class="p">)</span> <span class="ow">and</span> <span class="n">field</span><span class="o">.</span><span class="n">uniform_depth</span> <span class="k">else</span> <span class="s2">&quot;MIFT&quot;</span>
+</span><span data-line="413">        <span class="bp">self</span><span class="o">.</span><span class="n">field</span> <span class="o">=</span> <span class="n">field</span>
+</span><span data-line="414">        <span class="bp">self</span><span class="o">.</span><span class="n">pipe</span> <span class="o">=</span> <span class="n">pipe</span>
+</span><span data-line="415">        <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">network</span>
+</span><span data-line="416">        <span class="bp">self</span><span class="o">.</span><span class="n">k_s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">k_s</span><span class="p">)</span>
+</span><span data-line="417">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha_s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha_s</span><span class="p">)</span>
+</span><span data-line="418">        <span class="bp">self</span><span class="o">.</span><span class="n">m_flow_total</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">m_flow_total</span>
+</span><span data-line="419">        <span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">resolved_connectivity</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">n_boreholes</span><span class="p">)</span>
+</span><span data-line="420">        <span class="bp">self</span><span class="o">.</span><span class="n">boundary_condition</span> <span class="o">=</span> <span class="n">bc</span>
+</span><span data-line="421">        <span class="bp">self</span><span class="o">.</span><span class="n">m_flow_boreholes</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">borehole_flows</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">n_boreholes</span><span class="p">)</span>
+</span><span data-line="422">        <span class="bp">self</span><span class="o">.</span><span class="n">m_flow_boreholes</span><span class="o">.</span><span class="n">setflags</span><span class="p">(</span><span class="n">write</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="423">        <span class="bp">self</span><span class="o">.</span><span class="n">R_b</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">field_resistance</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+</span><span data-line="424">        <span class="bp">self</span><span class="o">.</span><span class="n">g</span> <span class="o">=</span> <span class="n">GFunction</span><span class="o">.</span><span class="n">from_field</span><span class="p">(</span>
+</span><span data-line="425">            <span class="n">field</span><span class="p">,</span>
+</span><span data-line="426">            <span class="n">alpha_s</span><span class="p">,</span>
+</span><span data-line="427">            <span class="n">k_s</span><span class="p">,</span>
+</span><span data-line="428">            <span class="n">t_max_s</span><span class="p">,</span>
+</span><span data-line="429">            <span class="n">boundary_condition</span><span class="o">=</span><span class="n">bc</span><span class="p">,</span>
+</span><span data-line="430">            <span class="n">network</span><span class="o">=</span><span class="n">network</span> <span class="k">if</span> <span class="n">bc</span> <span class="o">==</span> <span class="s2">&quot;MIFT&quot;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="431">            <span class="n">dt_s</span><span class="o">=</span><span class="n">dt_s</span><span class="p">,</span>
+</span><span data-line="432">            <span class="n">num</span><span class="o">=</span><span class="n">num</span><span class="p">,</span>
+</span><span data-line="433">            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+</span><span data-line="434">        <span class="p">)</span></div>
+
+</span><span data-line="435">
+<div class="viewcode-block" id="FieldGroundResponse.borehole_load_shares">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.FieldGroundResponse.borehole_load_shares">[docs]</a>
+</span><span data-line="436">    <span class="k">def</span><span class="w"> </span><span class="nf">borehole_load_shares</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">times</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span data-line="437"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Per-borehole fraction of a unit field-load step, shape ``(n, n_times)``; columns sum to 1.&quot;&quot;&quot;</span>
+</span><span data-line="438">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">borehole_load_shares</span><span class="p">(</span><span class="n">times</span><span class="p">)</span></div>
+
+</span><span data-line="439">
+</span><span data-line="440">    <span class="c1"># -- host models ----------------------------------------------------------</span>
+<div class="viewcode-block" id="FieldGroundResponse.dynamic_gfunction">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.FieldGroundResponse.dynamic_gfunction">[docs]</a>
+</span><span data-line="441">    <span class="k">def</span><span class="w"> </span><span class="nf">dynamic_gfunction</span><span class="p">(</span>
+</span><span data-line="442">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="443">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="444">        <span class="n">rhoc_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="445">        <span class="n">rhoc_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="446">        <span class="n">transit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="447">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="448"><span class="w">        </span><span class="sd">&quot;&quot;&quot;The field g-function with borehole heat capacity, short-time response and fluid transit.</span>
+</span><span data-line="449">
+</span><span data-line="450"><span class="sd">        See :mod:`tmhp.borehole_capacity`. The section is built from this</span>
+</span><span data-line="451"><span class="sd">        field&#39;s pipe and resistance; the transit uses one circuit (its</span>
+</span><span data-line="452"><span class="sd">        boreholes in series, its share of the flow). A coaxial pipe is mapped</span>
+</span><span data-line="453"><span class="sd">        with the outer pipe as the equivalent cylinder.</span>
+</span><span data-line="454"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="455">        <span class="kn">from</span><span class="w"> </span><span class="nn">.borehole_capacity</span><span class="w"> </span><span class="kn">import</span> <span class="n">RHOC_GROUT_DEFAULT</span><span class="p">,</span> <span class="n">RHOC_PIPE_DEFAULT</span><span class="p">,</span> <span class="n">with_borehole_capacity</span>
+</span><span data-line="456">
+</span><span data-line="457">        <span class="n">n_circuits</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span> <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span><span data-line="458">        <span class="n">m_circuit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_flow_total</span> <span class="o">/</span> <span class="n">n_circuits</span>
+</span><span data-line="459">        <span class="n">net</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span>
+</span><span data-line="460">        <span class="n">R_fp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">fluid_to_pipe_resistance</span><span class="p">(</span><span class="n">m_circuit</span><span class="p">,</span> <span class="n">net</span><span class="o">.</span><span class="n">rho_f</span><span class="p">,</span> <span class="n">net</span><span class="o">.</span><span class="n">mu_f</span><span class="p">,</span> <span class="n">net</span><span class="o">.</span><span class="n">cp_f</span><span class="p">,</span> <span class="n">net</span><span class="o">.</span><span class="n">k_f</span><span class="p">)</span>
+</span><span data-line="461">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;coaxial&quot;</span><span class="p">:</span>
+</span><span data-line="462">            <span class="n">n_pipes</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span data-line="463">            <span class="n">r_out</span><span class="p">,</span> <span class="n">r_in</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">r_out_outer</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">r_in_outer</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="464">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="465">            <span class="n">n_pipes</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">n_pipes</span>
+</span><span data-line="466">            <span class="n">r_out</span><span class="p">,</span> <span class="n">r_in</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">r_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">r_in</span>
+</span><span data-line="467">        <span class="k">return</span> <span class="n">with_borehole_capacity</span><span class="p">(</span>
+</span><span data-line="468">            <span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="p">,</span>
+</span><span data-line="469">            <span class="n">r_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">r_b</span><span class="p">,</span>
+</span><span data-line="470">            <span class="n">k_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_s</span><span class="p">,</span>
+</span><span data-line="471">            <span class="n">rhoc_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_s</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha_s</span><span class="p">,</span>
+</span><span data-line="472">            <span class="n">R_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">R_b</span><span class="p">,</span>
+</span><span data-line="473">            <span class="n">r_out</span><span class="o">=</span><span class="n">r_out</span><span class="p">,</span>
+</span><span data-line="474">            <span class="n">r_in</span><span class="o">=</span><span class="n">r_in</span><span class="p">,</span>
+</span><span data-line="475">            <span class="n">n_pipes</span><span class="o">=</span><span class="n">n_pipes</span><span class="p">,</span>
+</span><span data-line="476">            <span class="n">R_fp</span><span class="o">=</span><span class="n">R_fp</span><span class="p">,</span>
+</span><span data-line="477">            <span class="n">m_flow_borehole</span><span class="o">=</span><span class="n">m_circuit</span><span class="p">,</span>
+</span><span data-line="478">            <span class="n">rhoc_g</span><span class="o">=</span><span class="n">RHOC_GROUT_DEFAULT</span> <span class="k">if</span> <span class="n">rhoc_g</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">rhoc_g</span><span class="p">,</span>
+</span><span data-line="479">            <span class="n">rhoc_f</span><span class="o">=</span><span class="n">net</span><span class="o">.</span><span class="n">rho_f</span> <span class="o">*</span> <span class="n">net</span><span class="o">.</span><span class="n">cp_f</span><span class="p">,</span>
+</span><span data-line="480">            <span class="n">rhoc_p</span><span class="o">=</span><span class="n">RHOC_PIPE_DEFAULT</span> <span class="k">if</span> <span class="n">rhoc_p</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">rhoc_p</span><span class="p">,</span>
+</span><span data-line="481">            <span class="n">H</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">total_length</span> <span class="o">/</span> <span class="n">n_circuits</span><span class="p">,</span>
+</span><span data-line="482">            <span class="n">cp_f</span><span class="o">=</span><span class="n">net</span><span class="o">.</span><span class="n">cp_f</span><span class="p">,</span>
+</span><span data-line="483">            <span class="n">transit</span><span class="o">=</span><span class="n">transit</span><span class="p">,</span>
+</span><span data-line="484">        <span class="p">)</span></div>
+
+</span><span data-line="485">
+<div class="viewcode-block" id="FieldGroundResponse.model_kwargs">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.FieldGroundResponse.model_kwargs">[docs]</a>
+</span><span data-line="486">    <span class="k">def</span><span class="w"> </span><span class="nf">model_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">800.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="487"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructor arguments that make a ground-source model describe this field.</span>
+</span><span data-line="488">
+</span><span data-line="489"><span class="sd">        For :class:`~tmhp.GroundSourceHeatPumpBoiler` and</span>
+</span><span data-line="490"><span class="sd">        :class:`~tmhp.GroundSourceHeatPump`: the borehole count, the mean</span>
+</span><span data-line="491"><span class="sd">        depth (so that ``N * H_b`` is the total length), the field resistance</span>
+</span><span data-line="492"><span class="sd">        as a fixed ``R_b``, the ground properties and the loop flow. The</span>
+</span><span data-line="493"><span class="sd">        model&#39;s own rectangular g-function is then replaced with</span>
+</span><span data-line="494"><span class="sd">        :meth:`attach`::</span>
+</span><span data-line="495">
+</span><span data-line="496"><span class="sd">            response = FieldGroundResponse(field, pipe, k_s=2.0, alpha_s=1.25e-6,</span>
+</span><span data-line="497"><span class="sd">                                           m_flow_total=0.8, t_max_s=10 * 8760 * 3600)</span>
+</span><span data-line="498"><span class="sd">            model = GroundSourceHeatPumpBoiler(**response.model_kwargs(), hp_capacity=12000.0)</span>
+</span><span data-line="499"><span class="sd">            response.attach(model)</span>
+</span><span data-line="500">
+</span><span data-line="501"><span class="sd">        ``c_s`` [J/(kg K)] splits the ground heat capacity ``k_s / alpha_s``</span>
+</span><span data-line="502"><span class="sd">        into the ``c_s`` and ``rho_s`` the models take.</span>
+</span><span data-line="503"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="504">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">c_s</span><span class="p">)</span> <span class="ow">and</span> <span class="n">c_s</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="505">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;c_s must be positive and finite&quot;</span><span class="p">)</span>
+</span><span data-line="506">        <span class="n">field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span>
+</span><span data-line="507">        <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+</span><span data-line="508">            <span class="n">N_1</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">n_boreholes</span><span class="p">,</span>
+</span><span data-line="509">            <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span data-line="510">            <span class="n">H_b</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">mean_depth</span><span class="p">,</span>
+</span><span data-line="511">            <span class="n">D_b</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">D</span><span class="p">)),</span>
+</span><span data-line="512">            <span class="n">r_b</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">r_b</span><span class="p">,</span>
+</span><span data-line="513">            <span class="n">R_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">R_b</span><span class="p">,</span>
+</span><span data-line="514">            <span class="n">k_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_s</span><span class="p">,</span>
+</span><span data-line="515">            <span class="n">c_s</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">c_s</span><span class="p">),</span>
+</span><span data-line="516">            <span class="n">rho_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_s</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha_s</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">c_s</span><span class="p">)),</span>
+</span><span data-line="517">            <span class="n">ground_flow_ref_lpm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">m_flow_total</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">rho_f</span> <span class="o">*</span> <span class="mf">60000.0</span><span class="p">,</span>
+</span><span data-line="518">        <span class="p">)</span>
+</span><span data-line="519">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s2">&quot;coaxial&quot;</span><span class="p">:</span>
+</span><span data-line="520">            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span data-line="521">                <span class="n">k_g</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">k_g</span><span class="p">,</span> <span class="n">k_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">k_p</span><span class="p">,</span> <span class="n">r_out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">r_out</span><span class="p">,</span> <span class="n">r_in</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">r_in</span><span class="p">,</span> <span class="n">D_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">D_s</span>
+</span><span data-line="522">            <span class="p">)</span>
+</span><span data-line="523">        <span class="k">return</span> <span class="n">kwargs</span></div>
+
+</span><span data-line="524">
+<div class="viewcode-block" id="FieldGroundResponse.attach">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borefield.FieldGroundResponse.attach">[docs]</a>
+</span><span data-line="525">    <span class="k">def</span><span class="w"> </span><span class="nf">attach</span><span class="p">(</span>
+</span><span data-line="526">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="527">        <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="528">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="529">        <span class="n">borehole_dynamics</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="530">        <span class="n">rhoc_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="531">        <span class="n">rhoc_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="532">        <span class="n">transit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="533">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="534"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Make ``model`` use this field&#39;s ground response, in place.</span>
+</span><span data-line="535">
+</span><span data-line="536"><span class="sd">        ``model`` must have been constructed with :meth:`model_kwargs` (same</span>
+</span><span data-line="537"><span class="sd">        borehole count, total length, resistance, ground properties and</span>
+</span><span data-line="538"><span class="sd">        flow); a mismatch raises instead of mixing two fields. With</span>
+</span><span data-line="539"><span class="sd">        ``borehole_dynamics=True`` the response is :meth:`dynamic_gfunction`.</span>
+</span><span data-line="540"><span class="sd">        Returns the g-function now used by the model.</span>
+</span><span data-line="541">
+</span><span data-line="542"><span class="sd">        The field resistance and a MIFT g-function hold for the flow given</span>
+</span><span data-line="543"><span class="sd">        here, so the model must run that constant flow (no ``variable_Rb``,</span>
+</span><span data-line="544"><span class="sd">        no variable ground flow).</span>
+</span><span data-line="545"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="546">        <span class="kn">from</span><span class="w"> </span><span class="nn">.ground_coupling</span><span class="w"> </span><span class="kn">import</span> <span class="n">AggregateGFunctionCoupler</span>
+</span><span data-line="547">
+</span><span data-line="548">        <span class="n">settings</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;_ground_settings&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="549">        <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;_gfunc_interp&quot;</span><span class="p">):</span>
+</span><span data-line="550">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> does not expose a borehole field&quot;</span><span class="p">)</span>
+</span><span data-line="551">        <span class="n">field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span>
+</span><span data-line="552">        <span class="n">expected</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="553">            <span class="s2">&quot;borehole count&quot;</span><span class="p">:</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s2">&quot;n_boreholes&quot;</span><span class="p">]),</span> <span class="n">field</span><span class="o">.</span><span class="n">n_boreholes</span><span class="p">),</span>
+</span><span data-line="554">            <span class="s2">&quot;total borehole length [m]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s2">&quot;n_boreholes&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">settings</span><span class="p">[</span><span class="s2">&quot;H_b&quot;</span><span class="p">],</span> <span class="n">field</span><span class="o">.</span><span class="n">total_length</span><span class="p">),</span>
+</span><span data-line="555">            <span class="s2">&quot;R_b [m.K/W]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s2">&quot;R_b&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_b</span><span class="p">),</span>
+</span><span data-line="556">            <span class="s2">&quot;k_s [W/(m.K)]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">k_s</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_s</span><span class="p">),</span>
+</span><span data-line="557">            <span class="s2">&quot;alpha_s [m2/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">k_s</span> <span class="o">/</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">rho_s</span> <span class="o">*</span> <span class="n">model</span><span class="o">.</span><span class="n">c_s</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha_s</span><span class="p">),</span>
+</span><span data-line="558">            <span class="s2">&quot;loop flow [m3/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s2">&quot;volume_flow_constant&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_flow_total</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">rho_f</span><span class="p">),</span>
+</span><span data-line="559">        <span class="p">}</span>
+</span><span data-line="560">        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">got</span><span class="p">,</span> <span class="n">want</span><span class="p">)</span> <span class="ow">in</span> <span class="n">expected</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="561">            <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">got</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">want</span><span class="p">),</span> <span class="n">rel_tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">abs_tol</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+</span><span data-line="562">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="563">                    <span class="sa">f</span><span class="s2">&quot;model and field disagree on </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: model </span><span class="si">{</span><span class="n">got</span><span class="si">!r}</span><span class="s2">, field </span><span class="si">{</span><span class="n">want</span><span class="si">!r}</span><span class="s2">; &quot;</span>
+</span><span data-line="564">                    <span class="s2">&quot;construct the model with FieldGroundResponse.model_kwargs()&quot;</span>
+</span><span data-line="565">                <span class="p">)</span>
+</span><span data-line="566">        <span class="k">if</span> <span class="n">settings</span><span class="p">[</span><span class="s2">&quot;variable_Rb&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">settings</span><span class="p">[</span><span class="s2">&quot;control&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;constant&quot;</span><span class="p">:</span>
+</span><span data-line="567">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;a field response holds for one flow: use constant ground flow without variable_Rb&quot;</span><span class="p">)</span>
+</span><span data-line="568">        <span class="c1"># The models compute the loop temperature difference Q / (m c_p) with</span>
+</span><span data-line="569">        <span class="c1"># water. A field built for another heat-capacity rate would give</span>
+</span><span data-line="570">        <span class="c1"># inlet and outlet temperatures inconsistent with its own g-function</span>
+</span><span data-line="571">        <span class="c1"># and transit kernel. (Viscosity and conductivity only enter R_b,</span>
+</span><span data-line="572">        <span class="c1"># which the model takes from the field.)</span>
+</span><span data-line="573">        <span class="n">net</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span>
+</span><span data-line="574">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">rho_f</span><span class="p">,</span> <span class="n">rho_w</span><span class="p">,</span> <span class="n">rel_tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">cp_f</span><span class="p">,</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">rel_tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">)):</span>
+</span><span data-line="575">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="576">                <span class="sa">f</span><span class="s2">&quot;the models take the loop fluid as water (rho </span><span class="si">{</span><span class="n">rho_w</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> kg/m3, c_p </span><span class="si">{</span><span class="n">c_w</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> J/(kg K)); &quot;</span>
+</span><span data-line="577">                <span class="sa">f</span><span class="s2">&quot;this field was built with rho_f </span><span class="si">{</span><span class="n">net</span><span class="o">.</span><span class="n">rho_f</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">, cp_f </span><span class="si">{</span><span class="n">net</span><span class="o">.</span><span class="n">cp_f</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span data-line="578">            <span class="p">)</span>
+</span><span data-line="579">        <span class="c1"># The models&#39; pump power assumes identical parallel single U-tubes of</span>
+</span><span data-line="580">        <span class="c1"># length 2 H_b carrying water; any other circuit or viscosity would be</span>
+</span><span data-line="581">        <span class="c1"># given the wrong pressure drop.</span>
+</span><span data-line="582">        <span class="k">if</span> <span class="n">settings</span><span class="p">[</span><span class="s2">&quot;hydraulic_pump&quot;</span><span class="p">]:</span>
+</span><span data-line="583">            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;single_u&quot;</span> <span class="ow">and</span> <span class="n">net</span><span class="o">.</span><span class="n">is_parallel</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">n_boreholes</span><span class="p">)</span> <span class="ow">and</span> <span class="n">field</span><span class="o">.</span><span class="n">uniform_depth</span><span class="p">):</span>
+</span><span data-line="584">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="585">                    <span class="s2">&quot;hydraulic_pump computes the pressure drop of equal parallel single U-tubes; &quot;</span>
+</span><span data-line="586">                    <span class="s2">&quot;it does not describe this field (series circuits, other pipes or unequal depths). &quot;</span>
+</span><span data-line="587">                    <span class="s2">&quot;Give the pump power directly (E_pmp) instead&quot;</span>
+</span><span data-line="588">                <span class="p">)</span>
+</span><span data-line="589">            <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">mu_f</span><span class="p">,</span> <span class="n">mu_w</span><span class="p">,</span> <span class="n">rel_tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">):</span>
+</span><span data-line="590">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="591">                    <span class="sa">f</span><span class="s2">&quot;hydraulic_pump computes the pressure drop with the viscosity of water (</span><span class="si">{</span><span class="n">mu_w</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> Pa s); &quot;</span>
+</span><span data-line="592">                    <span class="sa">f</span><span class="s2">&quot;this field was built with mu_f </span><span class="si">{</span><span class="n">net</span><span class="o">.</span><span class="n">mu_f</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">. Give the pump power directly (E_pmp) instead&quot;</span>
+</span><span data-line="593">                <span class="p">)</span>
+</span><span data-line="594">        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamic_gfunction</span><span class="p">(</span><span class="n">rhoc_g</span><span class="o">=</span><span class="n">rhoc_g</span><span class="p">,</span> <span class="n">rhoc_p</span><span class="o">=</span><span class="n">rhoc_p</span><span class="p">,</span> <span class="n">transit</span><span class="o">=</span><span class="n">transit</span><span class="p">)</span> <span class="k">if</span> <span class="n">borehole_dynamics</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">g</span>
+</span><span data-line="595">        <span class="n">coupler</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;_ground_coupler&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="596">        <span class="k">if</span> <span class="n">coupler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="597">            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coupler</span><span class="p">,</span> <span class="n">AggregateGFunctionCoupler</span><span class="p">):</span>
+</span><span data-line="598">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;the model uses an injected ground_coupler; build it without one&quot;</span><span class="p">)</span>
+</span><span data-line="599">            <span class="n">model</span><span class="o">.</span><span class="n">_ground_coupler</span> <span class="o">=</span> <span class="n">AggregateGFunctionCoupler</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">pulse_tol</span><span class="o">=</span><span class="n">coupler</span><span class="o">.</span><span class="n">_pulse_tol</span><span class="p">,</span> <span class="n">dt_s</span><span class="o">=</span><span class="n">coupler</span><span class="o">.</span><span class="n">_dt_fixed</span><span class="p">)</span>
+</span><span data-line="600">        <span class="n">model</span><span class="o">.</span><span class="n">_gfunc_interp</span> <span class="o">=</span> <span class="n">g</span>
+</span><span data-line="601">        <span class="k">return</span> <span class="n">g</span></div>
+</div>
+
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+      <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../../_static/js/core/global.js?v=4865e9a9"></script>
+      <script defer="defer" src="../../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+</html>

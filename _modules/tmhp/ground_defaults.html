@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>tmhp.ground_defaults - TMHP</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/TMHP/_modules/tmhp/ground_defaults.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=4ea1e3a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/integration-diagrams.css?v=b297bf1e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>TMHP</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Start</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../integrations/index.html">Integrations</a></li><li class="link"><a href="../../api/index.html">API</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-response.html">Ground response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-flow.html">Coupled ground-loop flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/reference-state.html">Compressor reference state</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/fmu.html">FMI FMU export</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/TMHP">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">tmhp.ground_defaults</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <h1>Source code for tmhp.ground_defaults</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Capacity-proportional ground-side defaults and sizing checks (#96).</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="sd">A model that is given only its capacity sizes the ground side from the heat</span>
+</span><span data-line="4"><span class="sd">the ground loop carries at the rating point. The rules here are shared by the</span>
+</span><span data-line="5"><span class="sd">ground- and water-source families; a value the user supplies always replaces</span>
+</span><span data-line="6"><span class="sd">the default it would have produced.</span>
+</span><span data-line="7">
+</span><span data-line="8"><span class="sd">- :func:`default_ground_flow_lpm` -- loop flow from the rated source-side heat</span>
+</span><span data-line="9"><span class="sd">- :func:`default_borefield_layout` -- borehole count from the specific load</span>
+</span><span data-line="10"><span class="sd">- :func:`warn_if_laminar_ground_flow`, :func:`warn_if_borefield_undersized` --</span>
+</span><span data-line="11"><span class="sd">  sizing slips reported instead of being solved silently</span>
+</span><span data-line="12"><span class="sd">- the default pump power is :func:`tmhp.pump.default_ground_pump_power`</span>
+</span><span data-line="13"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="14">
+</span><span data-line="15"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="16"><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+</span><span data-line="17">
+</span><span data-line="18"><span class="kn">from</span><span class="w"> </span><span class="nn">.ground_loop</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_borehole_mass_flow</span><span class="p">,</span> <span class="n">calc_total_borehole_length</span>
+</span><span data-line="19">
+</span><span data-line="20"><span class="c1">#: Source-side heat at the rating point as a share of the rated capacity: a</span>
+</span><span data-line="21"><span class="c1">#: heating machine at COP 4 takes 0.75 of its capacity from the ground.</span>
+</span><span data-line="22"><span class="n">RATED_SOURCE_HEAT_FRACTION</span> <span class="o">=</span> <span class="mf">0.75</span>
+</span><span data-line="23"><span class="c1">#: Ground-loop temperature change [K] at that heat, which fixes the default</span>
+</span><span data-line="24"><span class="c1">#: flow (about 3.6 L/min per kW of capacity for water).</span>
+</span><span data-line="25"><span class="n">GROUND_LOOP_DESIGN_DT_K</span> <span class="o">=</span> <span class="mf">3.0</span>
+</span><span data-line="26"><span class="c1">#: Specific borehole load [W/m] at the rated source-side heat that the default</span>
+</span><span data-line="27"><span class="c1">#: borefield stays below, and the load above which a user-given field is</span>
+</span><span data-line="28"><span class="c1">#: reported as undersized (VDI 4640-2 specific extraction rates span about</span>
+</span><span data-line="29"><span class="c1">#: 20-80 W/m between dry sediment and water-bearing rock).</span>
+</span><span data-line="30"><span class="n">BOREHOLE_DESIGN_LINEAR_LOAD</span> <span class="o">=</span> <span class="mf">50.0</span>
+</span><span data-line="31"><span class="n">BOREHOLE_MAX_LINEAR_LOAD</span> <span class="o">=</span> <span class="mf">80.0</span>
+</span><span data-line="32"><span class="c1">#: Default active depth of one borehole [m].</span>
+</span><span data-line="33"><span class="n">BOREHOLE_DEFAULT_DEPTH</span> <span class="o">=</span> <span class="mf">100.0</span>
+</span><span data-line="34"><span class="c1">#: Pipe Reynolds number below which the U-tube flow is laminar.</span>
+</span><span data-line="35"><span class="n">LAMINAR_REYNOLDS_LIMIT</span> <span class="o">=</span> <span class="mf">2300.0</span>
+</span><span data-line="36">
+</span><span data-line="37">
+<div class="viewcode-block" id="calc_rated_source_heat">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_defaults.calc_rated_source_heat">[docs]</a>
+</span><span data-line="38"><span class="k">def</span><span class="w"> </span><span class="nf">calc_rated_source_heat</span><span class="p">(</span><span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">source_heat_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">RATED_SOURCE_HEAT_FRACTION</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="39"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Source-side heat [W] at the rating point, ``source_heat_fraction * hp_capacity``.&quot;&quot;&quot;</span>
+</span><span data-line="40">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">hp_capacity</span><span class="p">,</span> <span class="n">source_heat_fraction</span><span class="p">)):</span>
+</span><span data-line="41">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;hp_capacity and source_heat_fraction must be finite and positive&quot;</span><span class="p">)</span>
+</span><span data-line="42">    <span class="k">return</span> <span class="n">source_heat_fraction</span> <span class="o">*</span> <span class="n">hp_capacity</span></div>
+
+</span><span data-line="43">
+</span><span data-line="44">
+<div class="viewcode-block" id="default_ground_flow_lpm">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_defaults.default_ground_flow_lpm">[docs]</a>
+</span><span data-line="45"><span class="k">def</span><span class="w"> </span><span class="nf">default_ground_flow_lpm</span><span class="p">(</span>
+</span><span data-line="46">    <span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="47">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="48">    <span class="n">source_heat_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">RATED_SOURCE_HEAT_FRACTION</span><span class="p">,</span>
+</span><span data-line="49">    <span class="n">delta_T_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">GROUND_LOOP_DESIGN_DT_K</span><span class="p">,</span>
+</span><span data-line="50">    <span class="n">rho</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span><span class="p">,</span>
+</span><span data-line="51">    <span class="n">cp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4186.0</span><span class="p">,</span>
+</span><span data-line="52"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="53"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Default field-total source-side flow [L/min] for a rated capacity [W].</span>
+</span><span data-line="54">
+</span><span data-line="55"><span class="sd">    ``0.75 * hp_capacity / (rho * cp * 3 K)``: the flow at which the rated</span>
+</span><span data-line="56"><span class="sd">    source-side heat changes the loop temperature by 3 K (14.3 L/min of water</span>
+</span><span data-line="57"><span class="sd">    for 4 kW, 3.58 L/min per kW). In cooling, where the loop carries about</span>
+</span><span data-line="58"><span class="sd">    1.2 times the capacity, the same flow gives about 4.8 K. Parallel</span>
+</span><span data-line="59"><span class="sd">    boreholes share this flow equally.</span>
+</span><span data-line="60"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="61">    <span class="n">heat</span> <span class="o">=</span> <span class="n">calc_rated_source_heat</span><span class="p">(</span><span class="n">hp_capacity</span><span class="p">,</span> <span class="n">source_heat_fraction</span><span class="p">)</span>
+</span><span data-line="62">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">delta_T_K</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">cp</span><span class="p">)):</span>
+</span><span data-line="63">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;delta_T_K, rho and cp must be finite and positive&quot;</span><span class="p">)</span>
+</span><span data-line="64">    <span class="k">return</span> <span class="n">heat</span> <span class="o">/</span> <span class="p">(</span><span class="n">rho</span> <span class="o">*</span> <span class="n">cp</span> <span class="o">*</span> <span class="n">delta_T_K</span><span class="p">)</span> <span class="o">*</span> <span class="mf">60000.0</span></div>
+
+</span><span data-line="65">
+</span><span data-line="66">
+<div class="viewcode-block" id="calc_rated_linear_load">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_defaults.calc_rated_linear_load">[docs]</a>
+</span><span data-line="67"><span class="k">def</span><span class="w"> </span><span class="nf">calc_rated_linear_load</span><span class="p">(</span>
+</span><span data-line="68">    <span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="69">    <span class="n">n_boreholes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="70">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="71">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="72">    <span class="n">source_heat_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">RATED_SOURCE_HEAT_FRACTION</span><span class="p">,</span>
+</span><span data-line="73"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="74"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Specific borehole load [W/m] at the rated source-side heat.&quot;&quot;&quot;</span>
+</span><span data-line="75">    <span class="k">return</span> <span class="n">calc_rated_source_heat</span><span class="p">(</span><span class="n">hp_capacity</span><span class="p">,</span> <span class="n">source_heat_fraction</span><span class="p">)</span> <span class="o">/</span> <span class="n">calc_total_borehole_length</span><span class="p">(</span><span class="n">n_boreholes</span><span class="p">,</span> <span class="n">H_b</span><span class="p">)</span></div>
+
+</span><span data-line="76">
+</span><span data-line="77">
+<div class="viewcode-block" id="default_borefield_layout">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_defaults.default_borefield_layout">[docs]</a>
+</span><span data-line="78"><span class="k">def</span><span class="w"> </span><span class="nf">default_borefield_layout</span><span class="p">(</span>
+</span><span data-line="79">    <span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="80">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">BOREHOLE_DEFAULT_DEPTH</span><span class="p">,</span>
+</span><span data-line="81">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="82">    <span class="n">max_linear_load</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">BOREHOLE_DESIGN_LINEAR_LOAD</span><span class="p">,</span>
+</span><span data-line="83">    <span class="n">source_heat_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">RATED_SOURCE_HEAT_FRACTION</span><span class="p">,</span>
+</span><span data-line="84"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+</span><span data-line="85"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Smallest near-square ``(N_1, N_2)`` field that keeps the rated load within ``max_linear_load``.</span>
+</span><span data-line="86">
+</span><span data-line="87"><span class="sd">    The number of boreholes of depth ``H_b`` is the smallest that carries the</span>
+</span><span data-line="88"><span class="sd">    rated source-side heat at no more than ``max_linear_load`` [W/m]; it is</span>
+</span><span data-line="89"><span class="sd">    then rounded up to a rectangle with ``N_1 = ceil(sqrt(n))`` columns. One</span>
+</span><span data-line="90"><span class="sd">    100 m borehole serves up to 6.67 kW of capacity; 8 kW gets 2 x 1, 14 kW</span>
+</span><span data-line="91"><span class="sd">    2 x 2, 30 kW 3 x 2 and 100 kW 4 x 4.</span>
+</span><span data-line="92"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="93">    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">max_linear_load</span><span class="p">)</span> <span class="ow">or</span> <span class="n">max_linear_load</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="94">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;max_linear_load must be finite and positive&quot;</span><span class="p">)</span>
+</span><span data-line="95">    <span class="n">length</span> <span class="o">=</span> <span class="n">calc_rated_source_heat</span><span class="p">(</span><span class="n">hp_capacity</span><span class="p">,</span> <span class="n">source_heat_fraction</span><span class="p">)</span> <span class="o">/</span> <span class="n">max_linear_load</span>
+</span><span data-line="96">    <span class="n">calc_total_borehole_length</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">H_b</span><span class="p">)</span>
+</span><span data-line="97">    <span class="c1"># A count that is an integer up to rounding must not gain a borehole.</span>
+</span><span data-line="98">    <span class="n">needed</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">length</span> <span class="o">/</span> <span class="n">H_b</span> <span class="o">-</span> <span class="mf">1e-9</span><span class="p">))</span>
+</span><span data-line="99">    <span class="n">n_1</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">needed</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1e-9</span><span class="p">)</span>
+</span><span data-line="100">    <span class="n">n_2</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">needed</span> <span class="o">/</span> <span class="n">n_1</span> <span class="o">-</span> <span class="mf">1e-9</span><span class="p">)</span>
+</span><span data-line="101">    <span class="k">return</span> <span class="n">n_1</span><span class="p">,</span> <span class="n">n_2</span></div>
+
+</span><span data-line="102">
+</span><span data-line="103">
+<div class="viewcode-block" id="calc_borehole_reynolds">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_defaults.calc_borehole_reynolds">[docs]</a>
+</span><span data-line="104"><span class="k">def</span><span class="w"> </span><span class="nf">calc_borehole_reynolds</span><span class="p">(</span>
+</span><span data-line="105">    <span class="n">volume_flow_total</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="106">    <span class="n">n_boreholes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="107">    <span class="n">pipe_inner_diameter</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="108">    <span class="n">rho</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span><span class="p">,</span>
+</span><span data-line="109">    <span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
+</span><span data-line="110"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="111"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Pipe Reynolds number in one U-tube leg for a field-total flow [m³/s].&quot;&quot;&quot;</span>
+</span><span data-line="112">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">pipe_inner_diameter</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">mu</span><span class="p">)):</span>
+</span><span data-line="113">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;pipe_inner_diameter, rho and mu must be finite and positive&quot;</span><span class="p">)</span>
+</span><span data-line="114">    <span class="n">branch</span> <span class="o">=</span> <span class="n">calc_borehole_mass_flow</span><span class="p">(</span><span class="n">volume_flow_total</span> <span class="o">*</span> <span class="n">rho</span><span class="p">,</span> <span class="n">n_boreholes</span><span class="p">)</span>
+</span><span data-line="115">    <span class="k">return</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">branch</span> <span class="o">/</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">pipe_inner_diameter</span> <span class="o">*</span> <span class="n">mu</span><span class="p">)</span></div>
+
+</span><span data-line="116">
+</span><span data-line="117">
+<div class="viewcode-block" id="warn_if_laminar_ground_flow">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_defaults.warn_if_laminar_ground_flow">[docs]</a>
+</span><span data-line="118"><span class="k">def</span><span class="w"> </span><span class="nf">warn_if_laminar_ground_flow</span><span class="p">(</span>
+</span><span data-line="119">    <span class="n">volume_flow_total</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="120">    <span class="n">n_boreholes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="121">    <span class="n">pipe_inner_diameter</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="122">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="123">    <span class="n">rho</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span><span class="p">,</span>
+</span><span data-line="124">    <span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
+</span><span data-line="125">    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;reference&quot;</span><span class="p">,</span>
+</span><span data-line="126">    <span class="n">stacklevel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+</span><span data-line="127"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="128"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the U-tube Reynolds number; warn (``UserWarning``) when it is laminar.</span>
+</span><span data-line="129">
+</span><span data-line="130"><span class="sd">    A laminar U-tube is not an error: the borehole resistance and the pipe</span>
+</span><span data-line="131"><span class="sd">    loss are evaluated for it. It is reported because the fluid film then</span>
+</span><span data-line="132"><span class="sd">    dominates the borehole resistance (R_b* roughly doubles) and such a loop</span>
+</span><span data-line="133"><span class="sd">    is normally a sizing slip -- a flow that was not scaled with the number of</span>
+</span><span data-line="134"><span class="sd">    parallel boreholes.</span>
+</span><span data-line="135"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="136">    <span class="n">reynolds</span> <span class="o">=</span> <span class="n">calc_borehole_reynolds</span><span class="p">(</span><span class="n">volume_flow_total</span><span class="p">,</span> <span class="n">n_boreholes</span><span class="p">,</span> <span class="n">pipe_inner_diameter</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">mu</span><span class="p">)</span>
+</span><span data-line="137">    <span class="k">if</span> <span class="n">reynolds</span> <span class="o">&lt;</span> <span class="n">LAMINAR_REYNOLDS_LIMIT</span><span class="p">:</span>
+</span><span data-line="138">        <span class="n">per_borehole</span> <span class="o">=</span> <span class="n">volume_flow_total</span> <span class="o">/</span> <span class="n">n_boreholes</span> <span class="o">*</span> <span class="mf">60000.0</span>
+</span><span data-line="139">        <span class="n">needed</span> <span class="o">=</span> <span class="n">LAMINAR_REYNOLDS_LIMIT</span> <span class="o">/</span> <span class="n">reynolds</span> <span class="o">*</span> <span class="n">volume_flow_total</span> <span class="o">*</span> <span class="mf">60000.0</span>
+</span><span data-line="140">        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+</span><span data-line="141">            <span class="sa">f</span><span class="s2">&quot;ground loop is laminar at the </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> flow: Re = </span><span class="si">{</span><span class="n">reynolds</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> &lt; </span><span class="si">{</span><span class="n">LAMINAR_REYNOLDS_LIMIT</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> in each &quot;</span>
+</span><span data-line="142">            <span class="sa">f</span><span class="s2">&quot;U-tube (</span><span class="si">{</span><span class="n">per_borehole</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> L/min per borehole, </span><span class="si">{</span><span class="n">n_boreholes</span><span class="si">}</span><span class="s2"> parallel borehole(s)). The borehole &quot;</span>
+</span><span data-line="143">            <span class="sa">f</span><span class="s2">&quot;resistance is evaluated for laminar flow; a turbulent loop needs at least </span><span class="si">{</span><span class="n">needed</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> L/min in total &quot;</span>
+</span><span data-line="144">            <span class="s2">&quot;(ground_flow_ref_lpm) or fewer parallel boreholes.&quot;</span><span class="p">,</span>
+</span><span data-line="145">            <span class="ne">UserWarning</span><span class="p">,</span>
+</span><span data-line="146">            <span class="n">stacklevel</span><span class="o">=</span><span class="n">stacklevel</span><span class="p">,</span>
+</span><span data-line="147">        <span class="p">)</span>
+</span><span data-line="148">    <span class="k">return</span> <span class="n">reynolds</span></div>
+
+</span><span data-line="149">
+</span><span data-line="150">
+<div class="viewcode-block" id="warn_if_borefield_undersized">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_defaults.warn_if_borefield_undersized">[docs]</a>
+</span><span data-line="151"><span class="k">def</span><span class="w"> </span><span class="nf">warn_if_borefield_undersized</span><span class="p">(</span>
+</span><span data-line="152">    <span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="153">    <span class="n">n_boreholes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="154">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="155">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="156">    <span class="n">max_linear_load</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">BOREHOLE_MAX_LINEAR_LOAD</span><span class="p">,</span>
+</span><span data-line="157">    <span class="n">source_heat_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">RATED_SOURCE_HEAT_FRACTION</span><span class="p">,</span>
+</span><span data-line="158">    <span class="n">stacklevel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+</span><span data-line="159"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="160"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the rated specific borehole load [W/m]; warn when it exceeds ``max_linear_load``.&quot;&quot;&quot;</span>
+</span><span data-line="161">    <span class="n">load</span> <span class="o">=</span> <span class="n">calc_rated_linear_load</span><span class="p">(</span><span class="n">hp_capacity</span><span class="p">,</span> <span class="n">n_boreholes</span><span class="p">,</span> <span class="n">H_b</span><span class="p">,</span> <span class="n">source_heat_fraction</span><span class="o">=</span><span class="n">source_heat_fraction</span><span class="p">)</span>
+</span><span data-line="162">    <span class="k">if</span> <span class="n">load</span> <span class="o">&gt;</span> <span class="n">max_linear_load</span><span class="p">:</span>
+</span><span data-line="163">        <span class="n">n_1</span><span class="p">,</span> <span class="n">n_2</span> <span class="o">=</span> <span class="n">default_borefield_layout</span><span class="p">(</span><span class="n">hp_capacity</span><span class="p">,</span> <span class="n">H_b</span><span class="p">,</span> <span class="n">source_heat_fraction</span><span class="o">=</span><span class="n">source_heat_fraction</span><span class="p">)</span>
+</span><span data-line="164">        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+</span><span data-line="165">            <span class="sa">f</span><span class="s2">&quot;borefield is small for the capacity: the rated source-side heat &quot;</span>
+</span><span data-line="166">            <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">source_heat_fraction</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> x </span><span class="si">{</span><span class="n">hp_capacity</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> W) is </span><span class="si">{</span><span class="n">load</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> W/m over </span><span class="si">{</span><span class="n">n_boreholes</span><span class="si">}</span><span class="s2"> x </span><span class="si">{</span><span class="n">H_b</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> m, &quot;</span>
+</span><span data-line="167">            <span class="sa">f</span><span class="s2">&quot;above </span><span class="si">{</span><span class="n">max_linear_load</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> W/m. The ground-loop temperature will swing far from the ground &quot;</span>
+</span><span data-line="168">            <span class="sa">f</span><span class="s2">&quot;temperature; </span><span class="si">{</span><span class="n">n_1</span><span class="si">}</span><span class="s2"> x </span><span class="si">{</span><span class="n">n_2</span><span class="si">}</span><span class="s2"> boreholes of this depth keep it within &quot;</span>
+</span><span data-line="169">            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BOREHOLE_DESIGN_LINEAR_LOAD</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> W/m (the default when N_1, N_2 and H_b are all omitted).&quot;</span><span class="p">,</span>
+</span><span data-line="170">            <span class="ne">UserWarning</span><span class="p">,</span>
+</span><span data-line="171">            <span class="n">stacklevel</span><span class="o">=</span><span class="n">stacklevel</span><span class="p">,</span>
+</span><span data-line="172">        <span class="p">)</span>
+</span><span data-line="173">    <span class="k">return</span> <span class="n">load</span></div>
+
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+      <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../../_static/js/core/global.js?v=4865e9a9"></script>
+      <script defer="defer" src="../../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+</html>

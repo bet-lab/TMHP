@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-11-13T19:57:02+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T20:56:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -93,6 +93,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-response.html">Ground response</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../models/ground-flow.html">Coupled ground-loop flow</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../models/reference-state.html">Compressor reference state</a></li>
 </ul>
@@ -214,6 +215,17 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate.on_user_defined_component_model"><code class="docutils literal notranslate">on_user_defined_component_model()</span></code></a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ground-response-from-geolink">Ground response from geolink</a><ul>
+<li><a class="reference internal" href="#why-not-geolink-coupling-networkgroundcoupler">Why not <code class="docutils literal notranslate">coupling.NetworkGroundCoupler</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction"><code class="docutils literal notranslate"><span class="pre">ResponseMatrixGFunction</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.ensure_horizon"><code class="docutils literal notranslate">ensure_horizon()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.step_mean"><code class="docutils literal notranslate">step_mean()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.integrations.geolink.geolink_gfunction"><code class="docutils literal notranslate"><span class="pre">geolink_gfunction()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -885,6 +897,164 @@ summed joules). <code class="docutils literal notranslate"><span class="pre">tmh
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+</section>
+<section id="ground-response-from-geolink">
+<h2>Ground response from geolink<a class="headerlink" href="#ground-response-from-geolink" title="Link to this heading">¶</a></h2>
+<p>Optional. <code class="docutils literal notranslate"><span class="pre">geolink</span></code> is a separate package and is imported only when
+<a class="reference internal" href="#tmhp.integrations.geolink.geolink_gfunction" title="tmhp.integrations.geolink.geolink_gfunction"><code class="xref py py-func docutils literal notranslate"><span class="pre">geolink_gfunction()</span></code></a> is called; see
+<a class="reference internal" href="../../models/ground-response.html"><span class="doc">Ground response</span></a>.</p>
+<p id="module-tmhp.integrations.geolink">Ground response from a borehole-to-borehole response matrix (<code class="docutils literal notranslate"><span class="pre">geolink</span></code>).</p>
+<p><code class="docutils literal notranslate"><span class="pre">geolink</span></code> (bet-lab/geolink) computes resolved ground responses that
+pygfunction does not: groundwater advection (moving finite line source),
+response at arbitrary observation points, depth-segmented responses. Its
+response models share one contract:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">response</span><span class="o">.</span><span class="n">response_matrix</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">soil</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span>   <span class="c1"># K per W/m</span>
+</span></pre></div>
+</div>
+<p>the wall-temperature rise of borehole <code class="docutils literal notranslate"><span class="pre">i</span></code> for a unit load per metre on
+borehole <code class="docutils literal notranslate"><span class="pre">j</span></code>. <a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction" title="tmhp.integrations.geolink.ResponseMatrixGFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResponseMatrixGFunction</span></code></a> turns any object with that
+method into the field g-function the tmhp models use, so the rest of the
+chain (step-mean superposition, borehole resistance,
+<a class="reference internal" href="heat-transfer.html#tmhp.borehole_capacity.with_borehole_capacity" title="tmhp.borehole_capacity.with_borehole_capacity"><code class="xref py py-func docutils literal notranslate"><span class="pre">with_borehole_capacity()</span></code></a>) is unchanged:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.ground_coupling</span><span class="w"> </span><span class="kn">import</span> <span class="n">AggregateGFunctionCoupler</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.integrations.geolink</span><span class="w"> </span><span class="kn">import</span> <span class="n">geolink_gfunction</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">g</span> <span class="o">=</span> <span class="n">geolink_gfunction</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">H</span><span class="o">=</span><span class="mf">150.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span> <span class="n">k_s</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">alpha_s</span><span class="o">=</span><span class="mf">1.25e-6</span><span class="p">,</span>
+</span><span data-line="5">                      <span class="n">t_max_s</span><span class="o">=</span><span class="mi">10</span> <span class="o">*</span> <span class="mi">8760</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">,</span> <span class="n">groundwater_velocity</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+</span><span data-line="6">                      <span class="n">rho_s</span><span class="o">=</span><span class="mf">2000.0</span><span class="p">,</span> <span class="n">c_s</span><span class="o">=</span><span class="mf">800.0</span><span class="p">)</span>
+</span><span data-line="7"><span class="n">model</span> <span class="o">=</span> <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">,</span>
+</span><span data-line="8">                                   <span class="n">ground_coupler</span><span class="o">=</span><span class="n">AggregateGFunctionCoupler</span><span class="p">(</span><span class="n">g</span><span class="p">))</span>
+</span></pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">geolink</span></code> is not a dependency of tmhp and is imported only by
+<a class="reference internal" href="#tmhp.integrations.geolink.geolink_gfunction" title="tmhp.integrations.geolink.geolink_gfunction"><code class="xref py py-func docutils literal notranslate"><span class="pre">geolink_gfunction()</span></code></a>; <a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction" title="tmhp.integrations.geolink.ResponseMatrixGFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResponseMatrixGFunction</span></code></a> itself needs
+nothing but the method above.</p>
+<section id="why-not-geolink-coupling-networkgroundcoupler">
+<h3>Why not <code class="docutils literal notranslate"><span class="pre">geolink.coupling.NetworkGroundCoupler</span></code><a class="headerlink" href="#why-not-geolink-coupling-networkgroundcoupler" title="Link to this heading">¶</a></h3>
+<p>That coupler was written against an earlier tmhp. It divides the load by the
+number of boreholes (tmhp now passes the load per metre of <em>total</em> borehole
+length, so the rise would be <code class="docutils literal notranslate"><span class="pre">1/N</span></code> of the right value for <code class="docutils literal notranslate"><span class="pre">N</span> <span class="pre">&gt;</span> <span class="pre">1</span></code>) and
+evaluates the response at the start of each step instead of its mean. Use
+the g-function route above.</p>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.integrations.geolink.ResponseMatrixGFunction">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.geolink.</span></span><span class="sig-name descname"><span class="pre">ResponseMatrixGFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">soil</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">points_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#ResponseMatrixGFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.ResponseMatrixGFunction" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Field g-function <code class="docutils literal notranslate"><span class="pre">g(t)</span></code> [m.K/W] from a response-matrix provider.</p>
+<p>Every borehole carries the same load per metre <code class="docutils literal notranslate"><span class="pre">q'</span></code> (the field load
+over the total borehole length, as the tmhp models define it). The wall
+of borehole <code class="docutils literal notranslate"><span class="pre">i</span></code> then rises by <code class="docutils literal notranslate"><span class="pre">q'</span> <span class="pre">*</span> <span class="pre">sum_j</span> <span class="pre">h[i,</span> <span class="pre">j]</span></code>, and the field
+value is the length-weighted mean over the boreholes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">g</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">=</span> <span class="n">sum_i</span> <span class="n">H_i</span> <span class="n">sum_j</span> <span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">/</span> <span class="n">sum_i</span> <span class="n">H_i</span>
+</span></pre></div>
+</div>
+<p>which is the uniform-heat-flux g-function (pygfunction’s <code class="docutils literal notranslate"><span class="pre">'UHTR'</span></code>) for
+a finite-line-source <code class="docutils literal notranslate"><span class="pre">h</span></code>. Values are tabulated on a log-spaced grid
+from one hour to <code class="docutils literal notranslate"><span class="pre">1.5</span> <span class="pre">*</span> <span class="pre">t_max_s</span></code> with <code class="docutils literal notranslate"><span class="pre">g(0)</span> <span class="pre">=</span> <span class="pre">0</span></code> prepended, are
+interpolated linearly, and are recomputed when a later time is
+requested, like <a class="reference internal" href="heat-transfer.html#tmhp.g_function.GFunction" title="tmhp.g_function.GFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.g_function.GFunction</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>response</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Object with <code class="docutils literal notranslate"><span class="pre">response_matrix(field,</span> <span class="pre">soil,</span> <span class="pre">times)</span> <span class="pre">-&gt;</span> <span class="pre">h[i,</span> <span class="pre">j,</span> <span class="pre">t]</span></code>
+[K per W/m], receiver index first.</p></li>
+<li><p><strong>field</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Passed through to <code class="docutils literal notranslate"><span class="pre">response_matrix</span></code> unchanged.</p></li>
+<li><p><strong>soil</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Passed through to <code class="docutils literal notranslate"><span class="pre">response_matrix</span></code> unchanged.</p></li>
+<li><p><strong>depths</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Active length of each borehole [m] (a scalar for equal lengths).</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Expected simulation length [s].</p></li>
+<li><p><strong>points_per_decade</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Node density of the grid (default 24, as <code class="docutils literal notranslate"><span class="pre">GFunction</span></code>).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.geolink.ResponseMatrixGFunction.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">soil</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">points_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#ResponseMatrixGFunction.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>response</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>field</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>soil</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>depths</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>points_per_decade</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.geolink.ResponseMatrixGFunction.ensure_horizon">
+<span class="sig-name descname"><span class="pre">ensure_horizon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#ResponseMatrixGFunction.ensure_horizon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.ensure_horizon" title="Link to this definition">¶</a></dt>
+<dd><p>Recompute the grid so that it covers time <code class="docutils literal notranslate"><span class="pre">t</span></code> [s] (no-op if it already does).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>t</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.geolink.ResponseMatrixGFunction.step_mean">
+<span class="sig-name descname"><span class="pre">step_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#ResponseMatrixGFunction.step_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.step_mean" title="Link to this definition">¶</a></dt>
+<dd><p>Mean of <code class="docutils literal notranslate"><span class="pre">g</span></code> over <code class="docutils literal notranslate"><span class="pre">[tau,</span> <span class="pre">tau</span> <span class="pre">+</span> <span class="pre">dt]</span></code> [m.K/W], exact for the interpolated <code class="docutils literal notranslate"><span class="pre">g</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tau</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.integrations.geolink.geolink_gfunction">
+<span class="sig-prename descclassname"><span class="pre">tmhp.integrations.geolink.</span></span><span class="sig-name descname"><span class="pre">geolink_gfunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_velocity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#geolink_gfunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.geolink_gfunction" title="Link to this definition">¶</a></dt>
+<dd><p>Field g-function computed by <code class="docutils literal notranslate"><span class="pre">geolink</span></code> for boreholes at <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code>.</p>
+<p>Without groundwater it is geolink’s native finite line source
+(boreholes may have different lengths). With <code class="docutils literal notranslate"><span class="pre">groundwater_velocity</span></code>
+it is the moving finite line source of Molina-Giraldo et al. (2011),
+which needs equal lengths and the ground heat capacity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Borehole coordinates [m].</p></li>
+<li><p><strong>y</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Borehole coordinates [m].</p></li>
+<li><p><strong>H</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Active borehole length [m], one value or one per borehole.</p></li>
+<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m].</p></li>
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground conductivity [W/(m K)] and diffusivity [m2/s].</p></li>
+<li><p><strong>alpha_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground conductivity [W/(m K)] and diffusivity [m2/s].</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Expected simulation length [s].</p></li>
+<li><p><strong>D</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Buried depth of the borehole heads [m].</p></li>
+<li><p><strong>groundwater_velocity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Darcy velocity of the groundwater [m/s]; 0 (default) is pure conduction.</p></li>
+<li><p><strong>groundwater_direction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Flow direction [rad], counter-clockwise from the x axis.</p></li>
+<li><p><strong>dispersivity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Longitudinal thermal dispersivity [m] (isotropic in geolink).</p></li>
+<li><p><strong>rho_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ground density [kg/m3] and specific heat [J/(kg K)]; required with
+groundwater flow (they set the thermal front velocity).</p></li>
+<li><p><strong>c_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ground density [kg/m3] and specific heat [J/(kg K)]; required with
+groundwater flow (they set the thermal front velocity).</p></li>
+<li><p><strong>response</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – A geolink response model to use instead of the two above.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ImportError</strong> – If <code class="docutils literal notranslate"><span class="pre">geolink</span></code> is not installed.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction" title="tmhp.integrations.geolink.ResponseMatrixGFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResponseMatrixGFunction</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

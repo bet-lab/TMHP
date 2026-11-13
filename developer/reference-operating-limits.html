@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-11-13T20:29:43+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T21:35:58+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -93,6 +93,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ground-response.html">Ground response</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../models/ground-flow.html">Coupled ground-loop flow</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../models/reference-state.html">Compressor reference state</a></li>
 </ul>
@@ -221,8 +222,9 @@ cap from the reference. Prescribed variable candidates must lie inside the
 explicit interval; only floating-point endpoint rounding is tolerated.</p>
 <p>The previous <code class="docutils literal notranslate"><span class="pre">dV_b_f_lpm</span></code> and ratio-limit constructor inputs remain adapters,
 with <code class="docutils literal notranslate"><span class="pre">DeprecationWarning</span></code> on explicit use. New absolute inputs take precedence.
-Omitting all new inputs preserves historical defaults (GSHP 20.04 L/min,
-GSHPB 24 L/min; ratio interval 0.2–1.2). <code class="docutils literal notranslate"><span class="pre">dV_b_f_m3s</span></code> remains a reference-flow
+Omitting all new inputs gives the default reference flow (GSHP: capacity-based,
+<code class="docutils literal notranslate"><span class="pre">0.75</span> <span class="pre">×</span> <span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">(ρc</span> <span class="pre">×</span> <span class="pre">3</span> <span class="pre">K)</span></code>, 14.3 L/min for 4 kW — 20.04 L/min until
+November 2026, see <a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a>; GSHPB 24 L/min; ratio interval 0.2–1.2). <code class="docutils literal notranslate"><span class="pre">dV_b_f_m3s</span></code> remains a reference-flow
 attribute for compatibility, never the final candidate’s mutable state.</p>
 <p><code class="docutils literal notranslate"><span class="pre">analyze_steady(...,</span> <span class="pre">ground_flow_lpm=24)</span></code> forces an actual candidate; the
 previous <code class="docutils literal notranslate"><span class="pre">ground_flow_ratio</span></code> argument remains a deprecated ratio-to-reference
@@ -240,7 +242,8 @@ reference value. No ratio-to-reference clamp at one is applied.</p>
 <section id="indoor-approach-search-domain">
 <h2>Indoor approach search domain<a class="headerlink" href="#indoor-approach-search-domain" title="Link to this heading">¶</a></h2>
 <p>GSHP exposes <code class="docutils literal notranslate"><span class="pre">indoor_approach_min_K</span></code> / <code class="docutils literal notranslate"><span class="pre">indoor_approach_max_K</span></code> separately
-from airflow limits. Defaults remain 1–20 K. An expanded water-flow interval can
+from airflow limits. Defaults are 1–25 K (1–20 K until November 2026: the rated
+duty of the default indoor coil at 400 cfm/ton needs 21.6 K). An expanded water-flow interval can
 require an indoor approach above 20 K to close the HX while respecting the
 compressor pressure-ratio floor. The current 26 °C cooling study explicitly
 uses 1–25 K (minimum evaporating temperature 1 °C). These are numerical cycle

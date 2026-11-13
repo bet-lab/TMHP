@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>tmhp.borehole - TMHP</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/TMHP/_modules/tmhp/borehole.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=4ea1e3a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/integration-diagrams.css?v=b297bf1e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>TMHP</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Start</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../integrations/index.html">Integrations</a></li><li class="link"><a href="../../api/index.html">API</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-response.html">Ground response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-flow.html">Coupled ground-loop flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/reference-state.html">Compressor reference state</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/fmu.html">FMI FMU export</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/TMHP">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">tmhp.borehole</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <h1>Source code for tmhp.borehole</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Borehole wall-to-fluid resistance; ground response lives in g_function.&quot;&quot;&quot;</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="4"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+</span><span data-line="5"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+</span><span data-line="6"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span data-line="7">
+</span><span data-line="8"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="9"><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">PchipInterpolator</span>
+</span><span data-line="10">
+</span><span data-line="11"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">k_w</span><span class="p">,</span> <span class="n">mu_w</span><span class="p">,</span> <span class="n">rho_w</span>
+</span><span data-line="12">
+</span><span data-line="13"><span class="k">try</span><span class="p">:</span>
+</span><span data-line="14">    <span class="kn">import</span><span class="w"> </span><span class="nn">pygfunction</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gt</span>
+</span><span data-line="15">
+</span><span data-line="16">    <span class="n">HAS_PYGFUNCTION</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="17"><span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+</span><span data-line="18">    <span class="n">HAS_PYGFUNCTION</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="19">
+</span><span data-line="20"><span class="c1">#: Pipe configurations understood by :class:`BoreholePipe`.</span>
+</span><span data-line="21"><span class="n">PIPE_KINDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;single_u&quot;</span><span class="p">,</span> <span class="s2">&quot;double_u_parallel&quot;</span><span class="p">,</span> <span class="s2">&quot;double_u_series&quot;</span><span class="p">,</span> <span class="s2">&quot;coaxial&quot;</span><span class="p">)</span>
+</span><span data-line="22"><span class="c1">#: Which channel of a coaxial pipe carries the fluid down the borehole.</span>
+</span><span data-line="23"><span class="n">COAXIAL_FLOW_DOWN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;annulus&quot;</span><span class="p">,</span> <span class="s2">&quot;inner&quot;</span><span class="p">)</span>
+</span><span data-line="24">
+</span><span data-line="25">
+</span><span data-line="26"><span class="k">def</span><span class="w"> </span><span class="nf">_require_pygfunction</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="27">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
+</span><span data-line="28">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
+</span><span data-line="29">
+</span><span data-line="30">
+</span><span data-line="31"><span class="k">def</span><span class="w"> </span><span class="nf">_positive_finite</span><span class="p">(</span><span class="o">**</span><span class="n">values</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="32">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="33">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="34">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be positive and finite, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="35">
+</span><span data-line="36">
+<div class="viewcode-block" id="BoreholePipe">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.BoreholePipe">[docs]</a>
+</span><span data-line="37"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="38"><span class="k">class</span><span class="w"> </span><span class="nc">BoreholePipe</span><span class="p">:</span>
+</span><span data-line="39"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Pipe configuration inside one borehole: single/double U-tube or coaxial.</span>
+</span><span data-line="40">
+</span><span data-line="41"><span class="sd">    All lengths in metres, conductivities in W/(m·K). The defaults are those of</span>
+</span><span data-line="42"><span class="sd">    :class:`~tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler`, so</span>
+</span><span data-line="43"><span class="sd">    ``BoreholePipe()`` reproduces the resistance the boiler computes today.</span>
+</span><span data-line="44">
+</span><span data-line="45"><span class="sd">    U-tubes (``&quot;single_u&quot;``, ``&quot;double_u_parallel&quot;``, ``&quot;double_u_series&quot;``):</span>
+</span><span data-line="46"><span class="sd">    every leg is a pipe of radii ``r_in``/``r_out`` whose centre is ``D_s``</span>
+</span><span data-line="47"><span class="sd">    from the borehole axis. A single U-tube has its two legs at</span>
+</span><span data-line="48"><span class="sd">    ``(-D_s, 0)`` and ``(D_s, 0)``. A double U-tube puts its four legs 90°</span>
+</span><span data-line="49"><span class="sd">    apart on the same circle, each U-tube&#39;s legs facing each other</span>
+</span><span data-line="50"><span class="sd">    (pygfunction order: down legs ``(-D_s, 0)``, ``(0, -D_s)``; up legs</span>
+</span><span data-line="51"><span class="sd">    ``(D_s, 0)``, ``(0, D_s)``). In ``&quot;double_u_parallel&quot;`` each U-tube carries</span>
+</span><span data-line="52"><span class="sd">    half the borehole flow; in ``&quot;double_u_series&quot;`` the fluid runs through</span>
+</span><span data-line="53"><span class="sd">    one U-tube and then the other, so each leg carries the whole flow.</span>
+</span><span data-line="54">
+</span><span data-line="55"><span class="sd">    Coaxial (``&quot;coaxial&quot;``): an inner pipe ``(r_in_inner, r_out_inner)``</span>
+</span><span data-line="56"><span class="sd">    centred inside an outer pipe ``(r_in_outer, r_out_outer)``; the annulus</span>
+</span><span data-line="57"><span class="sd">    between them is the second channel. ``flow_down`` says which channel takes</span>
+</span><span data-line="58"><span class="sd">    the fluid down (``&quot;annulus&quot;``: down the annulus, up the inner pipe).</span>
+</span><span data-line="59"><span class="sd">    ``k_p`` is the outer pipe&#39;s conductivity and ``k_p_inner`` the inner</span>
+</span><span data-line="60"><span class="sd">    pipe&#39;s (``None``: same as ``k_p``). Build one with :meth:`coaxial`.</span>
+</span><span data-line="61">
+</span><span data-line="62"><span class="sd">    ``k_g`` is the grout conductivity, ``epsilon`` the pipe roughness [m] and</span>
+</span><span data-line="63"><span class="sd">    ``J`` the multipole order (pygfunction default 2).</span>
+</span><span data-line="64"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="65">
+</span><span data-line="66">    <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;single_u&quot;</span>
+</span><span data-line="67">    <span class="n">r_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.013</span>
+</span><span data-line="68">    <span class="n">r_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.016</span>
+</span><span data-line="69">    <span class="n">D_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.025</span>
+</span><span data-line="70">    <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.4</span>
+</span><span data-line="71">    <span class="n">k_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span>
+</span><span data-line="72">    <span class="n">r_in_inner</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="73">    <span class="n">r_out_inner</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="74">    <span class="n">r_in_outer</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="75">    <span class="n">r_out_outer</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="76">    <span class="n">k_p_inner</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="77">    <span class="n">flow_down</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;annulus&quot;</span>
+</span><span data-line="78">    <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span>
+</span><span data-line="79">    <span class="n">J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+</span><span data-line="80">
+</span><span data-line="81">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="82">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PIPE_KINDS</span><span class="p">:</span>
+</span><span data-line="83">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;kind must be one of </span><span class="si">{</span><span class="n">PIPE_KINDS</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">kind</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="84">        <span class="n">_positive_finite</span><span class="p">(</span><span class="n">k_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_p</span><span class="p">,</span> <span class="n">k_g</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_g</span><span class="p">)</span>
+</span><span data-line="85">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="86">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;epsilon must be finite and nonnegative&quot;</span><span class="p">)</span>
+</span><span data-line="87">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">J</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">J</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">J</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="88">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;J must be a nonnegative integer&quot;</span><span class="p">)</span>
+</span><span data-line="89">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;coaxial&quot;</span><span class="p">:</span>
+</span><span data-line="90">            <span class="n">radii</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in_inner</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_out_inner</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_in_outer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_out_outer</span><span class="p">)</span>
+</span><span data-line="91">            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">radii</span><span class="p">):</span>
+</span><span data-line="92">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;a coaxial pipe needs r_in_inner, r_out_inner, r_in_outer and r_out_outer&quot;</span><span class="p">)</span>
+</span><span data-line="93">            <span class="n">_positive_finite</span><span class="p">(</span>
+</span><span data-line="94">                <span class="n">r_in_inner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in_inner</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="95">                <span class="n">r_out_inner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out_inner</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="96">                <span class="n">r_in_outer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in_outer</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="97">                <span class="n">r_out_outer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out_outer</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="98">            <span class="p">)</span>
+</span><span data-line="99">            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in_inner</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_out_inner</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_in_outer</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_out_outer</span><span class="p">):</span>  <span class="c1"># type: ignore[operator]</span>
+</span><span data-line="100">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="101">                    <span class="s2">&quot;coaxial radii must satisfy r_in_inner &lt; r_out_inner &lt; r_in_outer &lt; r_out_outer &quot;</span>
+</span><span data-line="102">                    <span class="s2">&quot;(the inner pipe must fit inside the outer pipe&#39;s bore)&quot;</span>
+</span><span data-line="103">                <span class="p">)</span>
+</span><span data-line="104">            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_p_inner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="105">                <span class="n">_positive_finite</span><span class="p">(</span><span class="n">k_p_inner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_p_inner</span><span class="p">)</span>
+</span><span data-line="106">            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_down</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">COAXIAL_FLOW_DOWN</span><span class="p">:</span>
+</span><span data-line="107">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;flow_down must be one of </span><span class="si">{</span><span class="n">COAXIAL_FLOW_DOWN</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">flow_down</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="108">            <span class="k">return</span>
+</span><span data-line="109">        <span class="n">_positive_finite</span><span class="p">(</span><span class="n">r_in</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out</span><span class="p">,</span> <span class="n">D_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">D_s</span><span class="p">)</span>
+</span><span data-line="110">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_in</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_out</span><span class="p">:</span>
+</span><span data-line="111">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;r_out must be greater than r_in&quot;</span><span class="p">)</span>
+</span><span data-line="112">        <span class="c1"># Closest pair of legs: opposite legs (single U) are 2 D_s apart,</span>
+</span><span data-line="113">        <span class="c1"># neighbouring legs of a double U-tube sqrt(2) D_s apart.</span>
+</span><span data-line="114">        <span class="n">gap</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">D_s</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;single_u&quot;</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">D_s</span>
+</span><span data-line="115">        <span class="k">if</span> <span class="ow">not</span> <span class="n">gap</span> <span class="o">&gt;</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_out</span><span class="p">:</span>
+</span><span data-line="116">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="117">                <span class="sa">f</span><span class="s2">&quot;pipes overlap: legs </span><span class="si">{</span><span class="n">gap</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2"> m apart (centre to centre) but 2*r_out = </span><span class="si">{</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">r_out</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2"> m&quot;</span>
+</span><span data-line="118">            <span class="p">)</span>
+</span><span data-line="119">
+<div class="viewcode-block" id="BoreholePipe.coaxial">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.coaxial">[docs]</a>
+</span><span data-line="120">    <span class="nd">@classmethod</span>
+</span><span data-line="121">    <span class="k">def</span><span class="w"> </span><span class="nf">coaxial</span><span class="p">(</span>
+</span><span data-line="122">        <span class="bp">cls</span><span class="p">,</span>
+</span><span data-line="123">        <span class="n">r_in_inner</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0221</span><span class="p">,</span>
+</span><span data-line="124">        <span class="n">r_out_inner</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.025</span><span class="p">,</span>
+</span><span data-line="125">        <span class="n">r_in_outer</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0487</span><span class="p">,</span>
+</span><span data-line="126">        <span class="n">r_out_outer</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.055</span><span class="p">,</span>
+</span><span data-line="127">        <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.4</span><span class="p">,</span>
+</span><span data-line="128">        <span class="n">k_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+</span><span data-line="129">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="130">        <span class="n">k_p_inner</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="131">        <span class="n">flow_down</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;annulus&quot;</span><span class="p">,</span>
+</span><span data-line="132">        <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span>
+</span><span data-line="133">        <span class="n">J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+</span><span data-line="134">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;BoreholePipe&quot;</span><span class="p">:</span>
+</span><span data-line="135"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Coaxial pipe; default radii are pygfunction&#39;s coaxial example (outer pipe 110 mm OD).&quot;&quot;&quot;</span>
+</span><span data-line="136">        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+</span><span data-line="137">            <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;coaxial&quot;</span><span class="p">,</span>
+</span><span data-line="138">            <span class="n">k_p</span><span class="o">=</span><span class="n">k_p</span><span class="p">,</span>
+</span><span data-line="139">            <span class="n">k_g</span><span class="o">=</span><span class="n">k_g</span><span class="p">,</span>
+</span><span data-line="140">            <span class="n">r_in_inner</span><span class="o">=</span><span class="n">r_in_inner</span><span class="p">,</span>
+</span><span data-line="141">            <span class="n">r_out_inner</span><span class="o">=</span><span class="n">r_out_inner</span><span class="p">,</span>
+</span><span data-line="142">            <span class="n">r_in_outer</span><span class="o">=</span><span class="n">r_in_outer</span><span class="p">,</span>
+</span><span data-line="143">            <span class="n">r_out_outer</span><span class="o">=</span><span class="n">r_out_outer</span><span class="p">,</span>
+</span><span data-line="144">            <span class="n">k_p_inner</span><span class="o">=</span><span class="n">k_p_inner</span><span class="p">,</span>
+</span><span data-line="145">            <span class="n">flow_down</span><span class="o">=</span><span class="n">flow_down</span><span class="p">,</span>
+</span><span data-line="146">            <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+</span><span data-line="147">            <span class="n">J</span><span class="o">=</span><span class="n">J</span><span class="p">,</span>
+</span><span data-line="148">        <span class="p">)</span></div>
+
+</span><span data-line="149">
+</span><span data-line="150">    <span class="c1"># -- geometry ----------------------------------------------------------</span>
+</span><span data-line="151">    <span class="nd">@property</span>
+</span><span data-line="152">    <span class="k">def</span><span class="w"> </span><span class="nf">n_pipes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span data-line="153"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of U-tubes (pygfunction ``nPipes``): 1 single U, 2 double U, 1 coaxial.&quot;&quot;&quot;</span>
+</span><span data-line="154">        <span class="k">return</span> <span class="mi">2</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;double_u&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
+</span><span data-line="155">
+</span><span data-line="156">    <span class="nd">@property</span>
+</span><span data-line="157">    <span class="k">def</span><span class="w"> </span><span class="nf">outer_radius</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="158"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Distance from the borehole axis to the outermost pipe surface [m].&quot;&quot;&quot;</span>
+</span><span data-line="159">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;coaxial&quot;</span><span class="p">:</span>
+</span><span data-line="160">            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out_outer</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="161">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">D_s</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_out</span>
+</span><span data-line="162">
+<div class="viewcode-block" id="BoreholePipe.positions">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.positions">[docs]</a>
+</span><span data-line="163">    <span class="k">def</span><span class="w"> </span><span class="nf">positions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+</span><span data-line="164"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Pipe centre positions in pygfunction order (down legs first).&quot;&quot;&quot;</span>
+</span><span data-line="165">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;coaxial&quot;</span><span class="p">:</span>
+</span><span data-line="166">            <span class="k">return</span> <span class="p">[(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
+</span><span data-line="167">        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D_s</span>
+</span><span data-line="168">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;single_u&quot;</span><span class="p">:</span>
+</span><span data-line="169">            <span class="k">return</span> <span class="p">[(</span><span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
+</span><span data-line="170">        <span class="k">return</span> <span class="p">[(</span><span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="n">d</span><span class="p">),</span> <span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">d</span><span class="p">)]</span></div>
+
+</span><span data-line="171">
+<div class="viewcode-block" id="BoreholePipe.check_fits">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.check_fits">[docs]</a>
+</span><span data-line="172">    <span class="k">def</span><span class="w"> </span><span class="nf">check_fits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="173"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Raise ``ValueError`` if the pipes do not fit inside a borehole of radius ``r_b`` [m].&quot;&quot;&quot;</span>
+</span><span data-line="174">        <span class="n">_positive_finite</span><span class="p">(</span><span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">)</span>
+</span><span data-line="175">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outer_radius</span> <span class="o">&gt;</span> <span class="n">r_b</span><span class="p">:</span>
+</span><span data-line="176">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="177">                <span class="sa">f</span><span class="s2">&quot;pipes cross the borehole wall: outermost pipe surface at </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">outer_radius</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2"> m &quot;</span>
+</span><span data-line="178">                <span class="sa">f</span><span class="s2">&quot;from the axis, borehole radius </span><span class="si">{</span><span class="n">r_b</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2"> m&quot;</span>
+</span><span data-line="179">            <span class="p">)</span></div>
+
+</span><span data-line="180">
+</span><span data-line="181">    <span class="c1"># -- resistances ---------------------------------------------------------</span>
+</span><span data-line="182">    <span class="k">def</span><span class="w"> </span><span class="nf">_coaxial_radii</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+</span><span data-line="183"><span class="w">        </span><span class="sd">&quot;&quot;&quot;(r_in, r_out) arrays in pygfunction order: first element is the down (inlet) channel.&quot;&quot;&quot;</span>
+</span><span data-line="184">        <span class="n">inner</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in_inner</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out_inner</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="185">        <span class="n">outer</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in_outer</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out_outer</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="186">        <span class="n">first</span><span class="p">,</span> <span class="n">second</span> <span class="o">=</span> <span class="p">(</span><span class="n">outer</span><span class="p">,</span> <span class="n">inner</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_down</span> <span class="o">==</span> <span class="s2">&quot;annulus&quot;</span> <span class="k">else</span> <span class="p">(</span><span class="n">inner</span><span class="p">,</span> <span class="n">outer</span><span class="p">)</span>
+</span><span data-line="187">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">first</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">second</span><span class="p">[</span><span class="mi">0</span><span class="p">]]),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">first</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">second</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+</span><span data-line="188">
+</span><span data-line="189">    <span class="nd">@staticmethod</span>
+</span><span data-line="190">    <span class="k">def</span><span class="w"> </span><span class="nf">_check_flow</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="191">        <span class="n">m</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">)</span>
+</span><span data-line="192">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="ow">and</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="193">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m_flow_borehole must be positive and finite, got </span><span class="si">{</span><span class="n">m_flow_borehole</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="194">        <span class="k">return</span> <span class="n">m</span>
+</span><span data-line="195">
+<div class="viewcode-block" id="BoreholePipe.fluid_to_pipe_resistance">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.fluid_to_pipe_resistance">[docs]</a>
+</span><span data-line="196">    <span class="k">def</span><span class="w"> </span><span class="nf">fluid_to_pipe_resistance</span><span class="p">(</span>
+</span><span data-line="197">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="198">        <span class="n">m_flow_borehole</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="199">        <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rho_w</span><span class="p">,</span>
+</span><span data-line="200">        <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">mu_w</span><span class="p">,</span>
+</span><span data-line="201">        <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span><span class="p">,</span>
+</span><span data-line="202">        <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">k_w</span><span class="p">,</span>
+</span><span data-line="203">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="204"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Fluid-to-outer-pipe-wall resistance ``R_fp`` [m·K/W] of one pipe.</span>
+</span><span data-line="205">
+</span><span data-line="206"><span class="sd">        U-tubes: convection inside one leg (Gnielinski, pygfunction) plus the</span>
+</span><span data-line="207"><span class="sd">        pipe wall. In ``&quot;double_u_parallel&quot;`` each leg carries half the</span>
+</span><span data-line="208"><span class="sd">        borehole flow. Coaxial: convection on the annulus&#39;s outer surface plus</span>
+</span><span data-line="209"><span class="sd">        the outer pipe wall (the path from the annulus fluid to the grout).</span>
+</span><span data-line="210"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="211">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="212">        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_flow</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">)</span>
+</span><span data-line="213">        <span class="n">_positive_finite</span><span class="p">(</span><span class="n">rho_f</span><span class="o">=</span><span class="n">rho_f</span><span class="p">,</span> <span class="n">mu_f</span><span class="o">=</span><span class="n">mu_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="o">=</span><span class="n">cp_f</span><span class="p">,</span> <span class="n">k_f</span><span class="o">=</span><span class="n">k_f</span><span class="p">)</span>
+</span><span data-line="214">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;coaxial&quot;</span><span class="p">:</span>
+</span><span data-line="215">            <span class="n">r_a_in</span><span class="p">,</span> <span class="n">r_a_out</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out_inner</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in_outer</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="216">            <span class="n">_</span><span class="p">,</span> <span class="n">h_out</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_concentric_annulus</span><span class="p">(</span>
+</span><span data-line="217">                <span class="n">m</span><span class="p">,</span> <span class="n">r_a_in</span><span class="p">,</span> <span class="n">r_a_out</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span>
+</span><span data-line="218">            <span class="p">)</span>
+</span><span data-line="219">            <span class="n">R_wall</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_a_out</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out_outer</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_p</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="220">            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">R_wall</span> <span class="o">+</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_a_out</span> <span class="o">*</span> <span class="n">h_out</span><span class="p">))</span>
+</span><span data-line="221">        <span class="n">m_pipe</span> <span class="o">=</span> <span class="n">m</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;double_u_parallel&quot;</span> <span class="k">else</span> <span class="n">m</span>
+</span><span data-line="222">        <span class="n">h_f</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
+</span><span data-line="223">            <span class="n">m_pipe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span>
+</span><span data-line="224">        <span class="p">)</span>
+</span><span data-line="225">        <span class="n">R_conv</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_in</span> <span class="o">*</span> <span class="n">h_f</span><span class="p">)</span>
+</span><span data-line="226">        <span class="n">R_cond</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_p</span><span class="p">)</span>
+</span><span data-line="227">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">R_conv</span> <span class="o">+</span> <span class="n">R_cond</span><span class="p">)</span></div>
+
+</span><span data-line="228">
+<div class="viewcode-block" id="BoreholePipe.fluid_to_fluid_resistance">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.fluid_to_fluid_resistance">[docs]</a>
+</span><span data-line="229">    <span class="k">def</span><span class="w"> </span><span class="nf">fluid_to_fluid_resistance</span><span class="p">(</span>
+</span><span data-line="230">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="231">        <span class="n">m_flow_borehole</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="232">        <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rho_w</span><span class="p">,</span>
+</span><span data-line="233">        <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">mu_w</span><span class="p">,</span>
+</span><span data-line="234">        <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span><span class="p">,</span>
+</span><span data-line="235">        <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">k_w</span><span class="p">,</span>
+</span><span data-line="236">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="237"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Coaxial only: inner-pipe fluid to annulus fluid resistance ``R_ff`` [m·K/W].&quot;&quot;&quot;</span>
+</span><span data-line="238">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="239">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s2">&quot;coaxial&quot;</span><span class="p">:</span>
+</span><span data-line="240">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;fluid_to_fluid_resistance applies to coaxial pipes only&quot;</span><span class="p">)</span>
+</span><span data-line="241">        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_flow</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">)</span>
+</span><span data-line="242">        <span class="n">_positive_finite</span><span class="p">(</span><span class="n">rho_f</span><span class="o">=</span><span class="n">rho_f</span><span class="p">,</span> <span class="n">mu_f</span><span class="o">=</span><span class="n">mu_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="o">=</span><span class="n">cp_f</span><span class="p">,</span> <span class="n">k_f</span><span class="o">=</span><span class="n">k_f</span><span class="p">)</span>
+</span><span data-line="243">        <span class="n">r_i_in</span><span class="p">,</span> <span class="n">r_i_out</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in_inner</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out_inner</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="244">        <span class="n">r_a_out</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in_outer</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="245">        <span class="n">k_p_inner</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_p</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_p_inner</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_p_inner</span>
+</span><span data-line="246">        <span class="n">h_in</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
+</span><span data-line="247">            <span class="n">m</span><span class="p">,</span> <span class="n">r_i_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span>
+</span><span data-line="248">        <span class="p">)</span>
+</span><span data-line="249">        <span class="n">h_a_in</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_concentric_annulus</span><span class="p">(</span>
+</span><span data-line="250">            <span class="n">m</span><span class="p">,</span> <span class="n">r_i_out</span><span class="p">,</span> <span class="n">r_a_out</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span>
+</span><span data-line="251">        <span class="p">)</span>
+</span><span data-line="252">        <span class="n">R_wall</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_i_in</span><span class="p">,</span> <span class="n">r_i_out</span><span class="p">,</span> <span class="n">k_p_inner</span><span class="p">)</span>
+</span><span data-line="253">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_i_in</span> <span class="o">*</span> <span class="n">h_in</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_wall</span> <span class="o">+</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_i_out</span> <span class="o">*</span> <span class="n">h_a_in</span><span class="p">))</span></div>
+
+</span><span data-line="254">
+<div class="viewcode-block" id="BoreholePipe.pygfunction_pipe">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.pygfunction_pipe">[docs]</a>
+</span><span data-line="255">    <span class="k">def</span><span class="w"> </span><span class="nf">pygfunction_pipe</span><span class="p">(</span>
+</span><span data-line="256">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="257">        <span class="n">borehole</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="258">        <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="259">        <span class="n">m_flow_borehole</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="260">        <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rho_w</span><span class="p">,</span>
+</span><span data-line="261">        <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">mu_w</span><span class="p">,</span>
+</span><span data-line="262">        <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span><span class="p">,</span>
+</span><span data-line="263">        <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">k_w</span><span class="p">,</span>
+</span><span data-line="264">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="265"><span class="w">        </span><span class="sd">&quot;&quot;&quot;pygfunction pipe object for ``borehole`` (a ``pygfunction.boreholes.Borehole``).&quot;&quot;&quot;</span>
+</span><span data-line="266">        <span class="n">_require_pygfunction</span><span class="p">()</span>
+</span><span data-line="267">        <span class="n">_positive_finite</span><span class="p">(</span><span class="n">k_s</span><span class="o">=</span><span class="n">k_s</span><span class="p">)</span>
+</span><span data-line="268">        <span class="bp">self</span><span class="o">.</span><span class="n">check_fits</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">borehole</span><span class="o">.</span><span class="n">r_b</span><span class="p">))</span>
+</span><span data-line="269">        <span class="n">R_fp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluid_to_pipe_resistance</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">)</span>
+</span><span data-line="270">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;single_u&quot;</span><span class="p">:</span>
+</span><span data-line="271">            <span class="k">return</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">SingleUTube</span><span class="p">(</span>
+</span><span data-line="272">                <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_in</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_g</span><span class="p">,</span> <span class="n">R_fp</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">J</span>
+</span><span data-line="273">            <span class="p">)</span>
+</span><span data-line="274">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;double_u&quot;</span><span class="p">):</span>
+</span><span data-line="275">            <span class="n">config</span> <span class="o">=</span> <span class="s2">&quot;parallel&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;double_u_parallel&quot;</span> <span class="k">else</span> <span class="s2">&quot;series&quot;</span>
+</span><span data-line="276">            <span class="k">return</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">MultipleUTube</span><span class="p">(</span>
+</span><span data-line="277">                <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="p">(),</span>
+</span><span data-line="278">                <span class="bp">self</span><span class="o">.</span><span class="n">r_in</span><span class="p">,</span>
+</span><span data-line="279">                <span class="bp">self</span><span class="o">.</span><span class="n">r_out</span><span class="p">,</span>
+</span><span data-line="280">                <span class="n">borehole</span><span class="p">,</span>
+</span><span data-line="281">                <span class="n">k_s</span><span class="p">,</span>
+</span><span data-line="282">                <span class="bp">self</span><span class="o">.</span><span class="n">k_g</span><span class="p">,</span>
+</span><span data-line="283">                <span class="n">R_fp</span><span class="p">,</span>
+</span><span data-line="284">                <span class="n">nPipes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span data-line="285">                <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+</span><span data-line="286">                <span class="n">J</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">J</span><span class="p">,</span>
+</span><span data-line="287">            <span class="p">)</span>
+</span><span data-line="288">        <span class="n">R_ff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluid_to_fluid_resistance</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">)</span>
+</span><span data-line="289">        <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coaxial_radii</span><span class="p">()</span>
+</span><span data-line="290">        <span class="k">return</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">Coaxial</span><span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_g</span><span class="p">,</span> <span class="n">R_ff</span><span class="p">,</span> <span class="n">R_fp</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">J</span><span class="p">)</span></div>
+
+</span><span data-line="291">
+</span><span data-line="292">    <span class="k">def</span><span class="w"> </span><span class="nf">_pipe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">m_flow_borehole</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">fluid</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="293">        <span class="n">_positive_finite</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="n">H</span><span class="p">)</span>
+</span><span data-line="294">        <span class="n">borehole</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">H</span><span class="p">),</span> <span class="n">D</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">r_b</span><span class="p">),</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="295">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pygfunction_pipe</span><span class="p">(</span><span class="n">borehole</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="n">m_flow_borehole</span><span class="p">,</span> <span class="o">*</span><span class="n">fluid</span><span class="p">)</span>
+</span><span data-line="296">
+<div class="viewcode-block" id="BoreholePipe.local_resistance">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.local_resistance">[docs]</a>
+</span><span data-line="297">    <span class="k">def</span><span class="w"> </span><span class="nf">local_resistance</span><span class="p">(</span>
+</span><span data-line="298">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="299">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="300">        <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="301">        <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="302">        <span class="n">m_flow_borehole</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="303">        <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rho_w</span><span class="p">,</span>
+</span><span data-line="304">        <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">mu_w</span><span class="p">,</span>
+</span><span data-line="305">        <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span><span class="p">,</span>
+</span><span data-line="306">        <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">k_w</span><span class="p">,</span>
+</span><span data-line="307">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="308"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Local (cross-section) borehole resistance ``R_b`` [m·K/W], multipole method.&quot;&quot;&quot;</span>
+</span><span data-line="309">        <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipe</span><span class="p">(</span><span class="mf">100.0</span><span class="p">,</span> <span class="n">r_b</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="n">m_flow_borehole</span><span class="p">,</span> <span class="p">(</span><span class="n">rho_f</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">))</span>
+</span><span data-line="310">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">local_borehole_thermal_resistance</span><span class="p">())</span></div>
+
+</span><span data-line="311">
+<div class="viewcode-block" id="BoreholePipe.effective_resistance">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.effective_resistance">[docs]</a>
+</span><span data-line="312">    <span class="k">def</span><span class="w"> </span><span class="nf">effective_resistance</span><span class="p">(</span>
+</span><span data-line="313">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="314">        <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="315">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="316">        <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="317">        <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="318">        <span class="n">m_flow_borehole</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="319">        <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rho_w</span><span class="p">,</span>
+</span><span data-line="320">        <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">mu_w</span><span class="p">,</span>
+</span><span data-line="321">        <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span><span class="p">,</span>
+</span><span data-line="322">        <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">k_w</span><span class="p">,</span>
+</span><span data-line="323">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="324"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Effective borehole resistance ``R_b*`` [m·K/W] for a uniform wall temperature.</span>
+</span><span data-line="325">
+</span><span data-line="326"><span class="sd">        Defined by ``Q/H = (T_b - (T_in + T_out)/2) / R_b*`` over a borehole of</span>
+</span><span data-line="327"><span class="sd">        length ``H`` [m] (pygfunction ``effective_borehole_thermal_resistance``);</span>
+</span><span data-line="328"><span class="sd">        it includes the thermal short-circuit between down and up channels.</span>
+</span><span data-line="329"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="330">        <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipe</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">r_b</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="n">m_flow_borehole</span><span class="p">,</span> <span class="p">(</span><span class="n">rho_f</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">))</span>
+</span><span data-line="331">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">effective_borehole_thermal_resistance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_check_flow</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">),</span> <span class="n">cp_f</span><span class="p">))</span></div>
+</div>
+
+</span><span data-line="332">
+</span><span data-line="333">
+<div class="viewcode-block" id="precompute_borehole_resistance">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.precompute_borehole_resistance">[docs]</a>
+</span><span data-line="334"><span class="k">def</span><span class="w"> </span><span class="nf">precompute_borehole_resistance</span><span class="p">(</span>
+</span><span data-line="335">    <span class="n">m_flow_rated</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="336">    <span class="n">min_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="337">    <span class="n">max_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="338">    <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="339">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="340">    <span class="n">boundary_condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;uniform_temperature&quot;</span><span class="p">,</span>
+</span><span data-line="341">    <span class="o">**</span><span class="n">geometry</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="342"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="343"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Precompute Rb* [m K/W] on a mass-flow grid, including the rated point.</span>
+</span><span data-line="344">
+</span><span data-line="345"><span class="sd">    Uses the legacy local-resistance/axial model at initialization only. PCHIP</span>
+</span><span data-line="346"><span class="sd">    interpolation preserves its shape; out-of-range flow is an input error,</span>
+</span><span data-line="347"><span class="sd">    never silently extrapolated. The flow is per borehole, not field total.</span>
+</span><span data-line="348"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="349">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">m_flow_rated</span><span class="p">,</span> <span class="n">min_ratio</span><span class="p">,</span> <span class="n">max_ratio</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">)):</span>
+</span><span data-line="350">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Borehole flow, bounds, depth and heat capacity must be positive and finite&quot;</span><span class="p">)</span>
+</span><span data-line="351">    <span class="k">if</span> <span class="n">min_ratio</span> <span class="o">&gt;=</span> <span class="n">max_ratio</span><span class="p">:</span>
+</span><span data-line="352">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;min_ratio must be less than max_ratio&quot;</span><span class="p">)</span>
+</span><span data-line="353">    <span class="n">ratios</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">min_ratio</span><span class="p">,</span> <span class="n">max_ratio</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
+</span><span data-line="354">    <span class="k">if</span> <span class="n">min_ratio</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">max_ratio</span><span class="p">:</span>
+</span><span data-line="355">        <span class="n">ratios</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ratios</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+</span><span data-line="356">    <span class="k">return</span> <span class="n">precompute_borehole_resistance_from_flow</span><span class="p">(</span>
+</span><span data-line="357">        <span class="n">min_ratio</span> <span class="o">*</span> <span class="n">m_flow_rated</span><span class="p">,</span>
+</span><span data-line="358">        <span class="n">max_ratio</span> <span class="o">*</span> <span class="n">m_flow_rated</span><span class="p">,</span>
+</span><span data-line="359">        <span class="n">H</span><span class="p">,</span>
+</span><span data-line="360">        <span class="n">cp_f</span><span class="p">,</span>
+</span><span data-line="361">        <span class="n">boundary_condition</span><span class="p">,</span>
+</span><span data-line="362">        <span class="n">anchor_flows</span><span class="o">=</span><span class="p">(),</span>
+</span><span data-line="363">        <span class="n">_sample_flows</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ratios</span> <span class="o">*</span> <span class="n">m_flow_rated</span><span class="p">),</span>
+</span><span data-line="364">        <span class="o">**</span><span class="n">geometry</span><span class="p">,</span>
+</span><span data-line="365">    <span class="p">)</span></div>
+
+</span><span data-line="366">
+</span><span data-line="367">
+<div class="viewcode-block" id="precompute_borehole_resistance_from_flow">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.precompute_borehole_resistance_from_flow">[docs]</a>
+</span><span data-line="368"><span class="k">def</span><span class="w"> </span><span class="nf">precompute_borehole_resistance_from_flow</span><span class="p">(</span>
+</span><span data-line="369">    <span class="n">m_flow_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="370">    <span class="n">m_flow_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="371">    <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="372">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="373">    <span class="n">boundary_condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;uniform_temperature&quot;</span><span class="p">,</span>
+</span><span data-line="374">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="375">    <span class="n">anchor_flows</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+</span><span data-line="376">    <span class="n">_sample_flows</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="377">    <span class="o">**</span><span class="n">geometry</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="378"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="379"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Interpolate Rb* using actual branch mass flow [kg/s], with no normalization.</span>
+</span><span data-line="380">
+</span><span data-line="381"><span class="sd">    Reference/setpoint anchors reproduce their physical resistance exactly;</span>
+</span><span data-line="382"><span class="sd">    changing the upper limit does not redefine any reference operating point.</span>
+</span><span data-line="383"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="384">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">m_flow_min</span><span class="p">,</span> <span class="n">m_flow_max</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">))</span> <span class="ow">or</span> <span class="n">m_flow_min</span> <span class="o">&gt;=</span> <span class="n">m_flow_max</span><span class="p">:</span>
+</span><span data-line="385">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Require positive finite mass flows with min &lt; max, depth and heat capacity&quot;</span><span class="p">)</span>
+</span><span data-line="386">    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">m_flow_min</span> <span class="o">&lt;=</span> <span class="n">v</span> <span class="o">&lt;=</span> <span class="n">m_flow_max</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">anchor_flows</span><span class="p">):</span>
+</span><span data-line="387">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Borehole anchor flows must lie inside the actual flow bounds&quot;</span><span class="p">)</span>
+</span><span data-line="388">    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">m_flow_min</span><span class="p">,</span> <span class="n">m_flow_max</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span> <span class="k">if</span> <span class="n">_sample_flows</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_sample_flows</span>
+</span><span data-line="389">    <span class="n">flows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">anchor_flows</span><span class="p">))</span>
+</span><span data-line="390">    <span class="n">resistances</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="391">    <span class="k">for</span> <span class="n">flow</span> <span class="ow">in</span> <span class="n">flows</span><span class="p">:</span>
+</span><span data-line="392">        <span class="n">local</span><span class="p">,</span> <span class="n">internal</span> <span class="o">=</span> <span class="n">calc_local_borehole_thermal_resistance</span><span class="p">(</span><span class="n">m_flow_pipe</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">flow</span><span class="p">),</span> <span class="n">cp_f</span><span class="o">=</span><span class="n">cp_f</span><span class="p">,</span> <span class="o">**</span><span class="n">geometry</span><span class="p">)</span>
+</span><span data-line="393">        <span class="n">resistances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="394">            <span class="n">calc_effective_borehole_thermal_resistance</span><span class="p">(</span><span class="n">local</span><span class="p">,</span> <span class="n">internal</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">flow</span><span class="p">),</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">boundary_condition</span><span class="p">)</span>
+</span><span data-line="395">        <span class="p">)</span>
+</span><span data-line="396">    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">resistances</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">resistances</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="397">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Borehole resistance grid contains invalid values&quot;</span><span class="p">)</span>
+</span><span data-line="398">    <span class="n">interp</span> <span class="o">=</span> <span class="n">PchipInterpolator</span><span class="p">(</span><span class="n">flows</span><span class="p">,</span> <span class="n">resistances</span><span class="p">,</span> <span class="n">extrapolate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="399">    <span class="c1"># The caller computes rated_volume * ratio * rho / N, whereas this grid</span>
+</span><span data-line="400">    <span class="c1"># computes ratio * (rated_volume * rho / N). Their endpoints can differ by</span>
+</span><span data-line="401">    <span class="c1"># a few ULPs. Accept only that rounding tolerance, then evaluate the endpoint</span>
+</span><span data-line="402">    <span class="c1"># itself; genuine out-of-range flow still must not extrapolate.</span>
+</span><span data-line="403">    <span class="n">endpoint_tolerance</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">flows</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">abs</span><span class="p">(</span><span class="n">flows</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+</span><span data-line="404">
+</span><span data-line="405">    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="406">        <span class="k">if</span> <span class="p">(</span>
+</span><span data-line="407">            <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">)</span>
+</span><span data-line="408">            <span class="ow">or</span> <span class="ow">not</span> <span class="n">flows</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">endpoint_tolerance</span> <span class="o">&lt;=</span> <span class="n">m_flow_borehole</span> <span class="o">&lt;=</span> <span class="n">flows</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">endpoint_tolerance</span>
+</span><span data-line="409">        <span class="p">):</span>
+</span><span data-line="410">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Borehole flow is outside the precomputed resistance grid&quot;</span><span class="p">)</span>
+</span><span data-line="411">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">interp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">,</span> <span class="n">flows</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">flows</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])))</span>
+</span><span data-line="412">
+</span><span data-line="413">    <span class="k">return</span> <span class="n">evaluate</span></div>
+
+</span><span data-line="414">
+</span><span data-line="415">
+<div class="viewcode-block" id="calc_local_borehole_thermal_resistance">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.calc_local_borehole_thermal_resistance">[docs]</a>
+</span><span data-line="416"><span class="k">def</span><span class="w"> </span><span class="nf">calc_local_borehole_thermal_resistance</span><span class="p">(</span>
+</span><span data-line="417">    <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="418">    <span class="n">k_g</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="419">    <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="420">    <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="421">    <span class="n">r_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="422">    <span class="n">r_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="423">    <span class="n">D_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="424">    <span class="n">m_flow_pipe</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="425">    <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="426">    <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="427">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="428">    <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="429"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="430"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the local borehole thermal resistance and internal thermal resistance [mK/W] using pygfunction multipole method.</span>
+</span><span data-line="431">
+</span><span data-line="432"><span class="sd">    Assumes a Single U-tube configuration.</span>
+</span><span data-line="433">
+</span><span data-line="434"><span class="sd">    Parameters</span>
+</span><span data-line="435"><span class="sd">    ----------</span>
+</span><span data-line="436"><span class="sd">    k_s : float</span>
+</span><span data-line="437"><span class="sd">        Ground thermal conductivity [W/mK]</span>
+</span><span data-line="438"><span class="sd">    k_g : float</span>
+</span><span data-line="439"><span class="sd">        Grout thermal conductivity [W/mK]</span>
+</span><span data-line="440"><span class="sd">    k_p : float</span>
+</span><span data-line="441"><span class="sd">        Pipe thermal conductivity [W/mK]</span>
+</span><span data-line="442"><span class="sd">    r_b : float</span>
+</span><span data-line="443"><span class="sd">        Borehole radius [m]</span>
+</span><span data-line="444"><span class="sd">    r_out : float</span>
+</span><span data-line="445"><span class="sd">        Pipe outer radius [m]</span>
+</span><span data-line="446"><span class="sd">    r_in : float</span>
+</span><span data-line="447"><span class="sd">        Pipe inner radius [m]</span>
+</span><span data-line="448"><span class="sd">    D_s : float</span>
+</span><span data-line="449"><span class="sd">        Shank spacing (half distance between pipes) [m]</span>
+</span><span data-line="450"><span class="sd">    m_flow_pipe : float</span>
+</span><span data-line="451"><span class="sd">        Mass flow rate per pipe [kg/s]</span>
+</span><span data-line="452"><span class="sd">    rho_f : float</span>
+</span><span data-line="453"><span class="sd">        Fluid density [kg/m³]</span>
+</span><span data-line="454"><span class="sd">    mu_f : float</span>
+</span><span data-line="455"><span class="sd">        Fluid dynamic viscosity [Pa·s]</span>
+</span><span data-line="456"><span class="sd">    cp_f : float</span>
+</span><span data-line="457"><span class="sd">        Fluid specific heat capacity [J/kgK]</span>
+</span><span data-line="458"><span class="sd">    k_f : float</span>
+</span><span data-line="459"><span class="sd">        Fluid thermal conductivity [W/mK]</span>
+</span><span data-line="460">
+</span><span data-line="461"><span class="sd">    Returns</span>
+</span><span data-line="462"><span class="sd">    -------</span>
+</span><span data-line="463"><span class="sd">    tuple[float, float]</span>
+</span><span data-line="464"><span class="sd">        (R_b, R_a)</span>
+</span><span data-line="465"><span class="sd">        R_b: Local borehole thermal resistance [mK/W].</span>
+</span><span data-line="466"><span class="sd">        R_a: Internal (pipe-to-pipe) thermal resistance [mK/W]: the</span>
+</span><span data-line="467"><span class="sd">        temperature difference between the two legs per unit heat flow</span>
+</span><span data-line="468"><span class="sd">        when one leg gives and the other takes the same heat per metre,</span>
+</span><span data-line="469"><span class="sd">        ``R_a = R_11 + R_22 - 2 R_12`` of the multipole resistance matrix</span>
+</span><span data-line="470"><span class="sd">        (Hellström 1991). It is always positive. It is *not* the</span>
+</span><span data-line="471"><span class="sd">        delta-circuit pipe-to-pipe branch ``R_12^Δ``, which can be</span>
+</span><span data-line="472"><span class="sd">        negative for pipes close to the borehole wall; for a symmetric</span>
+</span><span data-line="473"><span class="sd">        U-tube the two are related by ``1/R_a = 1/R_12^Δ + 1/(4 R_b)``.</span>
+</span><span data-line="474">
+</span><span data-line="475"><span class="sd">    Notes</span>
+</span><span data-line="476"><span class="sd">    -----</span>
+</span><span data-line="477"><span class="sd">    Before #96 G6 the second value was ``R_12^Δ`` read from pygfunction&#39;s</span>
+</span><span data-line="478"><span class="sd">    private ``_Rd``. :func:`calc_effective_borehole_thermal_resistance` now</span>
+</span><span data-line="479"><span class="sd">    takes ``R_a`` in both branches; pass it the pair returned here.</span>
+</span><span data-line="480"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="481">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
+</span><span data-line="482">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
+</span><span data-line="483">
+</span><span data-line="484">    <span class="c1"># Offset positions for a Single U-tube</span>
+</span><span data-line="485">    <span class="n">pos</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
+</span><span data-line="486">
+</span><span data-line="487">    <span class="c1"># 1. Convective resistance</span>
+</span><span data-line="488">    <span class="k">if</span> <span class="n">m_flow_pipe</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="489">        <span class="n">h_f</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
+</span><span data-line="490">            <span class="n">m_flow_pipe</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span>
+</span><span data-line="491">        <span class="p">)</span>
+</span><span data-line="492">        <span class="n">R_conv</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_in</span> <span class="o">*</span> <span class="n">h_f</span><span class="p">)</span>
+</span><span data-line="493">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="494">        <span class="c1"># Prevent division by zero if there&#39;s no flow</span>
+</span><span data-line="495">        <span class="n">R_conv</span> <span class="o">=</span> <span class="mf">10.0</span>
+</span><span data-line="496">
+</span><span data-line="497">    <span class="c1"># 2. Conduction resistance of the pipe wall</span>
+</span><span data-line="498">    <span class="n">R_cond</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">k_p</span><span class="p">)</span>
+</span><span data-line="499">
+</span><span data-line="500">    <span class="c1"># Total internal fluid-to-outer-pipe resistance</span>
+</span><span data-line="501">    <span class="n">R_fp</span> <span class="o">=</span> <span class="n">R_conv</span> <span class="o">+</span> <span class="n">R_cond</span>
+</span><span data-line="502">
+</span><span data-line="503">    <span class="c1"># Build dummy borehole object for structural representation</span>
+</span><span data-line="504">    <span class="n">borehole</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="505">
+</span><span data-line="506">    <span class="c1"># Create Single U-tube</span>
+</span><span data-line="507">    <span class="n">pipe</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">SingleUTube</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="n">k_g</span><span class="p">,</span> <span class="n">R_fp</span><span class="p">)</span>
+</span><span data-line="508">
+</span><span data-line="509">    <span class="n">R_b</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">local_borehole_thermal_resistance</span><span class="p">()</span>
+</span><span data-line="510">    <span class="c1"># Internal resistance from the (public) multipole resistance matrix R, at</span>
+</span><span data-line="511">    <span class="c1"># the same multipole order as the pipe object: T_f = T_b + R q&#39;. With</span>
+</span><span data-line="512">    <span class="c1"># q&#39;_1 = -q&#39;_2 the wall exchanges no net heat and T_f1 - T_f2 = R_a q&#39;.</span>
+</span><span data-line="513">    <span class="n">R</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">thermal_resistances</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">r_b</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="n">k_g</span><span class="p">,</span> <span class="n">R_fp</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="n">pipe</span><span class="o">.</span><span class="n">J</span><span class="p">)</span>
+</span><span data-line="514">    <span class="n">R_a</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">R</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">R</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">R</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+</span><span data-line="515">
+</span><span data-line="516">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">R_b</span><span class="p">),</span> <span class="n">R_a</span></div>
+
+</span><span data-line="517">
+</span><span data-line="518">
+<div class="viewcode-block" id="calc_effective_borehole_thermal_resistance">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.calc_effective_borehole_thermal_resistance">[docs]</a>
+</span><span data-line="519"><span class="k">def</span><span class="w"> </span><span class="nf">calc_effective_borehole_thermal_resistance</span><span class="p">(</span>
+</span><span data-line="520">    <span class="n">R_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="521">    <span class="n">R_a</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="522">    <span class="n">H</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="523">    <span class="n">m_flow_pipe</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="524">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="525">    <span class="n">boundary_condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;uniform_temperature&quot;</span><span class="p">,</span>
+</span><span data-line="526"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="527"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the effective borehole thermal resistance [mK/W].</span>
+</span><span data-line="528">
+</span><span data-line="529"><span class="sd">    Parameters</span>
+</span><span data-line="530"><span class="sd">    ----------</span>
+</span><span data-line="531"><span class="sd">    R_b : float</span>
+</span><span data-line="532"><span class="sd">        Local borehole thermal resistance [mK/W]</span>
+</span><span data-line="533"><span class="sd">    R_a : float</span>
+</span><span data-line="534"><span class="sd">        Internal (pipe-to-pipe) thermal resistance [mK/W], as returned by</span>
+</span><span data-line="535"><span class="sd">        :func:`calc_local_borehole_thermal_resistance` (must be positive).</span>
+</span><span data-line="536"><span class="sd">    H : float</span>
+</span><span data-line="537"><span class="sd">        Borehole depth [m]</span>
+</span><span data-line="538"><span class="sd">    m_flow_pipe : float</span>
+</span><span data-line="539"><span class="sd">        Mass flow rate per pipe [kg/s]; for a single U-tube, the borehole flow.</span>
+</span><span data-line="540"><span class="sd">    cp_f : float</span>
+</span><span data-line="541"><span class="sd">        Fluid specific heat capacity [J/kgK]</span>
+</span><span data-line="542"><span class="sd">    boundary_condition : str</span>
+</span><span data-line="543"><span class="sd">        Boundary condition for the calculation.</span>
+</span><span data-line="544"><span class="sd">        Options: &#39;uniform_temperature&#39; or &#39;uniform_heat_flux&#39;.</span>
+</span><span data-line="545">
+</span><span data-line="546"><span class="sd">    Returns</span>
+</span><span data-line="547"><span class="sd">    -------</span>
+</span><span data-line="548"><span class="sd">    float</span>
+</span><span data-line="549"><span class="sd">        Effective borehole thermal resistance [mK/W].</span>
+</span><span data-line="550">
+</span><span data-line="551"><span class="sd">    Notes</span>
+</span><span data-line="552"><span class="sd">    -----</span>
+</span><span data-line="553"><span class="sd">    With ``η = H / (ṁ c_p √(R_b R_a))`` (Hellström 1991):</span>
+</span><span data-line="554">
+</span><span data-line="555"><span class="sd">    - uniform borehole-wall temperature: ``R_b* = R_b η coth η``</span>
+</span><span data-line="556"><span class="sd">      (identical to pygfunction&#39;s</span>
+</span><span data-line="557"><span class="sd">      ``SingleUTube.effective_borehole_thermal_resistance``);</span>
+</span><span data-line="558"><span class="sd">    - uniform heat flux: ``R_b* = R_b + H² / (3 R_a (ṁ c_p)²) = R_b (1 + η²/3)``.</span>
+</span><span data-line="559">
+</span><span data-line="560"><span class="sd">    Since ``η coth η = 1 + η²/3 - η⁴/45 + …``, the uniform-heat-flux value is</span>
+</span><span data-line="561"><span class="sd">    never below the uniform-temperature one; they agree to first order and</span>
+</span><span data-line="562"><span class="sd">    separate at low flow (large ``η``).</span>
+</span><span data-line="563">
+</span><span data-line="564"><span class="sd">    References</span>
+</span><span data-line="565"><span class="sd">    ----------</span>
+</span><span data-line="566"><span class="sd">    1. Hellström, G. (1991). Ground Heat Storage: Thermal Analyses of Duct Storage Systems</span>
+</span><span data-line="567"><span class="sd">       (Ph.D. thesis). University of Lund, Sweden.</span>
+</span><span data-line="568"><span class="sd">    2. Lamarche, L., Kajl, S., &amp; Beauchamp, B. (2010). A review of methods to evaluate</span>
+</span><span data-line="569"><span class="sd">       borehole thermal resistances in geothermal heat-pump systems. Geothermics, 39(2), 187-200.</span>
+</span><span data-line="570"><span class="sd">       DOI: 10.1016/j.geothermics.2010.03.003</span>
+</span><span data-line="571"><span class="sd">    3. Javed, S., &amp; Spitler, J. D. (2016). Accuracy of borehole thermal resistance</span>
+</span><span data-line="572"><span class="sd">       calculation methods for grouted single U-tube ground heat exchangers.</span>
+</span><span data-line="573"><span class="sd">       Applied Energy, 182, 161-176. DOI: 10.1016/j.apenergy.2016.08.054</span>
+</span><span data-line="574"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="575">    <span class="k">if</span> <span class="n">boundary_condition</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;uniform_temperature&quot;</span><span class="p">,</span> <span class="s2">&quot;uniform_heat_flux&quot;</span><span class="p">):</span>
+</span><span data-line="576">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;boundary_condition must be &#39;uniform_temperature&#39; or &#39;uniform_heat_flux&#39;&quot;</span><span class="p">)</span>
+</span><span data-line="577">    <span class="k">if</span> <span class="n">m_flow_pipe</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="578">        <span class="k">return</span> <span class="n">R_b</span>
+</span><span data-line="579">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">R_a</span><span class="p">)</span> <span class="ow">and</span> <span class="n">R_a</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">R_b</span><span class="p">)</span> <span class="ow">and</span> <span class="n">R_b</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="580">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;R_b and R_a must be positive and finite, got R_b=</span><span class="si">{</span><span class="n">R_b</span><span class="si">!r}</span><span class="s2">, R_a=</span><span class="si">{</span><span class="n">R_a</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="581">
+</span><span data-line="582">    <span class="n">m_cp</span> <span class="o">=</span> <span class="n">m_flow_pipe</span> <span class="o">*</span> <span class="n">cp_f</span>
+</span><span data-line="583">    <span class="k">if</span> <span class="n">boundary_condition</span> <span class="o">==</span> <span class="s2">&quot;uniform_temperature&quot;</span><span class="p">:</span>
+</span><span data-line="584">        <span class="c1"># Hellström (1991) analytical solution for uniform borehole wall temperature</span>
+</span><span data-line="585">        <span class="n">eta</span> <span class="o">=</span> <span class="n">H</span> <span class="o">/</span> <span class="p">(</span><span class="n">m_cp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">R_b</span> <span class="o">*</span> <span class="n">R_a</span><span class="p">))</span>
+</span><span data-line="586">        <span class="k">if</span> <span class="n">eta</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+</span><span data-line="587">            <span class="k">return</span> <span class="n">R_b</span>
+</span><span data-line="588">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">R_b</span> <span class="o">*</span> <span class="n">eta</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">eta</span><span class="p">))</span>
+</span><span data-line="589">
+</span><span data-line="590">    <span class="c1"># Hellström (1991) for uniform heat flux: R_b* = R_b + H^2 / (3 R_a (m cp)^2)</span>
+</span><span data-line="591">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">R_b</span> <span class="o">+</span> <span class="n">H</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">R_a</span> <span class="o">*</span> <span class="n">m_cp</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span></div>
+
+</span><span data-line="592">
+</span><span data-line="593">
+<div class="viewcode-block" id="calc_borehole_thermal_resistance">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.borehole.calc_borehole_thermal_resistance">[docs]</a>
+</span><span data-line="594"><span class="k">def</span><span class="w"> </span><span class="nf">calc_borehole_thermal_resistance</span><span class="p">(</span>
+</span><span data-line="595">    <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="596">    <span class="n">k_g</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="597">    <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="598">    <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="599">    <span class="n">r_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="600">    <span class="n">r_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="601">    <span class="n">D_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="602">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="603">    <span class="n">m_flow_borehole</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="604">    <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="605">    <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="606">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="607">    <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="608"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="609"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the effective borehole thermal resistance R_b* [mK/W] for a Single U-tube.</span>
+</span><span data-line="610">
+</span><span data-line="611"><span class="sd">    Implements the full three-stage calculation in a single call:</span>
+</span><span data-line="612">
+</span><span data-line="613"><span class="sd">    Stage 1 — Fluid-to-pipe resistance (R_fp):</span>
+</span><span data-line="614"><span class="sd">        R_fp = R_conv + R_cond</span>
+</span><span data-line="615"><span class="sd">        R_conv: convective resistance inside the pipe (Gnielinski correlation).</span>
+</span><span data-line="616"><span class="sd">        R_cond: conductive resistance through the pipe wall (ln(r_out/r_in)/(2πk_p)).</span>
+</span><span data-line="617">
+</span><span data-line="618"><span class="sd">    Stage 2 — 2D cross-section (Local R_b via multipole method):</span>
+</span><span data-line="619"><span class="sd">        SingleUTube solves the steady-state 2D Laplace equation in the grout</span>
+</span><span data-line="620"><span class="sd">        cross-section using Hellström&#39;s multipole expansion at pygfunction&#39;s</span>
+</span><span data-line="621"><span class="sd">        default order J=2 (for the default GSHPB geometry at 24 L/min and</span>
+</span><span data-line="622"><span class="sd">        H_b = 200 m, R_b* is 5e-5 relative below its J=10 value: 0.164398 vs</span>
+</span><span data-line="623"><span class="sd">        0.164405 m·K/W); see Javed and Spitler (2016) for an accuracy</span>
+</span><span data-line="624"><span class="sd">        benchmark of this method.</span>
+</span><span data-line="625"><span class="sd">        Boundary conditions: R_fp at each pipe surface, T=const at borehole wall.</span>
+</span><span data-line="626"><span class="sd">        Outputs: Local R_b (fluid → borehole wall, cross-section only).</span>
+</span><span data-line="627">
+</span><span data-line="628"><span class="sd">    Stage 3 — Axial short-circuit correction (Effective R_b*):</span>
+</span><span data-line="629"><span class="sd">        pipe.effective_borehole_thermal_resistance() applies the Cimmino /</span>
+</span><span data-line="630"><span class="sd">        Hellström analytical solution for axial fluid temperature variation and</span>
+</span><span data-line="631"><span class="sd">        thermal short-circuiting between the two U-tube legs.</span>
+</span><span data-line="632">
+</span><span data-line="633"><span class="sd">    For a Single U-tube (series flow), each pipe leg carries the full borehole</span>
+</span><span data-line="634"><span class="sd">    flow rate; m_flow_borehole is passed directly without division by 2.</span>
+</span><span data-line="635">
+</span><span data-line="636"><span class="sd">    Parameters</span>
+</span><span data-line="637"><span class="sd">    ----------</span>
+</span><span data-line="638"><span class="sd">    k_s : float</span>
+</span><span data-line="639"><span class="sd">        Ground thermal conductivity [W/mK]</span>
+</span><span data-line="640"><span class="sd">    k_g : float</span>
+</span><span data-line="641"><span class="sd">        Grout thermal conductivity [W/mK]</span>
+</span><span data-line="642"><span class="sd">    k_p : float</span>
+</span><span data-line="643"><span class="sd">        Pipe thermal conductivity [W/mK]</span>
+</span><span data-line="644"><span class="sd">    r_b : float</span>
+</span><span data-line="645"><span class="sd">        Borehole radius [m]</span>
+</span><span data-line="646"><span class="sd">    r_out : float</span>
+</span><span data-line="647"><span class="sd">        Pipe outer radius [m]</span>
+</span><span data-line="648"><span class="sd">    r_in : float</span>
+</span><span data-line="649"><span class="sd">        Pipe inner radius [m]</span>
+</span><span data-line="650"><span class="sd">    D_s : float</span>
+</span><span data-line="651"><span class="sd">        Distance from borehole centre to pipe centre [m]</span>
+</span><span data-line="652"><span class="sd">    H_b : float</span>
+</span><span data-line="653"><span class="sd">        Borehole depth [m]</span>
+</span><span data-line="654"><span class="sd">    m_flow_borehole : float</span>
+</span><span data-line="655"><span class="sd">        Total fluid mass flow rate into the borehole [kg/s].</span>
+</span><span data-line="656"><span class="sd">        For a Single U-tube (series), this equals the flow in each pipe leg.</span>
+</span><span data-line="657"><span class="sd">    rho_f : float</span>
+</span><span data-line="658"><span class="sd">        Fluid density [kg/m³]</span>
+</span><span data-line="659"><span class="sd">    mu_f : float</span>
+</span><span data-line="660"><span class="sd">        Fluid dynamic viscosity [Pa·s]</span>
+</span><span data-line="661"><span class="sd">    cp_f : float</span>
+</span><span data-line="662"><span class="sd">        Fluid specific heat capacity [J/kgK]</span>
+</span><span data-line="663"><span class="sd">    k_f : float</span>
+</span><span data-line="664"><span class="sd">        Fluid thermal conductivity [W/mK]</span>
+</span><span data-line="665">
+</span><span data-line="666"><span class="sd">    Returns</span>
+</span><span data-line="667"><span class="sd">    -------</span>
+</span><span data-line="668"><span class="sd">    float</span>
+</span><span data-line="669"><span class="sd">        Effective borehole thermal resistance R_b* [mK/W].</span>
+</span><span data-line="670">
+</span><span data-line="671"><span class="sd">    References</span>
+</span><span data-line="672"><span class="sd">    ----------</span>
+</span><span data-line="673"><span class="sd">    Hellström, G. (1991). Ground Heat Storage: Thermal Analyses of Duct</span>
+</span><span data-line="674"><span class="sd">    Storage Systems (Ph.D. thesis). University of Lund, Sweden.</span>
+</span><span data-line="675">
+</span><span data-line="676"><span class="sd">    Claesson, J., &amp; Hellström, G. (2011). Multipole method to calculate</span>
+</span><span data-line="677"><span class="sd">    borehole thermal resistances in a borehole heat exchanger. HVAC&amp;R</span>
+</span><span data-line="678"><span class="sd">    Research, 17(6), 895-911. DOI: 10.1080/10789669.2011.609927</span>
+</span><span data-line="679">
+</span><span data-line="680"><span class="sd">    Javed, S., &amp; Spitler, J. D. (2016). Accuracy of borehole thermal</span>
+</span><span data-line="681"><span class="sd">    resistance calculation methods for grouted single U-tube ground heat</span>
+</span><span data-line="682"><span class="sd">    exchangers. Applied Energy, 182, 161-176. DOI:</span>
+</span><span data-line="683"><span class="sd">    10.1016/j.apenergy.2016.08.054</span>
+</span><span data-line="684"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="685">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
+</span><span data-line="686">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
+</span><span data-line="687">
+</span><span data-line="688">    <span class="c1"># --- Stage 1: R_fp (1D analytic, fluid → pipe outer wall) ---</span>
+</span><span data-line="689">    <span class="k">if</span> <span class="n">m_flow_borehole</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="690">        <span class="n">h_f</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
+</span><span data-line="691">            <span class="n">m_flow_borehole</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span>
+</span><span data-line="692">        <span class="p">)</span>
+</span><span data-line="693">        <span class="n">R_conv</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_in</span> <span class="o">*</span> <span class="n">h_f</span><span class="p">)</span>
+</span><span data-line="694">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="695">        <span class="n">R_conv</span> <span class="o">=</span> <span class="mf">10.0</span>  <span class="c1"># large fallback when there is no flow</span>
+</span><span data-line="696">    <span class="n">R_cond</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">k_p</span><span class="p">)</span>
+</span><span data-line="697">    <span class="n">R_fp</span> <span class="o">=</span> <span class="n">R_conv</span> <span class="o">+</span> <span class="n">R_cond</span>
+</span><span data-line="698">
+</span><span data-line="699">    <span class="c1"># --- Stage 2 + 3: 2D multipole → Local R_b, then axial correction → R_b* ---</span>
+</span><span data-line="700">    <span class="n">pos</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
+</span><span data-line="701">    <span class="n">borehole</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="n">H_b</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="702">    <span class="n">pipe</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">SingleUTube</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="n">k_g</span><span class="p">,</span> <span class="n">R_fp</span><span class="p">)</span>
+</span><span data-line="703">
+</span><span data-line="704">    <span class="c1"># pygfunction public API: internally applies Cimmino/Hellström axial correction</span>
+</span><span data-line="705">    <span class="n">R_b_eff</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">effective_borehole_thermal_resistance</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">)</span>
+</span><span data-line="706">
+</span><span data-line="707">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">R_b_eff</span><span class="p">)</span></div>
+
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+      <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../../_static/js/core/global.js?v=4865e9a9"></script>
+      <script defer="defer" src="../../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+</html>

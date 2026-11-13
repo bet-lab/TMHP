@@ -26,7 +26,9 @@
       "source_id": "DAIKIN-ECPEN24-022",
       "pdf_page": 2
     },
-    "assumption": "High airflow and nominal capacity are paired catalogue specifications, not proof of simultaneous calorimeter measurement at that fan setting."
+    "assumption": "High airflow and nominal capacity are paired catalogue specifications, not proof of simultaneous calorimeter measurement at that fan setting.",
+    "nas_path": "energy-systems/daikin-ecpen24-022-source/files/source/DAIKIN-ECPEN24-022.pdf",
+    "archive87_dataset_id": "daikin-ecpen24-022-source"
   },
   {
     "source_id": "FUJITSU-EU-2018",
@@ -56,7 +58,9 @@
       "source_id": "FUJITSU-EU-2018",
       "pdf_page": 135
     },
-    "assumption": "High airflow and nominal capacity are paired catalogue specifications, not proof of simultaneous calorimeter measurement at that fan setting."
+    "assumption": "High airflow and nominal capacity are paired catalogue specifications, not proof of simultaneous calorimeter measurement at that fan setting.",
+    "nas_path": "energy-systems/fujitsu-eu-2018-source/files/source/FUJITSU-EU-2018.pdf",
+    "archive87_dataset_id": "fujitsu-eu-2018-source"
   },
   {
     "source_id": "FUJITSU-UK-KM-2018",
@@ -86,7 +90,9 @@
       "source_id": "FUJITSU-UK-KM-2018",
       "pdf_page": 2
     },
-    "assumption": "High airflow and nominal capacity are paired catalogue specifications, not proof of simultaneous calorimeter measurement at that fan setting."
+    "assumption": "High airflow and nominal capacity are paired catalogue specifications, not proof of simultaneous calorimeter measurement at that fan setting.",
+    "nas_path": "energy-systems/fujitsu-uk-km-2018-source/files/source/FUJITSU-UK-KM-2018.pdf",
+    "archive87_dataset_id": "fujitsu-uk-km-2018-source"
   },
   {
     "source_id": "MEUK-5331",
@@ -101,7 +107,9 @@
     "access_method": "curl",
     "accessed_at": "2026-10-26",
     "notes": "Wall-mounted MSZ-* and floor-standing MFZ-KW/KT spec pages used: pdf pp. 8-22, 382-384. Rating temperatures not printed on spec pages. Multi-only indoor columns (MSZ-LN18, MSZ-EF18/22) and Multi rows of MFZ-KT skipped.",
-    "rating_conditions": "not printed on specification page (databook M-P0924B)"
+    "rating_conditions": "not printed on specification page (databook M-P0924B)",
+    "nas_path": "energy-systems/meuk-5331-source/files/source/MEUK-5331.pdf",
+    "archive87_dataset_id": "meuk-5331-source"
   },
   {
     "source_id": "MEUK-5330",
@@ -116,7 +124,9 @@
     "access_method": "curl",
     "accessed_at": "2026-10-26",
     "notes": "PKA-M wall-mounted (pp. 85-86) and PSA-M floor-standing (pp. 151-154) used. Cassette/ducted/ceiling-suspended pages ignored per scope.",
-    "rating_conditions": "not printed on specification page"
+    "rating_conditions": "not printed on specification page",
+    "nas_path": "energy-systems/meuk-5330-source/files/source/MEUK-5330.pdf",
+    "archive87_dataset_id": "meuk-5330-source"
   },
   {
     "source_id": "MEUK-4366",
@@ -130,7 +140,9 @@
     "evidence_type": "official_datasheet_pdf",
     "access_method": "curl",
     "accessed_at": "2026-10-26",
-    "notes": "Cross-check only, not transcribed: AIRFLOW (l/s) Lo-Mi2-Mi1-Hi 333-383-433 (3 values under a 4-step label) = MEUK-5330 PKA-M100KA(L)2 20-23-26 m3/min."
+    "notes": "Cross-check only, not transcribed: AIRFLOW (l/s) Lo-Mi2-Mi1-Hi 333-383-433 (3 values under a 4-step label) = MEUK-5330 PKA-M100KA(L)2 20-23-26 m3/min.",
+    "nas_path": "energy-systems/meuk-4366-source/files/source/MEUK-4366.pdf",
+    "archive87_dataset_id": "meuk-4366-source"
   },
   {
     "source_id": "MEUK-4486",
@@ -144,7 +156,9 @@
     "evidence_type": "official_datasheet_pdf",
     "access_method": "curl",
     "accessed_at": "2026-10-26",
-    "notes": "Cross-check only, not transcribed: AIRFLOW (l/s) Lo-Mi-Hi 333-367-400 (M71), 417-467-500 (M100), 417-467-517 (M125/M140); consistent with MEUK-5330 m3/min values. UK-condition capacities also printed."
+    "notes": "Cross-check only, not transcribed: AIRFLOW (l/s) Lo-Mi-Hi 333-367-400 (M71), 417-467-500 (M100), 417-467-517 (M125/M140); consistent with MEUK-5330 m3/min values. UK-condition capacities also printed.",
+    "nas_path": "energy-systems/meuk-4486-source/files/source/MEUK-4486.pdf",
+    "archive87_dataset_id": "meuk-4486-source"
   },
   {
     "source_id": "MEUK-4591",
@@ -158,7 +172,9 @@
     "evidence_type": "official_datasheet_pdf",
     "access_method": "curl",
     "accessed_at": "2026-10-26",
-    "notes": "Cross-check only, not transcribed (same indoor airflow as MEUK-4486/5330)."
+    "notes": "Cross-check only, not transcribed (same indoor airflow as MEUK-4486/5330).",
+    "nas_path": "energy-systems/meuk-4591-source/files/source/MEUK-4591.pdf",
+    "archive87_dataset_id": "meuk-4591-source"
   },
   {
     "source_id": "PANASONIC-BIGRAC-GEN26-LT",
@@ -173,7 +189,9 @@
     "access_method": "curl",
     "accessed_at": "2026-10-26",
     "notes": "PK4 wall-mounted Elite (p.27) and Standard (p.29) single-phase kits and YKEA server-room wall units (p.62) used; three-phase duplicates (pp.28,30) not repeated. Cassette/ceiling/ducted pages ignored.",
-    "rating_conditions": "Cooling indoor 27°C DB/19°C WB, outdoor 35°C DB/24°C WB; heating indoor 20°C DB, outdoor 7°C DB/6°C WB; EER/COP per EN14511 (printed)"
+    "rating_conditions": "Cooling indoor 27°C DB/19°C WB, outdoor 35°C DB/24°C WB; heating indoor 20°C DB, outdoor 7°C DB/6°C WB; EER/COP per EN14511 (printed)",
+    "nas_path": "energy-systems/panasonic-bigrac-gen26-lt-source/files/source/PANASONIC-BIGRAC-GEN26-LT.pdf",
+    "archive87_dataset_id": "panasonic-bigrac-gen26-lt-source"
   },
   {
     "source_id": "PANASONIC-EU-WEB-FLOOR",
@@ -188,7 +206,10 @@
     "access_method": "curl",
     "accessed_at": "2026-10-26",
     "notes": "HTML saved with curl; values use decimal comma. No fan-step labels on airflow rows.",
-    "rating_conditions": "EER/COP per EN14511 (page footnote); temperature conditions not printed on page"
+    "rating_conditions": "EER/COP per EN14511 (page footnote); temperature conditions not printed on page",
+    "nas_path": "energy-systems/panasonic-eu-web-floor-source/files/source/floor-console-inverter-r32.html",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-13 for #86 (not in the #87 ledger); see ../nas-transfer-20261113.json"
   },
   {
     "source_id": "LG-US-EM-SZ-EXTPIPE-R32-0725",
@@ -203,7 +224,9 @@
     "access_method": "curl",
     "accessed_at": "2026-10-26",
     "notes": "US (AHRI-type) rating conditions; Btu/h and CFM.",
-    "rating_conditions": "AHRI-type US rating: cooling indoor 80°F DB/67°F WB, outdoor 95°F DB/75°F WB; heating indoor 70°F DB/59°F WB, outdoor 47°F DB/43°F WB; 24.6 ft line (printed). 'Power Input is rated at high speed' (footnote)."
+    "rating_conditions": "AHRI-type US rating: cooling indoor 80°F DB/67°F WB, outdoor 95°F DB/75°F WB; heating indoor 70°F DB/59°F WB, outdoor 47°F DB/43°F WB; 24.6 ft line (printed). 'Power Input is rated at high speed' (footnote).",
+    "nas_path": "energy-systems/lg-us-em-sz-extpipe-r32-0725-source/files/source/LG-US-EM-SZ-EXTPIPE-R32-0725.pdf",
+    "archive87_dataset_id": "lg-us-em-sz-extpipe-r32-0725-source"
   },
   {
     "source_id": "LG-US-EM-SZ-STDEFF-MEGA-R32-0725",
@@ -218,7 +241,9 @@
     "access_method": "curl",
     "accessed_at": "2026-10-26",
     "notes": "Standard Efficiency (Table 4/5) and Mega (Table 6/7) transcribed; Mega and Std Eff print identical values (duplicates flagged). Mega 115V (Table 8/9, KSSAC091B/121B) identical to 9k/12k rows and not transcribed.",
-    "rating_conditions": "AHRI-type US rating: cooling indoor 80°F DB/67°F WB, outdoor 95°F DB/75°F WB; heating indoor 70°F DB/59°F WB, outdoor 47°F DB/43°F WB; 24.6 ft line (printed). 'Power Input is rated at high speed' (footnote)."
+    "rating_conditions": "AHRI-type US rating: cooling indoor 80°F DB/67°F WB, outdoor 95°F DB/75°F WB; heating indoor 70°F DB/59°F WB, outdoor 47°F DB/43°F WB; 24.6 ft line (printed). 'Power Input is rated at high speed' (footnote).",
+    "nas_path": "energy-systems/lg-us-em-sz-stdeff-mega-r32-0725-source/files/source/LG-US-EM-SZ-STDEFF-MEGA-R32-0725.pdf",
+    "archive87_dataset_id": "lg-us-em-sz-stdeff-mega-r32-0725-source"
   },
   {
     "source_id": "LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125",
@@ -233,7 +258,9 @@
     "access_method": "curl",
     "accessed_at": "2026-10-26",
     "notes": "Indoor airflow identical for 15/18/24k (same chassis).",
-    "rating_conditions": "AHRI-type US rating: cooling indoor 80°F DB/67°F WB, outdoor 95°F DB/75°F WB; heating indoor 70°F DB/59°F WB, outdoor 47°F DB/43°F WB; 24.6 ft line (printed). 'Power Input is rated at high speed' (footnote)."
+    "rating_conditions": "AHRI-type US rating: cooling indoor 80°F DB/67°F WB, outdoor 95°F DB/75°F WB; heating indoor 70°F DB/59°F WB, outdoor 47°F DB/43°F WB; 24.6 ft line (printed). 'Power Input is rated at high speed' (footnote).",
+    "nas_path": "energy-systems/lg-us-em-sz-artcool-premier-r32-0125-source/files/source/LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125.pdf",
+    "archive87_dataset_id": "lg-us-em-sz-artcool-premier-r32-0125-source"
   },
   {
     "source_id": "DAIKIN-ECPEN26-500",
@@ -562,6 +589,9 @@
         "sha256": "a68be098706cfac4eea912d4f7125da8852935ad2efd2dd045e6b062174f2852"
       }
     ],
-    "rating_conditions": "not printed on this catalogue page"
+    "rating_conditions": "not printed on this catalogue page",
+    "nas_path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-13 for #86 (not in the #87 ledger); see ../nas-transfer-20261113.json"
   }
 ]

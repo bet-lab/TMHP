@@ -19,7 +19,9 @@
         "conditions_pdf_page": 26,
         "assumption": "Printed displacement and N-TEC capacity (Te7.2/Tc54.4/Ts35/Tl46.1/Ta35, PDF p26). Series letters S/R/P/K/V are single-rotary per the nomenclature on PDF p5; 50 Hz supply is not measured shaft speed."
       }
-    }
+    },
+    "nas_path": "energy-systems/panasonic-cgz-2025-source/files/source/PANASONIC-CGZ-2025.pdf",
+    "archive87_dataset_id": "panasonic-cgz-2025-source"
   },
   {
     "source_id": "HIGHLY-INDIA-2015",
@@ -31,7 +33,9 @@
     "evidence_type": "manufacturer_original_pdf",
     "access_method": "chrome_cdp",
     "accessed_at": "2026-10-22",
-    "pages": 2
+    "pages": 2,
+    "nas_path": "energy-systems/highly-india-2015-source/files/source/HIGHLY-INDIA-2015.pdf",
+    "archive87_dataset_id": "highly-india-2015-source"
   },
   {
     "source_id": "LG-ROTARY-2024",
@@ -72,7 +76,9 @@
         "table_scope": "Air Conditioner; printed pp10–11, not Unitary in US Market",
         "assumption": "Geometry decoded only by manufacturer nomenclature p5, not inferred from capacity or rescaled. ARI conditions p10: superheat 11.1K and subcooling8.3K; test frequency60Hz from official product-page note, not measured shaft rps. Same printed numeric displacement retained."
       }
-    }
+    },
+    "nas_path": "energy-systems/lg-rotary-2024-source/files/source/LG-ROTARY-2024.pdf",
+    "archive87_dataset_id": "lg-rotary-2024-source"
   },
   {
     "source_id": "LG-ROTARY-WEB-20261025",
@@ -86,7 +92,9 @@
     "accessed_at": "2026-10-25T16:15:11.963495+09:00",
     "pages": 12,
     "html_path": "validation/evidence/default_inputs/expansion/LG-ROTARY-product-page-20261025.html",
-    "html_sha256": "aa0fa37f489aefa5cc8e408cbabc683c5972f1ebbbfa90a96657bde89bd00cb4"
+    "html_sha256": "aa0fa37f489aefa5cc8e408cbabc683c5972f1ebbbfa90a96657bde89bd00cb4",
+    "nas_path": "energy-systems/lg-rotary-web-20261025-source/files/extracted/LG-ROTARY-product-page-20261025.web-snapshot.pdf",
+    "archive87_dataset_id": "lg-rotary-web-20261025-source"
   },
   {
     "source_id": "HIGHLY-WEB-D-20261025",
@@ -111,7 +119,9 @@
         "conditions_pdf_page": 2,
         "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
       }
-    }
+    },
+    "nas_path": "energy-systems/highly-web-d-20261025-source/files/extracted/HIGHLY-D-20261025-web-snapshot.pdf",
+    "archive87_dataset_id": "highly-web-d-20261025-source"
   },
   {
     "source_id": "HIGHLY-WEB-G-20261025",
@@ -136,7 +146,9 @@
         "conditions_pdf_page": 2,
         "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
       }
-    }
+    },
+    "nas_path": "energy-systems/highly-web-g-20261025-source/files/extracted/HIGHLY-G-20261025-web-snapshot.pdf",
+    "archive87_dataset_id": "highly-web-g-20261025-source"
   },
   {
     "source_id": "HIGHLY-WEB-H-20261025",
@@ -161,7 +173,9 @@
         "conditions_pdf_page": 2,
         "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
       }
-    }
+    },
+    "nas_path": "energy-systems/highly-web-h-20261025-source/files/extracted/HIGHLY-H-20261025-web-snapshot.pdf",
+    "archive87_dataset_id": "highly-web-h-20261025-source"
   },
   {
     "source_id": "HIGHLY-WEB-L-20261025",
@@ -186,7 +200,9 @@
         "conditions_pdf_page": 2,
         "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
       }
-    }
+    },
+    "nas_path": "energy-systems/highly-web-l-20261025-source/files/extracted/HIGHLY-L-20261025-web-snapshot.pdf",
+    "archive87_dataset_id": "highly-web-l-20261025-source"
   },
   {
     "source_id": "HIGHLY-WEB-TH-20261025",
@@ -211,6 +227,8 @@
         "conditions_pdf_page": 2,
         "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
       }
-    }
+    },
+    "nas_path": "energy-systems/highly-web-th-20261025-source/files/extracted/HIGHLY-TH-20261025-web-snapshot.pdf",
+    "archive87_dataset_id": "highly-web-th-20261025-source"
   }
 ]

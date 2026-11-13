@@ -37,3 +37,11 @@ Ground coupling
     :members:
     :undoc-members:
     :show-inheritance:
+
+Ground-side defaults
+====================
+
+.. automodule:: tmhp.ground_defaults
+    :members:
+    :undoc-members:
+    :show-inheritance:

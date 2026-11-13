@@ -60,27 +60,29 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .g_function import g_step_mean, precompute_gfunction
+from .ground_defaults import (
+    BOREHOLE_DEFAULT_DEPTH,
+    calc_rated_linear_load,
+    default_borefield_layout,
+    default_ground_flow_lpm,
+    warn_if_borefield_undersized,
+    warn_if_laminar_ground_flow,
+)
 from .ground_flow_control import (
     close_ground_temperature,
     select_ground_flow,
     solve_ground_approach,
 )
 from .ground_loop import (
-    BOREHOLE_DEFAULT_DEPTH,
     calc_bhe_fluid_temperatures,
     calc_borefield_linear_load,
     calc_borehole_count,
-    calc_rated_linear_load,
     calc_total_borehole_length,
     configure_ground_flow,
-    default_borefield_layout,
-    default_ground_flow_lpm,
     ground_flow_state,
     ground_hx_UA,
     ground_result_diagnostics,
     resolve_ground_flow_rates,
-    warn_if_borefield_undersized,
-    warn_if_laminar_ground_flow,
 )
 from .heat_exchanger import (
     calc_ground_hx_UA_from_capacity,
@@ -223,14 +225,14 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
     - loop flow ``ground_flow_ref_lpm``:
       ``0.75 * hp_capacity / (rho c * 3 K)``
-      (:func:`~tmhp.ground_loop.default_ground_flow_lpm`; 14.3 L/min for
+      (:func:`~tmhp.ground_defaults.default_ground_flow_lpm`; 14.3 L/min for
       4 kW), shared equally by the parallel boreholes;
     - pump power ``E_pmp``: ASHRAE pumping grade B, 75 W per ton of capacity
       (:func:`~tmhp.pump.default_ground_pump_power`; 85 W for 4 kW);
     - borefield: when none of ``N_1``, ``N_2`` and ``H_b`` is given, the
       smallest near-square field of 100 m boreholes that keeps the rated
       source-side heat (``0.75 * hp_capacity``) within 50 W/m
-      (:func:`~tmhp.ground_loop.default_borefield_layout`; one borehole up to
+      (:func:`~tmhp.ground_defaults.default_borefield_layout`; one borehole up to
       6.67 kW, 3 x 2 for 30 kW). Giving any of the three fixes the field as
       given (the others default to 1, 1 and 100 m);
     - rated indoor airflow ``dV_iu_fan_a_rated``: 5.37e-5 m³/s per W
@@ -357,7 +359,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     ):
         validate_ctor("GSHP", locals())
         # Ground side sized from the capacity when the caller gives none of it
-        # (see tmhp.ground_loop): flow, pump power and the borefield.
+        # (see tmhp.ground_defaults): flow, pump power and the borefield.
         borefield_defaulted = N_1 is None and N_2 is None and H_b is None
         if H_b is None:
             H_b = BOREHOLE_DEFAULT_DEPTH

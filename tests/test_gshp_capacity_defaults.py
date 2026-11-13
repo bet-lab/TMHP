@@ -15,7 +15,7 @@ import pytest
 
 from tmhp import GroundSourceHeatPump
 from tmhp.constants import c_w, rho_w
-from tmhp.ground_loop import (
+from tmhp.ground_defaults import (
     BOREHOLE_DESIGN_LINEAR_LOAD,
     calc_borehole_reynolds,
     calc_rated_linear_load,
@@ -43,7 +43,7 @@ def by_capacity():
     return {cap: build(hp_capacity=cap, Ts=0.0) for cap in CAPACITIES}
 
 
-# ── policy functions (shared ground modules) ──────────────────────────────
+# ── policy functions (tmhp.ground_defaults) ───────────────────────────────
 
 
 def test_default_flow_is_the_rated_source_heat_over_three_kelvin():

@@ -214,7 +214,7 @@ def default_ground_pump_power(hp_capacity: float, grade: str = "B") -> float:
     when the hydraulic pump model is off. It is consistent with that model
     at the same grade: 210 kPa (:func:`calc_aux_loss_from_ashrae_grade`,
     grade B) at the default flow of 3.58 L/min per kW
-    (:func:`tmhp.ground_loop.default_ground_flow_lpm`) and the default 60 %
+    (:func:`tmhp.ground_defaults.default_ground_flow_lpm`) and the default 60 %
     wire-to-water efficiency is 20.9 W per kW.
     """
     if not isinstance(grade, str) or grade.upper() not in ASHRAE_PUMP_GRADE_W_PER_TON:

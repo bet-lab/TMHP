@@ -68,8 +68,8 @@ capacity, so the rating-point COP is the same from 1 to 100 kW:
      - 5.37e-5 m³/s per W (400 cfm per ton).
      - 773 / 5 800 m³/h
 
-The helpers are :func:`tmhp.ground_loop.default_ground_flow_lpm`,
-:func:`tmhp.ground_loop.default_borefield_layout` and
+The helpers are :func:`tmhp.ground_defaults.default_ground_flow_lpm`,
+:func:`tmhp.ground_defaults.default_borefield_layout` and
 :func:`tmhp.pump.default_ground_pump_power`. A value you supply replaces its
 default. Giving any one of ``N_1``, ``N_2`` or ``H_b`` fixes the borefield as
 given (the others take 1, 1 and 100 m); the flow and the pump power still

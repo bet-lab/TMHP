@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-11-13T17:18:12+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T19:37:23+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -279,7 +279,9 @@ flow to lie inside 0.15–1.0 of the reference. The coil cannot change its
 airflow, so a duty is carried only through the approach temperature: ASHPB and
 GSHP solve that single approach (the band of approaches the fan can serve
 collapses to a point) and report the duty exactly. A request the coil cannot
-carry fails with <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;hx_not_converged&quot;</span></code> as for a variable fan.</p>
+carry is answered as for a variable fan: ASHPB runs at the largest duty the
+coil carries (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span>
+<span class="pre">&quot;outdoor_coil&quot;</span></code>), GSHP fails with <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;hx_not_converged&quot;</span></code>.</p>
 <p>A constant-speed fan sits at both limits, so both <code class="docutils literal notranslate"><span class="pre">fan_flow_min_limit</span></code> and
 <code class="docutils literal notranslate"><span class="pre">fan_flow_max_limit</span></code> (<code class="docutils literal notranslate"><span class="pre">iu_*</span></code> / <code class="docutils literal notranslate"><span class="pre">ou_*</span></code>) are true; the direction in which a
 coil duty misses is in <code class="docutils literal notranslate"><span class="pre">capacity_margin_W</span></code> of the coil solve. Fan power is the
@@ -482,7 +484,7 @@ is two-phase, so the evaporator duty is <code class="docutils literal notranslat
 <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">/</span> <span class="pre">(x</span> <span class="pre">v_g</span> <span class="pre">+</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">x)</span> <span class="pre">v_l)</span></code>; the isentropic work is that of the two-phase
 state. The cycle balance (condenser = evaporator + refrigerant work) closes
 exactly. The efficiency maps were fitted to dry suction; using them for wet
-suction is an approximation. The quality floor 0.9 is a conservative default
+suction is an approximation (its size is discussed below). The quality floor 0.9 is a conservative default
 without a quantitative basis, and <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code> overrides it: two-phase
 suction is an experimentally used way to hold R32 scroll discharge temperature
 (Wang et al., ICEC 2014, paper 1595; Yang et al., Int. J. Refrig. 2015), but no
@@ -491,8 +493,94 @@ liquid-injection ratios used for this purpose. Running results report
 <code class="docutils literal notranslate"><span class="pre">dT_ref_superheat</span> <span class="pre">[K]</span></code>, <code class="docutils literal notranslate"><span class="pre">x_ref_cmp_in</span> <span class="pre">[-]</span></code> and <code class="docutils literal notranslate"><span class="pre">discharge_control</span></code>
 (bool), the same names in all five families; the invariant suite allows a wet
 suction only on a controlled row and only down to <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>. Every
-discharge comparison uses the tolerance <code class="docutils literal notranslate"><span class="pre">DISCHARGE_TOL_K</span></code> = 0.01 K (the
-control’s root residual).</p>
+discharge comparison uses the tolerance <code class="docutils literal notranslate"><span class="pre">DISCHARGE_TOL_K</span></code> = 0.01 K.</p>
+<p>The suction state at the limit is not searched with full cycle solves. At
+fixed suction and condensing pressure the discharge enthalpy follows from the
+suction state and the isentropic efficiency alone, so the suction state whose
+discharge is <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> is first computed from the fluid properties with
+the efficiency of the state just solved; the cycle is then solved there, and
+the estimate corrected with the efficiency that solve returned (it moves with
+the compressor speed, which a denser, wetter suction lowers). Two or three
+cycle solves close the control to 1e-5 K of the limit, and a point still above
+the limit at <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code> is recognised with one. Root finding on full
+cycle solves is kept as the fallback for a fluid without a property state or
+a candidate where a proposed suction state has no cycle.</p>
+<p>Known limit: no efficiency penalty for wet suction. A controlled point uses
+the dry-suction efficiency maps unchanged, which is optimistic. Liquid in a
+scroll’s suction or compression pockets raises the compression power and
+lowers the compressor efficiency, by an amount that depends on the heat
+exchanged with the liquid and that is partly recovered in practice through
+cooler oil and scroll walls (Dutta, Yanagisawa &amp; Fukuta, Int. J. Refrig. 24
+(2001) 577–587). No relation between suction quality and isentropic
+efficiency was found that could be applied to an unspecified compressor
+without a new input, so none is applied. The size of what is missing, for the
+default R32 15 kW boiler, if the isentropic efficiency fell with the liquid
+fraction as <code class="docutils literal notranslate"><span class="pre">eta_is</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">k</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">x))</span></code>:</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 18.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Quantity</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">0</span></code> (model)</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">0.5</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">1</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">2</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">eta_is</span></code> at <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">0.9</span></code></p></td>
+<td><p>unchanged</p></td>
+<td><p>−5 %</p></td>
+<td><p>−10 %</p></td>
+<td><p>−20 %</p></td>
+</tr>
+<tr class="row-odd"><td><p>A7/W65 15 kW: <code class="docutils literal notranslate"><span class="pre">cop_ref</span></code> (suction quality)</p></td>
+<td><p>2.307 (0.961)</p></td>
+<td><p>2.278 (0.956)</p></td>
+<td><p>2.241 (0.949)</p></td>
+<td><p>2.096 (0.920)</p></td>
+</tr>
+<tr class="row-even"><td><p>A2/W60 15 kW: <code class="docutils literal notranslate"><span class="pre">cop_ref</span></code> (suction quality)</p></td>
+<td><p>2.283 (0.952)</p></td>
+<td><p>2.250 (0.946)</p></td>
+<td><p>2.205 (0.937)</p></td>
+<td><p>2.037 at 14.3 kW (0.900)</p></td>
+</tr>
+<tr class="row-odd"><td><p>A0/W60: duty delivered of 15 kW</p></td>
+<td><p>15.0 kW</p></td>
+<td><p>15.0 kW</p></td>
+<td><p>13.3 kW</p></td>
+<td><p>none (off)</p></td>
+</tr>
+<tr class="row-even"><td><p>A−3/W58: duty delivered of 15 kW</p></td>
+<td><p>12.6 kW</p></td>
+<td><p>8.3 kW</p></td>
+<td><p>none (off)</p></td>
+<td><p>none (off)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mild day (A1–13, 21 of 144 steps controlled): daily COP</p></td>
+<td><p>2.484</p></td>
+<td><p>2.474</p></td>
+<td><p>2.461</p></td>
+<td><p>2.451</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>So the COP of a controlled point is high by a few percent at most (2.8 % at
+A7/W65 for a 10 % efficiency loss at <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">0.9</span></code>; 0.9 % over the mild day),
+and the same point uncontrolled, without a discharge limit, is 2.288: the
+model credits wet suction with 0.8 % where a real compressor loses. The
+larger effect is on what runs. A less efficient wet compression discharges
+hotter, so the control needs a wetter suction and reaches <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>
+sooner; the duty the model reports at the edge of the discharge limit, more
+than its COP, is an upper estimate.</p>
 <p>How each family answers a point the control cannot hold:</p>
 <ul class="simple">
 <li><p><strong>ASHP, GSHP</strong> — the candidate is rejected inside the operating-point
@@ -508,27 +596,52 @@ is the off state with <code class="docutils literal notranslate"><span class="pr
 the control) ranks after every solved candidate, including one short of the
 request at <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>, and before an unphysical state, a coil that cannot
 carry the duty and no cycle; within that tier it is graded by how far
-outside it is, so the search moves to the smaller lift that may be inside.</p></li>
+outside it is <em>at the control’s last stage</em> (the suction at
+<code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>), so the search moves to the smaller lift that may be
+inside. The control also acts on a candidate whose coil does not carry the
+cycle, so the band of approaches the fan can serve is that of the
+controlled cycle: wet suction adds to the evaporator duty (about 100 W of
+15 kW), which moves the band’s lower edge up by a few hundredths of a
+kelvin, and above the band the control runs out at <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>. Read
+from the uncontrolled cycle, the band left a window of running approaches
+that the scan could step over (a request of 15 kW at A-6/W50 was then
+“reduced” to 14.7 kW, and to 8.4 kW one step earlier).</p></li>
 <li><p><strong>ASHPB, GSHPB, WSHPB</strong> (<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>) — the solved operating point is
 checked after <code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.unphysical_cycle_detail()</span></code>. A
-request above the limit is retried at 80/60/40/25/10 % and the boundary is
-bisected to 1 % of the request; the largest duty that runs is returned with
-<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span>
-<span class="pre">&quot;discharge_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>. If none runs
-the off state carries <code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>. The discharge
-temperature is not monotone in the duty (at low speed the efficiency
-falls), so this is the boundary nearest the request.</p></li>
+request with no operating point for a reason a smaller duty cures – the
+discharge limit, the pressure-ratio ceiling, the source heat exchanger’s
+range, the efficiency floor
+(<a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.duty_reduction_binding()</span></code></a>) – is retried at
+80/60/40/25/10 % and the boundary is bisected to 1 % of the request; the
+largest duty that runs is returned with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit (see
+<a class="reference internal" href="../concepts/failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>), <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>. If none runs the off state carries the request’s own
+reason. The limits are not monotone in the duty together: above the duties
+that run the pressure ratio or the heat exchanger refuses, below them the
+discharge temperature does (at low speed the efficiency falls). So when no
+rung runs, two neighbouring rungs refused for different reasons are
+bisected by reason, which finds a running range narrower than the ladder
+spacing (R1234yf A-15/W65: 4.0–5.7 kW of a 15 kW request). Three short
+cuts keep “no duty runs” cheap: a request refused by the pressure ratio,
+or by a coil short at full airflow, has its 10 % rung solved first, and if
+that is refused the same way nothing in between is tried (those limits
+only tighten with the duty); a rung at which every approach has the
+compressor on its speed floor ends the ladder (smaller requests are the
+same cycles); and a request with no cycle at all is not reduced.</p></li>
 <li><p><strong>Boiler dynamic steps</strong> answer the same way. Each step solves its cycle
 once (at the mean tank temperature of its run, see
 <code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.resolve_step_operation()</span></code>): held by the control
-if possible, otherwise at the largest duty inside the limit, whose heat then
+if possible, otherwise at the largest duty that runs, whose heat then
 sets the run time and the step-average rates (the tank reaches its upper
-bound later); a step with no duty inside the limit is an off step with
-<code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>. The start-temperature retry of that function
-applies the same reduction. A step that needs the reduction costs one cycle
-solve per ladder rung and bisection point: 24 h of the default R32 boiler
-on a cold day (outdoor −8 to 0 °C, dt 600 s) took 9.9 solves per called
-step and 24 min, against 1 solve and 6 s without the limit.</p></li>
+bound later); a step with no duty that runs is an off step with the
+reason. The start-temperature retry of that function applies the same
+reduction. A step that needs the reduction costs one cycle solve per
+ladder rung and bisection point: 24 h of the default R32 boiler on a cold
+day (outdoor −8 to 0 °C, dt 600 s; 10 of 22 running steps at a reduced
+duty, 70 called steps with no duty that runs) takes about half a minute,
+against one to two seconds on a mild day where the control alone holds the
+limit.</p></li>
 </ul>
 <p>Steady results of every family carry <code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code> (bool):
 the point lies outside the (PR, N) box of a default efficiency fit. Scalar

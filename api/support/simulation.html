@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-13T08:21:56+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T19:43:20+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1340,6 +1340,23 @@ responsibility of the scenario class via
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>]</span></p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p><code class="docutils literal notranslate"><span class="pre">dV_tank_w_out</span></code> is the draw expected over the step. The returned
+make-up is a step-average rate:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tank_always_full=False</span></code>: the refill valve is followed through the
+step (<code class="xref py py-func docutils literal notranslate"><span class="pre">_refill_within_step()</span></code>). It opens when the falling level
+reaches <code class="docutils literal notranslate"><span class="pre">tank_level_lower_bound</span></code> and closes when it is back at
+<code class="docutils literal notranslate"><span class="pre">tank_level_upper_bound</span></code>, at any point of the step, and admits
+<code class="docutils literal notranslate"><span class="pre">dV_tank_w_in_refill</span></code> while open.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">prevent_simultaneous_flow</span></code>: no make-up in a step that draws;
+otherwise <code class="docutils literal notranslate"><span class="pre">dV_tank_w_in_refill</span></code> until the tank is full.</p></li>
+</ul>
+<p>Either way a step whose full-rate refill would overshoot the target takes
+the part that reaches it. It used to take none: with
+<code class="docutils literal notranslate"><span class="pre">dV_tank_w_in_refill·dt</span></code> above the tank volume (the default 1 L/s at
+any step above 151 s) the tank never refilled. The tank balance then
+limits both flows to what the tank can pass (<code class="xref py py-func docutils literal notranslate"><span class="pre">limit_tank_flows()</span></code>).</p>
 </dd></dl>
 
 <dl class="py function">
@@ -1349,7 +1366,12 @@ responsibility of the scenario class via
 <p><code class="docutils literal notranslate"><span class="pre">residual_free(T_K)</span></code> is the boiler’s own implicit tank residual built
 with a zero heat-source rate; it supplies the heat the tank gains or
 loses from everything else (<code class="xref py py-func docutils literal notranslate"><span class="pre">tank_free_heat_rate()</span></code>), linearised
-between <code class="docutils literal notranslate"><span class="pre">min(T_start,</span> <span class="pre">T_lower)</span></code> and <code class="docutils literal notranslate"><span class="pre">max(T_start,</span> <span class="pre">T_upper)</span></code>.
+between <code class="docutils literal notranslate"><span class="pre">min(T_start,</span> <span class="pre">T_lower)</span></code> and <code class="docutils literal notranslate"><span class="pre">max(T_start,</span> <span class="pre">T_upper)</span></code>. The
+thermostat integrates <code class="docutils literal notranslate"><span class="pre">C_curr·dT/dt</span></code> (the start-of-step capacity); for
+a tank whose level changes in the step the free heat is taken in that
+temperature form, so the make-up enters as <code class="docutils literal notranslate"><span class="pre">ρc·V̇_in·(T_in</span> <span class="pre">-</span> <span class="pre">T)</span></code> and
+the draw, which leaves at the tank temperature, does not change <code class="docutils literal notranslate"><span class="pre">T</span></code>.
+<code class="docutils literal notranslate"><span class="pre">C_next</span></code> is accepted for compatibility and not used.
 <code class="docutils literal notranslate"><span class="pre">solve_cycle(T_C)</span></code> returns the boiler’s cycle result at tank
 temperature <code class="docutils literal notranslate"><span class="pre">T_C</span></code> (a running result, or an off-mode row with a
 <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>); <code class="docutils literal notranslate"><span class="pre">Q_request</span></code> [W] is the heat it is asked for.</p>
@@ -1509,6 +1531,183 @@ set points above 100 °C (<code class="xref py py-mod docutils literal notransla
 minimum on-time holds the compressor past the set point.</p>
 </dd></dl>
 
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">TANK_LEVEL_MIN</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001</span></span></dt>
+<dd><p>Lowest fill level of a tank whose level varies [-].</p>
+<p>A level-varying tank (<code class="docutils literal notranslate"><span class="pre">tank_always_full=False</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">prevent_simultaneous_flow</span></code>) keeps this much water: a draw that would take
+it lower is cut to the water above it plus the step’s make-up, and the cut
+is reported as unmet hot water (<code class="docutils literal notranslate"><span class="pre">dV_mix_w_out_unmet</span> <span class="pre">[m3/s]</span></code>). The value is
+the floor the tank heat capacity used to be clamped to; the clamp now has the
+water behind it, so it no longer creates energy.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">TankStepFlows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out_unmet</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#TankStepFlows"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Tank-side flows of one step at the end-of-step tank temperature.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">alp</span></span></dt>
+<dd><p>Mixing-valve hot share at the end-of-step tank temperature [-].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_tank_w_out</span></span></dt>
+<dd><p>Hot water leaving the tank for the mixing valve [m³/s].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_tank_w_in</span></span></dt>
+<dd><p>Make-up water entering the tank [m³/s].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">level_next</span></span></dt>
+<dd><p>End-of-step fill level [-].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span></dt>
+<dd><p>Mixed water delivered at the set point [m³/s]: the demand, less what
+the tank could not supply.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_mix_w_out_unmet</span></span></dt>
+<dd><p>Mixed-water demand the tank could not supply [m³/s] (a level-varying
+tank at <code class="xref py py-data docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_tank_w_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_tank_w_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>level_next</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_mix_w_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_mix_w_out_unmet</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">alp</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_tank_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_tank_w_in</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">level_next</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out_unmet</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_tank_w_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_tank_w_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>level_next</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_mix_w_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_mix_w_out_unmet</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_mix_w_out_unmet</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">limit_tank_flows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_tank_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#limit_tank_flows"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Make-up and draw a tank can pass in one step, and its end level.</p>
+<p>The draw takes no more than the water above <code class="docutils literal notranslate"><span class="pre">level_min</span></code> plus the
+make-up over the step; the make-up adds no more than the room below
+<code class="docutils literal notranslate"><span class="pre">level_max</span></code> plus the draw. The end level is
+<code class="docutils literal notranslate"><span class="pre">tank_level</span> <span class="pre">+</span> <span class="pre">(dV_in</span> <span class="pre">-</span> <span class="pre">dV_out)·dt</span> <span class="pre">/</span> <span class="pre">V_tank_full</span></code> and stays within
+<code class="docutils literal notranslate"><span class="pre">[level_min,</span> <span class="pre">level_max]</span></code> (a tank already below <code class="docutils literal notranslate"><span class="pre">level_min</span></code> is not
+drawn from until the make-up lifts it).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">(dV_tank_w_in,</span> <span class="pre">dV_tank_w_out,</span> <span class="pre">level_next)</span></code> [m³/s, m³/s, -].</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tank_level</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_tank_w_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_tank_w_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>V_tank_full</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>level_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>level_max</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">tank_free_heat_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">residual</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_K</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_curr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_heat_source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#tank_free_heat_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
@@ -1516,7 +1715,10 @@ minimum on-time holds the compressor past the set point.</p>
 <p>Inverts the implicit energy residual every boiler uses,
 <code class="docutils literal notranslate"><span class="pre">r(T)</span> <span class="pre">=</span> <span class="pre">[C_next·T</span> <span class="pre">-</span> <span class="pre">C_curr·T_start</span> <span class="pre">-</span> <span class="pre">dt·(Q_heat_source</span> <span class="pre">+</span> <span class="pre">P(T))]</span> <span class="pre">/</span> <span class="pre">C_tank</span></code>,
 for <code class="docutils literal notranslate"><span class="pre">P(T)</span></code>: draw-off enthalpy, envelope loss and subsystem heat (a
-subsystem residual that re-evaluates its physics at <code class="docutils literal notranslate"><span class="pre">T</span></code> is included).</p>
+subsystem residual that re-evaluates its physics at <code class="docutils literal notranslate"><span class="pre">T</span></code> is included).
+With <code class="docutils literal notranslate"><span class="pre">C_next</span> <span class="pre">=</span> <span class="pre">C_curr</span></code> it returns the temperature-form rate
+<code class="docutils literal notranslate"><span class="pre">P(T)</span> <span class="pre">-</span> <span class="pre">(C_next_true</span> <span class="pre">-</span> <span class="pre">C_curr)·T/dt</span></code> that drives <code class="docutils literal notranslate"><span class="pre">C_curr·dT/dt</span></code>
+(see <code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_step_operation()</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1541,12 +1743,22 @@ subsystem residual that re-evaluates its physics at <code class="docutils litera
 <dd><p>Energy and mass balance residuals at T^{n+1}.</p>
 <p>The 3-way mixing valve ratio α(T) makes the outflow a
 nonlinear function of T^{n+1}, requiring <code class="docutils literal notranslate"><span class="pre">fsolve</span></code>.</p>
+<p>The energy residual is the conservative implicit balance
+<code class="docutils literal notranslate"><span class="pre">C_tank·(L1·T1</span> <span class="pre">-</span> <span class="pre">L0·T0)</span> <span class="pre">=</span> <span class="pre">dt·(Q</span> <span class="pre">+</span> <span class="pre">ρc·(V̇_in·T_in</span> <span class="pre">-</span> <span class="pre">V̇_out·T1)</span> <span class="pre">-</span> <span class="pre">UA·(T1</span> <span class="pre">-</span> <span class="pre">T_sur))</span></code>
+with <code class="docutils literal notranslate"><span class="pre">L1</span> <span class="pre">=</span> <span class="pre">L0</span> <span class="pre">+</span> <span class="pre">(V̇_in</span> <span class="pre">-</span> <span class="pre">V̇_out)·dt/V</span></code>. An always-full tank keeps
+<code class="docutils literal notranslate"><span class="pre">L1</span> <span class="pre">=</span> <span class="pre">L0</span></code>. A level-varying tank (<code class="docutils literal notranslate"><span class="pre">ctrl.dV_tank_w_in_ctrl</span></code> set) takes
+<code class="docutils literal notranslate"><span class="pre">L1</span></code> and both flows from <code class="xref py py-func docutils literal notranslate"><span class="pre">tank_step_flows()</span></code> at <code class="docutils literal notranslate"><span class="pre">T1</span></code>, so the
+water the balance adds or removes is the water that flows; the draw
+stops at <code class="xref py py-data docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code> and the make-up at full. The envelope
+loss <code class="docutils literal notranslate"><span class="pre">UA·(T1</span> <span class="pre">-</span> <span class="pre">T_sur)</span></code> does not depend on the level.</p>
 <p>Subsystem energy contributions and tank-inlet temperature
 overrides are read from <code class="docutils literal notranslate"><span class="pre">sub_states</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – <code class="docutils literal notranslate"><span class="pre">[T_next_K,</span> <span class="pre">level_next]</span></code>.</p></li>
+<li><p><strong>x</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – <code class="docutils literal notranslate"><span class="pre">[T_next_K,</span> <span class="pre">level_next]</span></code>. For a level-varying tank <code class="docutils literal notranslate"><span class="pre">level_next</span></code>
+enters only the mass residual (the energy residual uses the level its
+flows give).</p></li>
 <li><p><strong>ctx</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepContext</span></code></span>) – Current-step immutable context.</p></li>
 <li><p><strong>ctrl</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ControlState</span></code></span>) – Current-step HP control decisions.</p></li>
 <li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Time-step size [s].</p></li>
@@ -1566,6 +1778,35 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">tank_step_flows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_next_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_tank_full</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#tank_step_flows"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Tank flows and end level of a step whose tank ends at <code class="docutils literal notranslate"><span class="pre">T_next_K</span></code>.</p>
+<p>The mixing valve takes the hot share <code class="docutils literal notranslate"><span class="pre">alp</span></code> of the demand
+<code class="docutils literal notranslate"><span class="pre">ctx.dV_mix_w_out</span></code> from the tank at the end-of-step temperature
+(implicit, as <code class="xref py py-func docutils literal notranslate"><span class="pre">tank_mass_energy_residual()</span></code>). An always-full tank
+(<code class="docutils literal notranslate"><span class="pre">ctrl.dV_tank_w_in_ctrl</span> <span class="pre">is</span> <span class="pre">None</span></code>) takes in what it gives and keeps its
+level. A level-varying tank takes in <code class="docutils literal notranslate"><span class="pre">ctrl.dV_tank_w_in_ctrl</span></code> and both
+flows pass <code class="xref py py-func docutils literal notranslate"><span class="pre">limit_tank_flows()</span></code>; a draw it cuts delivers
+proportionally less mixed water, at the same set point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_next_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>ctx</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepContext</span></code></span>)</p></li>
+<li><p><strong>ctrl</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ControlState</span></code></span>)</p></li>
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_sup_w_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_mix_w_out_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>V_tank_full</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TankStepFlows</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>

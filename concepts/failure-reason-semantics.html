@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-13T17:18:12+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T19:37:23+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -150,6 +150,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#common-to-all-families">Common to all families</a></li>
 <li><a class="reference internal" href="#ashpb-only">ASHPB only</a></li>
 <li><a class="reference internal" href="#ground-coupled-solve-path-gshp-and-gshpb-with-an-active-ground-loop">Ground-coupled solve path (GSHP and GSHPB with an active ground loop)</a></li>
+<li><a class="reference internal" href="#a-request-above-a-limit-boilers">A request above a limit (boilers)</a></li>
 <li><a class="reference internal" href="#failure-detail"><code class="docutils literal notranslate"><span class="pre">failure_detail</span></code></a></li>
 </ul>
 </li>
@@ -240,18 +241,19 @@ remaining ones are specific to one family or to the ground-coupled solve path.</
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code></p></td>
 <td><p>HX residual exceeded tolerance, but the cycle itself
 produced a state.</p></td>
-<td><p>Depends on the family. GSHPB, WSHPB, ASHP and every
-<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> row: no — off-mode (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>, NaN COP). ASHPB <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>: no —
-only the HX diagnostics, without duty or power keys. GSHP
+<td><p>Depends on the family. ASHPB, GSHPB, WSHPB, ASHP and every
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> row: no — off-mode (<code class="docutils literal notranslate"><span class="pre">hp_is_on</span> <span class="pre">=</span> <span class="pre">False</span></code>,
+<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>, NaN COP). GSHP
 <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>: yes — the unconverged cycle state, to be
-treated as approximate. <code class="docutils literal notranslate"><span class="pre">converged</span> <span class="pre">==</span> <span class="pre">False</span></code> throughout.</p></td>
+treated as approximate. <code class="docutils literal notranslate"><span class="pre">converged</span> <span class="pre">==</span> <span class="pre">False</span></code> throughout. On the
+boilers this reason is reported only when no smaller duty runs
+either (see <em>A request above a limit</em> below).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code></p></td>
 <td><p>SciPy couldn’t satisfy its own success criteria, even
 though the cycle returned a state.</p></td>
-<td><p>Depends on the family. GSHPB, WSHPB, ASHP and every
-<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> row: no — off-mode. ASHPB and GSHP
+<td><p>Depends on the family. ASHPB, GSHPB, WSHPB, ASHP and every
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> row: no — off-mode. GSHP
 <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>: yes — numbers exist, but the
 evaporating-temperature choice is not provably optimal.</p></td>
 </tr>
@@ -268,7 +270,9 @@ model falls back to off-mode (<code class="docutils literal notranslate"><span c
 (default 11 for every family, the single-stage scroll limit). The
 single-stage envelope is rejected rather than clamped, so no cycle
 state is produced. Reported instead of <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> when the
-last pressure-ratio check was a ceiling violation.</p></td>
+last pressure-ratio check was a ceiling violation. A boiler
+request above the ceiling that a smaller duty meets is not a
+failure (see <em>A request above a limit</em> below).</p></td>
 <td><p>No — only off-mode placeholders (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></td>
 </tr>
@@ -284,7 +288,9 @@ not a failure: it returns that duty with <code class="docutils literal notransla
 <span class="pre">&quot;max&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;discharge_temperature&quot;</span></code>. A
 dynamic boiler step does the same: it runs at the reduced duty (its
 run time and step-average heat follow from it) and is an off step
-with this reason only when no duty fits.</p></td>
+with this reason only when no duty fits. The other limits a smaller
+duty cures are answered the same way (see <em>A request above a limit</em>
+below).</p></td>
 <td><p>No — only off-mode placeholders (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></td>
 </tr>
@@ -383,6 +389,68 @@ duty at any approach temperature in the search band.</p></td>
 </table>
 </div>
 </section>
+<section id="a-request-above-a-limit-boilers">
+<h3>A request above a limit (boilers)<a class="headerlink" href="#a-request-above-a-limit-boilers" title="Link to this heading">¶</a></h3>
+<p>A boiler is asked for a fixed duty. An inverter unit asked for more than an
+operating limit allows does not stop: its controller lowers the compressor
+frequency until the limit holds. So when the requested duty has no operating
+point for one of the reasons below and a smaller duty has one,
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> and each dynamic step return the <strong>largest duty that runs</strong>
+(found to 1 % of the request), not a failure:</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 26.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>The request fails with</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p></th>
+<th class="head"><p>Why a smaller duty helps</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>, or <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> with
+<code class="docutils literal notranslate"><span class="pre">failure_detail</span> <span class="pre">==</span> <span class="pre">&quot;discharge_state_undefined&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code></p></td>
+<td><p>A smaller condenser approach lowers the condensing pressure and
+with it the discharge temperature.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pr_above_max</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code></p></td>
+<td><p>The condenser and the source heat exchanger both need a smaller
+approach, so the pressure ratio falls.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code> (ASHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_heat_exchanger&quot;</span></code> (GSHPB, WSHPB)</p></td>
+<td><p>The source heat exchanger has less heat to absorb. Not tried when
+<code class="docutils literal notranslate"><span class="pre">failure_detail</span> <span class="pre">==</span> <span class="pre">&quot;outdoor_coil_excess_at_min_airflow&quot;</span></code>: a
+smaller duty makes that worse.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code></p></td>
+<td><p>A lower pressure ratio moves the shipped fit back above its floor.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The result is a running point with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> (the duty delivered) and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (the duty asked for);
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names the limit the next larger duty tried ran into, or
+<code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code> when the point returned sits on <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> (the
+source heat exchanger then asks for a larger approach than the ceiling leaves
+it). <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> remains the value for the speed ceiling <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>.
+When no smaller duty runs, the result is the off state with the request’s own
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>.</p>
+<p>Not reduced: <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> for any other cause, <code class="docutils literal notranslate"><span class="pre">t_cond_below_t_in</span></code> and
+<code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code>. In particular a request with no cycle at all stays a
+failure. With the boilers that is a condensing temperature – the tank
+temperature plus the condenser approach the duty needs – at or above the
+critical point; the largest smaller duty would sit on the critical point
+itself, a state no machine runs at, and the envelope has no
+condensing-pressure ceiling below it to reduce onto.</p>
+</section>
 <section id="failure-detail">
 <h3><code class="docutils literal notranslate"><span class="pre">failure_detail</span></code><a class="headerlink" href="#failure-detail" title="Link to this heading">¶</a></h3>
 <p>Two kinds of failure carry one more key, <code class="docutils literal notranslate"><span class="pre">failure_detail</span></code>, that says which
@@ -393,7 +461,8 @@ solver accepted but which is not an operating point is reported as
 (<code class="docutils literal notranslate"><span class="pre">tmhp.dynamic_context.unphysical_cycle_detail</span></code>). An ASHPB
 <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> result reported as <code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> because no outdoor
 approach lets the outdoor coil carry the evaporator duty within the fan’s flow
-limits names the limit it fails at. The outdoor-approach search solves the band
+limits names the limit it fails at (the off-mode row carries it; the request
+is first retried at smaller duties as described above). The outdoor-approach search solves the band
 of approaches the fan can serve from the coil’s capacity margins at its largest
 and smallest airflow; these values say why that band is empty.</p>
 <div class="table-wrapper colwidths-given docutils container">
@@ -511,11 +580,12 @@ system at moderate ambient.</p>
 <span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-alert" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> — HX residual exceeded tolerance</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
 <p class="sd-card-text">The HX residual didn’t drop below tolerance inside the inner
 iteration, but the cycle still produced a state. Only GSHP’s
-<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> returns that state, as an approximation; GSHPB,
-WSHPB, ASHP and every <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> row report an off-mode
-row with zero heat and power, and ASHPB’s <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>
-returns only the HX diagnostics. <code class="docutils literal notranslate"><span class="pre">converged</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code> so you
-can filter rows downstream.</p>
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> returns that state, as an approximation; ASHPB,
+GSHPB, WSHPB, ASHP and every <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> row report an
+off-mode row with zero heat and power. <code class="docutils literal notranslate"><span class="pre">converged</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code> so
+you can filter rows downstream. A boiler reports it only when no
+smaller duty runs: otherwise it runs at the largest duty its source
+heat exchanger carries (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>).</p>
 <p class="sd-card-text"><strong>What to do.</strong> Treat <code class="docutils literal notranslate"><span class="pre">converged</span></code> as the source of truth
 for “trust this row?” decisions. If the rate of
 <code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> is uncomfortably high, oversize the
@@ -528,9 +598,9 @@ says which fan limit the outdoor coil fails at (see above).</p>
 <span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-alert" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code> — SciPy didn’t satisfy its own criteria</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
 <p class="sd-card-text">The outer SciPy optimiser exited with <code class="docutils literal notranslate"><span class="pre">success</span> <span class="pre">==</span> <span class="pre">False</span></code>.
 The cycle still has a state at the optimiser’s best
-<code class="docutils literal notranslate"><span class="pre">dT_ref_evap</span></code>, just not a provably optimal one. ASHPB and GSHP
-<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> return that state; GSHPB, WSHPB, ASHP and every
-<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> row report an off-mode row instead.</p>
+<code class="docutils literal notranslate"><span class="pre">dT_ref_evap</span></code>, just not a provably optimal one. GSHP
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> returns that state; ASHPB, GSHPB, WSHPB, ASHP and
+every <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> row report an off-mode row instead.</p>
 <p class="sd-card-text"><strong>What to do.</strong> Where numbers are returned they are reasonable but not
 optimisation-grade — fine for most aggregations, suspect for
 point-comparison work. Wider initial bounds on

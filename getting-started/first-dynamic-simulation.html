@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="For ASHPB, analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest p..." />
 
-    <meta property="article:modified_time" content="2026-11-13T17:18:12+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T19:43:20+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -270,7 +270,11 @@ step), <code class="docutils literal notranslate"><span class="pre">runtime_frac
 <code class="docutils literal notranslate"><span class="pre">hp_starts</span> <span class="pre">[-]</span></code> (compressor starts in the step) and
 <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>.</p></li>
 <li><p><strong>Tank state</strong> — <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code> at the end of the step,
-<code class="docutils literal notranslate"><span class="pre">tank_level</span> <span class="pre">[-]</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">tank_level</span> <span class="pre">[-]</span></code>. A tank whose level varies
+(<code class="docutils literal notranslate"><span class="pre">tank_always_full=False</span></code> or <code class="docutils literal notranslate"><span class="pre">prevent_simultaneous_flow</span></code>) also
+reports <code class="docutils literal notranslate"><span class="pre">dV_mix_w_out_unmet</span> <span class="pre">[m3/s]</span></code>: hot-water demand it could not
+supply because it had drained to its lowest level
+(<code class="docutils literal notranslate"><span class="pre">dV_mix_w_out</span> <span class="pre">[m3/s]</span></code> is then the water delivered).</p></li>
 <li><p><strong>Figures of merit</strong> — <code class="docutils literal notranslate"><span class="pre">cop_ref</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> of the running
 cycle (<code class="docutils literal notranslate"><span class="pre">NaN</span></code> on steps it did not run); equal to the step-average heat
 over the step-average compressor (and fan / source pump) power.</p></li>

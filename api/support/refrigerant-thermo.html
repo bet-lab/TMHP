@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-11-13T17:18:12+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T19:37:23+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -149,6 +149,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.refrigerant.calc_ref_state"><code class="docutils literal notranslate"><span class="pre">calc_ref_state()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.refrigerant.create_lmtd_constraints"><code class="docutils literal notranslate"><span class="pre">create_lmtd_constraints()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.refrigerant.find_ref_loop_optimal_operation"><code class="docutils literal notranslate"><span class="pre">find_ref_loop_optimal_operation()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.refrigerant.props_si"><code class="docutils literal notranslate"><span class="pre">props_si()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.thermodynamics">Cycle analysis</a><ul>
@@ -181,6 +182,12 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_DEFAULT_C"><code class="docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_MAX_DEFAULT_C</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TOL_K"><code class="docutils literal notranslate"><span class="pre">DISCHARGE_TOL_K</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_DISCHARGE"><code class="docutils literal notranslate"><span class="pre">BINDING_DISCHARGE</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_PRESSURE_RATIO"><code class="docutils literal notranslate"><span class="pre">BINDING_PRESSURE_RATIO</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_HEAT_EXCHANGER"><code class="docutils literal notranslate"><span class="pre">BINDING_HEAT_EXCHANGER</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_EFFICIENCY"><code class="docutils literal notranslate"><span class="pre">BINDING_EFFICIENCY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_CYCLE"><code class="docutils literal notranslate"><span class="pre">BINDING_CYCLE</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.CYCLE_KEY"><code class="docutils literal notranslate"><span class="pre">CYCLE_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding"><code class="docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.default_discharge_temp_max"><code class="docutils literal notranslate"><span class="pre">default_discharge_temp_max()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.resolve_discharge_temp_max"><code class="docutils literal notranslate"><span class="pre">resolve_discharge_temp_max()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.discharge_temp_exceeded"><code class="docutils literal notranslate"><span class="pre">discharge_temp_exceeded()</span></code></a></li>
@@ -441,6 +448,33 @@ that should be 0.</p></li>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.refrigerant.props_si">
+<span class="sig-prename descclassname"><span class="pre">tmhp.refrigerant.</span></span><span class="sig-name descname"><span class="pre">props_si</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/refrigerant.html#props_si"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.refrigerant.props_si" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">CoolProp.PropsSI</span></code> for one of <code class="docutils literal notranslate"><span class="pre">P</span></code>, <code class="docutils literal notranslate"><span class="pre">T</span></code>, <code class="docutils literal notranslate"><span class="pre">H</span></code>, <code class="docutils literal notranslate"><span class="pre">S</span></code>, <code class="docutils literal notranslate"><span class="pre">D</span></code> (mass based), without its per-call set-up.</p>
+<p>A drop-in for the cycle solvers’ inner loops: the same value and the same
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> on an invalid state as <code class="docutils literal notranslate"><span class="pre">CP.PropsSI(output,</span> <span class="pre">name1,</span> <span class="pre">value1,</span>
+<span class="pre">name2,</span> <span class="pre">value2,</span> <span class="pre">refrigerant)</span></code>, evaluated on a CoolProp state kept between
+calls. Input pairs <code class="docutils literal notranslate"><span class="pre">(T,</span> <span class="pre">Q)</span></code>, <code class="docutils literal notranslate"><span class="pre">(P,</span> <span class="pre">Q)</span></code>, <code class="docutils literal notranslate"><span class="pre">(T,</span> <span class="pre">P)</span></code>, <code class="docutils literal notranslate"><span class="pre">(P,</span> <span class="pre">S)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">(P,</span> <span class="pre">H)</span></code> of a single Helmholtz-backend fluid take the fast path; anything
+else is passed to <code class="docutils literal notranslate"><span class="pre">CP.PropsSI</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>name1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>value1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>name2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>value2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>refrigerant</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -810,7 +844,11 @@ returns the largest one inside the limit the same way, or the off state
 with <code class="docutils literal notranslate"><span class="pre">failure_reason='discharge_temp_above_max'</span></code> when even a small duty
 exceeds it. A dynamic boiler step does the same with its one cycle solve
 per step (<a class="reference internal" href="#tmhp.compressor_envelope.reduce_duty_within_envelope" title="tmhp.compressor_envelope.reduce_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_duty_within_envelope()</span></code></a>): it runs at the reduced
-duty, or is an off step with that reason when no duty fits.</p>
+duty, or is an off step with that reason when no duty fits. The boilers
+answer every limit a smaller duty cures this way – the pressure-ratio
+ceiling, the source heat exchanger’s range and the efficiency floor as
+well (<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>); <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names the
+limit.</p>
 </dd>
 <dt>Speed (<code class="docutils literal notranslate"><span class="pre">rps_min</span></code> / <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>)</dt><dd><p><code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is the inverter’s floor (15 rev/s). <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> defaults to
 <a class="reference internal" href="#tmhp.compressor_envelope.default_rps_max" title="tmhp.compressor_envelope.default_rps_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_rps_max()</span></code></a> of the rated speed the model solves at its rating
@@ -908,8 +946,8 @@ limit (85 of 85 running points of the 2026-11-13 sweep, at 191–348 degC).</p>
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TOL_K</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></span><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TOL_K" title="Link to this definition">¶</a></dt>
 <dd><p>Tolerance of every discharge-temperature comparison [K]. The control solves
 T_dis = T_dis_max by root finding, so the check that follows has to accept
-the root’s own residual (brentq: ~1e-3 K); 0.01 K is far below any meaning
-the limit has.</p>
+the root’s own residual (1e-5 K for the predicted closure, ~1e-3 K for the
+bracketing fallback); 0.01 K is far below any meaning the limit has.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -919,6 +957,77 @@ the limit has.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_PRESSURE_RATIO">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_PRESSURE_RATIO</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pressure_ratio'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_PRESSURE_RATIO" title="Link to this definition">¶</a></dt>
+<dd><p>the duty was reduced to stay within <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_HEAT_EXCHANGER">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_HEAT_EXCHANGER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'source_heat_exchanger'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_HEAT_EXCHANGER" title="Link to this definition">¶</a></dt>
+<dd><p>the duty was reduced to what the source heat exchanger
+carries within its flow range (ASHPB reports <code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_EFFICIENCY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_EFFICIENCY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'compressor_efficiency'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_EFFICIENCY" title="Link to this definition">¶</a></dt>
+<dd><p>the duty was reduced to keep the shipped isentropic fit above <a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_CYCLE">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_CYCLE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'cycle'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_CYCLE" title="Link to this definition">¶</a></dt>
+<dd><p>the next larger duty has no valid cycle, for a reason none of the above names.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.CYCLE_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CYCLE_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'_cycle'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.CYCLE_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Key under which a candidate whose heat exchanger did not close keeps its solved cycle.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.duty_reduction_binding">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">duty_reduction_binding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bindings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#duty_reduction_binding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.duty_reduction_binding" title="Link to this definition">¶</a></dt>
+<dd><p>The limit a failed fixed-duty result ran into, if a smaller duty may run; else <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>The value is the <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> a reduced point reports.
+<code class="docutils literal notranslate"><span class="pre">bindings</span></code> lets a family rename one (the ASHPB’s heat exchanger is its
+outdoor coil).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
+<li><p><strong>bindings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1152,21 +1261,23 @@ that does not run, and for scalar or user-supplied efficiencies.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.steady_envelope">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">steady_envelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duty_arg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Q_ref_tank</span> <span class="pre">[W]'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#steady_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.steady_envelope" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">steady_envelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duty_arg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Q_ref_tank</span> <span class="pre">[W]'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bindings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#steady_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.steady_envelope" title="Link to this definition">¶</a></dt>
 <dd><p>Decorate an <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> with the envelope’s steady-state reporting.</p>
 <p>Every result gains <code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code>. With <code class="docutils literal notranslate"><span class="pre">duty_arg</span></code> (the
-boilers, whose requested duty is fixed), a request rejected with
-<a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX" title="tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_ABOVE_MAX</span></code></a> is retried at smaller duties; the largest
-one inside the limit is returned with <code class="docutils literal notranslate"><span class="pre">capacity_clamped='max'</span></code>,
-<code class="docutils literal notranslate"><span class="pre">capacity_binding='discharge_temperature'</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and
-<code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (the request keys of the family hold the caller’s
-request). If no smaller duty runs, the original off-state result stands.
-The trial solves run silently.</p>
+boilers, whose requested duty is fixed), a request that fails on a limit a
+smaller duty can cure (<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>) is retried at
+smaller duties; the largest one with an operating point is returned with
+<code class="docutils literal notranslate"><span class="pre">capacity_clamped='max'</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit,
+<code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (the request keys of the family hold
+the caller’s request). If no smaller duty runs, the original off-state
+result stands. The trial solves run silently. <code class="docutils literal notranslate"><span class="pre">bindings</span></code> renames a
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> for the family (<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>duty_arg</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>bindings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1177,19 +1288,21 @@ The trial solves run silently.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.reduce_duty_within_envelope">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">reduce_duty_within_envelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Q_ref_tank</span> <span class="pre">[W]'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#reduce_duty_within_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.reduce_duty_within_envelope" title="Link to this definition">¶</a></dt>
-<dd><p>The largest duty inside the discharge limit when <code class="docutils literal notranslate"><span class="pre">result</span></code> is refused for it.</p>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">reduce_duty_within_envelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Q_ref_tank</span> <span class="pre">[W]'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bindings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#reduce_duty_within_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.reduce_duty_within_envelope" title="Link to this definition">¶</a></dt>
+<dd><p>The largest duty with an operating point when the request has none.</p>
 <p><code class="docutils literal notranslate"><span class="pre">result</span></code> is the solve at <code class="docutils literal notranslate"><span class="pre">request</span></code>; <code class="docutils literal notranslate"><span class="pre">solve(q)</span></code> solves the same
-point at duty <code class="docutils literal notranslate"><span class="pre">q</span></code>. When <code class="docutils literal notranslate"><span class="pre">result</span></code> failed with
-<a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX" title="tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_ABOVE_MAX</span></code></a> (even under the discharge-temperature
-control), smaller duties are tried (<code class="xref py py-func docutils literal notranslate"><span class="pre">_reduce_to_envelope()</span></code>) and the
-largest that runs is returned with <code class="docutils literal notranslate"><span class="pre">capacity_clamped='max'</span></code>,
-<code class="docutils literal notranslate"><span class="pre">capacity_binding='discharge_temperature'</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and
-<code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>; otherwise <code class="docutils literal notranslate"><span class="pre">result</span></code> is returned. The boilers use it
-for <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> (<a class="reference internal" href="#tmhp.compressor_envelope.steady_envelope" title="tmhp.compressor_envelope.steady_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">steady_envelope()</span></code></a>) and for each dynamic
-step’s cycle, so a step runs at the same reduced duty as the steady
-solve – its run time and step-average heat follow from that duty. The
-trial solves run silently.</p>
+point at duty <code class="docutils literal notranslate"><span class="pre">q</span></code>. When <code class="docutils literal notranslate"><span class="pre">result</span></code> failed on a limit a smaller duty can
+cure (<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>: the discharge-temperature limit even
+under its control, the pressure-ratio ceiling, the source heat exchanger’s
+range, the efficiency floor), smaller duties are tried
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">_reduce_to_envelope()</span></code>) and the largest that runs is returned with
+<code class="docutils literal notranslate"><span class="pre">capacity_clamped='max'</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit the next larger duty tried ran into;
+otherwise <code class="docutils literal notranslate"><span class="pre">result</span></code> is returned. The boilers use it for
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> (<a class="reference internal" href="#tmhp.compressor_envelope.steady_envelope" title="tmhp.compressor_envelope.steady_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">steady_envelope()</span></code></a>) and for each dynamic step’s
+cycle, so a step runs at the same reduced duty as the steady solve – its
+run time and step-average heat follow from that duty. The trial solves run
+silently.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1198,6 +1311,7 @@ trial solves run silently.</p>
 <li><p><strong>solve</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
 <li><p><strong>request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>bindings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1247,7 +1361,10 @@ approach where the family caps it) and the suction quality from
 <code class="docutils literal notranslate"><span class="pre">self.T_dis_max</span></code>, the same candidate is re-evaluated with the superheat
 reduced (root of <code class="docutils literal notranslate"><span class="pre">T_dis(superheat)</span> <span class="pre">=</span> <span class="pre">T_dis_max</span></code> on <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">superheat]</span></code>)
 and, if 0 K is not enough, with the quality reduced (root on
-<code class="docutils literal notranslate"><span class="pre">[x_suction_min,</span> <span class="pre">1]</span></code>). Every running state gets
+<code class="docutils literal notranslate"><span class="pre">[x_suction_min,</span> <span class="pre">1]</span></code>). The root is predicted from the fluid properties
+and corrected with two or three evaluations (<code class="xref py py-func docutils literal notranslate"><span class="pre">_control_predicted()</span></code>);
+root finding on the evaluations themselves is the fallback
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">_control_bracketed()</span></code>). Every running state gets
 <code class="xref py py-data docutils literal notranslate"><span class="pre">SUPERHEAT_KEY</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">QUALITY_KEY</span></code> and <code class="xref py py-data docutils literal notranslate"><span class="pre">CONTROL_KEY</span></code>.</p>
 <p>A state still above the limit is returned as is when <code class="docutils literal notranslate"><span class="pre">reject</span></code> is false
 (the boilers check the solved operating point and reduce the duty), and is

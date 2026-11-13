@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-13T17:18:12+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T19:43:20+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -160,8 +160,58 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.air_source_heat_pump_boiler">API reference</a><ul>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.BINDING_OUTDOOR_COIL"><code class="docutils literal notranslate"><span class="pre">BINDING_OUTDOOR_COIL</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.ref"><code class="docutils literal notranslate">ref</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_cmp_ref"><code class="docutils literal notranslate">V_cmp_ref</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_superheat"><code class="docutils literal notranslate">dT_superheat</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_subcool"><code class="docutils literal notranslate">dT_subcool</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_hx_min"><code class="docutils literal notranslate">dT_hx_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_min"><code class="docutils literal notranslate">PR_cycle_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_max"><code class="docutils literal notranslate">PR_cycle_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_min"><code class="docutils literal notranslate">rps_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_max"><code class="docutils literal notranslate">rps_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_dis_max"><code class="docutils literal notranslate">T_dis_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.x_suction_min"><code class="docutils literal notranslate">x_suction_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_capacity"><code class="docutils literal notranslate">hp_capacity</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.n_ou"><code class="docutils literal notranslate">n_ou</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dP_fan_rated"><code class="docutils literal notranslate">dP_fan_rated</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_fan_rated"><code class="docutils literal notranslate">eta_fan_rated</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.E_fan_rated"><code class="docutils literal notranslate">E_fan_rated</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.vsd_coeffs"><code class="docutils literal notranslate">vsd_coeffs</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.fan_params"><code class="docutils literal notranslate">fan_params</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_isen"><code class="docutils literal notranslate">eta_cmp_isen</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_vol"><code class="docutils literal notranslate">eta_cmp_vol</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp"><code class="docutils literal notranslate">eta_cmp</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_physical"><code class="docutils literal notranslate">tank_physical</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.UA_tank_wall"><code class="docutils literal notranslate">UA_tank_wall</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sur_K"><code class="docutils literal notranslate">T_sur_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_tank_full"><code class="docutils literal notranslate">V_tank_full</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.C_tank"><code class="docutils literal notranslate">C_tank</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out_max"><code class="docutils literal notranslate">dV_mix_w_out_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_upper_bound"><code class="docutils literal notranslate">T_tank_w_upper_bound</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_lower_bound"><code class="docutils literal notranslate">T_tank_w_lower_bound</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w"><code class="docutils literal notranslate">T_sup_w</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w_K"><code class="docutils literal notranslate">T_sup_w_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in"><code class="docutils literal notranslate">T_tank_w_in</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out"><code class="docutils literal notranslate">T_mix_w_out</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in_K"><code class="docutils literal notranslate">T_tank_w_in_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out_K"><code class="docutils literal notranslate">T_mix_w_out_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_always_full"><code class="docutils literal notranslate">tank_always_full</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_lower_bound"><code class="docutils literal notranslate">tank_level_lower_bound</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_upper_bound"><code class="docutils literal notranslate">tank_level_upper_bound</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in_refill"><code class="docutils literal notranslate">dV_tank_w_in_refill</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.prevent_simultaneous_flow"><code class="docutils literal notranslate">prevent_simultaneous_flow</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_on_schedule"><code class="docutils literal notranslate">hp_on_schedule</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_on_time_s"><code class="docutils literal notranslate">min_on_time_s</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_off_time_s"><code class="docutils literal notranslate">min_off_time_s</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.stc"><code class="docutils literal notranslate">stc</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.pv"><code class="docutils literal notranslate">pv</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in"><code class="docutils literal notranslate">dV_tank_w_in</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_out"><code class="docutils literal notranslate">dV_tank_w_out</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_sup_w_in"><code class="docutils literal notranslate">dV_mix_sup_w_in</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out"><code class="docutils literal notranslate">dV_mix_w_out</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady"><code class="docutils literal notranslate">analyze_steady()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.make_initial_state"><code class="docutils literal notranslate">make_initial_state()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.step"><code class="docutils literal notranslate">step()</span></code></a></li>
@@ -301,9 +351,10 @@ and steady results report <code class="docutils literal notranslate"><span class
 fitted isentropic efficiency is 0.37–0.45, which drives the computed
 discharge temperature of R32 to 200–290 °C. The discharge-temperature
 control holds <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> by lowering the suction superheat and then
-letting the suction go wet down to <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code> (0.9); points it
-cannot hold – R32 above roughly 220 °C dry – are refused (see
-<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>).</p>
+letting the suction go wet down to <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code> (0.9); a request it
+cannot hold – R32 above roughly 220 °C dry – runs at the largest smaller
+duty that it can hold (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>), or is refused when
+there is none (see <a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>).</p>
 </div>
 <p>An explicitly supplied float or callable for the corresponding constructor
 argument overrides these defaults. The earlier linear correlations
@@ -324,6 +375,26 @@ from the resolved refrigerant mass flow.</p>
 the <code class="docutils literal notranslate"><span class="pre">_STC_tank</span></code> variant). The tank energy balance is solved
 implicitly per step with <code class="docutils literal notranslate"><span class="pre">fsolve</span></code>, jointly with the refrigerant
 cycle.</p>
+<p>By default the tank stays full: mains water replaces each litre drawn.
+With <code class="docutils literal notranslate"><span class="pre">tank_always_full=False</span></code> the level varies instead. The draw lowers
+it, and a make-up valve opens when the level reaches
+<code class="docutils literal notranslate"><span class="pre">tank_level_lower_bound</span></code> (0.5) and admits <code class="docutils literal notranslate"><span class="pre">dV_tank_w_in_refill</span></code>
+(1 L/s) until the level is back at <code class="docutils literal notranslate"><span class="pre">tank_level_upper_bound</span></code> (1.0). The
+valve is followed inside each step, so a step can refill part of its
+length. <code class="docutils literal notranslate"><span class="pre">prevent_simultaneous_flow</span></code> admits make-up only while nothing
+is drawn. Either way the step balances the water and its energy
+together,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[C_\mathrm{full}\,(L_1 T_1 - L_0 T_0) = \Delta t\,\bigl(Q + \rho c\,(\dot V_\mathrm{in} T_\mathrm{in} - \dot V_\mathrm{out} T_1) - UA\,(T_1 - T_\mathrm{sur})\bigr),
+\qquad L_1 = L_0 + (\dot V_\mathrm{in} - \dot V_\mathrm{out})\,\Delta t / V,\]</div>
+</div>
+<p>with the draw at the end-of-step temperature. The envelope loss
+<code class="docutils literal notranslate"><span class="pre">UA_tank_wall</span></code> does not depend on the level. The tank never drains
+below <code class="docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code> (0.1 % of its volume): a draw beyond what it
+holds plus its make-up is cut, and the cut is reported as
+<code class="docutils literal notranslate"><span class="pre">dV_mix_w_out_unmet</span> <span class="pre">[m3/s]</span></code>. A run of a level-varying tank starts with
+<code class="docutils literal notranslate"><span class="pre">tank_level_init</span></code> of at least <code class="docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code>.</p>
 </section>
 <section id="composed-variants">
 <h2>Composed variants<a class="headerlink" href="#composed-variants" title="Link to this heading">¶</a></h2>
@@ -722,6 +793,13 @@ theory and component-level modelling assumptions of this system.</p>
 - (future) <code class="docutils literal notranslate"><span class="pre">PVPanel</span></code> — photovoltaic integration</p>
 <p>Tank-level management and UV disinfection are built-in features
 configured through constructor parameters.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.BINDING_OUTDOOR_COIL">
+<span class="sig-prename descclassname"><span class="pre">tmhp.air_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">BINDING_OUTDOOR_COIL</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'outdoor_coil'</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.BINDING_OUTDOOR_COIL" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> of a duty reduced to what the outdoor coil absorbs
+(the family’s name for the shared <code class="docutils literal notranslate"><span class="pre">&quot;source_heat_exchanger&quot;</span></code>).</p>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.air_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">AirSourceHeatPumpBoiler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'R134a'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_cmp_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_vol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank_hx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_ou_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ou</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.65</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_a_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dP_fan_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_fan_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">65.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">40.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0045</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.005</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_always_full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_refill</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prevent_simultaneous_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_on_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sur</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_hx_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PR_cycle_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PR_cycle_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">11.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_disp_cmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_electro_mech</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_cond_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_evap_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_fan_a_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dP_ou_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross_ou</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ou_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs_ou</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot_ref_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rated_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_a_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_a_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_a_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_dis_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_suction_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump_boiler.html#AirSourceHeatPumpBoiler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="Link to this definition">¶</a></dt>
@@ -879,6 +957,253 @@ Scalar and user-supplied callable overrides remain supported.</p>
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.ref">
+<span class="sig-name descname"><span class="pre">ref</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.ref" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_cmp_ref">
+<span class="sig-name descname"><span class="pre">V_cmp_ref</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_cmp_ref" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_superheat">
+<span class="sig-name descname"><span class="pre">dT_superheat</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_superheat" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_subcool">
+<span class="sig-name descname"><span class="pre">dT_subcool</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_subcool" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_hx_min">
+<span class="sig-name descname"><span class="pre">dT_hx_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_hx_min" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_min">
+<span class="sig-name descname"><span class="pre">PR_cycle_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_min" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_max">
+<span class="sig-name descname"><span class="pre">PR_cycle_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_max" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_min">
+<span class="sig-name descname"><span class="pre">rps_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_min" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_max">
+<span class="sig-name descname"><span class="pre">rps_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_max" title="Link to this definition">¶</a></dt>
+<dd><p>The rated-speed search bound until <code class="xref py py-meth docutils literal notranslate"><span class="pre">_initialize_reference_state()</span></code>
+replaces it with <code class="docutils literal notranslate"><span class="pre">default_rps_max(rps_rated)</span></code> (when <code class="docutils literal notranslate"><span class="pre">_rps_max_derived</span></code>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_dis_max">
+<span class="sig-name descname"><span class="pre">T_dis_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_dis_max" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.x_suction_min">
+<span class="sig-name descname"><span class="pre">x_suction_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.x_suction_min" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_capacity">
+<span class="sig-name descname"><span class="pre">hp_capacity</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_capacity" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.n_ou">
+<span class="sig-name descname"><span class="pre">n_ou</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.n_ou" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dP_fan_rated">
+<span class="sig-name descname"><span class="pre">dP_fan_rated</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dP_fan_rated" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_fan_rated">
+<span class="sig-name descname"><span class="pre">eta_fan_rated</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_fan_rated" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.E_fan_rated">
+<span class="sig-name descname"><span class="pre">E_fan_rated</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.E_fan_rated" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.vsd_coeffs">
+<span class="sig-name descname"><span class="pre">vsd_coeffs</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.vsd_coeffs" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.fan_params">
+<span class="sig-name descname"><span class="pre">fan_params</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.fan_params" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_isen">
+<span class="sig-name descname"><span class="pre">eta_cmp_isen</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_isen" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_vol">
+<span class="sig-name descname"><span class="pre">eta_cmp_vol</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_vol" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp">
+<span class="sig-name descname"><span class="pre">eta_cmp</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_physical">
+<span class="sig-name descname"><span class="pre">tank_physical</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_physical" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.UA_tank_wall">
+<span class="sig-name descname"><span class="pre">UA_tank_wall</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.UA_tank_wall" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sur_K">
+<span class="sig-name descname"><span class="pre">T_sur_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sur_K" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_tank_full">
+<span class="sig-name descname"><span class="pre">V_tank_full</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_tank_full" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.C_tank">
+<span class="sig-name descname"><span class="pre">C_tank</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.C_tank" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out_max">
+<span class="sig-name descname"><span class="pre">dV_mix_w_out_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out_max" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_upper_bound">
+<span class="sig-name descname"><span class="pre">T_tank_w_upper_bound</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_upper_bound" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_lower_bound">
+<span class="sig-name descname"><span class="pre">T_tank_w_lower_bound</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_lower_bound" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w">
+<span class="sig-name descname"><span class="pre">T_sup_w</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w_K">
+<span class="sig-name descname"><span class="pre">T_sup_w_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w_K" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in">
+<span class="sig-name descname"><span class="pre">T_tank_w_in</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out">
+<span class="sig-name descname"><span class="pre">T_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in_K">
+<span class="sig-name descname"><span class="pre">T_tank_w_in_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in_K" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out_K">
+<span class="sig-name descname"><span class="pre">T_mix_w_out_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out_K" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_always_full">
+<span class="sig-name descname"><span class="pre">tank_always_full</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_always_full" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_lower_bound">
+<span class="sig-name descname"><span class="pre">tank_level_lower_bound</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_lower_bound" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_upper_bound">
+<span class="sig-name descname"><span class="pre">tank_level_upper_bound</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_upper_bound" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in_refill">
+<span class="sig-name descname"><span class="pre">dV_tank_w_in_refill</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in_refill" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.prevent_simultaneous_flow">
+<span class="sig-name descname"><span class="pre">prevent_simultaneous_flow</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.prevent_simultaneous_flow" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_on_schedule">
+<span class="sig-name descname"><span class="pre">hp_on_schedule</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_on_schedule" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_on_time_s">
+<span class="sig-name descname"><span class="pre">min_on_time_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_on_time_s" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_off_time_s">
+<span class="sig-name descname"><span class="pre">min_off_time_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_off_time_s" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.stc">
+<span class="sig-name descname"><span class="pre">stc</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><span class="pre">SolarThermalCollector</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.stc" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.pv">
+<span class="sig-name descname"><span class="pre">pv</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem" title="tmhp.subsystems.PhotovoltaicSystem"><span class="pre">PhotovoltaicSystem</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.pv" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in">
+<span class="sig-name descname"><span class="pre">dV_tank_w_in</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_out">
+<span class="sig-name descname"><span class="pre">dV_tank_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_out" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_sup_w_in">
+<span class="sig-name descname"><span class="pre">dV_mix_sup_w_in</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_sup_w_in" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out">
+<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady">
 <span class="sig-name descname"><span class="pre">analyze_steady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_ref_tank</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump_boiler.html#AirSourceHeatPumpBoiler.analyze_steady"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady" title="Link to this definition">¶</a></dt>
@@ -928,9 +1253,15 @@ request simply lay outside the machine’s deliverable band, which
 a real inverter unit answers by running at its limit and cycling.
 Compare <code class="docutils literal notranslate"><span class="pre">&quot;Q_ref_tank</span> <span class="pre">[W]&quot;</span></code> against <code class="docutils literal notranslate"><span class="pre">&quot;Q_ref_tank_request</span> <span class="pre">[W]&quot;</span></code>
 to recover the shortfall or excess. A <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> point carries
-<code class="docutils literal notranslate"><span class="pre">&quot;capacity_binding&quot;</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>) or
-<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code> (the request exceeded <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>
-and the largest duty inside it is returned, with <code class="docutils literal notranslate"><span class="pre">&quot;Q_max</span> <span class="pre">[W]&quot;</span></code>).</p></li>
+<code class="docutils literal notranslate"><span class="pre">&quot;capacity_binding&quot;</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>), or the
+operating limit the request ran into when a smaller duty runs –
+<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>),
+<code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code> (the
+coil is short at the fan’s largest airflow) or
+<code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code> (the shipped fit’s floor). The
+largest duty that runs is then returned, with <code class="docutils literal notranslate"><span class="pre">&quot;Q_max</span> <span class="pre">[W]&quot;</span></code>
+and <code class="docutils literal notranslate"><span class="pre">&quot;Q_request</span> <span class="pre">[W]&quot;</span></code>; see
+<a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.reduce_duty_within_envelope" title="tmhp.compressor_envelope.reduce_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.reduce_duty_within_envelope()</span></code></a>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;efficiency_extrapolated&quot;</span></code> (bool) — a default efficiency fit
 is evaluated outside its data at this point.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;discharge_control&quot;</span></code> (bool), <code class="docutils literal notranslate"><span class="pre">&quot;dT_ref_superheat</span> <span class="pre">[K]&quot;</span></code>,
@@ -939,12 +1270,16 @@ control held <code class="docutils literal notranslate"><span class="pre">T_dis_
 (superheat reduced first, then wet suction down to
 <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>); see <a class="reference internal" href="../api/support/refrigerant-thermo.html#module-tmhp.compressor_envelope" title="tmhp.compressor_envelope"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_envelope</span></code></a>.</p></li>
 </ul>
-<p>An infeasible cycle, or a solved cycle that is not an operating
-point, falls back to an off-mode state (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>). <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code> (the outdoor coil
-did not converge) returns only the coil diagnostics, without
-duty or power keys. <code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code> returns the cycle
-numbers at the optimiser’s best point with <code class="docutils literal notranslate"><span class="pre">converged=False</span></code>.</p>
+<p>Every failure – an infeasible cycle, a solved cycle that is not
+an operating point, an outdoor coil that cannot carry the duty,
+a search that did not settle – returns the same off-mode state:
+<code class="docutils literal notranslate"><span class="pre">hp_is_on</span> <span class="pre">=</span> <span class="pre">False</span></code>, <code class="docutils literal notranslate"><span class="pre">converged</span> <span class="pre">=</span> <span class="pre">False</span></code>, <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>, NaN COP, with <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> (and
+<code class="docutils literal notranslate"><span class="pre">failure_detail</span></code> where there is one). A request that fails on a
+limit a smaller duty cures is not a failure when such a duty
+runs (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">=</span> <span class="pre">&quot;max&quot;</span></code> above); <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>
+with no cycle at all (a condensing temperature at or above the
+critical point) is not reduced.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -957,6 +1292,10 @@ numbers at the optimiser’s best point with <code class="docutils literal notra
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.make_initial_state">
 <span class="sig-name descname"><span class="pre">make_initial_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_init_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump_boiler.html#AirSourceHeatPumpBoiler.make_initial_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.make_initial_state" title="Link to this definition">¶</a></dt>
 <dd><p>Build the initial carried state for a <code class="docutils literal notranslate"><span class="pre">step()</span></code>-driven run.</p>
+<p>A tank whose level varies (<code class="docutils literal notranslate"><span class="pre">tank_always_full=False</span></code> or
+<code class="docutils literal notranslate"><span class="pre">prevent_simultaneous_flow</span></code>) starts with at least
+<code class="xref py py-data docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code> of water: an empty tank
+has no temperature to start from.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

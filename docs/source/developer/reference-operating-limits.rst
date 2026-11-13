@@ -98,10 +98,11 @@ power are normalised at the flow the fan actually runs at. Equal limits are
 accepted by ``resolve_fan_flow_limits`` for every fan; ``min > max`` and a zero
 maximum remain input errors, and the generic ASHRAE curve still requires the
 flow to lie inside 0.15--1.0 of the reference. The coil cannot change its
-airflow, so a duty is carried only through the approach temperature: ASHPB and
-GSHP solve that single approach (the band of approaches the fan can serve
-collapses to a point) and report the duty exactly. A request the coil cannot
-carry fails with ``failure_reason == "hx_not_converged"`` as for a variable fan.
+airflow, so a duty is carried only through the approach temperature: ASHPB,
+GSHP and ASHP solve that single approach (the band of approaches the fan can
+serve collapses to a point) and report the duty exactly. A request the coil
+cannot carry fails with ``failure_reason == "hx_not_converged"`` as for a
+variable fan.
 
 A constant-speed fan sits at both limits, so both ``fan_flow_min_limit`` and
 ``fan_flow_max_limit`` (``iu_*`` / ``ou_*``) are true; the direction in which a
@@ -112,15 +113,26 @@ VAV surrogate and 0.9991 for the ASHRAE correlation. Pass
 ``vsd_coeffs={"c1": 1, "c2": 0, "c3": 0, "c4": 0, "c5": 0, "curve_type": "custom"}``
 for a power that is exactly the rated value at every flow.
 
+``AirSourceHeatPump`` has two coils and searches two approach temperatures.
+With one constant-speed fan the feasible approaches lie on a curve, with two on
+a single point, and neither a grid nor a simplex lands on a set of zero width.
+The model therefore nests two band solves: the coil with the narrower fan range
+is closed first (its approach is a root of that coil's capacity margin), and
+the other coil's band is solved at that solution and searched for the least
+electrical input per unit of heat. Both fans fixed costs about 30 cycle
+evaluations (0.3 s); one fixed fan about 80 (under 1 s). A fan that can
+modulate over less than 2:1 (``NARROW_FAN_FLOW_RATIO``) uses the same search to
+seed the ordinary one whenever the coarse pre-scan finds no operating point.
+
 .. note::
 
-   ``AirSourceHeatPump`` accepts constant-speed fans at construction, but its
-   two-dimensional Nelder--Mead search over the evaporator and condenser
-   approaches cannot find them: with one fixed coil the feasible approaches lie
-   on a curve, with two on a single point, and the objective is infeasible
-   everywhere else. It returns ``failure_reason == "hx_not_converged"``, and a
-   narrow range does not help reliably (ranges of ±2 % still fail at some
-   conditions) until that search is reworked.
+   With a constant-speed fan the approach-temperature search domain
+   (``dT_approach_bounds``, 1--20 K by default) is the only freedom the coil
+   has, so it can become the capacity limit: the largest duty is then what the
+   coil carries at the upper bound, reported with ``capacity_clamped == "max"``
+   and ``capacity_binding == "cycle"``. Finding that ceiling repeats the band
+   solve along a ladder of duties and takes 5--10 s per operating point; widen
+   the bounds if the coil is meant to run a larger approach.
 
 The unchanged empirical equation is
 

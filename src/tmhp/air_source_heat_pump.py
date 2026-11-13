@@ -23,9 +23,10 @@ from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import OptimizeResult, minimize, minimize_scalar
 from tqdm import tqdm
 
+from . import _opt_utils
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
@@ -78,6 +79,195 @@ from .refrigerant import (
 OBJ_CAPACITY_LIMITED = 1.0e9
 #: Objective value for an operating point the cycle cannot reach (invalid).
 OBJ_INFEASIBLE = 1.0e12
+
+#: A fan whose largest flow is at most this multiple of its smallest is
+#: searched by :class:`_NarrowFanSearch`. At a fixed approach temperature a
+#: coil's capacity grows roughly as flow^0.7, so a flow ratio of 2 leaves a band
+#: of approach temperatures about +/-25 % wide -- at a 3 K approach that is
+#: narrower than the spacing of the finest lattice the grid search falls back
+#: on (1.3 K), and a constant-speed fan leaves a single point.
+NARROW_FAN_FLOW_RATIO = 2.0
+
+
+class _NarrowFanSearch:
+    """Operating-point search for a fan with little or no flow range.
+
+    A coil whose fan can modulate carries a given duty over a band of approach
+    temperatures: a small approach at the largest airflow, a large one at the
+    smallest. With a constant-speed fan the band is one point, and the unit
+    meets a duty only where the refrigerant side and that one airflow agree.
+    A grid or a simplex over the two approach temperatures cannot land on a set
+    of zero width, so the band is solved instead, from the signed capacity
+    margins of the coil at its two flow limits
+    (:func:`~tmhp._opt_utils.margin_feasible_interval`) -- the way the
+    ground-source and the water-heating models treat their fans.
+
+    The two approaches are nested. The coil with the narrower fan is the
+    *inner* one: for every outer approach its own approach is solved as the
+    middle of its band (a single point for a constant-speed fan). The other
+    coil's approach is the *outer* one: its band is solved from that coil's
+    margins at the inner solution, and candidates inside it are ranked on the
+    same three-band objective as the grid search
+    (:func:`~tmhp._opt_utils.operating_point_objective`).
+
+    With ``accept`` the search stops at the first candidate state it accepts
+    and keeps it in ``accepted`` (:meth:`AirSourceHeatPump._duty_is_deliverable`
+    asks only whether some approach pair meets a duty exactly).
+    """
+
+    class _Accepted(Exception):
+        """Raised from :meth:`entry` to leave the root finders at an accepted state."""
+
+    #: Root tolerance on a band edge [K]. A constant-speed coil is converged
+    #: only within 1e-5 of its duty, i.e. a few 1e-5 K of approach.
+    _EDGE_XTOL_K = 1e-7
+    #: Root tolerance on the outer band of a fan that can still modulate [K]:
+    #: the interior is minimised afterwards, the edge only bounds it.
+    _OUTER_BAND_XTOL_K = 1e-3
+    #: Inward step from a solved band edge before the interior is minimised [K].
+    _EDGE_STEP_K = 1e-4
+
+    def __init__(
+        self,
+        model: "AirSourceHeatPump",
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        accept: Callable[[dict | None], bool] | None = None,
+    ) -> None:
+        self.model = model
+        self.Q_r_iu, self.T0, self.T_a_room = Q_r_iu, T0, T_a_room
+        self.accept = accept
+        #: ``((dT_ref_evap, dT_ref_cond), state)`` of the accepted candidate.
+        self.accepted: tuple[tuple[float, float], dict] | None = None
+        self.heating = Q_r_iu < 0
+        ratio_iu, ratio_ou = model._fan_flow_ratios()
+        #: The narrower fan is solved, the other searched.
+        self.inner_is_iu = ratio_iu <= ratio_ou
+        self.inner_fixed = min(ratio_iu, ratio_ou) == 1.0
+        self.outer_fixed = max(ratio_iu, ratio_ou) == 1.0
+        #: (indoor approach, outdoor approach) -> (objective, state, coil margins)
+        self.rows: dict[tuple[float, float], tuple[float, dict | None, tuple[float, float, float, float] | None]] = {}
+        self._inner_points: dict[float, float | None] = {}
+        self._inner_hint: float | None = None
+
+    # -- candidates ---------------------------------------------------------
+
+    def approaches(self, x_iu: float, x_ou: float) -> tuple[float, float]:
+        """``(dT_ref_evap, dT_ref_cond)`` for an indoor/outdoor approach pair."""
+        return (x_ou, x_iu) if self.heating else (x_iu, x_ou)
+
+    def entry(self, x_iu: float, x_ou: float) -> tuple[float, dict | None, tuple[float, float, float, float] | None]:
+        key = (float(x_iu), float(x_ou))
+        if key not in self.rows:
+            model = self.model
+            de, dc = self.approaches(*key)
+            perf = model._calc_state(
+                dT_ref_evap=de, dT_ref_cond=dc, Q_r_iu=self.Q_r_iu, T0=self.T0, T_a_room=self.T_a_room
+            )
+            value = OBJ_INFEASIBLE
+            if perf is not None and perf.get("converged", False):
+                value = _opt_utils.operating_point_objective(
+                    float(perf.get("E_tot [W]", math.nan)),
+                    float(perf.get("Q_ref_iu [W]", math.nan)),
+                    self.Q_r_iu,
+                    perf.get("capacity_clamped"),
+                )
+            self.rows[key] = (value, perf, model._coil_margins(perf))
+            if self.accept is not None and perf is not None and self.accept(perf):
+                self.accepted = (self.approaches(*key), perf)
+                raise self._Accepted
+        return self.rows[key]
+
+    def _pair(self, outer: float, inner: float) -> tuple[float, float]:
+        return (outer, inner) if not self.inner_is_iu else (inner, outer)
+
+    def _side_margins(self, outer: float, inner: float, indoor: bool) -> tuple[float, float] | None:
+        """(margin at the largest flow, margin at the smallest flow) of one coil [W]."""
+        margins = self.entry(*self._pair(outer, inner))[2]
+        if margins is None:
+            return None
+        iu_min, iu_max, ou_min, ou_max = margins
+        return (iu_max, iu_min) if indoor else (ou_max, ou_min)
+
+    # -- inner coil: solved -------------------------------------------------
+
+    def inner(self, outer: float) -> float | None:
+        """Inner approach at which the inner fan carries its duty, or ``None``."""
+        outer = float(outer)
+        if outer not in self._inner_points:
+            lo, hi = self.model.dT_approach_bounds
+            band = _opt_utils.margin_band_on_valid_range(
+                lambda x: self._side_margins(outer, x, self.inner_is_iu),
+                lo,
+                hi,
+                xtol=self._EDGE_XTOL_K,
+                hint=self._inner_hint,
+            )
+            point = None
+            if band is not None:
+                # The middle of the band: the one point of a constant-speed
+                # fan, mid-range airflow of a fan that can still modulate.
+                point = 0.5 * (band[0] + band[1])
+                self._inner_hint = point
+            self._inner_points[outer] = point
+        return self._inner_points[outer]
+
+    def _outer_margins(self, outer: float) -> tuple[float, float] | None:
+        inner = self.inner(outer)
+        if inner is None:
+            return None
+        return self._side_margins(outer, inner, not self.inner_is_iu)
+
+    def value(self, outer: float) -> float:
+        inner = self.inner(outer)
+        if inner is None:
+            return OBJ_INFEASIBLE
+        return self.entry(*self._pair(float(outer), inner))[0]
+
+    # -- outer coil: band, then minimum -------------------------------------
+
+    def run(self) -> None:
+        with contextlib.suppress(self._Accepted):
+            self._run()
+
+    def _run(self) -> None:
+        lo, hi = self.model.dT_approach_bounds
+        band = _opt_utils.margin_band_on_valid_range(
+            self._outer_margins,
+            lo,
+            hi,
+            xtol=self._EDGE_XTOL_K if self.outer_fixed else self._OUTER_BAND_XTOL_K,
+        )
+        if band is None:
+            return
+        a, b = band
+        step = self._EDGE_STEP_K
+        if self.outer_fixed or b - a <= 2.0 * step:
+            for x in (0.5 * (a + b), a, b):
+                if self.value(x) < OBJ_INFEASIBLE:
+                    return
+            return
+        a, b = a + step, b - step
+        points = sorted({a, b, *(x for x in self._inner_points if a < x < b)})
+        values = [self.value(x) for x in points]
+        k = min(range(len(points)), key=values.__getitem__)
+        left, right = points[max(k - 1, 0)], points[min(k + 1, len(points) - 1)]
+        if values[k] < OBJ_INFEASIBLE and right > left:
+            minimize_scalar(
+                self.value,
+                bounds=(left, right),
+                method="bounded",
+                options={"xatol": min(1e-2, (right - left) / 20.0), "maxiter": 25},
+            )
+
+    def best(self) -> tuple[float, tuple[float, float] | None, dict | None]:
+        """Least objective found: ``(value, (dT_ref_evap, dT_ref_cond), state)``."""
+        if not self.rows:
+            return OBJ_INFEASIBLE, None, None
+        key = min(self.rows, key=lambda k: self.rows[k][0])
+        value, perf, _ = self.rows[key]
+        return value, self.approaches(*key), perf
 
 
 class AirSourceHeatPump(ReferenceStateMixin):
@@ -905,6 +1095,23 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 penalty=OBJ_INFEASIBLE,
             )
 
+        # Phase 0: a constant-speed fan. The approaches it can serve are a
+        # single point, which no grid or simplex lands on, so the point is
+        # solved from the coil capacity margins (:class:`_NarrowFanSearch`).
+        # Nothing is left for the phases below to find or to refine.
+        if self._has_constant_speed_fan():
+            search = _NarrowFanSearch(self, Q_r_iu, T0, T_a_room)
+            search.run()
+            value, x, _ = search.best()
+            lo_b, hi_b = self.dT_approach_bounds
+            middle = 0.5 * (lo_b + hi_b)
+            return OptimizeResult(
+                x=np.array(x if x is not None else (middle, middle), dtype=float),
+                fun=value,
+                success=value < OBJ_INFEASIBLE,
+                nfev=len(search.rows),
+            )
+
         # Phase 1: coarse grid pre-scan to find a converging starting point.
         # A single fixed x0=(15,15) fails silently when the entire search space
         # is a penalty region — Nelder-Mead cannot escape because all objective
@@ -929,6 +1136,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if val < best_val:
                 best_val = val
                 best_x0 = list(cand)
+
+        # Phase 1a: a fan with a narrow flow range, paid only when the pre-scan
+        # found nothing. The band of approaches it can serve may be thinner
+        # than the spacing of the lattices below, so it is solved rather than
+        # sampled; the point found seeds Phase 2.
+        if best_val >= OBJ_INFEASIBLE and self._has_narrow_fan():
+            search = _NarrowFanSearch(self, Q_r_iu, T0, T_a_room)
+            search.run()
+            value, x, _ = search.best()
+            if value < OBJ_INFEASIBLE and x is not None:
+                best_val, best_x0 = value, list(x)
 
         # Phase 1b: fallback lattice, paid only when Phase 1a found nothing.
         #
@@ -969,6 +1187,85 @@ class AirSourceHeatPump(ReferenceStateMixin):
         )
 
     # =============================================================
+    # Fans with little or no flow range
+    # =============================================================
+
+    def _fan_flow_ratios(self) -> tuple[float, float]:
+        """Largest over smallest airflow of the indoor and the outdoor fan (1.0: constant speed)."""
+
+        def ratio(low: float, high: float) -> float:
+            return high / low if low > 0 else math.inf
+
+        return (
+            ratio(self.dV_iu_fan_a_min, self.dV_iu_fan_a_max),
+            ratio(self.dV_ou_fan_a_min, self.dV_ou_fan_a_max),
+        )
+
+    def _has_narrow_fan(self) -> bool:
+        """Whether either fan's flow range can be too narrow for the grid search."""
+        return min(self._fan_flow_ratios()) <= NARROW_FAN_FLOW_RATIO
+
+    def _has_constant_speed_fan(self) -> bool:
+        """Whether either fan runs at one airflow only (``min == max``)."""
+        return min(self._fan_flow_ratios()) == 1.0
+
+    def _coil_margins(self, perf: dict | None) -> tuple[float, float, float, float] | None:
+        """Signed capacity margins of both coils at their fan flow limits [W].
+
+        ``(indoor at smallest flow, indoor at largest flow, outdoor at smallest
+        flow, outdoor at largest flow)`` for a state of :meth:`_calc_state`:
+        coil capacity at that airflow minus the refrigerant-side duty the
+        cycle asks of it. A coil carries its duty at some airflow within the
+        limits when the first of its pair is ``<= 0`` and the second ``>= 0``.
+        ``None`` when the cycle itself does not exist.
+        """
+        if perf is None:
+            return None
+        if "_iu_diag" in perf:
+            # A coil did not close: the coil solver reports the margins.
+            values = tuple(
+                float(perf[diag].get(key, math.nan))
+                for diag in ("_iu_diag", "_ou_diag")
+                for key in ("min_flow_capacity_margin_W", "max_flow_capacity_margin_W")
+            )
+        else:
+            # Both coils closed, so each temperature difference follows from
+            # the duty and the solved airflow.
+            def limits(duty: float, flow: float, UA_rated: float, reference: float, n: float, low: float, high: float):
+                def per_kelvin(dV: float) -> float:
+                    C_air = c_a * rho_a * dV
+                    return C_air * (1.0 - math.exp(-UA_rated * (dV / reference) ** n / C_air))
+
+                if not (duty > 0.0 and flow > 0.0):
+                    return math.nan, math.nan
+                dT = duty / per_kelvin(flow)
+                return per_kelvin(low) * dT - duty, per_kelvin(high) * dT - duty
+
+            values = (
+                *limits(
+                    abs(float(perf.get("Q_ref_iu [W]", math.nan))),
+                    float(perf.get("dV_iu_a [m3/s]", math.nan)),
+                    self.UA_iu_rated,
+                    self.dV_iu_fan_a_ref,
+                    self.n_iu,
+                    self.dV_iu_fan_a_min,
+                    self.dV_iu_fan_a_max,
+                ),
+                *limits(
+                    abs(float(perf.get("Q_ref_ou [W]", math.nan))),
+                    float(perf.get("dV_ou_a [m3/s]", math.nan)),
+                    self.UA_ou_rated,
+                    self.dV_ou_fan_a_ref,
+                    self.n_ou,
+                    self.dV_ou_fan_a_min,
+                    self.dV_ou_fan_a_max,
+                ),
+            )
+        if not all(math.isfinite(v) for v in values):
+            return None
+        return values  # type: ignore[return-value]
+
+    # =============================================================
     # Capacity envelope
     # =============================================================
 
@@ -997,7 +1294,30 @@ class AirSourceHeatPump(ReferenceStateMixin):
         both came from the search rather than from the physics. ``seed`` is
         tried first so that a duty known to be deliverable usually costs one
         evaluation instead of a sweep.
+
+        A fan with a narrow flow range leaves a feasible set thinner than the
+        grid spacing, so there the band search (:class:`_NarrowFanSearch`) is
+        asked first; for a constant-speed fan its answer is final.
         """
+
+        def meets(perf: dict | None) -> bool:
+            # Clamped at either bound means the delivered duty is not the one
+            # asked for, so this point does not demonstrate the duty.
+            return (
+                perf is not None
+                and bool(perf.get("converged", False))
+                and perf.get("capacity_clamped") is None
+                and abs(float(perf.get("Q_ref_iu [W]", 0.0))) >= 0.99 * abs(Q_r_iu)
+            )
+
+        if self._has_narrow_fan():
+            search = _NarrowFanSearch(self, Q_r_iu, T0, T_a_room, accept=meets)
+            search.run()
+            if search.accepted is not None:
+                return search.accepted
+            if self._has_constant_speed_fan():
+                return None, None
+
         candidates: list[tuple[float, float]] = []
         if seed is not None:
             candidates.append(seed)
@@ -1011,15 +1331,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 T0=T0,
                 T_a_room=T_a_room,
             )
-            if perf is None or not perf.get("converged", False):
-                continue
-            # Clamped at either bound means the delivered duty is not the one
-            # asked for, so this point does not demonstrate the duty.
-            if perf.get("capacity_clamped") is not None:
-                continue
-            if abs(float(perf.get("Q_ref_iu [W]", 0.0))) < 0.99 * abs(Q_r_iu):
-                continue
-            return (de, dc), perf
+            if meets(perf):
+                assert perf is not None
+                return (de, dc), perf
         return None, None
 
     def max_capacity(

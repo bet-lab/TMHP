@@ -21,6 +21,7 @@ __all__ = [
     "specific_energy_objective",
     "operating_point_objective",
     "margin_feasible_interval",
+    "margin_band_on_valid_range",
     "DEFAULT_SHORTFALL_TOLERANCE",
     "PENALTY",
     "OBJ_CAPACITY_LIMITED",
@@ -209,3 +210,106 @@ def margin_feasible_interval(
     if low > high + 10.0 * xtol:
         return None
     return low, max(low, high)
+
+
+def margin_band_on_valid_range(
+    margins: Callable[[float], tuple[float, float] | None],
+    lower: float,
+    upper: float,
+    *,
+    coarse: int = 5,
+    xtol: float = 1e-7,
+    edge_tol: float = 1e-2,
+    hint: float | None = None,
+    hint_halfwidth: float = 1.0,
+) -> tuple[float, float] | None:
+    """:func:`margin_feasible_interval` for margins that exist only on part of ``[lower, upper]``.
+
+    ``margins(x)`` returns ``(capacity_margin, excess_margin)`` -- the signed
+    duty margins at the largest and the smallest flow -- or ``None`` where the
+    candidate does not exist at all (a cycle outside the compressor envelope,
+    an inner balance with no solution). ``coarse`` equally spaced samples
+    locate the part of the interval on which the margins exist; it is taken to
+    be one run of samples. Where the run stops at a sample without margins and
+    the band needs the stretch beyond it (the duty is not yet carried at the
+    last sample with margins, or the flow cannot yet be turned down at the
+    first), the run is extended towards that sample by bisection to
+    ``edge_tol``. The band edges are then solved as roots.
+
+    ``hint`` is a point expected to lie in the band (the previous solution of
+    a neighbouring problem). A band found strictly inside
+    ``hint +/- hint_halfwidth`` is returned without the coarse samples; one
+    that touches that bracket is solved on the whole interval instead, so the
+    hint changes the cost and never the result.
+
+    Returns ``None`` when the band is empty, and also when the margins vanish
+    between two samples that have them (the run assumption does not hold).
+    """
+    if not (math.isfinite(lower) and math.isfinite(upper) and lower <= upper):
+        raise ValueError("Require finite lower <= upper")
+    if coarse < 2:
+        raise ValueError("coarse must be at least 2")
+
+    class _Missing(Exception):
+        pass
+
+    def capacity(x: float) -> float:
+        value = margins(x)
+        if value is None:
+            raise _Missing
+        return value[0]
+
+    def excess(x: float) -> float:
+        value = margins(x)
+        if value is None:
+            raise _Missing
+        return value[1]
+
+    def solve(a: float, b: float, samples: Iterable[float] = ()) -> tuple[float, float] | None:
+        try:
+            return margin_feasible_interval(capacity, excess, a, b, xtol=xtol, samples=samples)
+        except (_Missing, ValueError, RuntimeError):
+            return None
+
+    def extend(good: float, bad: float) -> float:
+        """Last point towards ``bad`` at which the margins still exist."""
+        while abs(bad - good) > edge_tol:
+            mid = 0.5 * (good + bad)
+            if margins(mid) is None:
+                bad = mid
+            else:
+                good = mid
+        return good
+
+    if hint is not None and lower < upper:
+        a, b = max(lower, hint - hint_halfwidth), min(upper, hint + hint_halfwidth)
+        at_a, at_b = margins(a), margins(b)
+        if at_a is not None and at_b is not None and at_a[1] <= 0.0 <= at_b[0]:
+            band = solve(a, b)
+            if band is not None and (band[0] > a or a == lower) and (band[1] < b or b == upper):
+                return band
+
+    points = [lower + (upper - lower) * i / (coarse - 1) for i in range(coarse)] if lower < upper else [lower]
+    values = [margins(x) for x in points]
+    valid = [i for i, value in enumerate(values) if value is not None]
+    if not valid:
+        return None
+    first, last = valid[0], valid[-1]
+    a, b = points[first], points[last]
+    at_first, at_last = values[first], values[last]
+    assert at_first is not None and at_last is not None
+    if at_last[0] < 0.0:
+        if last == len(points) - 1:
+            return None
+        b = extend(b, points[last + 1])
+        at_b = margins(b)
+        if at_b is None or at_b[0] < 0.0:
+            return None
+    if at_first[1] > 0.0:
+        if first == 0:
+            return None
+        a = extend(a, points[first - 1])
+        at_a = margins(a)
+        if at_a is None or at_a[1] > 0.0:
+            return None
+    return solve(a, b, samples=[points[i] for i in valid])

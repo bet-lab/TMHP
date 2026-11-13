@@ -11,7 +11,10 @@ from scipy.optimize import root_scalar
 from . import calc_util as cu
 from .air_properties import air_density
 from .constants import P0_PA, c_a, rho_a
-from .reference_state import HXSide
+from .reference_state import (
+    Fluid,  # noqa: F401 -- named by the annotations AirCoilSide inherits; the docs build resolves them here
+    HXSide,
+)
 
 
 def calc_ground_hx_UA_from_capacity(rated_capacity: float, specific_UA: float = 0.18) -> float:

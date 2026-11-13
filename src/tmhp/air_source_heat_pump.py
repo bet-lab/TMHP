@@ -1466,7 +1466,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 high: float,
             ):
                 def per_kelvin(dV: float) -> float:
-                    C_air = air_heat_capacity_rate(dV, T_in)
+                    C_air = float(air_heat_capacity_rate(dV, T_in))
                     return C_air * (1.0 - math.exp(-UA_rated * (dV / reference) ** n / C_air))
 
                 if not (duty > 0.0 and flow > 0.0):
@@ -1707,7 +1707,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 duty: float, flow: float, T_in: float, UA_rated: float, reference: float, n: float, high: float
             ):
                 def per_kelvin(dV: float) -> float:
-                    C_air = air_heat_capacity_rate(dV, T_in)
+                    C_air = float(air_heat_capacity_rate(dV, T_in))
                     return C_air * (1.0 - math.exp(-UA_rated * (dV / reference) ** n / C_air))
 
                 if not (duty > 0.0 and flow > 0.0):
@@ -1875,7 +1875,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         more than a rounding error (see :meth:`_largest_airflow_point`).
         """
         dV = self.dV_iu_fan_a_max
-        C_air = air_heat_capacity_rate(dV, T_a_room)
+        C_air = float(air_heat_capacity_rate(dV, T_a_room))
         UA = self.UA_iu_rated * (dV / self.dV_iu_fan_a_ref) ** self.n_iu
         limit = C_air * (1.0 - math.exp(-UA / C_air)) * self.dT_approach_bounds[1]
         return limit / (1.0 + 2.0 * self._LEAST_LIFT_INSIDE)

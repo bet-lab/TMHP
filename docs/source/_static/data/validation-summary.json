@@ -1,8 +1,8 @@
 {
   "units": 17,
   "points": 757,
-  "points_evaluated": 740,
-  "cop_mape_pct": 19.01,
+  "points_evaluated": 743,
+  "cop_mape_pct": 18.95,
   "refrigerants": [
     "R290",
     "R32",
@@ -151,11 +151,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
       "points_usable": 10,
-      "cop_MAE": 0.2338138699001957,
-      "cop_MAPE_pct": 6.1259015500184795,
+      "cop_MAE": 0.2338200590279262,
+      "cop_MAPE_pct": 6.126180339555891,
       "cop_max_APE_pct": 15.164254987174791,
-      "power_MAPE_pct": 6.260950863361046,
-      "cop_bias_pct": -0.1407299779178737
+      "power_MAPE_pct": 6.2611973203194,
+      "cop_bias_pct": -0.140451188380462
     },
     {
       "slug": "panasonic_wh_uq09he8",
@@ -169,11 +169,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.303088089297257,
-      "cop_MAPE_pct": 9.56297369403515,
+      "cop_MAE": 0.3030862198069426,
+      "cop_MAPE_pct": 9.562881145009788,
       "cop_max_APE_pct": 22.38551953311253,
-      "power_MAPE_pct": 9.09792856585758,
-      "cop_bias_pct": 3.0479992787315746
+      "power_MAPE_pct": 9.097828132288212,
+      "cop_bias_pct": 3.048091827757689
     },
     {
       "slug": "panasonic_wh_wxg09me8",
@@ -187,11 +187,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.2014441833062453,
-      "cop_MAPE_pct": 7.284746813144921,
+      "cop_MAE": 0.2014441833062468,
+      "cop_MAPE_pct": 7.284746813145008,
       "cop_max_APE_pct": 15.991923751133356,
-      "power_MAPE_pct": 7.450257332094731,
-      "cop_bias_pct": -1.2082671966931615
+      "power_MAPE_pct": 7.450257332094831,
+      "cop_bias_pct": -1.2082671966932483
     },
     {
       "slug": "panasonic_wh_mxc12j9e8",
@@ -204,12 +204,12 @@
       "status": "adopted",
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
-      "points_usable": 10,
-      "cop_MAE": 0.2708612926647337,
-      "cop_MAPE_pct": 9.44695108629644,
+      "points_usable": 11,
+      "cop_MAE": 0.2525878705259954,
+      "cop_MAPE_pct": 8.887682687978632,
       "cop_max_APE_pct": 22.932429716732344,
-      "power_MAPE_pct": 8.366121199285711,
-      "cop_bias_pct": 7.440572039892521
+      "power_MAPE_pct": 7.856537167435735,
+      "cop_bias_pct": 6.464758064538438
     },
     {
       "slug": "panasonic_wh_uq12he8",
@@ -223,11 +223,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.2515994972090774,
-      "cop_MAPE_pct": 9.72268052247663,
+      "cop_MAE": 0.2517093819790376,
+      "cop_MAPE_pct": 9.728403687578702,
       "cop_max_APE_pct": 24.532953465056423,
-      "power_MAPE_pct": 8.337215155654823,
-      "cop_bias_pct": 8.08080024240031
+      "power_MAPE_pct": 8.342651838687507,
+      "cop_bias_pct": 8.086523407502401
     },
     {
       "slug": "panasonic_wh_wxg12me8",
@@ -241,11 +241,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.2487384497750962,
-      "cop_MAPE_pct": 8.963452773064303,
+      "cop_MAE": 0.2487384497751001,
+      "cop_MAPE_pct": 8.963452773064533,
       "cop_max_APE_pct": 27.045056395405386,
-      "power_MAPE_pct": 8.03164931533643,
-      "cop_bias_pct": 4.635582132343143
+      "power_MAPE_pct": 8.031649315336676,
+      "cop_bias_pct": 4.635582132342914
     },
     {
       "slug": "panasonic_wh_mxc16j9e8",
@@ -258,12 +258,12 @@
       "status": "adopted",
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
-      "points_usable": 10,
-      "cop_MAE": 0.4436025386049904,
-      "cop_MAPE_pct": 18.640243327744127,
+      "points_usable": 11,
+      "cop_MAE": 0.4173257662564061,
+      "cop_MAPE_pct": 17.6852221694461,
       "cop_max_APE_pct": 38.42900277866338,
-      "power_MAPE_pct": 14.631152103698554,
-      "cop_bias_pct": 18.640243327744127
+      "power_MAPE_pct": 13.984826501044363,
+      "cop_bias_pct": 17.6852221694461
     },
     {
       "slug": "panasonic_wh_uq16he8",
@@ -277,11 +277,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 18,
       "points_usable": 18,
-      "cop_MAE": 0.3365387422292155,
-      "cop_MAPE_pct": 12.261275437478652,
+      "cop_MAE": 0.3365061030943453,
+      "cop_MAPE_pct": 12.259726971890572,
       "cop_max_APE_pct": 32.255498791862124,
-      "power_MAPE_pct": 10.293740772348448,
-      "cop_bias_pct": 12.007191073913091
+      "power_MAPE_pct": 10.292022040344651,
+      "cop_bias_pct": 12.011596098630871
     },
     {
       "slug": "panasonic_wh_wxg16me8",
@@ -295,11 +295,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.2467136240060976,
-      "cop_MAPE_pct": 9.853551530863228,
+      "cop_MAE": 0.2467136240060972,
+      "cop_MAPE_pct": 9.853551530863204,
       "cop_max_APE_pct": 30.124219365398737,
-      "power_MAPE_pct": 8.33164197060854,
-      "cop_bias_pct": 9.74528541432414
+      "power_MAPE_pct": 8.331641970608517,
+      "cop_bias_pct": 9.745285414324114
     },
     {
       "slug": "samsung_ehs_mono_ht_r32_14kw",
@@ -312,12 +312,12 @@
       "status": "adopted",
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
-      "points_usable": 13,
-      "cop_MAE": 0.5951190618703284,
-      "cop_MAPE_pct": 13.78409832522732,
+      "points_usable": 14,
+      "cop_MAE": 0.5565920136660116,
+      "cop_MAPE_pct": 12.998599113870275,
       "cop_max_APE_pct": 25.960677581567964,
-      "power_MAPE_pct": 14.145054732329315,
-      "cop_bias_pct": -2.9402409028653267
+      "power_MAPE_pct": 13.328357574077154,
+      "cop_bias_pct": -2.530252468489187
     }
   ]
 }

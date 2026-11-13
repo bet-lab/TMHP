@@ -225,11 +225,15 @@ def test_fixed_fan_with_an_undersized_coil_fails_like_a_variable_fan():
         assert out["Q_ref_iu [W]"] == 0.0
 
 
-def test_ashpb_fixed_fan_with_an_undersized_coil_reports_hx_not_converged():
-    out = _ashpb(dV_fan_a_rated=1.4, dV_fan_a_min=1.4, dV_fan_a_max=1.4, UA_ou_rated=300.0).analyze_steady(
-        T_tank_w=40.0, T0=7.0, Q_ref_tank=9000.0
-    )
-    assert not out["converged"] and out["failure_reason"] == "hx_not_converged"
+def test_ashpb_fixed_fan_with_an_undersized_coil_runs_at_the_duty_the_coil_carries():
+    """9 kW is more than the small coil absorbs at its one airflow: the unit
+    runs at the largest duty the coil carries and says what bound it."""
+    hp = _ashpb(dV_fan_a_rated=1.4, dV_fan_a_min=1.4, dV_fan_a_max=1.4, UA_ou_rated=300.0)
+    out = hp.analyze_steady(T_tank_w=40.0, T0=7.0, Q_ref_tank=9000.0)
+    assert out["converged"] and out["failure_reason"] == "none"
+    assert out["capacity_clamped"] == "max" and out["capacity_binding"] == "outdoor_coil"
+    assert 0.5 * 9000.0 < out["Q_ref_tank [W]"] < 9000.0
+    assert out["dV_ou_a [m3/s]"] == pytest.approx(1.4)
 
 
 # ── dynamic ───────────────────────────────────────────────────────────────

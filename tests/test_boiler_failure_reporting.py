@@ -160,8 +160,27 @@ def test_collapsed_user_efficiency_is_reported_as_failure(family: str, ref: str,
     model = _FAMILY_CLASS[family](ref=ref)
     model.eta_cmp_isen = _collapse_above(model.eta_cmp_isen, pr_limit)
     result = _steady(model, **point)
+    if result["hp_is_on"]:
+        # The request sits in the collapsed region and is refused there; the
+        # machine runs at the largest duty whose pressure ratio is below it
+        # (a smaller duty needs a smaller condenser approach).
+        assert result["capacity_clamped"] == "max" and result["capacity_binding"]
+        assert 0.0 < result["Q_ref_tank [W]"] < point["Q_ref_tank"]
+        assert result["Q_request [W]"] == point["Q_ref_tank"]
+        assert result["pr_cmp [-]"] <= pr_limit
+        assert math.isfinite(result["T_ref_cmp_out [°C]"])
+        return
     _assert_off_mode_failure(result, "cycle_invalid")
     assert result["failure_detail"] in {"discharge_state_undefined", "min_speed_duty_above_capacity"}
+
+
+def test_collapse_at_every_pressure_ratio_stays_a_failure() -> None:
+    """No smaller duty escapes a fit that is collapsed everywhere: off, with the reason."""
+    model = AirSourceHeatPumpBoiler(ref="R32")
+    model.eta_cmp_isen = _collapse_above(model.eta_cmp_isen, 0.0)
+    result = _steady(model, T_tank_w=45.0, T0=7.0, Q_ref_tank=6000.0)
+    _assert_off_mode_failure(result, "cycle_invalid")
+    assert result["failure_detail"] == "discharge_state_undefined"
 
 
 def test_ashpb_supercritical_condensing_is_a_failure_not_an_exception() -> None:

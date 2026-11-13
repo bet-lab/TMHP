@@ -53,6 +53,7 @@ from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, spec
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
+    CYCLE_KEY,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
@@ -110,6 +111,11 @@ _OBJ_UNPHYSICAL = 3.0 * PENALTY  # solved cycle, not an operating point
 _OBJ_SPEED_UNSOLVED = 3.5 * PENALTY  # compressor speed root did not settle
 _OBJ_COIL_UNMATCHED = 4.0 * PENALTY  # outdoor coil cannot carry the duty (+ deficit [W])
 _OBJ_NO_CYCLE = 5.0 * PENALTY  # no refrigerant cycle at this approach
+
+#: ``capacity_binding`` of a duty reduced to what the outdoor coil absorbs
+#: (the family's name for the shared ``"source_heat_exchanger"``).
+BINDING_OUTDOOR_COIL = "outdoor_coil"
+_CAPACITY_BINDINGS = {"hx_not_converged": BINDING_OUTDOOR_COIL}
 
 OUTDOOR_COIL_SHORT = "outdoor_coil_short_at_max_airflow"
 OUTDOOR_COIL_EXCESS = "outdoor_coil_excess_at_min_airflow"
@@ -222,6 +228,17 @@ class _OutdoorSearch:
         """``(objective, approach)`` of the best candidate evaluated so far."""
         value, x = min((row[0], x) for x, row in self.rows.items())
         return value, x
+
+    def all_at_speed_floor(self) -> bool:
+        """Every approach with a cycle has the compressor on its speed floor.
+
+        The request is then below what the machine delivers at ``rps_min`` at
+        every approach, and a smaller request is the same set of cycles: the
+        speed stays on the floor and the tank-side approach follows the heat
+        delivered there, not the request.
+        """
+        clamps = [state.get("capacity_clamped") for state, _, _ in self.states.values() if isinstance(state, dict)]
+        return bool(clamps) and all(clamp == "min" for clamp in clamps)
 
     def coil_failure(self) -> str | None:
         """Why the outdoor coil carries the duty at no evaluated approach, if it does not."""
@@ -407,6 +424,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # Records an active-cycle infeasibility that must survive the HP-off
         # fallback long enough for analyze_steady() to expose it to adapters.
         self._last_cycle_failure_reason: str | None = None
+        # Whether the last outdoor-approach search found every cycle on the speed floor.
+        self._solve_bound_at_speed_floor: bool = False
         self.hp_capacity: float = hp_capacity
 
         # --- 2. Heat exchanger UA ---
@@ -969,6 +988,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             return {
                 "converged": False,
                 "_hx_diag": HX_perf_ou,
+                # The cycle exists; only the coil does not carry it. The
+                # discharge-temperature control acts on it, so the coil margins
+                # the search reads are those of the controlled cycle.
+                CYCLE_KEY: reportable_state(cs),
                 "converged_rps": bool(converged_rps),
                 "capacity_clamped": capacity_clamped,
                 "pr_clamped": pr_clamped,
@@ -1177,6 +1200,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         search = _OutdoorSearch(self, T_tank_w, Q_ref_tank, T0, flow_state, m_dot_w)
         self._search_outdoor(search)
         value, x = search.best()
+        # Read by the duty reduction (`reduce_duty_within_envelope`): below
+        # this request every approach is the same machine state.
+        self._solve_bound_at_speed_floor = search.all_at_speed_floor()
         return OptimizeResult(
             x=x,
             fun=value,
@@ -1206,6 +1232,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         """
         solved = getattr(opt, "solved", None)
         if solved is None:
+            self._solve_bound_at_speed_floor = False
             return self._calc_state(
                 dT_ref_ou=safe_float_attr(opt, "x", 5.0),
                 T_tank_w=T_tank_w,
@@ -1420,7 +1447,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     # Steady-state analysis
     # =============================================================
 
-    @steady_envelope(duty_arg="Q_ref_tank")
+    @steady_envelope(duty_arg="Q_ref_tank", bindings=_CAPACITY_BINDINGS)
     def analyze_steady(
         self,
         T_tank_w: float,
@@ -1484,9 +1511,15 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               a real inverter unit answers by running at its limit and cycling.
               Compare ``"Q_ref_tank [W]"`` against ``"Q_ref_tank_request [W]"``
               to recover the shortfall or excess. A ``"max"`` point carries
-              ``"capacity_binding"``: ``"compressor"`` (``rps_max``) or
-              ``"discharge_temperature"`` (the request exceeded ``T_dis_max``
-              and the largest duty inside it is returned, with ``"Q_max [W]"``).
+              ``"capacity_binding"``: ``"compressor"`` (``rps_max``), or the
+              operating limit the request ran into when a smaller duty runs --
+              ``"discharge_temperature"`` (``T_dis_max``),
+              ``"pressure_ratio"`` (``PR_cycle_max``), ``"outdoor_coil"`` (the
+              coil is short at the fan's largest airflow) or
+              ``"compressor_efficiency"`` (the shipped fit's floor). The
+              largest duty that runs is then returned, with ``"Q_max [W]"``
+              and ``"Q_request [W]"``; see
+              :func:`tmhp.compressor_envelope.reduce_duty_within_envelope`.
             - ``"efficiency_extrapolated"`` (bool) — a default efficiency fit
               is evaluated outside its data at this point.
             - ``"discharge_control"`` (bool), ``"dT_ref_superheat [K]"``,
@@ -1495,12 +1528,16 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               (superheat reduced first, then wet suction down to
               ``x_suction_min``); see :mod:`tmhp.compressor_envelope`.
 
-            An infeasible cycle, or a solved cycle that is not an operating
-            point, falls back to an off-mode state (``E_cmp = 0``,
-            ``Q_ref_tank = 0``). ``"hx_not_converged"`` (the outdoor coil
-            did not converge) returns only the coil diagnostics, without
-            duty or power keys. ``"optimizer_failed"`` returns the cycle
-            numbers at the optimiser's best point with ``converged=False``.
+            Every failure -- an infeasible cycle, a solved cycle that is not
+            an operating point, an outdoor coil that cannot carry the duty,
+            a search that did not settle -- returns the same off-mode state:
+            ``hp_is_on = False``, ``converged = False``, ``E_cmp = 0``,
+            ``Q_ref_tank = 0``, NaN COP, with ``failure_reason`` (and
+            ``failure_detail`` where there is one). A request that fails on a
+            limit a smaller duty cures is not a failure when such a duty
+            runs (``capacity_clamped = "max"`` above); ``"cycle_invalid"``
+            with no cycle at all (a condensing temperature at or above the
+            critical point) is not reduced.
         """
         validate_steady(locals())
         import warnings
@@ -1586,13 +1623,21 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 else:
                     failure_reason = "cycle_invalid"
             elif not result.get("converged", False):
-                failure_reason = "hx_not_converged"
+                # `_hx_diag` marks the outdoor-coil branch; otherwise the speed
+                # root find inside the cycle failed numerically.
+                failure_reason = "hx_not_converged" if "_hx_diag" in result else "optimizer_failed"
             elif not opt_success:
                 failure_reason = "optimizer_failed"
             else:
                 failure_reason = "none"
 
-            if result is None or not isinstance(result, dict):
+            if failure_reason != "none":
+                # No operating point: every failure reports the same off-mode
+                # row (no heat, no power, NaN COP) with the reason, never a
+                # half-filled active one.
+                if failure_reason == "hx_not_converged":
+                    # Which fan limit the outdoor coil fails at every approach.
+                    invalid_detail = getattr(opt_result, "failure_detail", None)
                 warnings.warn(
                     f"analyze_steady: fell back to HP-off state "
                     f"(reason={failure_reason!r}, "
@@ -1637,15 +1682,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                     if invalid_detail is not None:
                         result["failure_detail"] = invalid_detail
             else:
-                # `result` is a valid dict — keep it, but tag the diagnostic
-                # so callers can branch on `failure_reason` even when the
-                # cycle / HX returned a usable answer.
-                result["converged"] = opt_success and result.get("converged", True)
+                assert isinstance(result, dict)
                 result["failure_reason"] = failure_reason
-                coil_detail = getattr(opt_result, "failure_detail", None)
-                if failure_reason == "hx_not_converged" and coil_detail is not None:
-                    # Which fan limit the outdoor coil fails at every approach.
-                    result["failure_detail"] = coil_detail
 
         if result is None or not isinstance(result, dict):
             raise RuntimeError("Simulation failed to produce a valid result dictionary.")
@@ -1745,12 +1783,17 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         A running result (``failure_reason='none'``), or an off-mode row (no
         heat, no power, NaN COP) carrying the reason the call could not run.
-        Outside the discharge limit the step runs at the largest duty inside
-        it, as ``analyze_steady`` does (:func:`reduce_duty_within_envelope`).
+        When an operating limit refuses the nameplate duty and a smaller duty
+        runs, the step runs at the largest such duty, as ``analyze_steady``
+        does (:func:`reduce_duty_within_envelope`).
         """
         result = self._solve_cycle_at_duty(ctx, T_tank_w, self.hp_capacity)
         return reduce_duty_within_envelope(
-            self, result, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q), self.hp_capacity
+            self,
+            result,
+            lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q),
+            self.hp_capacity,
+            bindings=_CAPACITY_BINDINGS,
         )
 
     def _solve_cycle_at_duty(self, ctx: StepContext, T_tank_w: float, Q_ref_tank: float) -> dict:
@@ -1775,6 +1818,15 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         off_result = self._calc_state(5.0, T_tank_w, 0.0, ctx.T0, flow_state=flow_state)
         hp_result = off_result if off_result is not None else {"hp_is_on": False}
         hp_result.update({"converged": False, "failure_reason": reason})
+        # The detail `analyze_steady` reports for the same failure; the duty
+        # reduction reads it, so a step reduces exactly where the steady solve does.
+        detail: str | None = None
+        if reason == "hx_not_converged":
+            detail = getattr(opt, "failure_detail", None)
+        elif reason == "cycle_invalid" and solved is not None:
+            detail = unphysical_cycle_detail(solved, self.hp_capacity)
+        if detail is not None:
+            hp_result["failure_detail"] = detail
         return hp_result
 
     def _active_step_failure(self, opt: object, solved: dict | None) -> str | None:

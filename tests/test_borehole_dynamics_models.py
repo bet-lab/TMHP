@@ -11,11 +11,17 @@ from tests._borehole_oracle import cycled_loop_outlet
 from tests._ground_oracle import step_mean_quad, step_mean_superposition
 from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler, GSHPB_STC_ground
 from tmhp.borehole_capacity import DynamicGFunction, _transit_section, enable_borehole_dynamics
-from tmhp.constants import c_w, rho_w
+from tmhp.constants import c_w, k_w, mu_w, rho_w
 from tmhp.g_function import GFunction
 from tmhp.ground_coupling import AggregateGFunctionCoupler, reset_ground_coupler, run_window_preview
 from tmhp.ground_superposition import FastGFunctionCoupler
+from tmhp.source_fluid import SourceFluid
 from tmhp.subsystems import SolarThermalCollector
+
+#: Water as these values were recorded: its 20 °C viscosity (``mu_w``) at every
+#: temperature. ``source_fluid="water"`` now takes the viscosity of the source-side
+#: Reynolds number at the loop's design temperature (0 °C for a ground loop, #96).
+WATER_AS_RECORDED = SourceFluid("water", 0.0, rho_w, c_w, mu_w, k_w)
 
 
 def _boiler(**kwargs) -> GroundSourceHeatPumpBoiler:
@@ -108,7 +114,12 @@ def test_false_is_the_steady_borehole():
     # default machine when the values were recorded (now R290, R410A stops at
     # 59.9 °C, and the default loop liquid is 25 % ethylene glycol).
     model = _boiler(
-        ref="R410A", T_cond_max=None, dt_s=dt, t_max_s=4 * 86400.0, borehole_dynamics=False, source_fluid="water"
+        ref="R410A",
+        T_cond_max=None,
+        dt_s=dt,
+        t_max_s=4 * 86400.0,
+        borehole_dynamics=False,
+        source_fluid=WATER_AS_RECORDED,
     )
     assert model.borehole_dynamics == "off" and isinstance(model._gfunc_interp, GFunction)
     assert not model._ground_coupler.fluid_referenced
@@ -122,17 +133,19 @@ def test_false_is_the_steady_borehole():
     np.testing.assert_allclose(out["T_bhe_f_out [°C]"].to_numpy()[11], 11.791746328219, rtol=0, atol=1e-6)
     np.testing.assert_allclose(out["E_cmp [W]"].to_numpy()[:5], power, rtol=1e-6)
 
-    space = _space(dt_s=dt, t_max_s=4 * 86400.0, borehole_dynamics=False, source_fluid="water")
+    space = _space(dt_s=dt, t_max_s=4 * 86400.0, borehole_dynamics=False, source_fluid=WATER_AS_RECORDED)
     assert space.borehole_dynamics == "off" and isinstance(space._gfunc_interp, GFunction)
     load = np.where(np.arange(n) % 3 == 0, 0.0, -3000.0)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         out = space.analyze_dynamic(n * dt, dt, load, np.zeros(n))
-    wall = [16.0, 15.939691030869, 15.819112457477, 15.758842853217, 15.69861256257, 15.578191244667]
-    outlet = [16.0, 13.335153975818, 13.216275435851, 15.758842853217, 13.097473360774, 12.978747693752]
+    # Re-recorded when the indoor coil took the room-air density (#96): the ground
+    # side was 15.939691, 15.819112, ... with 15 °C standard air (E_cmp 593.32, 602.46 W).
+    wall = [16.0, 15.939813108503, 15.819478605013, 15.75933099302, 15.699222611818, 15.579045032515]
+    outlet = [16.0, 13.340548166805, 13.221910010067, 15.75933099302, 13.103348259854, 12.984862863997]
     np.testing.assert_allclose(out["T_bhe [°C]"].to_numpy()[:6], wall, rtol=0, atol=1e-6)
     np.testing.assert_allclose(out["T_bhe_f_out [°C]"].to_numpy()[:6], outlet, rtol=0, atol=1e-6)
-    np.testing.assert_allclose(out["E_cmp [W]"].to_numpy()[[1, 11]], [593.31909679143, 602.460813615154], rtol=1e-6)
+    np.testing.assert_allclose(out["E_cmp [W]"].to_numpy()[[1, 11]], [598.04131233829, 607.164223294983], rtol=1e-6)
 
 
 def test_default_falls_back_where_the_model_cannot_use_it():

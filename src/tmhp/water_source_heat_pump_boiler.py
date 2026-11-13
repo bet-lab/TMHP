@@ -427,9 +427,9 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.dV_b_f_m3s = dV_b_f_lpm * cu.L2m3 / cu.m2s
         self.v_river = v_river
         #: Loop-liquid viscosity of the source-side Reynolds number [Pa s], at
-        #: the design liquid temperature (heating rating inlet, 10 °C, or the
-        #: fluid's operating limit if warmer; ``SourceFluid.design_viscosity``).
-        self.mu_bhe_f_design: float = fluid.design_viscosity(WATER_LOOP_DESIGN_INLET_C)
+        #: the design liquid temperature (heating rating inlet, 10 °C; see
+        #: :mod:`tmhp.source_fluid`).
+        self.mu_bhe_f_design: float = fluid.viscosity(WATER_LOOP_DESIGN_INLET_C)
         mu_design = self.mu_bhe_f_design
         if flow_defaulted:
             warn_if_laminar(self.dV_b_f_m3s, max(1, N_1 * N_2), r_in, "WaterSourceHeatPumpBoiler", fluid.rho, mu_design)

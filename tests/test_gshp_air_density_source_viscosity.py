@@ -7,8 +7,8 @@ The air-side balance of the physical model is checked per row in
 
 (b) The source-side Reynolds number of GSHP, GSHPB and WSHPB (laminar-flow
 warning, pipe convection inside ``R_b``) takes the liquid viscosity at the
-loop's design temperature (``SourceFluid.design_viscosity``), not the 20 °C
-constant ``mu_w`` for water.
+loop's design temperature (the heating rating inlet, ``SourceFluid.viscosity``),
+not the 20 °C constant ``mu_w`` for water.
 """
 
 from __future__ import annotations
@@ -22,8 +22,8 @@ import pytest
 
 import tmhp
 from tmhp.air_properties import air_density, air_heat_capacity_rate
-from tmhp.ground_defaults import calc_borehole_reynolds
 from tmhp.constants import c_a, mu_w, water_viscosity
+from tmhp.ground_defaults import calc_borehole_reynolds
 from tmhp.gshp_empirical import GroundSourceHeatPumpEmpirical
 from tmhp.heat_exchanger import AirCoilSide
 from tmhp.source_fluid import (
@@ -134,7 +134,9 @@ def test_source_fluid_viscosity_by_temperature():
     meg = resolve_source_fluid("MEG-25%")
     # The mixture's properties are read at 0 °C: its viscosity there is the field.
     assert meg.viscosity(0.0) == pytest.approx(meg.mu, rel=1e-12)
-    assert meg.viscosity(20.0) == pytest.approx(CP.PropsSI("V", "T", 293.15, "P", 2.0e5, "INCOMP::MEG[0.25]"), rel=1e-12)
+    assert meg.viscosity(20.0) == pytest.approx(
+        CP.PropsSI("V", "T", 293.15, "P", 2.0e5, "INCOMP::MEG[0.25]"), rel=1e-12
+    )
     assert meg.viscosity(20.0) < meg.mu
     # Held at the freezing point below it, and at the CoolProp range above it.
     assert meg.viscosity(-40.0) == pytest.approx(meg.viscosity(meg.T_freeze_C), rel=1e-12)
@@ -144,16 +146,15 @@ def test_source_fluid_viscosity_by_temperature():
     # A fluid the caller builds names no source: its viscosity is the given one.
     own = SourceFluid("brine", -15.0, 1100.0, 3500.0, 4e-3, 0.5)
     assert own.viscosity(-10.0) == own.viscosity(30.0) == 4e-3
-    # The source is not part of the comparison: equal properties, equal fluids.
-    assert WATER == SourceFluid("water", 0.0, 1000.0, 4186.0, 1e-3, 0.606)
+    # Water built by hand keeps the 20 °C viscosity: a different fluid from WATER.
+    as_before = SourceFluid("water", 0.0, 1000.0, 4186.0, 1e-3, 0.606)
+    assert as_before.is_water and as_before != WATER and as_before.viscosity(0.0) == mu_w
 
 
-def test_design_viscosity_is_not_colder_than_the_operating_limit():
-    assert WATER.limit_C == pytest.approx(3.0)
-    assert WATER.design_viscosity(GROUND_LOOP_DESIGN_INLET_C) == pytest.approx(water_viscosity(3.0), rel=1e-12)
-    assert WATER.design_viscosity(WATER_LOOP_DESIGN_INLET_C) == pytest.approx(water_viscosity(10.0), rel=1e-12)
-    meg = resolve_source_fluid("MEG-25%")
-    assert meg.design_viscosity(GROUND_LOOP_DESIGN_INLET_C) == pytest.approx(meg.mu, rel=1e-12)
+def test_design_temperatures_are_the_heating_rating_inlets():
+    assert (GROUND_LOOP_DESIGN_INLET_C, WATER_LOOP_DESIGN_INLET_C) == (0.0, 10.0)
+    # Water is held at its freezing point below it (supercooled water is not a loop liquid).
+    assert WATER.viscosity(-5.0) == pytest.approx(water_viscosity(0.0), rel=1e-12)
 
 
 def _defaults(cls) -> dict:
@@ -190,16 +191,16 @@ def test_wshpb_source_resistance_uses_water_at_its_rating_inlet():
 
 @pytest.mark.parametrize("cls", [tmhp.GroundSourceHeatPump, tmhp.GroundSourceHeatPumpBoiler])
 def test_ground_loop_hosts_take_the_design_viscosity(cls):
-    """Glycol (default): 0 °C, unchanged. Water: its operating limit, 3 °C (1.62 mPa s, not 1.00)."""
+    """Glycol (default): 0 °C, unchanged. Water: 0 °C too (1.79 mPa s, not 1.00)."""
     default = cls()
     assert default.mu_bhe_f_design == pytest.approx(default.source_fluid.mu, rel=1e-12)
     water = cls(source_fluid="water")
-    assert water.mu_bhe_f_design == pytest.approx(water_viscosity(3.0), rel=1e-12)
+    assert water.mu_bhe_f_design == pytest.approx(water_viscosity(0.0), rel=1e-12)
     # The flow-dependent borehole resistance is tabulated with the same viscosity.
-    assert water._ground_settings["geometry"]["mu_f"] == pytest.approx(water_viscosity(3.0), rel=1e-12)
+    assert water._ground_settings["geometry"]["mu_f"] == pytest.approx(water_viscosity(0.0), rel=1e-12)
     if cls is tmhp.GroundSourceHeatPump:
         d = _defaults(cls)
         expected = calc_borehole_reynolds(
-            water.dV_b_f_m3s, water.n_boreholes, 2 * d["r_in"], rho=1000.0, mu=water_viscosity(3.0)
+            water.dV_b_f_m3s, water.n_boreholes, 2 * d["r_in"], rho=1000.0, mu=water_viscosity(0.0)
         )
         assert water.Re_bhe_ref == pytest.approx(expected, rel=1e-12)

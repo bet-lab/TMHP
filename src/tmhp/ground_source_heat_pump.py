@@ -43,6 +43,7 @@ from ._opt_utils import (
     operating_point_objective,
 )
 from ._validation import validate_ctor, validate_dynamic, validate_steady
+from .air_properties import air_heat_capacity_rate
 from .borehole_capacity import configure_borehole_dynamics
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
@@ -59,7 +60,6 @@ from .compressor_envelope import (
     steady_envelope,
 )
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
-from .air_properties import air_heat_capacity_rate
 from .cycling import (
     CAPACITY_RATIO_KEY,
     CD_AIR_DEFAULT,
@@ -753,10 +753,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             if borefield_defaulted
             else warn_if_borefield_undersized(hp_capacity, self.n_boreholes, H_b, stacklevel=3)
         )
-        #: Loop-liquid viscosity of the source-side Reynolds number [Pa s]: at
-        #: the design liquid temperature (heating rating inlet, 0 °C, or the
-        #: fluid's operating limit if warmer; ``SourceFluid.design_viscosity``).
-        self.mu_bhe_f_design: float = fluid.design_viscosity(GROUND_LOOP_DESIGN_INLET_C)
+        #: Loop-liquid viscosity of the source-side Reynolds number [Pa s], at
+        #: the design liquid temperature (heating rating inlet, 0 °C; see
+        #: :mod:`tmhp.source_fluid`).
+        self.mu_bhe_f_design: float = fluid.viscosity(GROUND_LOOP_DESIGN_INLET_C)
         mu_design = self.mu_bhe_f_design
         #: U-tube Reynolds number at the reference flow (laminar below 2300: warned).
         pipe_diameter = pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in

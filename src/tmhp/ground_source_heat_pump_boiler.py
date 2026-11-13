@@ -554,8 +554,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.E_pmp = E_pmp
         self.dV_b_f_m3s = dV_b_f_lpm / 60000
         #: Loop-liquid viscosity of the source-side Reynolds number [Pa s], at
-        #: the design liquid temperature (``SourceFluid.design_viscosity``).
-        self.mu_bhe_f_design: float = fluid.design_viscosity(GROUND_LOOP_DESIGN_INLET_C)
+        #: the design liquid temperature (heating rating inlet, 0 °C; see
+        #: :mod:`tmhp.source_fluid`).
+        self.mu_bhe_f_design: float = fluid.viscosity(GROUND_LOOP_DESIGN_INLET_C)
         mu_design = self.mu_bhe_f_design
         if flow_defaulted:
             warn_if_laminar(self.dV_b_f_m3s, self.n_boreholes, r_in, "GroundSourceHeatPumpBoiler", fluid.rho, mu_design)

@@ -81,16 +81,15 @@ water has 1.79 mPa s at 0 °C, 1.31 at 10 °C and 1.00 at 20 °C (the constant
 :func:`tmhp.constants.water_viscosity`; mixtures: the same CoolProp mixture),
 and the source-side Reynolds number of the heat pump hosts -- the laminar-flow
 warning and the pipe convection inside the borehole or coil resistance
-``R_b`` -- takes it at the loop's design liquid temperature
-(:meth:`SourceFluid.design_viscosity`): the source inlet temperature of the
-family's heating rating point, :data:`GROUND_LOOP_DESIGN_INLET_C` (0 °C,
-EN 14511 B0 and ISO 13256-1 ground loop) for GSHP and GSHPB and
-:data:`WATER_LOOP_DESIGN_INLET_C` (10 °C, EN 14511 W10 and ISO 13256-1 ground
-water) for WSHPB, raised to the fluid's operating lower limit where that is
-warmer (water in a ground loop: 3 °C). Those quantities are evaluated once,
-at the reference flow, like ``R_b`` itself; a mixture is therefore evaluated
-at the temperature its properties are read at (0 °C), and water no longer at
-20 °C. The ground-loop helpers that run during a step (hydraulic pump loss,
+``R_b`` -- takes it at the loop's design liquid temperature: the source
+inlet temperature of the family's heating rating point,
+:data:`GROUND_LOOP_DESIGN_INLET_C` (0 °C, EN 14511 B0 and ISO 13256-1 ground
+loop) for GSHP and GSHPB and :data:`WATER_LOOP_DESIGN_INLET_C` (10 °C,
+EN 14511 W10 and ISO 13256-1 ground water) for WSHPB. Those quantities are
+evaluated once, at the reference flow, like ``R_b`` itself; the default glycol
+is therefore evaluated at the temperature its properties are read at (0 °C,
+unchanged), and water no longer at 20 °C (in a ground loop 1.79 mPa s at
+0 °C, the coldest it is liquid; in the water-source boiler 1.31 mPa s). The ground-loop helpers that run during a step (hydraulic pump loss,
 flow-dependent ``R_b``) keep the properties of water, see
 :func:`warn_if_loop_modelled_as_water`.
 """
@@ -104,7 +103,7 @@ import math
 import re
 import warnings
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import wraps
 from typing import Any, TypeVar, cast
 
@@ -223,8 +222,8 @@ class SourceFluid:
         Where :meth:`viscosity` reads the viscosity at another temperature:
         ``"Water"`` (:func:`tmhp.constants.water_viscosity`) or a CoolProp
         incompressible fluid (``"INCOMP::MEG[0.25]"``). ``None`` (default, a
-        fluid built by the caller): ``mu`` at every temperature. Not part of
-        the comparison of two fluids.
+        fluid built by the caller): ``mu`` at every temperature -- water built
+        this way keeps the 20 °C viscosity everywhere, as before.
     """
 
     name: str
@@ -234,7 +233,7 @@ class SourceFluid:
     mu: float
     k: float
     T_min_C: float | None = None
-    coolprop: str | None = field(default=None, compare=False)
+    coolprop: str | None = None
 
     def __post_init__(self) -> None:
         if not (isinstance(self.name, str) and self.name):
@@ -274,16 +273,6 @@ class SourceFluid:
 
         T_max_C = float(CP.PropsSI("Tmax", "", 0, "", 0, self.coolprop)) - 273.15
         return float(CP.PropsSI("V", "T", min(T, T_max_C) + 273.15, "P", _PROPERTY_PRESSURE_PA, self.coolprop))
-
-    def design_viscosity(self, T_inlet_C: float) -> float:
-        """Viscosity [Pa s] at a loop's design liquid temperature.
-
-        ``T_inlet_C`` is the source inlet temperature of the heating rating
-        point (:data:`GROUND_LOOP_DESIGN_INLET_C`,
-        :data:`WATER_LOOP_DESIGN_INLET_C`); a liquid that may not run that cold
-        is taken at its operating limit ``T_min_C`` instead.
-        """
-        return self.viscosity(max(float(T_inlet_C), self.limit_C))
 
     @property
     def is_water(self) -> bool:

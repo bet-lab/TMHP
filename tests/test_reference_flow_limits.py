@@ -8,7 +8,7 @@ import pytest
 
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler, GroundSourceHeatPump, GroundSourceHeatPumpBoiler
 from tmhp.borehole import calc_effective_borehole_thermal_resistance, calc_local_borehole_thermal_resistance
-from tmhp.constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
+from tmhp.constants import c_a, c_w, k_w, rho_a, rho_w, water_viscosity
 from tmhp.ground_flow_control import select_ground_flow
 from tmhp.ground_loop import ground_flow_state, ground_hx_UA
 from tmhp.heat_exchanger import calc_HX_perf_for_target_heat, calc_UA_from_dV_fan, resolve_fan_flow_limits
@@ -70,7 +70,7 @@ def test_reference_and_components_remain_fixed_when_max_expands(cls):
         D_s=0.025,
         m_flow_pipe=high["m_dot_borehole"],
         rho_f=rho_w,
-        mu_f=mu_w,
+        mu_f=water_viscosity(0.0),  # the water loop's design viscosity (0 °C)
         cp_f=c_w,
         k_f=k_w,
     )

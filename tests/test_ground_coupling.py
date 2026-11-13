@@ -20,7 +20,13 @@ import pytest
 pytest.importorskip("pygfunction")
 
 from tmhp import GroundSourceHeatPumpBoiler  # noqa: E402
-from tmhp.constants import c_w, rho_w  # noqa: E402
+from tmhp.constants import c_w, k_w, mu_w, rho_w  # noqa: E402
+from tmhp.source_fluid import SourceFluid  # noqa: E402
+
+#: Water as these values were recorded: its 20 °C viscosity (``mu_w``) at every
+#: temperature. ``source_fluid="water"`` now takes the viscosity of the source-side
+#: Reynolds number at the loop's design temperature (0 °C for a ground loop, #96).
+WATER_AS_RECORDED = SourceFluid("water", 0.0, rho_w, c_w, mu_w, k_w)
 from tmhp.ground_coupling import AggregateGFunctionCoupler, GroundCoupler  # noqa: E402
 
 from ._ground_oracle import step_mean_superposition  # noqa: E402
@@ -225,7 +231,7 @@ def _historical_efficiency_plant():
     return GroundSourceHeatPumpBoiler(
         ref="R410A",  # the default refrigerant when the plant was recorded (now R290)
         borehole_dynamics=False,
-        source_fluid="water",  # the archived loop liquid (the default is now 25 % ethylene glycol)
+        source_fluid=WATER_AS_RECORDED,  # the archived loop liquid (the default is now 25 % ethylene glycol)
         t_max_s=200 * 3600,
         eta_cmp_isen=0.80,
         eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr,

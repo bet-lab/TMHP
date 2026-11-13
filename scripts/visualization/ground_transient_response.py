@@ -78,9 +78,7 @@ def step_response_figure() -> None:
 
     # Outlet: T_s - T_out = q' (K + R_b - H / (2 m c_p)).
     ax_f.plot(hours, Q_LINE * (g_steady(t) + r_b - half), color=COLORS["ink"], linewidth=dm.lw(0), label=LABEL_STEADY)
-    ax_f.plot(
-        hours, Q_LINE * (g_dyn(t) + r_b - half), color=COLORS["accent"], linewidth=dm.lw(1), label=LABEL_DYNAMIC
-    )
+    ax_f.plot(hours, Q_LINE * (g_dyn(t) + r_b - half), color=COLORS["accent"], linewidth=dm.lw(1), label=LABEL_DYNAMIC)
     transit_h = g_dyn.transit_time / 3600.0
     ax_f.axvline(transit_h, color=COLORS["ink"], linewidth=HAIRLINE, linestyle=(0, (1, 2)))
     ax_f.text(

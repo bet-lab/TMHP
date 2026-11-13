@@ -90,7 +90,7 @@ inputs:
    df = model.analyze_dynamic(...)
 
 The heat capacities of fluid, pipe wall and grout default to water, HDPE
-(1.8 MJ/(m³·K)) and bentonite grout (3.9 MJ/(m³·K)) and can be passed
+(1.8 MJ/(m³·K)) and a set, saturated grout (3.4 MJ/(m³·K)) and can be passed
 (``rhoc_g``, ``rhoc_p``); everything else is read from the model. The dynamic
 response is opt-in in this release: results of the default path are unchanged.
 
@@ -138,8 +138,8 @@ with soil. The dynamic fluid response to a unit load step is therefore
 with :math:`S_{cap}` the response of the section and
 :math:`G_{ILS} = E_1(r_b^2 / 4 \alpha t) / (4 \pi k_s)`. Since
 :math:`S_{cap} \to R_b^* + G_{ILS}`, the correction vanishes at long times:
-after 30 days the difference from the steady model is 0.0005 m·K/W (0.01 K at
-27 W/m), after a year 0.00004. In a field every borehole responds alone at
+after 30 days the difference from the steady model is 0.0004 m·K/W (0.01 K at
+27 W/m), after a year 0.00003. In a field every borehole responds alone at
 these time scales, so the same correction is added to the field g-function.
 
 **Transit.** The fluid is in plug flow along the U-tube and exchanges heat
@@ -203,25 +203,25 @@ tests in ``tests/test_borehole_capacity.py``.
       - 0.84
       - 1.51
       - 1.51
-      - 0.33
+      - 0.39
     * - 6 h
       - 2.48
       - 2.48
       - 2.78
       - 2.78
-      - 2.01
+      - 2.09
     * - 1 d
       - 3.92
       - 3.92
       - 4.04
       - 4.04
-      - 3.72
+      - 3.76
     * - 10 d
       - 6.36
       - 6.36
       - 6.40
       - 6.38
-      - 6.33
+      - 6.34
 
 With the heat capacity switched off the dynamic wall is the analytical
 hollow-cylinder source (Carslaw and Jaeger 1959) from the first minute; the
@@ -243,23 +243,23 @@ than the line source: the heat has to cross the grout first.
       - 0.32
     * - 10 min
       - 4.58
-      - 1.76
-      - 1.76
+      - 1.78
+      - 1.78
     * - 1 h
       - 5.28
-      - 3.76
-      - 3.76
+      - 3.87
+      - 3.87
     * - 6 h
       - 6.91
-      - 6.22
-      - 6.22
+      - 6.33
+      - 6.33
     * - 1 d
       - 8.35
-      - 8.10
-      - 8.11
+      - 8.15
+      - 8.15
     * - 10 d
       - 10.80
-      - 10.76
+      - 10.77
       - 10.77
 
 The Laplace solution uses the analytical admittance of the continuous section
@@ -280,17 +280,17 @@ and 0.00005 at a finer one.
       - 0.00000
       - 0.00
     * - 1.50
-      - 0.02714
-      - 0.02719
-      - 0.73
+      - 0.02818
+      - 0.02822
+      - 0.76
     * - 2.50
-      - 0.04422
-      - 0.04433
-      - 1.19
+      - 0.04601
+      - 0.04612
+      - 1.24
     * - 4.00
-      - 0.06206
-      - 0.06219
-      - 1.68
+      - 0.06468
+      - 0.06481
+      - 1.75
 
 The time-domain reference marches 400 upwind segments along the pipe, each
 with its own radial chain (``tests/_borehole_oracle.py``); the gap halves with
@@ -328,44 +328,44 @@ agree eventually. They do, but slowly: the difference decays like
     * - 1 h
       - 1
       - 5.28
-      - 3.76
-      - −1.52 (29 %)
-      - 86 %
+      - 3.87
+      - −1.41 (27 %)
+      - 84 %
     * - 6 h
       - 4
       - 6.92
-      - 6.22
-      - −0.70 (10 %)
-      - 42 %
+      - 6.33
+      - −0.58 (8 %)
+      - 38 %
     * - 24 h
       - 17
       - 8.36
-      - 8.11
-      - −0.25 (3.0 %)
-      - 16 %
+      - 8.16
+      - −0.20 (2.4 %)
+      - 15 %
     * - 100 h
       - 70
       - 9.88
-      - 9.81
-      - −0.07 (0.7 %)
+      - 9.82
+      - −0.06 (0.6 %)
       - 5 %
     * - 10 d
       - 169
       - 10.82
-      - 10.78
+      - 10.79
       - −0.03 (0.3 %)
-      - 2.5 %
+      - 2.2 %
     * - 30 d
       - 506
       - 12.00
       - 11.99
       - −0.01 (0.1 %)
-      - 1.0 %
+      - 0.9 %
 
 The last column is the share of all heat extracted so far that came out of
 the fluid, pipes and grout rather than the ground. A line-source g-function
 evaluated at :math:`r_b` treats the borehole as if it were filled with soil.
-The real borehole holds more heat (78 kJ/(m·K) against 32 for the soil it
+The real borehole holds more heat (68 kJ/(m·K) against 32 for the soil it
 replaces, with the defaults) and its inside sits :math:`q' R_b` away from the
 wall temperature, so it has more heat to give up before the ground carries
 the whole load. The ground therefore lags by a few hours of load, and a line
@@ -374,9 +374,9 @@ source that lags by :math:`\Delta t` differs by about
 agree with the Laplace solution of the same section to 0.001 K at every row,
 so the tail is a property of the model, not of its discretisation.
 
-How large it is depends on the borehole. The defaults make it large: a wide
-borehole (160 mm), light soil (1.6 MJ/(m³·K)) and a water-rich grout
-(3.9 MJ/(m³·K)).
+How large it is depends on the borehole. The default one makes it large: it
+is wide (160 mm) and sits in light soil (1.6 MJ/(m³·K)), so the borehole
+holds twice the heat of the soil it replaces.
 
 .. list-table:: Difference from the default path [K] at 27 W/m
     :header-rows: 1
@@ -387,31 +387,40 @@ borehole (160 mm), light soil (1.6 MJ/(m³·K)) and a water-rich grout
       - 6 h
       - 24 h
       - 100 h
-    * - Default (r_b 80 mm, soil 1.6, grout 3.9 MJ/(m³·K))
+    * - Default (r_b 80 mm, soil 1.6, grout 3.4 MJ/(m³·K))
+      - −1.41
+      - −0.58
+      - −0.20
+      - −0.06
+    * - Default with water-rich bentonite grout, 3.9
       - −1.52
       - −0.70
       - −0.25
       - −0.07
-    * - Default with grout 2.5 MJ/(m³·K)
+    * - Default with grout 3.0
+      - −1.31
+      - −0.49
+      - −0.17
+      - −0.05
+    * - Default with grout 2.5 (below the measured range)
       - −1.17
       - −0.37
       - −0.12
       - −0.04
-    * - Default with grout as light as the soil
-      - −0.84
+    * - 110 mm borehole in rock (k_s 3.0, 2.2 MJ/(m³·K)), grout 3.4
+      - −0.79
       - −0.16
-      - −0.04
+      - −0.05
       - −0.01
-    * - 110 mm borehole in rock (k_s 3.0, 2.2 MJ/(m³·K))
-      - −0.87
-      - −0.20
-      - −0.06
-      - −0.02
 
 The grout heat capacity is the one input of the dynamic model that the
-default path never needed. If it is not known, 3.9 MJ/(m³·K) suits bentonite
-grouts and overstates the effect for cement-sand and thermally enhanced
-grouts; pass ``rhoc_g``.
+default path never needed. The default, 3.4 MJ/(m³·K), is the middle of what
+has been measured on set, water-saturated grouts: 3.0 to 3.6 for seven
+commercial cement-based and thermally enhanced grouts (Albers et al. 2024),
+3.84 for a bentonite-based grout (Javed 2010). A saturated grout is water
+(4.18) plus solids (2.0 to 2.3), so a value much below 3.0 would mean less
+than 40 % water by volume. Pass ``rhoc_g`` when the grout is known; between
+3.0 and 3.9 the fluid temperature at one hour changes by 0.2 K (27 W/m).
 
 
 What changes in a run
@@ -449,7 +458,7 @@ What changes in a run
     * -
       - dynamic
       - 13.69
-      - 12.75
+      - 12.72
       - 4.06
     * - 1 h on / 2 h off, 60 s steps, day 2
       - steady
@@ -458,8 +467,8 @@ What changes in a run
       - 3.34
     * -
       - dynamic
-      - 13.13
-      - 12.14
+      - 13.10
+      - 12.08
       - 3.43
     * - DHW draws morning and evening, 600 s steps, 48 h
       - steady
@@ -468,11 +477,11 @@ What changes in a run
       - 3.46
     * -
       - dynamic
-      - 13.83
-      - 12.30
+      - 13.76
+      - 12.18
       - 3.54
 
-The compressor sees a source 1.5 to 2.4 K warmer while it runs, and the COP
+The compressor sees a source 1.4 to 2.4 K warmer while it runs, and the COP
 is 2 to 3 % higher. The difference shrinks with longer runs: the first hours
 of any run are warmer than the steady model says, the days after are the same.
 
@@ -665,6 +674,11 @@ g-function for the same chain. tmhp does not depend on it.
 References
 ==========
 
+Albers, A., Huttenloch, P., Zorn, R., Steger, H., & Blum, P. (2024).
+Determination of thermal properties of grouting materials for borehole heat
+exchangers (BHE). *Geothermal Energy*, 12, 36.
+https://doi.org/10.1186/s40517-024-00316-3
+
 Carslaw, H. S., & Jaeger, J. C. (1959). *Conduction of Heat in Solids*
 (2nd ed.). Oxford University Press.
 
@@ -674,6 +688,10 @@ Mass Transfer*, 70, 641-650.
 
 Hellström, G. (1991). *Ground Heat Storage: Thermal Analyses of Duct Storage
 Systems*. University of Lund.
+
+Javed, S. (2010). *Design of ground source heat pump systems: Thermal
+modelling and evaluation of boreholes* (Licentiate thesis, Technical report
+D2010:02). Chalmers University of Technology.
 
 Xu, X., & Spitler, J. D. (2006). Modeling of vertical ground loop heat
 exchangers with variable convective resistance and thermal mass of the fluid.

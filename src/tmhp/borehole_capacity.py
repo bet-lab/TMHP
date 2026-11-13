@@ -83,6 +83,14 @@ model for vertical ground loop heat exchangers. ASHRAE Transactions, 105(2),
 
 Carslaw, H. S., & Jaeger, J. C. (1959). Conduction of Heat in Solids (2nd
 ed.), section 13.5. Oxford University Press.
+
+Albers, A., Huttenloch, P., Zorn, R., Steger, H., & Blum, P. (2024).
+Determination of thermal properties of grouting materials for borehole heat
+exchangers (BHE). Geothermal Energy, 12, 36 (grout heat capacity).
+
+Javed, S. (2010). Design of ground source heat pump systems: Thermal
+modelling and evaluation of boreholes. Licentiate thesis, Chalmers University
+of Technology (grout heat capacity, Table 4.2).
 """
 
 from __future__ import annotations
@@ -114,9 +122,13 @@ __all__ = [
     "with_borehole_capacity",
 ]
 
-#: Volumetric heat capacity of grout [J/(m3 K)] (bentonite-based grout; the
-#: GLHEPro / GHEDesigner default). Thermally enhanced grouts are 3.0-3.5e6.
-RHOC_GROUT_DEFAULT = 3.9e6
+#: Volumetric heat capacity of a set, water-saturated grout [J/(m3 K)].
+#: Measured cement-based and thermally enhanced grouts lie between 3.0e6 and
+#: 3.6e6 (Albers et al. 2024, seven commercial grouts); water-rich bentonite
+#: grout is higher (3.84e6, Javed 2010). A saturated grout is a mixture of
+#: water (4.18e6) and solids (about 2.0e6 to 2.3e6), so values much below
+#: 3.0e6 would need a water volume fraction under 40 %.
+RHOC_GROUT_DEFAULT = 3.4e6
 #: Volumetric heat capacity of a HDPE pipe wall [J/(m3 K)] (950 kg/m3 x 1900 J/(kg K)).
 RHOC_PIPE_DEFAULT = 1.8e6
 
@@ -959,7 +971,7 @@ def with_borehole_capacity(
     """Add borehole heat capacity and the short-time response to a g-function.
 
     All inputs are ones the ground-source models already have; the heat
-    capacities default to water, bentonite grout and HDPE. When the borehole
+    capacities default to water, a set saturated grout and HDPE. When the borehole
     depth ``H`` and flow ``m_flow_borehole`` are given the fluid transit
     through the U-tube is resolved as well (``transit=False`` keeps the fluid
     as one node).

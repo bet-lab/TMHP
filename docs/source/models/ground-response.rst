@@ -63,6 +63,15 @@ minute-scale cycling the steady model swings the source temperature by
 :math:`q' R_b^*` (3 to 5 K) at every start and stop, which a borehole does not
 do.
 
+.. note::
+
+    *Steady model* below means this default path: the multipole borehole
+    resistance plus the finite-line-source g-function, the usual way to
+    compute borehole fluid temperatures. "Steady" refers to the inside of the
+    borehole, which is a resistance with no heat capacity. The ground is
+    transient in both models, and the dynamic model uses the same resistance
+    and the same g-function; it adds what happens inside the borehole.
+
 
 Dynamic borehole model
 ======================
@@ -297,6 +306,112 @@ equivalent cylinder): for DN32 sections the correction is within about 5 % of
 case of 7.4 % for a 0.2 m borehole with low-conductivity grout. Against
 GHEDesigner's short-time-step response (the same model family) it differs by
 2 to 5.5 % of :math:`R_b` at one hour and under 0.0006 m·K/W after a day.
+
+
+How long the difference lasts
+-----------------------------
+
+The two models describe the same borehole in the same ground, so they must
+agree eventually. They do, but slowly: the difference decays like
+:math:`\ln t / t`, not exponentially.
+
+.. list-table:: Mean fluid temperature drop after a 27 W/m step: default path and dynamic model
+    :header-rows: 1
+    :widths: 14 14 18 18 18 18
+
+    * - Time
+      - :math:`\alpha t / r_b^2`
+      - Default [K]
+      - Dynamic [K]
+      - Difference [K]
+      - Heat still stored in the borehole
+    * - 1 h
+      - 1
+      - 5.28
+      - 3.76
+      - −1.52 (29 %)
+      - 86 %
+    * - 6 h
+      - 4
+      - 6.92
+      - 6.22
+      - −0.70 (10 %)
+      - 42 %
+    * - 24 h
+      - 17
+      - 8.36
+      - 8.11
+      - −0.25 (3.0 %)
+      - 16 %
+    * - 100 h
+      - 70
+      - 9.88
+      - 9.81
+      - −0.07 (0.7 %)
+      - 5 %
+    * - 10 d
+      - 169
+      - 10.82
+      - 10.78
+      - −0.03 (0.3 %)
+      - 2.5 %
+    * - 30 d
+      - 506
+      - 12.00
+      - 11.99
+      - −0.01 (0.1 %)
+      - 1.0 %
+
+The last column is the share of all heat extracted so far that came out of
+the fluid, pipes and grout rather than the ground. A line-source g-function
+evaluated at :math:`r_b` treats the borehole as if it were filled with soil.
+The real borehole holds more heat (78 kJ/(m·K) against 32 for the soil it
+replaces, with the defaults) and its inside sits :math:`q' R_b` away from the
+wall temperature, so it has more heat to give up before the ground carries
+the whole load. The ground therefore lags by a few hours of load, and a line
+source that lags by :math:`\Delta t` differs by about
+:math:`q' \Delta t / (4 \pi k_s t)`. The finite-volume values in the table
+agree with the Laplace solution of the same section to 0.001 K at every row,
+so the tail is a property of the model, not of its discretisation.
+
+How large it is depends on the borehole. The defaults make it large: a wide
+borehole (160 mm), light soil (1.6 MJ/(m³·K)) and a water-rich grout
+(3.9 MJ/(m³·K)).
+
+.. list-table:: Difference from the default path [K] at 27 W/m
+    :header-rows: 1
+    :widths: 46 13 13 14 14
+
+    * - Borehole
+      - 1 h
+      - 6 h
+      - 24 h
+      - 100 h
+    * - Default (r_b 80 mm, soil 1.6, grout 3.9 MJ/(m³·K))
+      - −1.52
+      - −0.70
+      - −0.25
+      - −0.07
+    * - Default with grout 2.5 MJ/(m³·K)
+      - −1.17
+      - −0.37
+      - −0.12
+      - −0.04
+    * - Default with grout as light as the soil
+      - −0.84
+      - −0.16
+      - −0.04
+      - −0.01
+    * - 110 mm borehole in rock (k_s 3.0, 2.2 MJ/(m³·K))
+      - −0.87
+      - −0.20
+      - −0.06
+      - −0.02
+
+The grout heat capacity is the one input of the dynamic model that the
+default path never needed. If it is not known, 3.9 MJ/(m³·K) suits bentonite
+grouts and overstates the effect for cement-sand and thermally enhanced
+grouts; pass ``rhoc_g``.
 
 
 What changes in a run

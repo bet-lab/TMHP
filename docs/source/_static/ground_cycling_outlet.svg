@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-13T18:58:29.253654</dc:date>
+    <dc:date>2026-11-13T19:45:48.737541</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -790,26 +790,57 @@ L 354.3945 246.599575
    </g>
    <g id="legend_1">
     <g id="line2d_30">
-     <path d="M 287.706375 229.61145 
-L 294.706375 229.61145 
-L 294.706375 229.61145 
-L 301.706375 229.61145 
-L 301.706375 229.61145 
+     <path d="M 255.9745 229.425513 
+L 262.9745 229.425513 
+L 262.9745 229.425513 
+L 269.9745 229.425513 
+L 269.9745 229.425513 
 " style="fill: none; stroke: #343a40; stroke-linecap: square"/>
     </g>
     <g id="text_17">
-     <text style="font-weight: 300; font-size: 7px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="303.806375" y="232.06145" transform="rotate(-0 303.806375 232.06145)">steady model</text>
+     <!-- default: $R_b$ + line-source $g$ -->
+     <g transform="translate(272.0745 231.875513)">
+      <text>
+       <tspan x="0" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">d</tspan>
+       <tspan x="3.889648" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
+       <tspan x="7.505859" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">f</tspan>
+       <tspan x="9.823242" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">a</tspan>
+       <tspan x="13.572754" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">u</tspan>
+       <tspan x="17.417969" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">l</tspan>
+       <tspan x="18.986816" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">t</tspan>
+       <tspan x="21.23584" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">:</tspan>
+       <tspan x="22.705566" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="31.962698" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="33.664847" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">+</tspan>
+       <tspan x="37.616019" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="39.318167" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">l</tspan>
+       <tspan x="40.887015" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">i</tspan>
+       <tspan x="42.455862" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">n</tspan>
+       <tspan x="46.301077" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
+       <tspan x="49.917288" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">-</tspan>
+       <tspan x="51.920218" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">s</tspan>
+       <tspan x="55.464651" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">o</tspan>
+       <tspan x="59.385062" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">u</tspan>
+       <tspan x="63.230276" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">r</tspan>
+       <tspan x="65.585257" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">c</tspan>
+       <tspan x="69.191214" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
+       <tspan x="72.807425" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="24.407715" y="-0.671875" style="font-size: 7px; font-family: 'Noto Sans Math'">R</tspan>
+       <tspan x="74.509573" y="-0.671875" style="font-size: 7px; font-family: 'Noto Sans Math'">g</tspan>
+       <tspan x="28.761703" y="0.453125" style="font-size: 4.9px; font-family: 'Noto Sans Math'">b</tspan>
+      </text>
+     </g>
     </g>
     <g id="line2d_31">
-     <path d="M 287.706375 239.155513 
-L 294.706375 239.155513 
-L 294.706375 239.155513 
-L 301.706375 239.155513 
-L 301.706375 239.155513 
+     <path d="M 255.9745 239.155513 
+L 262.9745 239.155513 
+L 262.9745 239.155513 
+L 269.9745 239.155513 
+L 269.9745 239.155513 
 " style="fill: none; stroke: #4c6ef5; stroke-width: 2; stroke-linecap: square"/>
     </g>
     <g id="text_18">
-     <text style="font-weight: 300; font-size: 7px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="303.806375" y="241.605513" transform="rotate(-0 303.806375 241.605513)">dynamic model</text>
+     <text style="font-weight: 300; font-size: 7px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="272.0745" y="241.605513" transform="rotate(-0 272.0745 241.605513)">with borehole dynamics</text>
     </g>
    </g>
   </g>

@@ -35,6 +35,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, static_path  # noqa: E402
 
 Q_LINE = 27.0  # W/m, extraction per metre of borehole
+# "Steady" is the inside of the borehole (a resistance, no heat capacity); the
+# ground is transient in both models.
+LABEL_STEADY = r"default: $R_b$ + line-source $g$"
+LABEL_DYNAMIC = "with borehole dynamics"
 ON_MIN, OFF_MIN = 10, 20
 
 
@@ -59,7 +63,7 @@ def step_response_figure() -> None:
     fig, (ax_w, ax_f) = plt.subplots(1, 2, figsize=(width, 0.45 * width), sharex=True)
 
     # Wall: steady g (line from the origin below 1 h), analytical cylinder source, dynamic wall.
-    ax_w.plot(hours, Q_LINE * g_steady(t), color=COLORS["ink"], linewidth=dm.lw(0), label="steady model")
+    ax_w.plot(hours, Q_LINE * g_steady(t), color=COLORS["ink"], linewidth=dm.lw(0), label=LABEL_STEADY)
     ax_w.plot(
         hours,
         Q_LINE * cylinder_source_wall(t, steady.k_s, steady.alp_s, steady.r_b),
@@ -68,14 +72,14 @@ def step_response_figure() -> None:
         linestyle=(0, (4, 2)),
         label="cylinder source (analytical)",
     )
-    ax_w.plot(hours, Q_LINE * g_dyn.wall(t), color=COLORS["accent"], linewidth=dm.lw(1), label="dynamic model")
+    ax_w.plot(hours, Q_LINE * g_dyn.wall(t), color=COLORS["accent"], linewidth=dm.lw(1), label=LABEL_DYNAMIC)
     ax_w.set_title("Borehole wall", loc="left", fontsize=dm.fs(0))
     ax_w.set_ylabel(f"temperature drop at {Q_LINE:.0f} W/m [K]")
 
     # Outlet: T_s - T_out = q' (K + R_b - H / (2 m c_p)).
-    ax_f.plot(hours, Q_LINE * (g_steady(t) + r_b - half), color=COLORS["ink"], linewidth=dm.lw(0), label="steady model")
+    ax_f.plot(hours, Q_LINE * (g_steady(t) + r_b - half), color=COLORS["ink"], linewidth=dm.lw(0), label=LABEL_STEADY)
     ax_f.plot(
-        hours, Q_LINE * (g_dyn(t) + r_b - half), color=COLORS["accent"], linewidth=dm.lw(1), label="dynamic model"
+        hours, Q_LINE * (g_dyn(t) + r_b - half), color=COLORS["accent"], linewidth=dm.lw(1), label=LABEL_DYNAMIC
     )
     transit_h = g_dyn.transit_time / 3600.0
     ax_f.axvline(transit_h, color=COLORS["ink"], linewidth=HAIRLINE, linestyle=(0, (1, 2)))
@@ -132,8 +136,8 @@ def cycling_figure() -> None:
         119, steady.Ts + 0.08, "undisturbed ground", ha="right", va="bottom", fontsize=dm.fs(-2), color=COLORS["ink"]
     )
     for frame, label, color, width in (
-        (frames[0], "steady model", COLORS["ink"], dm.lw(0)),
-        (frames[1], "dynamic model", COLORS["accent"], dm.lw(1)),
+        (frames[0], LABEL_STEADY, COLORS["ink"], dm.lw(0)),
+        (frames[1], LABEL_DYNAMIC, COLORS["accent"], dm.lw(1)),
     ):
         ax.plot(
             minutes,

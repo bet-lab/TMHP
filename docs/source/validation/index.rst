@@ -66,7 +66,7 @@ Parity
     * - Manufacturers
       - Panasonic, Samsung, Daikin, Fujitsu
     * - Points
-      - 757 attempted, 712 evaluated
+      - 757 attempted, 715 evaluated
     * - Modes
       - Heating and cooling
     * - Source temperature
@@ -100,17 +100,18 @@ enter a headline. The compressor efficiencies are the shipped
 validity-domain guards (:doc:`defaults`), applied here unchanged, inside the
 compressor operating envelope (:doc:`/developer/reference-operating-limits`).
 
-**17 air-to-water points are not evaluated, all of them R32 at a high
+**14 air-to-water points are not evaluated, all of them R32 at a high
 pressure ratio** (outdoor −15 to −7 °C, leaving water 45 to 65 °C). With the
 default efficiency map the isentropic efficiency is 0.37–0.42 above PR 7.15,
 which puts the single-stage discharge temperature at 243–293 °C. Ten of the
 points stay above the R32 limit of 150 °C even with the discharge-temperature
 control: holding it would take a suction quality of 0.79–0.86, wetter than
-the 0.9 the model allows (``discharge_temp_above_max``). The other seven run,
-but only at 42–98 % of the published duty; their COP belongs to a smaller
-operating point and is not compared with the catalogue's full-load COP
-(``capacity_short``). Twenty-three more air-to-water points are evaluated
-under the control (21 with wet suction, 2 with reduced superheat).
+the 0.9 the model allows (``discharge_temp_above_max``). The other four run,
+but only at a duty more than 1 % below the published one (the largest the
+operating envelope allows); their COP belongs to a smaller operating point
+and is not compared with the catalogue's full-load COP (``capacity_short``).
+Other air-to-water points are evaluated under the control, with wet suction
+or reduced superheat.
 
 **28 air-to-air heating points are not evaluated, 27 of them on the held
 Fujitsu grids.** All lie at or below 5 °C outdoor, where the frost and defrost

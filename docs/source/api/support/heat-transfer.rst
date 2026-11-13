@@ -45,6 +45,9 @@ Fast temporal superposition for long runs
     :members:
     :show-inheritance:
 
+.. automodule:: tmhp._online_convolution
+    :members:
+
 Borehole resistance and pipe configurations
 ===========================================
 

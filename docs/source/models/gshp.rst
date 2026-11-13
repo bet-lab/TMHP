@@ -93,6 +93,17 @@ at 35 °C and condensing at 41.6 °C in heating from a 20 °C room, supply air
 at 12 °C and evaporating at 5.4 °C in cooling from 27 °C (the coil is dry).
 ``indoor_approach_max_K`` therefore defaults to 25 K.
 
+The indoor coil takes the density of the room air it draws in, as the coils of
+:doc:`ashp` do (:ref:`ashp-air-density`): ``dV_iu_a [m3/s]`` and the fan
+references and limits are volumes at the coil inlet, and the coil NTU, the fan
+heat, the reported air energy flows and the air exergy all use the mass flow
+``air_density(T_a_room) * dV_iu_a``. Room air at 20 to 27 °C is 1.7 to 4.0 %
+lighter than the 15 °C standard air (1.225 kg/m³) earlier releases used. For
+the default 4 kW unit: at a 0 °C borehole wall and a 20 °C room the system COP
+is 0.4 % lower at nameplate (3.508 → 3.495) and 0.2 % lower at half load;
+at the ISO 13256-1 cooling point (liquid 25 °C, room 27 °C) the compressor
+runs 1.4 % faster at nameplate.
+
 .. note::
 
    Until November 2026 the defaults were fixed at the values of the 4 kW
@@ -135,15 +146,16 @@ the default runs:
 .. code-block:: python
 
    gshp = GroundSourceHeatPump()                                        # 4 kW, 25 % ethylene glycol
-   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)   # leaves at -6.3 °C, system COP 3.51
+   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)   # leaves at -6.3 °C, system COP 3.50
    GroundSourceHeatPump(source_fluid="water").analyze_steady(
        Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0
    )                                                                    # off: source_fluid_freezing
 
 The default flow keeps the 3 K loop difference with the loop liquid's heat
 capacity (15.4 L/min of the default glycol for 4 kW, 14.3 of water) and the
-borehole resistance is evaluated with its viscosity (0.168 m K/W against
-0.162 for water at 4 kW). In the default 26 mm U-tube the default glycol is
+borehole resistance is evaluated with its viscosity at 0 °C, the liquid inlet
+of the heating rating point (0.168 m K/W against 0.163 for water at 4 kW;
+see :mod:`tmhp.source_fluid` for the design temperature of the viscosity). In the default 26 mm U-tube the default glycol is
 turbulent down to about 2.6 kW per borehole; a smaller machine, or 25-30 %
 propylene glycol below about 4 kW per borehole, is laminar: the constructor
 then warns and ``R_b`` is about half as large again, so give a larger
@@ -327,7 +339,11 @@ Its conventions differ from the refrigerant-cycle model: the borehole load
 and ``T_f_out`` are in kelvin, ``COP`` is 0 when idle, the entering-water
 temperature is the mean fluid temperature minus half the loop temperature
 change, and refrigerant temperatures for the exergy terms use fixed
-approaches (±3 K to the ground fluid, ∓15 K to the room air).
+approaches (±3 K to the ground fluid, ∓15 K to the room air). The indoor
+airflow carries the served heat across a 10 K change at the density of the
+room air (``dV_a``); the design airflow of the fan curve is that change in
+15 °C standard air at the rated capacity. The borehole resistance takes water
+at the initial ground temperature ``T_g`` (1.14 mPa s at 15 °C).
 
 .. autoclass:: tmhp.GroundSourceHeatPumpEmpirical
     :members:

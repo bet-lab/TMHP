@@ -18,7 +18,8 @@ import numpy as np
 import pytest
 
 from tmhp import CyclingDegradation, GroundSourceHeatPump
-from tmhp.constants import c_a, rho_a
+from tmhp.air_properties import air_density
+from tmhp.constants import c_a
 from tmhp.cycling import (
     CAPACITY_RATIO_KEY,
     CYCLING_LOSS_KEY,
@@ -119,7 +120,9 @@ def test_gshp_mean_row_keeps_its_books(pair):
     delivery = r["Q_a_iu_out [W]"] - r["Q_a_iu_in [W]"]
     assert r["cop_sys [-]"] == pytest.approx(abs(delivery) / r["E_tot [W]"], rel=1e-12)
     assert delivery == pytest.approx(sign * r["Q_ref_iu [W]"] + r["E_iu_fan [W]"], abs=1e-6)
-    sensible = c_a * rho_a * r["dV_iu_a [m3/s]"] * (r["T_iu_a_out [°C]"] - r["T_iu_a_in [°C]"])
+    sensible = (
+        c_a * air_density(r["T_iu_a_in [°C]"]) * r["dV_iu_a [m3/s]"] * (r["T_iu_a_out [°C]"] - r["T_iu_a_in [°C]"])
+    )
     assert delivery == pytest.approx(sensible, abs=1e-6)
     # Ground: the mean ground-HX duty and the mean pump heat.
     ground = r["Q_ref_ground [W]"] - r["E_pmp [W]"] if heating else -(r["Q_ref_ground [W]"] + r["E_pmp [W]"])

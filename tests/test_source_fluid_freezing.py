@@ -38,7 +38,7 @@ from tmhp.source_fluid import (
 SHORT = dict(t_max_s=86400.0, dt_s=600.0)
 BOILERS = {"GSHPB": GroundSourceHeatPumpBoiler, "WSHPB": WaterSourceHeatPumpBoiler}
 #: Water with no freezing limit to speak of: the model as it was before the limit.
-UNLIMITED_WATER = SourceFluid("water without a limit", -60.0, rho_w, c_w, mu_w, k_w)
+UNLIMITED_WATER = SourceFluid("water without a limit", -60.0, rho_w, c_w, mu_w, k_w, coolprop="Water")
 #: Tolerance on a temperature compared with the limit [K] (the limit's own is 0.01 K).
 TOL_K = 0.02
 
@@ -114,8 +114,9 @@ def test_default_machines_run_their_brine_rating_points(machines):
         assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)
     gshp = machines["GSHP", "default"]
     # 3.520 and 3.921 with a water loop before it had a freezing point: the glycol's
-    # borehole resistance is 0.168 against 0.162 m K/W.
-    for load, cop_sys in ((-4000.0, 3.508), (-2000.0, 3.915)):
+    # borehole resistance is 0.168 against 0.162 m K/W. 3.508 and 3.915 with the indoor
+    # coil on 15 °C standard air instead of the 20 °C room air it draws (#96).
+    for load, cop_sys in ((-4000.0, 3.495), (-2000.0, 3.908)):
         r = _quiet(gshp.analyze_steady, Q_r_iu=load, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)

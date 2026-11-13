@@ -3,12 +3,18 @@
 import math
 import warnings
 from collections.abc import Callable
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.optimize import root_scalar
 
 from . import calc_util as cu
-from .constants import c_a, rho_a
+from .air_properties import air_density
+from .constants import P0_PA, c_a, rho_a
+from .reference_state import (
+    Fluid,  # noqa: F401 -- named by the annotations AirCoilSide inherits; the docs build resolves them here
+    HXSide,
+)
 
 
 def calc_ground_hx_UA_from_capacity(rated_capacity: float, specific_UA: float = 0.18) -> float:
@@ -153,6 +159,55 @@ def resolve_fan_flow_limits(
     return minimum, maximum
 
 
+def resolve_air_density(rho_air: float | str | None, T_a_in_C: float, P: float = P0_PA) -> float:
+    """Density of the air an air coil's fan moves [kg/m³].
+
+    ``None`` is standard air (``constants.rho_a``, dry air at 15 °C and one
+    atmosphere), ``"inlet"`` dry air at the coil inlet temperature ``T_a_in_C``
+    [°C] and pressure ``P`` [Pa], and a number is taken as given.
+    """
+    if rho_air is None:
+        return float(rho_a)
+    if isinstance(rho_air, str):
+        if rho_air != "inlet":
+            raise ValueError("rho_air must be None, 'inlet' or a positive density [kg/m3]")
+        return float(air_density(T_a_in_C, P))
+    if not (math.isfinite(rho_air) and rho_air > 0):
+        raise ValueError("rho_air must be None, 'inlet' or a positive density [kg/m3]")
+    return float(rho_air)
+
+
+@dataclass(frozen=True)
+class AirCoilSide(HXSide):
+    """Air side of a coil at a rating point, with the density of its inlet air.
+
+    :class:`~tmhp.reference_state.HXSide` rates an air stream as standard air
+    (``constants.rho_a``). The air-source models' own coils take the density
+    of the air they draw in, so their rating sides carry that density
+    (``air_density(T_in_C)`` by default) and the reference state is solved
+    with the heat capacity rate the cycle uses at the same point.
+    ``volume_flow`` stays the fan's volume flow at the inlet state.
+    """
+
+    density: float | None = None
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.fluid != "air":
+            raise ValueError("AirCoilSide is an air stream")
+        if self.density is None:
+            object.__setattr__(self, "density", float(air_density(self.T_in_C)))
+        elif not (math.isfinite(self.density) and self.density > 0):
+            raise ValueError("Rating air density must be positive and finite")
+
+    @property
+    def conductance(self) -> float:
+        """Duty per kelvin of approach, ``eps C`` with ``C = c_a * density * volume_flow`` [W/K]."""
+        assert self.volume_flow is not None and self.density is not None
+        C = c_a * self.density * self.volume_flow
+        return C * (1.0 - math.exp(-self.UA / C))
+
+
 def calc_UA_from_dV_fan(
     dV_fan: float,
     dV_fan_rated: float | None = None,
@@ -226,12 +281,20 @@ def calc_HX_perf_for_target_heat(
     dV_fan_min=None,
     dV_fan_max=None,
     custom_fan_curve=False,
+    rho_air=None,
 ):
     """Numerically solve for the air-side flow rate of an ε-NTU heat exchanger.
 
     Given a target heat transfer duty, find the airflow that delivers it,
     accounting for the velocity dependence of UA via the Wang et al. (2000)
     fin-and-tube correlation (UA ∝ velocity^0.71).
+
+    The air heat capacity rate is ``c_a * rho_air * dV_fan``. ``rho_air``
+    [kg/m³] is the density of the air the fan moves; ``"inlet"`` takes dry air
+    at the inlet temperature ``T_a_in_C`` and one standard atmosphere
+    (:func:`tmhp.air_properties.air_density`), and ``None`` (default) keeps
+    standard air, ``constants.rho_a`` (15 °C). UA follows the volume flow in
+    either case.
 
     Parameters
     ----------
@@ -271,6 +334,7 @@ def calc_HX_perf_for_target_heat(
         - ``T_a_mid_C`` — air temperature between the heat exchanger and the fan [°C]
         - ``Q_air`` — heat-transfer rate at the operating point [W]
         - ``epsilon`` — effectiveness at the operating point [–]
+        - ``C_air`` — air heat capacity rate at the operating point [W/K]
         - ``converged`` — whether the solver converged
 
         All numeric values are ``np.nan`` when ``is_active=False``.
@@ -299,12 +363,14 @@ def calc_HX_perf_for_target_heat(
             "T_a_mid_C": np.nan,
             "Q_air": np.nan,
             "epsilon": np.nan,
+            "C_air": np.nan,
             # Legacy keys
             "T_ou_a_mid": np.nan,
             "Q_ou_air": np.nan,
         }
 
     T_a_in_K = cu.C2K(T_a_in_C)
+    C_air_per_flow = c_a * resolve_air_density(rho_air, T_a_in_C)
     if dV_fan_ref is None:
         raise ValueError("Fan reference flow is required")
     dV_min, dV_max = resolve_fan_flow_limits(dV_fan_ref, dV_fan_min, dV_fan_max, custom_curve=custom_fan_curve)
@@ -317,6 +383,7 @@ def calc_HX_perf_for_target_heat(
             "T_a_mid_C": T_a_in_C,
             "Q_air": 0.0,
             "epsilon": 0.0,
+            "C_air": 0.0,
             # Legacy keys
             "T_ou_a_mid": T_a_in_C,
             "Q_ou_air": 0.0,
@@ -326,7 +393,7 @@ def calc_HX_perf_for_target_heat(
         if dV_fan <= 0:
             return -Q_ref_target
         UA = calc_UA_from_dV_fan(dV_fan, dV_fan_ref, A_cross, UA_rated, exponent)
-        C_air = c_a * rho_a * dV_fan
+        C_air = C_air_per_flow * dV_fan
         epsilon = 1 - np.exp(-UA / C_air)
         # Heat transfer Q = C_air * epsilon * abs(T_air_in - T_ref_sat)
         Q_air = C_air * epsilon * abs(T_a_in_K - T_ref_sat_K)
@@ -354,7 +421,7 @@ def calc_HX_perf_for_target_heat(
 
     # Final calculations at solved point
     UA_sol = calc_UA_from_dV_fan(dV_sol, dV_fan_ref, A_cross, UA_rated, exponent)
-    C_air_sol = c_a * rho_a * dV_sol
+    C_air_sol = C_air_per_flow * dV_sol
     eps_sol = 1 - np.exp(-UA_sol / C_air_sol) if dV_sol > 0 else 0.0
 
     # Exit air temperature (before fan heat if any)
@@ -374,6 +441,7 @@ def calc_HX_perf_for_target_heat(
         "T_a_mid_C": T_a_mid_C,
         "Q_air": Q_air_sol,
         "epsilon": eps_sol,
+        "C_air": C_air_sol,
         "min_limit": min_limit,
         "max_limit": max_limit,
         "fan_flow_ratio_to_ref": dV_sol / dV_fan_ref,

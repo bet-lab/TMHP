@@ -576,26 +576,26 @@ current model code:
 
     * - ``ideal``
       - all three efficiencies pinned at 1.0 — what ASHP did before this work
-      - 48.0 %
-      - +48.0 %
+      - 48.8 %
+      - +48.8 %
 
     * - ``constant``
       - the ``v2026-09-24`` correlations frozen at their rated point, no speed
         dependence
-      - 16.1 %
-      - +13.5 %
+      - 16.4 %
+      - +14.0 %
 
     * - ``legacy-v1``
       - the pre-refit defaults: ``0.90 − 0.02 PR``, the one-machine leakage term,
         the Guth speed shape at 0.80 (``validation/coefficients/v1-legacy/``)
-      - 7.5 %
-      - −1.6 %
+      - 7.4 %
+      - −1.1 %
 
     * - **``defaults``**
       - **what TMHP ships — coefficients ``BITZER-three-C3-absolute-N-2026-10-06``
         with their guards**
-      - **10.3 %**
-      - **+5.8 %**
+      - **10.6 %**
+      - **+6.4 %**
 
 Parity figures are the ten adopted air-to-water units; the held Fujitsu
 catalogues are excluded from every headline. The ``defaults`` row is the
@@ -604,8 +604,8 @@ air-to-water row of :doc:`index`.
 Three things to read off it.
 
 **The compressor description carries most of the model.** An ideal compressor
-is 48.0 % out on the catalogues and a speed-independent one 16.1 %. The shipped
-fits come to 10.3 % with a +5.8 % bias over the 139 points the compressor
+is 48.8 % out on the catalogues and a speed-independent one 16.4 %. The shipped
+fits come to 10.6 % with a +6.4 % bias over the 136 points the compressor
 envelope admits, three points behind the pre-refit ``legacy-v1`` set on this
 comparison.
 

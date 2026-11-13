@@ -175,3 +175,38 @@ def test_boiler_dynamic_run_is_not_touched_by_the_steady_cycling_report():
     assert (default[RUNTIME_FRACTION_KEY] <= 1.0).all()
     for column in ("Q_ref_tank [W]", "E_cmp [W]", "E_tot [W]", "T_tank_w [°C]", RUNTIME_FRACTION_KEY):
         assert default[column].to_numpy() == pytest.approx(without[column].to_numpy(), rel=0, abs=0, nan_ok=True)
+
+
+def test_en14825_trend_harness_compares_the_running_machine():
+    """The certified-population study must not pick up the cycling degradation.
+
+    The declared COP of an EN 14825 part-load condition belongs to the capacity
+    the unit runs at there; the degradation is applied afterwards, in the bin
+    calculation. The harness therefore solves the running machine
+    (``Cd_cycling=None``), and its points B-D -- all below the minimum-speed
+    duty -- are the ones committed in ``validation/data``. With the default
+    report they would read 4.77 / 5.34 / 5.25 instead of 4.84 / 5.88 / 7.55.
+    """
+    pd = pytest.importorskip("pandas")
+    from pathlib import Path
+
+    from validation.analysis import en14825_trend
+
+    committed = pd.read_csv(Path(en14825_trend.__file__).resolve().parents[1] / "data" / "en14825_trend_points.csv")
+    selection = (
+        (committed.variant == "defaults")
+        & (committed.application == "low")
+        & (committed.capacity_kW == 9.0)
+        & (committed.refrigerant == "R32")
+        & (committed.oversizing == 0.667)
+    )
+    expected = committed[selection].set_index("point")
+    variant = next(v for v in en14825_trend.variants() if v.key == "defaults")
+    with contextlib.redirect_stdout(io.StringIO()):
+        rows = en14825_trend.trajectory(variant, 9000.0, "R32", "low", 0.667)
+    assert [r["point"] for r in rows] == ["A", "B", "C", "D"]
+    assert [r["clamped"] for r in rows] == [False, True, True, True]
+    for row in rows:
+        assert row["cop"] == pytest.approx(expected.cop[row["point"]], rel=1e-6), row["point"]
+    cop = [r["cop"] for r in rows]
+    assert cop == sorted(cop)  # rises from A to D, as the certified population does

@@ -12,6 +12,7 @@ from __future__ import annotations
 import math
 import warnings
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -414,3 +415,53 @@ def test_control_on_air_to_air_meets_the_duty_at_the_limit():
     assert r["capacity_clamped"] is None
     assert r["T_ref_cmp_out [°C]"] <= 80.0 + DISCHARGE_TOL_K
     assert _balance(r, "Q_ref_iu [W]", "Q_ref_ou [W]") < 1e-9
+
+
+# ---------------------------------------------------------------------------
+# dynamic steps answer like analyze_steady: control, then a smaller duty, then off
+# ---------------------------------------------------------------------------
+
+
+def _one_call(T0: float, n: int = 1, dt: int = 600):
+    """R32 15 kW water heater whose thermostat calls on the first step (tank at 58 degC)."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    df = _quiet(hp.analyze_dynamic, n * dt, dt, 58.0, np.zeros(n), np.full(n, float(T0)))
+    return hp, df
+
+
+def test_dynamic_step_holds_the_discharge_limit_by_control():
+    """A7: the full duty runs, held at the limit by wet suction."""
+    hp, df = _one_call(7.0)
+    row = df.iloc[0]
+    assert bool(row["hp_is_on"]) and row["failure_reason"] == "none"
+    assert bool(row["discharge_control"])
+    assert row["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
+    assert hp.x_suction_min <= row["x_ref_cmp_in [-]"] < 1.0
+    assert "capacity_binding" not in df.columns or pd.isna(row["capacity_binding"])  # the request itself fits
+
+
+def test_dynamic_step_runs_at_the_largest_duty_inside_the_limit():
+    """A-3: the request does not fit even with the control; the step runs at the
+    duty analyze_steady returns for the step-start state, and its step-average
+    heat is that duty times the run time."""
+    hp, df = _one_call(-3.0)
+    row = df.iloc[0]
+    steady = _quiet(hp.analyze_steady, T_tank_w=58.0, T0=-3.0, Q_ref_tank=15000.0)
+    assert steady["capacity_binding"] == BINDING_DISCHARGE and 0.0 < steady["Q_ref_tank [W]"] < 15000.0
+    assert bool(row["hp_is_on"]) and row["failure_reason"] == "none"
+    assert row["capacity_binding"] == BINDING_DISCHARGE
+    assert row["Q_request [W]"] == 15000.0
+    assert row["Q_max [W]"] == pytest.approx(steady["Q_ref_tank [W]"], rel=1e-6)
+    assert row["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
+    assert 0.0 < row["runtime_fraction [-]"] <= 1.0
+    assert row["Q_ref_tank [W]"] == pytest.approx(row["Q_max [W]"] * row["runtime_fraction [-]"], rel=1e-6)
+
+
+def test_dynamic_step_is_off_with_the_reason_when_no_duty_fits():
+    """A-7: no duty fits; the called step is off, names the limit and adds no heat."""
+    hp, df = _one_call(-7.0)
+    row = df.iloc[0]
+    assert not bool(row["hp_is_on"])
+    assert row["failure_reason"] == DISCHARGE_TEMP_ABOVE_MAX
+    assert row["Q_ref_tank [W]"] == 0.0 and row["E_cmp [W]"] == 0.0 and row["runtime_fraction [-]"] == 0.0
+    assert row["T_tank_w [°C]"] < 58.0  # standing loss only

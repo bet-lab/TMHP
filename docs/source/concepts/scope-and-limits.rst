@@ -157,13 +157,12 @@ Air side
       - What it means
       - How it shows
     * - Dry air at one standard atmosphere
-      - ASHP (both coils) and ASHPB take the density of the air a coil draws
-        in — outdoor air at ``T0``, room air at ``T_a_room`` — as dry
-        ideal-gas air at 101 325 Pa
-        (:func:`tmhp.air_properties.air_density`). The specific heat is
-        constant (1005 J/(kg K)); humidity and altitude are left out, and fan
-        power does not follow the density. The indoor coil of GSHP keeps
-        15 °C standard air (1.225 kg/m³)
+      - Every air coil (ASHP both coils, ASHPB, the GSHP indoor coil, also in
+        the empirical GSHP) takes the density of the air it draws in —
+        outdoor air at ``T0``, room air at ``T_a_room`` — as dry ideal-gas air
+        at 101 325 Pa (:func:`tmhp.air_properties.air_density`). The specific
+        heat is constant (1005 J/(kg K)); humidity and altitude are left out,
+        and fan power does not follow the density
       - Not flagged. ``dV_ou_a [m3/s]`` and ``dV_iu_a [m3/s]`` are volumes at
         the coil inlet; at 1 600 m the real density is 18 % lower
         (:ref:`ashp-air-density`)

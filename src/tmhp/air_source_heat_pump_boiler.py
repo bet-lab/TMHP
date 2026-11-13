@@ -1568,7 +1568,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         """Frost correction for this request (:data:`~tmhp.defrost.NO_FROST` when off or nothing is asked)."""
         if self.defrost is None or not Q_ref_tank > 0:
             return NO_FROST
-        return self.defrost.frost_state(T0, RH_out)
+        # With a load-weighted frost model the coil is estimated at the load
+        # ratio of this request; otherwise this is `frost_state(T0, RH_out)`.
+        return self.defrost.frost_state_at_duty(T0, RH_out, Q_ref_tank, self.hp_capacity)
 
     def _write_frost_free(self, result: dict, frost: FrostState = NO_FROST) -> None:
         """Frost keys of a row the correction left alone (in place)."""
@@ -1635,6 +1637,18 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         gross = model.gross_duty(frost, Q_ref_tank, q_defrost)
         result = solve(gross)
         running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+
+        if running and model.load_weighted and result.get("capacity_clamped") == "min":
+            # On its speed floor the machine runs at Q_min, more than the duty
+            # the load ratio was taken from: the coil is loaded by what the
+            # running machine absorbs, so the frost is that of Q_min.
+            q_min = float(result.get(MIN_CAPACITY_KEY, math.nan))
+            if math.isfinite(q_min) and q_min > gross:
+                frost = model.frost_state(T0, frost.RH_out, load_ratio=q_min / self.hp_capacity)
+                q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
+                gross = model.gross_duty(frost, Q_ref_tank, q_defrost)
+                result = solve(gross)
+                running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
 
         # Below the minimum continuous capacity the unit cycles, and it
         # defrosts only while it runs: the heat its defrosts take is the

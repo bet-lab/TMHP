@@ -81,6 +81,55 @@ that estimate, and the solved saturation temperature is a different quantity
 own coil temperature passes ``T_coil_C``; the physical condition that the coil
 be below 0 degC is checked either way.
 
+Where the fixed part of the frosted multipliers applies
+-------------------------------------------------------
+``t_frac`` follows the deposition: it goes to zero with
+:math:`\\Delta\\omega`. The factors 0.875 and 0.954 do not. They are what a
+coil loses, on average, between two defrosts, and an on-demand control
+defrosts at a set frost load, so that average does not depend on how fast the
+frost builds -- as long as it builds to that load. EnergyPlus therefore
+applies them wherever the outdoor temperature is below the limit, also where
+:math:`\\Delta\\omega` has hit its floor of 1e-6 and ``t_frac`` is 7e-5: at
+-15 degC and 84 % relative humidity the capacity multiplier is 0.859 for a
+defrost fraction of 0.018, and a part-load point is corrected like a full-load
+one. ``DefrostModel.frost_loss`` and ``DefrostModel.load_weighted`` are three
+ways of letting that fixed part follow the frost as well. None of them adds a
+constant; all of them leave the full-load point at 2 degC and 84 % (EN 14511
+A2) and warmer, moister conditions unchanged, and go to no correction
+continuously as :math:`\\Delta\\omega \\rightarrow 0` (without the 1e-6 floor,
+which only kept the EnergyPlus expression defined).
+
+``frost_loss="constant"`` (default)
+    EnergyPlus as above.
+``frost_loss="moisture"``
+    The fixed losses are scaled with the deposition potential relative to the
+    frosting rating condition, ``s = min(1, dw / dw_A2)``:
+    ``capacity = (1 - s (1 - 0.875)) (1 - t_frac)`` and
+    ``power = (1 - s (1 - 0.954)) (1 - t_frac)``. A control that also defrosts
+    after a longest interval carries, where frost builds slowly, the frost of
+    that interval -- proportional to the deposition rate -- and not the set
+    load.
+``frost_loss="accumulation"``
+    The same idea with the slopes EnergyPlus gives for *timed* defrost, where
+    the frost a coil carries is what one interval deposits:
+    ``capacity = 0.909 - 107.33 dw``, ``power = 0.9 - 36.45 dw``. The fixed
+    losses are the lesser of the on-demand constant and that slope,
+    ``min(1 - 0.875, 107.33 dw)`` and ``min(1 - 0.954, 36.45 dw)``: an
+    on-demand control never carries more frost than its set load, nor more
+    than a timed one would have accumulated. At A2 the slopes give 0.160 and
+    0.054, above the constants, so the point is unchanged; the two cross at
+    ``dw`` = 0.00116 and 0.00126.
+``load_weighted=True``
+    The coil-temperature correlation ``0.82 T_out - 8.589`` is that of a unit
+    at its rated load. The difference between the air and the coil surface is
+    what drives the heat into the coil, so at a load ratio ``r`` (frost-free
+    duty over the rated capacity, at most 1) it is taken ``r`` times as large:
+    ``T_coil = T_out - r (0.18 T_out + 8.589)``. A lightly loaded coil is
+    warmer, takes less moisture out of the air and does not frost at all once
+    it is above 0 degC. The load ratio depends on the correction it gives (the
+    duty is the request over the capacity multiplier), so the two are solved
+    together (:meth:`DefrostModel.frost_state_at_duty`).
+
 How a result row is averaged
 ----------------------------
 A request ``Q`` has to be met by the mean over frosting and defrost, so the
@@ -120,6 +169,7 @@ __all__ = [
     "T_OUT_MAX_DEFROST_C",
     "FROST_TRANSITION_K",
     "RH_OUT_DEFAULT",
+    "FROST_LOSS_FORMS",
     "DEFROST_FRACTION_KEY",
     "FROST_CAPACITY_FACTOR_KEY",
     "FROST_POWER_FACTOR_KEY",
@@ -147,6 +197,8 @@ FROST_TRANSITION_K = 3.0
 RH_OUT_DEFAULT = 0.84
 #: Standard atmospheric pressure [Pa].
 P_ATM = 101325.0
+#: How the fixed part of the frosted multipliers follows the deposition (see the module docstring).
+FROST_LOSS_FORMS = ("constant", "moisture", "accumulation")
 
 #: Fraction of the compressor's runtime spent defrosting [-].
 DEFROST_FRACTION_KEY = "defrost_fraction [-]"
@@ -168,6 +220,9 @@ _DW_MIN = 1.0e-6
 _DW_SCALE = 0.01446
 _CAPACITY_FROSTED = 0.875
 _POWER_FROSTED = 0.954
+# ... timed defrost: loss of the multipliers per unit of humidity-ratio difference.
+_CAPACITY_SLOPE_TIMED = 107.33
+_POWER_SLOPE_TIMED = 36.45
 # ... reverse-cycle defrost load.
 _LOAD_COEFFICIENT = 0.01
 _LOAD_T_REF_C = 7.222
@@ -210,6 +265,11 @@ class FrostState:
     #: 1 across the transition below it. The three figures above are the mean of
     #: frosting for this share and frost-free operation for the rest.
     frost_share: float = 1.0
+    #: Share of the fixed frosted losses (1 - 0.875, 1 - 0.954) applied [-]: 1 with
+    #: ``frost_loss="constant"``, less where a weighted form finds little deposition.
+    frost_loss_weight: float = 1.0
+    #: Load ratio the coil temperature was estimated at [-] (1: the rated-load correlation).
+    load_ratio: float = 1.0
 
 
 #: No frost: nothing is corrected.
@@ -233,11 +293,21 @@ class DefrostModel:
         linearly from nothing to its full size [K]; in full at and below
         ``T_out_max - transition_K``. ``0`` is the EnergyPlus switch at
         ``T_out_max``.
+    frost_loss : {"constant", "moisture", "accumulation"}
+        How the fixed part of the frosted multipliers (0.875, 0.954) follows
+        the deposition: not at all (EnergyPlus), with the deposition potential
+        relative to the A2 rating condition, or with the timed-defrost slopes
+        of the same source. See the module docstring.
+    load_weighted : bool
+        Estimate the coil temperature at the load ratio of the request
+        instead of at the rated load (``frost_state_at_duty``).
     """
 
     T_out_max: float = T_OUT_MAX_DEFROST_C
     RH_out: float = RH_OUT_DEFAULT
     transition_K: float = FROST_TRANSITION_K
+    frost_loss: str = "constant"
+    load_weighted: bool = False
 
     def __post_init__(self) -> None:
         if isinstance(self.T_out_max, bool) or not math.isfinite(self.T_out_max):
@@ -249,6 +319,10 @@ class DefrostModel:
             or self.transition_K < 0.0
         ):
             raise ValueError(f"transition_K must be a finite width >= 0 [K], got {self.transition_K!r}")
+        if self.frost_loss not in FROST_LOSS_FORMS:
+            raise ValueError(f"frost_loss must be one of {FROST_LOSS_FORMS}, got {self.frost_loss!r}")
+        if not isinstance(self.load_weighted, bool):
+            raise ValueError(f"load_weighted must be True or False, got {self.load_weighted!r}")
         _check_humidity(self.RH_out)
 
     def frost_share(self, T_out_C: float) -> float:
@@ -271,6 +345,7 @@ class DefrostModel:
         *,
         T_coil_C: float | None = None,
         P_Pa: float = P_ATM,
+        load_ratio: float | None = None,
     ) -> FrostState:
         """Frost correction at outdoor dry bulb ``T_out_C`` and relative humidity ``RH_out`` (0-1).
 
@@ -278,28 +353,102 @@ class DefrostModel:
         ``0.82 T_out - 8.589``. No frost above ``T_out_max``; below it the
         correction grows to its full size across ``transition_K``
         (:meth:`frost_share`). No frost on a coil at or above 0 degC either.
+        ``load_ratio`` (0-1, with ``load_weighted``) scales the difference
+        between the air and the coil of that correlation; ``None`` is the
+        rated load.
         """
         rh = self.RH_out if RH_out is None else _check_humidity(RH_out)
         if not math.isfinite(T_out_C):
             raise ValueError(f"T_out_C must be finite, got {T_out_C!r}")
-        coil = _COIL_SLOPE * T_out_C + _COIL_OFFSET_K if T_coil_C is None else float(T_coil_C)
+        ratio = 1.0
+        if self.load_weighted and load_ratio is not None:
+            if not math.isfinite(load_ratio) or load_ratio < 0.0:
+                raise ValueError(f"load_ratio must be a finite number >= 0, got {load_ratio!r}")
+            ratio = min(1.0, float(load_ratio))
+        if T_coil_C is None:
+            coil = T_out_C - ratio * (T_out_C - (_COIL_SLOPE * T_out_C + _COIL_OFFSET_K))
+        else:
+            coil = float(T_coil_C)
         share = self.frost_share(T_out_C)
         if not share > 0.0 or not coil < 0.0:
-            return FrostState(False, 0.0, 1.0, 1.0, T_coil_C=coil, RH_out=rh, frost_share=0.0)
-        dw = max(_DW_MIN, humidity_ratio(T_out_C, rh, P_Pa) - saturation_humidity_ratio(coil, P_Pa))
+            return FrostState(False, 0.0, 1.0, 1.0, T_coil_C=coil, RH_out=rh, frost_share=0.0, load_ratio=ratio)
+        excess = humidity_ratio(T_out_C, rh, P_Pa) - saturation_humidity_ratio(coil, P_Pa)
+        if self.frost_loss == "constant":
+            dw = max(_DW_MIN, excess)
+            weight_capacity = weight_power = 1.0
+        else:
+            # No floor: air that cannot deposit on the coil leaves no frost and no correction.
+            if not excess > 0.0:
+                return FrostState(
+                    False, 0.0, 1.0, 1.0, T_coil_C=coil, humidity_ratio_difference=0.0, RH_out=rh, frost_share=0.0,
+                    frost_loss_weight=0.0, load_ratio=ratio,
+                )  # fmt: skip
+            dw = excess
+            if self.frost_loss == "moisture":
+                weight_capacity = weight_power = min(1.0, dw / _reference_humidity_ratio_difference(P_Pa))
+            else:  # "accumulation"
+                weight_capacity = min(1.0, _CAPACITY_SLOPE_TIMED * dw / (1.0 - _CAPACITY_FROSTED))
+                weight_power = min(1.0, _POWER_SLOPE_TIMED * dw / (1.0 - _POWER_FROSTED))
         t_frac = 1.0 / (1.0 + _DW_SCALE / dw)
+        capacity = (1.0 - weight_capacity * (1.0 - _CAPACITY_FROSTED)) * (1.0 - t_frac)
+        power = (1.0 - weight_power * (1.0 - _POWER_FROSTED)) * (1.0 - t_frac)
         # Frosting for the share of the runtime, frost-free for the rest. With
-        # a share of one these are the EnergyPlus expressions unchanged.
+        # a share of one and the constant form these are the EnergyPlus
+        # expressions unchanged.
         return FrostState(
             active=True,
             defrost_fraction=share * t_frac,
-            capacity_multiplier=1.0 - share * (1.0 - _CAPACITY_FROSTED * (1.0 - t_frac)),
-            power_multiplier=1.0 - share * (1.0 - _POWER_FROSTED * (1.0 - t_frac)),
+            capacity_multiplier=1.0 - share * (1.0 - capacity),
+            power_multiplier=1.0 - share * (1.0 - power),
             T_coil_C=coil,
             humidity_ratio_difference=dw,
             RH_out=rh,
             frost_share=share,
+            frost_loss_weight=weight_capacity,
+            load_ratio=ratio,
         )
+
+    def frost_state_at_duty(
+        self,
+        T_out_C: float,
+        RH_out: float | None,
+        Q_request: float,
+        Q_rated: float,
+        *,
+        P_Pa: float = P_ATM,
+    ) -> FrostState:
+        """Frost correction for a request of ``Q_request`` [W] on a unit rated ``Q_rated`` [W].
+
+        Without ``load_weighted`` this is :meth:`frost_state`. With it the
+        coil temperature is estimated at the load ratio of the frost-free duty
+        the request needs, ``gross_duty / Q_rated`` (at most 1). That duty
+        depends on the correction, so the ratio ``r`` is the root of
+        ``r = min(1, gross_duty(frost_state(r)) / Q_rated)``, which lies
+        between the request's own ratio and 1: more load means a colder coil,
+        more frost and a larger duty still.
+        """
+        if not self.load_weighted:
+            return self.frost_state(T_out_C, RH_out, P_Pa=P_Pa)
+        request, rated = abs(float(Q_request)), abs(float(Q_rated))
+        if not (math.isfinite(request) and math.isfinite(rated) and rated > 0.0):
+            raise ValueError(f"Require finite Q_request and Q_rated > 0, got {Q_request!r}, {Q_rated!r}")
+        low = min(1.0, request / rated)
+
+        def state(ratio: float) -> FrostState:
+            return self.frost_state(T_out_C, RH_out, P_Pa=P_Pa, load_ratio=ratio)
+
+        def residual(ratio: float) -> float:
+            frost = state(ratio)
+            gross = self.gross_duty(frost, request, self.defrost_load(frost, T_out_C, rated))
+            return ratio - min(1.0, gross / rated)
+
+        if low >= 1.0 or residual(1.0) <= 0.0:
+            return state(1.0)
+        if residual(low) >= 0.0:
+            return state(low)
+        from scipy.optimize import brentq
+
+        return state(float(brentq(residual, low, 1.0, xtol=1e-12, rtol=1e-12)))
 
     @staticmethod
     def defrost_load(frost: FrostState, T_out_C: float, Q_rated: float) -> float:
@@ -313,6 +462,23 @@ class DefrostModel:
     def gross_duty(frost: FrostState, Q_request: float, Q_defrost: float) -> float:
         """Frost-free duty [W] whose mean over frosting and defrost is ``Q_request``."""
         return (abs(Q_request) + Q_defrost) / frost.capacity_multiplier
+
+
+_REFERENCE_DW: dict[float, float] = {}
+
+
+def _reference_humidity_ratio_difference(P_Pa: float = P_ATM) -> float:
+    """Humidity-ratio difference between the air and the coil at the frosting rating condition [kg/kg].
+
+    EN 14511 A2 at the rated load: 2 degC dry bulb (``T_OUT_MAX_DEFROST_C -
+    FROST_TRANSITION_K``, where the correction is in full), 84 % relative
+    humidity, coil at ``0.82 T_out - 8.589``.
+    """
+    if P_Pa not in _REFERENCE_DW:
+        T_ref = T_OUT_MAX_DEFROST_C - FROST_TRANSITION_K
+        coil = _COIL_SLOPE * T_ref + _COIL_OFFSET_K
+        _REFERENCE_DW[P_Pa] = humidity_ratio(T_ref, RH_OUT_DEFAULT, P_Pa) - saturation_humidity_ratio(coil, P_Pa)
+    return _REFERENCE_DW[P_Pa]
 
 
 def _check_humidity(value: float) -> float:

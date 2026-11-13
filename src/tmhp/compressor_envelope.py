@@ -103,7 +103,9 @@ from typing import Any, Literal, TypeVar, cast
 
 from scipy.optimize import brentq
 
+from . import calc_util as cu
 from .compressor_efficiency import efficiency_extrapolated
+from .refrigerant import _props
 
 __all__ = [
     "check_pr_envelope",
@@ -192,8 +194,8 @@ RATED_SPEED_SEARCH_MAX = 150.0
 
 #: Tolerance of every discharge-temperature comparison [K]. The control solves
 #: T_dis = T_dis_max by root finding, so the check that follows has to accept
-#: the root's own residual (brentq: ~1e-3 K); 0.01 K is far below any meaning
-#: the limit has.
+#: the root's own residual (1e-5 K for the predicted closure, ~1e-3 K for the
+#: bracketing fallback); 0.01 K is far below any meaning the limit has.
 DISCHARGE_TOL_K = 0.01
 _DISCHARGE_TOL_K = DISCHARGE_TOL_K
 
@@ -431,7 +433,10 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
     ``self.T_dis_max``, the same candidate is re-evaluated with the superheat
     reduced (root of ``T_dis(superheat) = T_dis_max`` on ``[0, superheat]``)
     and, if 0 K is not enough, with the quality reduced (root on
-    ``[x_suction_min, 1]``). Every running state gets
+    ``[x_suction_min, 1]``). The root is predicted from the fluid properties
+    and corrected with two or three evaluations (:func:`_control_predicted`);
+    root finding on the evaluations themselves is the fallback
+    (:func:`_control_bracketed`). Every running state gets
     :data:`SUPERHEAT_KEY`, :data:`QUALITY_KEY` and :data:`CONTROL_KEY`.
 
     A state still above the limit is returned as is when ``reject`` is false
@@ -482,7 +487,7 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
                 diags[id(state)] = fresh
                 return state
 
-            controlled = _control(at, superheat0, T_max, self.x_suction_min)
+            controlled = _control(at, result, superheat0, T_max, self.x_suction_min, getattr(self, "ref", None))
             if controlled is not None and diag_out is not None:
                 diag_out.clear()
                 diag_out.update(diags.get(id(controlled), {}))
@@ -501,12 +506,156 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
     return decorate
 
 
+#: The control is closed once the discharge is within this of ``T_dis_max`` [K].
+#: Far below :data:`DISCHARGE_TOL_K`, so that the controlled state is a smooth
+#: function of the operating point the searches minimise over (a looser
+#: closure leaves root-finding noise in the objective, and the minimiser
+#: spends its iterations on it).
+_CONTROL_TOL_K = 1e-5
+#: Full cycle evaluations the predicted closure may use before the bracketing one takes over.
+_CONTROL_MAX_EVALUATIONS = 8
+_FALLBACK = object()
+
+
+class _DischargeEstimate:
+    """Discharge enthalpy over the suction state, from one solved cycle state.
+
+    The suction pressure, the condensing pressure and the isentropic
+    efficiency of ``state`` are held; only the suction state moves. The
+    coordinate ``u`` is the suction superheat [K] where positive and the
+    vapour quality minus one where negative (``u = 0``: saturated vapour).
+    The efficiency follows the compressor speed, which the suction state
+    moves a little (a wetter suction is denser, so the same duty needs fewer
+    revolutions): ``slope`` is its change per unit suction enthalpy -- a
+    coordinate continuous across saturation -- taken from two solved states
+    (:func:`_control_predicted`).
+    """
+
+    def __init__(self, ref: str, state: Mapping[str, Any], u: float, T_max: float) -> None:
+        self.ref = ref
+        self.u = u
+        self.p_in = float(state["P_ref_cmp_in [Pa]"])
+        self.p_out = float(state["P_ref_cmp_out [Pa]"])
+        self.T_evap_K = cu.C2K(float(state["T_ref_evap_sat [°C]"]))
+        self.h_in = h_in = float(state["h_ref_cmp_in [J/kg]"])
+        h_out = float(state["h_ref_cmp_out [J/kg]"])
+        (h_isen,) = _props("H", "P", self.p_out, "S", float(state["s_ref_cmp_in [J/(kg·K)]"]), ref)
+        self.eta = (h_isen - h_in) / (h_out - h_in)
+        (self.h_target,) = _props("H", "T", cu.C2K(T_max), "P", self.p_out, ref)
+        if not (math.isfinite(self.eta) and self.eta > 0.0 and self.h_target > float(state["h_ref_cond_sat_v [J/kg]"])):
+            raise ValueError("no discharge estimate for this state")
+        self.slope = 0.0
+
+    def excess(self, u: float) -> float:
+        """Estimated discharge enthalpy above that of ``T_dis_max`` at suction state ``u`` [J/kg]."""
+        if u > 1e-6:  # below it the cycle state takes saturated vapour (calc_ref_state)
+            h_in, s_in = _props("HS", "T", self.T_evap_K + u, "P", self.p_in, self.ref)
+        else:
+            h_in, s_in = _props("HS", "P", self.p_in, "Q", 1.0 + min(u, 0.0), self.ref)
+        (h_isen,) = _props("H", "P", self.p_out, "S", s_in, self.ref)
+        eta = max(self.eta + self.slope * (h_in - self.h_in), 0.5 * self.eta)
+        return h_in + (h_isen - h_in) / eta - self.h_target
+
+    def root(self, u_min: float, u_max: float) -> float:
+        """Suction state in ``[u_min, u_max]`` at the limit (an end when the limit is outside)."""
+        if self.excess(u_max) <= 0.0:
+            return u_max
+        if u_max > 0.0 >= u_min:
+            # Superheat and quality are different scales: solve on one side of saturation.
+            if self.excess(0.0) > 0.0:
+                u_max = 0.0
+            else:
+                u_min = 0.0
+        if u_min >= u_max or self.excess(u_min) >= 0.0:
+            return u_min
+        return float(brentq(self.excess, u_min, u_max, xtol=1e-12, rtol=1e-14))
+
+
+def _control_predicted(
+    at: Callable[[float, float], dict | None],
+    base: Mapping[str, Any],
+    superheat0: float,
+    T_max: float,
+    x_min: float,
+    ref: str,
+) -> Any:
+    """The controlled state by thermodynamic prediction and a few full evaluations.
+
+    Brackets the limit between the uncontrolled state (above it) and the
+    driest suction state found inside it, and proposes the next suction state
+    from :class:`_DischargeEstimate` of the latest solved state -- a pure
+    property calculation -- with the efficiency's dependence on the suction
+    state taken from the last two solved states. Each proposal costs one full
+    cycle evaluation; two or three close the control to
+    :data:`_CONTROL_TOL_K`. Returns the state, ``None`` when the limit is
+    still exceeded at ``x_min``, or :data:`_FALLBACK` when a proposal has no
+    cycle or the closure does not settle (the bracketing closure then decides).
+    """
+    u_min = min(x_min - 1.0, 0.0)
+    if superheat0 <= u_min:
+        return None  # saturated suction and no wet stage: nothing to control with
+    try:
+        estimate = _DischargeEstimate(ref, base, superheat0, T_max)
+    except (KeyError, TypeError, ValueError):
+        return _FALLBACK
+    low: float | None = None
+    low_state: dict | None = None
+    high = superheat0
+    for _ in range(_CONTROL_MAX_EVALUATIONS):
+        try:
+            u = estimate.root(u_min if low is None else low, high)
+        except (ValueError, RuntimeError):
+            return _FALLBACK
+        if (low is not None and u <= low) or u >= high:
+            if low is None:
+                return _FALLBACK
+            u = 0.5 * (low + high)
+            if not (low < u < high):
+                return low_state
+        state = at(max(u, 0.0), 1.0 + min(u, 0.0))
+        if state is None:
+            return _FALLBACK
+        above = _discharge(state) - T_max
+        if abs(above) <= _CONTROL_TOL_K:
+            return state
+        if above > 0.0:
+            if u <= u_min:
+                return None
+            high = u
+        else:
+            low, low_state = u, state
+        try:
+            latest = _DischargeEstimate(ref, state, u, T_max)
+        except (KeyError, TypeError, ValueError):
+            return _FALLBACK
+        if latest.h_in != estimate.h_in:
+            latest.slope = (latest.eta - estimate.eta) / (latest.h_in - estimate.h_in)
+        estimate = latest
+    return _FALLBACK
+
+
 def _control(
-    at: Callable[[float, float], dict | None], superheat0: float, T_max: float, x_min: float | None
+    at: Callable[[float, float], dict | None],
+    base: Mapping[str, Any],
+    superheat0: float,
+    T_max: float,
+    x_min: float | None,
+    ref: str | None,
 ) -> dict | None:
     """The controlled state at the discharge limit, or ``None`` when the control cannot reach it."""
     if x_min is None or not math.isfinite(superheat0):
         return None
+    if ref is not None:
+        controlled = _control_predicted(at, base, superheat0, T_max, x_min, ref)
+        if controlled is not _FALLBACK:
+            return cast("dict | None", controlled)
+    return _control_bracketed(at, superheat0, T_max, x_min)
+
+
+def _control_bracketed(
+    at: Callable[[float, float], dict | None], superheat0: float, T_max: float, x_min: float
+) -> dict | None:
+    """The controlled state by root finding on full cycle evaluations (about seven of them)."""
 
     def excess(superheat: float, quality: float) -> float:
         state = at(superheat, quality)

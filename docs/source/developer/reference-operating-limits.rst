@@ -314,8 +314,19 @@ liquid-injection ratios used for this purpose. Running results report
 ``dT_ref_superheat [K]``, ``x_ref_cmp_in [-]`` and ``discharge_control``
 (bool), the same names in all five families; the invariant suite allows a wet
 suction only on a controlled row and only down to ``x_suction_min``. Every
-discharge comparison uses the tolerance ``DISCHARGE_TOL_K`` = 0.01 K (the
-control's root residual).
+discharge comparison uses the tolerance ``DISCHARGE_TOL_K`` = 0.01 K.
+
+The suction state at the limit is not searched with full cycle solves. At
+fixed suction and condensing pressure the discharge enthalpy follows from the
+suction state and the isentropic efficiency alone, so the suction state whose
+discharge is ``T_dis_max`` is first computed from the fluid properties with
+the efficiency of the state just solved; the cycle is then solved there, and
+the estimate corrected with the efficiency that solve returned (it moves with
+the compressor speed, which a denser, wetter suction lowers). Two or three
+cycle solves close the control to 1e-5 K of the limit, and a point still above
+the limit at ``x_suction_min`` is recognised with one. Root finding on full
+cycle solves is kept as the fallback for a fluid without a property state or
+a candidate where a proposed suction state has no cycle.
 
 How each family answers a point the control cannot hold:
 

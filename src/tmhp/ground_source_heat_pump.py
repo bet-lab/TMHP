@@ -1441,14 +1441,22 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     return "slack_floor", row, g, T_out
                 if residual > 0 and (g >= hi - 1e-12 or upper - g < self._ENVELOPE_APPROACH_TOL_K):
                     return "ground_limit", row, g, T_out
+            # At the pressure-ratio floor (cooling) the condensing temperature is
+            # held above the trial approach, so the residual belongs to that
+            # held approach and does not move with ``g``. Stepping from the
+            # trial value would creep by residual / conductance per iteration
+            # and never leave the floor.
+            g_eval = g
+            if not heating and row.get("pr_floor_active", False):
+                g_eval = max(g, approach_at(cu.C2K(float(row["T_ref_cond_sat_l [°C]"])), T_out))
             # dR/dg = dQ/dg - ε·ṁc_p; the duty term is small, so the conductance
             # is a safe first slope and a secant estimate refines it.
             slope = conductance
-            if previous is not None and abs(g - previous[0]) > 1e-9:
-                estimate = (previous[1] - residual) / (g - previous[0])
+            if previous is not None and abs(g_eval - previous[0]) > 1e-9:
+                estimate = (previous[1] - residual) / (g_eval - previous[0])
                 if estimate > 0.05 * conductance:
                     slope = estimate
-            previous, last = (g, residual), (g, residual, row, T_out)
+            previous, last = (g_eval, residual), (g_eval, residual, row, T_out)
             # Fluid closure: plain substitution oscillates when the duty rises
             # steeply with the source temperature (loop gain near -0.5 at the
             # compressor speed ceiling); a secant step on the closure error
@@ -1463,9 +1471,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             T_out = T_out + step
             # Never step onto an approach already known to leave the envelope.
             upper = hi if bad_sat is None else min(hi, approach_at(bad_sat, T_out))
-            target = g + residual / slope
+            target = g_eval + residual / slope
             if target >= upper:
-                target = 0.5 * (g + upper) if upper < hi else hi
+                target = 0.5 * (g_eval + upper) if upper < hi else hi
             g = max(target, lo)
         return "not_closed", row, g, T_out
 

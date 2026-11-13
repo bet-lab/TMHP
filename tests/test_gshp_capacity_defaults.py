@@ -298,3 +298,35 @@ def test_repeating_the_dynamic_run_gives_the_same_table(cold_ground_run):
     again = model.analyze_dynamic(2 * 3600, 3600, np.full(2, -8000.0), np.zeros(2), np.full(2, 20.0))
     for key in ("T_bhe_f_out [°C]", "T_ref_evap_sat [°C]", "E_cmp [W]", "Q_ref_iu [W]"):
         np.testing.assert_allclose(again[key], heating[key], rtol=1e-9, atol=1e-9)
+
+
+# ── ground closure at the pressure-ratio floor (cooling) ──────────────────
+
+
+def test_ground_closure_at_the_pressure_ratio_floor_closes_every_candidate():
+    # 2.6 kW cooling against a 16 °C wall sits where the ground HX balance
+    # needs a condensing temperature just above the pressure-ratio floor. The
+    # closure used to step from the trial approach although the floor held the
+    # condenser above it, crept 0.07 K per iteration and gave up on three of
+    # the indoor approaches it tried (139 cycle evaluations for one point).
+    model = build()
+    statuses, cycles = [], [0]
+    close, state = model._close_ground_side, model._calc_state
+
+    def counted_close(*args, **kwargs):
+        out = close(*args, **kwargs)
+        statuses.append(out[0])
+        return out
+
+    def counted_state(*args, **kwargs):
+        cycles[0] += 1
+        return state(*args, **kwargs)
+
+    model._close_ground_side, model._calc_state = counted_close, counted_state
+    row = model._solve_operating_point(2600.0, 30.0, 27.0, wall_K=289.15)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] is None
+    assert row["Q_ref_iu [W]"] == pytest.approx(2600.0, rel=1e-9)
+    assert "not_closed" not in statuses, statuses
+    assert set(statuses) <= {"equality", "slack_floor", "slack_bound"}
+    assert cycles[0] < 100
+    assert row["E_tot [W]"] == pytest.approx(370.9, rel=2e-3)  # the operating point itself is unchanged

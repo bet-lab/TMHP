@@ -70,6 +70,26 @@ tank delivers 2.4 kW at its minimum speed; a 400 W request returns 400 W at
 147 W of input (system COP 2.73 against 4.08 for the running machine).
 Dynamic runs are not affected.
 
+Loop liquid and its freezing limit
+==================================
+
+``source_fluid`` is the liquid circulating between the heat pump and the coil
+in the source water: ``"water"`` (default) or an antifreeze mixture such as
+``"MPG-25%"``. The rule is that of :ref:`source-fluid` on the GSHPB page: the
+loop liquid is never colder than its freezing point plus 3 K, i.e. 3 °C for
+water. With the default 3 K loop temperature difference a water loop therefore
+delivers its full duty down to about 6 °C entering the heat pump; below that
+the duty is reduced to keep the leaving water at 3 °C
+(``capacity_binding == "source_fluid_freezing"``), and a loop entering below
+3 °C does not run (``failure_reason == "source_fluid_freezing"``). The W10/W35
+rating point (leaving at 7 °C) is unaffected. For winter surface water near
+0 °C fill the coil with a mixture:
+
+.. code-block:: python
+
+   wshpb = WaterSourceHeatPumpBoiler(source_fluid="MPG-25%")   # limit -6.8 °C
+   wshpb.analyze_steady(T_tank_w=45, T_source=1.0, Q_ref_tank=8_000)
+
 Dynamic operation
 =================
 

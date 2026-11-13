@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 
 from tmhp import CyclingDegradation, GroundSourceHeatPump
-from tmhp.constants import c_a, c_w, rho_a, rho_w
+from tmhp.constants import c_a, rho_a
 from tmhp.cycling import (
     CAPACITY_RATIO_KEY,
     CYCLING_LOSS_KEY,
@@ -236,7 +236,8 @@ def test_gshp_dynamic_run_delivers_the_request_and_loads_the_ground_with_the_mea
         else:
             rise = coupler.preview_wall_temperature_rise(n, model.time, q[n])  # step mean, mean load
         fluid = model.Ts - rise - q_run * row["R_b_eff [mK/W]"]
-        half = q_run * length / (2.0 * c_w * rho_w * row["dV_bhe_f [m3/s]"] / row[CAPACITY_RATIO_KEY])
+        rho_c = model.source_fluid.rho * model.source_fluid.cp  # the loop liquid (25 % ethylene glycol)
+        half = q_run * length / (2.0 * rho_c * row["dV_bhe_f [m3/s]"] / row[CAPACITY_RATIO_KEY])
         assert row["T_bhe_f_in [°C]"] == pytest.approx(fluid - half, abs=1e-6), n
         assert row["T_bhe_f_out [°C]"] == pytest.approx(fluid + half, abs=1e-6), n
         assert row["T_ref_evap_sat [°C]"] < row["T_bhe_f_in [°C]"] < row["T_bhe_f_out [°C]"]

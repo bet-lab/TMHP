@@ -604,15 +604,15 @@ What changes in a run
     :align: center
     :width: 80%
 
-    ``GroundSourceHeatPumpBoiler`` (8 kW defaults, 24 L/min through the
-    borehole) with 60 s steps, 10 min on / 20 min off, second day of
+    ``GroundSourceHeatPumpBoiler`` (8 kW defaults with a water loop, 24 L/min
+    through the borehole) with 60 s steps, 10 min on / 20 min off, second day of
     operation. The steady model puts the outlet 3.5 K lower the moment the
     compressor starts. In the dynamic model the outlet holds for
     one transit and then falls by under 1 K. While the compressor is off the
     reported outlet is that of a loop that keeps circulating (the cold fluid
     of the last run is still on its way out); the model does not use it.
 
-.. list-table:: 8 kW GSHPB (defaults, 24 L/min through the borehole), steady against dynamic response
+.. list-table:: 8 kW GSHPB (defaults with ``source_fluid="water"``, 24 L/min through the borehole), steady against dynamic response
     :header-rows: 1
     :widths: 34 12 18 18 18
 
@@ -659,7 +659,7 @@ the shortest runs. The difference shrinks with longer runs: the first hours
 of any run are warmer than the steady model says, the days after are the
 same.
 
-.. list-table:: 4 kW ``GroundSourceHeatPump`` (defaults: one 100 m borehole, 14.3 L/min), full load 20 min on / 40 min off, 600 s steps, day 2
+.. list-table:: 4 kW ``GroundSourceHeatPump`` (defaults with ``source_fluid="water"``: one 100 m borehole, 14.3 L/min), full load 20 min on / 40 min off, 600 s steps, day 2
     :header-rows: 1
     :widths: 30 14 28 28
 

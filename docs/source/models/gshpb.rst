@@ -57,6 +57,82 @@ Base usage
        Q_ref_tank=8_000,
    )
 
+Default sizing
+==============
+
+``hp_capacity`` (default 8 kW) and the refrigerant are enough to build a
+machine: every other size follows the capacity, so the rated cycle is the same
+at 1 kW and at 100 kW (B0/W35: condensing 5 K above the tank, evaporating about
+6 K below the entering fluid, COP of the cycle 4.2 with R410A and the default
+efficiency map).
+
+.. list-table::
+    :header-rows: 1
+    :widths: 26 34 40
+
+    * - Argument
+      - Default
+      - Rule
+    * - ``UA_tank_hx``
+      - ``hp_capacity / 5`` [W/K]
+      - 5 K condensing approach at the rated duty (as ASHPB).
+    * - ``UA_ground``
+      - ``0.18 × hp_capacity`` [W/K]
+      - Fluid-to-refrigerant evaporator, the coefficient of
+        :class:`tmhp.GroundSourceHeatPump` (``ground_hx_ua_per_capacity``).
+    * - ``ground_flow_ref_lpm``
+      - ``0.75 × hp_capacity / (ρ c · 3 K)``
+      - Rated source-side heat at a 3 K loop temperature difference:
+        3.58 L/min per kW (28.7 L/min at 8 kW), shared evenly by the boreholes.
+    * - ``E_pmp``
+      - ``75 W/ton × hp_capacity``
+      - Upper bound of ASHRAE ground-loop pumping grade B, 21.3 W per kW
+        (171 W at 8 kW). Used when the hydraulic pump model
+        (``hydraulic_pump``) is off; it enters ``cop_sys`` in full and warms
+        the fluid entering the evaporator.
+    * - ``N_1``, ``N_2``, ``H_b``
+      - 200 m boreholes on a near-square grid
+      - With none of the three given, boreholes are added until the rated
+        source-side heat (``0.75 × hp_capacity``) is at most 50 W per metre:
+        one borehole up to 13.3 kW, 2 at 14 kW, 2 × 2 at 30 kW, 3 × 3 at
+        100 kW.
+
+A value you pass is used as given (the deprecated aliases ``UA_tank``,
+``UA_cond_design``, ``UA_evap_design`` and ``dV_b_f_lpm`` keep their
+precedence). The constructor warns (``UserWarning``) when
+
+- a field you describe carries more than 80 W/m at the rated point;
+- the default flow is laminar in the U-tubes (``Re < 2300``, e.g. many
+  boreholes on a small machine);
+- ``T_tank_w_upper_bound`` plus the tank heat-exchanger approach
+  (``hp_capacity / UA_tank_hx``) is at or above the refrigerant's critical
+  temperature: no cycle exists there, so the tank could not reach the set
+  point. The default machine (R410A, 65 °C + 5 K = 70 °C against 71.3 °C) is
+  just inside; real R410A compressors stop near 65 °C condensing, so use
+  ``ref="R134a"`` or ``"R290"`` or a lower set point when that margin matters.
+
+Cycle closures
+==============
+
+Two relations hold in every running result (``analyze_steady`` and each
+``analyze_dynamic`` row).
+
+- **Suction superheat.** The gas leaves the evaporator no hotter than the
+  entering ground fluid: the superheat is ``dT_superheat`` or the evaporator
+  approach less ``dT_hx_min``, whichever is smaller (the same cap as ASHPB).
+- **Tank heat exchanger on a speed bound.** When the request is below what the
+  compressor delivers at ``rps_min`` (``capacity_clamped == "min"``) or above
+  its ``rps_max`` duty (``"max"``), the condensing temperature is solved from
+  the heat actually delivered, ``Q_ref_tank = UA_tank_hx × dT_ref_tank``, not
+  from the request. ``dT_ref_tank [K]`` is the approach the cycle ran at and
+  ``tank_hx_residual [W]`` the remaining imbalance (zero unless the closure
+  could not be bracketed, as on the pressure-ratio floor). On the speed floor
+  the result no longer depends on the request.
+
+The evaporator approach is searched between 1 and 20 K and, when the heat
+exchanger already carries the duty at 1 K (a compressor at low speed against
+an evaporator sized for the full capacity), down to 0.05 K.
+
 Dynamic operation
 =================
 
@@ -76,10 +152,19 @@ load (the ground's step-mean response). The reported fluid temperatures
 ``T_bhe_f*`` are step-time averages -- the borehole resistance and loop
 temperature difference are linear in the load, so continuous in the run
 fraction and equal to the injection-only state when the compressor does
-not run; the next cycle reads that outlet (one-step source lag).
-``T_bhe_f*_running`` are the fluid while the compressor runs (its running
-extraction net of the injection), which the evaporator's source-side
-exergy uses.
+not run. ``T_bhe_f*_running`` are the fluid while the compressor runs (its
+running extraction net of the injection), which the evaporator's
+source-side exergy uses.
+
+The cycle of a step is solved against that running fluid of the *same*
+step: the borehole wall's response to the step's own load, the borehole
+resistance and the loop temperature difference are closed together with
+the cycle (to 10\ :sup:`-4` K), so in every running row
+``T_ref_evap_sat < T_bhe_f_out_running <= T_bhe_f_out``. (Earlier releases
+fed the evaporator the previous step's outlet, which could put the
+evaporating temperature above the row's own fluid.) A ground coupler
+without ``preview_wall_temperature_rise`` cannot evaluate an uncommitted
+load; with such a backend the cycle still reads the previous step's outlet.
 
 The constructor's ``dt_s`` (default 3600 s) is not the simulation step:
 it sets the shortest lag time tabulated for the g-function (never below

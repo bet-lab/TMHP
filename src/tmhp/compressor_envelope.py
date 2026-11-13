@@ -389,10 +389,10 @@ def _critical_point(ref: str) -> tuple[float, float]:
     return float(PropsSI("Tcrit", ref)), float(PropsSI("Pcrit", ref))
 
 
-def _dew_temperature_C(pressure: float, ref: str) -> float:
+def _dew_temperature_C(pressure: object, ref: str) -> float:
     """Dew-point temperature [degC] of a condensing pressure [Pa]; NaN where there is none."""
     try:
-        return cu.K2C(_props("T", "P", float(pressure), "Q", 1, ref)[0])
+        return float(cu.K2C(_props("T", "P", float(cast(float, pressure)), "Q", 1, ref)[0]))
     except (TypeError, ValueError):
         return math.nan
 

@@ -276,6 +276,9 @@ boundary and demand boundary. ASHPB also exposes the current dynamic
 | `hx_fan.py`             | Air-side fan & heat-exchanger model                            |
 | `g_function.py`         | Borehole g-function (pygfunction)                              |
 | `ground_coupling.py`    | Borehole load-history coupling abstraction                     |
+| `borehole.py`           | Borehole resistance; single/double U-tube and coaxial pipes    |
+| `borefield.py`          | Bore fields at any coordinates and depths, series connections  |
+| `borehole_capacity.py`  | Borehole heat capacity, short-time response, fluid transit     |
 | `weather.py`            | Outdoor air temperature & weather utilities                    |
 | `dhw.py`                | Domestic hot water demand profiles                             |
 | `cop.py`                | COP correlations                                               |

@@ -54,8 +54,18 @@ def test_rectangle_through_attach_reproduces_the_default_model():
     kwargs = response.model_kwargs()
     assert (kwargs["N_1"], kwargs["N_2"], kwargs["H_b"]) == (4, 1, 150.0)
     assert kwargs["rho_s"] * kwargs["c_s"] == pytest.approx(RHO_S * C_S)
+    # The models' default is the dynamic borehole, and attach keeps the model's choice.
     model = _boiler(**kwargs)
-    assert response.attach(model) is response.g
+    g = response.attach(model)
+    assert isinstance(g, DynamicGFunction) and g.field is response.g
+    assert model.borehole_dynamics == reference.borehole_dynamics == "transit"
+    out_ref, out = _run(reference), _run(model)
+    for column in ("T_bhe [°C]", "T_bhe_f_out [°C]", "Q_bhe [W]", "E_cmp [W]"):
+        np.testing.assert_allclose(out[column].to_numpy(), out_ref[column].to_numpy(), rtol=1e-6, atol=1e-6)
+    # The same with the steady borehole on both sides.
+    reference = _boiler(N_1=2, N_2=2, B=6.0, H_b=150.0, ground_flow_ref_lpm=48.0, borehole_dynamics=False)
+    model = _boiler(**kwargs, borehole_dynamics=False)
+    assert response.attach(model) is response.g and model.borehole_dynamics == "off"
     out_ref, out = _run(reference), _run(model)
     for column in ("T_bhe [°C]", "T_bhe_f_out [°C]", "Q_bhe [W]", "E_cmp [W]"):
         np.testing.assert_allclose(out[column].to_numpy(), out_ref[column].to_numpy(), rtol=1e-6, atol=1e-6)
@@ -65,7 +75,7 @@ def test_irregular_field_drives_the_boiler(irregular):
     model = _boiler(**irregular.model_kwargs())
     assert model.n_boreholes == 3 and model.total_borehole_length == pytest.approx(450.0)
     assert model.R_b == irregular.R_b
-    irregular.attach(model)
+    assert irregular.attach(model, borehole_dynamics=False) is irregular.g
     assert irregular.boundary_condition == "MIFT"
     out = _run(model)
     # The result columns are the field response for the loads the model reports.
@@ -86,8 +96,13 @@ def test_attach_with_borehole_dynamics(irregular):
     assert g.section.steady_resistance == pytest.approx(irregular.R_b, rel=1e-12)
     # Three parallel boreholes of mean depth 150 m sharing 60 L/min: 20 L/min each.
     assert g.transit_time == pytest.approx(g.section.C_f * 150.0 / (_flow(20.0) * 4186.0), rel=2e-3)
+    assert model.borehole_dynamics == "transit"
     steady = _boiler(**irregular.model_kwargs())
-    irregular.attach(steady)
+    irregular.attach(steady, borehole_dynamics=False)
+    assert steady.borehole_dynamics == "off"
+    # A model constructed with the steady borehole keeps it through attach.
+    kept = _boiler(**irregular.model_kwargs(), borehole_dynamics=False)
+    assert irregular.attach(kept) is irregular.g and kept.borehole_dynamics == "off"
     out_s, out_d = _run(steady), _run(model)
     on = out_s["hp_is_on"].astype(bool).to_numpy()
     first = int(np.flatnonzero(on)[0])
@@ -167,8 +182,10 @@ def test_space_conditioning_model_takes_a_field(irregular):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         model = GroundSourceHeatPump(**irregular.model_kwargs())
-    assert irregular.attach(model) is irregular.g
-    assert model._gfunc_interp is irregular.g
+    g = irregular.attach(model)
+    assert isinstance(g, DynamicGFunction) and g.field is irregular.g and model._gfunc_interp is g
+    assert irregular.attach(model, borehole_dynamics=False) is irregular.g
+    assert model._gfunc_interp is irregular.g and model.borehole_dynamics == "off"
 
 
 def test_dynamic_response_follows_pipe_and_circuits():

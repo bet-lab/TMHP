@@ -111,7 +111,12 @@ Source-side mechanics
 =====================
 
 Same g-function-based borehole as :doc:`gshpb`. See that page for the
-detailed mechanic and the g-function figure.
+detailed mechanic and the g-function figure. As there, the borehole is
+dynamic by default (heat capacity of fluid, pipe and grout, fluid transit;
+``borehole_dynamics=False`` gives the steady borehole, see
+:doc:`ground-response`): with 20 min on / 40 min off the fluid entering the
+heat pump is 2.0 K warmer in heating and 3.4 K cooler in cooling than the
+steady borehole gives, and ``T_bhe [°C]`` is the physical borehole wall.
 
 In ``analyze_dynamic`` the ground fluid is closed inside each step: the
 borehole wall of step ``n`` is the step mean of its response to every load

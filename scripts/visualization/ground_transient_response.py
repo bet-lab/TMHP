@@ -11,8 +11,8 @@ Two figures for ``docs/source/models/ground-response.rst``:
 
 ``ground_cycling_outlet.svg``
     Borehole outlet temperature of ``GroundSourceHeatPumpBoiler`` running
-    10 minutes on / 20 minutes off, with and without
-    ``enable_borehole_dynamics``.
+    10 minutes on / 20 minutes off, with the steady borehole
+    (``borehole_dynamics=False``) and with the dynamic one (the default).
 
 Default 8 kW GSHPB borehole (200 m, r_b 80 mm, DN32 single U-tube) at 24 L/min.
 """
@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from tmhp import GroundSourceHeatPumpBoiler
-from tmhp.borehole_capacity import cylinder_source_wall, enable_borehole_dynamics
+from tmhp.borehole_capacity import cylinder_source_wall
 from tmhp.constants import c_w, rho_w
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -38,17 +38,16 @@ Q_LINE = 27.0  # W/m, extraction per metre of borehole
 # "Steady" is the inside of the borehole (a resistance, no heat capacity); the
 # ground is transient in both models.
 FLOW_LPM = 24.0  # L/min through the borehole (the 8 kW default is 28.7)
-LABEL_STEADY = r"default: $R_b$ + line-source $g$"
-LABEL_DYNAMIC = "with borehole dynamics"
+LABEL_STEADY = r"steady: $R_b$ + line-source $g$"
+LABEL_DYNAMIC = "default: with borehole dynamics"
 ON_MIN, OFF_MIN = 10, 20
 
 
 def _models(**kwargs) -> tuple[GroundSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler]:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        steady = GroundSourceHeatPumpBoiler(ground_flow_ref_lpm=FLOW_LPM, **kwargs)
-        dynamic = GroundSourceHeatPumpBoiler(ground_flow_ref_lpm=FLOW_LPM, **kwargs)
-    enable_borehole_dynamics(dynamic)
+        steady = GroundSourceHeatPumpBoiler(ground_flow_ref_lpm=FLOW_LPM, borehole_dynamics=False, **kwargs)
+        dynamic = GroundSourceHeatPumpBoiler(ground_flow_ref_lpm=FLOW_LPM, borehole_dynamics=True, **kwargs)
     return steady, dynamic
 
 

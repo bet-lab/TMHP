@@ -11,12 +11,16 @@ from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler
 from tmhp.borefield import BoreField, FieldGroundResponse
 from tmhp.borehole import BoreholePipe
 from tmhp.borehole_capacity import DynamicGFunction, enable_borehole_dynamics
-from tmhp.constants import rho_w
+from tmhp.constants import c_w, k_w, mu_w, rho_w
 from tmhp.ground_coupling import AggregateGFunctionCoupler
+from tmhp.source_fluid import SourceFluid
 
 K_S, C_S, RHO_S = 2.0, 800.0, 2000.0
 ALPHA_S = K_S / (C_S * RHO_S)
 T_MAX = 30 * 86400.0
+
+#: Water at its 20 °C viscosity everywhere, the water FieldGroundResponse assumes (mu_f = mu_w).
+WATER_20C = SourceFluid("water", 0.0, rho_w, c_w, mu_w, k_w)
 
 
 def _flow(lpm: float) -> float:
@@ -47,8 +51,9 @@ def irregular() -> FieldGroundResponse:
 
 def test_rectangle_through_attach_reproduces_the_default_model():
     """A 2 x 2 rectangle set up as a field gives the run the rectangular arguments give."""
-    # FieldGroundResponse evaluates the borehole resistance for water: compare like with like.
-    reference = _boiler(N_1=2, N_2=2, B=6.0, H_b=150.0, ground_flow_ref_lpm=48.0, source_fluid="water")
+    # FieldGroundResponse evaluates the borehole resistance for water at mu_w (20 °C):
+    # compare like with like (source_fluid="water" takes it at 0 °C).
+    reference = _boiler(N_1=2, N_2=2, B=6.0, H_b=150.0, ground_flow_ref_lpm=48.0, source_fluid=WATER_20C)
     response = _response(BoreField.rectangle(2, 2, 6.0, 150.0), 48.0)
     assert response.boundary_condition == "UBWT"
     assert response.R_b == pytest.approx(reference.R_b, rel=1e-9)
@@ -56,7 +61,7 @@ def test_rectangle_through_attach_reproduces_the_default_model():
     assert (kwargs["N_1"], kwargs["N_2"], kwargs["H_b"]) == (4, 1, 150.0)
     assert kwargs["rho_s"] * kwargs["c_s"] == pytest.approx(RHO_S * C_S)
     # The models' default is the dynamic borehole, and attach keeps the model's choice.
-    model = _boiler(**kwargs, source_fluid="water")
+    model = _boiler(**kwargs, source_fluid=WATER_20C)
     g = response.attach(model)
     assert isinstance(g, DynamicGFunction) and g.field is response.g
     assert model.borehole_dynamics == reference.borehole_dynamics == "transit"
@@ -65,9 +70,9 @@ def test_rectangle_through_attach_reproduces_the_default_model():
         np.testing.assert_allclose(out[column].to_numpy(), out_ref[column].to_numpy(), rtol=1e-6, atol=1e-6)
     # The same with the steady borehole on both sides.
     reference = _boiler(
-        N_1=2, N_2=2, B=6.0, H_b=150.0, ground_flow_ref_lpm=48.0, borehole_dynamics=False, source_fluid="water"
+        N_1=2, N_2=2, B=6.0, H_b=150.0, ground_flow_ref_lpm=48.0, borehole_dynamics=False, source_fluid=WATER_20C
     )
-    model = _boiler(**kwargs, borehole_dynamics=False, source_fluid="water")
+    model = _boiler(**kwargs, borehole_dynamics=False, source_fluid=WATER_20C)
     assert response.attach(model) is response.g and model.borehole_dynamics == "off"
     out_ref, out = _run(reference), _run(model)
     for column in ("T_bhe [°C]", "T_bhe_f_out [°C]", "Q_bhe [W]", "E_cmp [W]"):

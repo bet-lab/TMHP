@@ -21,7 +21,8 @@ import numpy as np
 from . import calc_util as cu
 from . import g_function as gf
 from ._validation import validate_ctor, validate_steady
-from .constants import c_a, c_w, k_w, rho_a, rho_w
+from .air_properties import air_density
+from .constants import c_a, c_w, k_w, rho_a, rho_w, water_viscosity
 from .cop import (
     GSHP_EQFIT_COP_REF,
     GSHP_EQFIT_DOMAIN,
@@ -126,7 +127,8 @@ class GroundSourceHeatPumpEmpirical:
 
         # Calculate Effective Borehole Thermal Resistance R_b*
         # Single U-tube (series): each pipe leg carries the full borehole flow.
-        # Using water properties at approx 15-20 degC (mu_f = 0.00114 Pa·s)
+        # Water properties; the viscosity at the initial ground temperature,
+        # around which the loop runs (1.14 mPa s at the default 15 °C).
         m_flow_borehole = self.dV_f * cu.L2m3 * cu.s2m * rho_f  # Total borehole mass flow [kg/s]
         self.R_b = gf.calc_borehole_thermal_resistance(
             k_s=self.k_g,
@@ -139,13 +141,16 @@ class GroundSourceHeatPumpEmpirical:
             H_b=self.H_b,
             m_flow_borehole=m_flow_borehole,
             rho_f=rho_f,
-            mu_f=0.00114,
+            mu_f=water_viscosity(self.T_g),
             cp_f=c_f,
             k_f=k_w,
         )
 
         # Fan parameters (VSD model)
         _hp_capacity = max(self.Q_rated_cooling, self.Q_rated_heating)
+        # Design volume flow: the rated capacity at a 10 K air temperature
+        # change in standard air (15 °C). Operating flows below are volumes
+        # of room air at its own density.
         self.dV_iu_fan_design = _hp_capacity / (rho_a * c_a * 10.0)
         self.E_iu_fan_design = self.dV_iu_fan_design * self.dP_iu_fan_design / self.eta_iu_fan_design
         self.vsd_coeffs_iu = SINGLE_ZONE_VAV_COEFFICIENTS.copy()
@@ -365,7 +370,10 @@ class GroundSourceHeatPumpEmpirical:
 
         # Indoor air flow (VAV surrogate: 10 K air temperature change)
         self.T_a_iu_out_K = self.T_a_room_K + dT_a_iu
-        self.dV_a = Q_served / (c_a * rho_a * abs(dT_a_iu)) if running else 0.0
+        # The fan draws room air: the mass flow that carries Q_served across the
+        # 10 K change is that volume at the density of the entering air.
+        self.rho_a_iu = float(air_density(cu.K2C(self.T_a_room_K)))
+        self.dV_a = Q_served / (c_a * self.rho_a_iu * abs(dT_a_iu)) if running else 0.0
 
         # ---------------------------------------------------------------------
         # C. Store the finalized load to history for the next timestep
@@ -406,8 +414,8 @@ class GroundSourceHeatPumpEmpirical:
         # -------------------------------------------------------------
         # Exergy of air streams
         # -------------------------------------------------------------
-        self.X_a_iu_in = get_thermal_exergy(c_a, rho_a, self.dV_a, self.T_a_iu_in_K, self.T0_K)
-        self.X_a_iu_out = get_thermal_exergy(c_a, rho_a, self.dV_a, self.T_a_iu_out_K, self.T0_K)
+        self.X_a_iu_in = get_thermal_exergy(c_a, self.rho_a_iu, self.dV_a, self.T_a_iu_in_K, self.T0_K)
+        self.X_a_iu_out = get_thermal_exergy(c_a, self.rho_a_iu, self.dV_a, self.T_a_iu_out_K, self.T0_K)
 
         # -------------------------------------------------------------
         # Exergy of refrigerant streams

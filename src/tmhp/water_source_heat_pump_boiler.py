@@ -90,6 +90,7 @@ from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
 from .source_fluid import (
     SOURCE_FLUID_FREEZING,
+    WATER_LOOP_DESIGN_INLET_C,
     WATER_LOOP_FLUID_DEFAULT,
     SourceFluid,
     limit_duty_to_source_freeze,
@@ -426,8 +427,13 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.E_pmp = E_pmp
         self.dV_b_f_m3s = dV_b_f_lpm * cu.L2m3 / cu.m2s
         self.v_river = v_river
+        #: Loop-liquid viscosity of the source-side Reynolds number [Pa s], at
+        #: the design liquid temperature (heating rating inlet, 10 °C; see
+        #: :mod:`tmhp.source_fluid`).
+        self.mu_bhe_f_design: float = fluid.viscosity(WATER_LOOP_DESIGN_INLET_C)
+        mu_design = self.mu_bhe_f_design
         if flow_defaulted:
-            warn_if_laminar(self.dV_b_f_m3s, max(1, N_1 * N_2), r_in, "WaterSourceHeatPumpBoiler", fluid.rho, fluid.mu)
+            warn_if_laminar(self.dV_b_f_m3s, max(1, N_1 * N_2), r_in, "WaterSourceHeatPumpBoiler", fluid.rho, mu_design)
 
         if R_b is None:
             from .g_function import calc_submerged_coil_thermal_resistance
@@ -443,7 +449,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 k_p=k_p,
                 m_flow_pipe=m_flow_pipe,
                 rho_f=fluid.rho,
-                mu_f=fluid.mu,
+                mu_f=mu_design,
                 cp_f=fluid.cp,
                 k_f=fluid.k,
                 v_river=self.v_river,

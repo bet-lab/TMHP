@@ -86,7 +86,7 @@ delivers exactly ``hp_capacity`` there, whatever the refrigerant.
        print(f"{name:6s} {row['failure_reason']:5s} COP {row['cop_sys [-]']:.2f}")
 
 Each call returns a running point (``failure_reason == "none"``) with a system
-COP of 4.74, 4.88, 3.44, 3.66 and 3.72 respectively. The keys of the result
+COP of 4.74, 4.86, 3.44, 3.66 and 3.72 respectively. The keys of the result
 are listed in :doc:`/concepts/result-keys`. A time series needs the same
 quantities as schedules; see :doc:`first-dynamic-simulation`.
 

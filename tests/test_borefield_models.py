@@ -146,6 +146,9 @@ def test_attach_refuses_what_the_models_cannot_represent(irregular):
         field, k_s=K_S, alpha_s=ALPHA_S, m_flow_total=_flow(48.0), t_max_s=T_MAX, mu_f=2.0e-3, k_f=0.5
     )
     viscous.attach(_boiler(**viscous.model_kwargs()))
+    # ... unless the model also computes the pump power, which uses water's viscosity.
+    with pytest.raises(ValueError, match="viscosity of water"):
+        viscous.attach(_boiler(hydraulic_pump=True, **viscous.model_kwargs()))
     # Pump hydraulics: fine for equal parallel single U-tubes, refused otherwise.
     parallel = _response(field, 48.0)
     parallel.attach(_boiler(hydraulic_pump=True, **parallel.model_kwargs()))

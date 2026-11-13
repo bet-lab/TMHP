@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-13T19:37:23+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T00:12:42+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -392,9 +392,12 @@ duty at any approach temperature in the search band.</p></td>
 </section>
 <section id="a-request-above-a-limit-boilers">
 <h3>A request above a limit (boilers)<a class="headerlink" href="#a-request-above-a-limit-boilers" title="Link to this heading">¶</a></h3>
-<p>A boiler is asked for a fixed duty. An inverter unit asked for more than an
+<p>An inverter unit asked for more than an
 operating limit allows does not stop: its controller lowers the compressor
-frequency until the limit holds. So when the requested duty has no operating
+frequency until the limit holds. This applies to the boilers (asked for a
+fixed duty) and to <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code>, which reports the same
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names plus <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> for a coil at its largest airflow
+and the widest approach the search admits. So when the requested duty has no operating
 point for one of the reasons below and a smaller duty has one,
 <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> and each dynamic step return the <strong>largest duty that runs</strong>
 (found to 1 % of the request), not a failure:</p>
@@ -710,7 +713,7 @@ and WSHPB. See the docstrings under:</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 13, 2026
+  Last updated Nov 14, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

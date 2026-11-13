@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-11-13T23:57:16+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T00:12:42+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -393,12 +393,74 @@ found with <code class="docutils literal notranslate"><span class="pre">Cd_cycli
 <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> is the part of the request that is not delivered.
 <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (signed, as asked) and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> are on every row, so a
 schedule’s unmet energy is the sum of <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> times the time step.</p>
-<p>What stops the unit is in <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code>. <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> is a
-compressor at <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>. <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> means the air side, the
-pressure-ratio envelope or the approach-temperature search domain ran out
-first; the compressor then runs below its ceiling, and the row is the
-least-power point at that delivery rather than one that reaches the speed
-ceiling by starving a coil of air.</p>
+<p>The ceiling is the unit running <strong>flat out</strong>: the compressor at <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> and
+both fans at their largest airflow. A coil carries a duty with the smallest
+temperature difference at its largest airflow, so this is the least lift — the
+smallest pressure ratio and the coolest discharge — at which that speed’s duty
+is delivered; if this point is outside the compressor envelope, so is every
+other approach pair delivering the duty. It is solved directly (both approach
+temperatures as a fixed point, about twenty cycle evaluations), not searched
+for. Where it is outside the envelope, or beyond what a coil carries inside
+the approach bounds, a unit’s controller holds the compressor back, and the
+ceiling is the largest duty whose least-lift point is an operating point,
+bisected to 0.1 %.</p>
+<p>What stops the unit is in <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code>, with the names the
+water-heating models use (<a class="reference internal" href="../concepts/failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>):</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p></th>
+<th class="head"><p>What the next larger duty runs into</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code></p></td>
+<td><p>The speed range: the compressor is at <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>, with the suction already as wet as the
+discharge-temperature control allows.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code></p></td>
+<td><p>The floor of the shipped isentropic fit outside its data.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code></p></td>
+<td><p>A coil at its largest airflow and the widest approach the search
+admits (<code class="docutils literal notranslate"><span class="pre">dT_approach_bounds</span></code>). The compressor is clear of its own
+limits and the other fan still has a range, so the row is the
+least-power point at that duty.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The same holds below the ceiling. The envelope is not monotone in the duty: at
+mid speed the compressor is less efficient and its discharge hotter than flat
+out, so a duty can be refused although a larger one runs (default unit, −25 °C
+outdoor / 24 °C room: 2.3 kW has no operating point, 3.6 kW has). Such a
+request runs at the largest duty below it that has one, again with
+<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and the binding that names the limit, as the
+water-heating models do. A request is switched off (<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>) only
+when no smaller duty runs either, and the reason is then the limit its own
+least-lift point breaks — not the one an arbitrary probe of the search
+happened to break.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The ceiling is not the largest heat any pair of approach temperatures
+delivers at <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>. An adiabatic compressor turns its losses into
+delivered heat, so starving a coil of air (a higher pressure ratio, a lower
+isentropic efficiency) can raise the heating duty by up to a tenth while the
+COP falls by up to a quarter; no unit runs its fans that way. Earlier
+versions ranked capacity-limited candidates by delivered heat and returned
+such states — the default R290 unit at −15 °C / 18 °C with the outdoor fan at
+18 % of its airflow and a COP of 1.9 against 2.8.</p>
+</div>
 <p>What the cycling model does not contain: the indoor fan is taken to run only
 while heat is delivered, no standby or crankcase power is added while the unit is off,
 and a start is not resolved in time — the degradation is the standard’s
@@ -407,7 +469,7 @@ seasonal-average figure, not a transient simulation.</p>
 <section id="frost-and-defrost">
 <h2>Frost and defrost<a class="headerlink" href="#frost-and-defrost" title="Link to this heading">¶</a></h2>
 <p>In heating the outdoor coil runs below the outdoor air. Below about 5 °C it is
-below freezing and colder than the air’s dew point, so frost builds on it,
+below freezing and colder than the air’s dew point, so frost begins to build on it,
 capacity and power fall, and the unit periodically stops heating to melt the
 frost. A catalogue figure at 2 °C or −7 °C is the mean over that; the
 frost-free cycle the model solves is not.</p>
@@ -426,7 +488,19 @@ t_{frac} = \frac{1}{1 + 0.01446/\Delta\omega}\]</div>
 \[\text{capacity multiplier} = 0.875\,(1 - t_{frac}), \qquad
 \text{power multiplier} = 0.954\,(1 - t_{frac})\]</div>
 </div>
-<p>and no correction above an outdoor temperature of 5 °C. A request <code class="docutils literal notranslate"><span class="pre">Q</span></code> has to
+<p>and no correction above an outdoor temperature of 5 °C. EnergyPlus switches
+the whole correction on at that limit; here it grows from nothing at 5 °C to
+its full size at 2 °C, the frosting rating condition of EN 14511 (A2), as the
+share <span class="math notranslate nohighlight">\(w\)</span> of the runtime the coil frosts:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[w = \min\left(1,\ \frac{5 - T_{out}}{3}\right), \qquad
+t_{frac} \leftarrow w\,t_{frac}, \qquad
+\text{multiplier} \leftarrow 1 - w\,(1 - \text{multiplier})\]</div>
+</div>
+<p>— the mean of a unit that frosts for that share and runs frost-free for the
+rest. At and below 2 °C and above 5 °C nothing differs from EnergyPlus. A
+request <code class="docutils literal notranslate"><span class="pre">Q</span></code> has to
 be met by the mean, so the cycle is solved frost-free at
 <code class="docutils literal notranslate"><span class="pre">(Q</span> <span class="pre">+</span> <span class="pre">Q_defrost)</span> <span class="pre">/</span> <span class="pre">capacity</span> <span class="pre">multiplier</span></code> and the row is then averaged:</p>
 <ul class="simple">
@@ -466,23 +540,29 @@ times the delivered-heat factor, and state points are that cycle’s.</p></li>
 <tbody>
 <tr class="row-even"><td><p>5</p></td>
 <td><p>−4.5</p></td>
-<td><p>0.119</p></td>
-<td><p>0.771</p></td>
-<td><p>0.841</p></td>
+<td><p>0</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
 </tr>
-<tr class="row-odd"><td><p>2</p></td>
+<tr class="row-odd"><td><p>3.5</p></td>
+<td><p>−5.7</p></td>
+<td><p>0.054</p></td>
+<td><p>0.890</p></td>
+<td><p>0.925</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
 <td><p>−6.9</p></td>
 <td><p>0.098</p></td>
 <td><p>0.789</p></td>
 <td><p>0.860</p></td>
 </tr>
-<tr class="row-even"><td><p>−7</p></td>
+<tr class="row-odd"><td><p>−7</p></td>
 <td><p>−14.3</p></td>
 <td><p>0.044</p></td>
 <td><p>0.836</p></td>
 <td><p>0.912</p></td>
 </tr>
-<tr class="row-odd"><td><p>−15</p></td>
+<tr class="row-even"><td><p>−15</p></td>
 <td><p>−20.9</p></td>
 <td><p>0.019</p></td>
 <td><p>0.859</p></td>
@@ -495,17 +575,25 @@ times the delivered-heat factor, and state points are that cycle’s.</p></li>
 and <code class="docutils literal notranslate"><span class="pre">analyze_dynamic(...,</span> <span class="pre">RH_out_schedule=...)</span></code> take a relative humidity as a
 fraction. Without it the model uses 84 %, the humidity of the EN 14511 rating
 condition A2 (dry bulb 2 °C, wet bulb 1 °C). <code class="docutils literal notranslate"><span class="pre">defrost=None</span></code> switches the
-correction off, and a <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.DefrostModel</span></code> sets the outdoor limit and the
-default humidity.</p>
-<p>Two things differ from EnergyPlus, both so that nothing has to be entered.
-EnergyPlus asks for a curve of defrost power; here the compressor draws, while
-it defrosts, what it draws while it heats. And the coil temperature is
-EnergyPlus’ correlation rather than the evaporating temperature this model
-solves — the constants were fitted with that estimate.</p>
-<p>What it leaves out: the correction is a step at 5 °C, where the cost is at its
-largest (about a fifth of the COP), because that is how the source model is
-written; and the room is not cooled in time during a defrost — its effect is in
-the mean. <code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code> reports the same mean
+correction off, and a <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.DefrostModel</span></code> sets the outdoor limit, the
+width of the transition below it and the default humidity.</p>
+<p>Three things differ from EnergyPlus. The transition above replaces a switch:
+in EnergyPlus the correction is in full at 5.0 °C and absent at 5.1 °C, where
+its cost is at its largest, so the COP of the default unit stepped from 3.49 to
+4.64 between 5.0 and 5.5 °C. The 5 °C limit is a setting of the defrost
+controller, not the temperature at which a coil frosts over, and a coil near
+freezing frosts on part of its surface and for part of the time.
+<code class="docutils literal notranslate"><span class="pre">DefrostModel(transition_K=0)</span></code> restores the switch. The other two are there
+so that nothing has to be entered: EnergyPlus asks for a curve of defrost
+power, and here the compressor draws, while it defrosts, what it draws while it
+heats; and the coil temperature is EnergyPlus’ correlation rather than the
+evaporating temperature this model solves — the constants were fitted with
+that estimate.</p>
+<p>What it leaves out: dry air is not frost-free in the source model (the
+frosted-coil multipliers 0.875 and 0.954 apply whenever the outdoor air is
+below the limit, whatever its humidity), and that is kept; and the room is not
+cooled in time during a defrost — its effect is in the mean.
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code> reports the same mean
 ceiling, with the frost-free one as <code class="docutils literal notranslate"><span class="pre">Q_max_frost_free</span> <span class="pre">[W]</span></code>.</p>
 </section>
 <section id="cop-boundary">
@@ -581,11 +669,13 @@ user-specified superheat / subcool margins.  A bounded
 2-D optimiser minimises total electrical input
 (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">+</span> <span class="pre">E_iu_fan</span> <span class="pre">+</span> <span class="pre">E_ou_fan</span></code>) over the evaporator
 and condenser approach temperatures.</p>
-<p>When the requested duty exceeds what the compressor can deliver at
-<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>, the search switches to maximising delivered capacity — see
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">_optimize_operation()</span></code>. Such an hour is reported with
-<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and a <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> below the request;
-the difference is unmet load (<code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code>), not a solver failure.</p>
+<p>When the requested duty has no operating point – the compressor runs
+out of speed, or the compressor envelope or a coil binds first – the unit
+runs at its ceiling: flat out (<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>, both fans at their largest
+airflow), or at the largest duty the envelope admits (<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code></a>).
+Such an hour is reported with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>, a
+<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> below the request and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the
+limit; the difference is unmet load (<code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code>), not a solver failure.</p>
 <p>When the request is below what the unit delivers at its minimum compressor
 speed, the compressor cycles on and off. Such an hour is reported with
 <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code> as the mean over the cycling period: the
@@ -893,20 +983,32 @@ steady state). Set by the constructor.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity">
-<span class="sig-name descname"><span class="pre">max_capacity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">13</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.005</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.max_capacity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">max_capacity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.max_capacity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="Link to this definition">¶</a></dt>
 <dd><p>Largest duty the unit can actually deliver at this condition.</p>
 <p>Nameplate capacity is a label attached to one rating point, not a
 ceiling. A real unit delivers more than nameplate when the outdoor air
 is mild and less when it is severe, because the limit is set by
-whichever of the compressor speed range, the pressure-ratio envelope and
+whichever of the compressor speed range, the compressor envelope and
 the air-side heat exchangers binds first. Clipping a load schedule at
 nameplate therefore errs in both directions at once. This returns the
 ceiling the model itself implies, so a schedule can be clipped against
 the machine rather than against its label and the shortfall reported as
 a result.</p>
-<p>A ladder of trial duties brackets the ceiling and a bisection closes on
-it, each duty tested against the whole approach-temperature grid so the
-answer does not depend on a search path.</p>
+<p>The ceiling is the unit running flat out: the compressor at
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code> and both fans at their largest airflow, which is the least
+lift at which that speed’s duty is delivered
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">_largest_airflow_point()</span></code>). Where that point is outside the
+compressor envelope (pressure ratio, discharge temperature even under
+its control, the efficiency floor) or beyond what a coil carries
+inside the approach bounds, the ceiling is the largest duty whose
+least-lift point is an operating point – a unit’s controller holds
+the compressor back to it – found by bisection on the duty.</p>
+<p>The ceiling is not the largest heat any approach pair delivers at
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>. An adiabatic compressor turns its losses into delivered
+heat, so starving the outdoor coil of air (a lower evaporating
+pressure, a higher pressure ratio, a lower isentropic efficiency) can
+raise the heating duty a little while the COP collapses; no unit runs
+its fans that way.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>The answer is only as trustworthy as the compressor correlations at
@@ -922,9 +1024,12 @@ validation actually reached.</p>
 <li><p><strong>T0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Outdoor air temperature [°C].</p></li>
 <li><p><strong>T_a_room</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Room air temperature [°C]. Uses the constructor default if None.</p></li>
 <li><p><strong>mode</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – <code class="docutils literal notranslate"><span class="pre">&quot;heating&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;cooling&quot;</span></code>.</p></li>
-<li><p><strong>grid_points</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Resolution of the approach-temperature sweep on each axis.</p></li>
-<li><p><strong>rel_tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Bisection stops once the bracket is this narrow relative to the
-ceiling.</p></li>
+<li><p><strong>grid_points</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Unused. The ceiling was once swept on a grid of approach
+temperatures of this resolution; it is solved now. Accepted so
+that existing calls keep running.</p></li>
+<li><p><strong>rel_tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Relative width at which the bisection on the duty stops when the
+unit cannot run flat out. A flat-out ceiling and one set by the
+indoor coil are exact.</p></li>
 <li><p><strong>RH_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Outdoor relative humidity as a fraction (0-1) for the frost
 correction in heating. None: the frost model’s default.</p></li>
 </ul>
@@ -932,10 +1037,17 @@ correction in heating. None: the frost model’s default.</p></li>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><p><code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> (0.0 when the unit cannot run at all here), the
 approach temperatures there, the electrical input and system COP at
-that point, and <code class="docutils literal notranslate"><span class="pre">binding</span></code> naming what stopped it: <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code>
-when the speed range ran out, <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> when the pressure-ratio
-envelope or the air side did, and <code class="docutils literal notranslate"><span class="pre">&quot;unbounded&quot;</span></code> when the ladder
-never ran out, which makes the figure a lower bound.</p>
+that point, and <code class="docutils literal notranslate"><span class="pre">binding</span></code> naming what stopped it:
+<code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> (the speed range), <code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code> (the
+compressor envelope: the next larger duty exceeds <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>,
+<code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> under its control, or falls below the efficiency
+floor), <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> (a coil at its largest airflow and the widest
+approach the search admits), <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code> (the next larger
+duty has no cycle the model can represent – a condensing
+temperature at the critical point; <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a> does not
+settle on that edge) and <code class="docutils literal notranslate"><span class="pre">&quot;infeasible&quot;</span></code> when no duty has an
+operating point.</p>
 <p>In heating with a frosting outdoor coil the ceiling, the input and
 the COP are the mean over frosting and defrost – what
 <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a> delivers there – and
@@ -974,13 +1086,14 @@ correction in heating. None: the frost model’s default (0.84).</p></li>
 and the SciPy optimiser both succeeded.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_reason&quot;</span></code> (str) — one of <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>
 (the refrigerant cycle itself was infeasible), <code class="docutils literal notranslate"><span class="pre">&quot;pr_above_max&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code> (no duty keeps the discharge
-temperature within <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>; a request above that limit
-that a smaller duty meets returns the ceiling with
-<code class="docutils literal notranslate"><span class="pre">capacity_binding=&quot;discharge_temperature&quot;</span></code>),
-<code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code> (cycle OK but the HX residual exceeded
-tolerance), or <code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code> (SciPy reported
-<code class="docutils literal notranslate"><span class="pre">success=False</span></code>).</p></li>
+<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;eta_isen_below_min&quot;</span></code> (the
+compressor envelope refuses the request where it is easiest to
+meet – at its least-lift point – and no smaller duty runs
+either; a request that a smaller duty meets returns that duty
+with <code class="docutils literal notranslate"><span class="pre">capacity_clamped=&quot;max&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming
+the limit), <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code> (cycle OK but a coil cannot
+carry the duty inside the approach bounds), or
+<code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code> (SciPy reported <code class="docutils literal notranslate"><span class="pre">success=False</span></code>).</p></li>
 </ul>
 <p>ASHP triggers an off-mode fallback for any of the non-<code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>
 reasons — <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code> will be 0 and the COP keys will be NaN
@@ -1000,8 +1113,12 @@ compressor and outdoor-fan power the running values times
 degradation; temperatures, pressures and speed are those of
 the running machine (<a class="reference internal" href="../api/support/simulation.html#module-tmhp.cycling" title="tmhp.cycling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.cycling</span></code></a>). A request above
 the ceiling (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>) adds <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>
-and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code>.</p>
-<p>Heating at or below the frost model’s outdoor limit (5 degC) is
+and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code>; see
+<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code></a>).</p>
+<p>Heating below the frost model’s outdoor limit (5 degC; the
+correction grows to its full size at 2 degC) is
 the mean over frosting and defrost (<a class="reference internal" href="../api/support/simulation.html#module-tmhp.defrost" title="tmhp.defrost"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.defrost</span></code></a>):
 <code class="docutils literal notranslate"><span class="pre">defrost_fraction</span> <span class="pre">[-]</span></code> is the share of the runtime spent
 defrosting, <code class="docutils literal notranslate"><span class="pre">frost_capacity_factor</span> <span class="pre">[-]</span></code> and
@@ -1077,7 +1194,7 @@ with adaptations for indoor-unit air exchange.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 13, 2026
+  Last updated Nov 14, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

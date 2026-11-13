@@ -6,8 +6,14 @@ import numpy as np
 import pytest
 
 from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler
-from tmhp.constants import c_w, rho_w
+from tmhp.constants import c_w, k_w, mu_w, rho_w
 from tmhp.ground_flow_control import failed_ground_point, select_ground_flow
+from tmhp.source_fluid import SourceFluid
+
+#: Water as these values were recorded: its 20 °C viscosity (``mu_w``) at every
+#: temperature. ``source_fluid="water"`` now takes the viscosity of the source-side
+#: Reynolds number at the loop's design temperature (0 °C for a ground loop, #96).
+WATER_AS_RECORDED = SourceFluid("water", 0.0, rho_w, c_w, mu_w, k_w)
 
 
 def _model(cls, **overrides):
@@ -28,7 +34,7 @@ def _model(cls, **overrides):
         # loss with the properties of water (tmhp.ground_flow_control,
         # tmhp.ground_loop): its balances and the recorded regressions are
         # those of a water loop, not of the default 25 % ethylene glycol.
-        source_fluid="water",
+        source_fluid=WATER_AS_RECORDED,
         # A fixed machine (12 cm3/rev cannot rate 8 kW): pin the former
         # default rated speeds so the recorded regressions keep their inputs.
         rps_rated=60 if cls is GroundSourceHeatPump else 40,
@@ -134,7 +140,9 @@ def test_fan_power_changes_both_search_and_final_flow_selection():
 @pytest.mark.parametrize(
     "cls,expected",
     [
-        (GroundSourceHeatPump, (261.6148755000496, 91.50563034769912, 387.1576112468979)),
+        # GSHP: E_tot 387.158 W with the indoor coil on 15 °C standard air; the room
+        # air it draws is lighter, the fan moves 1.7 % more volume (#96).
+        (GroundSourceHeatPump, (261.6148755000496, 91.50563034769912, 387.75611746653277)),
         # GSHPB: 655.308 W / 746.814 W at commit 4197de8, with a 3 K suction
         # superheat on a 2.37 K evaporator approach (suction 0.6 K above the
         # entering ground fluid, #96 C11). The superheat is now capped at the

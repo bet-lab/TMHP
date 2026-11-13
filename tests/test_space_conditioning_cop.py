@@ -8,7 +8,7 @@ import pytest
 
 from tmhp import AirSourceHeatPump, GroundSourceHeatPump
 from tmhp.air_properties import air_density
-from tmhp.constants import c_a, rho_a
+from tmhp.constants import c_a
 
 
 @pytest.fixture(params=[AirSourceHeatPump, GroundSourceHeatPump])
@@ -20,12 +20,8 @@ def model(request):
 
 
 def indoor_air_density(row):
-    """Density the model takes for the indoor air [kg/m3].
-
-    The air-source model (the rows with an outdoor fan) takes the room air's
-    own density; the ground-source model is still on standard air.
-    """
-    return air_density(row["T_iu_a_in [°C]"]) if "E_ou_fan [W]" in row else rho_a
+    """Density the model takes for the indoor air [kg/m3]: the room air's own, in both models."""
+    return air_density(row["T_iu_a_in [°C]"])
 
 
 def check_delivery(row):

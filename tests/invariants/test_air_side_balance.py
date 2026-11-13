@@ -11,10 +11,11 @@ densities (or specific heats) were mixed inside a row.
 
 Density per family
 ------------------
-ASHP (both coils) and ASHPB (outdoor coil) take dry air at the coil inlet
-temperature (``tmhp.air_properties.air_density``). The GSHP indoor coil is
-still on standard air (``constants.rho_a``); its balance closes with that
-density, and the entry below changes with the model.
+Every air coil takes dry air at its inlet temperature
+(``tmhp.air_properties.air_density``): ASHP (both coils), ASHPB (outdoor coil)
+and the GSHP indoor coil. A coil still on standard air (``constants.rho_a``)
+leaves a residual of ``rho(T_in) / rho_a - 1`` here (GSHP at 18-26 °C room
+air: -1.0 to -3.7 %).
 
 Rows are continuous operation (``Cd_cycling=None``, ``defrost=None``): a row
 averaged over on/off cycling or frost averages the outdoor fan power with the
@@ -33,7 +34,7 @@ from dataclasses import dataclass
 import pytest
 
 from tmhp.air_properties import air_density, air_heat_capacity_rate
-from tmhp.constants import c_a, rho_a
+from tmhp.constants import c_a
 
 from ._families import FAMILIES, Result, SteadyCase, is_reported_running, num
 
@@ -56,10 +57,6 @@ class AirCoil:
     heated_in_heating: bool
 
 
-def _standard_air(_T_in_C: float) -> float:
-    return float(rho_a)
-
-
 OUTDOOR = AirCoil(
     "outdoor", "dV_ou_a [m3/s]", "T_ou_a_in [°C]", "T_ou_a_mid [°C]", "T_ou_a_out [°C]", "Q_ref_ou [W]",
     "E_ou_fan [W]", air_density, heated_in_heating=False,
@@ -68,17 +65,13 @@ INDOOR = AirCoil(
     "indoor", "dV_iu_a [m3/s]", "T_iu_a_in [°C]", "T_iu_a_mid [°C]", "T_iu_a_out [°C]", "Q_ref_iu [W]",
     "E_iu_fan [W]", air_density, heated_in_heating=True,
 )  # fmt: skip
-INDOOR_STANDARD_AIR = AirCoil(
-    "indoor", "dV_iu_a [m3/s]", "T_iu_a_in [°C]", "T_iu_a_mid [°C]", "T_iu_a_out [°C]", "Q_ref_iu [W]",
-    "E_iu_fan [W]", _standard_air, heated_in_heating=True,
-)  # fmt: skip
 
 COILS: dict[str, tuple[AirCoil, ...]] = {
     "ASHPB": (OUTDOOR,),
     "ASHP-heat": (OUTDOOR, INDOOR),
     "ASHP-cool": (OUTDOOR, INDOOR),
-    "GSHP-heat": (INDOOR_STANDARD_AIR,),
-    "GSHP-cool": (INDOOR_STANDARD_AIR,),
+    "GSHP-heat": (INDOOR,),
+    "GSHP-cool": (INDOOR,),
 }
 
 # family -> (T_source, T_demand, part load of hp_capacity); see _families for the meaning per family.
@@ -87,7 +80,7 @@ POINTS: dict[str, tuple[tuple[float, float, float], ...]] = {
     "ASHP-heat": ((-20.0, 20.0, 0.5), (-7.0, 20.0, 0.5), (7.0, 20.0, 0.75), (15.0, 22.0, 0.5)),
     "ASHP-cool": ((27.0, 25.0, 0.5), (27.0, 35.0, 0.75), (24.0, 43.0, 0.5)),
     "GSHP-heat": ((5.0, 18.0, 0.5), (5.0, 24.0, 0.75)),
-    "GSHP-cool": ((26.0, 20.0, 0.5),),
+    "GSHP-cool": ((26.0, 20.0, 0.5), (22.0, 30.0, 0.75)),
 }
 REFRIGERANT = "R32"
 
@@ -144,14 +137,25 @@ def test_air_side_balance_closes_within_a_row(family, T_source, T_demand, plr):
         assert abs(with_fan) <= BALANCE_RTOL, f"{name} coil + fan: air enthalpy off by {with_fan:.3e}"
 
 
-def test_reported_air_energy_flows_use_the_coil_mass_flow():
-    """``Q_a_iu_out - Q_a_iu_in`` of the ASHP is the indoor coil duty plus the indoor fan power."""
-    fam = FAMILIES["ASHP-heat"]
-    model = fam.build(REFRIGERANT, **_continuous_kwargs("ASHP-heat"))
-    case = SteadyCase(T_source=-7.0, T_demand=20.0, load_W=0.5 * float(model.hp_capacity))
-    r = fam.call(model, case)
+@pytest.mark.parametrize(
+    ("family", "T_source", "T_demand"), [("ASHP-heat", -7.0, 20.0), ("GSHP-heat", 5.0, 20.0), ("GSHP-cool", 26.0, 20.0)]
+)
+def test_reported_air_energy_flows_use_the_coil_mass_flow(family, T_source, T_demand):
+    """``Q_a_iu_out - Q_a_iu_in`` is the indoor coil duty plus the indoor fan power (ASHP, GSHP).
+
+    In cooling the refrigerant takes the duty from the air: the air leaves with
+    the fan power minus the coil duty.
+    """
+    fam = FAMILIES[family]
+    model = fam.build(REFRIGERANT, **_continuous_kwargs(family))
+    case = SteadyCase(T_source=T_source, T_demand=T_demand, load_W=0.5 * float(model.hp_capacity))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        r = fam.call(model, case)
+    assert is_reported_running(r), r.get("failure_reason")
     delivered = num(r, "Q_a_iu_out [W]") - num(r, "Q_a_iu_in [W]")
-    expected = num(r, "Q_ref_iu [W]") + num(r, "E_iu_fan [W]")
+    sign = 1.0 if fam.mode == "heating" else -1.0
+    expected = sign * num(r, "Q_ref_iu [W]") + num(r, "E_iu_fan [W]")
     assert delivered == pytest.approx(expected, rel=BALANCE_RTOL)
     C_air = air_heat_capacity_rate(num(r, "dV_iu_a [m3/s]"), num(r, "T_iu_a_in [°C]"))
     assert delivered == pytest.approx(C_air * (num(r, "T_iu_a_out [°C]") - num(r, "T_iu_a_in [°C]")), rel=BALANCE_RTOL)

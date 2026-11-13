@@ -24,6 +24,7 @@ __all__ = [
     "c_w",
     "rho_w",
     "mu_w",
+    "water_viscosity",
     "k_w",
     "Pr_w",
     "beta",
@@ -61,8 +62,47 @@ Pr_a = 0.71  # Prandtl number of air [-] (at typical ambient temperature)
 
 c_w = 4186  # Specific heat capacity of water [J/kgK]
 rho_w = 1000  # Density of water [kg/m³]
-mu_w = 0.001  # Dynamic viscosity of water [Pa·s]
+# Dynamic viscosity of water [Pa·s], at about 20 °C (1.002 mPa s there). The
+# source-side Reynolds numbers of the liquid-source models take the viscosity
+# at the loop's design temperature instead (``water_viscosity``,
+# ``tmhp.source_fluid.SourceFluid.viscosity``): 1.79 mPa s at 0 °C.
+mu_w = 0.001
 k_w = 0.606  # Thermal conductivity of water [W/mK]
+
+
+def water_viscosity(T_C):
+    """Dynamic viscosity of liquid water [Pa·s] at ``T_C`` [°C] and low pressure.
+
+    Kestin, Sokolov and Wakeham (1978), *J. Phys. Chem. Ref. Data* 7(3), the
+    two branches around ``mu(20 °C) = 1.002 mPa s``:
+
+    - ``T_C <= 20``: ``log10(mu / mu20) = d / (T_C + 96) * (1.2378 - 1.303e-3 d
+      + 3.06e-6 d**2 + 2.55e-8 d**3)``, ``d = 20 - T_C``;
+    - ``T_C > 20``: ``log10(mu / mu20) = d / (T_C + 105) * (-1.3272 - 1.053e-3 d)``,
+      ``d = T_C - 20``.
+
+    Within 0.2 % of IAPWS 2008 (CoolProp ``Water``) from 0 to 100 °C; below
+    0 °C it continues smoothly into supercooled water (2.15 mPa s at -5 °C).
+    ``T_C`` may be a scalar or an array. The constant :data:`mu_w` is this
+    function near 20 °C.
+
+    Examples
+    --------
+    >>> round(water_viscosity(20.0) * 1e3, 3), round(water_viscosity(0.0) * 1e3, 3)
+    (1.002, 1.793)
+    """
+    T = np.asarray(T_C, dtype=float)
+    cold = 20.0 - T
+    warm = T - 20.0
+    log_ratio = np.where(
+        T <= 20.0,
+        cold / (T + 96.0) * (1.2378 - 1.303e-3 * cold + 3.06e-6 * cold**2 + 2.55e-8 * cold**3),
+        warm / (T + 105.0) * (-1.3272 - 1.053e-3 * warm),
+    )
+    mu = 1.002e-3 * np.power(10.0, log_ratio)
+    return float(mu) if mu.ndim == 0 else mu
+
+
 beta = 2.07e-4  # Volumetric expansion coefficient of water [1/K] (at ~20 °C)
 Pr_w = 6.9  # Prandtl number of water [-] (at ~20 °C)
 

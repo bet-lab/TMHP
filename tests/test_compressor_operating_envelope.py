@@ -241,7 +241,10 @@ def test_air_to_air_ceiling_names_the_discharge_limit():
 
 
 def test_air_to_air_without_any_duty_inside_the_limit_is_off():
-    hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0, T_dis_max=40.0)
+    # Frost-free: with frost the cycle is solved at a larger duty, which this
+    # indoor coil cannot carry at the probe the failure reason is read from
+    # (``hx_not_converged`` instead of the discharge limit).
+    hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0, T_dis_max=40.0, defrost=None)
     r = _quiet(hp.analyze_steady, Q_r_iu=-3000.0, T0=-7.0, T_a_room=20.0, verbose=False)
     assert r["failure_reason"] == DISCHARGE_TEMP_ABOVE_MAX
     assert r["E_cmp [W]"] == 0.0

@@ -30,6 +30,14 @@ On/off cycling below the minimum capacity
     :undoc-members:
     :show-inheritance:
 
+Frost and defrost of an outdoor coil
+====================================
+
+.. automodule:: tmhp.defrost
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Simulation summary tables
 =========================
 

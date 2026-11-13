@@ -164,6 +164,99 @@ while heat is delivered, no standby or crankcase power is added while the unit i
 and a start is not resolved in time — the degradation is the standard's
 seasonal-average figure, not a transient simulation.
 
+Frost and defrost
+=================
+
+In heating the outdoor coil runs below the outdoor air. Below about 5 °C it is
+below freezing and colder than the air's dew point, so frost builds on it,
+capacity and power fall, and the unit periodically stops heating to melt the
+frost. A catalogue figure at 2 °C or −7 °C is the mean over that; the
+frost-free cycle the model solves is not.
+
+``AirSourceHeatPump`` therefore applies the frost adjustment EnergyPlus uses
+for its DX heating coils (``Coil:Heating:DX:SingleSpeed``, on-demand
+reverse-cycle defrost; from DOE-2.1E), with its published constants unchanged
+(:mod:`tmhp.defrost`):
+
+.. math::
+
+   T_{coil} = 0.82\,T_{out} - 8.589, \qquad
+   \Delta\omega = \max\left(10^{-6},\ \omega_{out} - \omega_{sat}(T_{coil})\right), \qquad
+   t_{frac} = \frac{1}{1 + 0.01446/\Delta\omega}
+
+.. math::
+
+   \text{capacity multiplier} = 0.875\,(1 - t_{frac}), \qquad
+   \text{power multiplier} = 0.954\,(1 - t_{frac})
+
+and no correction above an outdoor temperature of 5 °C. A request ``Q`` has to
+be met by the mean, so the cycle is solved frost-free at
+``(Q + Q_defrost) / capacity multiplier`` and the row is then averaged:
+
+- ``Q_ref_iu [W]`` is the mean delivered heat — the request, unless the larger
+  frost-free duty runs into the capacity ceiling, in which case the shortfall
+  is in ``Q_unmet [W]``. Frost lowers the ceiling by the capacity multiplier.
+- ``defrost_fraction [-]`` is ``t_frac``; ``frost_capacity_factor [-]`` and
+  ``frost_power_factor [-]`` are the two multipliers.
+- ``E_cmp [W]`` is the frost-free compressor power times ``power multiplier +
+  t_frac`` (heating, then defrosting); ``E_defrost [W]`` is the defrosting
+  part. The outdoor fan follows the power multiplier, and the indoor fan's
+  power is averaged with the heat it delivers.
+- ``Q_defrost [W]`` is the heat a reverse-cycle defrost takes from the room
+  (``0.01 · t_frac · (7.222 − T_out) · hp_capacity / 1.01667``).
+- ``Q_ref_iu_frost_free [W]`` and ``E_tot_frost_free [W]`` are the frost-free
+  cycle the row was solved at; heat and flow rates of the row are that cycle's
+  times the delivered-heat factor, and state points are that cycle's.
+
+.. list-table:: Frost adjustment at 84 % relative humidity
+   :header-rows: 1
+   :widths: 20 20 20 20 20
+
+   * - Outdoor [°C]
+     - Coil [°C]
+     - ``defrost_fraction``
+     - Capacity multiplier
+     - Power multiplier
+   * - 5
+     - −4.5
+     - 0.119
+     - 0.771
+     - 0.841
+   * - 2
+     - −6.9
+     - 0.098
+     - 0.789
+     - 0.860
+   * - −7
+     - −14.3
+     - 0.044
+     - 0.836
+     - 0.912
+   * - −15
+     - −20.9
+     - 0.019
+     - 0.859
+     - 0.936
+
+The outdoor humidity is an optional input: ``analyze_steady(..., RH_out=0.7)``
+and ``analyze_dynamic(..., RH_out_schedule=...)`` take a relative humidity as a
+fraction. Without it the model uses 84 %, the humidity of the EN 14511 rating
+condition A2 (dry bulb 2 °C, wet bulb 1 °C). ``defrost=None`` switches the
+correction off, and a :class:`tmhp.DefrostModel` sets the outdoor limit and the
+default humidity.
+
+Two things differ from EnergyPlus, both so that nothing has to be entered.
+EnergyPlus asks for a curve of defrost power; here the compressor draws, while
+it defrosts, what it draws while it heats. And the coil temperature is
+EnergyPlus' correlation rather than the evaporating temperature this model
+solves — the constants were fitted with that estimate.
+
+What it leaves out: the correction is a step at 5 °C, where the cost is at its
+largest (about a fifth of the COP), because that is how the source model is
+written; and the room is not cooled in time during a defrost — its effect is in
+the mean. :meth:`~tmhp.AirSourceHeatPump.max_capacity` reports the same mean
+ceiling, with the frost-free one as ``Q_max_frost_free [W]``.
+
 COP boundary
 ============
 

@@ -58,6 +58,14 @@ from .cycling import (
     continuous_keys,
     resolve_cycling,
 )
+from .defrost import (
+    NO_FROST,
+    DefrostModel,
+    FrostState,
+    apply_defrost,
+    frost_free_keys,
+    resolve_defrost,
+)
 from .enex_functions import (
     calc_energy_flow,
     calc_fan_power_from_dV_fan,
@@ -318,6 +326,23 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: averaged with it (``E_iu_fan [W]`` times the capacity ratio).
     _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_ou_fan [W]")
 
+    #: Heat and flow rates averaged with the delivered-heat factor under frost.
+    _FROST_RATE_KEYS: tuple[str, ...] = (
+        "Q_ref_iu [W]",
+        "Q_ref_ou [W]",
+        "Q_a_iu_in [W]",
+        "Q_a_iu_out [W]",
+        "m_dot_ref [kg/s]",
+        "dV_iu_a [m3/s]",
+        "dV_ou_a [m3/s]",
+    )
+    #: Delivered heat and electrical input of the frost-free cycle a row was solved at [W].
+    _FROST_FREE_HEAT_KEY = "Q_ref_iu_frost_free [W]"
+    _FROST_FREE_POWER_KEY = "E_tot_frost_free [W]"
+    #: EnergyPlus / DOE-2.1E frost adjustment in heating (None: frost-free
+    #: steady state). Set by the constructor.
+    defrost: DefrostModel | None = None
+
     _RATING_FAMILY = "ASHP"
     _RATING_DEFAULT_MODE = "cooling"
 
@@ -400,6 +425,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # On/off cycling below the minimum continuous capacity: EN 14825
         # degradation coefficient Cd (None: no cycling, the unit over-delivers).
         Cd_cycling: CyclingDegradation | float | None = CD_AIR_DEFAULT,
+        # Frost on the outdoor coil and its defrost, heating only (None / False: off).
+        defrost: DefrostModel | bool | None = True,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
@@ -622,6 +649,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # --- 5b. Part load below the minimum continuous capacity ---
         #: EN 14825 cycling degradation (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "air")
+
+        # --- 5c. Frost on the outdoor coil and its defrost (heating) ---
+        self.defrost = resolve_defrost(defrost)
 
         # --- 6. Compressor reference state (rated speed, rated mass flow) ---
         efficiencies = self._initialize_reference_state(
@@ -1372,6 +1402,100 @@ class AirSourceHeatPump(ReferenceStateMixin):
         return values  # type: ignore[return-value]
 
     # =============================================================
+    # Frost on the outdoor coil and its defrost
+    # =============================================================
+
+    def _frost_state(self, Q_r_iu: float, T0: float, RH_out: float | None) -> FrostState:
+        """Frost correction for this request (:data:`~tmhp.defrost.NO_FROST` outside heating)."""
+        if self.defrost is None or not Q_r_iu < 0:
+            return NO_FROST
+        return self.defrost.frost_state(T0, RH_out)
+
+    def _write_frost_free(self, result: dict, frost: FrostState) -> None:
+        """Frost keys of a row the correction left alone (in place)."""
+        frost_free_keys(result, frost)
+        result[self._FROST_FREE_HEAT_KEY] = float(result.get("Q_ref_iu [W]", 0.0))
+        result[self._FROST_FREE_POWER_KEY] = float(result.get("E_tot [W]", 0.0))
+
+    def _average_over_frost(self, result: dict, frost: FrostState, T0: float) -> float:
+        """Turn a running frost-free row into the mean over frosting and defrost (in place).
+
+        Returns the mean delivered heat [W]: the frost-free heat times the
+        capacity multiplier, less what a reverse-cycle defrost takes from the
+        room. The indoor fan moves the delivered heat and is averaged with it.
+        """
+        model = self.defrost
+        assert model is not None
+        q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
+        heat_frost_free = abs(float(result["Q_ref_iu [W]"]))
+        power_frost_free = float(result["E_tot [W]"])
+        delivered = max(frost.capacity_multiplier * heat_frost_free - q_defrost, 0.0)
+        apply_defrost(
+            result,
+            frost,
+            heat_factor=delivered / heat_frost_free,
+            Q_defrost=q_defrost,
+            rate_keys=self._FROST_RATE_KEYS,
+            outdoor_power_keys=("E_ou_fan [W]",),
+            delivery_power_keys=("E_iu_fan [W]",),
+        )
+        result[self._FROST_FREE_HEAT_KEY] = heat_frost_free
+        result[self._FROST_FREE_POWER_KEY] = power_frost_free
+        result["cop_ref [-]"] = result["Q_ref_iu [W]"] / result["E_cmp [W]"] if result["E_cmp [W]"] > 0 else np.nan
+        if math.isfinite(float(result.get("cop_sys [-]", np.nan))) and result["E_tot [W]"] > 0:
+            result["cop_sys [-]"] = abs(result["Q_a_iu_out [W]"] - result["Q_a_iu_in [W]"]) / result["E_tot [W]"]
+        return delivered
+
+    def _analyze_steady_frosted(
+        self,
+        frost: FrostState,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        *,
+        postprocess: bool,
+        verbose: bool,
+    ) -> dict:
+        """Heating with a frosting outdoor coil: the mean over frosting and defrost.
+
+        The frost-free cycle is solved at the duty whose mean is the request,
+        ``(|Q_r_iu| + Q_defrost) / capacity multiplier``, with everything that
+        applies to a frost-free solve (speed limits, cycling, the capacity
+        ceiling), and the row is then averaged (:func:`~tmhp.defrost.apply_defrost`).
+        """
+        model = self.defrost
+        assert model is not None
+        q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
+        gross = model.gross_duty(frost, Q_r_iu, q_defrost)
+        self.defrost = None
+        try:
+            result = self.analyze_steady(
+                Q_r_iu=-gross, T0=T0, T_a_room=T_a_room, return_dict=True, postprocess=False, verbose=verbose
+            )
+        finally:
+            self.defrost = model
+        assert isinstance(result, dict)
+
+        request = abs(float(Q_r_iu))
+        delivered = 0.0
+        if bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none":
+            delivered = self._average_over_frost(result, frost, T0)
+            if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX and "Q_max [W]" in result:
+                result["Q_max [W]"] = delivered
+        else:
+            self._write_frost_free(result, frost)
+        # The request and its shortfall are the caller's, not the frost-free solve's.
+        if "Q_request [W]" in result:
+            result["Q_request [W]"] = float(Q_r_iu)
+        if "Q_unmet [W]" in result:
+            unmet = max(request - delivered, 0.0)
+            result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
+
+        if postprocess:
+            result = self.postprocess_exergy(pd.DataFrame([result])).iloc[0].to_dict()
+        return result
+
+    # =============================================================
     # Capacity envelope
     # =============================================================
 
@@ -1492,6 +1616,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         mode: str = "heating",
         grid_points: int = 13,
         rel_tol: float = 5e-3,
+        RH_out: float | None = None,
     ) -> dict:
         """Largest duty the unit can actually deliver at this condition.
 
@@ -1531,6 +1656,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         rel_tol : float
             Bisection stops once the bracket is this narrow relative to the
             ceiling.
+        RH_out : float | None
+            Outdoor relative humidity as a fraction (0-1) for the frost
+            correction in heating. None: the frost model's default.
 
         Returns
         -------
@@ -1541,6 +1669,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
             when the speed range ran out, ``"cycle"`` when the pressure-ratio
             envelope or the air side did, and ``"unbounded"`` when the ladder
             never ran out, which makes the figure a lower bound.
+
+            In heating with a frosting outdoor coil the ceiling, the input and
+            the COP are the mean over frosting and defrost -- what
+            :meth:`analyze_steady` delivers there -- and
+            ``Q_max_frost_free [W]`` is the frost-free ceiling they come from
+            (``defrost_fraction [-]`` > 0). Otherwise the two are equal.
         """
         if mode not in ("heating", "cooling"):
             raise ValueError(f"mode must be 'heating' or 'cooling', got {mode!r}")
@@ -1557,6 +1691,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "mode": mode,
             "T0 [°C]": T0,
             "T_a_room [°C]": T_a_room,
+            "Q_max_frost_free [W]": 0.0,
+            "defrost_fraction [-]": 0.0,
         }
 
         sign = 1.0 if mode == "cooling" else -1.0
@@ -1606,7 +1742,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if binding == "cycle" and self._discharge_limit_binds(sign * hi_q, T0, T_a_room, grid):
                 binding = BINDING_DISCHARGE
 
-        return {
+        ceiling = {
             "Q_max [W]": lo_q,
             "dT_ref_evap [K]": lo_x[0],
             "dT_ref_cond [K]": lo_x[1],
@@ -1616,7 +1752,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "mode": mode,
             "T0 [°C]": T0,
             "T_a_room [°C]": T_a_room,
+            "Q_max_frost_free [W]": lo_q,
+            "defrost_fraction [-]": 0.0,
         }
+        frost = self._frost_state(sign, T0, RH_out)
+        if frost.active:
+            # The ceiling analyze_steady delivers: the mean over frosting and defrost.
+            mean = dict(lo_perf)
+            ceiling["Q_max [W]"] = self._average_over_frost(mean, frost, T0)
+            ceiling["E_tot [W]"] = float(mean["E_tot [W]"])
+            ceiling["cop_sys [-]"] = float(mean["cop_sys [-]"])
+            ceiling["defrost_fraction [-]"] = frost.defrost_fraction
+        return ceiling
 
     def _discharge_limit_binds(self, Q_r_iu: float, T0: float, T_a_room: float, grid) -> bool:
         """Whether this duty, refused under ``T_dis_max``, is deliverable without it."""
@@ -1636,7 +1783,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # An unbounded ladder result is only a lower bound, not a ceiling.
         if ceiling.get("binding") not in {"compressor", "cycle", BINDING_DISCHARGE}:
             return None
-        q_ceiling = float(ceiling["Q_max [W]"])
+        # The frost-free ceiling: this state is a cycle state, averaged later.
+        q_ceiling = float(ceiling.get("Q_max_frost_free [W]", ceiling["Q_max [W]"]))
         if not math.isfinite(q_ceiling) or not 0 < q_ceiling < abs(Q_r_iu):
             return None
         state = self._calc_state(
@@ -1679,6 +1827,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         return_dict: bool = True,
         postprocess: bool = True,
         verbose: bool = True,
+        RH_out: float | None = None,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
 
@@ -1696,6 +1845,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             If True, apply postprocess_exergy to the output.
         verbose : bool
             If True, print warnings upon convergence failure.
+        RH_out : float | None
+            Outdoor relative humidity as a fraction (0-1), used by the frost
+            correction in heating. None: the frost model's default (0.84).
 
         Returns
         -------
@@ -1736,12 +1888,29 @@ class AirSourceHeatPump(ReferenceStateMixin):
             the running machine (:mod:`tmhp.cycling`). A request above
             the ceiling (``capacity_clamped == "max"``) adds ``Q_max [W]``
             and ``capacity_binding``.
+
+            Heating at or below the frost model's outdoor limit (5 degC) is
+            the mean over frosting and defrost (:mod:`tmhp.defrost`):
+            ``defrost_fraction [-]`` is the share of the runtime spent
+            defrosting, ``frost_capacity_factor [-]`` and
+            ``frost_power_factor [-]`` the multipliers of the frosted coil,
+            ``E_defrost [W]`` and ``Q_defrost [W]`` the mean power and room
+            heat the defrost takes, and ``Q_ref_iu_frost_free [W]`` /
+            ``E_tot_frost_free [W]`` the frost-free cycle the row was solved
+            at. Without frost those two repeat ``Q_ref_iu [W]`` and
+            ``E_tot [W]``.
         """
         validate_steady(locals())
         import warnings
 
         if T_a_room is None:
             T_a_room = self.T_a_room
+
+        # Heating with a frosting outdoor coil is the mean over frosting and
+        # defrost: solved frost-free at a larger duty, then averaged.
+        frost = self._frost_state(Q_r_iu, T0, RH_out)
+        if frost.active:
+            return self._analyze_steady_frosted(frost, Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose)
 
         if Q_r_iu == 0:
             result: dict | None = self._calc_state(
@@ -1857,6 +2026,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         if result:
             self._report_part_load(result, Q_r_iu)
 
+        if result:
+            self._write_frost_free(result, frost)
+
         if postprocess and result:
             df_temp = pd.DataFrame([result])
             df_temp = self.postprocess_exergy(df_temp)
@@ -1878,6 +2050,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         T0_schedule,
         T_a_room_schedule=None,
         result_save_csv_path: str | None = None,
+        RH_out_schedule=None,
     ) -> pd.DataFrame:
         """Run a time-stepping dynamic simulation.
 
@@ -1896,6 +2069,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             If None, uses constructor default.
         result_save_csv_path : str | None
             Optional CSV output path.
+        RH_out_schedule : array-like | None
+            Outdoor relative humidity per step, as a fraction (0-1), for the
+            frost correction in heating. If None, the frost model's default.
 
         Returns
         -------
@@ -1921,6 +2097,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
         else:
             T_a_room_arr = np.full(tN, self.T_a_room)
 
+        RH_out_arr = None
+        if RH_out_schedule is not None:
+            RH_out_arr = np.array(RH_out_schedule, dtype=float)
+            if len(RH_out_arr) != tN:
+                raise ValueError(f"RH_out_schedule length ({len(RH_out_arr)}) != tN ({tN})")
+
         self.time = time
         self.dt = dt_s
 
@@ -1942,6 +2124,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 return_dict=True,
                 postprocess=False,  # Exergy postprocessing applied in bulk at the end
                 verbose=False,  # Suppress warnings during long dynamic loops
+                RH_out=None if RH_out_arr is None else float(RH_out_arr[n]),
             )
 
             # Add time columns

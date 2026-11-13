@@ -37,3 +37,12 @@ Ground coupling
     :members:
     :undoc-members:
     :show-inheritance:
+
+Borehole heat capacity and short-time response
+==============================================
+
+See :doc:`/models/ground-response` for the model and its checks.
+
+.. automodule:: tmhp.borehole_capacity
+    :members:
+    :show-inheritance:

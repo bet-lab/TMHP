@@ -108,8 +108,12 @@ Each step ``n`` reports the borehole-wall and fluid temperatures averaged over
 ``[t_n, t_n + dt]``, including the response to that step's own load; with an
 hourly load history the hourly means are the same for ``dt`` = 60, 600 or
 3600 s. Below one hour the g-function is the straight line from zero to its
-one-hour value (no grout or fluid heat capacity), so minute-scale start-up
-transients are approximate.
+one-hour value and the borehole has no heat capacity, so minute-scale
+start-up transients are approximate on the default path.
+:func:`tmhp.borehole_capacity.enable_borehole_dynamics` adds the heat
+capacity of fluid, pipe and grout, the short-time wall response and the fluid
+transit through the U-tube; bore fields other than a rectangular grid are set
+up with :mod:`tmhp.borefield`. Both are described in :doc:`ground-response`.
 
 .. figure:: ../_static/g_function_curve.svg
     :alt: g-function vs ln(t/t_s) for three rectangular borehole

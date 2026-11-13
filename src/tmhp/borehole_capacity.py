@@ -686,9 +686,7 @@ def _transit_section(section: EquivalentCylinderBorehole, H: float, m_cp: float)
     if excess(lower) >= 0.0 or excess(target) <= 0.0:
         return None
     resistance = float(brentq(excess, lower, target, xtol=1e-14, rtol=1e-12))
-    return replace(
-        section, k_g=math.log(section.r_b / section.r_eq) / (2.0 * math.pi * (resistance - section.R_in))
-    )
+    return replace(section, k_g=math.log(section.r_b / section.r_eq) / (2.0 * math.pi * (resistance - section.R_in)))
 
 
 @lru_cache(maxsize=64)

@@ -392,6 +392,25 @@ def test_fluid_relaxes_towards_the_wall_after_the_load_stops(section, g_field):
     assert other.borehole_wall_rise(7, shifted) == pytest.approx(wall[7], rel=1e-10)
 
 
+@pytest.mark.parametrize("transit", [False, True])
+def test_hourly_means_do_not_depend_on_the_step(section, g_field, transit):
+    """An hourly load history gives the same hourly-mean response at 60, 600 and 3600 s steps."""
+    g_dyn = DynamicGFunction(g_field, section, **(dict(H=H, m_cp=M_CP) if transit else {}))
+    rng = np.random.default_rng(7)
+    hourly = np.where(rng.random(30) < 0.5, rng.uniform(10.0, 40.0, 30), 0.0)
+    means = {}
+    for dt in (60.0, 600.0, 3600.0):
+        per_hour = int(3600 / dt)
+        load = np.repeat(hourly, per_hour)
+        time_arr = np.arange(len(load)) * dt
+        coupler = AggregateGFunctionCoupler(g_dyn)
+        coupler.reset(len(load), time_arr, dt_s=dt)
+        rise = np.array([coupler.wall_temperature_rise(i, time_arr, float(load[i])) for i in range(len(load))])
+        means[dt] = rise.reshape(-1, per_hour).mean(axis=1)
+    np.testing.assert_allclose(means[60.0], means[3600.0], atol=1e-10)
+    np.testing.assert_allclose(means[600.0], means[3600.0], atol=1e-10)
+
+
 def test_plain_g_function_reports_the_same_wall(g_field):
     dt, n = 3600.0, 12
     time_arr = np.arange(n) * dt

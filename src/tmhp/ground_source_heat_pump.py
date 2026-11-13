@@ -52,7 +52,7 @@ from .compressor_envelope import (
     steady_envelope,
 )
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
-from .constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
+from .constants import c_a, rho_a
 from .enex_functions import (
     calc_energy_flow,
     calc_exergy_flow,
@@ -95,6 +95,13 @@ from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
+)
+from .source_fluid import (
+    SOURCE_FLUID_FREEZING,
+    SourceFluid,
+    resolve_source_fluid,
+    source_freeze_limited,
+    warn_if_loop_modelled_as_water,
 )
 
 
@@ -252,6 +259,18 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     wall's response to that step's own load. The refrigerant cycle, the
     fluid temperatures and the wall temperature of one row therefore belong
     to the same step.
+
+    **Ground-loop liquid.** ``source_fluid`` (:mod:`tmhp.source_fluid`) is
+    ``"water"`` by default or an antifreeze mixture such as ``"MPG-25%"``. The
+    loop liquid is never colder than its operating limit, the freezing point
+    plus 3 K (3 °C for water): a heating duty that would chill it further is
+    reduced to the largest one that does not (``capacity_clamped == "max"``,
+    ``capacity_binding == "source_fluid_freezing"``), and when no duty does
+    the unit is off with ``failure_reason == "source_fluid_freezing"``. The
+    ISO 13256-1 ground-loop heating point (liquid entering at 0 °C) therefore
+    needs an antifreeze mixture. The mixture's density, heat capacity,
+    viscosity and conductivity enter the loop balance, the default flow and
+    the borehole resistance.
     """
 
     _RATING_FAMILY = "GSHP"
@@ -356,8 +375,17 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        source_fluid: str | SourceFluid = "water",
     ):
         validate_ctor("GSHP", locals())
+        # Liquid of the ground loop: its properties enter the source-side
+        # balances, its freezing point the operating limit (tmhp.source_fluid).
+        fluid = resolve_source_fluid(source_fluid)
+        self.source_fluid: SourceFluid = fluid
+        #: Set once a dynamic run has reported the freezing limit (one warning per run).
+        self._source_freeze_warned: bool = False
+        #: ``"analyze_dynamic"`` while a dynamic step is being solved, else ``None``.
+        self._source_freeze_context: str | None = None
         # Ground side sized from the capacity when the caller gives none of it
         # (see tmhp.ground_defaults): flow, pump power and the borefield.
         borefield_defaulted = N_1 is None and N_2 is None and H_b is None
@@ -371,7 +399,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         if E_pmp is None:
             E_pmp = default_ground_pump_power(hp_capacity)
         ground_rates = resolve_ground_flow_rates(
-            default_ref_lpm=default_ground_flow_lpm(hp_capacity),
+            default_ref_lpm=default_ground_flow_lpm(hp_capacity, rho=fluid.rho, cp=fluid.cp),
             legacy_ref_lpm=dV_b_f_lpm,
             min_ratio=ground_flow_min_ratio,
             max_ratio=ground_flow_max_ratio,
@@ -541,15 +569,15 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         #: U-tube Reynolds number at the reference flow (laminar below 2300: warned).
         pipe_diameter = pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in
         self.Re_bhe_ref: float = warn_if_laminar_ground_flow(
-            self.dV_b_f_m3s, self.n_boreholes, pipe_diameter, rho=rho_w, mu=mu_w, stacklevel=3
+            self.dV_b_f_m3s, self.n_boreholes, pipe_diameter, rho=fluid.rho, mu=fluid.mu, stacklevel=3
         )
         if self.ground_flow_constant_lpm != self.ground_flow_ref_lpm:
             warn_if_laminar_ground_flow(
                 self.ground_flow_constant_lpm / 60000,
                 self.n_boreholes,
                 pipe_diameter,
-                rho=rho_w,
-                mu=mu_w,
+                rho=fluid.rho,
+                mu=fluid.mu,
                 label="constant setpoint",
                 stacklevel=3,
             )
@@ -566,7 +594,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             )
 
             n_boreholes = max(1, self.N_1 * self.N_2)
-            m_flow_pipe = self.dV_b_f_m3s * rho_w / n_boreholes
+            m_flow_pipe = self.dV_b_f_m3s * fluid.rho / n_boreholes
 
             R_b_local, R_a = calc_local_borehole_thermal_resistance(
                 k_s=self.k_s,
@@ -577,10 +605,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 r_in=r_in,
                 D_s=D_s,
                 m_flow_pipe=m_flow_pipe,
-                rho_f=rho_w,
-                mu_f=mu_w,
-                cp_f=c_w,
-                k_f=k_w,
+                rho_f=fluid.rho,
+                mu_f=fluid.mu,
+                cp_f=fluid.cp,
+                k_f=fluid.k,
             )
             self.R_b_local: float = R_b_local
             self.R_a: float = R_a
@@ -589,7 +617,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 R_a=R_a,
                 H=self.H_b,
                 m_flow_pipe=m_flow_pipe,
-                cp_f=c_w,
+                cp_f=fluid.cp,
                 boundary_condition=boundary_condition,
             )
         else:
@@ -656,12 +684,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 r_out=r_out,
                 r_in=r_in,
                 D_s=D_s,
-                rho_f=rho_w,
-                mu_f=mu_w,
-                k_f=k_w,
+                rho_f=fluid.rho,
+                mu_f=fluid.mu,
+                k_f=fluid.k,
             ),
         )
         self.ground_flow_control = self._ground_settings["control"]
+        warn_if_loop_modelled_as_water(fluid, self._ground_settings, "GroundSourceHeatPump")
 
         self.Ts: float = Ts
         self.Ts_K: float = cu.C2K(Ts)
@@ -745,7 +774,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             T_bhe_f_out_K = source_temperature_K
 
         is_active = Q_r_iu != 0.0
-        m_dot_cp_b = loop["dV"] * rho_w * c_w
+        fluid = self.source_fluid
+        m_dot_cp_b = loop["dV"] * fluid.rho * fluid.cp
 
         if Q_r_iu < 0:
             # Heating: BHE = evaporator (absorb from ground), IU = condenser (heat room)
@@ -961,13 +991,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         Q_ground_available = 0.0
         # BHE NTU check (heating: evaporator constraint)
         if mode == "heating" and is_active:
-            eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * rho_w, c_w)
+            eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * fluid.rho, fluid.cp)
             T_source_K_local = T_bhe_f_out_K + (loop["E_pmp"] / m_dot_cp_b)
             Q_evap_max = eps * m_dot_cp_b * (T_source_K_local - T_evap_sat_K)
             Q_ground_available = Q_evap_max
             err_Q_evap = Q_ref_evap - Q_evap_max
         elif mode == "cooling" and is_active:
-            eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * rho_w, c_w)
+            eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * fluid.rho, fluid.cp)
             T_source_K_local = T_bhe_f_out_K + (loop["E_pmp"] / m_dot_cp_b)
             Q_cond_max = eps * m_dot_cp_b * (T_cond_sat_K - T_source_K_local)
             Q_ground_available = Q_cond_max
@@ -1232,6 +1262,15 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             key=lambda r: r["E_tot [W]"],
         )
 
+    def _freeze_off(self, arguments: Mapping[str, Any], detail: str) -> dict:
+        """Off state of a point the source fluid's freezing limit refuses."""
+        result = self._failed_operating_point(
+            SOURCE_FLUID_FREEZING, arguments["Q_r_iu"], arguments["T0"], arguments["T_a_room"]
+        )
+        result["failure_detail"] = detail
+        return result
+
+    @source_freeze_limited(duty_arg="Q_r_iu", off="_freeze_off", delivered_key="Q_ref_iu [W]")
     def _solve_ground_flow(
         self,
         Q_r_iu: float,
@@ -1292,9 +1331,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     def _ground_conductance(self, mode: str) -> tuple[dict, float]:
         """Loop state and ε·ṁ·c_p of the ground HX at the fixed reference flow [W/K]."""
         loop = ground_flow_state(self._ground_settings, 1.0)
-        m_dot = loop["dV"] * rho_w
+        fluid = self.source_fluid
+        m_dot = loop["dV"] * fluid.rho
         UA_ground, _ = self._rated_hx_UAs(mode)
-        return loop, float(calc_phase_change_hx_effectiveness(UA_ground, m_dot, c_w) * m_dot * c_w)
+        return loop, float(calc_phase_change_hx_effectiveness(UA_ground, m_dot, fluid.cp) * m_dot * fluid.cp)
 
     def _close_ground_side(
         self,
@@ -1334,6 +1374,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         ``"not_closed"``.
         """
         heating = Q_r_iu < 0
+        fluid = self.source_fluid
         lo, hi = self._GROUND_APPROACH_BOUNDS
         loop, conductance = self._ground_conductance("heating" if heating else "cooling")
         # Ground duty is the indoor duty minus (heating) or plus (cooling) the
@@ -1355,13 +1396,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 self.n_boreholes,
                 self.H_b,
                 loop["R_b"],
-                loop["dV"] * rho_w,
-                c_w,
+                loop["dV"] * fluid.rho,
+                fluid.cp,
             )[2]
         # The compressor envelope (pressure-ratio ceiling) limits the absolute
         # ground-side saturation temperature, not the approach: as the fluid
         # temperature closes, the approach at that limit moves with it.
-        pump_rise = float(loop["E_pmp"]) / (float(loop["dV"]) * rho_w * c_w)
+        pump_rise = float(loop["E_pmp"]) / (float(loop["dV"]) * fluid.rho * fluid.cp)
 
         def saturation(approach: float, fluid: float) -> float:
             source = fluid + pump_rise
@@ -1427,8 +1468,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     self.n_boreholes,
                     self.H_b,
                     float(row["R_b_eff [mK/W]"]),
-                    float(row["dV_bhe_f [m3/s]"]) * rho_w,
-                    c_w,
+                    float(row["dV_bhe_f [m3/s]"]) * fluid.rho,
+                    fluid.cp,
                 )
             closed = abs(T_next - T_out) <= self._FLUID_TEMPERATURE_TOL_K
             upper = hi if bad_sat is None else min(hi, approach_at(bad_sat, T_out))
@@ -1477,6 +1518,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             g = max(target, lo)
         return "not_closed", row, g, T_out
 
+    @source_freeze_limited(duty_arg="Q_r_iu", off="_freeze_off", delivered_key="Q_ref_iu [W]")
     def _solve_operating_point(
         self,
         Q_r_iu: float,
@@ -1851,7 +1893,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_bhe_f_K = T_bhe_K - Q_bhe_unit * hp_result.get("R_b_eff [mK/W]", self.R_b)
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
-        m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
+        m_cp_b = self.source_fluid.cp * self.source_fluid.rho * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
 
         dT_half = float((self.Q_bhe / m_cp_b) / 2) if m_cp_b > 0 else 0.0
         self.T_bhe_f_in_K = T_bhe_f_K - dT_half
@@ -1913,13 +1955,17 @@ class GroundSourceHeatPump(ReferenceStateMixin):
               exists: ``"hx_not_converged"`` (the indoor coil cannot carry the
               duty within its fan range), ``"ground_hx_capacity_insufficient"``,
               ``"pr_above_max"``, ``"discharge_temp_above_max"`` (no duty keeps
-              the discharge temperature within ``T_dis_max``) or
+              the discharge temperature within ``T_dis_max``),
+              ``"source_fluid_freezing"`` (no duty keeps the ground-loop
+              liquid at or above its operating limit, 3 °C for water; see
+              :mod:`tmhp.source_fluid`) or
               ``"cycle_invalid"`` (coupled solver: see
               :func:`~tmhp.ground_flow_control.failed_ground_point`).
             - ``"capacity_clamped"`` — ``"max"`` when the request exceeds the
               deliverable duty (``Q_ref_iu [W]`` is the ceiling, ``Q_max [W]``
               and ``capacity_binding`` say what bound it: ``"compressor"``,
-              ``"cycle"`` or ``"discharge_temperature"``), ``"min"`` when the
+              ``"cycle"``, ``"discharge_temperature"`` or
+              ``"source_fluid_freezing"``), ``"min"`` when the
               request is below the minimum-speed duty.
 
             Every non-``"none"`` reason returns the HP-off state: heat and
@@ -2059,6 +2105,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.T_bhe_f_out = self.Ts
         self.T_bhe_f_out_K = self.Ts_K
         self.Q_bhe = 0.0
+        self._source_freeze_warned = False
 
         Q_bhe_unit_pulse = np.zeros(tN)
         Q_bhe_unit_old = 0.0
@@ -2098,14 +2145,19 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                         rise += delta * g_own_step
                     return self.Ts_K - rise
 
-                if self._ground_settings["active"]:
-                    hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
-                else:
-                    # The ground fluid is closed against that wall inside the
-                    # step, so the cycle and the fluid temperature of one row
-                    # belong to the same step (#96 G1). A failed step comes
-                    # back as the off state with its reason.
-                    hp_result = self._solve_operating_point(Q_r_iu_n, T0_n, T_a_room_n, wall_K=wall_response)
+                # The source fluid's freezing limit is reported once per run.
+                self._source_freeze_context = "analyze_dynamic"
+                try:
+                    if self._ground_settings["active"]:
+                        hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
+                    else:
+                        # The ground fluid is closed against that wall inside the
+                        # step, so the cycle and the fluid temperature of one row
+                        # belong to the same step (#96 G1). A failed step comes
+                        # back as the off state with its reason.
+                        hp_result = self._solve_operating_point(Q_r_iu_n, T0_n, T_a_room_n, wall_K=wall_response)
+                finally:
+                    self._source_freeze_context = None
 
             if hp_result is None:
                 # Off-mode cycle itself failed — fall back to an inert row so
@@ -2183,7 +2235,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         # ── 3b. BHE fluid exergy ──
         if "dV_bhe_f [m3/s]" in df.columns and "T_bhe_f_in [°C]" in df.columns:
-            G_b = c_w * rho_w * df["dV_bhe_f [m3/s]"].fillna(0)
+            G_b = self.source_fluid.cp * self.source_fluid.rho * df["dV_bhe_f [m3/s]"].fillna(0)
             T_bhe_f_in_K = cu.C2K(df["T_bhe_f_in [°C]"])
             T_bhe_f_out_K = cu.C2K(df["T_bhe_f_out [°C]"])
             df["X_bhe_f_in [W]"] = calc_exergy_flow(G_b, T_bhe_f_in_K, T0_K)

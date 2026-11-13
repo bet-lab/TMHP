@@ -58,7 +58,7 @@ from .compressor_envelope import (
     steady_envelope,
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
-from .constants import c_w, k_w, mu_w, rho_w
+from .constants import c_w, rho_w
 from .dynamic_context import (
     ControlState,
     CycleSolveOutcome,
@@ -81,6 +81,13 @@ from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
+from .source_fluid import (
+    SOURCE_FLUID_FREEZING,
+    SourceFluid,
+    limit_duty_to_source_freeze,
+    resolve_source_fluid,
+    source_freeze_limited,
+)
 from .subsystems import add_uv_power_to_e_tot
 from .thermodynamics import calc_exergy_flow
 
@@ -128,6 +135,16 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     ``tank_hx_residual [W]``). In ``analyze_dynamic`` the cycle of a step is
     solved against the fluid the coil returns from that step's source water
     (``T_source_w_schedule``) while it carries that step's own extraction.
+
+    ``source_fluid`` names the liquid circulating in the coil
+    (:mod:`tmhp.source_fluid`): ``"water"`` (default) or an antifreeze mixture
+    such as ``"MPG-25%"``. The loop liquid is never colder than its operating
+    limit, the freezing point plus 3 K (3 °C for water): a duty that would
+    chill it further is reduced to the largest one that does not
+    (``capacity_binding == "source_fluid_freezing"``), and when no duty does
+    the compressor stays off with ``failure_reason == "source_fluid_freezing"``.
+    Source water colder than about 6 °C at full duty therefore needs an
+    antifreeze mixture in the coil.
     """
 
     # Heat and power rates of the running cycle; a step reports them
@@ -234,14 +251,21 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         UA_tank: float | None = None,  # deprecated alias for UA_tank_hx
         UA_cond_design: float | None = None,
         UA_evap_design: float | None = None,
+        source_fluid: str | SourceFluid = "water",
     ) -> None:
         validate_ctor("WSHPB", locals())
+        # Liquid of the source loop: its properties enter the source-side
+        # balances, its freezing point the operating limit (tmhp.source_fluid).
+        fluid = resolve_source_fluid(source_fluid)
+        self.source_fluid: SourceFluid = fluid
+        #: Set once a dynamic run has reported the freezing limit (one warning per run).
+        self._source_freeze_warned: bool = False
         # Capacity-scaled defaults (tmhp._source_boiler): a machine given only
         # hp_capacity and a refrigerant keeps the same rated performance at any
         # capacity. Every value the caller supplies is used as given.
         flow_defaulted = dV_b_f_lpm is None
         if dV_b_f_lpm is None:
-            dV_b_f_lpm = default_source_flow_lpm(hp_capacity)
+            dV_b_f_lpm = default_source_flow_lpm(hp_capacity, fluid.rho, fluid.cp)
         if N_1 is None and N_2 is None and H_b is None:
             # The coil is as long as the rated source-side heat needs at 50 W/m
             # (never shorter than the 200 m of the default 8 kW machine).
@@ -365,13 +389,13 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.dV_b_f_m3s = dV_b_f_lpm * cu.L2m3 / cu.m2s
         self.v_river = v_river
         if flow_defaulted:
-            warn_if_laminar(self.dV_b_f_m3s, max(1, N_1 * N_2), r_in, "WaterSourceHeatPumpBoiler")
+            warn_if_laminar(self.dV_b_f_m3s, max(1, N_1 * N_2), r_in, "WaterSourceHeatPumpBoiler", fluid.rho, fluid.mu)
 
         if R_b is None:
             from .g_function import calc_submerged_coil_thermal_resistance
 
             n_boreholes = max(1, self.N_1 * self.N_2)
-            m_flow_total = self.dV_b_f_m3s * rho_w
+            m_flow_total = self.dV_b_f_m3s * fluid.rho
             m_flow_pipe = m_flow_total / n_boreholes
 
             self.R_b = calc_submerged_coil_thermal_resistance(
@@ -380,10 +404,10 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 D_s=D_s,
                 k_p=k_p,
                 m_flow_pipe=m_flow_pipe,
-                rho_f=rho_w,
-                mu_f=mu_w,
-                cp_f=c_w,
-                k_f=k_w,
+                rho_f=fluid.rho,
+                mu_f=fluid.mu,
+                cp_f=fluid.cp,
+                k_f=fluid.k,
                 v_river=self.v_river,
             )
         else:
@@ -539,7 +563,8 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         if source_temperature_K is not None:
             T_source_K = source_temperature_K
 
-        m_dot_cp_b = self.dV_b_f_m3s * rho_w * c_w
+        fluid = self.source_fluid
+        m_dot_cp_b = self.dV_b_f_m3s * fluid.rho * fluid.cp
         T_water_in_K = T_source_K + (self.E_pmp / m_dot_cp_b)
 
         T_water_sat_K = T_water_in_K - dT_ref_water
@@ -712,7 +737,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         tank_hx_residual = Q_ref_tank - self.UA_tank_hx * dT_ref_tank
 
         # 4. NTU Evaporator Analysis
-        eps = calc_phase_change_hx_effectiveness(self.UA_water, self.dV_b_f_m3s * rho_w, c_w)
+        eps = calc_phase_change_hx_effectiveness(self.UA_water, self.dV_b_f_m3s * fluid.rho, fluid.cp)
         Q_water_actual = eps * m_dot_cp_b * (T_water_in_K - T_water_sat_K)
         err = Q_ref_water - Q_water_actual
 
@@ -930,11 +955,26 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         A running result, or an off-mode row carrying the reason the call
         could not run; see :meth:`GroundSourceHeatPumpBoiler._solve_cycle_at`
-        (including the duty reduction outside the discharge limit).
+        (including the duty reduction outside the discharge limit and on the
+        source fluid's freezing limit).
         """
-        result = self._solve_cycle_at_duty(ctx, T_tank_w, self.hp_capacity)
-        return reduce_duty_within_envelope(
-            self, result, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q), self.hp_capacity
+
+        def at_duty(q: float) -> dict:
+            return self._solve_cycle_at_duty(ctx, T_tank_w, q)
+
+        def within_envelope(q: float) -> dict:
+            return reduce_duty_within_envelope(self, at_duty(q), at_duty, q)
+
+        return limit_duty_to_source_freeze(
+            self,
+            within_envelope(self.hp_capacity),
+            within_envelope,
+            self.hp_capacity,
+            lambda detail: self._failed_cycle_result(
+                T_tank_w, cu.K2C(ctx.T0_K), self._step_flow_state(ctx, T_tank_w), SOURCE_FLUID_FREEZING, detail
+            ),
+            once=True,
+            what="analyze_dynamic",
         )
 
     def _solve_cycle_at_duty(self, ctx: StepContext, T_tank_w: float, Q_tank_load: float) -> dict:
@@ -975,7 +1015,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
     def _coil_effectiveness(self) -> float:
         """Effectiveness of the submerged coil as a single-stream heat exchanger [-]."""
-        m_cp = c_w * rho_w * self.dV_b_f_m3s
+        m_cp = self.source_fluid.cp * self.source_fluid.rho * self.dV_b_f_m3s
         return -math.expm1(-self.H_b / (self.R_b * m_cp))
 
     def _source_fluid_K(self, T_water_K: float, Q_load: float) -> tuple[float, float, float]:
@@ -991,7 +1031,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         the source water once ``NTU = H_b / (R_b m cp)`` exceeds 2 -- 2.2 for
         the default coil.)
         """
-        m_cp = c_w * rho_w * self.dV_b_f_m3s
+        m_cp = self.source_fluid.cp * self.source_fluid.rho * self.dV_b_f_m3s
         if m_cp <= 0.0 or Q_load == 0.0:
             return T_water_K, T_water_K, T_water_K
         T_in_K = T_water_K - Q_load / (self._coil_effectiveness() * m_cp)
@@ -1178,6 +1218,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         # second run starts from the first run's last source temperature (#96 T13).
         self.T_bhe_f_out_K = self.Ts_K
         self.Q_bhe = 0.0
+        self._source_freeze_warned = False
 
         # DHW schedule handling: direct m³/s flow array
         dhw_flow_m3s = np.asarray(dhw_usage_schedule, dtype=float)
@@ -1424,6 +1465,16 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         return results_df
 
+    def _steady_freeze_off(self, arguments: Mapping[str, Any], detail: str) -> dict:
+        """Off-state ``analyze_steady`` result of a point the freezing limit refuses."""
+        flow_state = {"dV_mix_w_out": 0.0, "dV_tank_w_out": 0.0, "dV_tank_w_in": 0.0, "dV_mix_sup_w_in": 0.0}
+        result = self._failed_cycle_result(
+            arguments["T_tank_w"], arguments["T0"], flow_state, SOURCE_FLUID_FREEZING, detail
+        )
+        result.update({"Q_tank_loss [W]": 0.0, "tank_level [-]": 1.0})
+        return result
+
+    @source_freeze_limited(duty_arg="Q_ref_tank", off="_steady_freeze_off")
     @steady_envelope(duty_arg="Q_ref_tank")
     def analyze_steady(
         self,
@@ -1471,7 +1522,13 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
               meets returns that duty with ``capacity_clamped="max"`` and
               ``capacity_binding="discharge_temperature"``),
               ``"hx_not_converged"`` (the source-water heat exchanger cannot
-              carry the duty at any approach) or ``"optimizer_failed"``.
+              carry the duty at any approach), ``"optimizer_failed"`` or
+              ``"source_fluid_freezing"`` (the loop liquid would run below its
+              operating limit, 3 °C for water, at every duty; a request that
+              a smaller duty keeps on the limit returns that duty with
+              ``capacity_clamped="max"`` and
+              ``capacity_binding="source_fluid_freezing"``; see
+              :mod:`tmhp.source_fluid`).
             - ``"failure_detail"`` (str, failures only) — which check
               rejected a ``"cycle_invalid"`` point.
 

@@ -21,7 +21,10 @@ Default sizing rules
     (``ground_hx_ua_per_capacity``).
 source-loop flow ``= 0.75 * hp_capacity / (rho c * 3 K)``
     The rated source-side heat (0.75 of the condenser duty, i.e. COP 4) carried
-    at a 3 K loop temperature difference: 3.58 L/min per kW.
+    at a 3 K loop temperature difference: 3.58 L/min per kW of water. ``rho c``
+    is that of the loop liquid (:mod:`tmhp.source_fluid`): an antifreeze
+    mixture carries less heat per litre and gets the larger flow that keeps
+    the 3 K (3.77 L/min per kW with 25 % propylene glycol).
 ``E_pmp = 75 W/ton * hp_capacity``
     The upper bound of ASHRAE ground-loop pumping grade B, 75 W of pump input
     per ton (3.517 kW) = 21.3 W per kW (Kavanaugh & Rafferty 2014, Table 6.2;
@@ -46,7 +49,7 @@ from typing import TypeVar
 import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
-from .constants import mu_w, rho_w
+from .constants import c_w, mu_w, rho_w
 from .ground_defaults import (
     BOREHOLE_DESIGN_LINEAR_LOAD,
     BOREHOLE_MAX_LINEAR_LOAD,
@@ -111,9 +114,12 @@ def rated_source_heat(hp_capacity: float) -> float:
     return calc_rated_source_heat(hp_capacity)
 
 
-def default_source_flow_lpm(hp_capacity: float) -> float:
-    """Default total source-loop flow [L/min]: rated source heat at a 3 K loop difference."""
-    return default_ground_flow_lpm(hp_capacity)
+def default_source_flow_lpm(hp_capacity: float, rho: float = rho_w, cp: float = c_w) -> float:
+    """Default total source-loop flow [L/min]: rated source heat at a 3 K loop difference.
+
+    ``rho`` [kg/m³] and ``cp`` [J/(kg K)] are those of the loop liquid (water by default).
+    """
+    return default_ground_flow_lpm(hp_capacity, rho=rho, cp=cp)
 
 
 def default_pump_power(hp_capacity: float) -> float:
@@ -147,14 +153,16 @@ def warn_if_field_overloaded(hp_capacity: float, n_exchangers: int, length_each:
         )
 
 
-def pipe_reynolds(volume_flow_m3s: float, n_parallel: int, r_in: float) -> float:
-    """Reynolds number of water in one of ``n_parallel`` pipes of inner radius ``r_in``."""
-    return float(calc_borehole_reynolds(volume_flow_m3s, max(1, n_parallel), 2.0 * r_in, rho=rho_w, mu=mu_w))
+def pipe_reynolds(volume_flow_m3s: float, n_parallel: int, r_in: float, rho: float = rho_w, mu: float = mu_w) -> float:
+    """Reynolds number of the loop liquid (water by default) in one of ``n_parallel`` pipes of inner radius ``r_in``."""
+    return float(calc_borehole_reynolds(volume_flow_m3s, max(1, n_parallel), 2.0 * r_in, rho=rho, mu=mu))
 
 
-def warn_if_laminar(volume_flow_m3s: float, n_parallel: int, r_in: float, what: str) -> None:
+def warn_if_laminar(
+    volume_flow_m3s: float, n_parallel: int, r_in: float, what: str, rho: float = rho_w, mu: float = mu_w
+) -> None:
     """``UserWarning`` when the default source flow is laminar in the pipes."""
-    reynolds = pipe_reynolds(volume_flow_m3s, n_parallel, r_in)
+    reynolds = pipe_reynolds(volume_flow_m3s, n_parallel, r_in, rho, mu)
     if reynolds < RE_LAMINAR:
         warnings.warn(
             f"{what}: the default source-loop flow ({volume_flow_m3s * 60000.0:.2f} L/min over "

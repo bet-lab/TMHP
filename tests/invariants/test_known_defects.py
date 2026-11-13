@@ -236,13 +236,51 @@ def test_tank_balance_baseline_ashpb_always_full():
     assert abs(bal["residual_J"]) < 1e-4 * bal["heat_J"], bal
 
 
-@defect("T1", "tank_always_full=False loses mass/energy: level pinned at 0.001, residual about -28 kWh in 3 h")
+# T1 fixed for ASHPB: the level of a level-varying tank comes from the flows its energy
+# balance uses, the refill valve is followed inside the step (it refilled nothing when a
+# whole step of make-up did not fit) and the draw stops at TANK_LEVEL_MIN; was level
+# pinned at 0.001, +1.60 kWh (+11 %) and 1.33 tank volumes of water in 3 h.
 def test_t1_partial_fill_conserves_mass_and_energy():
     m = tmhp.AirSourceHeatPumpBoiler(tank_always_full=False)
     df, _ = _ashpb_dynamic(m, 3.0, 600, 60.0, lambda h: np.where(h < 1.0, 8.0, 0.0), T0=5.0)
     T = df["T_tank_w [°C]"].to_numpy(dtype=float)
     expect(np.all((T > 0.0) & (T < 100.0)), f"tank temperature range {T.min():.1f}..{T.max():.1f} °C")
     bal = _tank_balance(df, m.C_tank, 60.0, 600, always_full=False)
+    expect(abs(bal["mass_residual"]) < 0.01, bal)
+    expect(abs(bal["residual_J"]) < 0.01 * (bal["heat_J"] + bal["throughput_J"]), bal)
+
+
+@pytest.mark.parametrize("family", ["GSHPB", "WSHPB"])
+@defect(
+    "T1",
+    "GSHPB/WSHPB report the level and tank flows of the unlimited draw: a tank drained below its make-up "
+    "reports level 0, +9.9 kWh (+32 %) in 1 h (the shared residual already stops the draw at the floor)",
+)
+def test_t1_ground_and_water_boilers_stop_the_draw_at_the_floor(family):
+    dt, n = 600, 6
+    cls = tmhp.GroundSourceHeatPumpBoiler if family == "GSHPB" else tmhp.WaterSourceHeatPumpBoiler
+    m = cls(
+        dt_s=dt,
+        t_max_s=86400.0,
+        UA_tank_hx=2000.0,
+        tank_always_full=False,
+        tank_level_lower_bound=0.2,
+        dV_tank_w_in_refill=0.0001,
+    )
+    extra = {"T_source_w_schedule": _flat(n, 10.0)} if family == "WSHPB" else {}
+    df = m.analyze_dynamic(
+        n * dt,
+        dt,
+        54.0,
+        _flat(n, 15.0 / 60000.0),
+        _flat(n, 5.0),
+        T_sup_w_schedule=_flat(n, T_SUP),
+        T_sur_schedule=_flat(n, 20.0),
+        **extra,
+    )
+    level = df["tank_level [-]"].to_numpy(dtype=float)
+    require(level.min() < 0.05, f"scenario must drain the tank (level min {level.min():.3f})")
+    bal = _tank_balance(df, m.C_tank, 54.0, dt, always_full=False)
     expect(abs(bal["mass_residual"]) < 0.01, bal)
     expect(abs(bal["residual_J"]) < 0.01 * (bal["heat_J"] + bal["throughput_J"]), bal)
 

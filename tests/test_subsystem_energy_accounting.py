@@ -361,6 +361,7 @@ def test_stc_preheat_pump_is_excluded_by_assumption(name):
 
 
 def test_pv_ess_with_uv_lamp_includes_lamp_in_e_tot(runs):
+    """Once: the base boiler puts the lamp in E_tot and the PV + ESS routing reads that E_tot."""
     for name in PV_ESS_NAMES:
         _, df, _ = runs[name]
         lamp = col(df, "E_uv [W]")
@@ -369,6 +370,49 @@ def test_pv_ess_with_uv_lamp_includes_lamp_in_e_tot(runs):
         np.testing.assert_allclose(
             col(df, "E_tot [W]") - lamp, col(df, "E_cmp [W]") + col(df, aux), rtol=1e-12, atol=1e-9
         )
+        # The inverter and the grid supply exactly that load: the lamp is not counted twice.
+        np.testing.assert_allclose(
+            col(df, "E_inv_out [W]") + col(df, "E_grid_import [W]"),
+            col(df, "E_cmp [W]") + col(df, aux) + lamp,
+            rtol=1e-9,
+            atol=1e-6,
+        )
+
+
+BASE_BOILERS = {
+    "AirSourceHeatPumpBoiler": ("E_ou_fan [W]", {}, {}),
+    "GroundSourceHeatPumpBoiler": ("E_pmp [W]", dict(dt_s=600.0, t_max_s=86400.0), {}),
+    "WaterSourceHeatPumpBoiler": (
+        "E_pmp [W]",
+        dict(dt_s=600.0, t_max_s=86400.0),
+        dict(T_source_w_schedule=np.full(9, 8.0)),
+    ),
+}
+
+
+@pytest.mark.parametrize("name", list(BASE_BOILERS))
+def test_base_boiler_e_tot_includes_the_uv_lamp(name):
+    """E_tot = compressor + fan/pump + lamp on every step, whether the compressor runs or not.
+
+    The base boilers used to leave ``uv=`` power out of E_tot (only the PV + ESS
+    variants added it).
+    """
+    aux, ctor, extra = BASE_BOILERS[name]
+    dt, n = 600, 9
+    # Lamp on for the middle 30 min of the 90 min run (steps 3-5); heat pump allowed
+    # for the first 45 min (steps 0-4): lamp-on steps with and without the cycle.
+    lamp = UVLamp(lamp_watts=40.0, exposure_sec=1800.0, num_switching=1, period_sec=5400.0)
+    model = getattr(tmhp, name)(uv=lamp, hp_on_schedule=[(0.0, 0.75)], **ctor)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        df = model.analyze_dynamic(n * dt, dt, 54.0, np.full(n, 1.0e-4), np.full(n, 7.0), **extra)
+    e_uv = col(df, "E_uv [W]")
+    running = col(df, "E_cmp [W]") > 0
+    assert e_uv.max() == pytest.approx(40.0) and e_uv.min() == 0.0
+    assert (running & (e_uv > 0)).any() and (~running & (e_uv > 0)).any(), (
+        "need lamp-on steps with and without the cycle"
+    )
+    np.testing.assert_allclose(col(df, "E_tot [W]"), col(df, "E_cmp [W]") + col(df, aux) + e_uv, rtol=1e-12, atol=1e-9)
 
 
 @pytest.mark.parametrize("name", STC_NAMES)

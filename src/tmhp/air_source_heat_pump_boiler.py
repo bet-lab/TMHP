@@ -92,7 +92,7 @@ from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, reportable_state
-from .subsystems import PhotovoltaicSystem, SolarThermalCollector
+from .subsystems import PhotovoltaicSystem, SolarThermalCollector, add_uv_power_to_e_tot
 from .thermodynamics import calc_energy_flow
 
 #: Objective tiers above the specific-energy scale of
@@ -2007,6 +2007,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         """
         for name, sub in self._subsystems.items():
             r.update(sub.assemble_results(ctx, ctrl, sub_states[name], T_solved_K))
+        # E_tot is the whole electric draw: the lamp's step-average power joins
+        # the compressor and the outdoor fan (the cycle assembled E_tot before
+        # the subsystems reported).
+        if "uv" in self._subsystems:
+            add_uv_power_to_e_tot(r)
         return r
 
     def _postprocess(self, df: "pd.DataFrame") -> "pd.DataFrame":

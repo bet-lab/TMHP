@@ -104,6 +104,7 @@ from .heat_transfer import calc_simple_tank_UA
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin, _evaluable_bracket
 from .refrigerant import calc_ref_state, reportable_state
 from .stratified_tank import StratifiedTank
+from .subsystems import add_uv_power_to_e_tot
 from .thermodynamics import calc_exergy_flow
 
 if TYPE_CHECKING:
@@ -1222,6 +1223,11 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     T_solved_K,
                 )
                 r.update(sub_record)
+        # E_tot is the whole electric draw: the lamp's step-average power joins
+        # the compressor and the source-loop pump (the cycle assembled E_tot
+        # before the subsystems reported).
+        if "uv" in self._subsystems:
+            add_uv_power_to_e_tot(r)
         return r
 
     def _postprocess(self, df: pd.DataFrame) -> pd.DataFrame:

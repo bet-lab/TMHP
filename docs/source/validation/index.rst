@@ -23,7 +23,10 @@ different size, and a different equipment architecture.
 
     **Points the model could not evaluate are reported, not dropped.** The
     counts below distinguish points attempted from points evaluated, and the
-    interactive table shows each unevaluated point with its reason.
+    interactive table shows each unevaluated point with its reason. A point at
+    which the model runs but delivers more than 1 % less than the published
+    duty (a capacity ceiling) is not scored either, with the reason
+    ``capacity_short``: its COP belongs to a different operating point.
 
 .. toctree::
     :hidden:
@@ -63,7 +66,7 @@ Parity
     * - Manufacturers
       - Panasonic, Samsung, Daikin, Fujitsu
     * - Points
-      - 757 attempted, 757 evaluated
+      - 757 attempted, 740 evaluated
     * - Modes
       - Heating and cooling
     * - Source temperature
@@ -92,10 +95,22 @@ There is no single headline number: the two families answer different
 questions, and the set mixes rating standards (EN 14511 and AHRI 210/240) that
 define COP differently, so each family is reported on its own and nothing is
 pooled across standards. The two held catalogues are run and written but never
-enter a headline. Every point attempted was evaluated. The compressor
-efficiencies are the shipped ``BITZER-three-C3-absolute-N-2026-10-06`` fits
-with their range and validity-domain guards (:doc:`defaults`), applied here
-unchanged.
+enter a headline. The compressor efficiencies are the shipped
+``BITZER-three-C3-absolute-N-2026-10-06`` fits with their range and
+validity-domain guards (:doc:`defaults`), applied here unchanged, inside the
+compressor operating envelope (:doc:`/developer/reference-operating-limits`).
+
+**17 air-to-water points are not evaluated, all of them R32 at a high
+pressure ratio** (outdoor −15 to −7 °C, leaving water 45 to 65 °C). With the
+default efficiency map the isentropic efficiency is 0.37–0.42 above PR 7.15,
+which puts the single-stage discharge temperature at 243–293 °C. Ten of the
+points stay above the R32 limit of 150 °C even with the discharge-temperature
+control: holding it would take a suction quality of 0.79–0.86, wetter than
+the 0.9 the model allows (``discharge_temp_above_max``). The other seven run,
+but only at 42–98 % of the published duty; their COP belongs to a smaller
+operating point and is not compared with the catalogue's full-load COP
+(``capacity_short``). Twenty-three more air-to-water points are evaluated
+under the control (21 with wet suction, 2 with reduced superheat).
 
 .. list-table::
     :header-rows: 1
@@ -107,9 +122,9 @@ unchanged.
       - Evaluated
       - What it is
     * - Air-to-water, 10 units
-      - 10.3 %
-      - +5.6 %
-      - 153 / 153
+      - 10.5 %
+      - +5.9 %
+      - 136 / 153
       - Optimistic on average; the bias sits at +2 °C outdoor
     * - Air-to-air, Daikin, 5 units
       - 12.1 %
@@ -287,10 +302,10 @@ pair-application range is entirely R-32. Without the Fujitsu R-410A units that
 panel would say nothing about whether the physics carries across working
 fluids. It is worth being explicit that the offset above is *not* a refrigerant
 effect: the three R-410A air-to-water units sit at 9.6 to 12.3 % MAPE,
-inside the 7.0 to 17.1 % spread of the air-to-water set.
+inside the 6.1 to 18.6 % spread of the air-to-water set.
 
 **The one air-to-water outlier turns out to be the same story.** The 16 kW R32
-unit runs +17.1 % optimistic. Neither of its published inputs explains it:
+unit runs +18.6 % optimistic. Neither of its published inputs explains it:
 substituting its 12 kW sibling's rated air flow moves the bias by 1.5 points,
 and dropping its published displacement for the library default by 3.0.
 What explains it is the catalogue itself. At every one of the fifteen

@@ -52,8 +52,10 @@ def _assert_running(model: AirSourceHeatPumpBoiler, result: dict) -> None:
 def test_cold_hot_water_point_inside_a_narrow_band_is_solved(request_W):
     # A-7/W55: below ~2.3 K the coil cannot absorb the duty at full airflow,
     # above ~7.5 K it over-absorbs at minimum airflow; both requests returned
-    # hx_not_converged before.
-    model = AirSourceHeatPumpBoiler(ref="R32")
+    # hx_not_converged before. The points discharge at ~233 degC (eta_is 0.34),
+    # outside the compressor envelope even under the discharge-temperature
+    # control; the search is tested with the limit off.
+    model = AirSourceHeatPumpBoiler(ref="R32", T_dis_max=None)
     result = _steady(model, T_tank_w=55.0, T0=-7.0, Q_ref_tank=request_W)
     _assert_running(model, result)
     approach = result["T0 [°C]"] - result["T_ref_evap_sat [°C]"]
@@ -62,7 +64,7 @@ def test_cold_hot_water_point_inside_a_narrow_band_is_solved(request_W):
 
 def test_search_is_not_beaten_by_a_dense_scan():
     """The band search returns at least as good a point as a 0.1 K scan of the range."""
-    model = AirSourceHeatPumpBoiler(ref="R32")
+    model = AirSourceHeatPumpBoiler(ref="R32", T_dis_max=None)  # 234 degC: outside the envelope otherwise
     point = {"T_tank_w": 55.0, "Q_ref_tank": 7500.0, "T0": -7.0}
     opt = model._optimize_operation(point["T_tank_w"], point["Q_ref_tank"], point["T0"], flow_state=_FLOW_STATE)
     best_scan = math.inf
@@ -139,3 +141,17 @@ def test_samples_narrow_the_bracket_without_moving_the_roots():
 def test_samples_keep_an_empty_band_empty():
     assert margin_feasible_interval(lambda x: x - 30.0, lambda x: x - 40.0, 1.0, 20.0, samples=[5.0, 10.0]) is None
     assert margin_feasible_interval(lambda x: x + 5.0, lambda x: x + 1.0, 1.0, 20.0, samples=[5.0, 10.0]) is None
+
+
+def test_search_moves_to_a_smaller_lift_inside_the_envelope():
+    """With the envelope on, candidates outside it rank after every solved one.
+
+    R290 wxg09 at -15/65 degC, 9 kW (adopted catalogue point): the solved
+    pressure ratio is 10.4-10.5, but larger outdoor approaches cross PR 11 and
+    the discharge limit. The point used to come back ``pr_above_max``.
+    """
+    model = AirSourceHeatPumpBoiler(ref="R290", hp_capacity=9000.0, V_cmp_ref=81.0e-6, dV_fan_a_rated=1.383)
+    result = _steady(model, T_tank_w=62.5, T0=-15.0, Q_ref_tank=9000.0)
+    _assert_running(model, result)
+    assert result["P_ref_cmp_out [Pa]"] / result["P_ref_cmp_in [Pa]"] <= model.PR_cycle_max
+    assert result["T_ref_cmp_out [°C]"] <= model.T_dis_max + 0.01

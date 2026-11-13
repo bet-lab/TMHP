@@ -9,7 +9,9 @@ Every result is checked by :func:`._checks.check_steady`:
   temperatures, 0 < eta_is, eta_v, eta_em <= 1, T_evap_sat below the stream
   entering the evaporator, T_cond_sat above the stream entering the condenser,
   suction no hotter than the source stream, superheat and subcooling >= 0,
-  finite discharge temperature;
+  finite discharge temperature, and the compressor envelope the model
+  declares (discharge <= ``T_dis_max``, PR <= ``PR_cycle_max``, speed <=
+  ``rps_max``);
 * reported as off / failed / unconverged: no heat and no power, and a
   ``failure_reason`` other than ``'none'``;
 * minimum-speed clamp: delivered duty <= max(request, rated capacity).
@@ -65,7 +67,10 @@ _WHY = {
 KNOWN_FAILURES: dict[tuple[str, str], dict[str, list[tuple[float, float, float]]]] = {
     ("WSHPB", "R134a"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
     ("WSHPB", "R290"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
-    ("WSHPB", "R32"): {"C11": [(0, 50, 0.25), (0, 55, 0.25)]},
+    # R32 0/50 and 0/55 at 0.25 discharge above 150 °C on the speed floor; the
+    # discharge-temperature control holds them by lowering the suction
+    # superheat, which also brings the suction below the source -- C11 no
+    # longer shows there. R410A keeps its 5 K superheat at these points.
     ("WSHPB", "R410A"): {"C11": [(0, 50, 0.25), (0, 55, 0.25)]},
 }
 
@@ -128,7 +133,7 @@ def test_steady_invariants(family, ref, T_source, T_demand, plr):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         result = fam.call(model, case)
-    violations = check_steady(fam, result, case, rated)
+    violations = check_steady(fam, result, case, rated, model)
     allowed = set().union(*(_EXPECTED_TAGS.get(i, set()) for i in known))
     unexpected = [v for v in violations if v.split(":", 1)[0] not in allowed]
     if known and unexpected:

@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import CoolProp.CoolProp as CP
 import numpy as np
@@ -50,7 +50,18 @@ from . import calc_util as cu
 from ._opt_utils import ignore_minpack_progress_warning
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
-from .compressor_envelope import check_pr_envelope
+from .compressor_envelope import (
+    PR_CYCLE_MAX_SINGLE_STAGE,
+    RATED_SPEED_SEARCH_MAX,
+    X_SUCTION_MIN_DEFAULT,
+    check_pr_envelope,
+    discharge_controlled,
+    envelope_violation,
+    reduce_duty_within_envelope,
+    resolve_discharge_temp_max,
+    resolve_x_suction_min,
+    steady_envelope,
+)
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
 from .dynamic_context import (
@@ -205,18 +216,17 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         ground_coupler: GroundCoupler | None = None,
         T_sur: float = 20.0,
         dT_hx_min: float = 0.5,
-        # Compressor pressure-ratio envelope (PR = P_cond / P_evap).
-        # High-lift DHW validation points reach PR 16-18 (condensing
-        # 55-75 degC from a low-temperature source), so the default boiler
-        # ceiling is 20 here
-        # (unlike the space-conditioning ASHP/GSHP, which cap at 5).
+        # Compressor pressure-ratio envelope (PR = P_cond / P_evap); the
+        # ceiling is the single-stage scroll limit (see compressor_envelope).
         PR_cycle_min: float = 1.5,
-        PR_cycle_max: float = 20.0,
-        # Compressor speed search bounds [rev/s]
+        PR_cycle_max: float = PR_CYCLE_MAX_SINGLE_STAGE,
+        # Compressor speed bounds [rev/s]; rps_max=None -> default_rps_max(rps_rated)
         rps_min: float = 15.0,
-        rps_max: float = 150.0,
+        rps_max: float | None = None,
         *,
         rps_rated: float | None = None,
+        T_dis_max: float | Literal["auto"] | None = "auto",
+        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
         # Deprecated:
         refrigerant: str | None = None,
         V_disp_cmp: float | None = None,
@@ -339,7 +349,16 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.PR_cycle_max: float = PR_cycle_max
         # Compressor speed search bounds [rev/s]
         self.rps_min: float = rps_min
-        self.rps_max: float = rps_max
+        # rps_max=None: searched up to RATED_SPEED_SEARCH_MAX for the rated
+        # speed, then replaced by default_rps_max(rps_rated) (reference_state).
+        self._rps_max_derived: bool = rps_max is None
+        self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
+        # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
+        self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Discharge-temperature control: lowest suction quality (None: no control)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        #: Suction quality of the cycle being evaluated (< 1 only inside the control).
+        self._x_suction: float = 1.0
         # Records the PR-envelope event of the most recent _calc_state call
         # (None | ("pr_below_min", pr, bound) | ("pr_above_max", pr, bound)).
         self._last_pr_event: tuple[str, float, float] | None = None
@@ -558,6 +577,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             return HXSide("water", T_in_C, self.UA_ground, self.dV_b_f_m3s)
         return HXSide("tank", T_in_C, self.UA_tank_hx)
 
+    @discharge_controlled(reject=False)
     @reject_invalid_efficiency
     def _calc_state(
         self,
@@ -678,6 +698,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             eta_cmp_isen=1.0,
             mode="heating",
             dT_superheat=self.dT_superheat,
+            x_suction=self._x_suction,
             dT_subcool=actual_dT_subcool,
             is_active=True,
         )
@@ -711,6 +732,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 eta_cmp_isen=1.0,
                 mode="heating",
                 dT_superheat=self.dT_superheat,
+                x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
                 is_active=True,
             )
@@ -753,6 +775,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             eta_cmp_isen=val_eta_isen,
             mode="heating",
             dT_superheat=self.dT_superheat,
+            x_suction=self._x_suction,
             dT_subcool=actual_dT_subcool,
             is_active=True,
         )
@@ -923,6 +946,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             detail = unphysical_cycle_detail(selected, self.hp_capacity)
             if detail is not None:
                 selected = self._failed_cycle_result(T_tank_w, T0, flow_state, "cycle_invalid", detail)
+            elif (envelope := envelope_violation(selected, self)) is not None:
+                selected = self._failed_cycle_result(T_tank_w, T0, flow_state, envelope)
         return selected
 
     def _infeasible_cycle_reason(self) -> str:
@@ -997,6 +1022,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             if detail is not None:
                 reason = "cycle_invalid"
                 raise ValueError(f"Solved cycle is not an operating point ({detail})")
+            envelope = envelope_violation(final, self)
+            if envelope is not None:
+                reason = envelope
+                raise ValueError("Solved cycle is outside the compressor envelope")
             return CycleSolveOutcome(True, float(opt_x), "none")
         except Exception:
             return CycleSolveOutcome(False, float("nan"), reason, detail)
@@ -1088,9 +1117,22 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         The condenser heat is what the solved cycle delivers, never the
         requested capacity. ``runtime_fraction`` is the expected run time of
         the step, for the coupled ground-flow path (see
-        :meth:`_ground_flow_result`).
+        :meth:`_ground_flow_result`). Outside the discharge limit the step
+        runs at the largest duty inside it, as ``analyze_steady`` does
+        (:func:`reduce_duty_within_envelope`).
         """
-        Q_tank_load = self.hp_capacity
+        result = self._solve_cycle_at_duty(ctx, T_tank_w, self.hp_capacity, runtime_fraction)
+        return reduce_duty_within_envelope(
+            self,
+            result,
+            lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q, runtime_fraction),
+            self.hp_capacity,
+        )
+
+    def _solve_cycle_at_duty(
+        self, ctx: StepContext, T_tank_w: float, Q_tank_load: float, runtime_fraction: float = 1.0
+    ) -> dict:
+        """:meth:`_solve_cycle_at` for a requested duty ``Q_tank_load`` [W]."""
         if self._ground_settings["active"]:
             return self._ground_flow_result(ctx, T_tank_w, Q_tank_load, runtime_fraction)
 
@@ -1672,6 +1714,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         return results_df
 
+    @steady_envelope(duty_arg="Q_ref_tank")
     def analyze_steady(
         self,
         T_tank_w: float,
@@ -1716,6 +1759,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
               not an operating point, see
               :func:`tmhp.dynamic_context.unphysical_cycle_detail`),
               ``"pr_above_max"`` (pressure-ratio ceiling),
+              ``"discharge_temp_above_max"`` (even a reduced duty exceeds
+              ``T_dis_max``; a request above the limit that a smaller duty
+              meets returns that duty with ``capacity_clamped="max"`` and
+              ``capacity_binding="discharge_temperature"``),
               ``"hx_not_converged"`` (the ground heat exchanger cannot
               carry the duty at any approach) or ``"optimizer_failed"``.
               With the coupled ground-flow controller the reasons of

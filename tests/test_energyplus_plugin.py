@@ -488,3 +488,46 @@ def test_plugin_classes_when_energyplus_available():
     for cls in (TmhpPlantInit, TmhpPlantSurrogate):
         assert issubclass(cls, EnergyPlusPlugin)
         assert hasattr(cls, "on_user_defined_component_model")
+
+
+def _real_surrogate(t_in, t0, load, mdot=3.0):
+    from tmhp.integrations.energyplus_plugin import TmhpPlantSurrogate
+
+    plant = TmhpPlantSurrogate()
+    plant._requested = True
+    plant._need = False
+    plant._tally_every = 10_000
+    plant.h = _surrogate_handles()
+    plant.api = _FakeApi({1: t_in, 2: mdot, 3: CP_WATER, 4: load, 7: t0})
+    return plant
+
+
+def test_surrogate_with_real_model_at_the_discharge_temperature_ceiling():
+    """R32 at A0 with a 60 degC loop: the discharge-temperature control holds 150 degC
+    only at a reduced duty (``capacity_clamped='max'``). The loop gets that duty,
+    not the request, and the machine is metered for all of it."""
+    plant = _real_surrogate(60.0, 0.0, 15000.0)
+    full = plant.hp.analyze_steady(T_tank_w=60.0, T0=0.0, Q_ref_tank=15000.0, m_dot_w=3.0)
+    # scenario precondition
+    assert full["capacity_clamped"] == "max" and full["capacity_binding"] == "discharge_temperature"
+    assert full["discharge_control"] is True and full["Q_ref_tank [W]"] < 15000.0
+
+    assert plant.on_user_defined_component_model(object()) == 0
+
+    ex = plant.api.exchange
+    q_loop = 3.0 * CP_WATER * (ex.actuators[5] - 60.0)
+    assert q_loop == pytest.approx(full["Q_ref_tank [W]"])
+    assert ex.globals[9] == pytest.approx(full["E_tot [W]"])
+
+
+def test_surrogate_with_real_model_outside_the_envelope_delivers_nothing():
+    """R32 at A-10 with a 50 degC loop: outside the envelope even under control."""
+    plant = _real_surrogate(50.0, -10.0, 15000.0)
+    off = plant.hp.analyze_steady(T_tank_w=50.0, T0=-10.0, Q_ref_tank=15000.0, m_dot_w=3.0)
+    assert off["failure_reason"] == "discharge_temp_above_max"  # scenario precondition
+
+    assert plant.on_user_defined_component_model(object()) == 0
+
+    ex = plant.api.exchange
+    assert ex.actuators[5] == pytest.approx(50.0)
+    assert ex.globals[9] == pytest.approx(0.0)

@@ -27,7 +27,7 @@ import contextlib
 import math
 import warnings
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -38,7 +38,19 @@ from . import calc_util as cu
 from ._opt_utils import OBJ_INFEASIBLE, margin_feasible_interval, operating_point_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
-from .compressor_envelope import check_pr_envelope
+from .compressor_envelope import (
+    BINDING_DISCHARGE,
+    DISCHARGE_TEMP_ABOVE_MAX,
+    ETA_ISEN_BELOW_MIN,
+    PR_CYCLE_MAX_SINGLE_STAGE,
+    RATED_SPEED_SEARCH_MAX,
+    X_SUCTION_MIN_DEFAULT,
+    check_pr_envelope,
+    discharge_controlled,
+    resolve_discharge_temp_max,
+    resolve_x_suction_min,
+    steady_envelope,
+)
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
 from .enex_functions import (
@@ -117,6 +129,7 @@ class _IndoorSearch:
         self.rows: dict[float, tuple[float, str, dict | None]] = {}
         self.warm: dict[str, float] = dict(warm or {})
         self.pr_ceiling_seen = False
+        self.envelope_reason: str | None = None
 
     def entry(self, load_approach: float) -> tuple[float, str, dict | None]:
         load_approach = float(load_approach)
@@ -127,6 +140,8 @@ class _IndoorSearch:
             )
             if status == "invalid" and model._last_pr_event is not None:
                 self.pr_ceiling_seen = self.pr_ceiling_seen or model._last_pr_event[0] == "pr_above_max"
+                if model._last_pr_event[0] in (DISCHARGE_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN):
+                    self.envelope_reason = model._last_pr_event[0]
             value = OBJ_INFEASIBLE
             if row is not None and status in model._BALANCED:
                 self.warm.update(g=g, T_out=T_out)
@@ -231,9 +246,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_a_room: float = 27.0,
         # 6. Cycle guard ---------------------------------
         dT_hx_min: float = 0.5,
-        # Compressor pressure-ratio envelope (PR = P_cond / P_evap)
+        # Compressor pressure-ratio envelope (PR = P_cond / P_evap); the
+        # ceiling is the single-stage scroll limit, as for ASHP (see compressor_envelope).
         PR_cycle_min: float = 1.5,
-        PR_cycle_max: float = 5.0,
+        PR_cycle_max: float = PR_CYCLE_MAX_SINGLE_STAGE,
         # 7. Simulation scope ----------------------------
         t_max_s: float = 8760 * 3600,
         dt_s: float = 3600,
@@ -281,10 +297,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         ground_hx_fluid_exponent: float = 0.8,
         ground_hx_refrigerant_exponent: float = 0.8,
         rps_min: float = 15.0,
-        rps_max: float = 150.0,
+        rps_max: float | None = None,
         dV_iu_fan_a_ref: float | None = None,
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
+        T_dis_max: float | Literal["auto"] | None = "auto",
+        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
         validate_ctor("GSHP", locals())
         ground_rates = resolve_ground_flow_rates(
@@ -357,7 +375,17 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.PR_cycle_max: float = PR_cycle_max
         self._last_pr_event: tuple[str, float, float] | None = None
         self.hp_capacity: float = hp_capacity
-        self.rps_min, self.rps_max = rps_min, rps_max
+        self.rps_min: float = rps_min
+        # rps_max=None: searched up to RATED_SPEED_SEARCH_MAX for the rated
+        # speed, then replaced by default_rps_max(rps_rated) (reference_state).
+        self._rps_max_derived: bool = rps_max is None
+        self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
+        # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
+        self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Discharge-temperature control: lowest suction quality (None: no control)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        #: Suction quality of the cycle being evaluated (< 1 only inside the control).
+        self._x_suction: float = 1.0
 
         # --- 2. Physical heat exchangers and compressor efficiencies ---
         # Water HX sizing is independent of the air HX and of cycle mode.
@@ -586,6 +614,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     # Refrigerant cycle physics
     # =============================================================
 
+    @discharge_controlled(reject=True)
     @reject_invalid_efficiency
     def _calc_state(
         self,
@@ -666,6 +695,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             eta_cmp_isen=1.0,
             mode=mode,
             dT_superheat=actual_dT_superheat,
+            x_suction=self._x_suction,
             dT_subcool=actual_dT_subcool,
             is_active=is_active,
         )
@@ -701,6 +731,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     eta_cmp_isen=1.0,
                     mode=mode,
                     dT_superheat=actual_dT_superheat,
+                    x_suction=self._x_suction,
                     dT_subcool=actual_dT_subcool,
                     is_active=is_active,
                 )
@@ -753,6 +784,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 eta_cmp_isen=val_eta_isen,
                 mode=mode,
                 dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
                 is_active=True,
             )
@@ -1020,7 +1052,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     abs(Q_r_iu),
                 )
                 if cache[load_approach].get("failure_reason") == "cycle_invalid" and self._last_pr_event is not None:
-                    cache[load_approach]["failure_reason"] = "pressure_ratio_limit"
+                    cache[load_approach]["failure_reason"] = (
+                        self._last_pr_event[0]
+                        if self._last_pr_event[0] in (DISCHARGE_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN)
+                        else "pressure_ratio_limit"
+                    )
             return cache[load_approach]
 
         def objective(x: float) -> float:
@@ -1395,6 +1431,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             reason = "ground_hx_capacity_insufficient"
         elif search.pr_ceiling_seen:
             reason = "pr_above_max"
+        elif search.envelope_reason is not None:
+            reason = search.envelope_reason
         else:
             reason = "cycle_invalid"
         return self._failed_operating_point(reason, Q_r_iu, T0, T_a_room)
@@ -1613,6 +1651,15 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         binding = (
             "compressor" if probe is not None and probe.get("capacity_clamped") == CAPACITY_CLAMPED_MAX else "cycle"
         )
+        if binding == "cycle" and self.T_dis_max is not None:
+            # Refused under the discharge limit, deliverable without it?
+            limit, self.T_dis_max = self.T_dis_max, None
+            try:
+                x_free, _ = self._duty_deliverable(sign * hi_q, T0, T_a_room, wall_K, lo_x, self._warm_from(lo_row))
+            finally:
+                self.T_dis_max = limit
+            if x_free is not None:
+                binding = BINDING_DISCHARGE
         result = dict(lo_row)
         result.update(
             {
@@ -1700,6 +1747,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     # Steady-state analysis
     # =============================================================
 
+    @steady_envelope()
     def analyze_steady(
         self,
         Q_r_iu: float,
@@ -1741,11 +1789,14 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             - ``"failure_reason"`` (str) — ``"none"`` or why no operating point
               exists: ``"hx_not_converged"`` (the indoor coil cannot carry the
               duty within its fan range), ``"ground_hx_capacity_insufficient"``,
-              ``"pr_above_max"`` or ``"cycle_invalid"`` (coupled solver:
-              see :func:`~tmhp.ground_flow_control.failed_ground_point`).
+              ``"pr_above_max"``, ``"discharge_temp_above_max"`` (no duty keeps
+              the discharge temperature within ``T_dis_max``) or
+              ``"cycle_invalid"`` (coupled solver: see
+              :func:`~tmhp.ground_flow_control.failed_ground_point`).
             - ``"capacity_clamped"`` — ``"max"`` when the request exceeds the
               deliverable duty (``Q_ref_iu [W]`` is the ceiling, ``Q_max [W]``
-              and ``capacity_binding`` say what bound it), ``"min"`` when the
+              and ``capacity_binding`` say what bound it: ``"compressor"``,
+              ``"cycle"`` or ``"discharge_temperature"``), ``"min"`` when the
               request is below the minimum-speed duty.
 
             Every non-``"none"`` reason returns the HP-off state: heat and

@@ -62,7 +62,10 @@ What each symbol means
       - Speed that delivers ``hp_capacity`` at the rating condition.
     * - ``rps_min`` / ``rps_max``
       - Hardware/control speed limits. ``rps_rated`` is generally *not*
-        ``rps_max``: rated capacity is not maximum capacity.
+        ``rps_max``: rated capacity is not maximum capacity. An omitted
+        ``rps_max`` is ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``
+        rev/s, set once the rated speed is solved; the rated speed itself is
+        searched up to 150 rev/s.
     * - ``m_dot_ref_rated``
       - Refrigerant mass flow of the same reference state.
 
@@ -166,7 +169,8 @@ definition, not a numerical event. The constructor raises
 :class:`tmhp.reference_state.ReferenceStateError` (a ``ValueError``) whose
 message starts with ``reference_capacity_inconsistent`` when
 
-* the speed needed is outside ``[rps_min, rps_max]`` -- typically a
+* the speed needed is outside ``[rps_min, rps_max]`` (``[rps_min, 150]``
+  when ``rps_max`` is omitted) -- typically a
   displacement that does not match the capacity, e.g. a low-pressure fluid
   such as R600a with the R32-based default displacement;
 * the rating point requires a supercritical condenser -- e.g. R744 at a
@@ -180,6 +184,7 @@ capacity and silently redefine the machine. Supply ``V_cmp_ref``,
 unset (with a ``RuntimeWarning``), which matters only if
 ``variable_ground_hx_UA=True``.
 
-The pressure-ratio envelope (``PR_cycle_min`` / ``PR_cycle_max``) is an
-operating limit and is not imposed on the rating point;
-``reference_state.pressure_ratio`` reports it.
+The pressure-ratio envelope (``PR_cycle_min`` / ``PR_cycle_max``) and the
+discharge-temperature limit ``T_dis_max`` are operating limits and are not
+imposed on the rating point; ``reference_state.pressure_ratio`` reports the
+ratio.

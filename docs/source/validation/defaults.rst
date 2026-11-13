@@ -85,12 +85,14 @@ Summary
         that lowers the efficiency
       - :mod:`tmhp.compressor_efficiency`
     * - Pressure-ratio limit
-      - ``PR_cycle_max`` 11 (air-to-air), 20 (air-to-water)
-      - Operating points above it are rejected. 11 is the air-conditioning
+      - ``PR_cycle_max`` 11 (air-to-air), 11 (air-to-water)
+      - Operating points above it are rejected. 11 is the single-stage
         scroll self-unload limit, above the ratio near 7 a split unit reaches
-        lifting from −15 °C outdoor air; air-to-water keeps 20 for
-        high-temperature hot water
-      - —
+        lifting from −15 °C outdoor air. Higher ratios are two-stage or
+        injection machines; the discharge-temperature limit (R32 150 °C,
+        other refrigerants 135 °C, held first by suction control) binds
+        before it almost everywhere
+      - :mod:`tmhp.compressor_envelope`
     * - Rated outdoor air flow
       - 720 m³/h per kW (air-to-air), 540 (air-to-water)
       - Manufacturer specifications for the respective product classes
@@ -568,26 +570,26 @@ current model code:
 
     * - ``ideal``
       - all three efficiencies pinned at 1.0 — what ASHP did before this work
-      - 48.2 %
-      - +48.2 %
+      - 48.0 %
+      - +48.0 %
 
     * - ``constant``
       - the ``v2026-09-24`` correlations frozen at their rated point, no speed
         dependence
       - 16.1 %
-      - +13.4 %
+      - +13.5 %
 
     * - ``legacy-v1``
       - the pre-refit defaults: ``0.90 − 0.02 PR``, the one-machine leakage term,
         the Guth speed shape at 0.80 (``validation/coefficients/v1-legacy/``)
-      - 7.3 %
+      - 7.5 %
       - −1.6 %
 
     * - **``defaults``**
       - **what TMHP ships — coefficients ``BITZER-three-C3-absolute-N-2026-10-06``
         with their guards**
-      - **10.3 %**
-      - **+5.6 %**
+      - **10.5 %**
+      - **+5.9 %**
 
 Parity figures are the ten adopted air-to-water units; the held Fujitsu
 catalogues are excluded from every headline. The ``defaults`` row is the
@@ -596,9 +598,10 @@ air-to-water row of :doc:`index`.
 Three things to read off it.
 
 **The compressor description carries most of the model.** An ideal compressor
-is 48.2 % out on the catalogues and a speed-independent one 16.1 %. The shipped
-fits come to 10.3 % with a +5.6 % bias, three points behind the pre-refit
-``legacy-v1`` set on this comparison.
+is 48.0 % out on the catalogues and a speed-independent one 16.1 %. The shipped
+fits come to 10.5 % with a +5.9 % bias over the 136 points the compressor
+envelope admits, three points behind the pre-refit ``legacy-v1`` set on this
+comparison.
 
 **The shape passes, at every configuration.** Across fifteen combinations of
 capacity, refrigerant and sizing ratio the modelled COP rises at every step

@@ -26,7 +26,7 @@ load (``Q_ref_tank = 0``) is valid and returns the off result with
 The values
 ==========
 
-``analyze_steady`` can return the values in the tables below. The first five
+``analyze_steady`` can return the values in the tables below. The first seven
 are common to every released family (ASHPB, GSHPB, WSHPB, ASHP, GSHP); the
 remaining ones are specific to one family or to the ground-coupled solve path.
 
@@ -68,12 +68,35 @@ Common to all families
       - No — only off-mode placeholders.
     * - ``pr_above_max``
       - The compressor pressure ratio exceeded ``PR_cycle_max``
-        (default 20 for the boilers and WSHPB, 5 for ASHP and GSHP). The single-stage envelope is rejected rather
-        than clamped, so no cycle state is produced. Reported instead
-        of ``cycle_invalid`` when the last pressure-ratio check was a
-        ceiling violation.
+        (default 11 for every family, the single-stage scroll limit). The
+        single-stage envelope is rejected rather than clamped, so no cycle
+        state is produced. Reported instead of ``cycle_invalid`` when the
+        last pressure-ratio check was a ceiling violation.
       - No — only off-mode placeholders (``E_cmp = 0``,
         ``Q_ref_tank = 0``).
+    * - ``discharge_temp_above_max``
+      - The compressor discharge temperature exceeds ``T_dis_max``
+        (default 150 °C for R32, 135 °C for every other refrigerant;
+        ``T_dis_max=None`` switches the check off) even under the
+        discharge-temperature control (suction superheat down to 0 K, then
+        wet suction down to ``x_suction_min``, default 0.9), at every duty the
+        model tried: the request and, when it is above the limit, smaller
+        duties down to the speed floor. A request that a *smaller* duty meets is
+        not a failure: it returns that duty with ``capacity_clamped ==
+        "max"`` and ``capacity_binding == "discharge_temperature"``. A
+        dynamic boiler step does the same: it runs at the reduced duty (its
+        run time and step-average heat follow from it) and is an off step
+        with this reason only when no duty fits.
+      - No — only off-mode placeholders (``E_cmp = 0``,
+        ``Q_ref_tank = 0``).
+
+    * - ``eta_isen_below_min``
+      - The shipped isentropic-efficiency fit, read outside its data (the
+        low-speed continuation), is below ``ETA_ISEN_MIN`` = 0.30 at the
+        solved point (ASHP, GSHP: at every candidate). The fit never goes
+        below 0.336 inside its data. Not checked for scalar or user
+        efficiencies.
+      - No — only off-mode placeholders.
 
 ASHPB only
 ----------
@@ -112,7 +135,8 @@ also appear).
     * - ``pressure_ratio_limit``
       - The cycle was invalid and the last pressure-ratio check hit
         ``PR_cycle_min`` or ``PR_cycle_max``. It replaces ``cycle_invalid``
-        in this path.
+        in this path. (A discharge-temperature rejection keeps
+        ``discharge_temp_above_max``.)
     * - ``compressor_min_speed``
       - The requested duty is below what the compressor delivers at
         ``rps_min`` (``capacity_clamped == "min"``), so the exact duty cannot
@@ -321,6 +345,29 @@ the recommended lever to pull when you hit each one.
     source temperature), or raise ``PR_cycle_max`` if a higher
     single-stage ratio is acceptable for your compressor.
 
+.. dropdown:: ``discharge_temp_above_max`` — discharge temperature above the limit
+    :icon: x-circle
+    :color: danger
+
+    The solved operating point (boilers) or every candidate the search
+    tried (ASHP, GSHP) discharges above ``T_dis_max`` even with the suction
+    superheat at 0 K and the suction quality at ``x_suction_min``, and no
+    smaller duty brings it inside. A point the control *does* hold runs with
+    ``discharge_control == True``; its ``dT_ref_superheat [K]`` and
+    ``x_ref_cmp_in [-]`` say how. The defaults are compressor protection settings
+    (:mod:`tmhp.compressor_envelope`). With the default efficiency map this
+    is chiefly high-pressure-ratio operation of R32: at ``PR > 7`` the
+    fitted isentropic efficiency is 0.37--0.45 and the cycle model puts all
+    compressor loss into the gas, so the computed discharge reaches
+    200--290 °C. Real units at those conditions use injection (liquid or
+    vapour) or two-stage compression, which the single-stage cycle does not
+    describe.
+
+    **What to do.** Treat the point as outside the single-stage envelope.
+    For a sensitivity study, ``T_dis_max=None`` removes the discharge limit
+    (the efficiency floor stays); a different protection setting is ``T_dis_max=<°C>``, a wetter
+    allowed suction ``x_suction_min=<x>`` (``None`` switches the control off).
+
 .. dropdown:: ``t_cond_below_t_in`` — condensing below the water inlet (ASHPB)
     :icon: x-circle
     :color: danger
@@ -353,7 +400,8 @@ the recommended lever to pull when you hit each one.
 Off-mode fallback
 =================
 
-When ``failure_reason`` is ``"cycle_invalid"``, ``"pr_above_max"`` or
+When ``failure_reason`` is ``"cycle_invalid"``, ``"pr_above_max"``,
+``"discharge_temp_above_max"``, ``"eta_isen_below_min"`` or
 ``"t_cond_below_t_in"`` — and, for WSHPB and for GSHPB outside the
 ground-coupled path, for every reason other than ``"none"`` — the
 steady-state path

@@ -190,8 +190,9 @@ is used as a fallback only when a callable is invoked without its speed.
 When omitted, the reference state solves the speed delivering ``hp_capacity``
 and its ``m_dot_ref_rated`` at the family's rating condition
 (:doc:`/models/reference-state`). Explicit rated speed and refrigerant flow
-remain available. The reference solve does not change ``rps_min`` or
-``rps_max``.
+remain available. The reference solve does not change ``rps_min``; an
+omitted ``rps_max`` is derived from the rated speed it finds (see the
+operating envelope below).
 
 The default polynomials carry their fitting-data box
 (``VALIDITY_DOMAIN``: PR 1.50-7.15, N 33.8-72.5 rev/s, from the scroll hull
@@ -235,3 +236,181 @@ The temporary 2026-10-07 policy of passing fitted efficiencies above one
 through unchanged has ended (issue #96). Values above one are set to one, the
 bound each efficiency approaches; nonpositive and nonfinite efficiencies remain
 invalid.
+
+Compressor operating envelope (2026-11-13)
+------------------------------------------
+
+The five families share one envelope, defined in
+:mod:`tmhp.compressor_envelope`. A result reported as running
+(``hp_is_on``, ``converged``, ``failure_reason == "none"``) satisfies all
+of it.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 22 30 48
+
+    * - Limit
+      - Default
+      - Rule
+    * - ``T_dis_max`` (constructor, keyword)
+      - ``"auto"``: R32 150 °C, every other refrigerant 135 °C.
+        ``None`` switches the check off; a number sets it.
+      - Compressor protection settings: Danfoss SH (R410A) discharge gas
+        ≤ 135 °C; Danfoss PSH (R410A/R454B) wet injection from 121 °C,
+        safety maximum 135 °C; Danfoss DSF (R32) external discharge-gas
+        protection opening at ≤ 150 °C. Unit controllers act earlier on the
+        discharge *pipe* (Daikin room units: frequency drop from about
+        100 °C, stop at 110–120 °C); the model uses the protection value
+        because it has no shell heat loss and puts all compressor loss
+        into the gas. A point above the limit is not an operating point.
+    * - ``PR_cycle_max``
+      - 11 for every family (was 20 for the boilers, 5 for GSHP).
+      - Single-stage scroll hardware limit. With the discharge limit in
+        force it is a sanity bound: inside the discharge limit only R134a /
+        R1234yf boiler points at PR 11–15.4 used it, every one outside the
+        efficiency fit in both pressure ratio and speed. Higher ratios are
+        two-stage or injection machines.
+    * - ``rps_max``
+      - ``None``: ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``.
+      - The rated speed is solved first over ``[rps_min, 150]``. The adopted
+        catalogues need at most 1.66 × the rated speed; the former fixed
+        150 rev/s let the compressor alone deliver 2.5–5.9 × nameplate.
+        120 rev/s is the top of variable-speed scroll and rotary ranges; a
+        machine rated above 80 rev/s (R134a with the default displacement,
+        #86) keeps 1.5 × its rated speed, the catalogue maximum-to-rated
+        capacity ratio. A user value is kept.
+    * - ``rps_min``
+      - 15 rev/s
+      - Unchanged.
+
+Discharge-temperature control (``x_suction_min``, default 0.9; ``None`` switches
+it off, ``1`` keeps the superheat stage only) comes first. A running unit whose
+discharge runs hot opens its expansion valve and, if that is not enough, lets
+the suction go wet or injects liquid; it does not stop. So when the cycle at a
+candidate operating point discharges above ``T_dis_max``, the same candidate is
+solved again, compressor speed included:
+
+1. with the suction superheat reduced from its solved value -- the set
+   ``dT_superheat`` capped by the evaporator approach minus ``dT_hx_min``
+   (ASHP, ASHPB, GSHP; GSHPB and WSHPB use the set value) -- towards 0 K, to
+   the superheat at which the discharge temperature equals ``T_dis_max``;
+2. if 0 K is not enough, with a two-phase suction of quality ``x`` lowered
+   towards ``x_suction_min``, to the quality at which it equals the limit;
+3. if ``x_suction_min`` is not enough either, as below.
+
+Wet suction is a homogeneous two-phase state at the evaporating pressure
+(:func:`tmhp.refrigerant.calc_ref_state`, ``x_suction``): the evaporator outlet
+is two-phase, so the evaporator duty is ``m_dot (h_1 - h_4)`` with the wet
+``h_1``; the swept mass flow uses the homogeneous density
+``1 / (x v_g + (1 - x) v_l)``; the isentropic work is that of the two-phase
+state. The cycle balance (condenser = evaporator + refrigerant work) closes
+exactly. The efficiency maps were fitted to dry suction; using them for wet
+suction is an approximation. The quality floor 0.9 is a conservative default
+without a quantitative basis, and ``x_suction_min`` overrides it: two-phase
+suction is an experimentally used way to hold R32 scroll discharge temperature
+(Wang et al., ICEC 2014, paper 1595; Yang et al., Int. J. Refrig. 2015), but no
+published lower bound was found, and 10 % liquid by mass is of the order of the
+liquid-injection ratios used for this purpose. Running results report
+``dT_ref_superheat [K]``, ``x_ref_cmp_in [-]`` and ``discharge_control``
+(bool), the same names in all five families; the invariant suite allows a wet
+suction only on a controlled row and only down to ``x_suction_min``. Every
+discharge comparison uses the tolerance ``DISCHARGE_TOL_K`` = 0.01 K (the
+control's root residual).
+
+How each family answers a point the control cannot hold:
+
+* **ASHP, GSHP** — the candidate is rejected inside the operating-point
+  search, like a pressure-ratio ceiling. The search moves to a smaller lift
+  if one carries the duty (ASHP adds a 16 × 16 approach lattice when its 8 × 8
+  one finds nothing: the band between the coil's airflow limit and the
+  discharge limit can be a few kelvin wide); otherwise the capacity search
+  returns the largest deliverable duty with ``capacity_clamped == "max"`` and
+  ``capacity_binding == "discharge_temperature"`` (the next larger duty is
+  deliverable once the limit is lifted). With no deliverable duty the result
+  is the off state with ``failure_reason == "discharge_temp_above_max"``.
+* **ASHPB outdoor-approach search** — a candidate outside the envelope (after
+  the control) ranks after every solved candidate, including one short of the
+  request at ``rps_max``, and before an unphysical state, a coil that cannot
+  carry the duty and no cycle; within that tier it is graded by how far
+  outside it is, so the search moves to the smaller lift that may be inside.
+* **ASHPB, GSHPB, WSHPB** (``analyze_steady``) — the solved operating point is
+  checked after :func:`tmhp.dynamic_context.unphysical_cycle_detail`. A
+  request above the limit is retried at 80/60/40/25/10 % and the boundary is
+  bisected to 1 % of the request; the largest duty that runs is returned with
+  ``capacity_clamped == "max"``, ``capacity_binding ==
+  "discharge_temperature"``, ``Q_max [W]`` and ``Q_request [W]``. If none runs
+  the off state carries ``discharge_temp_above_max``. The discharge
+  temperature is not monotone in the duty (at low speed the efficiency
+  falls), so this is the boundary nearest the request.
+* **Boiler dynamic steps** answer the same way. Each step solves its cycle
+  once (at the mean tank temperature of its run, see
+  :func:`tmhp.dynamic_context.resolve_step_operation`): held by the control
+  if possible, otherwise at the largest duty inside the limit, whose heat then
+  sets the run time and the step-average rates (the tank reaches its upper
+  bound later); a step with no duty inside the limit is an off step with
+  ``discharge_temp_above_max``. The start-temperature retry of that function
+  applies the same reduction. A step that needs the reduction costs one cycle
+  solve per ladder rung and bisection point: 24 h of the default R32 boiler
+  on a cold day (outdoor −8 to 0 °C, dt 600 s) took 9.9 solves per called
+  step and 24 min, against 1 solve and 6 s without the limit.
+
+Steady results of every family carry ``efficiency_extrapolated`` (bool):
+the point lies outside the (PR, N) box of a default efficiency fit. Scalar
+and user efficiencies give ``False``.
+
+Isentropic-efficiency floor (``ETA_ISEN_MIN`` = 0.30). With the discharge
+control a point can hold ``T_dis_max`` while the shipped isentropic fit, read
+outside its data, is far below anything measured: the guard's first-order
+continuation towards 15 rev/s reaches 0.14. Inside the convex hull of its
+3899 data points the fit never goes below 0.336, and its lowest value over the
+whole fitted box is 0.297 (corner PR 7.15, 33.8 rev/s). A running point at
+which the shipped fit is extrapolated *and* below 0.30 is therefore outside the
+envelope (``failure_reason == "eta_isen_below_min"``; ASHP and GSHP reject
+the candidate). The values held at the high-PR and high-speed boundaries are
+0.306 or more, so the rule bites only in the low-speed continuation. Scalar
+and user efficiencies are the caller's statement and are not checked: the
+floor applies only where a shipped map is extrapolated. Of
+the 2026-11-13 sweep, before this rule, 23 running rows (20 of them under
+discharge control) were at eta_is 0.25–0.30, all at PR 6.4–6.9 and
+15–21 rev/s; no adopted catalogue point is below 0.37. The rule is independent
+of ``T_dis_max``. A rising minimum speed with pressure ratio would refuse the
+same corner but needs envelope data the library does not have; the floor uses
+only the fit's own data range.
+
+Effect on the adopted catalogues (2026-11-13, point-weighted COP MAPE; a
+point that delivers more than 1 % less than the published duty is not scored,
+``capacity_short``):
+
+.. list-table::
+    :header-rows: 1
+    :widths: 34 22 22 22
+
+    * - Set
+      - before (``a1b48df``)
+      - limit, no control
+      - limit + control (default)
+    * - all 15 units
+      - 513/513, 11.6 %
+      - 473/513, 11.9 %
+      - 496/513, 11.7 %
+    * - air-to-air (5)
+      - 360/360, 12.1 %
+      - 360/360, 12.1 %
+      - 360/360, 12.1 %
+    * - air-to-water (10)
+      - 153/153, 10.3 %, bias +5.6 %
+      - 113/153, 11.4 %, bias +7.0 %
+      - 136/153, 10.5 %, bias +5.9 %
+    * - air-to-water, outdoor ≤ −10 °C
+      - 30/30, 6.4 %
+      - 6/30, 7.3 %
+      - 19/30, 4.7 %
+
+(With the ASHPB outdoor-approach band search of #109; the committed
+``validation/results`` were regenerated with this code.) The control holds 30
+air-to-water points (2 by superheat alone, 28 with wet suction at
+x 0.90–0.99); 23 of them are scored. Of the 17 points not scored, 10 are R32 points whose unbounded
+discharge is 243–293 °C: they would need suction quality 0.79–0.86, because
+the fitted eta_is is 0.37–0.42 at PR 8.2–12.1 (both in the default and the
+``v2026-09-24`` correlations). The other 7, all R32, run at a reduced duty
+(``capacity_short``, 42–98 % of the published duty) at x 0.90–0.93.

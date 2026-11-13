@@ -65,6 +65,7 @@ import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_envelope import RATED_SPEED_SEARCH_MAX, default_rps_max
 from .compressor_speed import solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
 from .refrigerant import calc_ref_state
@@ -630,7 +631,10 @@ class ReferenceStateMixin:
     dT_subcool: float
     dT_hx_min: float
     rps_min: float
+    #: The rated-speed search bound until :meth:`_initialize_reference_state`
+    #: replaces it with ``default_rps_max(rps_rated)`` (when ``_rps_max_derived``).
     rps_max: float
+    _rps_max_derived: bool
 
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """The model's own heat exchanger on ``role`` at its rated UA and reference flow."""
@@ -659,7 +663,11 @@ class ReferenceStateMixin:
         """
         if rps_rated is not None and not (math.isfinite(rps_rated) and rps_rated > 0):
             raise ValueError("rps_rated must be positive and finite")
-        if not 0 < self.rps_min < self.rps_max or not math.isfinite(self.rps_max):
+        # An omitted rps_max (the default) is derived from the rated speed below;
+        # until then the model carries the wide rated-speed search bound.
+        derive_rps_max = bool(getattr(self, "_rps_max_derived", False))
+        speed_search_max = RATED_SPEED_SEARCH_MAX if derive_rps_max else self.rps_max
+        if not 0 < self.rps_min < speed_search_max or not math.isfinite(speed_search_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
         condition = rating_condition(
             self._RATING_FAMILY,
@@ -694,7 +702,7 @@ class ReferenceStateMixin:
                 dT_subcool=self.dT_subcool,
                 dT_hx_min=self.dT_hx_min,
                 rps_min=self.rps_min,
-                rps_max=self.rps_max,
+                rps_max=speed_search_max,
                 rps_rated=rps_rated,
                 cache_key=cache_key,
             )
@@ -714,6 +722,8 @@ class ReferenceStateMixin:
             assert state is not None
             rps_rated = state.rps_rated
         self.rps_rated: float = rps_rated
+        if derive_rps_max:
+            self.rps_max = default_rps_max(rps_rated)
         self.m_dot_ref_rated: float | None = (
             m_dot_ref_rated if m_dot_ref_rated is not None else (state.m_dot_ref_rated if state else None)
         )

@@ -11,6 +11,8 @@ import math
 
 import numpy as np
 
+from tmhp.compressor_envelope import DISCHARGE_TOL_K, ETA_ISEN_MIN, efficiency_below_floor
+
 from ._families import (
     Family,
     Result,
@@ -148,11 +150,71 @@ def check_min_clamp(family: Family, r: Result, case: SteadyCase, rated_W: float)
     return []
 
 
-def check_steady(family: Family, r: Result, case: SteadyCase, rated_W: float) -> list[str]:
+ENVELOPE_RTOL = 1e-6
+
+
+def check_envelope(model: object, r: Result) -> list[str]:
+    """A running result lies inside the compressor envelope the model declares.
+
+    Discharge temperature <= ``T_dis_max`` (when the check is on), pressure
+    ratio <= ``PR_cycle_max`` and speed <= ``rps_max``.
+    """
+    v: list[str] = []
+    T_dis = num(r, "T_ref_cmp_out [°C]")
+    T_max = getattr(model, "T_dis_max", None)
+    if T_max is not None and not T_dis <= T_max + DISCHARGE_TOL_K:
+        v.append(f"discharge_above_max: T_cmp_out={_fmt(T_dis)} > T_dis_max={_fmt(T_max)}")
+    pr = num(r, "P_ref_cmp_out [Pa]") / num(r, "P_ref_cmp_in [Pa]")
+    pr_max = float(getattr(model, "PR_cycle_max", math.inf))
+    if not pr <= pr_max * (1.0 + ENVELOPE_RTOL):
+        v.append(f"pressure_ratio_above_max: PR={_fmt(pr)} > PR_cycle_max={_fmt(pr_max)}")
+    rps = num(r, "cmp_rpm [rpm]") / 60.0
+    rps_max = float(getattr(model, "rps_max", math.inf))
+    if not rps <= rps_max * (1.0 + ENVELOPE_RTOL):
+        v.append(f"speed_above_max: rps={_fmt(rps)} > rps_max={_fmt(rps_max)}")
+    v += check_suction_quality(model, r)
+    if efficiency_below_floor(model, r):
+        v.append(f"eta_isen_below_floor: eta_is={_fmt(eta_is(r))} < {ETA_ISEN_MIN} outside the fitted data")
+    return v
+
+
+def check_suction_quality(model: object, r: Result) -> list[str]:
+    """Suction is dry vapour, except under discharge-temperature control (x >= x_suction_min).
+
+    The reported quality must also be the state's own: ``h_cmp_in`` equals the
+    saturated enthalpy at that quality, or lies at or above the dew point.
+    """
+    from CoolProp.CoolProp import PropsSI
+
+    v: list[str] = []
+    x = num(r, "x_ref_cmp_in [-]")
+    controlled = bool(r.get("discharge_control", False))
+    x_min = getattr(model, "x_suction_min", None)
+    if not math.isfinite(x):
+        return [f"suction_quality_missing: x_ref_cmp_in={_fmt(x)}"]
+    if controlled:
+        if x_min is None or not x >= x_min - 1e-9:
+            v.append(f"suction_quality_below_min: x={_fmt(x)} x_suction_min={x_min}")
+    elif x != 1.0:
+        v.append(f"suction_wet_without_control: x={_fmt(x)}")
+    ref = getattr(model, "ref", None)
+    P1, h1 = num(r, "P_ref_cmp_in [Pa]"), num(r, "h_ref_cmp_in [J/kg]")
+    if ref is not None and math.isfinite(P1) and math.isfinite(h1):
+        h_x = PropsSI("H", "P", P1, "Q", min(x, 1.0), ref)
+        if x < 1.0 and abs(h1 - h_x) > 1e-6 * abs(h_x) + 1.0:
+            v.append(f"suction_state_inconsistent: h1={_fmt(h1)} h(x={_fmt(x)})={_fmt(h_x)}")
+        if x >= 1.0 and h1 < h_x - 1.0:
+            v.append(f"suction_wet_unreported: h1={_fmt(h1)} < h_dew={_fmt(h_x)}")
+    return v
+
+
+def check_steady(family: Family, r: Result, case: SteadyCase, rated_W: float, model: object = None) -> list[str]:
     """All steady-state invariants for one ``analyze_steady`` result."""
     v = check_min_clamp(family, r, case, rated_W)
     if is_reported_running(r):
         v += check_running_cycle(family, r, case)
+        if model is not None:
+            v += check_envelope(model, r)
     else:
         v += check_not_running(family, r)
     return v

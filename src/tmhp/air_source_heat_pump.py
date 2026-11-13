@@ -19,7 +19,7 @@ heat exchange at the indoor unit.
 import contextlib
 import math
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -30,7 +30,17 @@ from . import calc_util as cu
 from ._opt_utils import safe_float_attr, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
-from .compressor_envelope import check_pr_envelope
+from .compressor_envelope import (
+    BINDING_DISCHARGE,
+    PR_CYCLE_MAX_SINGLE_STAGE,
+    RATED_SPEED_SEARCH_MAX,
+    X_SUCTION_MIN_DEFAULT,
+    check_pr_envelope,
+    discharge_controlled,
+    resolve_discharge_temp_max,
+    resolve_x_suction_min,
+    steady_envelope,
+)
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
     default_displacement,
@@ -126,13 +136,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # 7, and Daikin publishes performance down to -20 degC. The guard is a
         # sanity bound, not a performance model, so it is set at the AC-scroll
         # self-unload limit cited in `compressor_envelope` (~11:1) rather than
-        # below the equipment's own published envelope. The boiler models keep
-        # a looser 20 because high-temperature domestic hot water genuinely
-        # reaches that ratio through vapour injection.
-        PR_cycle_max: float = 11.0,
-        # Compressor speed search bounds [rev/s]
+        # below the equipment's own published envelope. Every family uses it.
+        PR_cycle_max: float = PR_CYCLE_MAX_SINGLE_STAGE,
+        # Compressor speed bounds [rev/s]; rps_max=None -> default_rps_max(rps_rated)
         rps_min: float = 15.0,
-        rps_max: float = 150.0,
+        rps_max: float | None = None,
         # Approach-temperature search bounds [K]: how far the refrigerant
         # saturation temperature may stand from the inlet air on either side.
         # The upper bound is a modelling limit, not a component limit, and it
@@ -167,6 +175,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_ref: float | None = None,
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
+        T_dis_max: float | Literal["auto"] | None = "auto",
+        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
         validate_ctor("ASHP", locals())
         import warnings
@@ -242,7 +252,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self.PR_cycle_max: float = PR_cycle_max
         # Compressor speed search bounds [rev/s]
         self.rps_min: float = rps_min
-        self.rps_max: float = rps_max
+        # rps_max=None: searched up to RATED_SPEED_SEARCH_MAX for the rated
+        # speed, then replaced by default_rps_max(rps_rated) (reference_state).
+        self._rps_max_derived: bool = rps_max is None
+        self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
+        # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
+        self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Discharge-temperature control: lowest suction quality (None: no control)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        #: Suction quality of the cycle being evaluated (< 1 only inside the control).
+        self._x_suction: float = 1.0
         self.dT_approach_bounds: tuple[float, float] = (
             float(dT_approach_bounds[0]),
             float(dT_approach_bounds[1]),
@@ -392,6 +411,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # Refrigerant cycle physics
     # =============================================================
 
+    @discharge_controlled(reject=True)
     @reject_invalid_efficiency
     def _calc_state(
         self,
@@ -520,6 +540,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             eta_cmp_isen=1.0,  # Temporary
             mode=mode,
             dT_superheat=actual_dT_superheat,
+            x_suction=self._x_suction,
             dT_subcool=actual_dT_subcool,
             is_active=True,
         )
@@ -561,6 +582,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 eta_cmp_isen=1.0,  # Temporary
                 mode=mode,
                 dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
                 is_active=True,
             )
@@ -607,6 +629,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             eta_cmp_isen=val_eta_isen,
             mode=mode,
             dT_superheat=actual_dT_superheat,
+            x_suction=self._x_suction,
             dT_subcool=actual_dT_subcool,
             is_active=True,
         )
@@ -920,9 +943,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # that band, so without this sweep a near-ceiling hour finds no feasible
         # point, falls back to HP-off and reports zero output -- understating
         # capacity exactly where capacity is the quantity of interest.
-        if best_val >= OBJ_INFEASIBLE:
+        # A second, finer lattice runs only if the first finds nothing: with the
+        # discharge-temperature limit the feasible band can shrink to a few
+        # kelvin between the coil's airflow limit (small approaches) and
+        # T_dis_max (large ones) -- 2 x 2.5 K for Daikin RXM42A at -15 degC.
+        for rungs in (8, 16):
+            if best_val < OBJ_INFEASIBLE:
+                break
             lo_b, hi_b = self.dT_approach_bounds
-            lattice = tuple(float(v) for v in np.linspace(lo_b, hi_b, 8))
+            lattice = tuple(float(v) for v in np.linspace(lo_b, hi_b, rungs))
             for de in lattice:
                 for dc in lattice:
                     val = _objective((de, dc))
@@ -1112,6 +1141,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             binding = (
                 "compressor" if probe is not None and probe.get("capacity_clamped") == CAPACITY_CLAMPED_MAX else "cycle"
             )
+            if binding == "cycle" and self._discharge_limit_binds(sign * hi_q, T0, T_a_room, grid):
+                binding = BINDING_DISCHARGE
 
         return {
             "Q_max [W]": lo_q,
@@ -1125,12 +1156,23 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "T_a_room [°C]": T_a_room,
         }
 
+    def _discharge_limit_binds(self, Q_r_iu: float, T0: float, T_a_room: float, grid) -> bool:
+        """Whether this duty, refused under ``T_dis_max``, is deliverable without it."""
+        if self.T_dis_max is None:
+            return False
+        limit, self.T_dis_max = self.T_dis_max, None
+        try:
+            x, _ = self._duty_is_deliverable(Q_r_iu, T0, T_a_room, grid)
+        finally:
+            self.T_dis_max = limit
+        return x is not None
+
     def _capacity_limited_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
         """Return an energy-balanced ceiling only when the request exceeds it."""
         mode = "cooling" if Q_r_iu > 0 else "heating"
         ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode=mode)
         # An unbounded ladder result is only a lower bound, not a ceiling.
-        if ceiling.get("binding") not in {"compressor", "cycle"}:
+        if ceiling.get("binding") not in {"compressor", "cycle", BINDING_DISCHARGE}:
             return None
         q_ceiling = float(ceiling["Q_max [W]"])
         if not math.isfinite(q_ceiling) or not 0 < q_ceiling < abs(Q_r_iu):
@@ -1165,6 +1207,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # Steady-state analysis
     # =============================================================
 
+    @steady_envelope()
     def analyze_steady(
         self,
         Q_r_iu: float,
@@ -1202,7 +1245,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
             - ``"converged"`` (bool) — True only when the inner HX optimisation
               and the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``, ``"cycle_invalid"``
-              (the refrigerant cycle itself was infeasible),
+              (the refrigerant cycle itself was infeasible), ``"pr_above_max"``,
+              ``"discharge_temp_above_max"`` (no duty keeps the discharge
+              temperature within ``T_dis_max``; a request above that limit
+              that a smaller duty meets returns the ceiling with
+              ``capacity_binding="discharge_temperature"``),
               ``"hx_not_converged"`` (cycle OK but the HX residual exceeded
               tolerance), or ``"optimizer_failed"`` (SciPy reported
               ``success=False``).
@@ -1257,7 +1304,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         f"PR={pr_val:.3f} -> {bound:.2f} "
                         f"(Q_r_iu={Q_r_iu:.0f}W, T0={T0:.1f}°C, T_a_room={T_a_room:.1f}°C)"
                     )
-                else:  # pr_above_max
+                elif kind == "pr_above_max":
                     print(
                         f"[PR guard] reject 상한(above PR_cycle_max): "
                         f"PR={pr_val:.3f} > {bound:.2f} "
@@ -1275,7 +1322,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 # Distinguish a pressure-ratio ceiling rejection from a generic
                 # invalid cycle so downstream consumers see the specific cause.
                 failure_reason = (
-                    "pr_above_max" if pr_event is not None and pr_event[0] == "pr_above_max" else "cycle_invalid"
+                    pr_event[0] if pr_event is not None and pr_event[0] != "pr_below_min" else "cycle_invalid"
                 )
             elif not result.get("converged", False):
                 failure_reason = "hx_not_converged"

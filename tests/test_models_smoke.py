@@ -18,6 +18,7 @@ from tmhp import (
     WaterSourceHeatPumpBoiler,
     check_pr_envelope,
 )
+from tmhp.compressor_envelope import default_rps_max
 
 
 def test_ashpb_analyze_steady():
@@ -311,13 +312,17 @@ def test_ashp_default_pr_and_rps():
     # `compressor_envelope`.
     assert ashp.PR_cycle_max == 11.0
     assert ashp.rps_min == 15.0
-    assert ashp.rps_max == 150.0
+    # rps_max is derived from the rated speed (compressor_envelope.default_rps_max).
+    assert ashp.rps_max == pytest.approx(default_rps_max(ashp.rps_rated))
+    assert ashp.T_dis_max == 150.0
 
 
 def test_gshp_default_pr_and_rps():
     gshp = GroundSourceHeatPump(ref="R32")
     assert gshp.PR_cycle_min == 1.5
-    assert gshp.PR_cycle_max == 5.0
+    # Was 5: the single-stage scroll limit applies to the ground-source unit as to ASHP.
+    assert gshp.PR_cycle_max == 11.0
+    assert gshp.rps_max == pytest.approx(default_rps_max(gshp.rps_rated))
 
 
 def test_gshp_custom_pr():
@@ -343,17 +348,18 @@ def test_ashpb_custom_pr_and_rps():
 def test_ashpb_default_pr_and_rps():
     ashpb = AirSourceHeatPumpBoiler(ref="R32")
     assert ashpb.PR_cycle_min == 1.5
-    assert ashpb.PR_cycle_max == 20.0
+    # Was 20; the discharge-temperature limit binds first, 11 is the hardware bound.
+    assert ashpb.PR_cycle_max == 11.0
     assert ashpb.rps_min == 15.0
-    assert ashpb.rps_max == 150.0
+    assert ashpb.rps_max == pytest.approx(default_rps_max(ashpb.rps_rated))
 
 
 def test_gshpb_default_pr_and_rps():
     gshpb = GroundSourceHeatPumpBoiler(ref="R32")
     assert gshpb.PR_cycle_min == 1.5
-    assert gshpb.PR_cycle_max == 20.0
+    assert gshpb.PR_cycle_max == 11.0
     assert gshpb.rps_min == 15.0
-    assert gshpb.rps_max == 150.0
+    assert gshpb.rps_max == pytest.approx(default_rps_max(gshpb.rps_rated))
 
 
 def test_wshpb_custom_pr_and_rps():
@@ -373,9 +379,9 @@ def test_wshpb_custom_pr_and_rps():
 def test_wshpb_default_pr_and_rps():
     wshpb = WaterSourceHeatPumpBoiler(ref="R32")
     assert wshpb.PR_cycle_min == 1.5
-    assert wshpb.PR_cycle_max == 20.0
+    assert wshpb.PR_cycle_max == 11.0
     assert wshpb.rps_min == 15.0
-    assert wshpb.rps_max == 150.0
+    assert wshpb.rps_max == pytest.approx(default_rps_max(wshpb.rps_rated))
 
 
 def test_wshpb_pr_floor_clamp_keeps_cycle():

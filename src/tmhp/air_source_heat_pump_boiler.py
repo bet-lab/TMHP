@@ -2344,9 +2344,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         GSHP), the capacity keys (:func:`tmhp._boiler_results.complete_capacity_keys`:
         the request is ``hp_capacity`` on a step the thermostat called the
         compressor, 0 otherwise), the running-only keys of
-        :attr:`_DYNAMIC_ROW_DEFAULTS` and the condenser dew point.
+        :attr:`_DYNAMIC_ROW_DEFAULTS`, the frost keys (0 and 1 on a step
+        without frost, :meth:`_write_frost_free`) and the condenser dew point.
         """
         request = step_request(r, self.hp_capacity)
+        if "defrost_fraction [-]" not in r:
+            # A row from a path that did not go through the frost correction
+            # (an overridden hook): the keys of a row that was not corrected.
+            self._write_frost_free(r, self._step_frost(ctx))
         complete_capacity_keys(r, request, step_average=True)
         r.setdefault("Q_ref_tank_request [W]", request)
         fill_missing(r, self._DYNAMIC_ROW_DEFAULTS)

@@ -404,3 +404,48 @@ def test_warm_day_is_untouched_by_the_default(frosting, frost_free):
     on, off = frosting.analyze_dynamic(**schedule), frost_free.analyze_dynamic(**schedule)
     shared = [c for c in off.columns if c != "RH_out [-]"]
     pd.testing.assert_frame_equal(on[shared], off[shared], check_exact=True)
+
+
+# ---------------------------------------------------------------------------
+# every row carries the frost keys
+# ---------------------------------------------------------------------------
+
+
+def test_every_steady_row_has_the_same_keys_with_and_without_frost(frosting):
+    """Running, frosting, cycling, capacity-limited, off and refused rows: one key set."""
+    rows = {
+        "frost-free": frosting.analyze_steady(T_tank_w=45.0, T0=7.0, Q_ref_tank=8000.0),
+        "frosting": frosting.analyze_steady(T_tank_w=45.0, T0=0.0, Q_ref_tank=8000.0),
+        "cycling": frosting.analyze_steady(T_tank_w=35.0, T0=2.0, Q_ref_tank=1500.0),
+        "speed ceiling": frosting.analyze_steady(T_tank_w=35.0, T0=2.0, Q_ref_tank=15000.0),
+        "reduced": frosting.analyze_steady(T_tank_w=55.0, T0=-15.0, Q_ref_tank=15000.0),
+        "off": frosting.analyze_steady(T_tank_w=45.0, T0=0.0, Q_ref_tank=0.0),
+        "refused": frosting.analyze_steady(T_tank_w=55.0, T0=-7.0, Q_ref_tank=1500.0),
+    }
+    assert rows["refused"]["hp_is_on"] is False and rows["refused"]["failure_reason"] != "none"
+    keys = set(rows["frost-free"])
+    for name, row in rows.items():
+        assert set(row) == keys, (name, set(row) ^ keys)
+        for key in FROST_KEYS:
+            # The humidity is NaN where nothing is asked of the unit: no correction, no humidity used.
+            expect_number = key != "RH_out [-]" or name != "off"
+            assert isinstance(row[key], float) and math.isfinite(row[key]) is expect_number, (name, key)
+    # A capacity-limited frosting row reports what it delivers, against what was asked.
+    for name in ("speed ceiling", "reduced"):
+        row = rows[name]
+        assert row["capacity_clamped"] == "max" and row["capacity_binding"] is not None
+        assert row["Q_max [W]"] == row["Q_ref_tank [W]"] < row["Q_request [W]"] == 15000.0
+
+
+def test_every_dynamic_row_has_the_frost_keys(cold_runs):
+    on, off = cold_runs
+    numeric = [key for key in FROST_KEYS if key != "RH_out [-]"]
+    assert not on[list(FROST_KEYS)].isna().any().any()
+    assert not off[numeric].isna().any().any()
+    assert off["RH_out [-]"].isna().all()  # no frost model, no humidity used
+    # A step the thermostat called carries the nameplate request, frost or not.
+    called = on[on["hp_is_on"]]
+    assert (called["Q_request [W]"] == 15000.0).all() and (called["Q_ref_tank_request [W]"] == 15000.0).all()
+    limited = called[called["capacity_clamped"] == "max"]
+    running_heat = limited["Q_ref_tank [W]"] / limited["runtime_fraction [-]"]
+    np.testing.assert_allclose(limited["Q_max [W]"], running_heat, rtol=1e-9)

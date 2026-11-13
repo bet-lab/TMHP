@@ -43,7 +43,7 @@ def _quiet(fn, *args, **kwargs):
 
 @pytest.fixture(scope="module")
 def machines() -> dict[tuple[str, float], object]:
-    """Default R410A machines, built once per capacity."""
+    """Default (R290) machines, built once per capacity."""
     return {(fam, cap): _quiet(cls, hp_capacity=cap) for fam, cls in FAMILIES.items() for cap in (3e3, 8e3, 3e4)}
 
 
@@ -139,9 +139,10 @@ def test_overloaded_field_laminar_flow_and_unreachable_set_point_warn():
     with pytest.warns(UserWarning, match=r"laminar, Re = 14\d\d"):
         GroundSourceHeatPumpBoiler(N_1=4, N_2=4, H_b=50.0, t_max_s=86400.0)
     # 500 W/K at 8 kW is a 16 K approach: 65 + 16 = 81 °C is above the R410A critical point.
+    # (Without the condensing limit: with it this machine is refused at its rating point.)
     for cls in FAMILIES.values():
         with pytest.warns(UserWarning, match=r"critical temperature of R410A \(71\.3 °C\)"):
-            cls(UA_tank_hx=500.0, t_max_s=86400.0)
+            cls(ref="R410A", UA_tank_hx=500.0, t_max_s=86400.0, T_cond_max=None)
     # A caller-given flow is theirs to judge.
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
@@ -306,14 +307,33 @@ def default_runs() -> dict[str, tuple[object, object]]:
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_default_machine_charges_to_its_default_upper_set_point(default_runs, family):
     m, df = default_runs[family]
+    # The default refrigerant is R290: its envelope (75 °C condensing) holds the
+    # default 65 °C set point, which R410A's (65 °C) does not.
+    assert (m.ref, m.T_cond_max, m.T_tank_w_upper_bound) == ("R290", 75.0, 65.0)
     assert (df["failure_reason"] == "none").all()
     assert df["hp_is_on"].any() and not df["hp_is_on"].all()
     # The thermostat stops the compressor at the upper bound inside a step.
     assert df["T_tank_w [°C]"].max() == pytest.approx(m.T_tank_w_upper_bound, abs=0.1)
     ran = df["hp_is_on"].astype(bool)
-    # R410A condenses at most 5 K above the 65 °C set point, below the 71.3 °C critical point.
+    # It condenses at most 5 K above the 65 °C set point, at the nameplate duty all the way.
     assert df.loc[ran, "T_ref_cond_sat_l [°C]"].max() <= m.T_tank_w_upper_bound + 5.0 + 1e-6
+    assert df.loc[ran, "T_ref_cond_sat_l [°C]"].max() < m.T_cond_max - 4.0
+    assert "capacity_binding" not in df.columns or df["capacity_binding"].isna().all()
     assert df.loc[ran, "T_ref_cmp_out [°C]"].max() <= m.T_dis_max + 0.02
+
+
+@pytest.mark.parametrize("family", list(FAMILIES))
+def test_former_default_refrigerant_stops_below_the_default_set_point(family):
+    """R410A against the default 55-65 °C band: the envelope (65 °C condensing) caps the set point at 59.9 °C."""
+    dt, n = 60.0, 12
+    with pytest.warns(UserWarning, match=r"T_tank_w_upper_bound=65 °C is above .* R410A .* 59\.9 °C"):
+        m = FAMILIES[family](ref="R410A", dt_s=dt, t_max_s=86400.0)
+    assert m.T_tank_w_setpoints_requested == (55.0, 65.0)
+    assert m.T_tank_w_upper_bound == pytest.approx(59.93, abs=0.01)
+    df = _quiet(m.analyze_dynamic, n * dt, dt, 54.9, np.zeros(n), np.full(n, 5.0))
+    assert (df["failure_reason"] == "none").all()
+    assert df["hp_is_on"].any() and not df["hp_is_on"].all()
+    assert df["T_tank_w [°C]"].max() == pytest.approx(m.T_tank_w_upper_bound, abs=0.05)
 
 
 @pytest.mark.parametrize("family", list(FAMILIES))
@@ -331,9 +351,12 @@ def test_thermostat_off_rows_are_not_failures(default_runs, family):
 
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_called_step_without_a_cycle_carries_the_reason(family):
-    """An undersized tank heat exchanger (16 K approach) has no R410A cycle above ~55 °C."""
+    """An undersized tank heat exchanger (16 K approach) has no R410A cycle above ~55 °C.
+
+    Without the condensing limit, which refuses this machine at its rating point.
+    """
     dt, n = 300.0, 3
-    m = _quiet(FAMILIES[family], UA_tank_hx=500.0, dt_s=dt, t_max_s=86400.0)
+    m = _quiet(FAMILIES[family], ref="R410A", UA_tank_hx=500.0, dt_s=dt, t_max_s=86400.0, T_cond_max=None)
     df = _quiet(m.analyze_dynamic, n * dt, dt, 54.9, np.zeros(n), np.full(n, 5.0))
     failed = df["failure_reason"] != "none"
     assert failed.any() and (df.loc[failed, "failure_reason"] == "cycle_invalid").all()

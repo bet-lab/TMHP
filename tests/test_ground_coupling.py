@@ -223,6 +223,7 @@ def _historical_efficiency_plant():
     # so the recorded machine is spelled out. It was recorded with the steady
     # borehole (resistance without heat capacity), now ``borehole_dynamics=False``.
     return GroundSourceHeatPumpBoiler(
+        ref="R410A",  # the default refrigerant when the plant was recorded (now R290)
         borehole_dynamics=False,
         t_max_s=200 * 3600,
         eta_cmp_isen=0.80,
@@ -232,6 +233,9 @@ def _historical_efficiency_plant():
         UA_ground=500.0,
         ground_flow_ref_lpm=24.0,
         E_pmp=200.0,
+        # Recorded without a condensing limit (16 K condenser approach: its
+        # rating point condenses at 71 °C, above the R410A limit).
+        T_cond_max=None,
     )
 
 

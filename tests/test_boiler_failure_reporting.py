@@ -151,9 +151,11 @@ _COLLAPSE_CASES = [
 # The #96 points were found with the former capacity-independent heat
 # exchangers of the liquid-source boilers (500 W/K, 24 L/min, 200 W pump);
 # with the capacity-scaled defaults the same inputs stay below PR 7.15.
+# Their 16 K condenser approach rates R410A at 71 °C condensing, above its
+# condensing limit (65 °C), so that limit is off for these recorded machines.
 _LEGACY_HX = {
-    "GSHPB": dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0),
-    "WSHPB": dict(UA_tank_hx=500.0, UA_water=500.0, dV_b_f_lpm=24.0, E_pmp=200.0),
+    "GSHPB": dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0, T_cond_max=None),
+    "WSHPB": dict(UA_tank_hx=500.0, UA_water=500.0, dV_b_f_lpm=24.0, E_pmp=200.0, T_cond_max=None),
 }
 _FAMILY_CLASS = {
     "ASHPB": AirSourceHeatPumpBoiler,
@@ -195,9 +197,14 @@ def test_ashpb_supercritical_condensing_is_a_failure_not_an_exception() -> None:
     # tank and 1.5x the nameplate that is above the 71.3 °C critical point.
     # CoolProp has no saturation state there and its ValueError used to
     # escape analyze_steady (on main before #102 as well).
-    model = AirSourceHeatPumpBoiler(ref="R410A")
+    model = AirSourceHeatPumpBoiler(ref="R410A", T_cond_max=None)
     result = _steady(model, T_tank_w=65.0, T0=7.0, Q_ref_tank=1.5 * model.hp_capacity)
     _assert_off_mode_failure(result, "cycle_invalid")
+    # With the condensing limit (65 °C for R410A) the same request is refused
+    # by that limit: a tenth of it still condenses above it.
+    limited = AirSourceHeatPumpBoiler(ref="R410A")
+    result = _steady(limited, T_tank_w=65.0, T0=7.0, Q_ref_tank=1.5 * limited.hp_capacity)
+    _assert_off_mode_failure(result, "condensing_temp_above_max")
 
 
 # --------------------------------------------------------------------------
@@ -225,14 +232,15 @@ def _tank_balance_residual(model, df, T_init: float, dt: float, T_sup: float) ->
 def gshpb_failing_run():
     """Default GSHPB from just below its hysteresis floor, four 300 s steps.
 
-    The default machine (R410A, UA_tank_hx 500 W/K, 8 kW) condenses 16 K
+    The former default machine (R410A, UA_tank_hx 500 W/K, 8 kW) condenses 16 K
     above the tank, so above ~55.4 °C it would condense beyond the R410A
     critical point (71.3 °C): the first step heats the 100 L tank to ~60 °C
     and every later step is called but has no cycle. Before #96 each of those
-    steps still put the requested 8 kW into the tank.
+    steps still put the requested 8 kW into the tank. (R410A and no condensing
+    limit are spelled out: this is the machine the defect was found on.)
     """
     dt, n = 300.0, 4
-    model = GroundSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400, UA_tank_hx=500.0)
+    model = GroundSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400, UA_tank_hx=500.0, ref="R410A", T_cond_max=None)
     df = model.analyze_dynamic(
         n * dt,
         dt,
@@ -277,10 +285,11 @@ def ashpb_failing_run():
     the tank plus a 5 K approach would be above the R410A critical point
     (71.3 °C): there is no cycle. Before #96 such steps were
     ``hp_is_on=True`` rows with NaN heat, power and COP (or, here, a
-    CoolProp ValueError).
+    CoolProp ValueError). (No condensing limit: with it the heat pump stops
+    below 65 °C for that limit instead; see the envelope tests.)
     """
     dt, n = 300.0, 4
-    model = AirSourceHeatPumpBoiler(ref="R410A", T_tank_w_upper_bound=75.0)
+    model = AirSourceHeatPumpBoiler(ref="R410A", T_tank_w_upper_bound=75.0, T_cond_max=None)
     df = model.analyze_dynamic(
         n * dt,
         dt,
@@ -322,7 +331,7 @@ def wshpb_failing_run():
     GSHPB: its 16 K condenser approach also crosses the R410A critical point
     once the tank passes ~55.4 °C."""
     dt, n = 300.0, 3
-    model = WaterSourceHeatPumpBoiler(UA_tank_hx=500.0)
+    model = WaterSourceHeatPumpBoiler(UA_tank_hx=500.0, ref="R410A", T_cond_max=None)
     df = model.analyze_dynamic(
         n * dt,
         dt,

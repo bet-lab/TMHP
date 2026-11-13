@@ -1,7 +1,7 @@
 """Compressor operating envelope shared by every cycle-resolved heat-pump model.
 
 A real compressor runs inside an envelope that its manufacturer publishes and
-its controller enforces. Four limits matter for the single-stage vapour
+its controller enforces. Five limits matter for the single-stage vapour
 compression cycle TMHP solves, and this module holds the rule for each so the
 five families (ASHP, GSHP, ASHPB, GSHPB, WSHPB) apply them identically.
 
@@ -77,6 +77,84 @@ Discharge temperature (``T_dis_max``)
     well (:func:`duty_reduction_binding`); ``capacity_binding`` names the
     limit.
 
+Condensing pressure (``T_cond_max``)
+    The top of every published envelope is a maximum condensing temperature,
+    which is a maximum high-side pressure: the shell, the scroll set and the
+    motor are built for it, and the unit's high-pressure switch stops the
+    compressor just above it. ``T_cond_max`` is that limit as the saturation
+    temperature of the condensing pressure [degC]; the check compares
+    pressures, ``P_cond > P_dew(T_cond_max)`` (for a zeotropic blend the
+    envelope temperature is the dew point; the cycle's own condensing
+    temperature is the bubble point, lower by the glide -- R407C reaches the
+    65 degC limit at 61.2 degC). The defaults (:data:`CONDENSING_TEMP_MAX_C`,
+    :func:`default_condensing_temp_max`) are the upper end of the high-side
+    working range of compressors sold for each fluid:
+
+    ===========  ======  =====================================================
+    fluid        degC    basis
+    ===========  ======  =====================================================
+    R410A        65      Copeland ZP*K3E/K5E application envelope tops at
+                         about 65.5 degC (replacement guidelines C050202,
+                         fig. 2); Danfoss PSH019-039 "65 degC saturated
+                         condensing temperature"; Danfoss DSH working range to
+                         41.7 bar(g) = 64.9 degC.
+    R32          65      Danfoss DSF090 working range high side to 43 bar(g)
+                         = 65.2 degC; Copeland YP (R32) is stated to cover the
+                         field of application of the R410A scrolls.
+    R407C        65      Danfoss HHP heat-pump scrolls: working range high
+                         side to 27.4 bar(g) = 65.0 degC dew (Copeland ZR
+                         envelope: about 67 degC).
+    R290         75      Copeland ZH04KCU-ZH16KCU heat-pump scrolls: high-side
+                         PS 28 bar(g) = 76.0 degC (Danfoss VZN: working range
+                         to 31.5 bar(g) = 82 degC).
+    R134a        80      Danfoss VZN with R513A (the R134a pressure class):
+                         working range high side to 25.9 bar(g), 81.0 degC as
+                         R134a.
+    R1234yf      75      no envelope published for this fluid was found; the
+                         R134a pressure class (25.9 bar(g)) would allow
+                         83.3 degC. 75 degC is about 20 K below the critical
+                         point (94.7 degC), as for R290 (96.7 degC).
+    R1234ze(E)   90      Danfoss PSG605-800: working range to 25.3 bar(g)
+                         = 93.0 degC.
+    R600a        100     Danfoss PSG605-800: working range to 19.6 bar(g)
+                         = 102.0 degC.
+    R717         70      the 40 bar class of ammonia heat-pump compressors
+                         (GEA Grasso V HP, 39 bar, hot water about 70 degC);
+                         50 and 63 bar machines reach 82-95 degC.
+    ===========  ======  =====================================================
+
+    No default exceeds the saturation temperature at
+    :data:`CONDENSING_PRESSURE_MAX_REDUCED` (0.9) of the critical pressure,
+    and that alone is the default of a fluid not in the table: no published
+    envelope reaches it, and next to the critical point the condenser has
+    almost no latent heat left (R744 gets 26.4 degC: its heat pumps are
+    transcritical, which this subcritical cycle does not describe). A machine
+    with a different high-pressure rating is given its own ``T_cond_max``;
+    ``None`` switches the check off.
+
+    A point above the limit is **not an operating point**
+    (:data:`CONDENSING_TEMP_ABOVE_MAX`), and it is answered like the discharge
+    limit below, because the condensing temperature is the demand-side
+    temperature plus the condenser approach and the approach shrinks with the
+    duty: the space-conditioning models reject the candidate inside the
+    operating-point search, the boilers reduce the duty
+    (:func:`reduce_duty_within_envelope`) and report
+    ``capacity_clamped='max'`` with ``capacity_binding='condensing_temperature'``.
+    The boundary duty is found by a secant on the condensing temperature
+    (:func:`_duty_on_condensing_limit`: three cycle solves in all, instead of
+    the ladder and bisection of the other limits), so a dynamic step that runs
+    against the limit stays cheap. When the demand side is itself at the limit
+    (a tank at ``T_cond_max``) no duty runs: the off state with
+    ``failure_reason='condensing_temp_above_max'``.
+
+    A boiler's thermostat is told where the envelope ends
+    (:func:`limit_tank_setpoints_to_envelope`): an upper set point above the
+    tank temperature at which the nameplate duty condenses on the limit
+    (:func:`condensing_tank_cutout`) is capped there at construction, with a
+    ``UserWarning``. A dynamic step solves one cycle and applies its heat over
+    the step, so without the cap a long step overran the limit and the
+    temperature at which the heat pump stopped depended on the step.
+
 Speed (``rps_min`` / ``rps_max``)
     ``rps_min`` is the inverter's floor (15 rev/s). ``rps_max`` defaults to
     :func:`default_rps_max` of the rated speed the model solves at its rating
@@ -102,7 +180,7 @@ import io
 import math
 import warnings
 from collections.abc import Callable, Mapping
-from functools import wraps
+from functools import lru_cache, wraps
 from typing import Any, Literal, TypeVar, cast
 
 from scipy.optimize import brentq
@@ -120,7 +198,21 @@ __all__ = [
     "DISCHARGE_TEMP_MAX_C",
     "DISCHARGE_TEMP_MAX_DEFAULT_C",
     "DISCHARGE_TOL_K",
+    "CONDENSING_TEMP_ABOVE_MAX",
+    "CONDENSING_TEMP_MAX_C",
+    "CONDENSING_PRESSURE_MAX_REDUCED",
+    "CONDENSING_TOL_K",
+    "ENVELOPE_REJECTIONS",
+    "default_condensing_temp_max",
+    "resolve_condensing_temp_max",
+    "condensing_pressure_max",
+    "condensing_temp_exceeded",
+    "condensing_violation",
+    "check_rated_condensing",
+    "condensing_tank_cutout",
+    "limit_tank_setpoints_to_envelope",
     "BINDING_DISCHARGE",
+    "BINDING_CONDENSING",
     "BINDING_PRESSURE_RATIO",
     "BINDING_HEAT_EXCHANGER",
     "BINDING_EFFICIENCY",
@@ -158,8 +250,13 @@ PR_CYCLE_MAX_SINGLE_STAGE = 11.0
 
 #: ``failure_reason``: even the smallest duty tried exceeds ``T_dis_max``.
 DISCHARGE_TEMP_ABOVE_MAX = "discharge_temp_above_max"
+#: ``failure_reason``: even the smallest duty tried condenses above ``T_cond_max``.
+CONDENSING_TEMP_ABOVE_MAX = "condensing_temp_above_max"
 #: ``failure_reason``: the default isentropic-efficiency fit, extrapolated, is below :data:`ETA_ISEN_MIN`.
 ETA_ISEN_BELOW_MIN = "eta_isen_below_min"
+#: Reasons with which the envelope rejects a candidate of the space-conditioning
+#: searches (``_last_pr_event[0]``); they are reported as the ``failure_reason``.
+ENVELOPE_REJECTIONS = frozenset({DISCHARGE_TEMP_ABOVE_MAX, CONDENSING_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN})
 #: Lowest isentropic efficiency of the default fit accepted outside its data [-].
 #:
 #: Inside the convex hull of its 3899 data points the default scroll fit never
@@ -173,6 +270,8 @@ ETA_ISEN_BELOW_MIN = "eta_isen_below_min"
 ETA_ISEN_MIN = 0.30
 #: ``capacity_binding``: the duty was reduced to stay within ``T_dis_max``.
 BINDING_DISCHARGE = "discharge_temperature"
+#: ``capacity_binding``: the duty was reduced to stay within ``T_cond_max``.
+BINDING_CONDENSING = "condensing_temperature"
 #: ``capacity_binding``: the duty was reduced to stay within ``PR_cycle_max``.
 BINDING_PRESSURE_RATIO = "pressure_ratio"
 #: ``capacity_binding``: the duty was reduced to what the source heat exchanger
@@ -187,6 +286,32 @@ BINDING_CYCLE = "cycle"
 DISCHARGE_TEMP_MAX_C: Mapping[str, float] = {"R32": 150.0}
 #: Default for every refrigerant not in :data:`DISCHARGE_TEMP_MAX_C` [degC].
 DISCHARGE_TEMP_MAX_DEFAULT_C = 135.0
+
+#: Default maximum condensing temperature by refrigerant [degC] (saturation
+#: temperature of the highest condensing pressure; dew point for a blend).
+#: Sources in the module docstring.
+CONDENSING_TEMP_MAX_C: Mapping[str, float] = {
+    "R410A": 65.0,
+    "R32": 65.0,
+    "R407C": 65.0,
+    "R290": 75.0,
+    "R134a": 80.0,
+    "R1234yf": 75.0,
+    "R1234ze(E)": 90.0,
+    "R600a": 100.0,
+    "IsoButane": 100.0,
+    "R717": 70.0,
+}
+#: No default condensing pressure exceeds this fraction of the critical
+#: pressure; it alone is the default of a refrigerant not in
+#: :data:`CONDENSING_TEMP_MAX_C`.
+CONDENSING_PRESSURE_MAX_REDUCED = 0.9
+#: Tolerance of every condensing-temperature comparison [K]. The duty
+#: reduction solves ``T_cond = T_cond_max`` for the duty, so the check that
+#: follows has to accept that root's residual (round-off for a tank whose
+#: condensing approach is ``Q / UA``); 0.01 K is far below any meaning the
+#: limit has, and it keeps the verdict the same on every platform.
+CONDENSING_TOL_K = 0.01
 
 #: Default lowest suction vapour quality the discharge-temperature control may use.
 #:
@@ -266,6 +391,216 @@ def resolve_x_suction_min(value: float | None) -> float | None:
     return x
 
 
+@lru_cache(maxsize=256)
+def _critical_point(ref: str) -> tuple[float, float]:
+    """Critical temperature [K] and pressure [Pa] of ``ref``."""
+    from CoolProp.CoolProp import PropsSI
+
+    return float(PropsSI("Tcrit", ref)), float(PropsSI("Pcrit", ref))
+
+
+def _dew_temperature_C(pressure: object, ref: str) -> float:
+    """Dew-point temperature [degC] of a condensing pressure [Pa]; NaN where there is none."""
+    try:
+        return float(cu.K2C(_props("T", "P", float(cast(float, pressure)), "Q", 1, ref)[0]))
+    except (TypeError, ValueError):
+        return math.nan
+
+
+@lru_cache(maxsize=256)
+def default_condensing_temp_max(ref: str) -> float:
+    """Default maximum condensing temperature for refrigerant ``ref`` [degC].
+
+    The value of :data:`CONDENSING_TEMP_MAX_C`, never above the dew point at
+    :data:`CONDENSING_PRESSURE_MAX_REDUCED` of the critical pressure; that
+    dew point alone for a refrigerant not in the table.
+    """
+    _, P_crit = _critical_point(ref)
+    near_critical = _dew_temperature_C(CONDENSING_PRESSURE_MAX_REDUCED * P_crit, ref)
+    listed = CONDENSING_TEMP_MAX_C.get(_fluid_name(ref))
+    if listed is None:
+        return near_critical
+    return min(float(listed), near_critical) if math.isfinite(near_critical) else float(listed)
+
+
+def resolve_condensing_temp_max(value: float | Literal["auto"] | None, ref: str) -> float | None:
+    """Constructor argument -> limit: ``"auto"`` the refrigerant default, ``None`` no check.
+
+    A number is the caller's statement about the machine and is used as given;
+    it has to lie below the critical temperature (above it the fluid has no
+    condensing pressure to compare with).
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        if value != "auto":
+            raise ValueError(f"T_cond_max must be a temperature in degC, 'auto' or None, got {value!r}")
+        limit = default_condensing_temp_max(ref)
+        if not math.isfinite(limit):
+            raise ValueError(f"no default T_cond_max for {ref!r}; give a temperature in degC or None")
+        return limit
+    limit = float(value)
+    if not math.isfinite(limit):
+        raise ValueError("T_cond_max must be finite (use None to switch the check off)")
+    T_crit_C = cu.K2C(_critical_point(ref)[0])
+    if limit >= T_crit_C:
+        raise ValueError(
+            f"T_cond_max={limit:g} °C is at or above the critical temperature of {ref} ({T_crit_C:.1f} °C); "
+            "the limit is a condensing pressure, so give a lower temperature or None to switch the check off"
+        )
+    return limit
+
+
+@lru_cache(maxsize=1024)
+def _condensing_pressure_limits(ref: str, T_cond_max: float) -> tuple[float, float]:
+    """Dew pressure [Pa] at ``T_cond_max`` and at ``T_cond_max + CONDENSING_TOL_K``."""
+    T_crit_K, P_crit = _critical_point(ref)
+
+    def dew_pressure(T_C: float) -> float:
+        T_K = cu.C2K(T_C)
+        if T_crit_K <= T_K:
+            return P_crit
+        try:
+            return float(_props("P", "T", T_K, "Q", 1, ref)[0])
+        except ValueError:
+            return P_crit
+
+    return dew_pressure(T_cond_max), dew_pressure(T_cond_max + CONDENSING_TOL_K)
+
+
+def condensing_pressure_max(ref: str, T_cond_max: float | None) -> float | None:
+    """Highest condensing pressure of the envelope [Pa]: the dew pressure at ``T_cond_max``."""
+    return None if T_cond_max is None else _condensing_pressure_limits(ref, float(T_cond_max))[0]
+
+
+def condensing_temp_exceeded(P_cond: object, T_cond_max: float | None, ref: str) -> bool:
+    """Whether a condensing pressure [Pa] is above the dew pressure at ``T_cond_max``.
+
+    Compared with :data:`CONDENSING_TOL_K` of margin. ``T_cond_max=None``
+    switches the check off; a pressure that is not a finite number is not
+    judged here (a state without one is refused elsewhere).
+    """
+    if T_cond_max is None:
+        return False
+    try:
+        P = float(cast(float, P_cond))
+    except (TypeError, ValueError):
+        return False
+    return math.isfinite(P) and _condensing_pressure_limits(ref, float(T_cond_max))[1] < P
+
+
+#: Result key the check reads: the pressure the compressor discharges at.
+_P_COND_KEY = "P_ref_cmp_out [Pa]"
+
+
+def _condensing_excess_K(result: Mapping[str, Any], model: Any) -> float:
+    """Kelvin by which a solved state condenses above the model's ``T_cond_max`` (0 inside)."""
+    limit = getattr(model, "T_cond_max", None)
+    ref = getattr(model, "ref", None)
+    if limit is None or ref is None or not condensing_temp_exceeded(result.get(_P_COND_KEY), limit, ref):
+        return 0.0
+    T_dew = _dew_temperature_C(result[_P_COND_KEY], ref)
+    # At or above the critical pressure there is no dew point: very far outside.
+    return T_dew - float(limit) if math.isfinite(T_dew) else 1.0e3
+
+
+def condensing_violation(result: Mapping[str, Any], model: Any) -> str | None:
+    """:data:`CONDENSING_TEMP_ABOVE_MAX` if a solved state condenses above ``model.T_cond_max``, else ``None``.
+
+    The refused state's condensing temperature (dew point of its pressure) is
+    left on the model as ``_condensing_refused_C``, where the duty reduction
+    reads it (:func:`_duty_on_condensing_limit`).
+    """
+    excess = _condensing_excess_K(result, model)
+    if excess <= 0.0:
+        return None
+    with contextlib.suppress(AttributeError):
+        model._condensing_refused_C = float(model.T_cond_max) + excess
+    return CONDENSING_TEMP_ABOVE_MAX
+
+
+def check_rated_condensing(model: Any, T_cond_sat_C: float, standard: str) -> str | None:
+    """Why a rating point is outside the condensing limit, or ``None``.
+
+    ``T_cond_sat_C`` is the condensing temperature the reference state solved
+    (the cycle's bubble point). The message names the limit and what to change;
+    :mod:`tmhp.reference_state` raises it at construction.
+    """
+    limit = getattr(model, "T_cond_max", None)
+    ref = getattr(model, "ref", None)
+    if limit is None or ref is None:
+        return None
+    try:
+        (P_cond,) = _props("P", "T", cu.C2K(T_cond_sat_C), "Q", 0, ref)
+    except ValueError:
+        return None
+    if not condensing_temp_exceeded(P_cond, limit, ref):
+        return None
+    return (
+        f"the rating point {standard} condenses at {_dew_temperature_C(P_cond, ref):.1f} °C "
+        f"({P_cond / 1e5:.1f} bar), above T_cond_max={float(limit):g} °C of {ref} "
+        f"({_condensing_pressure_limits(ref, float(limit))[0] / 1e5:.1f} bar): the machine cannot be rated "
+        "outside its own envelope. Give a larger condenser (UA), a rated_condition it reaches, the "
+        "T_cond_max of the actual compressor, or T_cond_max=None"
+    )
+
+
+def condensing_tank_cutout(model: Any) -> float | None:
+    """Highest tank temperature a boiler heats at its nameplate duty inside the condensing limit [degC].
+
+    The cycle condenses at the tank temperature plus the tank heat exchanger's
+    approach, ``hp_capacity / UA_tank_hx`` at the nameplate duty, and the
+    hottest it may condense is the bubble point of the limit pressure. ``None``
+    without a limit.
+    """
+    limit, ref = getattr(model, "T_cond_max", None), getattr(model, "ref", None)
+    if limit is None or ref is None:
+        return None
+    try:
+        (T_reach_K,) = _props("T", "P", _condensing_pressure_limits(ref, float(limit))[0], "Q", 0, ref)
+    except ValueError:
+        return None
+    return float(cu.K2C(T_reach_K)) - float(model.hp_capacity) / float(model.UA_tank_hx)
+
+
+def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
+    """Cap a boiler's thermostat band at the tank temperature its compressor envelope allows.
+
+    A heat pump whose set point lies above what its compressor can reach does
+    not charge the tank to it: the controller stops at the unit's maximum.
+    The thermostat has to know that temperature -- a dynamic step solves one
+    cycle and applies its heat over the step, so a cut-out the thermostat does
+    not see is overrun inside a long step, by an amount that depends on the
+    step. So when ``T_tank_w_upper_bound`` is above
+    :func:`condensing_tank_cutout`, the model's upper bound becomes that
+    cut-out; a lower bound that is not below it is moved down to keep the
+    width of the band. The values asked for stay in
+    ``T_tank_w_setpoints_requested`` (lower, upper), and a ``UserWarning``
+    says what was changed. Up to the cut-out the machine runs at its nameplate
+    duty; the duty reduction of :func:`reduce_duty_within_envelope` then
+    serves ``analyze_steady`` and the steps a tank model or a minimum run
+    time takes past it.
+    """
+    lower, upper = float(model.T_tank_w_lower_bound), float(model.T_tank_w_upper_bound)
+    model.T_tank_w_setpoints_requested = (lower, upper)
+    cutout = condensing_tank_cutout(model)
+    if cutout is None or upper <= cutout:
+        return
+    new_lower = lower if lower < cutout else cutout - (upper - lower)
+    model.T_tank_w_upper_bound, model.T_tank_w_lower_bound = cutout, new_lower
+    approach = float(model.hp_capacity) / float(model.UA_tank_hx)
+    moved = "" if new_lower == lower else f", and the lower bound is moved from {lower:g} to {new_lower:.1f} °C"
+    warnings.warn(
+        f"{what}: T_tank_w_upper_bound={upper:g} °C is above the tank temperature the compressor envelope "
+        f"of {model.ref} allows at the nameplate duty, {cutout:.1f} °C (T_cond_max={float(model.T_cond_max):g} °C "
+        f"less the {approach:.1f} K tank heat-exchanger approach). The thermostat stops the heat pump at "
+        f"{cutout:.1f} °C{moved}. Lower the set points, use a refrigerant with a higher limit (e.g. R290, "
+        "R134a), or give the T_cond_max of the actual compressor (None switches the limit off)",
+        UserWarning,
+        stacklevel=3,
+    )
+
+
 def discharge_temp_exceeded(T_dis_C: object, T_dis_max: float | None) -> bool:
     """Whether a discharge temperature [degC] violates ``T_dis_max``.
 
@@ -313,9 +648,14 @@ def efficiency_below_floor(model: Any, result: Mapping[str, Any]) -> bool:
 def envelope_violation(result: Mapping[str, Any], model: Any) -> str | None:
     """Why a solved running state is outside the compressor envelope, or ``None``.
 
-    :data:`DISCHARGE_TEMP_ABOVE_MAX` (after the discharge-temperature control)
-    or :data:`ETA_ISEN_BELOW_MIN`.
+    :data:`CONDENSING_TEMP_ABOVE_MAX`, :data:`DISCHARGE_TEMP_ABOVE_MAX` (after
+    the discharge-temperature control) or :data:`ETA_ISEN_BELOW_MIN`. The
+    condensing pressure is judged first: it does not depend on the efficiency
+    model or on the control, and a smaller duty always lowers it.
     """
+    reason = condensing_violation(result, model)
+    if reason is not None:
+        return reason
     reason = discharge_violation(result, getattr(model, "T_dis_max", None))
     if reason is not None:
         return reason
@@ -329,11 +669,12 @@ def envelope_excess(result: Mapping[str, Any], model: Any) -> float:
 
     0 inside. 1000 per kelvin of discharge above ``T_dis_max`` (beyond
     :data:`DISCHARGE_TOL_K`; an undefined discharge state counts as very far)
-    plus 1e6 per unit of isentropic efficiency below :data:`ETA_ISEN_MIN` where
-    the floor applies. Used by searches to rank candidates outside the
-    envelope among themselves.
+    and per kelvin of condensing above ``T_cond_max`` (beyond
+    :data:`CONDENSING_TOL_K`), plus 1e6 per unit of isentropic efficiency
+    below :data:`ETA_ISEN_MIN` where the floor applies. Used by searches to
+    rank candidates outside the envelope among themselves.
     """
-    excess = 0.0
+    excess = 1000.0 * _condensing_excess_K(result, model)
     T_max = getattr(model, "T_dis_max", None)
     if T_max is not None:
         T = _discharge(result)
@@ -489,12 +830,28 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
     (the boilers check the solved operating point and reduce the duty), and is
     rejected -- ``None``, with ``self._last_pr_event`` naming the discharge
     limit -- when ``reject`` is true (ASHP, GSHP: a candidate inside the search).
+
+    With ``reject`` true the condensing limit (``self.T_cond_max``) is applied
+    here too, before the control: a running state above it is rejected the
+    same way (``_last_pr_event`` names :data:`CONDENSING_TEMP_ABOVE_MAX`). The
+    boilers judge it on the solved operating point (:func:`envelope_violation`),
+    after the control, so that the state they judge has a discharge state.
     """
 
     def decorate(function: _F) -> _F:
         @wraps(function)
         def wrapped(self: Any, *args: Any, **kwargs: Any) -> Any:
             result = function(self, *args, **kwargs)
+            if reject and _state_running(result):
+                # The suction state the control moves does not change the
+                # condensing pressure: a candidate above the condensing limit
+                # is outside the envelope whatever the control does.
+                above = _condensing_excess_K(result, self)
+                if above > 0.0:
+                    limit = float(self.T_cond_max)
+                    self._last_pr_event = (CONDENSING_TEMP_ABOVE_MAX, limit + above, limit)
+                    self._condensing_rejected = True  # read by `_condensing_limit_binds`
+                    return None
             if reject and _state_running(result) and efficiency_below_floor(self, result):
                 self._last_pr_event = (ETA_ISEN_BELOW_MIN, _eta_isen(result), ETA_ISEN_MIN)
                 return None
@@ -774,6 +1131,7 @@ _REQUEST_KEYS = ("Q_ref_tank_request [W]", "Q_tank_load [W]")
 #: temperature fall, and the source heat exchanger has less heat to absorb, so
 #: it needs a smaller approach or less flow.
 _REDUCIBLE_BINDING: Mapping[str, str] = {
+    CONDENSING_TEMP_ABOVE_MAX: BINDING_CONDENSING,
     DISCHARGE_TEMP_ABOVE_MAX: BINDING_DISCHARGE,
     PR_ABOVE_MAX: BINDING_PRESSURE_RATIO,
     ETA_ISEN_BELOW_MIN: BINDING_EFFICIENCY,
@@ -790,11 +1148,11 @@ _NOT_REDUCIBLE_DETAIL = frozenset({"outdoor_coil_excess_at_min_airflow"})
 #: Every other ``cycle_invalid`` stays a failure. In particular a request with
 #: no cycle at all is not reduced: with the boilers that is a condensing
 #: temperature (tank temperature plus the condenser approach the duty needs)
-#: at or above the critical point, and the largest smaller duty would sit on
-#: the critical point itself -- a state no machine runs at, since its
-#: high-pressure limit lies far below. The envelope has no condensing-pressure
-#: ceiling to reduce onto, so the request is reported as it is: not an
-#: operating point.
+#: at or above the critical point. With ``T_cond_max`` switched off the
+#: largest smaller duty would sit on the critical point itself -- a state no
+#: machine runs at -- so the request is reported as it is: not an operating
+#: point. (With the limit on, such a request is refused by the limit where a
+#: cycle exists, and reduced onto it.)
 _REDUCIBLE_CYCLE_DETAIL: Mapping[str, str] = {"discharge_state_undefined": BINDING_DISCHARGE}
 #: Failure reasons a *larger* duty can cure. At low speed the efficiency falls:
 #: the discharge runs hotter, the shipped fit drops below its floor, and on the
@@ -853,6 +1211,8 @@ def _reduce_to_envelope(
     delivered_key: str,
     nothing_below: Callable[[], bool] | None = None,
     refused: Mapping[str, Any] | None = None,
+    on_condensing_limit: Callable[[dict], dict | None] | None = None,
+    solved: dict[float, tuple[dict, bool]] | None = None,
 ) -> tuple[dict | None, dict | None]:
     """Largest duty below ``request`` whose solved point is a running point.
 
@@ -877,9 +1237,15 @@ def _reduce_to_envelope(
     ``nothing_below()``, asked after a failed rung, says that every smaller
     duty is the same machine state (the compressor on its speed floor at
     every candidate); the ladder then stops.
+
+    A request refused by the condensing limit whose lowest rung runs is closed
+    without the ladder: ``on_condensing_limit(lowest rung's result)`` returns
+    the duty on the limit (:func:`_duty_on_condensing_limit`), or ``None`` to
+    leave it to the ladder. ``solved`` carries trials already solved (duty ->
+    result and its ``nothing_below()``).
     """
     tolerance = _REDUCTION_REL_TOL * request
-    solved: dict[float, tuple[dict, bool]] = {}
+    solved = {} if solved is None else solved
 
     def rung(fraction: float) -> tuple[float, dict, bool]:
         q = fraction * request
@@ -892,6 +1258,14 @@ def _reduce_to_envelope(
         _, lowest, _ = rung(_REDUCTION_LADDER[-1])
         if not _running(lowest) and _tightens_with_duty(lowest):
             return None, None
+        if (
+            on_condensing_limit is not None
+            and refused.get("failure_reason") == CONDENSING_TEMP_ABOVE_MAX
+            and _running(lowest)
+        ):
+            on_limit = on_condensing_limit(lowest)
+            if on_limit is not None:
+                return on_limit, dict(refused)
     failed: list[tuple[float, Mapping[str, Any]]] = [] if refused is None else [(request, refused)]
     hi_q, hi_r = request, None
     lo_q, lo_r = 0.0, None
@@ -939,14 +1313,15 @@ def _tightens_with_duty(result: Mapping[str, Any]) -> bool:
     """A refusal by a limit that a larger duty can only make worse.
 
     The pressure ratio: a larger duty needs a larger condenser approach and a
-    larger source approach, so it rises with the duty at every candidate. And
+    larger source approach, so it rises with the duty at every candidate. The
+    condensing temperature, for the first of those two reasons. And
     an outdoor coil that absorbs too little at its largest airflow at every
     approach the cycle reaches (``failure_detail``): a larger duty asks more
     of it. The discharge temperature is not such a limit (it also rises
     towards low speed), nor is a heat exchanger refusal without that detail.
     """
     reason = result.get("failure_reason")
-    if reason == PR_ABOVE_MAX:
+    if reason in (PR_ABOVE_MAX, CONDENSING_TEMP_ABOVE_MAX):
         return True
     return reason == "hx_not_converged" and result.get("failure_detail") == "outdoor_coil_short_at_max_airflow"
 
@@ -989,6 +1364,81 @@ def _between_reasons(
     return None
 
 
+#: Secant steps :func:`_duty_on_condensing_limit` may take before the ladder takes over.
+_CONDENSING_SECANT_STEPS = 4
+#: A duty is on the condensing limit once it condenses within this of ``T_cond_max`` [K]
+#: (0.05 K of condenser approach is about 1 % of a rated duty).
+_CONDENSING_CLOSE_K = 0.05
+
+
+def _no_cycle_under_condensing_limit(model: Any, result: Mapping[str, Any]) -> bool:
+    """A request for which no refrigerant cycle exists at all, on a model with a condensing limit.
+
+    ``cycle_invalid`` without a ``failure_detail``: with the boilers that is a
+    condensing temperature at or above the critical point, which is beyond
+    every condensing limit.
+    """
+    return (
+        getattr(model, "T_cond_max", None) is not None
+        and result.get("failure_reason") == "cycle_invalid"
+        and result.get("failure_detail") is None
+    )
+
+
+def _duty_on_condensing_limit(
+    model: Any,
+    solve: Callable[[float], dict],
+    request: float,
+    T_refused: float,
+    lowest: Mapping[str, Any],
+    delivered_key: str,
+) -> dict | None:
+    """The duty that condenses at ``T_cond_max``, by a secant on the condensing temperature.
+
+    The request condenses at ``T_refused`` [degC], above the limit, and
+    ``lowest`` is a smaller duty that runs inside it. The condensing
+    temperature is the demand-side temperature plus the condenser approach,
+    and the approach is close to proportional to the duty (exactly ``Q / UA``
+    for a mixed tank): the duty at the limit follows from the two points, and
+    one cycle solve confirms it. Where the relation bends (a stratified tank
+    whose coil-side water warms with the duty) the secant is repeated on the
+    new point. Returns the running result on the limit, or ``None`` when it
+    does not close in :data:`_CONDENSING_SECANT_STEPS` solves or a trial fails
+    for another reason (the ladder of :func:`_reduce_to_envelope` then
+    decides).
+    """
+    limit, ref = getattr(model, "T_cond_max", None), getattr(model, "ref", None)
+    if limit is None or ref is None:
+        return None
+    limit = float(limit)
+    tolerance = _REDUCTION_REL_TOL * request
+    q_hi, T_hi = request, T_refused
+    q_lo, T_lo = _delivered(lowest, delivered_key), _dew_temperature_C(lowest.get(_P_COND_KEY), ref)
+    for _ in range(_CONDENSING_SECANT_STEPS):
+        if not (math.isfinite(T_hi) and math.isfinite(T_lo) and T_lo <= limit < T_hi and 0.0 < q_lo < q_hi):
+            return None
+        q = q_lo + (limit - T_lo) * (q_hi - q_lo) / (T_hi - T_lo)
+        if not q_lo <= q < q_hi:
+            return None
+        model._condensing_refused_C = math.nan
+        trial = solve(q)
+        if _running(trial):
+            delivered = _delivered(trial, delivered_key)
+            T = _dew_temperature_C(trial.get(_P_COND_KEY), ref)
+            if not (math.isfinite(delivered) and math.isfinite(T)):
+                return None
+            if limit - T <= _CONDENSING_CLOSE_K or q_hi - delivered <= tolerance:
+                return dict(trial)
+            if not delivered > q_lo:
+                return None
+            q_lo, T_lo = delivered, T
+        elif trial.get("failure_reason") == CONDENSING_TEMP_ABOVE_MAX:
+            q_hi, T_hi = q, float(getattr(model, "_condensing_refused_C", math.nan))
+        else:
+            return None
+    return None
+
+
 def reduce_duty_within_envelope(
     model: Any,
     result: dict,
@@ -1001,9 +1451,10 @@ def reduce_duty_within_envelope(
 
     ``result`` is the solve at ``request``; ``solve(q)`` solves the same
     point at duty ``q``. When ``result`` failed on a limit a smaller duty can
-    cure (:func:`duty_reduction_binding`: the discharge-temperature limit even
-    under its control, the pressure-ratio ceiling, the source heat exchanger's
-    range, the efficiency floor), smaller duties are tried
+    cure (:func:`duty_reduction_binding`: the condensing limit, the
+    discharge-temperature limit even under its control, the pressure-ratio
+    ceiling, the source heat exchanger's range, the efficiency floor), smaller
+    duties are tried
     (:func:`_reduce_to_envelope`) and the largest that runs is returned with
     ``capacity_clamped='max'``, ``Q_max [W]``, ``Q_request [W]`` and
     ``capacity_binding`` naming the limit the next larger duty tried ran into;
@@ -1012,9 +1463,25 @@ def reduce_duty_within_envelope(
     cycle, so a step runs at the same reduced duty as the steady solve -- its
     run time and step-average heat follow from that duty. The trial solves run
     silently.
+
+    The condensing limit is closed directly (:func:`_duty_on_condensing_limit`):
+    the request, the lowest duty of the ladder and the duty on the limit are
+    the three solves of a step that runs against it, and two decide that no
+    duty runs. On a model with a condensing limit a request for which no cycle
+    exists at all (``cycle_invalid`` without a detail: its condensing
+    temperature is at or above the critical point) is treated as beyond that
+    limit: reduced onto it when a smaller duty runs, and otherwise reported
+    with ``failure_reason='condensing_temp_above_max'`` when the lowest duty
+    tried is refused by the limit.
     """
-    if not (request > 0 and math.isfinite(request) and duty_reduction_binding(result, bindings) is not None):
+    reducible = duty_reduction_binding(result, bindings) is not None
+    # A request with no cycle at all may lie beyond the condensing limit (its
+    # condensing temperature at or above the critical point); see below.
+    no_cycle = not reducible and _no_cycle_under_condensing_limit(model, result)
+    if not (request > 0 and math.isfinite(request) and (reducible or no_cycle)):
         return result
+    # Condensing temperature of the refused request, left by the check that refused it.
+    T_refused = float(getattr(model, "_condensing_refused_C", math.nan))
 
     def quiet(q: float) -> dict:
         with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
@@ -1026,8 +1493,43 @@ def reduce_duty_within_envelope(
         # Set by a family whose solve knows it (ASHPB: `_optimize_operation`).
         return bool(getattr(model, "_solve_bound_at_speed_floor", False))
 
-    reduced, above = _reduce_to_envelope(quiet, request, delivered_key, nothing_below, result)
+    def on_condensing_limit(lowest: dict) -> dict | None:
+        return _duty_on_condensing_limit(model, quiet, request, T_refused, lowest, delivered_key)
+
+    solved: dict[float, tuple[dict, bool]] = {}
+    if no_cycle:
+        # Where the lowest duty tried is above the condensing limit, so is the
+        # request (the condensing temperature rises with the duty): that is
+        # the reason it does not run. Where the lowest duty runs, the request
+        # is reduced -- but only onto the condensing limit: any other boundary
+        # leaves the request the failure it was.
+        q_lowest = _REDUCTION_LADDER[-1] * request
+        lowest = quiet(q_lowest)
+        solved[q_lowest] = (lowest, nothing_below())
+        if lowest.get("failure_reason") == CONDENSING_TEMP_ABOVE_MAX:
+            return {**result, "failure_reason": CONDENSING_TEMP_ABOVE_MAX}
+        if not _running(lowest):
+            return result
+        reduced, above = _reduce_to_envelope(quiet, request, delivered_key, nothing_below, solved=solved)
+        if reduced is None or above is None or above.get("failure_reason") != CONDENSING_TEMP_ABOVE_MAX:
+            return result
+    else:
+        reduced, above = _reduce_to_envelope(
+            quiet, request, delivered_key, nothing_below, result, on_condensing_limit, solved
+        )
     if reduced is None:
+        lowest = solved.get(_REDUCTION_LADDER[-1] * request)
+        if (
+            lowest is not None
+            and lowest[0].get("failure_reason") == CONDENSING_TEMP_ABOVE_MAX
+            and result.get("failure_reason") != CONDENSING_TEMP_ABOVE_MAX
+        ):
+            # No duty runs, and the smallest one tried condenses above the
+            # limit: so does every larger one, the request included, whatever
+            # limit its own solve met first. That is why nothing runs.
+            refused = {key: value for key, value in result.items() if key != "failure_detail"}
+            refused["failure_reason"] = CONDENSING_TEMP_ABOVE_MAX
+            return refused
         return result
     binding = duty_reduction_binding(above if above is not None else result, bindings) or BINDING_CYCLE
     if _on_pressure_ratio_ceiling(model, reduced):
@@ -1049,6 +1551,39 @@ def reduce_duty_within_envelope(
     if "PLR_request [-]" in reduced and getattr(model, "hp_capacity", 0) > 0:
         reduced["PLR_request [-]"] = request / model.hp_capacity
     return reduced
+
+
+def _condensing_limit_binds(model: Any, result: Mapping[str, Any], solve_again: Callable[[], Any]) -> bool:
+    """Whether a capacity ceiling the family could not name is the condensing limit.
+
+    The space-conditioning searches (ASHP, GSHP) name a ceiling ``"cycle"``
+    when the compressor is not at its speed bound and the discharge limit is
+    not what refuses the next duty. If the search rejected candidates for the
+    condensing limit, the same request is solved once more without that limit:
+    a ceiling that then rises (or disappears) was set by it. ``solve_again``
+    repeats the solve; it runs silently.
+    """
+    if not (
+        getattr(model, "_condensing_rejected", False)
+        and getattr(model, "T_cond_max", None) is not None
+        and _running(result)
+        and result.get("capacity_clamped") == "max"
+        and result.get("capacity_binding") == BINDING_CYCLE
+    ):
+        return False
+    ceiling = _delivered(result, "Q_max [W]")
+    limit, model.T_cond_max = model.T_cond_max, None
+    try:
+        with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
+            warnings.simplefilter("ignore")
+            free = solve_again()
+    except Exception:
+        return False
+    finally:
+        model.T_cond_max = limit
+    if not (isinstance(free, dict) and _running(free) and math.isfinite(ceiling)):
+        return False
+    return free.get("capacity_clamped") != "max" or _delivered(free, "Q_max [W]") > ceiling * (1.0 + _REDUCTION_REL_TOL)
 
 
 def steady_envelope(
@@ -1079,15 +1614,23 @@ def steady_envelope(
             want_dict = bool(bound.arguments.get("return_dict", True))
             if "return_dict" in bound.arguments:
                 bound.arguments["return_dict"] = True
+            self._condensing_rejected = False
             result = function(*bound.args, **bound.kwargs)
             if not isinstance(result, dict):
                 return result
+            if duty_arg is None and _condensing_limit_binds(
+                self, result, lambda: function(*bound.args, **bound.kwargs)
+            ):
+                result["capacity_binding"] = BINDING_CONDENSING
             request = float(bound.arguments[duty_arg]) if duty_arg is not None else 0.0
             if (
                 duty_arg is not None
                 and request > 0
                 and math.isfinite(request)
-                and duty_reduction_binding(result, bindings) is not None
+                and (
+                    duty_reduction_binding(result, bindings) is not None
+                    or _no_cycle_under_condensing_limit(self, result)
+                )
             ):
 
                 def solve(q: float) -> Any:

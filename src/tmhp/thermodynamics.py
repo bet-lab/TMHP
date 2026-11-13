@@ -9,6 +9,8 @@ if TYPE_CHECKING:
 
 import CoolProp.CoolProp as CP
 
+from .refrigerant import _props
+
 __all__ = [
     "calc_energy_flow",
     "calc_exergy_flow",
@@ -180,8 +182,9 @@ def calc_refrigerant_exergy(
     s0_map: dict[float, float] = {}
     for t0 in t0_unique:
         try:
-            h0_map[t0] = CP.PropsSI("H", "T", float(t0), "P", P0, ref)
-            s0_map[t0] = CP.PropsSI("S", "T", float(t0), "P", P0, ref)
+            # One flash on the state kept between calls (the values of
+            # ``CP.PropsSI``, without building an equation of state per call).
+            h0_map[t0], s0_map[t0] = _props("HS", "T", float(t0), "P", P0, ref)
         except Exception:
             h0_map[t0] = np.nan
             s0_map[t0] = np.nan

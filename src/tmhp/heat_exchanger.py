@@ -261,6 +261,57 @@ def calc_UA_from_dV_fan(
     return float(UA * (dV_fan / reference) ** exponent)
 
 
+#: Tolerances and iteration limit of ``scipy.optimize.bisect`` (its defaults).
+_BISECT_XTOL = 2e-12
+_BISECT_RTOL = 4 * np.finfo(float).eps
+_BISECT_MAXITER = 100
+
+
+def _bisect_fan_flow(
+    dV_low: float,
+    dV_high: float,
+    err_low: float,
+    Q_ref_target: float,
+    UA_rated: float,
+    dV_fan_ref: float,
+    exponent: float,
+    C_air_per_flow: float,
+    dT: float,
+) -> tuple[float, bool]:
+    """Airflow at which an air coil carries ``Q_ref_target``: ``(dV, converged)``.
+
+    The bisection of ``scipy.optimize.bisect`` (same steps, same stopping
+    rule, so the same root to the last bit) on the duty margin of
+    :func:`calc_HX_perf_for_target_heat`, with the margin written out instead
+    of called back from SciPy: about forty evaluations per coil, two coils per
+    cycle evaluation, cost as much as all the property flashes of that
+    evaluation. The bracket is validated by the caller: ``err_low < 0`` at
+    ``dV_low`` and a positive margin at ``dV_high``.
+    """
+    exp = np.exp  # the margin's own exponential: `math.exp` may differ in the last bit
+    x_low = dV_low
+    step = dV_high - dV_low
+    for _ in range(_BISECT_MAXITER):
+        step *= 0.5
+        x_mid = x_low + step
+        if x_mid <= 0:
+            err_mid = -Q_ref_target
+        else:
+            C_air = C_air_per_flow * x_mid
+            err_mid = (
+                C_air * (1 - float(exp(-(UA_rated * (x_mid / dV_fan_ref) ** exponent) / C_air))) * dT - Q_ref_target
+            )
+        if err_mid != err_mid:
+            # SciPy stops on a margin that is not a number; ``root_scalar``
+            # reports the point as an unconverged root.
+            return x_mid, False
+        if err_mid * err_low >= 0:
+            x_low = x_mid
+        if err_mid == 0 or abs(step) < _BISECT_XTOL + _BISECT_RTOL * abs(x_mid):
+            return x_mid, True
+    return x_low, False
+
+
 def calc_HX_perf_for_target_heat(
     Q_ref_target,
     T_a_in_C=None,
@@ -415,7 +466,21 @@ def calc_HX_perf_for_target_heat(
         dV_sol, converged = dV_min, bool(abs(err_min) <= tolerance)
     elif max_limit:
         dV_sol, converged = dV_max, bool(abs(err_max) <= tolerance)
+    elif err_min < 0 < err_max:
+        dV_sol, converged = _bisect_fan_flow(
+            float(dV_min),
+            float(dV_max),
+            err_min,
+            Q_ref_target,
+            UA_rated,
+            dV_fan_ref,
+            exponent,
+            C_air_per_flow,
+            abs(T_a_in_K - T_ref_sat_K),
+        )
     else:
+        # A margin that is not a number: left to SciPy, which reports the
+        # coil as not converged.
         sol = root_scalar(_error_function, bracket=[dV_min, dV_max], method="bisect")
         dV_sol, converged = sol.root, sol.converged
 

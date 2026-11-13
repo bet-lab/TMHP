@@ -38,6 +38,7 @@ from . import calc_util as cu
 from ._opt_utils import (
     OBJ_CAPACITY_LIMITED,
     OBJ_INFEASIBLE,
+    efficiency_evaluator,
     margin_feasible_interval,
     operating_point_objective,
 )
@@ -110,7 +111,10 @@ from .pump import default_ground_pump_power
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
+    calc_ref_state_without_discharge,
+    props_si,
     reportable_state,
+    with_discharge_state,
 )
 from .source_fluid import (
     GROUND_LOOP_FLUID_DEFAULT,
@@ -994,18 +998,32 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_ref_cond - self.dT_hx_min))
         actual_dT_superheat: float = min(self.dT_superheat, max(0.0, dT_ref_evap - self.dT_hx_min))
 
-        # Always mode="heating" for calc_ref_state (avoids key swap)
-        cycle_states = calc_ref_state(
-            T_evap_K=T_evap_sat_K,
-            T_cond_K=T_cond_sat_K,
-            refrigerant=self.ref,
-            eta_cmp_isen=1.0,
-            mode=mode,
-            dT_superheat=actual_dT_superheat,
-            x_suction=self._x_suction,
-            dT_subcool=actual_dT_subcool,
-            is_active=is_active,
-        )
+        # The cycle without its discharge state: pressures, suction state and
+        # isentropic discharge enthalpy are what the speed solve needs, and the
+        # discharge state follows from the efficiency at the solved speed.
+        h_isen = math.nan
+        if is_active:
+            cycle_states, h_isen = calc_ref_state_without_discharge(
+                T_evap_sat_K,
+                T_cond_sat_K,
+                self.ref,
+                mode=mode,
+                dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
+                dT_subcool=actual_dT_subcool,
+            )
+        else:
+            cycle_states = calc_ref_state(
+                T_evap_K=T_evap_sat_K,
+                T_cond_K=T_cond_sat_K,
+                refrigerant=self.ref,
+                eta_cmp_isen=1.0,
+                mode=mode,
+                dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
+                dT_subcool=actual_dT_subcool,
+                is_active=False,
+            )
 
         # Compressor pressure-ratio envelope guard (PR = P_cond / P_evap), the
         # physically primary lift limit. Ceiling -> reject (outside the
@@ -1022,25 +1040,21 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 return None
             if pr_event == "pr_below_min":
                 self._last_pr_event = ("pr_below_min", ratio_P_cmp, self.PR_cycle_min)
-                import CoolProp.CoolProp as CP
-
                 P_cond = self.PR_cycle_min * P_evap
-                T_cond_sat_K = CP.PropsSI("T", "P", P_cond, "Q", 0, self.ref)
+                T_cond_sat_K = props_si("T", "P", P_cond, "Q", 0, self.ref)
                 # Projection changes the condenser's physical approach. Its
                 # available subcooling must follow that projected temperature,
                 # not the pre-projection trial approach used by the HX search.
                 sink_K = cu.C2K(T_a_room) if mode == "heating" else T_source_K
                 actual_dT_subcool = min(self.dT_subcool, max(0.0, T_cond_sat_K - sink_K - self.dT_hx_min))
-                cycle_states = calc_ref_state(
-                    T_evap_K=T_evap_sat_K,
-                    T_cond_K=T_cond_sat_K,
-                    refrigerant=self.ref,
-                    eta_cmp_isen=1.0,
+                cycle_states, h_isen = calc_ref_state_without_discharge(
+                    T_evap_sat_K,
+                    T_cond_sat_K,
+                    self.ref,
                     mode=mode,
                     dT_superheat=actual_dT_superheat,
                     x_suction=self._x_suction,
                     dT_subcool=actual_dT_subcool,
-                    is_active=is_active,
                 )
 
         if is_active:
@@ -1065,36 +1079,35 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             ratio_P_cmp = P_cond / P_evap
             rho_suction = cycle_states["rho_ref_cmp_in [kg/m3]"]
             h_in = cycle_states["h_ref_cmp_in [J/kg]"]
-            dh_isen = cycle_states["h_ref_cmp_out [J/kg]"] - h_in
+            # Isentropic enthalpy rise, rounded as the unit-efficiency discharge
+            # enthalpy minus the suction enthalpy (the form the solved states
+            # have always been computed with).
+            dh_isen = (h_in + (h_isen - h_in)) - h_in
             h_liquid = cycle_states["h_ref_exp_in [J/kg]"]
             h_expansion = cycle_states["h_ref_exp_out [J/kg]"]
 
+            # The three efficiencies as functions of (PR, rps): `_eval_eff` with
+            # the call form of each model decided once, not on every candidate.
+            eta_vol_at = efficiency_evaluator(self.eta_cmp_vol)
+            eta_isen_at = efficiency_evaluator(self.eta_cmp_isen)
+            eta_em_at = efficiency_evaluator(self.eta_cmp)
+
             def residual(rps: float) -> float:
-                eta_vol = _eval_eff(self.eta_cmp_vol, ratio_P_cmp, rps)
-                eta_isen = _eval_eff(self.eta_cmp_isen, ratio_P_cmp, rps)
+                eta_vol = eta_vol_at(ratio_P_cmp, rps)
+                eta_isen = eta_isen_at(ratio_P_cmp, rps)
                 # Validate the drive model on every candidate as well. It acts
                 # on input power only, not on the refrigerant heat duty.
-                _eval_eff(self.eta_cmp, ratio_P_cmp, rps)
+                eta_em_at(ratio_P_cmp, rps)
                 m_dot = self.V_cmp_ref * rho_suction * eta_vol * rps
                 h_out = h_in + dh_isen / eta_isen
                 dh = h_in - h_expansion if mode == "cooling" else h_out - h_liquid
                 return float(m_dot * dh - Q_ref_iu)
 
             cmp_rps, converged_rps, capacity_clamped = solve_compressor_speed(residual, self.rps_min, self.rps_max)
-            val_eta_isen = _eval_eff(self.eta_cmp_isen, ratio_P_cmp, cmp_rps)
-            val_eta_vol = _eval_eff(self.eta_cmp_vol, ratio_P_cmp, cmp_rps)
-            val_eta_em = _eval_eff(self.eta_cmp, ratio_P_cmp, cmp_rps)
-            cycle_states = calc_ref_state(
-                T_evap_K=T_evap_sat_K,
-                T_cond_K=T_cond_sat_K,
-                refrigerant=self.ref,
-                eta_cmp_isen=val_eta_isen,
-                mode=mode,
-                dT_superheat=actual_dT_superheat,
-                x_suction=self._x_suction,
-                dT_subcool=actual_dT_subcool,
-                is_active=True,
-            )
+            val_eta_isen = eta_isen_at(ratio_P_cmp, cmp_rps)
+            val_eta_vol = eta_vol_at(ratio_P_cmp, cmp_rps)
+            val_eta_em = eta_em_at(ratio_P_cmp, cmp_rps)
+            cycle_states = with_discharge_state(cycle_states, h_isen, val_eta_isen, self.ref)
             m_dot_ref = self.V_cmp_ref * rho_suction * val_eta_vol * cmp_rps
         else:
             m_dot_ref = 0.0

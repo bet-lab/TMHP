@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-13T20:56:29+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:00:54+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -178,6 +178,75 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.enex_functions.f"><code class="docutils literal notranslate"><span class="pre">f()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.enex_functions.generate_entropy_exergy_term"><code class="docutils literal notranslate"><span class="pre">generate_entropy_exergy_term()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.enex_functions.get_uv_params_from_turbidity"><code class="docutils literal notranslate"><span class="pre">get_uv_params_from_turbidity()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-tmhp.cycling">On/off cycling below the minimum capacity</a><ul>
+<li><a class="reference internal" href="#how-a-result-row-is-averaged">How a result row is averaged</a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CD_AIR_DEFAULT"><code class="docutils literal notranslate"><span class="pre">CD_AIR_DEFAULT</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CC_WATER_DEFAULT"><code class="docutils literal notranslate"><span class="pre">CC_WATER_DEFAULT</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CAPACITY_RATIO_KEY"><code class="docutils literal notranslate"><span class="pre">CAPACITY_RATIO_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.PART_LOAD_FACTOR_KEY"><code class="docutils literal notranslate"><span class="pre">PART_LOAD_FACTOR_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.RUNTIME_FRACTION_KEY"><code class="docutils literal notranslate"><span class="pre">RUNTIME_FRACTION_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.MIN_CAPACITY_KEY"><code class="docutils literal notranslate"><span class="pre">MIN_CAPACITY_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CYCLING_LOSS_KEY"><code class="docutils literal notranslate"><span class="pre">CYCLING_LOSS_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation"><code class="docutils literal notranslate"><span class="pre">CyclingDegradation</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.coefficient"><code class="docutils literal notranslate">coefficient</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.sink"><code class="docutils literal notranslate">sink</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.part_load_factor"><code class="docutils literal notranslate">part_load_factor()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.runtime_fraction"><code class="docutils literal notranslate">runtime_fraction()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.state"><code class="docutils literal notranslate">state()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingState"><code class="docutils literal notranslate"><span class="pre">CyclingState</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingState.capacity_ratio"><code class="docutils literal notranslate">capacity_ratio</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingState.part_load_factor"><code class="docutils literal notranslate">part_load_factor</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingState.runtime_fraction"><code class="docutils literal notranslate">runtime_fraction</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingState.cycling"><code class="docutils literal notranslate">cycling</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingState.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.cycling.resolve_cycling"><code class="docutils literal notranslate"><span class="pre">resolve_cycling()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.apply_cycling"><code class="docutils literal notranslate"><span class="pre">apply_cycling()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.continuous_keys"><code class="docutils literal notranslate"><span class="pre">continuous_keys()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-tmhp.defrost">Frost and defrost of an outdoor coil</a><ul>
+<li><a class="reference internal" href="#id1">How a result row is averaged</a></li>
+<li><a class="reference internal" href="#tmhp.defrost.T_OUT_MAX_DEFROST_C"><code class="docutils literal notranslate"><span class="pre">T_OUT_MAX_DEFROST_C</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.RH_OUT_DEFAULT"><code class="docutils literal notranslate"><span class="pre">RH_OUT_DEFAULT</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DEFROST_FRACTION_KEY"><code class="docutils literal notranslate"><span class="pre">DEFROST_FRACTION_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FROST_CAPACITY_FACTOR_KEY"><code class="docutils literal notranslate"><span class="pre">FROST_CAPACITY_FACTOR_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FROST_POWER_FACTOR_KEY"><code class="docutils literal notranslate"><span class="pre">FROST_POWER_FACTOR_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DEFROST_POWER_KEY"><code class="docutils literal notranslate"><span class="pre">DEFROST_POWER_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DEFROST_LOAD_KEY"><code class="docutils literal notranslate"><span class="pre">DEFROST_LOAD_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.RH_OUT_KEY"><code class="docutils literal notranslate"><span class="pre">RH_OUT_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DefrostModel"><code class="docutils literal notranslate"><span class="pre">DefrostModel</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.defrost.DefrostModel.T_out_max"><code class="docutils literal notranslate">T_out_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DefrostModel.RH_out"><code class="docutils literal notranslate">RH_out</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DefrostModel.frost_state"><code class="docutils literal notranslate">frost_state()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DefrostModel.defrost_load"><code class="docutils literal notranslate">defrost_load()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DefrostModel.gross_duty"><code class="docutils literal notranslate">gross_duty()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DefrostModel.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState"><code class="docutils literal notranslate"><span class="pre">FrostState</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState.active"><code class="docutils literal notranslate">active</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState.defrost_fraction"><code class="docutils literal notranslate">defrost_fraction</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState.capacity_multiplier"><code class="docutils literal notranslate">capacity_multiplier</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState.power_multiplier"><code class="docutils literal notranslate">power_multiplier</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState.T_coil_C"><code class="docutils literal notranslate">T_coil_C</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState.humidity_ratio_difference"><code class="docutils literal notranslate">humidity_ratio_difference</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState.RH_out"><code class="docutils literal notranslate">RH_out</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.defrost.NO_FROST"><code class="docutils literal notranslate"><span class="pre">NO_FROST</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.resolve_defrost"><code class="docutils literal notranslate"><span class="pre">resolve_defrost()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.frost_free_keys"><code class="docutils literal notranslate"><span class="pre">frost_free_keys()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.apply_defrost"><code class="docutils literal notranslate"><span class="pre">apply_defrost()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.saturation_humidity_ratio"><code class="docutils literal notranslate"><span class="pre">saturation_humidity_ratio()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.humidity_ratio"><code class="docutils literal notranslate"><span class="pre">humidity_ratio()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.simulation_summary">Simulation summary tables</a><ul>
@@ -2732,6 +2801,707 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 </dd></dl>
 
 </section>
+<section id="module-tmhp.cycling">
+<span id="on-off-cycling-below-the-minimum-capacity"></span><h2>On/off cycling below the minimum capacity<a class="headerlink" href="#module-tmhp.cycling" title="Link to this heading">¶</a></h2>
+<p>On/off cycling below the minimum continuous capacity.</p>
+<p>A variable-speed compressor modulates down to its minimum speed and no
+further. A request below what the unit delivers there is met by switching the
+compressor on and off, and every start costs something: the refrigerant has to
+be redistributed and the coils brought back to their working temperatures
+before the capacity is there, while the compressor already draws power. EN
+14825 states that loss as a degradation of the continuous-operation COP at the
+minimum capacity, as a function of the capacity ratio</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[CR = \frac{\text{requested heat}}{\text{capacity at the minimum step}}
+\qquad (0 &lt; CR \le 1).\]</div>
+</div>
+<p>Two forms are in the standard, and both are here:</p>
+<ul>
+<li><p>units delivering to <strong>air</strong> (air-to-air, water-to-air; cooling and heating)
+– the degradation coefficient <code class="docutils literal notranslate"><span class="pre">Cd</span></code>, default 0.25:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">COP_cyc</span> <span class="o">=</span> <span class="n">COP_min</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">Cd</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">CR</span><span class="p">))</span>
+</span></pre></div>
+</div>
+</li>
+<li><p>units delivering to <strong>water</strong> (air-to-water, water/brine-to-water) – the
+degradation coefficient <code class="docutils literal notranslate"><span class="pre">Cc</span></code>, default 0.9:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">COP_cyc</span> <span class="o">=</span> <span class="n">COP_min</span> <span class="o">*</span> <span class="n">CR</span> <span class="o">/</span> <span class="p">(</span><span class="n">Cc</span> <span class="o">*</span> <span class="n">CR</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">Cc</span><span class="p">))</span>
+</span></pre></div>
+</div>
+</li>
+</ul>
+<p>The ratio <code class="docutils literal notranslate"><span class="pre">COP_cyc</span> <span class="pre">/</span> <span class="pre">COP_min</span></code> is the <em>part-load factor</em> <code class="docutils literal notranslate"><span class="pre">PLF</span></code>. The
+compressor then runs for the fraction <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> of the time (the <em>runtime
+fraction</em>): it delivers <code class="docutils literal notranslate"><span class="pre">CR</span></code> of the minimum capacity while drawing
+<code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> of the power it draws there.</p>
+<p>The coefficients are the defaults the standard prescribes when a unit has not
+been tested for them; a tested value replaces them without any other change.</p>
+<section id="how-a-result-row-is-averaged">
+<h3>How a result row is averaged<a class="headerlink" href="#how-a-result-row-is-averaged" title="Link to this heading">¶</a></h3>
+<p><a class="reference internal" href="#tmhp.cycling.apply_cycling" title="tmhp.cycling.apply_cycling"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_cycling()</span></code></a> turns the continuous minimum-speed operating point into
+the mean over the cycling period:</p>
+<ul class="simple">
+<li><p>heat and flow rates are multiplied by <code class="docutils literal notranslate"><span class="pre">CR</span></code> – the delivered heat equals
+the request, and the refrigerant cycle and both air streams stay in balance
+with it. Power that only moves the delivered heat (an indoor fan) belongs
+here: it runs while heat is delivered, and its heat is part of the delivery;</p></li>
+<li><p>the electrical powers of the refrigeration machine (compressor, outdoor fan)
+are multiplied by the runtime fraction <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code>;</p></li>
+<li><p>temperatures, pressures, speed and efficiencies keep the values of the
+running machine.</p></li>
+</ul>
+<p>The electrical energy the machine draws beyond <code class="docutils literal notranslate"><span class="pre">CR</span></code> times its continuous
+power is the cycling loss; it is reported, and it is the only place where the
+mean row is not the running row scaled by one number.</p>
+</section>
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.cycling.CD_AIR_DEFAULT">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">CD_AIR_DEFAULT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.25</span></span><a class="headerlink" href="#tmhp.cycling.CD_AIR_DEFAULT" title="Link to this definition">¶</a></dt>
+<dd><p>EN 14825 default degradation coefficient of a unit delivering to air [-].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.cycling.CC_WATER_DEFAULT">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">CC_WATER_DEFAULT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></span><a class="headerlink" href="#tmhp.cycling.CC_WATER_DEFAULT" title="Link to this definition">¶</a></dt>
+<dd><p>EN 14825 default degradation coefficient of a unit delivering to water [-].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.cycling.CAPACITY_RATIO_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">CAPACITY_RATIO_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'capacity_ratio</span> <span class="pre">[-]'</span></span><a class="headerlink" href="#tmhp.cycling.CAPACITY_RATIO_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Requested heat over the capacity at the minimum compressor speed [-].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.cycling.PART_LOAD_FACTOR_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">PART_LOAD_FACTOR_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'part_load_factor</span> <span class="pre">[-]'</span></span><a class="headerlink" href="#tmhp.cycling.PART_LOAD_FACTOR_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Mean COP over the continuous COP at the minimum compressor speed [-].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.cycling.RUNTIME_FRACTION_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">RUNTIME_FRACTION_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'runtime_fraction</span> <span class="pre">[-]'</span></span><a class="headerlink" href="#tmhp.cycling.RUNTIME_FRACTION_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Fraction of the time the compressor runs [-] (the boilers’ step key).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.cycling.MIN_CAPACITY_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">MIN_CAPACITY_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Q_min</span> <span class="pre">[W]'</span></span><a class="headerlink" href="#tmhp.cycling.MIN_CAPACITY_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Heat delivered in continuous operation at the minimum compressor speed [W].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.cycling.CYCLING_LOSS_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">CYCLING_LOSS_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'E_cycling_loss</span> <span class="pre">[W]'</span></span><a class="headerlink" href="#tmhp.cycling.CYCLING_LOSS_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Mean electrical power drawn beyond the continuous power times <code class="docutils literal notranslate"><span class="pre">CR</span></code> [W].</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingDegradation">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">CyclingDegradation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coefficient</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sink</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'air'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#CyclingDegradation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.CyclingDegradation" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>EN 14825 degradation of the COP while the compressor cycles on and off.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coefficient</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – <code class="docutils literal notranslate"><span class="pre">Cd</span></code> for <code class="docutils literal notranslate"><span class="pre">sink=&quot;air&quot;</span></code> (0 &lt;= Cd &lt; 1; 0 is loss-free cycling) or
+<code class="docutils literal notranslate"><span class="pre">Cc</span></code> for <code class="docutils literal notranslate"><span class="pre">sink=&quot;water&quot;</span></code> (0 &lt; Cc &lt;= 1; 1 is loss-free cycling).</p></li>
+<li><p><strong>sink</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'air'</span></code>, <code class="docutils literal notranslate"><span class="pre">'water'</span></code>]</span>) – Which of the two EN 14825 forms applies: the medium the unit delivers
+its heat (or cooling) to.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingDegradation.coefficient">
+<span class="sig-name descname"><span class="pre">coefficient</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.25</span></span><a class="headerlink" href="#tmhp.cycling.CyclingDegradation.coefficient" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingDegradation.sink">
+<span class="sig-name descname"><span class="pre">sink</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'air'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'water'</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'air'</span></span><a class="headerlink" href="#tmhp.cycling.CyclingDegradation.sink" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingDegradation.part_load_factor">
+<span class="sig-name descname"><span class="pre">part_load_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">capacity_ratio</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#CyclingDegradation.part_load_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.CyclingDegradation.part_load_factor" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">COP_cyc</span> <span class="pre">/</span> <span class="pre">COP_min</span></code> at a capacity ratio (1.0 at or above <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">=</span> <span class="pre">1</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>capacity_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingDegradation.runtime_fraction">
+<span class="sig-name descname"><span class="pre">runtime_fraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">capacity_ratio</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#CyclingDegradation.runtime_fraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.CyclingDegradation.runtime_fraction" title="Link to this definition">¶</a></dt>
+<dd><p>Fraction of the time the compressor runs, <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> (0 at <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>capacity_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingDegradation.state">
+<span class="sig-name descname"><span class="pre">state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_min</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#CyclingDegradation.state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.CyclingDegradation.state" title="Link to this definition">¶</a></dt>
+<dd><p>Cycling state for a request below the minimum continuous capacity.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Q_request</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_min</span></code> are magnitudes [W]. A request at or above
+<code class="docutils literal notranslate"><span class="pre">Q_min</span></code> is continuous operation: <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">=</span> <span class="pre">PLF</span> <span class="pre">=</span> <span class="pre">runtime</span> <span class="pre">fraction</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Q_request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.cycling.CyclingState" title="tmhp.cycling.CyclingState"><code class="xref py py-class docutils literal notranslate"><span class="pre">CyclingState</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingDegradation.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coefficient</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sink</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'air'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.cycling.CyclingDegradation.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coefficient</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>sink</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'air'</span></code>, <code class="docutils literal notranslate"><span class="pre">'water'</span></code>]</span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingState">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">CyclingState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">capacity_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">part_load_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#CyclingState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.CyclingState" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Where a cycling unit sits between off and continuous minimum-speed operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>capacity_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>part_load_factor</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>runtime_fraction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingState.capacity_ratio">
+<span class="sig-name descname"><span class="pre">capacity_ratio</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.cycling.CyclingState.capacity_ratio" title="Link to this definition">¶</a></dt>
+<dd><p>Requested heat over the capacity at the minimum compressor speed [-].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingState.part_load_factor">
+<span class="sig-name descname"><span class="pre">part_load_factor</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.cycling.CyclingState.part_load_factor" title="Link to this definition">¶</a></dt>
+<dd><p>Mean COP over the continuous COP at the minimum compressor speed [-].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingState.runtime_fraction">
+<span class="sig-name descname"><span class="pre">runtime_fraction</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.cycling.CyclingState.runtime_fraction" title="Link to this definition">¶</a></dt>
+<dd><p>Fraction of the time the compressor runs [-].</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingState.cycling">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cycling</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#tmhp.cycling.CyclingState.cycling" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingState.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">capacity_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">part_load_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.cycling.CyclingState.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>capacity_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>part_load_factor</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>runtime_fraction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.cycling.resolve_cycling">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">resolve_cycling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sink</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#resolve_cycling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.resolve_cycling" title="Link to this definition">¶</a></dt>
+<dd><p>Constructor argument -&gt; degradation model.</p>
+<p><code class="docutils literal notranslate"><span class="pre">None</span></code> switches cycling off (the unit is reported running continuously
+at its minimum speed, delivering more than the request); a number is the
+coefficient of the form that belongs to <code class="docutils literal notranslate"><span class="pre">sink</span></code>; a
+<a class="reference internal" href="#tmhp.cycling.CyclingDegradation" title="tmhp.cycling.CyclingDegradation"><code class="xref py py-class docutils literal notranslate"><span class="pre">CyclingDegradation</span></code></a> is used as given.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.cycling.CyclingDegradation" title="tmhp.cycling.CyclingDegradation"><code class="xref py py-class docutils literal notranslate"><span class="pre">CyclingDegradation</span></code></a> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>sink</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'air'</span></code>, <code class="docutils literal notranslate"><span class="pre">'water'</span></code>]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.cycling.CyclingDegradation" title="tmhp.cycling.CyclingDegradation"><code class="xref py py-class docutils literal notranslate"><span class="pre">CyclingDegradation</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.cycling.apply_cycling">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">apply_cycling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivery_power_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_power_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'E_tot</span> <span class="pre">[W]'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#apply_cycling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.apply_cycling" title="Link to this definition">¶</a></dt>
+<dd><p>Average a continuous minimum-speed row over the cycling period (in place).</p>
+<p><code class="docutils literal notranslate"><span class="pre">rate_keys</span></code> – heat and flow rates, <code class="docutils literal notranslate"><span class="pre">delivered_key</span></code> among them – and
+<code class="docutils literal notranslate"><span class="pre">delivery_power_keys</span></code> – power that runs only while heat is delivered,
+such as an indoor fan – are multiplied by the capacity ratio;
+<code class="docutils literal notranslate"><span class="pre">power_keys</span></code> – the refrigeration machine – by the runtime fraction.
+<code class="docutils literal notranslate"><span class="pre">total_power_key</span></code> is reduced by what the powers in both groups lost.
+Adds the cycling keys: <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is the magnitude of the continuous
+delivery the row came in with, <code class="docutils literal notranslate"><span class="pre">E_cycling_loss</span> <span class="pre">[W]</span></code> what <code class="docutils literal notranslate"><span class="pre">power_keys</span></code>
+draw beyond the capacity ratio times their continuous value. COP columns
+are left to the caller, which knows how they are defined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>state</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.cycling.CyclingState" title="tmhp.cycling.CyclingState"><code class="xref py py-class docutils literal notranslate"><span class="pre">CyclingState</span></code></a></span>)</p></li>
+<li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>rate_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>power_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>delivery_power_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>total_power_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.cycling.continuous_keys">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">continuous_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">CyclingState(capacity_ratio=1.0,</span> <span class="pre">part_load_factor=1.0,</span> <span class="pre">runtime_fraction=1.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#continuous_keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.continuous_keys" title="Link to this definition">¶</a></dt>
+<dd><p>Write the cycling keys of a row that was not averaged (in place).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>state</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.cycling.CyclingState" title="tmhp.cycling.CyclingState"><code class="xref py py-class docutils literal notranslate"><span class="pre">CyclingState</span></code></a></span>)</p></li>
+<li><p><strong>Q_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-tmhp.defrost">
+<span id="frost-and-defrost-of-an-outdoor-coil"></span><h2>Frost and defrost of an outdoor coil<a class="headerlink" href="#module-tmhp.defrost" title="Link to this heading">¶</a></h2>
+<p>Frost on the outdoor coil of an air-source heat pump, and its defrost.</p>
+<p>In heating the outdoor coil runs below the outdoor air. When its surface is
+below 0 degC and colder than the air’s dew point, water vapour deposits on it
+as frost: the air passages narrow, the evaporating pressure falls, and both
+capacity and power drop until the unit stops heating to melt the frost. A
+catalogue or a certified rating at 2 degC or -7 degC is the mean over those
+frosting and defrosting periods, not the frost-free steady state a cycle model
+computes.</p>
+<p>The correction here is the one EnergyPlus applies to its DX heating coils
+(<code class="docutils literal notranslate"><span class="pre">Coil:Heating:DX:SingleSpeed</span></code>; Engineering Reference, “Frost Adjustment
+Factors” and “Defrost Operation”), which it takes from DOE-2.1E (Miller and
+Jaster 1985). For on-demand defrost:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}T_{coil} &amp;= 0.82\,T_{out} - 8.589 \qquad [^\circ C]\\\Delta\omega &amp;= \max\left(10^{-6},\;
+    \omega_{out} - \omega_{sat}(T_{coil})\right)\\t_{frac} &amp;= \frac{1}{1 + 0.01446 / \Delta\omega}\\\text{heating capacity multiplier} &amp;= 0.875\,(1 - t_{frac})\\\text{input power multiplier} &amp;= 0.954\,(1 - t_{frac})\end{aligned}\end{align} \]</div>
+</div>
+<p>with no correction when the outdoor dry bulb is above the maximum temperature
+for defrost operation (5 degC). <code class="docutils literal notranslate"><span class="pre">t_frac</span></code> is the fraction of the compressor’s
+runtime spent defrosting. Reverse-cycle defrost also cools the room while it
+runs, an extra heating load of</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[Q_{defrost} = 0.01\,t_{frac}\,(7.222 - T_{out})\,Q_{rated} / 1.01667 .\]</div>
+</div>
+<p>Two things differ from EnergyPlus, both so that no input is added:</p>
+<ul class="simple">
+<li><p><strong>Defrost power.</strong> EnergyPlus asks for a curve of defrost power per unit of
+rated capacity. Here the compressor is taken to draw, while it defrosts,
+the power it draws while it heats: <code class="docutils literal notranslate"><span class="pre">E_defrost</span> <span class="pre">=</span> <span class="pre">t_frac</span> <span class="pre">*</span> <span class="pre">E_cmp</span></code>.</p></li>
+<li><p><strong>Outdoor humidity.</strong> EnergyPlus reads it from the weather file. Here it is
+an optional input; without it the relative humidity is 84 %, the value of
+the EN 14511 rating condition A2 (dry bulb 2 degC, wet bulb 1 degC).</p></li>
+</ul>
+<p>The coil temperature is the correlation above, not the evaporating temperature
+a cycle model solves: the constants 0.01446, 0.875 and 0.954 were fitted with
+that estimate, and the solved saturation temperature is a different quantity
+(colder than the fin surface, and dependent on load). A caller that wants its
+own coil temperature passes <code class="docutils literal notranslate"><span class="pre">T_coil_C</span></code>; the physical condition that the coil
+be below 0 degC is checked either way.</p>
+<section id="id1">
+<h3>How a result row is averaged<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<p>A request <code class="docutils literal notranslate"><span class="pre">Q</span></code> has to be met by the mean over frosting and defrost, so the
+frost-free cycle is solved at the larger duty
+<code class="docutils literal notranslate"><span class="pre">(Q</span> <span class="pre">+</span> <span class="pre">Q_defrost)</span> <span class="pre">/</span> <span class="pre">capacity</span> <span class="pre">multiplier</span></code>. <a class="reference internal" href="#tmhp.defrost.apply_defrost" title="tmhp.defrost.apply_defrost"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_defrost()</span></code></a> then turns
+that frost-free row into the mean:</p>
+<ul class="simple">
+<li><p>heat and flow rates are multiplied by <code class="docutils literal notranslate"><span class="pre">heat_factor</span></code> (delivered heat over
+frost-free heat), so the delivered heat is the request and the refrigerant
+cycle stays in balance with it. Power that only moves the delivered heat (an
+indoor fan) is averaged with it;</p></li>
+<li><p>compressor power is multiplied by <code class="docutils literal notranslate"><span class="pre">power</span> <span class="pre">multiplier</span> <span class="pre">+</span> <span class="pre">t_frac</span></code> (heating,
+then defrosting) and outdoor-fan power by the power multiplier;</p></li>
+<li><p>temperatures, pressures, speed and efficiencies keep the frost-free values.</p></li>
+</ul>
+</section>
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.T_OUT_MAX_DEFROST_C">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">T_OUT_MAX_DEFROST_C</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5.0</span></span><a class="headerlink" href="#tmhp.defrost.T_OUT_MAX_DEFROST_C" title="Link to this definition">¶</a></dt>
+<dd><p>Maximum outdoor dry-bulb temperature for defrost operation [degC] (EnergyPlus default).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.RH_OUT_DEFAULT">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">RH_OUT_DEFAULT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.84</span></span><a class="headerlink" href="#tmhp.defrost.RH_OUT_DEFAULT" title="Link to this definition">¶</a></dt>
+<dd><p>EN 14511 A2 (2 degC dry bulb, 1 degC wet bulb).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Outdoor relative humidity used when none is given [-]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.DEFROST_FRACTION_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">DEFROST_FRACTION_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'defrost_fraction</span> <span class="pre">[-]'</span></span><a class="headerlink" href="#tmhp.defrost.DEFROST_FRACTION_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Fraction of the compressor’s runtime spent defrosting [-].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.FROST_CAPACITY_FACTOR_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">FROST_CAPACITY_FACTOR_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'frost_capacity_factor</span> <span class="pre">[-]'</span></span><a class="headerlink" href="#tmhp.defrost.FROST_CAPACITY_FACTOR_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Heating capacity multiplier of the frosted coil, defrost time included [-].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.FROST_POWER_FACTOR_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">FROST_POWER_FACTOR_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'frost_power_factor</span> <span class="pre">[-]'</span></span><a class="headerlink" href="#tmhp.defrost.FROST_POWER_FACTOR_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Input power multiplier of the frosted coil, defrost time included [-].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.DEFROST_POWER_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">DEFROST_POWER_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'E_defrost</span> <span class="pre">[W]'</span></span><a class="headerlink" href="#tmhp.defrost.DEFROST_POWER_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Mean compressor power spent defrosting [W].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.DEFROST_LOAD_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">DEFROST_LOAD_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Q_defrost</span> <span class="pre">[W]'</span></span><a class="headerlink" href="#tmhp.defrost.DEFROST_LOAD_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Mean heat a reverse-cycle defrost takes from the room [W].</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.RH_OUT_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">RH_OUT_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'RH_out</span> <span class="pre">[-]'</span></span><a class="headerlink" href="#tmhp.defrost.RH_OUT_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Outdoor relative humidity the frost correction used [-].</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.defrost.DefrostModel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">DefrostModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.84</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#DefrostModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.DefrostModel" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>EnergyPlus / DOE-2.1E frost adjustment with on-demand reverse-cycle defrost.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_out_max</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Outdoor dry-bulb temperature above which the coil does not frost [degC].</p></li>
+<li><p><strong>RH_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Outdoor relative humidity (0-1) used when a call does not give one.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.DefrostModel.T_out_max">
+<span class="sig-name descname"><span class="pre">T_out_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5.0</span></span><a class="headerlink" href="#tmhp.defrost.DefrostModel.T_out_max" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.DefrostModel.RH_out">
+<span class="sig-name descname"><span class="pre">RH_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.84</span></span><a class="headerlink" href="#tmhp.defrost.DefrostModel.RH_out" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.defrost.DefrostModel.frost_state">
+<span class="sig-name descname"><span class="pre">frost_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_out_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_coil_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_Pa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">101325.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#DefrostModel.frost_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.DefrostModel.frost_state" title="Link to this definition">¶</a></dt>
+<dd><p>Frost correction at outdoor dry bulb <code class="docutils literal notranslate"><span class="pre">T_out_C</span></code> and relative humidity <code class="docutils literal notranslate"><span class="pre">RH_out</span></code> (0-1).</p>
+<p><code class="docutils literal notranslate"><span class="pre">T_coil_C</span></code> replaces the coil-temperature correlation
+<code class="docutils literal notranslate"><span class="pre">0.82</span> <span class="pre">T_out</span> <span class="pre">-</span> <span class="pre">8.589</span></code>. No frost above <code class="docutils literal notranslate"><span class="pre">T_out_max</span></code>, nor on a coil at
+or above 0 degC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_out_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>RH_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>T_coil_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>P_Pa</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.defrost.FrostState" title="tmhp.defrost.FrostState"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrostState</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.defrost.DefrostModel.defrost_load">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">defrost_load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_out_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_rated</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#DefrostModel.defrost_load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.DefrostModel.defrost_load" title="Link to this definition">¶</a></dt>
+<dd><p>Mean heat a reverse-cycle defrost takes from the room [W] (&gt;= 0).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frost</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.defrost.FrostState" title="tmhp.defrost.FrostState"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrostState</span></code></a></span>)</p></li>
+<li><p><strong>T_out_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_rated</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.defrost.DefrostModel.gross_duty">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">gross_duty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_defrost</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#DefrostModel.gross_duty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.DefrostModel.gross_duty" title="Link to this definition">¶</a></dt>
+<dd><p>Frost-free duty [W] whose mean over frosting and defrost is <code class="docutils literal notranslate"><span class="pre">Q_request</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frost</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.defrost.FrostState" title="tmhp.defrost.FrostState"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrostState</span></code></a></span>)</p></li>
+<li><p><strong>Q_request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_defrost</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.defrost.DefrostModel.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.84</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.defrost.DefrostModel.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_out_max</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>RH_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">FrostState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">active</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defrost_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_coil_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">humidity_ratio_difference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#FrostState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.FrostState" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Frost correction at one outdoor condition.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>defrost_fraction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>capacity_multiplier</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>power_multiplier</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_coil_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>humidity_ratio_difference</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>RH_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState.active">
+<span class="sig-name descname"><span class="pre">active</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#tmhp.defrost.FrostState.active" title="Link to this definition">¶</a></dt>
+<dd><p>Whether the outdoor coil frosts here.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState.defrost_fraction">
+<span class="sig-name descname"><span class="pre">defrost_fraction</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.defrost.FrostState.defrost_fraction" title="Link to this definition">¶</a></dt>
+<dd><p>Fraction of the compressor’s runtime spent defrosting [-].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState.capacity_multiplier">
+<span class="sig-name descname"><span class="pre">capacity_multiplier</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.defrost.FrostState.capacity_multiplier" title="Link to this definition">¶</a></dt>
+<dd><p>Heating capacity multiplier, <code class="docutils literal notranslate"><span class="pre">0.875</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">t_frac)</span></code> when frosting [-].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState.power_multiplier">
+<span class="sig-name descname"><span class="pre">power_multiplier</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.defrost.FrostState.power_multiplier" title="Link to this definition">¶</a></dt>
+<dd><p>Input power multiplier, <code class="docutils literal notranslate"><span class="pre">0.954</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">t_frac)</span></code> when frosting [-].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState.T_coil_C">
+<span class="sig-name descname"><span class="pre">T_coil_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">nan</span></span><a class="headerlink" href="#tmhp.defrost.FrostState.T_coil_C" title="Link to this definition">¶</a></dt>
+<dd><p>Outdoor coil temperature the correction used [degC].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState.humidity_ratio_difference">
+<span class="sig-name descname"><span class="pre">humidity_ratio_difference</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">nan</span></span><a class="headerlink" href="#tmhp.defrost.FrostState.humidity_ratio_difference" title="Link to this definition">¶</a></dt>
+<dd><p>Humidity ratio of the outdoor air above saturation at the coil [kg/kg].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState.RH_out">
+<span class="sig-name descname"><span class="pre">RH_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">nan</span></span><a class="headerlink" href="#tmhp.defrost.FrostState.RH_out" title="Link to this definition">¶</a></dt>
+<dd><p>Outdoor relative humidity the correction used [-].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">active</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defrost_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_coil_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">humidity_ratio_difference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.defrost.FrostState.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>defrost_fraction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>capacity_multiplier</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>power_multiplier</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_coil_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>humidity_ratio_difference</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>RH_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.NO_FROST">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">NO_FROST</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">FrostState(active=False,</span> <span class="pre">defrost_fraction=0.0,</span> <span class="pre">capacity_multiplier=1.0,</span> <span class="pre">power_multiplier=1.0,</span> <span class="pre">T_coil_C=nan,</span> <span class="pre">humidity_ratio_difference=nan,</span> <span class="pre">RH_out=nan)</span></span><a class="headerlink" href="#tmhp.defrost.NO_FROST" title="Link to this definition">¶</a></dt>
+<dd><p>nothing is corrected.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>No frost</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.defrost.resolve_defrost">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">resolve_defrost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#resolve_defrost"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.resolve_defrost" title="Link to this definition">¶</a></dt>
+<dd><p>Constructor argument -&gt; frost model: <code class="docutils literal notranslate"><span class="pre">None</span></code> / <code class="docutils literal notranslate"><span class="pre">False</span></code> off, <code class="docutils literal notranslate"><span class="pre">True</span></code> the default model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.defrost.DefrostModel" title="tmhp.defrost.DefrostModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DefrostModel</span></code></a> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.defrost.DefrostModel" title="tmhp.defrost.DefrostModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DefrostModel</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.defrost.frost_free_keys">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">frost_free_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">FrostState(active=False,</span> <span class="pre">defrost_fraction=0.0,</span> <span class="pre">capacity_multiplier=1.0,</span> <span class="pre">power_multiplier=1.0,</span> <span class="pre">T_coil_C=nan,</span> <span class="pre">humidity_ratio_difference=nan,</span> <span class="pre">RH_out=nan)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#frost_free_keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.frost_free_keys" title="Link to this definition">¶</a></dt>
+<dd><p>Write the frost keys of a row that was not corrected (in place).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>frost</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.defrost.FrostState" title="tmhp.defrost.FrostState"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrostState</span></code></a></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.defrost.apply_defrost">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">apply_defrost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_defrost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compressor_power_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'E_cmp</span> <span class="pre">[W]'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdoor_power_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivery_power_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_power_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'E_tot</span> <span class="pre">[W]'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#apply_defrost"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.apply_defrost" title="Link to this definition">¶</a></dt>
+<dd><p>Average a frost-free row over frosting and defrost (in place).</p>
+<p><code class="docutils literal notranslate"><span class="pre">rate_keys</span></code> and <code class="docutils literal notranslate"><span class="pre">delivery_power_keys</span></code> (power that runs only while heat
+is delivered, such as an indoor fan) are multiplied by <code class="docutils literal notranslate"><span class="pre">heat_factor</span></code>; the
+compressor power by <code class="docutils literal notranslate"><span class="pre">power</span> <span class="pre">multiplier</span> <span class="pre">+</span> <span class="pre">t_frac</span></code>; <code class="docutils literal notranslate"><span class="pre">outdoor_power_keys</span></code>
+by the power multiplier. <code class="docutils literal notranslate"><span class="pre">total_power_key</span></code> is reduced by what those
+powers lost. Adds the frost keys. COP columns are left to the caller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>frost</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.defrost.FrostState" title="tmhp.defrost.FrostState"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrostState</span></code></a></span>)</p></li>
+<li><p><strong>heat_factor</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_defrost</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rate_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>compressor_power_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>outdoor_power_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>delivery_power_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>total_power_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.defrost.saturation_humidity_ratio">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">saturation_humidity_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_Pa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">101325.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#saturation_humidity_ratio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.saturation_humidity_ratio" title="Link to this definition">¶</a></dt>
+<dd><p>Humidity ratio of saturated air at <code class="docutils literal notranslate"><span class="pre">T_C</span></code> [kg water / kg dry air] (over ice below 0 degC).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>P_Pa</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.defrost.humidity_ratio">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">humidity_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_Pa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">101325.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#humidity_ratio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.humidity_ratio" title="Link to this definition">¶</a></dt>
+<dd><p>Humidity ratio of moist air at dry bulb <code class="docutils literal notranslate"><span class="pre">T_C</span></code> and relative humidity <code class="docutils literal notranslate"><span class="pre">RH</span></code> (0-1).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>RH</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>P_Pa</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 <section id="module-tmhp.simulation_summary">
 <span id="simulation-summary-tables"></span><h2>Simulation summary tables<a class="headerlink" href="#module-tmhp.simulation_summary" title="Link to this heading">¶</a></h2>
 <p>Simulation summary output functions.</p>
@@ -2814,6 +3584,8 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
       <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>

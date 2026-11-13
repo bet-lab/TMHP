@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-11-13T21:35:58+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:00:54+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -157,6 +157,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.hx_fan">Air-side fan &amp; heat exchanger</a><ul>
+<li><a class="reference internal" href="#tmhp.hx_fan.INDOOR_AIRFLOW_PER_W"><code class="docutils literal notranslate"><span class="pre">INDOOR_AIRFLOW_PER_W</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.hx_fan.is_generic_fan_curve"><code class="docutils literal notranslate"><span class="pre">is_generic_fan_curve()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.hx_fan.calc_ashrae_fan_power_ratio"><code class="docutils literal notranslate"><span class="pre">calc_ashrae_fan_power_ratio()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.hx_fan.calc_fan_operating_point"><code class="docutils literal notranslate"><span class="pre">calc_fan_operating_point()</span></code></a></li>
@@ -613,6 +614,19 @@ abstractions used by GSHP/GSHPB.</p>
 velocity-dependent UA scaling law (<code class="docutils literal notranslate"><span class="pre">calc_UA_from_dV_fan</span></code>) and a fan power
 curve (<code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan</span></code>). HX performance solving lives in
 <code class="docutils literal notranslate"><span class="pre">enex_functions</span></code> and HP schedule checking in <code class="docutils literal notranslate"><span class="pre">dynamic_context</span></code>.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.hx_fan.INDOOR_AIRFLOW_PER_W">
+<span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">INDOOR_AIRFLOW_PER_W</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5.37e-05</span></span><a class="headerlink" href="#tmhp.hx_fan.INDOOR_AIRFLOW_PER_W" title="Link to this definition">¶</a></dt>
+<dd><p>Default indoor-unit airflow per watt of nameplate capacity [m3/s per W].</p>
+<p>400 cfm per ton of refrigeration (0.18878 m3/s per 3516.85 W), the nominal
+airflow at which unitary air conditioners and heat pumps are rated (AHRI
+210/240 uses it as the airflow when none is specified, and caps the rated
+airflow at 450 cfm/ton). In SI it is 193 m3/h per kW. The air-to-air units
+this library is validated against publish 168 to 309 m3/h per kW at their
+high fan speed (Daikin FTXM-A, 2.0 to 5.0 kW: 0.1717 to 0.2333 m3/s), so the
+figure sits at the lower end of what split systems run.</p>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.hx_fan.is_generic_fan_curve">
 <span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">is_generic_fan_curve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#is_generic_fan_curve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.is_generic_fan_curve" title="Link to this definition">¶</a></dt>

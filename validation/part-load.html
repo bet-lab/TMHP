@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This page exists because the assumption it started from turned out to be wrong, and the correction changed what the library does. The assumption was the familiar one: a real inverter heat pump peak..." />
 
-    <meta property="article:modified_time" content="2026-11-13T19:37:23+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:00:54+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -326,7 +326,7 @@ output carries both.</p>
 outdoor fan now stays above 45 % of rated flow over the whole sweep and the
 air-side temperature drop stays within 4.1 K; the air-to-air sweep stays
 above 31 % and 4.8 K. A real machine below its modulation floor cycles, and
-TMHP still computes no cycling loss (see below), so the sub-floor rows are a
+the air-to-water model still computes no cycling loss (see below), so the sub-floor rows are a
 continuous-operation figure at the minimum capacity, not a part-load COP.
 They are drawn hollow in the figures and excluded from every trend verdict.</p>
 <p>At −7 °C air and 45 °C water the requests below the floor resolve to the
@@ -411,14 +411,21 @@ from the speed floor alone; nothing was added to produce it.</p>
 <section id="what-is-not-modelled">
 <h2>What is not modelled<a class="headerlink" href="#what-is-not-modelled" title="Link to this heading">¶</a></h2>
 <div class="warning admonition">
-<p class="admonition-title">TMHP’s low-load COP is a continuous-operation figure</p>
+<p class="admonition-title">The air-to-water low-load COP is a continuous-operation figure</p>
 <p>Below its modulation floor a real machine cycles on and off. Every start
 pushes the refrigerant pressures away from equilibrium and re-warms the heat
 exchangers, and the standard accounts for that loss with a degradation
-coefficient applied during seasonal integration. TMHP simulates continuous
-operation and computes no such loss, so <strong>at light load it is optimistic
-against a machine that cycles</strong>, and the size of that optimism is not
-estimated here.</p>
+coefficient applied during seasonal integration. The air-to-water model
+(<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>), which every figure on this page comes from,
+simulates continuous operation and computes no such loss, so <strong>at light
+load it is optimistic against a machine that cycles</strong>, and the size of that
+optimism is not estimated here.</p>
+<p>The air-to-air model (<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code>) does apply the standard’s own
+default below its floor — EN 14825 <code class="docutils literal notranslate"><span class="pre">C_d</span> <span class="pre">=</span> <span class="pre">0.25</span></code> in the form written for
+units delivering to air — and reports the mean over the cycling period
+(<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <a class="reference internal" href="../api/support/simulation.html#module-tmhp.cycling" title="tmhp.cycling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.cycling</span></code></a>). That is the coefficient the
+standard prescribes for an untested unit, taken unchanged; it is not fitted
+to anything here, and <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> restores continuous operation.</p>
 </div>
 <p>This is not an oversight to be patched with a fitted penalty. Cuevas &amp; Lebrun
 make the same point from the hardware side: they observe the low-speed

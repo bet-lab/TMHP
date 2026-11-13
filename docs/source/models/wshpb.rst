@@ -54,8 +54,19 @@ at the evaporator approach less ``dT_hx_min``, and on a compressor speed bound
 the tank heat exchanger is solved against the heat actually delivered
 (``dT_ref_tank [K]``, ``tank_hx_residual [W]``).
 
+``analyze_steady`` reports a request below the minimum-speed duty as the mean
+of on/off cycling, exactly as :doc:`gshpb` does (:ref:`boiler-steady-cycling`):
+``Q_ref_tank [W]`` equals the request, ``runtime_fraction [-]`` is the share
+of the time the compressor runs, and ``E_cmp``, ``E_pmp`` and ``E_tot`` carry
+the EN 14825 degradation for a unit delivering to water (``Cd_cycling``, the
+standard's ``Cc``, 0.9 by default; ``None`` returns the continuous
+minimum-speed point). The default machine at 10 °C source water and a 35 °C
+tank delivers 4.0 kW at its minimum speed; a 400 W request returns 400 W at
+177 W of input (system COP 2.26 against 4.29 for the running machine).
+Dynamic runs are not affected.
+
 Loop liquid and its freezing limit
-===========================
+==================================
 
 ``source_fluid`` is the liquid circulating between the heat pump and the coil
 in the source water: ``"water"`` (default) or an antifreeze mixture such as
@@ -73,17 +84,6 @@ rating point (leaving at 7 °C) is unaffected. For winter surface water near
 
    wshpb = WaterSourceHeatPumpBoiler(source_fluid="MPG-25%")   # limit -6.8 °C
    wshpb.analyze_steady(T_tank_w=45, T_source=1.0, Q_ref_tank=8_000)
-=======
-``analyze_steady`` reports a request below the minimum-speed duty as the mean
-of on/off cycling, exactly as :doc:`gshpb` does (:ref:`boiler-steady-cycling`):
-``Q_ref_tank [W]`` equals the request, ``runtime_fraction [-]`` is the share
-of the time the compressor runs, and ``E_cmp``, ``E_pmp`` and ``E_tot`` carry
-the EN 14825 degradation for a unit delivering to water (``Cd_cycling``, the
-standard's ``Cc``, 0.9 by default; ``None`` returns the continuous
-minimum-speed point). The default machine at 10 °C source water and a 35 °C
-tank delivers 4.0 kW at its minimum speed; a 400 W request returns 400 W at
-177 W of input (system COP 2.26 against 4.29 for the running machine).
-Dynamic runs are not affected.
 
 Dynamic operation
 =================

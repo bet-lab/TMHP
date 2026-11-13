@@ -142,7 +142,7 @@ an evaporator sized for the full capacity), down to 0.05 K.
 .. _source-fluid:
 
 Ground-loop liquid and its freezing limit
-==================================
+=========================================
 
 ``source_fluid`` says what circulates between the borefield and the
 evaporator (:mod:`tmhp.source_fluid`). The same argument and the same rule
@@ -321,7 +321,7 @@ give a larger ``ground_flow_ref_lpm`` or a smaller pipe.
 
       legacy = SourceFluid("water without a freezing point", -60.0, rho=1000.0, cp=4186.0, mu=0.001, k=0.606)
       gshpb = GroundSourceHeatPumpBoiler(source_fluid=legacy)
-=======
+
 .. _boiler-steady-cycling:
 
 Steady state below the minimum capacity

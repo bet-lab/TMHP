@@ -66,7 +66,7 @@ Parity
     * - Manufacturers
       - Panasonic, Samsung, Daikin, Fujitsu
     * - Points
-      - 757 attempted, 740 evaluated
+      - 757 attempted, 712 evaluated
     * - Modes
       - Heating and cooling
     * - Source temperature
@@ -112,6 +112,14 @@ operating point and is not compared with the catalogue's full-load COP
 (``capacity_short``). Twenty-three more air-to-water points are evaluated
 under the control (21 with wet suction, 2 with reduced superheat).
 
+**28 air-to-air heating points are not evaluated, 27 of them on the held
+Fujitsu grids.** All lie at or below 5 °C outdoor, where the frost and defrost
+adjustment (:doc:`/models/ashp`) lowers the mean heating capacity to 0.77–0.86
+of the frost-free capacity. The Fujitsu heating grid is published at maximum
+capacity (③ below), and at those points the mean the model can deliver falls
+more than 1 % short of the published duty (``capacity_short``); the one Daikin
+point is the smallest unit at 0 °C.
+
 .. list-table::
     :header-rows: 1
     :widths: 34 12 12 12 30
@@ -127,29 +135,29 @@ under the control (21 with wet suction, 2 with reduced superheat).
       - 136 / 153
       - Optimistic on average; the bias sits at +2 °C outdoor
     * - Air-to-air, Daikin, 5 units
-      - 12.1 %
-      - +1.5 %
-      - 360 / 360
-      - EN 14511; two opposite biases that net out
+      - 8.1 %
+      - −5.0 %
+      - 359 / 360
+      - EN 14511; heating centred, cooling low
     * - Daikin cooling
       - 10.5 %
       - −9.7 %
       - 180 / 180
       - Pessimistic, growing with outdoor temperature
     * - Daikin heating
-      - 13.7 %
-      - +12.7 %
-      - 180 / 180
-      - Centred above +2 °C outdoor, optimistic at and below 0 °C
+      - 5.7 %
+      - −0.2 %
+      - 179 / 180
+      - Centred; frost and defrost adjusted at and below 0 °C
     * - Daikin heating at or below −7 °C
-      - 22.5 %
-      - +22.5 %
+      - 7.1 %
+      - +6.4 %
       - 60 / 60
-      - Every point optimistic
+      - Centred at −10 °C, optimistic at −15 °C
     * - Air-to-air, Fujitsu, 2 units
-      - 34.0 %
-      - **+33.1 %**
-      - 244 / 244
+      - 28.5 %
+      - **+27.0 %**
+      - 217 / 244
       - Held: AHRI 210/240, COP boundary not stated — a uniform offset
 
 The biases are stated here, not corrected. **Air-to-air cooling runs low**,
@@ -159,10 +167,13 @@ load (sensible heat ratio 0.95 or above) are the most pessimistic, at −19 %,
 and those with the most latent load the least, at −5 %. The dry-coil
 idealisation pushes the other way (② below). What the low rows share is the
 most efficient hardware: at the rating point the smallest Daikin units, with
-the highest nameplate EER, sit 17 to 19 % low (①). **Air-to-air heating runs
-high in the cold** because
-frosting and defrost are not modelled: +17 % from 0 to −10 °C outdoor and +28 %
-at −15 °C, against 0 to −2 % at 6 and 10 °C. **Air-to-water runs high at
+the highest nameplate EER, sit 17 to 19 % low (①). **Air-to-air heating is
+centred once frost is accounted for.** With the frost and defrost adjustment
+(the EnergyPlus DX heating-coil model, its constants unchanged;
+:doc:`/models/ashp`) the bias is −7.4 % at 0 °C, −4.8 % at −5 °C, +0.5 % at
+−10 °C and +12.3 % at −15 °C outdoor, against 0 to −2 % at 6 and 10 °C, where
+the coil does not frost. Without the adjustment the same rows ran +17 % from 0
+to −10 °C and +28 % at −15 °C. **Air-to-water runs high at
 +2 °C outdoor** (+20 % over its 30 points, +2 % over the other 123), the condition at
 which an outdoor coil frosts most and a declared COP carries defrost.
 

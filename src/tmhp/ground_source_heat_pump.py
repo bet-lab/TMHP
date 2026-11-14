@@ -31,7 +31,7 @@ from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize_scalar
+from scipy.optimize import brentq, minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
@@ -1449,8 +1449,6 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         wall_K: float | Callable[[float], float],
     ) -> dict:
         """At fixed flow, close the ground HX and optimize the indoor approach."""
-        from scipy.optimize import brentq, minimize_scalar
-
         cache: dict[float, dict] = {}
         minimum_ground_cache: dict[float, dict | None] = {}
 
@@ -1860,7 +1858,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         the compressor's minimum speed), largest delivery at ``rps_max``.
 
         A request above what the unit can deliver returns the delivered ceiling
-        with ``capacity_clamped == "max"``. A point that cannot be solved
+        with ``capacity_clamped == "max"``: of the candidates at ``rps_max``
+        the one of least input among those delivering the largest heat
+        (:meth:`_least_power_at_ceiling`). A point that cannot be solved
         returns the off state with ``converged=False`` and the reason: no heat,
         no power, NaN COP.
         """
@@ -1869,6 +1869,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         rows = search.rows
         value, _, row = search.best()
         if value < OBJ_INFEASIBLE and row is not None:
+            if row.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
+                row = self._least_power_at_ceiling(search, row)
             result = dict(row)
             result.update({"converged": True, "failure_reason": "none", "Q_request [W]": Q_r_iu})
             if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
@@ -2189,6 +2191,85 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 return x, search.entry(x)[2]
         return None, None
 
+    #: Candidates at ``rps_max`` whose delivered heat is within this of the
+    #: largest deliver the same ceiling (the resolution to which a ceiling is
+    #: solved elsewhere: :meth:`_capacity_limited_operating_point`).
+    _CEILING_HEAT_RTOL = 5e-3
+    #: Resolution of the indoor approach at which the heat reaches that band [K].
+    _CEILING_APPROACH_XTOL_K = 1e-3
+
+    def _least_power_at_ceiling(self, search: _IndoorSearch, best: dict) -> dict:
+        """The flat-out candidate of least input among those delivering the largest heat.
+
+        With the compressor at ``rps_max`` the delivered heat hardly depends
+        on the indoor approach: across the band the fan can serve it varies
+        by a fraction of a percent (0.09 % for the default R1234yf unit at a
+        0 °C borehole wall), and not monotonically -- a higher condensing
+        temperature takes heat off the refrigerant flow and adds compressor
+        work, losses included. The electrical input rises by 6 % across the
+        same band. Ranking those candidates by delivered heat alone therefore
+        let a difference of a few watts decide between the largest airflow
+        and a starved coil, and a small change of any input moved the result
+        from one to the other (+1.4 % heat, -7.3 % COP in that example).
+
+        Heat within :attr:`_CEILING_HEAT_RTOL` of the largest counts as the
+        same ceiling, and among those candidates the one of least total
+        input is the operating point: normally the lower edge of the band,
+        the fan at its largest airflow and the least lift. Where the lower
+        edge delivers less than that, the approach at which the heat reaches
+        the band is solved, so the choice moves continuously with the inputs.
+        """
+        lo_i, hi_i = self.indoor_approach_min_K, self.indoor_approach_max_K
+
+        def flat_out(x: float) -> dict | None:
+            value, _, row = search.entry(x)
+            if row is None or not OBJ_CAPACITY_LIMITED <= value < OBJ_INFEASIBLE:
+                return None
+            return row if row.get("capacity_clamped") == CAPACITY_CLAMPED_MAX else None
+
+        def heat(row: Mapping[str, Any]) -> float:
+            return abs(float(row["Q_ref_iu [W]"]))
+
+        threshold = (1.0 - self._CEILING_HEAT_RTOL) * heat(best)
+        samples = sorted(x for x in search.rows if lo_i <= x <= hi_i)
+        running = [x for x in samples if flat_out(x) is not None]
+        if not running:
+            return best
+        # The band's lower edge (largest airflow) is solved only next to the
+        # search's best sample; solve it where the band reaches further down.
+        x_low = running[0]
+        below = samples.index(x_low) - 1
+        if below >= 0:
+            band = self._fan_band(search, samples[below], x_low)
+            if band is not None and band[1] - band[0] > 2.0 * self._BAND_EDGE_STEP_K:
+                edge = band[0] + self._BAND_EDGE_STEP_K
+                if flat_out(edge) is not None:
+                    x_low = edge
+        low = flat_out(x_low)
+        qualifying = [
+            (x, row) for x in sorted(search.rows) if (row := flat_out(x)) is not None and heat(row) >= threshold
+        ]
+        if low is not None and heat(low) < threshold:
+            above = [x for x, _ in qualifying if x > x_low]
+            if above:
+                with contextlib.suppress(ValueError, RuntimeError, TypeError):
+
+                    def short(x: float) -> float:
+                        row = flat_out(x)
+                        if row is None:
+                            raise ValueError("no flat-out candidate inside the band")
+                        return heat(row) - threshold
+
+                    root = float(brentq(short, x_low, min(above), xtol=self._CEILING_APPROACH_XTOL_K))
+                    for x in (root, root + self._CEILING_APPROACH_XTOL_K):
+                        row = flat_out(x)
+                        if row is not None and heat(row) >= threshold:
+                            qualifying.append((x, row))
+                            break
+        if not qualifying:
+            return best
+        return min(qualifying, key=lambda item: float(item[1]["E_tot [W]"]))[1]
+
     @staticmethod
     def _warm_from(row: dict | None) -> dict[str, float]:
         """Ground-closure warm start taken from a solved row."""
@@ -2251,6 +2332,20 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 self.T_dis_max = limit
             if x_free is not None:
                 binding = BINDING_DISCHARGE
+        # ``lo_row`` is the first approach found to deliver the ceiling duty,
+        # which depends on where the bisection came from. The operating point
+        # is the one of least input at that duty: solve it the ordinary way.
+        search = _IndoorSearch(self, sign * lo_q, T0, T_a_room, wall_K, self._warm_from(lo_row))
+        self._search_indoor(search)
+        value, _, least = search.best()
+        if (
+            least is not None
+            and value < OBJ_CAPACITY_LIMITED
+            and least.get("capacity_clamped") is None
+            and abs(float(least["Q_ref_iu [W]"]) - lo_q) <= 1e-6 * lo_q
+            and float(least["E_tot [W]"]) < float(lo_row["E_tot [W]"])
+        ):
+            lo_row = least
         result = dict(lo_row)
         result.update(
             {

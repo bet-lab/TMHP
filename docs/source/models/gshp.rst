@@ -297,6 +297,16 @@ step is not resolved beyond that one block.
 ``Q_request [W]`` (signed, as asked) and ``Q_unmet [W]`` (the part of the
 request that is not delivered) are on every row.
 
+With the compressor at ``rps_max`` the delivered heat hardly depends on the
+indoor airflow -- it varies by a tenth of a percent across the approaches the
+fan can serve, while the electrical input varies by several percent. The
+ceiling row is therefore not the candidate of largest heat: heat within 0.5 %
+of the largest counts as the same ceiling, and among those candidates the one
+of least total input is reported, normally the fan at its largest airflow
+(the least lift). A ceiling found by bisection on the duty (a coil or an
+envelope limit, ``capacity_binding`` other than ``"compressor"``) is solved
+as that duty, so its row is the least-input operating point of the duty too.
+
 What the cycling model does not contain: no standby power is added while the
 compressor is off, and a start is not resolved in time — the degradation is
 the standard's seasonal-average figure.

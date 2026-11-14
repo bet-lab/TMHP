@@ -75,8 +75,8 @@ def dhw_draw(n: int) -> np.ndarray:
     return use
 
 
-def simulate() -> dict:
-    """Source temperatures every step and hourly system COP of both units."""
+def source_temperatures() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """``(t_h, outdoor air, ground-loop fluid)`` at every step of the plotted days [h, °C, °C]."""
     per_day = int(86400 / DT_S)
     n_pre, n = PRECONDITION_DAYS * per_day, DAYS * per_day
     t_h = np.arange(n) * DT_S / 3600.0
@@ -88,19 +88,38 @@ def simulate() -> dict:
         gshpb = GroundSourceHeatPumpBoiler(**MODEL_SETTINGS)
         t0_all = np.concatenate([np.full(n_pre, 0.0), t0])
         df = gshpb.analyze_dynamic((n_pre + n) * DT_S, DT_S, T_TANK_W, dhw_draw(n_pre + n), t0_all)
-        t_loop = df["T_bhe_f_out [°C]"].to_numpy()[n_pre:]
+    return t_h, t0, df["T_bhe_f_out [°C]"].to_numpy()[n_pre:]
 
-        # System COP of the running machine at the same duty and tank
-        # temperature, hour by hour (the air-source unit with frost and defrost).
+
+def hourly_cop(t0: np.ndarray, t_loop: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """System COP of the running machines at the same duty and tank, at the given source temperatures.
+
+    The air-source unit with its frost and defrost; NaN where a unit does not run.
+    """
+    cop_a, cop_g = [], []
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
         ashpb = AirSourceHeatPumpBoiler(**MODEL_SETTINGS)
-        hours = np.arange(0, DAYS * 24 + 1)
-        idx = np.minimum((hours * 3600 // DT_S).astype(int), n - 1)
-        cop_a, cop_g = [], []
-        for i in idx:
-            ra = ashpb.analyze_steady(T_tank_w=T_TANK_W, T0=float(t0[i]), Q_ref_tank=DUTY_W)
-            rg = gshpb.analyze_steady(T_tank_w=T_TANK_W, T_source=float(t_loop[i]), Q_ref_tank=DUTY_W)
+        gshpb = GroundSourceHeatPumpBoiler(**MODEL_SETTINGS)
+        for ta, tg in zip(t0, t_loop, strict=True):
+            ra = ashpb.analyze_steady(T_tank_w=T_TANK_W, T0=float(ta), Q_ref_tank=DUTY_W)
+            rg = gshpb.analyze_steady(T_tank_w=T_TANK_W, T_source=float(tg), Q_ref_tank=DUTY_W)
             cop_a.append(float(ra["cop_sys [-]"]) if ra["hp_is_on"] else np.nan)
             cop_g.append(float(rg["cop_sys [-]"]) if rg["hp_is_on"] else np.nan)
+    return np.array(cop_a), np.array(cop_g)
+
+
+def hour_index(hours: np.ndarray, n: int) -> np.ndarray:
+    """Step index of each whole hour (the last hour reads the last step)."""
+    return np.minimum((hours * 3600 // DT_S).astype(int), n - 1)
+
+
+def simulate() -> dict:
+    """Source temperatures every step and hourly system COP of both units."""
+    t_h, t0, t_loop = source_temperatures()
+    hours = np.arange(0, DAYS * 24 + 1)
+    idx = hour_index(hours, len(t_h))
+    cop_a, cop_g = hourly_cop(t0[idx], t_loop[idx])
     return {
         "t_h": t_h,
         "T0_C": t0,
@@ -108,8 +127,8 @@ def simulate() -> dict:
         "hours": hours,
         "T0_at_hour_C": t0[idx],
         "T_loop_at_hour_C": t_loop[idx],
-        "cop_ashp": np.array(cop_a),
-        "cop_gshp": np.array(cop_g),
+        "cop_ashp": cop_a,
+        "cop_gshp": cop_g,
     }
 
 

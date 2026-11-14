@@ -234,11 +234,12 @@ with ``min_on_time_s=1800`` peaked at 73.1, 75.4 and 77.4 °C with 60,
 300 and 600 s steps and now stops at 69.9 °C with all three), and in a
 ``"stratified"`` or ``"hybrid"`` tank whose coil water is hotter than the
 tank mean the thermostat reads (a coil in the top node): there the stop is
-the mean temperature at which the water around the coil gets to the
-envelope stop, found on trial steps of the node model. While the
-thermostat still calls at that point, the compressor holds the coil's
-water there (it runs the share of the step that delivers the heat the
-water loses, one start), instead of failing step after step. Such a
+the run time at the nameplate duty after which the water around the coil
+gets to the envelope stop, found on trial steps of the node model. While
+the thermostat still calls at the stop, the compressor holds the water at
+it (it runs the share of the step that delivers the heat the water loses,
+one start), instead of failing step after step; a lumped tank called at
+its envelope stop is held there against its losses the same way. Such a
 step is a normal stop: ``failure_reason`` stays ``"none"`` and
 ``hp_stop_reason`` is ``"condensing_limit"``.
 

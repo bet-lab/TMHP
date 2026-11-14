@@ -82,31 +82,61 @@ def test_cut_out_outranks_the_minimum_run_time():
     assert not at_bound.limit_stop and at_bound.runtime_fraction == pytest.approx(9.0 * C / 10_000.0 / 600.0)
 
 
-def test_call_at_the_cut_out_holds_or_waits():
-    """The call stands (the tank below the set point) while the water is at the cut-out."""
-    waits = _sim(T_start_C=54.0, T_limit_C=50.0, Q_hold=0.0)
-    assert waits.runtime_fraction == 0.0 and waits.starts == 0 and waits.limit_stop and waits.call_end
-    holds = _sim(T_start_C=54.0, T_limit_C=50.0, Q_hold=2_000.0)
-    assert holds.runtime_fraction == pytest.approx(0.2)
-    assert holds.starts == 1 and holds.running_end and holds.limit_stop
-    # Held from the previous step: still running, no new start.
-    again = _sim(T_start_C=54.0, T_limit_C=50.0, Q_hold=2_000.0, running_prev=True, phase_age_s=600.0)
+def test_coil_cut_out_stops_the_run_then_holds_or_waits():
+    """Multi-node coil cut-out (``run_limit_s``): full duty until then, then the holding heat."""
+    run = _sim(T_start_C=54.0, run_limit_s=60.0, Q_hold=2_000.0)
+    # 60 s at 10 kW, then 540 s at 2 kW: 60 + 108 s of run time.
+    assert run.runtime_fraction == pytest.approx((60.0 + 0.2 * 540.0) / 600.0)
+    assert run.starts == 1 and run.running_end and run.limit_stop
+    waits = _sim(T_start_C=54.0, run_limit_s=60.0, Q_hold=0.0)
+    assert waits.runtime_fraction == pytest.approx(0.1) and not waits.running_end and waits.call_end
+    # Already there (0 s) and held from the previous step: still running, no new start.
+    again = _sim(T_start_C=54.0, run_limit_s=0.0, Q_hold=2_000.0, running_prev=True, phase_age_s=600.0)
     assert again.starts == 0 and again.runtime_fraction == pytest.approx(0.2)
 
 
 def test_hold_ends_when_the_tank_reaches_the_upper_bound():
     """A hold that warms the tank to the set point ends the call there, not at the step end."""
-    run = _sim(T_start_C=64.0, T_limit_C=60.0, Q_hold=5_000.0, running_prev=True, phase_age_s=600.0)
+    run = _sim(T_start_C=64.0, run_limit_s=0.0, Q_hold=5_000.0, running_prev=True, phase_age_s=600.0)
     # 1 K at 5 kW into 600 kJ/K: 120 s at half the nameplate duty, then off.
     assert run.runtime_fraction == pytest.approx(0.5 * 120.0 / 600.0)
     assert not run.running_end and not run.call_end and run.limit_stop
 
 
 def test_lumped_hold_balances_the_loss():
-    """``Q_hold=None``: the tank is the coil's water, held where its loss is made up."""
+    """At the tank cut-out the tank is the coil's water: held where its loss is made up."""
     run = _sim(T_start_C=60.0, T_limit_C=60.0, free_heat=LOSS, running_prev=True, phase_age_s=600.0)
     assert run.limit_stop and run.running_end and run.starts == 0
     assert run.runtime_fraction * 10_000.0 == pytest.approx(250.0, rel=1e-9)  # the loss at 60 degC
+
+
+def _split(dt_total: float, parts: int, **kw):
+    """Run time [s], end temperature and starts of ``parts`` equal steps (1 kW loss, 600 kJ/K)."""
+    loss = ((50.0, -1000.0), (70.0, -1000.0))
+    T, call, running, age, on, starts = kw.pop("T_start_C"), True, False, 1e6, 0.0, 0
+    dt = dt_total / parts
+    for _ in range(parts):
+        r = _sim(T_start_C=T, call_start=call, running_prev=running, phase_age_s=age, dt=dt, free_heat=loss, **kw)
+        T += (r.runtime_fraction * 10_000.0 - 1000.0) * dt / C
+        call, running, age = r.call_end, r.running_end, r.phase_age_end_s
+        on, starts = on + r.runtime_fraction * dt, starts + r.starts
+    return on, T, starts
+
+
+@pytest.mark.parametrize("T_start", [60.0, 60.5], ids=["at the cut-out", "above it"])
+def test_tank_cut_out_does_not_depend_on_the_step(T_start):
+    """PR #150 review: called at the cut-out with a 1 kW loss, a 600 s step stayed off (0 s) while
+    two 300 s steps restarted in the second (33 s). Now the tank is held at the cut-out (after
+    cooling to it from above), one run, whatever the split."""
+    # Q_hold=0.0 as the review called it: the holding heat of a coil cut-out, not of the tank's.
+    one = _split(600.0, 1, T_start_C=T_start, T_limit_C=60.0, Q_hold=0.0)
+    for parts in (2, 3, 6):
+        on, T_end, starts = _split(600.0, parts, T_start_C=T_start, T_limit_C=60.0, Q_hold=0.0)
+        assert on == pytest.approx(one[0], abs=1e-6) and T_end == pytest.approx(one[1], abs=1e-9), parts
+        assert starts == one[2] == 1
+    cool = (T_start - 60.0) * C / 1000.0  # s to cool to the cut-out
+    assert one[0] == pytest.approx(0.1 * (600.0 - cool))
+    assert one[1] == pytest.approx(60.0, abs=1e-9)
 
 
 def test_stop_reason_names_the_cut_out():
@@ -114,6 +144,8 @@ def test_stop_reason_names_the_cut_out():
     assert in_step_stop_reason(run, 67.0) == STOP_CONDENSING_LIMIT
     assert in_step_stop_reason(run, 100.0) == STOP_BOILING_LIMIT
     assert in_step_stop_reason(_sim(), 67.0) is None
+    coil = _sim(T_start_C=54.0, run_limit_s=60.0)
+    assert in_step_stop_reason(coil, 100.0, 60.0) == STOP_CONDENSING_LIMIT
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +180,56 @@ def test_top_coil_stops_at_the_envelope_stop_and_holds(top_coil_runs):
         assert (df["T_tank_w [°C]"] < m.T_tank_w_lower_bound + 2.0).all()
     q = {dt: float(df["Q_ref_tank [W]"].sum() * dt) for dt, (_, df) in top_coil_runs.items()}
     assert q[600.0] == pytest.approx(q[60.0], rel=0.01)
+
+
+@pytest.fixture(scope="module")
+def draining_runs():
+    """Top coil, 1 h from 55 degC with a 6 L/min draw: the coil's water warms while the mean falls.
+
+    Records the envelope stop of the first step, ``(T_limit_C, run_limit_s, Q_hold)``.
+    """
+    out = {}
+    for dt in (60.0, 600.0):
+        m = _quiet(tmhp.GroundSourceHeatPumpBoiler, tank_model="stratified", condenser_node=0, dt_s=dt, t_max_s=86400.0)
+        stops = []
+        envelope_stop = m._envelope_stop
+
+        def recorded(*args, envelope_stop=envelope_stop, stops=stops):
+            stops.append(envelope_stop(*args))
+            return stops[-1]
+
+        m._envelope_stop = recorded
+        n = int(3600 / dt)
+        out[dt] = (m, _quiet(m.analyze_dynamic, n * dt, dt, 55.0, np.full(n, 1e-4), np.full(n, 7.0)), stops[0])
+    return out
+
+
+def test_coil_cut_out_keeps_the_full_duty_run_while_the_mean_falls(draining_runs):
+    """PR #150 review: the coil cut-out was passed as the mean temperature at that moment, below
+    the mean now when a draw drains the tank, so a 600 s step held from t = 0 and lost the run at
+    the nameplate duty before the coil's water got there. Now it is a run time."""
+    for dt, (_, df, (T_limit, tau, hold)) in draining_runs.items():
+        assert df["T_tank_w [°C]"].iloc[-1] < 20.0  # the mean falls all along
+        assert (df["failure_reason"] == "none").all()
+        assert (df["hp_stop_reason"] == STOP_CONDENSING_LIMIT).any()
+        # The tank cut-out is boiling; the coil's is a run time inside a 600 s step.
+        assert T_limit == 100.0
+        if dt == 60.0:
+            assert math.isinf(tau) and df["runtime_fraction [-]"].iloc[0] == 1.0  # not there in 60 s
+        else:
+            assert 60.0 < tau < dt and hold > 0.0
+            # At least the nameplate run up to the cut-out time (the tank step may cut the hold).
+            assert df["runtime_fraction [-]"].iloc[0] * dt >= tau - 1e-6
+    # While the envelope stop acts (the first 40 min), heat and electricity agree within 5 %.
+    first = {
+        dt: (
+            float(df["Q_ref_tank [W]"].iloc[: int(2400 / dt)].sum() * dt),
+            float(df["E_tot [W]"].iloc[: int(2400 / dt)].sum() * dt),
+        )
+        for dt, (_, df, _) in draining_runs.items()
+    }
+    assert first[600.0][0] == pytest.approx(first[60.0][0], rel=0.05)
+    assert first[600.0][1] == pytest.approx(first[60.0][1], rel=0.05)
 
 
 def test_lumped_default_run_has_no_stop_reason():

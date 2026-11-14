@@ -604,10 +604,12 @@ refrigerant:
   temperature at which the nameplate duty condenses on ``T_cond_max``,
   above) while the mean the thermostat reads is still below the set point.
   The in-step thermostat stops the compressor when the coil's condensing
-  level reaches the limit, at the mean temperature trial steps of the node
-  model give for that moment, and while the call stands it holds the coil's
-  water there: it runs the share of the step that delivers the heat the
-  water loses (to the draw, the nodes below, the wall). The row is a normal
+  level reaches the limit: after the run time at the nameplate duty that
+  trial steps of the node model give for it (not at a mean temperature: with
+  a large draw the coil's water warms while the mean falls). While the call
+  stands it then holds the coil's water there: it runs the share of the rest
+  of the step that delivers the heat the water loses (to the draw, the nodes
+  below, the wall). The row is a normal
   one (``failure_reason == "none"``, ``hp_stop_reason ==
   "condensing_limit"``), and the condensing temperature never needs to go
   above the limit. Before, each such step was an off row with

@@ -2051,39 +2051,39 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             level = min(level, cutout + self.hp_capacity / self.UA_tank_hx)
         return level - q / self.UA_tank_hx
 
-    def _envelope_stop(self, ctx: StepContext, cutout: float | None, dt_s: float) -> tuple[float, float | None]:
-        """Envelope stop of this step: the tank temperature [°C] and the holding heat [W].
+    def _envelope_stop(self, ctx: StepContext, cutout: float | None, dt_s: float) -> tuple[float, float, float]:
+        """Envelope stop of this step: ``(T_limit_C, run_limit_s, Q_hold)`` of the in-step thermostat.
 
         ``cutout`` is :func:`tmhp.compressor_envelope.condensing_tank_cutout`:
         the temperature of the water around the coil above which the nameplate
         duty condenses above ``T_cond_max``. The in-step thermostat
-        (:func:`tmhp.dynamic_context.simulate_thermostat_step`) reads the tank
-        temperature, the node mean, and stops the compressor at the returned
-        temperature whatever its minimum run time.
+        (:func:`tmhp.dynamic_context.simulate_thermostat_step`) stops the
+        compressor there whatever its minimum run time.
 
         Lumped tank (or one mixed node): the water around the coil is the
-        tank, so the stop is the cut-out itself (the set points are capped at
-        it, :func:`limit_tank_setpoints_to_envelope`) and the holding heat is
-        the thermostat's own (``None``: what balances the tank's losses there).
+        tank, so the stop is a tank temperature, the cut-out itself (the set
+        points are capped at it, :func:`limit_tank_setpoints_to_envelope`);
+        there the thermostat holds the tank against its losses while it calls.
 
-        Multi-node tank: the coil's water can be hotter than the mean (a coil
-        in the top node). The stop is the mean temperature the tank has when,
-        running at the nameplate duty from the start of the step, the coil's
-        condensing level (:meth:`_condensing_level`) reaches
-        ``cutout + hp_capacity / UA_tank_hx`` -- found on trial tank steps
-        (:meth:`StratifiedTank.preview`); the mean now if the coil's water is
-        already there, the boiling point if it does not get there within the
-        step. While the thermostat still calls, the compressor then holds the
-        coil's water at the cut-out: the holding heat is what a step run at the
+        Multi-node tank: the coil's water can be hotter than the mean the
+        thermostat follows (a coil in the top node), and with a large draw it
+        warms while the mean falls, so the stop is not a mean temperature. It
+        is a run time: how long the compressor runs at the nameplate duty from
+        the start of the step before the coil's condensing level
+        (:meth:`_condensing_level`) reaches ``cutout + hp_capacity / UA_tank_hx``
+        -- found on trial tank steps (:meth:`StratifiedTank.preview`); 0 if the
+        coil's water is already there, ``inf`` if it does not get there within
+        the step. While the thermostat still calls, the compressor then holds
+        the coil's water at the cut-out: ``Q_hold`` is what a step run at the
         nameplate duty with the coil's water capped at ``cutout`` delivers
-        after the stop, per second of the rest of the step. Without a
-        condensing limit: the boiling point.
+        after the stop, per second of the rest of the step. The tank cut-out is
+        then the boiling point. Without a condensing limit: no stop but boiling.
         """
         if cutout is None:
-            return T_WATER_BOIL_C, None
+            return T_WATER_BOIL_C, math.inf, 0.0
         tank = self._tank
         if tank is None or self._tank_is_one_mixed_node():
-            return min(T_WATER_BOIL_C, cutout), None
+            return min(T_WATER_BOIL_C, cutout), math.inf, 0.0
         from scipy.optimize import brentq
 
         ua = self._condenser_ua()
@@ -2092,22 +2092,20 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         draw_flow = self._nodal_draw_flow(ctx, float(tank.T[0]), ctx.T_sup_w_K)["dV_tank_w_out"]
         trial = dict(draw_flow=draw_flow, T_makeup=cu.K2C(ctx.T_sup_w_K), T_amb=cu.K2C(self.T_sur_K))
 
-        def profile(tau: float) -> np.ndarray:
-            return tank.preview(tau, hx_ua=ua, q_hx=q, **trial)["T"] if tau > 0.0 else tank.T
-
         def excess(tau: float) -> float:
-            return self._condensing_level(profile(tau), ua, q) - level_max
+            profile = tank.preview(tau, hx_ua=ua, q_hx=q, **trial)["T"] if tau > 0.0 else tank.T
+            return self._condensing_level(profile, ua, q) - level_max
 
         def capped_heat() -> float:
             return float(tank.preview(dt_s, hx_ua=ua, T_hx=cutout, q_hx=q, **trial)["Q_hx"]) * dt_s
 
         if excess(0.0) >= -ENVELOPE_STOP_TOL_K:
-            return float(np.mean(tank.T)), capped_heat() / dt_s
+            return T_WATER_BOIL_C, 0.0, capped_heat() / dt_s
         if excess(dt_s) < 0.0:
-            return T_WATER_BOIL_C, 0.0
+            return T_WATER_BOIL_C, math.inf, 0.0
         tau = float(brentq(excess, 0.0, dt_s, xtol=ENVELOPE_STOP_TIME_TOL_S))
         hold = max(0.0, capped_heat() - q * tau) / max(dt_s - tau, ENVELOPE_STOP_TIME_TOL_S)
-        return float(np.mean(profile(tau))), hold
+        return T_WATER_BOIL_C, tau, hold
 
     def _nodal_draw_flow(self, ctx: StepContext, T_out_C: float, T_sup_w_K_n: float) -> dict:
         """Mixing-valve flows for hot water leaving the tank at ``T_out_C`` [°C]."""
@@ -2403,7 +2401,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             # envelope stop temperature whatever its minimum run time, and in
             # a multi-node tank when the water around the coil gets there.
             scheduled = check_hp_schedule_active(ctx.hour_of_day, self.hp_on_schedule)
-            T_limit_C, Q_hold = self._envelope_stop(ctx, cutout, dt_s) if scheduled else (T_WATER_BOIL_C, None)
+            T_limit_C, run_limit_s, Q_hold = (
+                self._envelope_stop(ctx, cutout, dt_s) if scheduled else (T_WATER_BOIL_C, math.inf, 0.0)
+            )
             run, cycle_result = resolve_step_operation(
                 T_start_K=ctx.T_tank_w_K,
                 call_start=call_start,
@@ -2430,6 +2430,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 min_on_time_s=self.min_on_time_s,
                 min_off_time_s=self.min_off_time_s,
                 T_limit_C=T_limit_C,
+                run_limit_s=run_limit_s,
                 Q_hold=Q_hold,
             )
             hp_result = step_hp_result(
@@ -2438,7 +2439,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 lambda ctx=ctx, T_start_C=T_start_C: self._off_cycle_result(ctx, T_start_C),
                 self._RUNTIME_SCALED_KEYS,
             )
-            hp_result["hp_stop_reason"] = in_step_stop_reason(run, T_limit_C)
+            hp_result["hp_stop_reason"] = in_step_stop_reason(run, T_limit_C, run_limit_s)
             is_on_prev = run.call_end
             running_prev = run.running_end
             phase_age_s = run.phase_age_end_s

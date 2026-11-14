@@ -459,7 +459,7 @@ def run_point(task: dict) -> dict:
         "capacity_clamped": (perf.get("capacity_clamped") if perf else None),
         "ou_fan_flow_min_limit": bool(perf.get("ou_fan_flow_min_limit", False)) if perf else False,
         "iu_fan_flow_min_limit": bool(perf.get("iu_fan_flow_min_limit", False)) if perf else False,
-        "pr_clamped": bool(pr_event is not None and pr_event[0] == "pr_below_min"),
+        "pr_floor_active": bool(pr_event is not None and pr_event[0] == "pr_below_min"),
         "converged": ok,
         "failure_reason": reason,
         "opt_fun": opt_fun,
@@ -597,7 +597,7 @@ def check(df: pd.DataFrame) -> dict:
     rep["capacity_clamped_counts"] = {
         str(k): int(v) for k, v in df.capacity_clamped.fillna("none").value_counts().items()
     }
-    rep["pr_clamped_points"] = int(df.pr_clamped.sum())
+    rep["pr_floor_active_points"] = int(df.pr_floor_active.sum())
     # Did each floor actually bind, and where?
     binds = {}
     for cfg in ("baseline", "floor_20", "floor_30", "floor_40"):

@@ -200,7 +200,7 @@ def test_ashpb_dhw_at_a_fixed_outdoor_fan(Q):
     b = narrow.analyze_steady(T_tank_w=40.0, T0=7.0, Q_ref_tank=Q)
     assert a["converged"] and a["failure_reason"] == "none" and b["converged"]
     assert a["dV_ou_a [m3/s]"] == pytest.approx(FLOW_ASHPB)
-    assert a["fan_flow_min_limit"] and a["fan_flow_max_limit"]
+    assert a["ou_fan_flow_min_limit"] and a["ou_fan_flow_max_limit"]
     assert a["E_ou_fan [W]"] == pytest.approx(140.0 * 0.998262, rel=1e-9)  # E_fan_rated * curve(1)
     _assert_same_state(a, b)
 

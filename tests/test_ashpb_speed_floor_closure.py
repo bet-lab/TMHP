@@ -61,7 +61,7 @@ def test_fixed_ua_speed_floor_closes_on_delivered_heat(hp):
     assert r["converged"] is True
     assert r["cmp_rpm [rpm]"] / 60.0 == pytest.approx(hp.rps_min)
     # The machine delivers more than the request; that is what being clamped means.
-    assert r["Q_ref_tank [W]"] > r["Q_ref_tank_request [W]"]
+    assert r["Q_ref_tank [W]"] > r["Q_request [W]"]
 
     residual = r["Q_ref_tank [W]"] - hp.UA_tank_hx * r["dT_ref_tank [K]"]
     assert abs(residual) < 1.0e-3 * r["Q_ref_tank [W]"]

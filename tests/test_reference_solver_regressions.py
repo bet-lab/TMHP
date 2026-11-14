@@ -154,7 +154,7 @@ def test_boiler_final_balance_is_checked_again_after_the_root(cls, side, error, 
         final = bool(args)
         return {
             "converged_rps": converged if final else True,
-            f"err_Q_{side} [W]": error if final else inputs[f"dT_ref_{side}"] - 10,
+            "source_hx_residual [W]": error if final else inputs[f"dT_ref_{side}"] - 10,
             f"Q_ref_{side} [W]": required if final else 1000,
             # A running state: the solver also checks it is an operating point.
             "hp_is_on": True,

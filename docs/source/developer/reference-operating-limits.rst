@@ -8,7 +8,7 @@ Developer naming rules
 maximum operating limit. ``ref`` denotes a fixed normalization point in flow
 scaling APIs. Physical/control limits use explicit ``_min``/``_max`` names;
 fixed operating commands use ``_constant`` or ``_setpoint``. Ratios state their
-denominator, for example ``ground_flow_ref_ratio`` or ``fan_flow_ratio_to_ref``.
+denominator, for example ``ground_flow_ratio`` or ``fan_flow_ratio_to_ref``.
 Never change a normalization denominator when expanding an operating range.
 
 Existing thermodynamic identifiers containing ``ref`` (refrigerant), such as
@@ -43,7 +43,7 @@ attribute for compatibility, never the final candidate's mutable state.
 
 ``analyze_steady(..., ground_flow_lpm=24)`` forces an actual candidate; the
 previous ``ground_flow_ratio`` argument remains a deprecated ratio-to-reference
-adapter. Results expose ``ground_flow [m3/s]``, ``ground_flow_ref_ratio``,
+adapter. Results expose ``ground_flow [m3/s]``, ``ground_flow_ratio``,
 ``ground_flow_at_min`` and ``ground_flow_at_max``. Historical result keys
 ``dV_bhe_f [m3/s]`` and ``ground_flow_ratio`` remain aliases. A failed candidate
 reports zero delivered flow and NaN ratio/COP, while retaining candidate diagnostics.
@@ -108,8 +108,8 @@ the coil carries (``capacity_clamped == "max"``, ``capacity_binding ==
 "outdoor_coil"``), GSHP and ASHP fail with ``failure_reason ==
 "hx_not_converged"``.
 
-A constant-speed fan sits at both limits, so both ``fan_flow_min_limit`` and
-``fan_flow_max_limit`` (``iu_*`` / ``ou_*``) are true; the direction in which a
+A constant-speed fan sits at both limits, so both ``ou_fan_flow_min_limit`` and
+``ou_fan_flow_max_limit`` (``iu_*`` for an indoor fan) are true; the direction in which a
 coil duty misses is in ``capacity_margin_W`` of the coil solve. Fan power is the
 power curve evaluated at the flow ratio, so at the reference flow it is
 ``curve(1)`` times the reference power: 0.998262 for the default single-zone

@@ -87,7 +87,7 @@ def test_request_below_minimum_speed_delivers_the_floor_capacity():
     assert result["capacity_clamped"] == "min"
     assert result["cmp_rpm [rpm]"] == pytest.approx(60.0 * model.rps_min)
     assert 750.0 < result["Q_ref_tank [W]"] <= model.hp_capacity
-    assert result["Q_ref_tank_request [W]"] == 750.0
+    assert result["Q_request [W]"] == 750.0
     # By default the row is the cycling mean of that machine: the request is delivered.
     mean = _steady(AirSourceHeatPumpBoiler(ref="R32", defrost=False), T_tank_w=50.0, T0=-7.0, Q_ref_tank=750.0)
     assert mean["capacity_clamped"] == "min" and mean["Q_ref_tank [W]"] == pytest.approx(750.0, rel=1e-12)
@@ -118,7 +118,7 @@ def test_coil_short_at_every_approach_is_named():
     assert result["discharge_control"] is True
     assert 0.0 < result["Q_ref_tank [W]"] < 10000.0
     assert result["Q_max [W]"] == result["Q_ref_tank [W]"] and result["Q_request [W]"] == 10000.0
-    assert result["fan_flow_max_limit"]
+    assert result["ou_fan_flow_max_limit"]
 
 
 def test_coil_excess_at_every_approach_is_named():

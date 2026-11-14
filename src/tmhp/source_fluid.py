@@ -178,8 +178,6 @@ _FLOOR_RESPONSE_K = 1e-4
 #: Result keys: the liquid leaving the heat pump (entering the ground) and entering it.
 LEAVING_KEY = "T_bhe_f_in [°C]"
 ENTERING_KEY = "T_bhe_f_out [°C]"
-#: Request keys the boilers report, replaced by the caller's request on a reduced point.
-_REQUEST_KEYS = ("Q_ref_tank_request [W]", "Q_tank_load [W]")
 #: Keys :func:`tmhp.compressor_envelope.steady_envelope` puts on every steady
 #: result, with the values an off state has; a refused point keeps them.
 _OFF_ANNOTATIONS: dict[str, Any] = {
@@ -637,9 +635,6 @@ def limit_duty_to_source_freeze(
             "Q_request [W]": request,
         }
     )
-    for key in _REQUEST_KEYS:
-        if key in best:
-            best[key] = magnitude
     if "Q_unmet [W]" in best:
         best["Q_unmet [W]"] = max(magnitude - delivered(best, q_lo), 0.0)
     if "PLR_request [-]" in best and getattr(model, "hp_capacity", 0) > 0:

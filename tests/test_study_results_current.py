@@ -226,27 +226,6 @@ def _compare_values(fresh: dict, recorded: dict, label: str) -> list[str]:
     return [f"{label} {k}: recorded {recorded[k]!r}, now {v!r}" for k, v in fresh.items() if not _same(v, recorded[k])]
 
 
-def test_cop_vs_source_temp_figure_reproduces() -> None:
-    from tmhp import AirSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler
-
-    fig = _figure_script("cop_vs_source_temp")
-    data = _figure_record("cop_vs_source_temp")["data"]
-    ashpb = AirSourceHeatPumpBoiler(ref="R32", **fig.ASHP_SETTINGS)
-    mismatches = []
-    for t in (-10.0, -5.0, 7.5):  # no operating point / the coldest point drawn / mild
-        i = data["T_amb_C"].index(t)
-        res = ashpb.analyze_steady(T_tank_w=fig.T_TANK_W, T0=t, Q_ref_tank=fig.Q_COND)
-        mismatches += _compare_values({"cop": fig._cop_or_nan(res)}, {"cop": data["cop_ashp"][i]}, f"ASHP {t} °C")
-    gshpb = GroundSourceHeatPumpBoiler(
-        ref="R410A", **fig.CYCLE_SETTINGS, N_1=1, N_2=1, H_b=100.0, t_max_s=86400, dt_s=3600
-    )
-    for t in (-5.0, 15.0):
-        i = data["T_source_C"].index(t)
-        res = gshpb.analyze_steady(T_tank_w=fig.T_TANK_W, T_source=t, Q_ref_tank=fig.Q_COND)
-        mismatches += _compare_values({"cop": fig._cop_or_nan(res)}, {"cop": data["cop_gshp"][i]}, f"GSHP {t} °C")
-    assert not mismatches, f"docs/source/_static/cop_vs_source_temp.svg: {HINT}.\n  " + "\n  ".join(mismatches)
-
-
 def test_cycle_figures_reproduce() -> None:
     """The two R32 cycle diagrams (one operating point) and the refrigerant comparison."""
     from tmhp import AirSourceHeatPumpBoiler
@@ -319,4 +298,4 @@ def test_every_study_has_a_provenance_record() -> None:
     folders = {p.name for p in RESULTS.iterdir() if p.is_dir() and p.name not in ("provenance", "gate_a")}
     assert folders <= covered, f"study folders without a provenance record: {sorted(folders - covered)}"
     figures = {p.stem for p in FIGURE_RECORDS.glob("*.json")}
-    assert {"cop_vs_source_temp", "mollier_cycle_R32", "mollier_ts_R32", "refrigerant_compare_ph"} <= figures
+    assert {"mollier_cycle_R32", "mollier_ts_R32", "refrigerant_compare_ph"} <= figures

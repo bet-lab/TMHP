@@ -28,6 +28,7 @@ from tqdm import tqdm
 
 from . import _opt_utils
 from . import calc_util as cu
+from ._boiler_results import fill_missing, report_condenser_dew_point
 from ._opt_utils import efficiency_evaluator, safe_float_attr, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
@@ -1366,6 +1367,34 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return 1.0
         return 1.0 / self.cycling.part_load_factor(min(1.0, abs(Q_r_iu) / delivered))
 
+    #: Keys every row carries whatever path the point took, with the value on
+    #: a row they do not apply to (``None``: a name, NaN: a number) -- the
+    #: convention of the boilers' rows (:mod:`tmhp._boiler_results`). A
+    #: dynamic frame is the union of its rows, so without them its columns
+    #: depend on what the run happened to do.
+    _ROW_DEFAULTS: Mapping[str, Any] = {
+        "capacity_binding": None,
+        "Q_max [W]": math.nan,
+        "n_star [-]": math.nan,
+        "pr_cmp [-]": math.nan,
+        "eta_cmp_isen [-]": math.nan,
+        "eta_cmp_vol [-]": math.nan,
+        "eta_cmp [-]": math.nan,
+    }
+
+    def _complete_row(self, result: dict) -> dict:
+        """Give a finished row the keys every row has, and its condenser dew point (in place).
+
+        Adds what the row's path did not write (:attr:`_ROW_DEFAULTS`: the
+        ceiling keys of a row that is not at a ceiling, the compressor keys
+        of an off or failed row). ``T_ref_cond_sat_v [°C]`` becomes the dew
+        point of the condensing pressure for a zeotropic blend
+        (:func:`~tmhp._boiler_results.report_condenser_dew_point`); for a pure
+        refrigerant nothing changes. No cycle or control quantity is touched.
+        """
+        fill_missing(result, self._ROW_DEFAULTS)
+        return report_condenser_dew_point(result, self.ref)
+
     def _report_part_load(self, result: dict, Q_r_iu: float) -> None:
         """Write the part-load keys of a solved row and average a cycling one (in place).
 
@@ -2566,6 +2595,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         if result:
             self._write_frost_free(result, frost)
+            self._complete_row(result)
 
         if postprocess and result:
             df_temp = pd.DataFrame([result])
@@ -2760,10 +2790,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # the refrigerant role it plays in the current mode. Output exergy is
         # labelled by location (X_ref_iu/X_ref_ou); the refrigerant-state
         # saturation keys remain cond/evap (refrigerant-intrinsic).
-        if {"T_ref_cond_sat_v [°C]", "T_ref_evap_sat [°C]", "mode"} <= set(df.columns):
+        # The condenser's factor uses the temperature the cycle condenses at,
+        # the bubble point ``T_ref_cond_sat_l`` -- the value
+        # ``T_ref_cond_sat_v`` repeated before it reported a zeotrope's dew point.
+        if {"T_ref_cond_sat_l [°C]", "T_ref_evap_sat [°C]", "mode"} <= set(df.columns):
             is_heating = df["mode"] == "heating"
-            T_iu_sat_K = cu.C2K(df["T_ref_cond_sat_v [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"]))
-            T_ou_sat_K = cu.C2K(df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_v [°C]"]))
+            T_iu_sat_K = cu.C2K(df["T_ref_cond_sat_l [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"]))
+            T_ou_sat_K = cu.C2K(df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_l [°C]"]))
             df["X_ref_iu [W]"] = df["Q_ref_iu [W]"] * (1 - T0_K / T_iu_sat_K)
             df["X_ref_ou [W]"] = df["Q_ref_ou [W]"] * (1 - T0_K / T_ou_sat_K)
 

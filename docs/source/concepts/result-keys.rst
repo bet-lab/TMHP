@@ -89,7 +89,7 @@ are an operating point, a reduced one, a time average, or placeholders.
       - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP also when it was below the smallest duty the envelope's efficiency floor admits); ``"max"`` when the unit delivers less than asked.
     * - ``capacity_binding``
       - all
-      - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` otherwise: on every boiler row, on the ASHP and GSHP rows that have it.
+      - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` on every other row.
     * - ``efficiency_extrapolated``
       - ASHP, GSHP (s), ASHPB (s), GSHPB (s), WSHPB (s)
       - A default compressor-efficiency fit is read outside its data box (PR 1.50–7.15, 33.8–72.5 rev/s) at this point. Scalar and user efficiencies give ``False``.
@@ -145,7 +145,7 @@ What was asked for, what was delivered, and how a request outside the modulation
       - Part of the request not delivered, ≥ 0. Sum it times the time step for a schedule's unmet energy.
     * - ``Q_max [W]``
       - all
-      - On a ``"max"`` row, the duty delivered (the ceiling); in a boiler's dynamic step the running machine's, not the step average (``Q_ref_tank [W]`` is ``Q_max [W]`` times ``runtime_fraction [-]``). NaN on every other boiler row; absent on the other ASHP and GSHP rows.
+      - On a ``"max"`` row, the duty delivered (the ceiling); in a boiler's dynamic step the running machine's, not the step average (``Q_ref_tank [W]`` is ``Q_max [W]`` times ``runtime_fraction [-]``). NaN on every other row.
     * - ``Q_min [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
       - On a ``"min"`` row, the duty of continuous operation at the minimum speed. NaN otherwise.
@@ -501,7 +501,7 @@ reuses these names for its source-water coil.
       - Fluid entering the heat pump while the compressor runs: what the step's cycle was solved against.
     * - ``T_bhe_wall [°C]``
       - GSHP (s)
-      - Echo of the ``T_bhe_wall`` argument; present only when it was given.
+      - Echo of the ``T_bhe_wall`` argument; NaN when it was not given.
     * - ``dV_bhe_f [m3/s]``
       - GSHP, GSHPB, WSHPB
       - Loop volume flow (total, all boreholes).
@@ -680,11 +680,14 @@ Refrigerant state points
 
 Every family reports the same seven points of the cycle, in ``analyze_steady`` and in every dynamic row.
 An off or failed row carries NaN. For a zeotropic blend the condenser's dew and bubble points differ by
-the glide (R407C: about 4.5 K; R410A: 0.1 K). The boilers report the dew point under
-``T_ref_cond_sat_v`` and the bubble point, which the cycle condenses at, under ``T_ref_cond_sat_l``; ASHP
-and GSHP report the bubble point under both. The condensing limit ``T_cond_max`` is a dew-point
-temperature (:mod:`tmhp.compressor_envelope`), and a boiler's condenser-heat exergy ``X_ref_tank [W]``
-uses the bubble point. For a pure refrigerant the two keys are equal.
+the glide (R407C: about 4.5 K; R410A: 0.1 K). Every family reports the dew point under
+``T_ref_cond_sat_v`` and the bubble point, which the cycle condenses at, under ``T_ref_cond_sat_l``. The
+condensing limit ``T_cond_max`` is a dew-point temperature (:mod:`tmhp.compressor_envelope`), and the
+condenser-heat exergy (a boiler's ``X_ref_tank [W]``; ``X_ref_iu [W]``, ``X_ref_ou [W]`` or
+``X_ref_ground [W]`` of ASHP and GSHP, whichever coil condenses) uses the bubble point. For a pure
+refrigerant the two keys are equal. ``T_ref_evap_sat`` is the saturated-vapour (dew) temperature of the
+evaporating pressure, the pressure the cycle is fixed at; a blend enters the evaporator colder than that
+(``T_ref_exp_out``), by the part of the glide it still has to evaporate through.
 
 .. list-table::
     :header-rows: 1
@@ -1011,12 +1014,16 @@ These are not in every default result. Composed variants (solar thermal, PV
 and storage, UV lamp) add their own columns, described on :doc:`/models/ashpb`
 and :doc:`/models/gshpb`.
 
-A boiler result has the same keys on every row and in every run of the same
-machine: what does not apply to a row is ``None`` or NaN. An ASHP or GSHP
-steady result is a ``dict`` built for the path the point took, so a key that
-describes a reduced or failed point can be missing from an ordinary one
-(``capacity_binding``, ``Q_max [W]``, ``failure_detail``). Read those with
-``row.get(...)``.
+A result has the same keys on every row and in every run of the same machine,
+in every family: what does not apply to a row is ``None`` or NaN
+(``capacity_binding`` and ``Q_max [W]`` away from a ceiling, the compressor
+efficiencies of an off row, GSHP's approach keys of a point that was not
+solved). In a dynamic frame a name that does not apply reads as missing
+(``isna()``). Two things still depend on how the result was asked for, not on
+what the point did: the exergy columns (``X_*``) of ASHP and GSHP are written
+by every dynamic run and by ASHP's ``analyze_steady(postprocess=True)``, and
+the diagnostics of GSHP's coupled ground-flow solver are on that solver's rows
+only (below).
 
 .. list-table::
     :header-rows: 1
@@ -1028,8 +1035,9 @@ describes a reduced or failed point can be missing from an ordinary one
     * - ``failure_detail``
       - a boiler ``analyze_steady`` (``None`` unless it fails with
         ``cycle_invalid``, ASHPB with ``hx_not_converged``, or GSHPB and WSHPB
-        with ``source_fluid_freezing``); GSHP when it fails with
-        ``source_fluid_freezing``. Not in dynamic frames.
+        with ``source_fluid_freezing``), not in the boilers' dynamic frames;
+        every GSHP row, steady and dynamic (``None`` unless it fails with
+        ``source_fluid_freezing``).
       - Which check rejected the point; see :doc:`failure-reason-semantics`.
     * - ``dV_mix_w_out_unmet [m3/s]``
       - the tank level varies (``tank_always_full=False``), dynamic
@@ -1044,6 +1052,8 @@ describes a reduced or failed point can be missing from an ordinary one
       - GSHP, GSHPB with the hydraulic pump model or
         ``ground_flow_control="optimal_power"``
       - Diagnostics of the coupled ground-flow solve (:doc:`/models/ground-flow`).
+        On every GSHP row of that solver (NaN or ``None`` where one does not
+        apply).
 
 Checking a result in code
 =========================

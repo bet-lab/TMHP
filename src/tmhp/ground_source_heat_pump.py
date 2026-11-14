@@ -35,6 +35,7 @@ from scipy.optimize import brentq, minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
+from ._boiler_results import fill_missing, report_condenser_dew_point
 from ._opt_utils import (
     OBJ_CAPACITY_LIMITED,
     OBJ_INFEASIBLE,
@@ -48,9 +49,12 @@ from .borehole_capacity import configure_borehole_dynamics
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     BINDING_DISCHARGE,
+    CONTROL_KEY,
     ENVELOPE_REJECTIONS,
     PR_CYCLE_MAX_SINGLE_STAGE,
+    QUALITY_KEY,
     RATED_SPEED_SEARCH_MAX,
+    SUPERHEAT_KEY,
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     discharge_controlled,
@@ -2030,6 +2034,55 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
         return result
 
+    #: Keys every row carries whatever path the point took, with the value on
+    #: a row they do not apply to (``None``: a name, NaN: a number) -- the
+    #: convention of the boilers' rows (:mod:`tmhp._boiler_results`). A
+    #: dynamic frame is the union of its rows, so without them its columns
+    #: depend on what the run happened to do.
+    _ROW_DEFAULTS: Mapping[str, Any] = {
+        "capacity_binding": None,
+        "Q_max [W]": math.nan,
+        "failure_detail": None,
+        "indoor_approach [K]": math.nan,
+        "ground_approach [K]": math.nan,
+        "ground_balance": None,
+    }
+    #: The same for the diagnostics of the coupled ground-flow solver's rows.
+    _COUPLED_ROW_DEFAULTS: Mapping[str, Any] = {
+        "ground_temperature_residual [K]": math.nan,
+        "candidate_ground_flow_ratio": math.nan,
+        "flow_optimizer_method": None,
+    }
+
+    def _complete_row(self, result: dict, *, coupled: bool = False) -> dict:
+        """Give a finished row the keys every row has, and its condenser dew point (in place).
+
+        Adds what the row's path did not write (:attr:`_ROW_DEFAULTS`; with
+        ``coupled`` the coupled solver's diagnostics too) and the suction
+        state keys of the discharge-temperature control, which a running
+        state has from the control and an off or failed row does not.
+        ``T_ref_cond_sat_v [°C]`` becomes the dew point of the condensing
+        pressure for a zeotropic blend
+        (:func:`~tmhp._boiler_results.report_condenser_dew_point`); for a pure
+        refrigerant nothing changes. No cycle or control quantity is touched.
+        """
+        fill_missing(result, self._ROW_DEFAULTS)
+        if coupled:
+            fill_missing(result, self._COUPLED_ROW_DEFAULTS)
+        running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+        superheat = math.nan
+        if running and "T_ref_cmp_in [°C]" in result and "T_ref_evap_sat [°C]" in result:
+            superheat = max(0.0, float(result["T_ref_cmp_in [°C]"]) - float(result["T_ref_evap_sat [°C]"]))
+        fill_missing(
+            result,
+            {
+                SUPERHEAT_KEY: superheat,
+                QUALITY_KEY: 1.0 if math.isfinite(superheat) else math.nan,
+                CONTROL_KEY: False,
+            },
+        )
+        return report_condenser_dew_point(result, self.ref)
+
     def _balanced_cell(self, search: _IndoorSearch, a: float, b: float) -> tuple[float, float] | None:
         """Shrink ``[a, b]`` to its ground-balanced part (one end must be balanced)."""
         good_a, good_b = search.balanced(a), search.balanced(b)
@@ -2629,6 +2682,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             # keys of continuous operation.
             if CAPACITY_RATIO_KEY not in result:
                 self._report_part_load(result, Q_r_iu)
+            self._complete_row(result, coupled=True)
+            result["T_bhe_wall [°C]"] = math.nan if T_bhe_wall is None else T_bhe_wall
             return result if return_dict else pd.DataFrame([result])
 
         if Q_r_iu == 0:
@@ -2658,9 +2713,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     RuntimeWarning,
                     stacklevel=2,
                 )
-            if T_bhe_wall is not None:
-                result["T_bhe_wall [°C]"] = T_bhe_wall
 
+        self._complete_row(result)
+        # Echo of the argument (NaN: not given, the fluid leaves the borefield at the model state).
+        result["T_bhe_wall [°C]"] = math.nan if T_bhe_wall is None else T_bhe_wall
         if return_dict:
             return result
         return pd.DataFrame([result])
@@ -2814,6 +2870,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 # Off steps and the coupled solver's rows: part-load keys of a
                 # row that is not averaged.
                 self._report_part_load(hp_result, Q_r_iu_n)
+            # Every step has the same keys, so the frame's columns do not
+            # depend on what the run happened to do.
+            self._complete_row(hp_result, coupled=bool(self._ground_settings["active"]))
             hp_is_on = bool(hp_result.get("hp_is_on", False))
 
             # BHE superposition
@@ -2895,10 +2954,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         # the refrigerant role it plays: heating -> IU=condenser, ground=evaporator;
         # cooling -> roles swap. Output exergy is labelled by location
         # (X_ref_iu / X_ref_ground); refrigerant-state saturation keys stay cond/evap.
-        if {"T_ref_cond_sat_v [°C]", "T_ref_evap_sat [°C]", "mode"} <= set(df.columns):
+        # The condenser's Carnot factor uses the temperature the cycle
+        # condenses at, the bubble point ``T_ref_cond_sat_l`` -- the value
+        # ``T_ref_cond_sat_v`` repeated before it reported a zeotrope's dew point.
+        if {"T_ref_cond_sat_l [°C]", "T_ref_evap_sat [°C]", "mode"} <= set(df.columns):
             is_heating = df["mode"] == "heating"
-            T_iu_sat_K = cu.C2K(df["T_ref_cond_sat_v [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"]))
-            T_ground_sat_K = cu.C2K(df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_v [°C]"]))
+            T_iu_sat_K = cu.C2K(df["T_ref_cond_sat_l [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"]))
+            T_ground_sat_K = cu.C2K(df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_l [°C]"]))
             df["X_ref_iu [W]"] = df["Q_ref_iu [W]"] * (1 - T0_K / T_iu_sat_K)
             df["X_ref_ground [W]"] = df["Q_ref_ground [W]"] * (1 - T0_K / T_ground_sat_K)
 

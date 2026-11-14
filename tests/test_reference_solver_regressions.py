@@ -67,6 +67,7 @@ def _capacity_probe(mode, *, binding="cycle", other=80.0, ceiling_error=False, c
     """A failed request plus an independently controlled envelope candidate."""
     hp = object.__new__(AirSourceHeatPump)
     hp._last_pr_event = None
+    hp.ref = "R32"  # the finished row reports the condenser's dew point for its refrigerant
     hp._optimize_operation = lambda **_: SimpleNamespace(x=[5.0, 5.0], fun=OBJ_INFEASIBLE, success=True)
 
     def max_capacity(**_):

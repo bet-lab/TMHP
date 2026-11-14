@@ -262,6 +262,28 @@ def test_draining_top_coil_does_not_depend_on_the_step(draining_runs):
     assert total[600.0][1] == pytest.approx(total[60.0][1], rel=0.05)
 
 
+def test_a_held_step_is_not_a_stop_for_the_minimum_rest(draining_runs):
+    """R5H: a step the coil's limit held is the same run in the next step.
+
+    Was: the tank cut such a step short and the compressor counted as stopped, so the next step
+    was a new start -- which a minimum rest then delayed. With ``min_off_time_s=600`` the draining
+    run delivered 5.93 kWh at 60 s steps, 5.02 at 300 s and 4.55 at 600 s (1, 3 and 3 starts)."""
+    _, base, _ = draining_runs[600.0]
+    m = _quiet(
+        tmhp.GroundSourceHeatPumpBoiler,
+        tank_model="stratified",
+        condenser_node=0,
+        min_off_time_s=600.0,
+        dt_s=600.0,
+        t_max_s=86400.0,
+    )
+    df = _quiet(m.analyze_dynamic, 3600.0, 600.0, 55.0, np.full(6, 1e-4), np.full(6, 7.0))
+    assert df["hp_starts [-]"].sum() == 1
+    assert (df["runtime_fraction [-]"] > 0.0).all()  # no step waited
+    assert df["Q_ref_tank [W]"].sum() == pytest.approx(base["Q_ref_tank [W]"].sum(), rel=1e-9)
+    assert df["E_tot [W]"].sum() == pytest.approx(base["E_tot [W]"].sum(), rel=1e-9)
+
+
 def test_lumped_default_run_has_no_stop_reason():
     m = _quiet(tmhp.GroundSourceHeatPumpBoiler, dt_s=600.0, t_max_s=86400.0)
     df = _quiet(m.analyze_dynamic, 6 * 600.0, 600.0, 50.0, np.zeros(6), np.full(6, 7.0))

@@ -23,7 +23,6 @@ from _dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     static_path,
 )
 
@@ -94,6 +93,7 @@ def main() -> None:
         figsize=dm.figsize("17cm", 0.80),
         gridspec_kw={"hspace": 0.42, "wspace": 0.32},
     )
+    _panels: list = []
 
     # --- (a) what the fluid contributes -----------------------------------
     # Delta-h [J/kg], rho_1 [kg/m3] and their product [J/m3] carry three
@@ -134,7 +134,7 @@ def main() -> None:
     ax.legend(frameon=False, fontsize=dm.fs(-3), loc="upper left", ncol=1, handlelength=1.2)
     ax.set_title("The fluid does the work", loc="left", fontsize=dm.fs(0))
     ax.grid(True, axis="y", alpha=0.25, linewidth=GRIDLINE)
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
 
     # --- (b) what that does to the displacement ---------------------------
     ax = axes[0, 1]
@@ -167,7 +167,7 @@ def main() -> None:
     ax.set_ylabel(r"displacement [cm$^3$/rev per kW]")
     ax.set_title("A factor of 2.7 across fluids", loc="left", fontsize=dm.fs(0))
     ax.grid(True, axis="y", alpha=0.25, linewidth=GRIDLINE)
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
 
     # --- (c) where the one free number came from --------------------------
     ax = axes[1, 0]
@@ -220,7 +220,7 @@ def main() -> None:
     ax.legend(frameon=False, fontsize=dm.fs(-2), loc="upper left", ncol=3, columnspacing=0.8)
     ax.set_title("Inverted from 9 published displacements", loc="left", fontsize=dm.fs(0))
     ax.grid(True, axis="y", alpha=0.25, linewidth=GRIDLINE)
-    panel_letter(ax, "c")
+    _panels.append((ax, "c"))
 
     # --- (d) what the rule costs against the printed numbers --------------
     ax = axes[1, 1]
@@ -251,10 +251,11 @@ def main() -> None:
     ax.legend(frameon=False, fontsize=dm.fs(-3), loc="lower right", handletextpad=0.4, labelspacing=0.3)
     ax.set_title("Against the printed numbers", loc="left", fontsize=dm.fs(0))
     ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
-    panel_letter(ax, "d")
+    _panels.append((ax, "d"))
 
     out = static_path("compressor_displacement.svg").with_suffix("")
-    finalize(fig, out, mt="4%")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    finalize(fig, out)
     plt.close(fig)
     print(f"wrote {out}.svg")
     for _model, ref, capacity, disp in PANASONIC:

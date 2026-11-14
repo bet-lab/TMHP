@@ -27,7 +27,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -63,6 +62,7 @@ def _series(ax, mod, flo, x, col, color, label=None, scale=1.0):
 
 def _plot_case(df: pd.DataFrame, title: str, out: Path, name: str) -> None:
     fig, axes = plt.subplots(2, 4, figsize=dm.figsize("17cm", 0.62), gridspec_kw={"wspace": 0.55, "hspace": 0.42})
+    _panels: list = []
     mod = df[df.capacity_clamped.isna()]
     flo = df[df.capacity_clamped.notna()]
     x = "plr_request"
@@ -128,7 +128,7 @@ def _plot_case(df: pd.DataFrame, title: str, out: Path, name: str) -> None:
         if len(flo):
             ax.axvspan(flo[x].max() + 0.02, 0.06, color=COLORS["band20"], alpha=0.35, lw=0)
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
-        panel_letter(ax, LETTERS[i], x=-0.30, y=1.02)
+        _panels.append((ax, LETTERS[i]))
     fig.suptitle(
         f"{title} — hollow: compressor at speed floor, delivered > requested ({COEFFICIENT_VERSION})",
         fontsize=dm.fs(-1),
@@ -136,6 +136,7 @@ def _plot_case(df: pd.DataFrame, title: str, out: Path, name: str) -> None:
         ha="left",
     )
     out.mkdir(parents=True, exist_ok=True)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out / name, formats=("svg", "png"), mt="5%")
     plt.close(fig)
 

@@ -66,7 +66,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -283,9 +282,11 @@ def p1_before_after() -> None:
         ok = [g[g.failure_reason == "none"].cop_sys for g in panels]
         lo, hi, step = _auto_ylim(pd.concat(ok))
         fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.44))
+        _panels: list = []
         for c, ((_w, tag), g) in enumerate(zip(cols, panels, strict=True)):
             _map_panel(axes[c], g, style["cmap"], tag, (lo, hi), step, ylabel=(c == 0), label=(c == 0))
-            panel_letter(axes[c], "ab"[c])
+            _panels.append((axes[c], "ab"[c]))
+        dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
         _save_top_legend(fig, axes[0], f"P1_before_after_plr_cop_{duty}")
 
     out = []
@@ -318,6 +319,7 @@ def p9_baseline_map() -> None:
 def p2_delta_cop() -> None:
     d = pd.read_csv(SIM / "plr_map_ashp.csv")
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("17cm", 0.60))
+    _panels: list = []
     rows = (("heating", "viridis", "Heating 20 °C"), ("cooling", "plasma", "Cooling 27 °C"))
     recs = []
     for r, (duty, cmap_name, head) in enumerate(rows):
@@ -369,7 +371,8 @@ def p2_delta_cop() -> None:
                     ncol=2,
                 )
             _grid(ax)
-            panel_letter(ax, "abcd"[r * 2 + c])
+            _panels.append((ax, "abcd"[r * 2 + c]))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "P2_delta_cop", mt="8%")
     OUT.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(recs).to_csv(OUT / "p2_delta_cop.csv", index=False)
@@ -383,6 +386,7 @@ def p3_peak_shift() -> None:
     colors = (COLORS["ink"], COLORS["accent"], COLORS["warm"])
     marks = ("o", "s", "^")
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("17cm", 0.60))
+    _panels: list = []
     for r, duty in enumerate(("heating", "cooling")):
         for c, (col, ylab, ylim, ystep) in enumerate(
             (
@@ -406,7 +410,8 @@ def p3_peak_shift() -> None:
             if r == 0 and c == 0:
                 ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-3.0))
             _grid(ax)
-            panel_letter(ax, "abcd"[r * 2 + c])
+            _panels.append((ax, "abcd"[r * 2 + c]))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "P3_peak_shift", mt="8%")
 
 
@@ -435,6 +440,7 @@ def _parity_axes(ax, lo, hi, step, xlabel, ylabel):
 def p4_parity() -> None:
     d = pd.read_csv(SIM / "fig4_cop_parity.csv")
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.50))
+    _panels: list = []
     recs = []
     for ax, mc, lo, hi, step, head in (
         (axes[0], "ASHP", 1, 9, 2, "ASHP · Daikin RXM-A, 5 units"),
@@ -460,7 +466,8 @@ def p4_parity() -> None:
         ax.text(
             0.04, 0.96, "\n".join(lines), transform=ax.transAxes, va="top", fontsize=dm.fs(FS_ANNOT), family="monospace"
         )
-        panel_letter(ax, "ab"[0 if mc == "ASHP" else 1])
+        _panels.append((ax, "ab"[0 if mc == "ASHP" else 1]))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save_top_legend(fig, axes[0], "P4_parity_before_after")
     OUT.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(recs).to_csv(OUT / "p4_parity_metrics.csv", index=False)
@@ -529,6 +536,7 @@ def p5_p6_fixed_power() -> None:
 
     for duty in CONDS:
         (fig, axes), conds = _fig_for(duty)
+        _panels: list = []
         axes = axes[0]
         for j, (cond, title) in enumerate(conds):
             ax = axes[j]
@@ -545,11 +553,13 @@ def p5_p6_fixed_power() -> None:
             ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
             ax.set_title(title, fontsize=dm.fs(FS_TITLE), loc="left")
             if len(conds) > 1:
-                panel_letter(ax, "abc"[j])
+                _panels.append((ax, "abc"[j]))
+        dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
         _save_top_legend(fig, axes[0], f"P5_fixed_power_cop_{duty}")
 
     for duty in CONDS:
         (fig, axes), conds = _fig_for(duty)
+        _panels: list = []
         axes = axes[0]
         for j, (cond, title) in enumerate(conds):
             ax = axes[j]
@@ -568,7 +578,8 @@ def p5_p6_fixed_power() -> None:
             ax.set_ylabel(r"$W_{fixed}\,/\,E_{tot}$ [-]")
             ax.set_title(title, fontsize=dm.fs(FS_TITLE), loc="left")
             if len(conds) > 1:
-                panel_letter(ax, "abc"[j])
+                _panels.append((ax, "abc"[j]))
+        dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
         _save_top_legend(fig, axes[0], f"P6_fixed_power_fraction_{duty}")
 
 
@@ -587,6 +598,7 @@ def p7_fan_min_power() -> None:
     )
     for duty, (cond, title) in FAN_CONDS.items():
         fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.46))
+        _panels: list = []
         for c, (col, ylab) in enumerate(
             (("E_fan_total", "Fan power, both fans [W]"), ("COP_sys", r"System $\mathrm{COP}$ [-]"))
         ):
@@ -596,7 +608,8 @@ def p7_fan_min_power() -> None:
             _xaxis(ax)
             ax.set_ylabel(ylab)
             ax.set_title(title, fontsize=dm.fs(FS_TITLE), loc="left")
-            panel_letter(ax, "ab"[c])
+            _panels.append((ax, "ab"[c]))
+        dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
         _save_top_legend(fig, axes[0], f"P7_fan_min_power_{duty}")
 
 
@@ -617,6 +630,7 @@ def p14_fan_floor_parity() -> None:
     m = base.merge(flo, on=key)
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.50))
+    _panels: list = []
     recs = []
     for ax, mc, lo, hi, step, head in (
         (axes[0], "ASHP", 1, 9, 2, "ASHP · Daikin RXM-A, 5 units"),
@@ -652,7 +666,8 @@ def p14_fan_floor_parity() -> None:
         ax.text(
             0.04, 0.96, "\n".join(lines), transform=ax.transAxes, va="top", fontsize=dm.fs(FS_ANNOT), family="monospace"
         )
-        panel_letter(ax, "ab"[0 if mc == "ASHP" else 1])
+        _panels.append((ax, "ab"[0 if mc == "ASHP" else 1]))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save_top_legend(fig, axes[0], "P14_parity_fan_floor")
     OUT.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(recs).to_csv(OUT / "p14_parity_fan_floor_metrics.csv", index=False)
@@ -673,9 +688,11 @@ def p13_fan_floor_map() -> None:
         ok = [g[g.failure_reason == "none"].cop_sys for g in panels]
         lo, hi, step = _auto_ylim(pd.concat(ok))
         fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.44))
+        _panels: list = []
         for c, ((_cfg, tag), g) in enumerate(zip(cols, panels, strict=True)):
             _map_panel(axes[c], g, style["cmap"], tag, (lo, hi), step, ylabel=(c == 0), label=(c == 0))
-            panel_letter(axes[c], "ab"[c])
+            _panels.append((axes[c], "ab"[c]))
+        dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
         _save_top_legend(fig, axes[0], f"P13_fan_floor_plr_cop_{duty}")
 
 
@@ -685,6 +702,7 @@ def p8_efficiency(rated: float = 50.0) -> None:
     styles = [(0, (1, 1.2)), "solid", (0, (4, 1.6))]
     ev, ei, ee = ce.make_eta_vol(rated), ce.make_eta_isen(rated), ce.make_eta_em(rated)
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36), gridspec_kw={"wspace": 0.42})
+    _panels: list = []
     labels = (r"$\eta_v$ [-]", r"$\eta_{is}$ [-]", r"$\eta_{em}$ [-]")
     fns = (lambda pr, n: ev(pr, n * rated), lambda pr, n: ei(pr, n * rated), lambda pr, n: ee(pr, n * rated))
     for k, (ax, lab, fn, letter) in enumerate(zip(axes, labels, fns, "abc", strict=True)):
@@ -706,10 +724,11 @@ def p8_efficiency(rated: float = 50.0) -> None:
             ax.set_xlabel(r"Relative speed $n^*$ = $N/N_{rated}$ [-]")
         ax.set_ylabel(lab)
         _grid(ax)
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     axes[0].set_ylim(0.6, 1.0)
     axes[1].set_ylim(0.3, 0.9)
     axes[2].set_ylim(0.6, 1.0)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save_top_legend(fig, axes[0], "P8_efficiency_vs_speed")
 
 
@@ -771,6 +790,7 @@ def p11_min_airflow() -> None:
     )
     for duty, (cond, _title) in FAN_CONDS.items():
         fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36), gridspec_kw={"wspace": 0.60})
+        _panels: list = []
         for j, (col, ylab) in enumerate(quants):
             ax = axes[j]
             for k, (cfg, lbl, cc, mk) in enumerate(series):
@@ -787,7 +807,8 @@ def p11_min_airflow() -> None:
             # times and the x-label with it, so both live in the caption.
             _xaxis(ax, label=(j == 1))
             ax.set_ylabel(ylab)
-            panel_letter(ax, "abc"[j], x=-0.26)
+            _panels.append((ax, "abc"[j]))
+        dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
         _save_top_legend(fig, axes[0], f"P11_min_airflow_{duty}", ml="3%")
 
 

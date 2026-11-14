@@ -20,8 +20,8 @@ curve fits and no per-unit recalibration.
 
 .. container:: hero-badges
 
-   .. image:: https://img.shields.io/badge/python-3.10--3.13-3776ab?logo=python&logoColor=white
-      :alt: Python 3.10 – 3.13
+   .. image:: https://img.shields.io/badge/python-3.11--3.14-3776ab?logo=python&logoColor=white
+      :alt: Python 3.11 – 3.14
       :target: https://www.python.org/downloads/
 
    .. image:: https://img.shields.io/badge/license-MIT-success

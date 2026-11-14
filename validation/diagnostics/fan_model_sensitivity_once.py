@@ -664,7 +664,6 @@ def _figures(df: pd.DataFrame) -> None:
         HAIRLINE,
         apply_style,
         finalize,
-        panel_letter,
         ticks,
     )
 
@@ -741,6 +740,7 @@ def _figures(df: pd.DataFrame) -> None:
     fig, axes = plt.subplots(
         2, 3, figsize=dm.figsize("17cm", 0.60), squeeze=False, gridspec_kw={"wspace": 0.42, "hspace": 0.40}
     )
+    _panels: list = []
     quants = [
         ("COP_sys", r"System $\mathrm{COP}$ [-]"),
         ("V_air_ratio_ou", r"$V_{air}\,/\,V_{air,rated}$, outdoor [-]"),
@@ -753,22 +753,25 @@ def _figures(df: pd.DataFrame) -> None:
             xaxis(ax, label=(i == 1))
             ax.set_ylabel(ylab)
             ax.set_title(f"{cond_title[cond]}", fontsize=dm.fs(-3), loc="left")
-            panel_letter(ax, "abcdef"[i * 3 + j], x=-0.30, y=1.06)
+            _panels.append((ax, "abcdef"[i * 3 + j]))
     axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-4.5))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "E1_minimum_airflow", mt="6%", ml="3%")
 
     # ---- E2 rated fan power -------------------------------------------
     cfgs = ["power_070", "baseline", "power_130"]
     cols = [COLORS["cool"], COLORS["ink"], COLORS["hot"]]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("13cm", 0.45))
+    _panels: list = []
     for j, cond in enumerate(CONDS):
         ax = axes[j]
         series(ax, cfgs, cond, "COP_sys", cols, first=(j == 0))
         xaxis(ax)
         ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2), loc="left")
-        panel_letter(ax, "ab"[j])
+        _panels.append((ax, "ab"[j]))
     axes[0].legend(loc="best", frameon=False, fontsize=dm.fs(-4), title="Rated fan power", title_fontsize=dm.fs(-4))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "E2_rated_fan_power", mt="7%")
 
     # ---- E3 minimum fan power -----------------------------------------
@@ -777,6 +780,7 @@ def _figures(df: pd.DataFrame) -> None:
     fig, axes = plt.subplots(
         2, 2, figsize=dm.figsize("13cm", 0.80), squeeze=False, gridspec_kw={"wspace": 0.38, "hspace": 0.40}
     )
+    _panels: list = []
     for i, cond in enumerate(CONDS):
         for j, (col, ylab) in enumerate(
             [("E_fan_total", "Fan power, both fans [W]"), ("COP_sys", r"System $\mathrm{COP}$ [-]")]
@@ -786,12 +790,14 @@ def _figures(df: pd.DataFrame) -> None:
             xaxis(ax, label=(i == 1))
             ax.set_ylabel(ylab)
             ax.set_title(cond_title[cond], fontsize=dm.fs(-3), loc="left")
-            panel_letter(ax, "abcd"[i * 2 + j], x=-0.26, y=1.06)
+            _panels.append((ax, "abcd"[i * 2 + j]))
     axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-4.5))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "E3_minimum_fan_power", mt="6%", ml="3%")
 
     # ---- E4 fan power curve -------------------------------------------
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.34))
+    _panels: list = []
     ax = axes[0]
     x = np.linspace(0, 1, 201)
     vsd = np.clip(0.0013 + 0.1470 * x + 0.9506 * x**2 - 0.0998 * x**3, 0, None)
@@ -806,7 +812,7 @@ def _figures(df: pd.DataFrame) -> None:
     ax.set_ylabel(r"$P_{fan}\,/\,P_{fan,rated}$ [-]")
     ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4))
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
     cfgs = ["baseline", "curve_cubic", "pmin_10"]
     cols = [COLORS["ink"], COLORS["cool"], COLORS["hot"]]
     lss = ["solid", (0, (4, 1.6)), (0, (2, 1.2))]
@@ -818,8 +824,9 @@ def _figures(df: pd.DataFrame) -> None:
         xaxis(ax)
         ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2), loc="left")
-        panel_letter(ax, "bc"[j])
+        _panels.append((ax, "bc"[j]))
     axes[1].legend(loc="best", frameon=False, fontsize=dm.fs(-4))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "E4_fan_power_curve", mt="8%")
 
     # ---- E5 speed-linked airflow --------------------------------------
@@ -835,6 +842,7 @@ def _figures(df: pd.DataFrame) -> None:
     fig, axes = plt.subplots(
         2, 4, figsize=dm.figsize("17cm", 0.50), squeeze=False, gridspec_kw={"wspace": 0.55, "hspace": 0.42}
     )
+    _panels: list = []
     for i, cond in enumerate(CONDS):
         for j, (col, ylab) in enumerate(quants):
             ax = axes[i][j]
@@ -843,8 +851,9 @@ def _figures(df: pd.DataFrame) -> None:
             xaxis(ax, label=(i == 1))
             ax.set_ylabel(ylab, fontsize=dm.fs(-3))
             ax.set_title(cond_title[cond], fontsize=dm.fs(-4), loc="left")
-            panel_letter(ax, "abcdefgh"[i * 4 + j], x=-0.38, y=1.08)
+            _panels.append((ax, "abcdefgh"[i * 4 + j]))
     axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-5))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "E5_speed_linked_airflow", mt="7%", ml="3%")
 
 

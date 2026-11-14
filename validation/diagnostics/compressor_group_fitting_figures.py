@@ -29,7 +29,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     COLORS,
     HAIRLINE,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -163,6 +162,7 @@ def _save_top_legend(fig, ax, out_dir: Path, name: str, *, ncol=None, gap: float
 def figure_f1(out_dir: Path, coef: pd.DataFrame, n_min_data: float) -> None:
     c = coef.set_index("group")
     fig, axes = plt.subplots(3, 3, figsize=dm.figsize("17cm", 0.92), squeeze=False, sharex=True)
+    _panels: list = []
     rows = (
         ("eta_vol", r"$\eta_{\mathrm{vol}}$ [-]", lambda r, pr, n: eta_vol_of(r, pr, n)),
         ("eta_oi", r"$\eta_{\mathrm{is}}\,\eta_{\mathrm{em}}$ [-]", lambda r, pr, n: eta_oi_of(r, pr, n)),
@@ -191,7 +191,7 @@ def figure_f1(out_dir: Path, coef: pd.DataFrame, n_min_data: float) -> None:
                 ax.set_title(f"$r_p$ = {pr:g}", fontsize=dm.fs(-1.0), loc="left")
             if j == 0:
                 ax.set_ylabel(ylab)
-                panel_letter(ax, "abc"[i], x=-0.28)
+                _panels.append((ax, "abc"[i]))
             if i == 2:
                 ax.set_xlabel(r"Relative speed $n^*$ [-]")
     for i in range(3):  # one y-range per row, so the three lifts are comparable
@@ -199,6 +199,7 @@ def figure_f1(out_dir: Path, coef: pd.DataFrame, n_min_data: float) -> None:
         hi = max(ax.get_ylim()[1] for ax in axes[i])
         for ax in axes[i]:
             ax.set_ylim(lo, hi)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save_top_legend(fig, axes[0][0], out_dir, "F1_group_efficiency_curves", ncol=4, ml="4%")
 
 
@@ -273,6 +274,7 @@ def _split(g: pd.DataFrame):
 def figure_f3(out_dir: Path, sweep: pd.DataFrame) -> None:
     cases = [c for c in CASE_TITLE if c in set(sweep.case)]
     fig, axes = plt.subplots(2, len(cases), figsize=dm.figsize("17cm", 0.70), squeeze=False, sharex=True)
+    _panels: list = []
     base = {c: sweep[(sweep.case == c) & (sweep.group == "pooled")].set_index("plr_request").cop_sys for c in cases}
     for j, case in enumerate(cases):
         top, bot = axes[0][j], axes[1][j]
@@ -328,12 +330,13 @@ def figure_f3(out_dir: Path, sweep: pd.DataFrame) -> None:
         if j == 0:
             top.set_ylabel("System COP [-]")
             bot.set_ylabel("ΔCOP vs pooled [%]")
-            panel_letter(top, "a", x=-0.30)
-            panel_letter(bot, "b", x=-0.30)
+            _panels.append((top, "a"))
+            _panels.append((bot, "b"))
     lo = min(ax.get_ylim()[0] for ax in axes[1])
     hi = max(ax.get_ylim()[1] for ax in axes[1])
     for ax in axes[1]:
         ax.set_ylim(lo, hi)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save_top_legend(fig, axes[0][0], out_dir, "F3_group_plr_cop", ncol=4, ml="3%")
 
 

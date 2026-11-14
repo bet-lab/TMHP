@@ -267,7 +267,6 @@ def figures(
         HAIRLINE,
         apply_style,
         finalize,
-        panel_letter,
         ticks,
     )
 
@@ -275,11 +274,11 @@ def figures(
     MS = 3.0
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    def save(fig, name, **margins):
+    def save(fig, name, gutter=None, **margins):
         for extra in (0, 2, 4, 6, 8, 12):
             try:
                 kw = {k: f"{float(v.rstrip('%')) + extra}%" for k, v in margins.items()}
-                finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", **kw)
+                finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", gutter=gutter, **kw)
                 break
             except RuntimeError as exc:
                 if extra == 12:
@@ -292,6 +291,7 @@ def figures(
 
     # -- 01 P_TO vs capacity ---------------------------------------------
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42))
+    _panels: list = []
     for ax, d, res, title, xmax in (
         (axes[0], da, res_a, "Air-to-air (no circulation pump)", 9.0),
         (axes[1], dw, res_w, "Air-to-water (includes pump)", 30.0),
@@ -344,16 +344,17 @@ def figures(
         ax.set_xlabel(r"Rated heating capacity $Q_{rated}$ [kW]")
         ax.set_ylabel(r"Declared $P_{TO}$ [W]")
         ax.set_title(f"{title} — N = {len(d)}", fontsize=dm.fs(-2.5), loc="left")
-        ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4.5))
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
         grid(ax)
     axes[0].set_ylim(0, 40)
     # A2W has a long upper tail (p99 = 169 W, max 700 W); the axis is clipped to
     # keep the bulk readable and the caption says so rather than the figure
     # implying the tail does not exist.
     axes[1].set_ylim(0, 120)
-    panel_letter(axes[0], "a")
-    panel_letter(axes[1], "b")
-    save(fig, "01_pto_vs_capacity", mt="7%")
+    _panels.append((axes[0], "a"))
+    _panels.append((axes[1], "b"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    save(fig, "01_pto_vs_capacity", gutter="8pt")
 
     # -- 02 parity (air-to-air, leave-one-unit-out) ----------------------
     fig, ax = plt.subplots(figsize=dm.figsize("8cm", 0.85))
@@ -382,15 +383,15 @@ def figures(
         transform=ax.transAxes,
         va="top",
         ha="left",
-        fontsize=dm.fs(-4),
+        fontsize=dm.fs(-3),
     )
     ax.set_xlim(*lim)
     ax.set_ylim(*lim)
     ax.set_xlabel(r"Declared $P_{TO}$ [W]")
     ax.set_ylabel(r"Predicted $P_{TO}$ [W]")
-    ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-4.5))
+    dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
     grid(ax)
-    save(fig, "02_pto_parity", mt="4%")
+    save(fig, "02_pto_parity")
 
     # -- 03 residual vs capacity -----------------------------------------
     fig, ax = plt.subplots(figsize=dm.figsize("9cm", 0.62))
@@ -404,13 +405,14 @@ def figures(
     ax.set_xlabel(r"Rated heating capacity $Q_{rated}$ [kW]")
     ax.set_ylabel(r"Predicted − declared $P_{TO}$ [W]")
     ax.set_title("Air-to-air 1:1 splits, leave-one-unit-out", fontsize=dm.fs(-2.5), loc="left")
-    ax.legend(loc="best", frameon=False, fontsize=dm.fs(-4.5))
+    dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
     grid(ax)
-    save(fig, "03_pto_residual_vs_capacity", mt="7%")
+    save(fig, "03_pto_residual_vs_capacity")
 
     # -- 04 PLR-COP with the measured proxy against Appendix D ------------
     cond_title = {"heating_7": "Heating 7/20 °C", "cooling_35": "Cooling 35/27 °C"}
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.44))
+    _panels: list = []
     series = [
         (0.0, COLORS["ink"], "solid", "current TMHP"),
         (w_fit, COLORS["ess"], (0, (5, 1.6)), rf"+ measured $P_{{TO}}$ proxy ({w_fit:.0f} W)"),
@@ -457,11 +459,12 @@ def figures(
         ax.set_xlabel("Requested part-load ratio [%]")
         ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2.5), loc="left")
-        ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4.5))
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
         grid(ax)
-    panel_letter(axes[0], "a")
-    panel_letter(axes[1], "b")
-    save(fig, "04_plr_cop_with_pto_proxy", mt="7%")
+    _panels.append((axes[0], "a"))
+    _panels.append((axes[1], "b"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    save(fig, "04_plr_cop_with_pto_proxy", gutter="8pt")
 
 
 def plr_table(plr: pd.DataFrame, w_values) -> pd.DataFrame:

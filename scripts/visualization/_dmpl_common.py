@@ -40,6 +40,7 @@ def finalize(
     mr: str | float | None = None,
     mt: str | float | None = None,
     mb: str | float | None = None,
+    gutter: str | float | None = None,
     formats: tuple[str, ...] = ("svg",),
 ) -> None:
     """Apply the standard layout buffer and save through ``dm.save_formats``.
@@ -57,7 +58,7 @@ def finalize(
     legends, and rather than silently shipping a clipped figure we raise
     so the script fails loudly and the caller picks a margin that fits.
     """
-    dm.simple_layout(fig, margin=margin, ml=ml, mr=mr, mt=mt, mb=mb)
+    dm.simple_layout(fig, margin=margin, ml=ml, mr=mr, mt=mt, mb=mb, gutter=gutter)
     _assert_no_overflow(fig)
     dm.save_formats(fig, str(out_stem), formats=formats)
 
@@ -111,30 +112,6 @@ def ticks(vmin: float, vmax: float, step: float) -> np.ndarray:
     integer step; a log axis should keep its decade locator and not call this.
     """
     return np.arange(vmin, vmax + step * 0.5, step)
-
-
-def panel_letter(ax, letter: str, *, x: float = -0.10, y: float = 1.03) -> None:
-    """Place a bold subplot index (e.g. ``"a"``) above ``ax``'s upper-left.
-
-    The canonical typography for subplot indexing across the docs gallery —
-    ``dm.fs(3)`` / ``dm.fw(2)`` anchored at axes-fraction ``(-0.10, 1.03)``
-    with ``va="bottom"`` so the letter sits clear of the top y-tick label
-    and the y-axis gutter (journal-style). Pass ``x``/``y`` to nudge the
-    anchor when a particular layout needs a different gutter (e.g. shorter
-    y-tick labels can take a smaller ``|x|``). The overflow guard in
-    :func:`finalize` will catch any layout that doesn't leave enough
-    headroom; bump ``mt``/``ml`` if it fires.
-    """
-    ax.text(
-        x,
-        y,
-        letter,
-        transform=ax.transAxes,
-        fontsize=dm.fs(3),
-        fontweight=dm.fw(2),
-        va="bottom",
-        ha="left",
-    )
 
 
 def apply_style(

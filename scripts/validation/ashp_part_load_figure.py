@@ -24,7 +24,7 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, static_path, ticks  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, static_path, ticks  # noqa: E402
 
 SWEEP = REPO_ROOT / "validation" / "data" / "ashp_part_load_sweep.csv"
 
@@ -50,6 +50,7 @@ def main() -> None:
     sweep = sweep[(sweep.capacity_kW == SHOWN_CAPACITY_KW) & (sweep.refrigerant == SHOWN_REFRIGERANT)]
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.42))
+    _panels: list = []
 
     for ax, (duty, letter, title) in zip(axes, PANELS, strict=True):
         part = sweep[sweep.duty == duty]
@@ -69,7 +70,7 @@ def main() -> None:
         ax.set_axisbelow(True)
         ax.legend(title="outdoor air", frameon=False, fontsize=dm.fs(-1.5), title_fontsize=dm.fs(-1.5))
         ax.set_title(title, loc="left", fontsize=dm.fs(-1))
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
 
     top = float(np.ceil(sweep.cop_sys.max()))
     for ax in axes:
@@ -78,7 +79,8 @@ def main() -> None:
     axes[0].set_ylabel("System COP [-]")
     axes[1].set_ylabel("System EER [-]")
 
-    finalize(fig, static_path("validation_ashp_part_load.svg").with_suffix(""), mt="6%", formats=("svg", "png"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    finalize(fig, static_path("validation_ashp_part_load.svg").with_suffix(""), formats=("svg", "png"))
 
 
 if __name__ == "__main__":

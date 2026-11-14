@@ -405,19 +405,18 @@ def _figures(df: pd.DataFrame) -> None:
         apply_style,
         cover_data_ylim,
         finalize,
-        panel_letter,
         ticks,
     )
 
     apply_style()
     MS = 2.6
 
-    def save(fig, name: str, **margins) -> None:
+    def save(fig, name: str, gutter=None, **margins) -> None:
         OUT_DIR.mkdir(parents=True, exist_ok=True)
         for extra in (0, 2, 4, 6, 8, 12):
             try:
                 kw = {k: f"{float(v.rstrip('%')) + extra}%" for k, v in margins.items()}
-                finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", **kw)
+                finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", gutter=gutter, **kw)
                 break
             except RuntimeError as exc:
                 if extra == 12:
@@ -492,6 +491,7 @@ def _figures(df: pd.DataFrame) -> None:
 
     # -- 01 fixed power: COP vs PLR --------------------------------------
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.34))
+    _panels: list = []
     w_ls = {0.0: "solid", 25.0: (0, (4, 1.6)), 50.0: (0, (2, 1.2)), 100.0: (0, (1, 1.2))}
     for ax, cond, letter in zip(axes, CONDS, "abc", strict=True):
         for w in W_FIXED:
@@ -506,12 +506,14 @@ def _figures(df: pd.DataFrame) -> None:
         xaxis(ax)
         ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2), loc="left")
-        ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
-        panel_letter(ax, letter)
-    save(fig, "01_fixed_power_cop_vs_plr", mt="8%")
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
+        _panels.append((ax, letter))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    save(fig, "01_fixed_power_cop_vs_plr", gutter="8pt")
 
     # -- 02 fixed-power fraction -----------------------------------------
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.34))
+    _panels: list = []
     for ax, cond, letter in zip(axes, CONDS, "abc", strict=True):
         for w in W_FIXED[1:]:
             curve(
@@ -527,9 +529,10 @@ def _figures(df: pd.DataFrame) -> None:
         ax.set_yticks(ticks(0, 0.2, 0.05))
         ax.set_ylabel(r"$W_{fixed}\,/\,E_{tot}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2), loc="left")
-        ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4))
-        panel_letter(ax, letter)
-    save(fig, "02_fixed_power_fraction_vs_plr", mt="8%")
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
+        _panels.append((ax, letter))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    save(fig, "02_fixed_power_fraction_vs_plr", gutter="8pt")
 
     # -- 03 low-load summary ---------------------------------------------
     rows = []
@@ -553,6 +556,7 @@ def _figures(df: pd.DataFrame) -> None:
             )
     s = pd.DataFrame(rows)
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("13cm", 0.45))
+    _panels: list = []
     ax = axes[0]
     for cond, g in s.groupby("condition"):
         ax.plot(g.W_fixed, g.ratio, "o-", ms=MS, lw=dm.lw(0), color=cond_color[cond], label=cond_title[cond])
@@ -561,9 +565,9 @@ def _figures(df: pd.DataFrame) -> None:
     ax.set_xticks(ticks(0, 100, 25))
     ax.set_xlabel(r"$W_{fixed}$ [W]")
     ax.set_ylabel(r"$\mathrm{COP}_{low}\,/\,\mathrm{COP}_{rated}$ [-]")
-    ax.legend(loc="lower left", frameon=False, fontsize=dm.fs(-4))
+    dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
     grid(ax)
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
     ax = axes[1]
     for cond, g in s.groupby("condition"):
         base = float(g[g.W_fixed == 0].COP_low.iloc[0])
@@ -574,9 +578,10 @@ def _figures(df: pd.DataFrame) -> None:
     ax.set_xlabel(r"$W_{fixed}$ [W]")
     ax.set_ylabel(r"$\Delta\mathrm{COP}_{low}$ vs current TMHP [%]")
     grid(ax)
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
     s.to_csv(OUT_DIR / "fig03_fixed_power_lowload_summary.csv", index=False)
-    save(fig, "03_fixed_power_lowload_summary", mt="5%")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    save(fig, "03_fixed_power_lowload_summary", gutter="8pt")
 
     # -- 04..08 case comparisons, mode A solid / mode B dashed ------------
     def case_panels(name: str, quantities: list[tuple[str, str, tuple | None, float | None]], margins: dict) -> None:
@@ -588,6 +593,7 @@ def _figures(df: pd.DataFrame) -> None:
             squeeze=False,
             gridspec_kw={"wspace": 0.42, "hspace": 0.45},
         )
+        _panels: list = []
         for i, (col, ylab, ylim, ystep) in enumerate(quantities):
             for j, cond in enumerate(CONDS):
                 ax = axes[i][j]
@@ -617,22 +623,23 @@ def _figures(df: pd.DataFrame) -> None:
                 ax.set_ylabel(ylab)
                 if i == 0:
                     ax.set_title(cond_title[cond], fontsize=dm.fs(-2.5), loc="left")
-                panel_letter(ax, "abcdefghi"[i * 3 + j], x=-0.30, y=1.06)
-        axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-5), ncol=2)
+                _panels.append((ax, "abcdefghi"[i * 3 + j]))
+        dm.place_legend(axes[0][0], frameon=False, fontsize=dm.fs(-3), ncol=2)
         axes[0][2].text(
             0.03,
             0.04,
             "solid: mode A (clipped)\ndashed: mode B (constrained)",
             transform=axes[0][2].transAxes,
-            fontsize=dm.fs(-4.5),
+            fontsize=dm.fs(-3),
             va="bottom",
         )
+        dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
         save(fig, name, **margins)
 
     case_panels(
         "04_actual_sh_sc_vs_plr",
         [("SH_actual", r"Actual superheat [K]", (0, 12), 2.0), ("SC_actual", r"Actual subcooling [K]", (0, 10), 2.0)],
-        {"mt": "6%", "ml": "3%"},
+        {},
     )
     case_panels(
         "05_approach_vs_plr",
@@ -640,22 +647,21 @@ def _figures(df: pd.DataFrame) -> None:
             (r"dT_ref_evap", r"$\Delta T_{approach,evap}$ [K]", (0, 20), 4.0),
             ("dT_ref_cond", r"$\Delta T_{approach,cond}$ [K]", (0, 20), 4.0),
         ],
-        {"mt": "6%", "ml": "3%"},
+        {},
     )
     case_panels(
         "06_saturation_temperature_vs_plr",
         [("T_evap", r"$T_{evap}$ [°C]", None, None), ("T_cond", r"$T_{cond}$ [°C]", None, None)],
-        {"mt": "6%", "ml": "3%"},
+        {},
     )
-    case_panels(
-        "07_pressure_ratio_vs_plr", [("r_p", r"Pressure ratio $r_p$ [-]", None, None)], {"mt": "10%", "ml": "3%"}
-    )
-    case_panels("08_nstar_vs_plr", [("n_star", r"Relative speed $n^*$ [-]", (0, 1.6), 0.4)], {"mt": "10%", "ml": "3%"})
+    case_panels("07_pressure_ratio_vs_plr", [("r_p", r"Pressure ratio $r_p$ [-]", None, None)], {})
+    case_panels("08_nstar_vs_plr", [("n_star", r"Relative speed $n^*$ [-]", (0, 1.6), 0.4)], {})
 
     # -- 09 SH/SC COP, one row per mode ----------------------------------
     fig, axes = plt.subplots(
         2, 3, figsize=dm.figsize("17cm", 0.62), squeeze=False, gridspec_kw={"wspace": 0.40, "hspace": 0.45}
     )
+    _panels: list = []
     for i, (mode, mlab) in enumerate((("mode_A", "mode A — shipped clipping"), ("mode_B", "mode B — constrained"))):
         for j, cond in enumerate(CONDS):
             ax = axes[i][j]
@@ -670,16 +676,18 @@ def _figures(df: pd.DataFrame) -> None:
                 )
             xaxis(ax, label=(i == 1))
             ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
-            ax.set_title(f"{cond_title[cond]} — {mlab}", fontsize=dm.fs(-3), loc="left")
-            panel_letter(ax, "abcdef"[i * 3 + j], x=-0.28, y=1.06)
-    axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-5), ncol=2)
-    save(fig, "09_sh_sc_cop_vs_plr", mt="6%", ml="3%")
+            ax.set_title(f"{cond_title[cond]}\n{mlab}", fontsize=dm.fs(-3), loc="left")
+            _panels.append((ax, "abcdef"[i * 3 + j]))
+    dm.place_legend(axes[0][0], frameon=False, fontsize=dm.fs(-3), ncol=2)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    save(fig, "09_sh_sc_cop_vs_plr", gutter="8pt")
 
     # -- 10 / 11 SH-only and SC-only -------------------------------------
     def split_fig(name: str, pairs: list[tuple[float, float]], fixed_txt: str, label_fn) -> None:
         fig, axes = plt.subplots(
             2, 3, figsize=dm.figsize("17cm", 0.62), squeeze=False, gridspec_kw={"wspace": 0.40, "hspace": 0.45}
         )
+        _panels: list = []
         cmap = plt.get_cmap("viridis")
         cols = [cmap(0.1 + 0.75 * k / max(len(pairs) - 1, 1)) for k in range(len(pairs))]
         for i, (mode, mlab) in enumerate((("mode_A", "mode A"), ("mode_B", "mode B"))):
@@ -697,15 +705,17 @@ def _figures(df: pd.DataFrame) -> None:
                 xaxis(ax, label=(i == 1))
                 ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
                 ax.set_title(f"{cond_title[cond]} — {mlab}, {fixed_txt}", fontsize=dm.fs(-3), loc="left")
-                panel_letter(ax, "abcdef"[i * 3 + j], x=-0.28, y=1.06)
-        axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-4.5))
-        save(fig, name, mt="6%", ml="3%")
+                _panels.append((ax, "abcdef"[i * 3 + j]))
+        dm.place_legend(axes[0][0], frameon=False, fontsize=dm.fs(-3))
+        dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+        save(fig, name)
 
     split_fig("10_sh_only_cop_vs_plr", SH_ONLY, "SC = 5 K", lambda p: f"SH = {p[0]:g} K")
     split_fig("11_sc_only_cop_vs_plr", SC_ONLY, "SH = 5 K", lambda p: f"SC = {p[1]:g} K")
 
     # -- 12 combined ------------------------------------------------------
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.34))
+    _panels: list = []
     combos = (
         ("mode_A", CURRENT, 0.0, COLORS["ink"], "solid", "current TMHP"),
         ("mode_A", CURRENT, 50.0, COLORS["accent"], (0, (4, 1.6)), r"+ $W_{fixed}$ = 50 W"),
@@ -717,9 +727,10 @@ def _figures(df: pd.DataFrame) -> None:
         xaxis(ax)
         ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2), loc="left")
-        ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
-        panel_letter(ax, letter)
-    save(fig, "12_combined_effect_cop_vs_plr", mt="8%")
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
+        _panels.append((ax, letter))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    save(fig, "12_combined_effect_cop_vs_plr", gutter="8pt")
 
 
 def main() -> None:

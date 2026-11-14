@@ -347,7 +347,7 @@ def write_unit(results_dir: Path, catalog: Catalog, df: pd.DataFrame, state: dic
         "slug": catalog.slug,
         **state,
         "catalog_blob": _git("rev-parse", f"HEAD:validation/catalogs/{catalog.slug}.yaml"),
-        "run_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        "run_at": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
     }
     _replace_atomically(record_path, lambda tmp: tmp.write_text(json.dumps(record, indent=1) + "\n"))
 

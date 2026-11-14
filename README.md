@@ -6,7 +6,7 @@
 
 _Refrigerant-agnostic · condition-agnostic · integration-ready · first-principles from the cycle up_
 
-[![Python](https://img.shields.io/badge/python-≥3.10-3776AB?logo=python&logoColor=white)](https://www.python.org)
+[![Python](https://img.shields.io/badge/python-≥3.11-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](#license)
 [![Docs](https://img.shields.io/badge/docs-online-blue.svg)](https://bet-lab.github.io/TMHP/)
 [![CoolProp](https://img.shields.io/badge/powered%20by-CoolProp-orange.svg)](http://www.coolprop.org)
@@ -111,7 +111,7 @@ Each concrete model in the [next section](#models) is a fixed, code-backed combi
 
 ## Installation
 
-Requires Python ≥ 3.10 and the [`uv`](https://github.com/astral-sh/uv) package manager.
+Requires Python ≥ 3.11 and the [`uv`](https://github.com/astral-sh/uv) package manager.
 
 ```bash
 git clone https://github.com/bet-lab/tmhp.git

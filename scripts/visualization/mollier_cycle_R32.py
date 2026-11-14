@@ -17,7 +17,7 @@ import CoolProp.CoolProp as CP
 import dartwork_mpl as dm
 import matplotlib.pyplot as plt
 import numpy as np
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, record_figure, static_path
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, record_figure, static_path
 
 from tmhp import AirSourceHeatPumpBoiler
 
@@ -169,7 +169,8 @@ def main() -> None:
 
     # Two-panel layout: 17 cm column-pair, 5:2 aspect keeps each panel
     # ~8 cm wide × 6 cm tall.
-    fig, (ax_ph, ax_th) = plt.subplots(1, 2, figsize=dm.figsize("17cm", 5 / 12))
+    fig, (ax_ph, ax_th) = plt.subplots(1, 2, figsize=dm.figsize("17.4cm", 0.407))
+    _panels: list = []
 
     # --- Panel (a): P-h --------------------------------------------------
     _draw_envelope(ax_ph, h_liq_ph, h_vap_ph, p_sat)
@@ -178,7 +179,7 @@ def main() -> None:
         pts_ph,
         label_offsets={
             "1": (5, -3, "left", "top"),
-            "2": (5, 0, "left", "center"),
+            "2": (0, 5, "center", "bottom"),
             "3": (-4, 3, "right", "bottom"),
             "4": (-4, -3, "right", "top"),
         },
@@ -190,7 +191,7 @@ def main() -> None:
     ax_ph.set_ylabel("Pressure [kPa]")
     ax_ph.legend(loc="upper left", frameon=False, ncol=3, bbox_to_anchor=(0.06, 1.0), fontsize=dm.fs(-1))
     ax_ph.grid(True, which="both", alpha=0.25, linewidth=GRIDLINE)
-    panel_letter(ax_ph, "a")
+    _panels.append((ax_ph, "a"))
 
     # --- Panel (b): T-h --------------------------------------------------
     _draw_envelope(ax_th, h_liq_th, h_vap_th, T_sat)
@@ -199,16 +200,16 @@ def main() -> None:
         pts_th,
         label_offsets={
             "1": (5, -3, "left", "top"),
-            "2": (5, 0, "left", "center"),
+            "2": (-5, 0, "right", "center"),
             "3": (3, 6, "right", "bottom"),
             "4": (0, -5, "center", "top"),
         },
     )
 
     ax_th.axhline(T_TANK_W, color=COLORS["hot"], linewidth=dm.lw(0), linestyle=(0, (3, 3)), alpha=0.9)
-    ax_th.text(15, T_TANK_W + 3, f"Tank water: {T_TANK_W:.1f} °C", color=COLORS["hot"], fontsize=dm.fs(-1))
+    ax_th.text(15, T_TANK_W + 3, f"Tank water: {T_TANK_W:.0f} °C", color=COLORS["hot"], fontsize=dm.fs(-1))
     ax_th.axhline(T0, color=COLORS["warm"], linewidth=dm.lw(0), linestyle=(0, (3, 3)), alpha=0.9)
-    ax_th.text(15, T0 - 10, f"Outdoor air: {T0:.1f} °C", color=COLORS["warm"], fontsize=dm.fs(-1))
+    ax_th.text(15, T0 - 10, f"Outdoor air: {T0:.0f} °C", color=COLORS["warm"], fontsize=dm.fs(-1))
 
     ax_th.set_xlim(0, 700)
     ax_th.set_ylim(-20, 160)
@@ -216,9 +217,10 @@ def main() -> None:
     ax_th.set_ylabel("Temperature [°C]")
     ax_th.legend(loc="upper left", frameon=False, ncol=3, bbox_to_anchor=(0.06, 1.0), fontsize=dm.fs(-1))
     ax_th.grid(True, which="both", alpha=0.25, linewidth=GRIDLINE)
-    panel_letter(ax_th, "b")
+    _panels.append((ax_th, "b"))
 
-    finalize(fig, OUTPUT_STEM)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    finalize(fig, OUTPUT_STEM, gutter="14pt")
     record_figure(
         "mollier_cycle_R32",
         "scripts/visualization/mollier_cycle_R32.py",

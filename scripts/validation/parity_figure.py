@@ -36,7 +36,6 @@ from _dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     static_path,
     ticks,
 )
@@ -90,6 +89,7 @@ def main() -> None:
     df = load_points()
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.52))
+    _panels: list = []
     for ax, (model_class, letter, title) in zip(axes, PANELS, strict=True):
         sub = df[df.model_class == model_class]
         if sub.empty:
@@ -182,11 +182,12 @@ def main() -> None:
             labels.append(f"on hold, not scored ({refrigerants}, {held.slug.nunique()} units)")
         ax.legend(handles, labels, loc="lower right", frameon=False, fontsize=dm.fs(-2), handletextpad=0.4)
         ax.set_title(title, loc="left", fontsize=dm.fs(0))
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
 
     axes[0].set_ylabel("Predicted COP [-]")
     out = static_path("validation_parity.svg").with_suffix("")
-    finalize(fig, out, mt="6%", formats=("svg", "png"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    finalize(fig, out, formats=("svg", "png"))
     plt.close(fig)
     print(f"wrote {out}.svg")
     overall = panel_statistics(df)

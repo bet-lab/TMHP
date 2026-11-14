@@ -47,17 +47,23 @@ def _schedules():
         day = h + np.arange(7, 18)
         I_DN[day] = 800.0
         I_dH[day] = 120.0
-        T0[h:h + 24] = 8.0 + 6.0 * np.sin(np.linspace(-1.2, 1.9, 24))  # diurnal ambient
+        T0[h : h + 24] = 8.0 + 6.0 * np.sin(np.linspace(-1.2, 1.9, 24))  # diurnal ambient
     return dhw, T0, I_DN, I_dH
 
 
 def _run(router):
     dhw, T0, I_DN, I_dH = _schedules()
-    model = GSHPB_STC_routed(stc=SolarThermalCollector(A_stc=6.0), solar_router=router,
-                             T_tank_w_lower_bound=60.0, **CFG)
+    model = GSHPB_STC_routed(
+        stc=SolarThermalCollector(A_stc=6.0), solar_router=router, T_tank_w_lower_bound=60.0, **CFG
+    )
     return model.analyze_dynamic(
-        simulation_period_sec=N * DT, dt_s=DT, T_tank_w_init_C=58.0,
-        dhw_usage_schedule=dhw, T0_schedule=T0, I_DN_schedule=I_DN, I_dH_schedule=I_dH,
+        simulation_period_sec=N * DT,
+        dt_s=DT,
+        T_tank_w_init_C=58.0,
+        dhw_usage_schedule=dhw,
+        T0_schedule=T0,
+        I_DN_schedule=I_DN,
+        I_dH_schedule=I_dH,
     )
 
 
@@ -80,10 +86,18 @@ def main() -> None:
         q_grd = float(df["Q_solar_ground [W]"].sum()) * KWH
         q_tnk = float(df["Q_solar_tank [W]"].sum()) * KWH
         tbhe = df["T_bhe [°C]"].to_numpy()
-        out[name] = dict(df=df, q_grd=q_grd, q_tnk=q_tnk,
-                         tbhe_mean=float(tbhe.mean()), tbhe_min=float(tbhe.min()), tbhe_end=float(tbhe[-1]))
-        print(f"{name:18s} {q_grd:9.2f} {q_tnk:9.2f} {out[name]['tbhe_mean']:10.2f} "
-              f"{out[name]['tbhe_min']:9.2f} {out[name]['tbhe_end']:9.2f}")
+        out[name] = dict(
+            df=df,
+            q_grd=q_grd,
+            q_tnk=q_tnk,
+            tbhe_mean=float(tbhe.mean()),
+            tbhe_min=float(tbhe.min()),
+            tbhe_end=float(tbhe[-1]),
+        )
+        print(
+            f"{name:18s} {q_grd:9.2f} {q_tnk:9.2f} {out[name]['tbhe_mean']:10.2f} "
+            f"{out[name]['tbhe_min']:9.2f} {out[name]['tbhe_end']:9.2f}"
+        )
     _plot(out)
 
 
@@ -103,7 +117,7 @@ def _plot(out) -> None:
     ax1.set_xlabel("time [days]", fontsize=dm.fs(-1))
     ax1.set_ylabel("borehole-wall temp $T_{bhe}$ [°C]", fontsize=dm.fs(-1))
     ax1.set_title("ground charging vs routing policy", fontsize=dm.fs(-1))
-    ax1.legend(fontsize=dm.fs(-3), frameon=False, loc="best")
+    ax1.legend(fontsize=dm.fs(-2.5), frameon=False, loc="best")
 
     # Panel B — where the solar energy went (ground vs tank), per policy
     names = list(out.keys())
@@ -115,7 +129,7 @@ def _plot(out) -> None:
     ax2.set_xticklabels([n.replace(" (default)", "") for n in names], fontsize=dm.fs(-2), rotation=12)
     ax2.set_ylabel("delivered solar energy [kWh]", fontsize=dm.fs(-1))
     ax2.set_title("solar energy split (7 days)", fontsize=dm.fs(-1))
-    ax2.legend(fontsize=dm.fs(-3), frameon=False, loc="best")
+    ax2.legend(fontsize=dm.fs(-2.5), frameon=False, loc="best")
 
     dm.simple_layout(fig, margin="2mm")
     dm.save_formats(fig, str(HERE / "fig1_routing_policies"))

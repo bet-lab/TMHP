@@ -31,7 +31,6 @@ from _dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     static_path,
     ticks,
 )
@@ -57,6 +56,7 @@ def main() -> None:
     points = pd.read_csv(POINTS)
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.42))
+    _panels: list = []
 
     for ax, (duty, letter, title) in zip(axes, PANELS, strict=True):
         block = declared[declared.application == duty]
@@ -107,7 +107,7 @@ def main() -> None:
         ax.set_axisbelow(True)
         ax.legend(frameon=False, fontsize=dm.fs(-1.5), loc="upper right")
         ax.set_title(title, loc="left", fontsize=dm.fs(-1))
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
 
     for ax, (duty, _, _) in zip(axes, PANELS, strict=True):
         block = declared[declared.application == duty]
@@ -123,7 +123,8 @@ def main() -> None:
     axes[0].set_ylabel("COP [-]")
     axes[1].set_ylabel("EER [-]")
 
-    finalize(fig, static_path("validation_ashp_en14825.svg").with_suffix(""), mt="6%", formats=("svg", "png"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    finalize(fig, static_path("validation_ashp_en14825.svg").with_suffix(""), formats=("svg", "png"))
 
 
 if __name__ == "__main__":

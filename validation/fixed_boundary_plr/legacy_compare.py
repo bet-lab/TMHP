@@ -177,12 +177,12 @@ def figure(df: pd.DataFrame, out: Path) -> None:
         HAIRLINE,
         apply_style,
         finalize,
-        panel_letter,
         ticks,
     )
 
     apply_style("scientific")
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("17cm", 0.80), gridspec_kw={"wspace": 0.34, "hspace": 0.62})
+    _panels: list = []
     columns = (
         ("legacy", "pre-refit v1 correlations + pre-refit objective"),
         ("current", f"{COEFFICIENT_VERSION} + specific-energy objective"),
@@ -224,7 +224,7 @@ def figure(df: pd.DataFrame, out: Path) -> None:
                 linespacing=1.4,
             )
             ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
-            panel_letter(ax, letters[i][j], x=-0.17, y=1.20)
+            _panels.append((ax, letters[i][j]))
         handles = [plt.Line2D([], [], color=levels[t], lw=dm.lw(0), label=f"{t:g}") for t in outdoor]
         axes[i][1].legend(
             handles=handles,
@@ -254,6 +254,7 @@ def figure(df: pd.DataFrame, out: Path) -> None:
     ]
     axes[0][0].legend(handles=marks, loc="lower left", frameon=False, fontsize=dm.fs(-3.5), labelspacing=0.25)
     out.mkdir(parents=True, exist_ok=True)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out / "G_legacy_vs_current_plr_cop", formats=("svg", "png"), mt="4%")
     plt.close(fig)
 

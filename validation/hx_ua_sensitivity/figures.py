@@ -35,7 +35,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     apply_style,
     cover_data_ylim,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -186,7 +185,7 @@ def _axis(ax, values, ylabel: str, step: float, *, title=None, legend=None, ncol
     if title:
         ax.set_title(title, fontsize=dm.fs(-2), loc="left")
     if legend:
-        ax.legend(loc=legend, frameon=False, fontsize=dm.fs(-3.5), ncol=ncol, handlelength=1.6, columnspacing=1.0)
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3), ncol=ncol, handlelength=1.6, columnspacing=1.0)
     _plr_axis(ax)
 
 
@@ -234,6 +233,7 @@ def fig1(d, duty: str) -> None:
     tag = DUTY_TAG[duty]
     sub = _joint(d, duty)
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.32})
+    _panels: list = []
     # The starved coils cannot reach nameplate duty, so the shape panel is
     # normalised at the highest PLR *every* case still modulates through --
     # normalising each case at its own top point would compare curves anchored
@@ -257,9 +257,10 @@ def fig1(d, duty: str) -> None:
     )
     axes[1].axhline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=":", zorder=0)
     for ax, letter in zip(axes, "ab", strict=True):
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["cop_sys", "cop_ref", "E_cmp", "E_tot"], f"{tag}1_cop_vs_plr.csv")
-    _save(fig, f"{tag}1_cop_vs_plr", mt="6%")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    _save(fig, f"{tag}1_cop_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +271,7 @@ def fig2(d, duty: str) -> None:
     sub = _joint(d, duty)
     evap_role, cond_role = COIL_ROLE[duty]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.32})
+    _panels: list = []
     temps, apps = [], []
     for s, g in _by_scale(d, duty):
         _series(axes[0], g, "T_cond_C", SCALE_COLOR[s], label=_label(s))
@@ -286,18 +288,19 @@ def fig2(d, duty: str) -> None:
         0.06,
         "solid: condensing\ndashed: evaporating",
         transform=axes[0].transAxes,
-        fontsize=dm.fs(-3.5),
+        fontsize=dm.fs(-3),
         color=COLORS["muted"],
         va="bottom",
     )
     for ax, letter in zip(axes, "ab", strict=True):
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(
         sub,
         ["T_evap_C", "T_cond_C", "approach_evap_K", "approach_cond_K", "lift_ref_K", "UA_evap", "UA_cond"],
         f"{tag}2_temperatures_vs_plr.csv",
     )
-    _save(fig, f"{tag}2_temperatures_vs_plr", mt="6%")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    _save(fig, f"{tag}2_temperatures_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -307,6 +310,7 @@ def fig3(d, duty: str) -> None:
     tag = DUTY_TAG[duty]
     sub = _joint(d, duty)
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.32})
+    _panels: list = []
     prs, ns = [], []
     for s, g in _by_scale(d, duty):
         _series(axes[0], g, "pr", SCALE_COLOR[s], label=_label(s))
@@ -319,9 +323,10 @@ def fig3(d, duty: str) -> None:
     )
     _axis(axes[1], ns, "Relative speed $n^*$ = rps / rps$_{rated}$ [-]", 0.2, title="Compressor speed")
     for ax, letter in zip(axes, "ab", strict=True):
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["pr", "n_star", "rps", "lift_ref_K"], f"{tag}3_pressure_ratio_vs_plr.csv")
-    _save(fig, f"{tag}3_pressure_ratio_vs_plr", mt="6%")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    _save(fig, f"{tag}3_pressure_ratio_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -331,6 +336,7 @@ def fig4(d, duty: str) -> None:
     tag = DUTY_TAG[duty]
     sub = _joint(d, duty)
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("15cm", 0.80), gridspec_kw={"wspace": 0.34, "hspace": 0.50})
+    _panels: list = []
     spec = [
         ("eta_isen", r"Isentropic efficiency $\eta_{is}$ [-]", 0.02),
         ("eta_vol", r"Volumetric efficiency $\eta_{v}$ [-]", 0.02),
@@ -352,9 +358,10 @@ def fig4(d, duty: str) -> None:
             legend="lower right" if col == "eta_isen" else None,
             ncol=2,
         )
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["eta_isen", "eta_vol", "eta_em", "E_cmp", "pr", "n_star"], f"{tag}4_compressor_vs_plr.csv")
-    _save(fig, f"{tag}4_compressor_vs_plr", mt="5%")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
+    _save(fig, f"{tag}4_compressor_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -382,12 +389,12 @@ def fig5(d, duty: str) -> None:
         0.95,
         r"dashed: $COP_{cmp} = Q/W_{cmp}$" "\n" r"solid: $COP_{sys} = Q/(W_{cmp}+W_{fan})$",
         transform=ax.transAxes,
-        fontsize=dm.fs(-3.5),
+        fontsize=dm.fs(-3),
         color=COLORS["muted"],
         va="top",
     )
     _source(sub, ["cop_ref", "cop_sys", "E_cmp", "E_fan", "E_tot", "fan_share"], f"{tag}5_cop_definition.csv")
-    _save(fig, f"{tag}5_cop_definition", mt="6%")
+    _save(fig, f"{tag}5_cop_definition")
 
 
 # ---------------------------------------------------------------------------
@@ -420,15 +427,8 @@ def fig6(d, duty: str) -> None:
         ms=MS,
         label="fan share (right axis)",
     )
-    handles = ax.get_legend_handles_labels()
-    extra = ax2.get_legend_handles_labels()
-    ax.legend(
-        handles[0] + extra[0],
-        handles[1] + extra[1],
-        loc="upper left",
-        frameon=False,
-        fontsize=dm.fs(-3.5),
-    )
+    # Both axes' labelled artists (the fan share is on the twin): place_legend gathers the pair.
+    dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
     if len(floor):
         ax2.plot(
             100 * floor.plr_request,
@@ -445,7 +445,7 @@ def fig6(d, duty: str) -> None:
     ax2.set_yticks(ticks(f_lo, f_hi, f_step))
     ax2.set_ylabel(r"Fan share $W_{fan}/(W_{cmp}+W_{fan})$ [%]")
     _source(g, ["E_cmp", "E_ou_fan", "E_iu_fan", "E_fan", "E_tot", "fan_share"], f"{tag}6_power_split.csv")
-    _save(fig, f"{tag}6_power_split", mt="6%", mr="4%")
+    _save(fig, f"{tag}6_power_split")
 
 
 # ---------------------------------------------------------------------------
@@ -466,7 +466,7 @@ def fig7(d, duty: str) -> None:
         vals += list(mod.cop_sys)
     _axis(ax, vals, "System COP [-]", 1.0, title=DUTY_TITLE[duty], legend="lower right")
     _source(sub, ["cop_sys", "approach_evap_K", "approach_cond_K", "pr"], f"{tag}7_coil_split.csv")
-    _save(fig, f"{tag}7_coil_split", mt="6%")
+    _save(fig, f"{tag}7_coil_split")
 
 
 # ---------------------------------------------------------------------------

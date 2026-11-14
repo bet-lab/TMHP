@@ -1922,6 +1922,12 @@
         "MEUK-5330",
         "MEUK-5331"
       ],
+      "airflow_basis_counts": {
+        "explicit_max": 26
+      },
+      "explicit_max_only": {
+        "status": "all rows explicit_max"
+      },
       "meets_shipping_gate": true
     },
     "airflow|cooling|indoor|wall_mounted": {
@@ -26395,6 +26401,12 @@
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT"
       ],
+      "airflow_basis_counts": {
+        "explicit_max": 130
+      },
+      "explicit_max_only": {
+        "status": "all rows explicit_max"
+      },
       "meets_shipping_gate": true
     },
     "airflow|cooling|indoor|water_to_air": {
@@ -31672,6 +31684,12 @@
         "WATERFURNACE-SC2500AN",
         "WATERFURNACE-SC2700ANC"
       ],
+      "airflow_basis_counts": {
+        "explicit_max": 52
+      },
+      "explicit_max_only": {
+        "status": "all rows explicit_max"
+      },
       "meets_shipping_gate": true
     },
     "airflow|cooling|outdoor|single_split": {
@@ -51666,6 +51684,30 @@
         "PANASONIC-BIGRAC-GEN26-LT",
         "PANASONIC-EU-WEB-FLOOR"
       ],
+      "airflow_basis_counts": {
+        "explicit_max": 40,
+        "rated": 19,
+        "single_value": 69
+      },
+      "explicit_max_only": {
+        "n": 40,
+        "families": 13,
+        "manufacturers": [
+          "Fujitsu",
+          "LG"
+        ],
+        "selected_law": {
+          "kind": "linear",
+          "a": 0.0905579985543943,
+          "b": 0.24118386314062448
+        },
+        "nested_family_MAPE_pct": 13.219044878740865,
+        "all_rows_over_explicit_max": {
+          "3.40 kW": 0.9947386637087311,
+          "4.20 kW": 1.0183207909701402,
+          "6.21 kW": 1.0588559456352646
+        }
+      },
       "meets_shipping_gate": true
     },
     "airflow|heating|indoor|floor_standing": {
@@ -53580,6 +53622,12 @@
         "MEUK-5330",
         "MEUK-5331"
       ],
+      "airflow_basis_counts": {
+        "explicit_max": 26
+      },
+      "explicit_max_only": {
+        "status": "all rows explicit_max"
+      },
       "meets_shipping_gate": true
     },
     "airflow|heating|indoor|wall_mounted": {
@@ -77853,6 +77901,12 @@
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT"
       ],
+      "airflow_basis_counts": {
+        "explicit_max": 131
+      },
+      "explicit_max_only": {
+        "status": "all rows explicit_max"
+      },
       "meets_shipping_gate": true
     },
     "airflow|heating|indoor|water_to_air": {
@@ -83130,6 +83184,12 @@
         "WATERFURNACE-SC2500AN",
         "WATERFURNACE-SC2700ANC"
       ],
+      "airflow_basis_counts": {
+        "explicit_max": 52
+      },
+      "explicit_max_only": {
+        "status": "all rows explicit_max"
+      },
       "meets_shipping_gate": true
     },
     "airflow|heating|outdoor|single_split": {
@@ -102162,6 +102222,30 @@
         "PANASONIC-BIGRAC-GEN26-LT",
         "PANASONIC-EU-WEB-FLOOR"
       ],
+      "airflow_basis_counts": {
+        "explicit_max": 40,
+        "rated": 18,
+        "single_value": 67
+      },
+      "explicit_max_only": {
+        "n": 40,
+        "families": 13,
+        "manufacturers": [
+          "Fujitsu",
+          "LG"
+        ],
+        "selected_law": {
+          "kind": "linear",
+          "a": 0.0875469992735847,
+          "b": 0.1800557328070548
+        },
+        "nested_family_MAPE_pct": 13.557760573681342,
+        "all_rows_over_explicit_max": {
+          "3.60 kW": 0.8899502388951875,
+          "5.28 kW": 1.006120876021496,
+          "7.00 kW": 1.0808208399071417
+        }
+      },
       "meets_shipping_gate": true
     }
   },
@@ -102169,5 +102253,5 @@
     "families": 3,
     "manufacturers": 2
   },
-  "data_sha256": "786283b4d3b0a9a714731de782d2ba444a93b90b48ff455959156dd000fcf45f"
+  "data_sha256": "d2defd6a4c6b6c916dd68459886c353ac32520e371d6eb0fa25bee46bd79c97f"
 }

@@ -15,10 +15,11 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from validation.default_inputs import archive
+from validation.default_inputs.regression import predict
 
 HERE = Path(__file__).parent
 ROOT = HERE.parents[2]
@@ -65,6 +66,24 @@ def load_json(name: str):
     return archive.load_json(HERE, name)
 
 
+def airflow_basis(fan_step: str) -> str:
+    """How the printed value is known to be the fan's largest airflow (decision 2026-11-14, option A).
+
+    explicit_max: a printed step or label marks the value as the largest (High, Max, top setting ...);
+    single_value: one value printed without a step, or a label naming several steps over one value;
+    rated: labelled rated/nominal. Outdoor single_value and rated rows are taken as the maximum
+    (README rule) and the fit restricted to explicit_max rows is reported as a sensitivity.
+    """
+    label = fan_step.strip()
+    if not label:
+        return "single_value"
+    if label.lower() in RATED_STEP_LABELS or label.lower().startswith("rated"):
+        return "rated"
+    if "/" in label:
+        return "single_value"
+    return "explicit_max"
+
+
 def stratum(row: dict) -> str:
     if row["side"] == "indoor":
         equipment = row["indoor_type"]
@@ -106,6 +125,8 @@ def normalize(obs: dict, source: dict) -> dict:
         assumption=source.get("assumption"),
         errata_applied=obs.get("errata_applied", []),
         stratum=stratum(obs),
+        airflow_basis=airflow_basis(obs["fan_step"]),
+        capacity_basis=source.get("capacity_basis"),
     )
     row["capacity_kW"] = row["capacity_W"] / 1000 if row["capacity_W"] else None
     token = re.match(r"[A-Z-]*\d+", obs["indoor_model"])
@@ -142,13 +163,39 @@ def build_rows() -> list[dict]:
     return rows
 
 
+def explicit_max_sensitivity(group: list[dict], fit: dict) -> dict:
+    """Refit with explicit_max rows only and compare the two laws at the stratum's capacity quartiles."""
+    subset = [r for r in group if r["airflow_basis"] == "explicit_max"]
+    if len(subset) == len(group):
+        return {"status": "all rows explicit_max"}
+    families = {r["family_id"] for r in subset}
+    makers = {r["manufacturer"] for r in subset}
+    if len(families) < 2:
+        return {"status": "insufficient explicit_max rows", "n": len(subset), "families": len(families)}
+    sub = archive.fit_group(subset)
+    caps = sorted(r["capacity_W"] / 1000 for r in group)
+    quartiles = [caps[int(q * (len(caps) - 1))] for q in (0.25, 0.5, 0.75)]
+    return {
+        "n": len(subset),
+        "families": len(families),
+        "manufacturers": sorted(makers),
+        "selected_law": sub["selected_law"],
+        "nested_family_MAPE_pct": sub["nested_family_cv"].get("MAPE_pct"),
+        "all_rows_over_explicit_max": {
+            f"{x:.2f} kW": float(predict(fit["selected_law"], x) / predict(sub["selected_law"], x)) for x in quartiles
+        },
+    }
+
+
 def fit_groups(rows: list[dict]) -> dict:
     groups = defaultdict(list)
     for row in rows:
         if row["eligible"]:
             groups[row["stratum"]].append(row)
     fits = {key: {"stratum": key, **archive.fit_group(group)} for key, group in sorted(groups.items())}
-    for fit in fits.values():
+    for key, fit in fits.items():
+        fit["airflow_basis_counts"] = dict(sorted(Counter(r["airflow_basis"] for r in groups[key]).items()))
+        fit["explicit_max_only"] = explicit_max_sensitivity(groups[key], fit)
         fit["meets_shipping_gate"] = (
             len(fit["families"]) >= SHIPPING_GATE["families"]
             and len(fit["manufacturers"]) >= SHIPPING_GATE["manufacturers"]

@@ -53,11 +53,16 @@ plane, with the sun position of each hour.
 
 | policy        | solar→ground [kWh] | solar→tank [kWh] | T_bhe mean [°C] | T_bhe min [°C] | T_bhe end [°C] |
 | ------------- | ------------------ | ---------------- | --------------- | -------------- | -------------- |
-| always-ground | 216.1              | 0.0              | 16.7            | 15.3           | 16.4           |
-| always-tank   | 0.0                | 18.4             | 15.6            | 15.1           | 15.4           |
-| greedy        | 216.1              | 0.0              | 16.7            | 15.3           | 16.4           |
+| always-ground | 216.7              | 0.0              | 16.5            | 15.3           | 16.2           |
+| always-tank   | 0.0                | 21.0             | 15.4            | 14.8           | 15.2           |
+| greedy        | 216.7              | 0.0              | 16.5            | 15.3           | 16.2           |
 
-(Model of 2026-11-13: collector on its own plane with the ISO 9806 efficiency and
+(Model of 2026-11-14: as below, plus the compressor's condensing-temperature cap,
+on by default since #136. For R32 it is 65 °C, so the heat pump stops the tank at
+60 °C and the lower bound asked for, 60 °C, moves down to 55 °C: the tank runs at
+55–60 °C instead of 60–65 °C, which takes always-tank from 18.4 to 21.0 kWh and
+always-ground from 216.1 to 216.7 kWh.
+Model of 2026-11-13: collector on its own plane with the ISO 9806 efficiency and
 the 85 °C storage limit, #96 T3/T9, and the controller's 2 K restart band below
 that limit, which takes always-tank from 19.9 to 18.4 kWh; the stagnation lock-out
 holds the loop on 28 of the 168 hours without changing that sum. The table in the first version of this note
@@ -73,16 +78,17 @@ Findings:
 - **Routing is exclusive and correct.** The solar energy lands wholly in the
   chosen destination; no step charges both (verified in `test_stc_routed.py`).
 - **The tank is a small sink for a 6 m² collector.** The 100 L tank, kept at
-  60–65 °C by the heat pump, reaches the 85 °C storage limit within about two
+  55–60 °C by the heat pump, reaches the 85 °C storage limit within a few
   sunny hours; after that the loop stops (the collector stagnates) and
-  `always-tank` collects only 18.4 kWh in 7 days against 216 kWh for
+  `always-tank` collects only 21.0 kWh in 7 days against 217 kWh for
   `always-ground`.
 - **The ground stays warm in this short run.** With the heat pump's extraction
-  over a week, the 2×100 m field moves by about 1 K (15.1–16.7 °C wall
+  over a week, the 2×100 m field moves by about 1 K (14.8–16.5 °C wall
   temperature); ground charging lifts it about 1 K above the tank policies. The
   week is too short for the seasonal effect that ground charging is for.
 - **The greedy default acts like always-ground here.** It routes to the tank only
-  while the tank is below its lower set point (60 °C here) when the sun is up,
+  while the tank is below its lower set point (60 °C asked, 55 °C after the R32
+  condensing cap moves it) when the sun is up,
   which this schedule never produces; a policy that weighs the tank's limited
   storage against the ground's value needs a multi-step objective (an MPC).
 

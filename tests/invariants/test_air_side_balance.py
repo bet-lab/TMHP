@@ -87,7 +87,7 @@ REFRIGERANT = "R32"
 
 def _continuous_kwargs(family: str) -> dict:
     kwargs: dict = {"Cd_cycling": None}
-    if family.startswith("ASHP-"):
+    if family.startswith("ASHP"):  # air-to-air and the air-source boiler
         kwargs["defrost"] = None
     return kwargs
 

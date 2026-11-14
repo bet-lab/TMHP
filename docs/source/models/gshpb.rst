@@ -586,20 +586,45 @@ In the multi-node modes the condenser is a coil immersed in the tank:
 ``condenser_node`` (0 = top). Heat flows only into water colder than the
 refrigerant:
 
-- Node ``i`` receives ``k·UA_i·(T_cond − T_i)⁺``, with ``T_cond`` the
-  condensing temperature of the step's cycle (``T_ref_cond_sat_l``) and
-  ``T_i`` the node's end-of-step temperature; ``k`` is set so that the nodes
-  receive the step's condenser heat ``Q_ref_tank``. A node as hot as the
-  refrigerant receives nothing and no node is heated past ``T_cond``.
+- The coil exchanges while the compressor runs. Over a step node ``i``
+  receives ``f·UA_i·(T_end − T_i)⁺``, with ``f`` the row's
+  ``runtime_fraction``, ``T_i`` the node's end-of-step temperature and
+  ``T_end`` the exchanger temperature at which the nodes receive the step's
+  condenser heat ``Q_ref_tank``, solved by the tank step: the condensing
+  temperature the run ends on. A node as hot as the refrigerant receives
+  nothing and no node is heated past ``T_end``.
 - The cycle condenses at the temperature that coil needs. With cold water
   at the bottom and hot water above the refrigerant temperature, only the
   cold nodes take heat and the cycle condenses near them, below what the
   mean tank temperature would give; in a mixed tank the two agree, and a
   one-node ``"stratified"`` tank reproduces ``"lumped"``.
-- If the water around the coil cannot take the step's heat below ``T_cond``
-  (a coil in the top node only), the compressor stops when that water
-  reaches ``T_cond``: the row's ``runtime_fraction``, heat and power are cut
-  to what was delivered and the thermostat call stands.
+- The cycle of a step is solved at the **mean** of the condensing
+  temperatures its run passes through, as the lumped tank solves it at the
+  mean tank temperature of the run: the power of a step is the power along
+  that path, not the power at the temperature the run ends on. The mean is
+  the thermostat's mean tank temperature of the run plus how far the coil's
+  condensing level lies above the tank's mean, read from trial steps of the
+  node model over the run. ``T_ref_cond_sat_l [°C]`` is that mean;
+  ``T_ref_cond_sat_l_peak [°C]`` is the highest condensing temperature of
+  the step (the level the run ends on when it warms its water), which is
+  the one no heated water exceeds. Before, a step took the level it ended
+  on whenever the tank warmed by more than the coil's approach in it, so a
+  long step paid for a hotter condenser than its run had: a coil over the
+  whole tank, 55 to 65 °C without a draw, 0.348 kWh at 60 s steps against
+  0.364 kWh at 600 s (+4.7 %; now 0.348 and 0.347, the lumped tank's).
+- The condensing temperature a step ends on is not taken above the
+  condensing limit. A step whose heat would need more is held instead: the
+  heat goes to the coil's nodes below the envelope stop and none is heated
+  past it; if they cannot take all of it the row's ``runtime_fraction``,
+  heat and power are what they took
+  (``hp_stop_reason == "condensing_limit"``) and the thermostat call
+  stands. It is the same run in the next step, not a new start.
+- A coil that reaches its envelope stop while the mean the thermostat reads
+  is at the upper set point (within 0.5 K) has satisfied the thermostat:
+  the call ends and the tank cools to the lower bound before the next
+  start, as in the lumped tank. The two coincide whenever the set point is
+  the envelope's own -- a requested set point above the envelope stop is
+  capped at it (R32: 65 to 60 °C) -- and the coil spans the tank.
 - The water around the coil can reach the envelope stop (the tank
   temperature at which the nameplate duty condenses on ``T_cond_max``,
   above) while the mean the thermostat reads is still below the set point.
@@ -609,23 +634,44 @@ refrigerant:
   a large draw the coil's water warms while the mean falls). While the call
   stands it then holds the coil's water there: it runs the share of the rest
   of the step that delivers the heat the water loses (to the draw, the nodes
-  below, the wall). The row is a normal
+  below, the wall), never more than the nameplate duty at any moment -- when
+  a cold front reaches the coil inside a long step the hold lasts until it
+  would take more, and the compressor then runs flat out while the coil's
+  water cools. The row is a normal
   one (``failure_reason == "none"``, ``hp_stop_reason ==
   "condensing_limit"``), and the condensing temperature never needs to go
   above the limit. Before, each such step was an off row with
   ``condensing_temp_above_max`` and two or three cycle solves, and the
   results depended on the step (a top coil, R290, 6 h: 353 of 360 steps at
   60 s, 30 of 36 at 600 s); the heat delivered now agrees from 60 s to 600 s
-  steps (0.2738 kWh in that run).
+  steps (0.2738 kWh in that run), and so does the electricity (0.0899 and
+  0.0897 kWh; 0.0924 and 0.0953 before).
+
+Results of a multi-node tank agree between 60 s and 600 s steps within
+about 2 % of heat and 5 % of electricity, the lumped tank's own margin
+(a top coil under a 6 L/min draw that empties the tank in an hour, R290:
+5.93 and 6.05 kWh of heat, 1.90 and 1.95 kWh of electricity; 1.91 and
+2.12 kWh of electricity before). What remains is the node model's time
+resolution: the cold front of a draw smears faster in long steps
+(``docs/tank_backends/tank_backends.md``). The trial steps that read the
+coil's level draw what the step itself does (the mixing valve takes more
+tank water as the top cools), and the top node ends a step at the envelope
+stop at most.
 
 The thermostat reads the volume-average temperature ``T_tank_w [°C]``, so
 on/off timing and delivered heat follow the lumped tank; with a coil that
 reaches the top, the top node can sit several kelvin above
-``T_tank_w_upper_bound`` while staying below ``T_cond``. Hot water leaves
+``T_tank_w_upper_bound`` while staying below ``T_cond``. Its tank balance
+draws the hot water from the top node, not at the mean: the two take the
+same heat while both are above the mixing set point, and a tank a draw has
+left cold under a hot top still gives the scheduled heat (the lumped
+balance would give lukewarm water, and a mean that rises while the tank's
+falls). Hot water leaves
 from the top: the mixing valve, ``T_mix_w_out``, ``Q_tank_w_out`` and
 ``X_tank_w_out`` use ``T_tank_w_out [°C]``, the temperature of the water that
 left during the step. The multi-node modes add ``T_tank_w_out``,
-``T_tank_w_top`` and ``T_tank_w_bottom`` to the result, and ``Q_tank_loss``
+``T_tank_w_top``, ``T_tank_w_bottom`` and ``T_ref_cond_sat_l_peak`` to the
+result, and ``Q_tank_loss``
 is the wall loss of the node profile. Each run closes
 ``Σ Q_ref_tank·dt = C_tank·ΔT_tank_w + Σ ρc·dV_tank_w_out·(T_tank_w_out −
 T_tank_w_in)·dt + Σ Q_tank_loss·dt``. The storage exergy ``Xst_tank`` is still

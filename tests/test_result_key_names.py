@@ -1,6 +1,6 @@
 """No renamed result key is left in the repository (#96, round 5).
 
-Nine result keys were renamed or removed without an alias
+Result keys that differed between the families were renamed or removed without an alias
 (:data:`tests._renamed_result_keys.RENAMED_RESULT_KEYS`). The families'
 results are checked in ``tests/test_docs_alignment.py`` (one default machine
 per family, steady and dynamic). This file checks the rest: no tracked file

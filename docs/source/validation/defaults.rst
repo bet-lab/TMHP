@@ -576,59 +576,80 @@ current model code:
 
     * - ``ideal``
       - all three efficiencies pinned at 1.0 — what ASHP did before this work
-      - 48.8 %
-      - +48.8 %
+      - 32.1 %
+      - +32.1 %
 
     * - ``constant``
       - the ``v2026-09-24`` correlations frozen at their rated point, no speed
         dependence
-      - 16.4 %
-      - +14.0 %
+      - 7.1 %
+      - +1.4 %
 
     * - ``legacy-v1``
       - the pre-refit defaults: ``0.90 − 0.02 PR``, the one-machine leakage term,
         the Guth speed shape at 0.80 (``validation/coefficients/v1-legacy/``)
-      - 7.4 %
-      - −1.1 %
+      - 12.4 %
+      - −11.5 %
 
     * - **``defaults``**
       - **what TMHP ships — coefficients ``BITZER-three-C3-absolute-N-2026-10-06``
         with their guards**
-      - **10.6 %**
-      - **+6.4 %**
+      - **8.4 %**
+      - **−4.4 %**
 
 Parity figures are the ten adopted air-to-water units; the held Fujitsu
 catalogues are excluded from every headline. The ``defaults`` row is the
-air-to-water row of :doc:`index`.
+air-to-water row of :doc:`index`. Every row carries the frost and defrost
+adjustment of the air-source boiler (:ref:`ashpb-frost`), which lowers each
+description's COP by about a fifth at and below +2 °C outdoor; without it the
+four rows read 48.8 / 16.4 / 7.4 / 10.6 % with biases of +48.8 / +14.0 / −1.1 /
++6.4 %.
 
 Three things to read off it.
 
 **The compressor description carries most of the model.** An ideal compressor
-is 48.8 % out on the catalogues and a speed-independent one 16.4 %. The shipped
-fits come to 10.6 % with a +6.4 % bias over the 136 points the compressor
-envelope admits, three points behind the pre-refit ``legacy-v1`` set on this
-comparison.
+is 32.1 % out on the catalogues. The shipped fits come to 8.4 % with a −4.4 %
+bias over the 132 points the compressor envelope admits; the speed-independent
+``constant`` set comes to 7.1 % and the pre-refit ``legacy-v1`` set to 12.4 %.
+The order of those three is not the one they had without the frost
+adjustment (16.4, 7.4 and 10.6 %): it moves all of them down together at the
+cold points, so which sits nearest the catalogues depends on that adjustment
+as much as on the compressor.
 
 **The shape passes, at every configuration.** Across fifteen combinations of
 capacity, refrigerant and sizing ratio the modelled COP rises at every step
 A → D in all fifteen runs of each application (96.9 % of the 9,062 certified
 low-temperature records and 98.7 % of the 9,044 medium-temperature ones do the
 same), and the A-to-D gradient lands inside the certified p10–p90 in all thirty
-runs: median 2.07 modelled against 2.63 certified for the low-temperature
-application — near the p10 of 2.02 — and 2.75 against 2.86 for the
-medium-temperature one. The modelled trajectory is flatter than the certified
-median.
+runs: median 2.35 modelled against 2.63 certified for the low-temperature
+application and 3.09 against 2.86 for the medium-temperature one. Frost lowers
+point A and so steepens both; without it the two medians were 2.07 — near the
+p10 of 2.02 — and 2.71.
 
-**The level misses at both ends of the low-temperature trajectory.** Read as
+**The level passes for R32 and R410A, and misses high for R290.** Read as
 percentiles of the certified population, the R32 low-temperature trajectory
-sits at the 94 / 79 / 31 / 38th percentile at points A / B / C / D, and the
-medium-temperature one at 63 / 90 / 66 / 51. Point A of the low-temperature
-application lies above the 90th percentile in every configuration, so no
-low-temperature run passes the level criterion; three medium-temperature runs
-(the R410A ones) pass all three. Certified COP is measured with defrost and, at
-the light points, with on/off cycling; TMHP models neither, which would put a
-model above the median. Points C and D sit below it anyway. Neither result
-moves a coefficient; both are recorded (:doc:`index`).
+sits at the 82 / 53 / 32 / 38th percentile at points A / B / C / D, and the
+medium-temperature one at 20 / 70 / 66 / 52. Twenty-five of the thirty runs
+have all four points inside the certified p10–p90: every R32 and R410A run of
+both applications, and one R290 run. The other five R290 runs sit above the
+90th percentile at one or more points (B in four of them): the default
+efficiency maps make R290 the most efficient of the three refrigerants at
+these conditions, more so than the certified R290 machines are.
+
+Certified COP is measured with defrost, and what the model does about frost
+decides this criterion. Without any adjustment the same R32 trajectories sat
+at 94 / 80 / 32 / 38 and 70 / 91 / 66 / 52 — above the 90th percentile at
+point A of the low-temperature application in every configuration, three runs
+passing. With the EnergyPlus adjustment applied in full at every load they
+sat at 78 / 5 / 32 / 38 and 18 / 4 / 66 / 52 — point B (+2 °C, 54 % of the
+design load) below the 10th percentile in 24 of the 30 runs, one run passing:
+that adjustment is a function of outdoor temperature and humidity alone and
+corrects a unit at half load like one flat out. With the load on the coil
+taken into account (:ref:`frost at part load <ashp-frost-load>`; no constant added) point A keeps
+nearly the whole correction and point B a third of it. At the light points
+the certified COP also carries on/off cycling, which the running-machine
+figures here leave out; points C and D sit below the median anyway. No
+result here moves a coefficient; all three are recorded (:doc:`index`).
 
 .. admonition:: What changed on the medium-temperature trajectory
     :class: note

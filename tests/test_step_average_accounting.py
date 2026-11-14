@@ -157,10 +157,10 @@ def _balance_residual(family: str, out: pd.DataFrame) -> pd.Series:
     """Heat-pump circuit exergy balance: inputs - outputs - destruction - (untracked evaporator term)."""
     if family == "ASHPB":
         inputs = out["X_cmp [W]"] + out["X_ou_fan [W]"] + out["X_a_ou_in [W]"] - out["X_a_ou_out [W]"]
-        destroyed = out[["Xc_cmp [W]", "Xc_ref_tank [W]", "Xc_exp [W]", "Xc_ref_ou [W]", "Xc_ou_fan [W]"]].sum(axis=1)
+        destroyed = out[["Xc_cmp [W]", "Xc_ref_tank [W]", "Xc_exp [W]", "Xc_ou_hx [W]", "Xc_ou_fan [W]"]].sum(axis=1)
         return inputs - out["X_ref_tank [W]"] - destroyed
     src = "ground" if family == "GSHPB" else "water"
-    inputs = out["X_cmp [W]"] + out["E_pmp [W]"] + out["X_bhe_out [W]"] - out["X_bhe_in [W]"]
+    inputs = out["X_cmp [W]"] + out["E_pmp [W]"] + out["X_bhe_f_out [W]"] - out["X_bhe_f_in [W]"]
     destroyed = out[["Xc_cmp [W]", "Xc_ref_tank [W]", "Xc_exp [W]", f"Xc_{src} [W]", "Xc_pmp [W]"]].sum(axis=1)
     # Xc_<src> charges the evaporator at its saturation (Carnot) exergy; the
     # refrigerant's own gain across it is the rest of the evaporator.

@@ -89,16 +89,26 @@ def _recorded(hp: GroundSourceHeatPumpBoiler, run):
     return df, record
 
 
-def _assert_heated_water_below(out: dict, T_end: np.ndarray, q: np.ndarray, T_cond: float) -> None:
-    """The tank was given the cycle's condensing temperature and heated no water above it.
+PEAK = "T_ref_cond_sat_l_peak [°C]"
 
+
+def _assert_heated_water_below(out: dict, T_end: np.ndarray, q: np.ndarray, row) -> float:
+    """The tank heated no water above the condensing temperature its step ended on; returns that.
+
+    The tank step solves the exchanger temperature at which the nodes take the
+    step's heat (``T_hx``): the condensing temperature at the end of the run,
+    which the row's highest condensing temperature (``PEAK``) covers. The
+    row's ``T_ref_cond_sat_l`` is the run's mean, the temperature its power
+    belongs to, and lies below both when the run warms its water.
     ``T_hx_heated_max`` is the hottest control volume the exchanger heated (a
     zone of the hybrid tank's front node, whose node mean can lie above it).
     """
-    assert out["T_hx"] == T_cond
-    assert out["T_hx_heated_max"] is not None and out["T_hx_heated_max"] <= T_cond + 1e-9
+    T_hx = float(out["T_hx"])
+    assert T_hx <= float(row[PEAK]) + 1e-9
+    assert out["T_hx_heated_max"] is not None and out["T_hx_heated_max"] <= T_hx + 1e-9
     if "y_th" not in out or out["y_th"] is None:
-        assert np.all(T_end[q > 0.0] <= T_cond + 1e-6), (T_cond, T_end, q)
+        assert np.all(T_end[q > 0.0] <= T_hx + 1e-6), (T_hx, T_end, q)
+    return T_hx
 
 
 def _balance_residual(hp: GroundSourceHeatPumpBoiler, df, dt: float, T_init: float = T_INIT) -> tuple[float, float]:
@@ -252,7 +262,7 @@ def test_multinode_run_is_finite_and_stratifies(model, day_runs):
 
 @pytest.mark.parametrize("model", NODAL)
 def test_condenser_heat_goes_only_to_nodes_colder_than_the_refrigerant(model, day_runs):
-    """No heated node ends a step above the cycle's condensing temperature (#96 T4).
+    """No heated node ends a step above the condensing temperature the run reached (#96 T4).
 
     Before: the heat was spread evenly whatever the node temperatures and the
     top node reached 97.9 °C in this run (cycle condensing at 76.9 °C).
@@ -264,11 +274,14 @@ def test_condenser_heat_goes_only_to_nodes_colder_than_the_refrigerant(model, da
             assert not q.any(), "tank heated on a step without a running cycle"
             continue
         ran += 1
-        T_cond = min(float(row["T_ref_cond_sat_v [°C]"]), float(row["T_ref_cond_sat_l [°C]"]))
         assert np.all(q >= 0.0)
-        _assert_heated_water_below(out, T_end, q, T_cond)
+        _assert_heated_water_below(out, T_end, q, row)
+        # The run's mean condensing temperature is not above its highest.
+        assert float(row["T_ref_cond_sat_l [°C]"]) <= float(row[PEAK]) + 1e-9
         assert float(q.sum()) == pytest.approx(float(row["Q_ref_tank [W]"]), rel=1e-9)
     assert ran >= 4
+    # Rows without a run have no highest condensing temperature.
+    assert df.loc[~(df["E_cmp [W]"] > 0.0), PEAK].isna().all()
     assert max(float(T.max()) for _, T, _ in record) < 80.0
 
 
@@ -360,32 +373,38 @@ def top_coil():
     return (hp, *_recorded(hp, lambda m: _run(m, tN=8)))
 
 
-def test_top_coil_stops_when_its_water_reaches_the_condensing_temperature(top_coil):
-    """Was 364 °C in the top node under a 15 °C bottom (heat put in whatever the temperature)."""
+def test_top_coil_holds_its_water_at_the_envelope_stop(top_coil):
+    """Was 364 °C in the top node under a 15 °C bottom (heat put in whatever the temperature).
+
+    The coil's water goes no further than the envelope stop: the compressor holds it there while
+    the thermostat (reading a mean far below the set point) still calls -- a normal stop, named in
+    ``hp_stop_reason`` (R5C; before, each such step was an off row with
+    ``condensing_temp_above_max``). No step is cut by the tank: the run time the thermostat gives
+    is the one the coil can pass (R5H; before, a step that reached the stop was cut short and the
+    next one counted a new start).
+    """
     hp, df, record = top_coil
-    cut = [i for i, (_, _, out) in enumerate(record) if out["hx_limited"]]
-    assert cut, "the top node took a whole run's heat"
-    for i in cut:
-        row, (q, T_end, out) = df.iloc[i], record[i]
-        T_cond = float(row["T_ref_cond_sat_l [°C]"])
-        assert T_end[0] == pytest.approx(T_cond, abs=1e-3)  # heated up to the refrigerant, not past it
-        assert np.all(q[1:] == 0.0)
-        assert 0.0 < row["runtime_fraction [-]"] < 1.0
-        assert row["Q_ref_tank [W]"] == pytest.approx(out["Q_hx"], rel=1e-9)  # the row is cut to what went in
-        assert row["E_cmp [W]"] > 0.0 and bool(row["hp_is_on"])
-    # Never past the refrigerant, never past boiling.
-    assert max(float(T.max()) for _, T, _ in record) <= min(100.0, df["T_ref_cond_sat_l [°C]"].max()) + 1e-6
-    # Water below the coil stays cold. Once the top is hot the thermostat (still calling: the
-    # mean is below the set point) holds it at the envelope stop -- a normal stop, named in
-    # hp_stop_reason (R5C; before, each such step was an off row with condensing_temp_above_max).
-    assert float(hp._tank.T[-1]) < 20.0
-    assert (df["failure_reason"] == "none").all()
+    cutout = condensing_tank_cutout(hp)
+    level_max = cutout + hp.hp_capacity / hp.UA_tank_hx
+    ran = df["runtime_fraction [-]"] > 0.0
+    assert ran.sum() >= 4 and (df["failure_reason"] == "none").all()
     held = df["hp_stop_reason"] == "condensing_limit"
     assert held.any() and df.loc[held, "hp_is_on"].all()
-    # Never condensing past the limit: the coil's water at most at the limit's bubble point.
-    level_max = condensing_tank_cutout(hp) + hp.hp_capacity / hp.UA_tank_hx
+    assert df["hp_starts [-]"].sum() == 1  # one run, held from then on
+    for (q, T_end, out), (_, row) in zip(record, df.iterrows(), strict=True):
+        if not row["runtime_fraction [-]"] > 0.0:
+            continue
+        assert np.all(q[1:] == 0.0)  # the coil heats its own node only
+        assert row["Q_ref_tank [W]"] == pytest.approx(out["Q_hx"], rel=1e-9)
+        assert not out["hx_limited"]
+        _assert_heated_water_below(out, T_end, q, row)
+        assert 0.0 < row["runtime_fraction [-]"] < 1.0
+    # The coil's water never above the envelope stop, the refrigerant never above the limit.
+    assert max(float(T[0]) for _, T, _ in record) <= cutout + 0.05
     assert df["T_ref_cond_sat_l [°C]"].max() <= level_max + 0.05
-    assert max(float(T[0]) for _, T, _ in record) <= level_max + 0.05
+    assert df[PEAK].max() <= level_max + 0.05
+    # Water below the coil stays cold.
+    assert float(hp._tank.T[-1]) < 20.0
 
 
 def test_top_coil_energy_balance_closes(top_coil):
@@ -438,11 +457,10 @@ def test_tight_coil_under_a_heavy_draw_leaves_the_hot_top_unheated(model):
     for (q, T_end, out), (_, row) in zip(record, df.iterrows(), strict=True):
         if not q.any():
             continue
-        T_cond = float(row["T_ref_cond_sat_l [°C]"])
-        _assert_heated_water_below(out, T_end, q, T_cond)
+        T_hx = _assert_heated_water_below(out, T_end, q, row)
         assert not out["hx_limited"]
         assert row["runtime_fraction [-]"] > 0.0
-        unheated_hot += int(np.sum((q == 0.0) & (T_end > T_cond)))
+        unheated_hot += int(np.sum((q == 0.0) & (T_end > T_hx)))
     assert unheated_hot >= 5
     residual, heat = _balance_residual(hp, df, dt, T_init=60.0)
     assert heat > 3.6e6 and abs(residual) < 1e-6 * heat

@@ -15,7 +15,15 @@ energy among candidates that meet the request (``tmhp._opt_utils``); those
 rows are kept and flagged, because the strategy document asks that the
 sub-floor region be *separated*, not hidden.
 
-Output: validation/data/fixed_boundary_plr/{ashpb,ashp}_sweep.csv
+The question is the part-load curve of the *running cycle*, so every model is
+built with :data:`CYCLE_SETTINGS`: no on-off averaging below the minimum
+capacity (``Cd_cycling=None`` -- the library's default reports the mean over a
+cycling period there, which is a different curve) and no frost or defrost
+(``defrost=False``).  The condensing-temperature cap and every other default
+stay as shipped: they are limits of the machine, not of the question.
+
+Output: validation/data/fixed_boundary_plr/{ashpb,ashp}_sweep.csv and the
+provenance record ``validation/data/provenance/fixed_boundary_plr.json``.
 """
 
 from __future__ import annotations
@@ -30,6 +38,11 @@ from tmhp.compressor_efficiency import COEFFICIENT_VERSION
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "validation" / "data" / "fixed_boundary_plr"
 FRACTIONS = tuple(round(1.0 - 0.04 * i, 2) for i in range(23))  # 1.00 .. 0.12
+PROVENANCE = REPO_ROOT / "validation" / "data" / "provenance" / "fixed_boundary_plr.json"
+
+#: Constructor arguments every model of this study gets: the running cycle,
+#: not the mean over an on-off period, and no frost.
+CYCLE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
 
 ASHPB_CASES = (
     # (capacity W, refrigerant, outdoor degC, tank degC)
@@ -69,11 +82,12 @@ def _state(result: dict) -> dict:
     return out
 
 
-def sweep_ashpb() -> pd.DataFrame:
+def sweep_ashpb(cases=ASHPB_CASES, fractions=FRACTIONS) -> pd.DataFrame:
+    """Rows of the air-to-water sweep (a subset of cases and fractions gives the same rows)."""
     rows = []
-    for cap, ref, t_out, t_tank in ASHPB_CASES:
-        model = AirSourceHeatPumpBoiler(hp_capacity=cap, ref=ref)
-        for f in FRACTIONS:
+    for cap, ref, t_out, t_tank in cases:
+        model = AirSourceHeatPumpBoiler(hp_capacity=cap, ref=ref, **CYCLE_SETTINGS)
+        for f in fractions:
             r = model.analyze_steady(T_tank_w=t_tank, T0=t_out, Q_ref_tank=cap * f, return_dict=True)
             assert isinstance(r, dict)
             delivered = float(r.get("Q_ref_tank [W]", float("nan")))
@@ -101,12 +115,13 @@ def sweep_ashpb() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def sweep_ashp() -> pd.DataFrame:
+def sweep_ashp(cases=ASHP_CASES, fractions=FRACTIONS) -> pd.DataFrame:
+    """Rows of the air-to-air sweep (a subset of cases and fractions gives the same rows)."""
     rows = []
-    for cap, ref, duty, t_out, t_room in ASHP_CASES:
-        model = AirSourceHeatPump(hp_capacity=cap, ref=ref)
+    for cap, ref, duty, t_out, t_room in cases:
+        model = AirSourceHeatPump(hp_capacity=cap, ref=ref, **CYCLE_SETTINGS)
         sign = -1.0 if duty == "heating" else 1.0
-        for f in FRACTIONS:
+        for f in fractions:
             r = model.analyze_steady(Q_r_iu=sign * cap * f, T0=t_out, T_a_room=t_room, return_dict=True, verbose=False)
             assert isinstance(r, dict)
             delivered = abs(float(r.get("Q_ref_iu [W]", float("nan"))))
@@ -149,7 +164,26 @@ def main() -> None:
             f"   modulating range: COP {mod.cop_sys.min():.2f}-{mod.cop_sys.max():.2f}, n* {mod.n_star.min():.2f}-{mod.n_star.max():.2f}, "
             f"PR {mod.pr.min():.2f}-{mod.pr.max():.2f}, fan {100 * ok.fan_fraction.min():.0f}-{100 * ok.fan_fraction.max():.0f} %, air dT max {ok.air_dT_K.max():.1f} K"
         )
+    write_provenance()
     print(f"wrote {OUT_DIR.relative_to(REPO_ROOT)}/")
+
+
+def write_provenance() -> None:
+    """Record what the study's committed files describe (all five scripts share it)."""
+    from validation import study_provenance
+
+    study_provenance.write(
+        PROVENANCE,
+        "validation/fixed_boundary_plr/",
+        sorted(OUT_DIR.glob("*.csv")),
+        {**CYCLE_SETTINGS, "ASHPB_CASES": ASHPB_CASES, "ASHP_CASES": ASHP_CASES, "FRACTIONS": FRACTIONS},
+        "part-load curve of the running cycle at fixed boundary temperatures",
+        command=(
+            "python -m validation.fixed_boundary_plr.sweep && python -m validation.fixed_boundary_plr.decompose"
+            " && python -m validation.fixed_boundary_plr.shape_metrics && python -m validation.fixed_boundary_plr.speed_sweep"
+            " && python -m validation.fixed_boundary_plr.legacy_compare"
+        ),
+    )
 
 
 if __name__ == "__main__":

@@ -25,7 +25,13 @@ import pandas as pd
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._boiler_results import complete_capacity_keys, fill_missing, report_condenser_dew_point, step_request
+from ._boiler_results import (
+    complete_capacity_keys,
+    fill_missing,
+    mixed_water_exergy,
+    report_condenser_dew_point,
+    step_request,
+)
 from ._opt_utils import safe_float_attr
 from ._source_boiler import (
     BOREHOLE_DEPTH_DEFAULT_M,
@@ -1196,6 +1202,9 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         # point and the part not delivered (water below the set point, or a
         # draw the tank could not supply).
         r.update(dhw_service_columns(ctx.dV_mix_w_out, dV_mix_w_out, T_mix_K, self.T_mix_w_out_K, ctx.T_sup_w_K))
+        if not dV_mix_w_out > 0.0:
+            # Nothing is drawn: there is no mixed water, so it has no temperature (as ASHPB).
+            r["T_mix_w_out [°C]"] = math.nan
 
         # A diagnostic of the steady solve, not a time-series quantity: keep it
         # on the analyze_steady dict and out of the dynamic frame.
@@ -1821,8 +1830,8 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         # and averaged over the step like the heat and power in the row.
         X_bhe_in, X_bhe_out, X_water_in, X_water_out = source_loop_exergy_flows(df, T0_K)
         # Loop boundary flows (step averages) so the source-side balance can be read from the frame.
-        df["X_bhe_in [W]"] = X_bhe_in
-        df["X_bhe_out [W]"] = X_bhe_out
+        df["X_bhe_f_in [W]"] = X_bhe_in
+        df["X_bhe_f_out [W]"] = X_bhe_out
 
         Q_ref_tank = df["Q_ref_tank [W]"].fillna(0)
         Q_ref_water = df["Q_ref_water [W]"].fillna(0)
@@ -1844,9 +1853,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         )
         df["X_tank_w_out [W]"] = calc_exergy_flow(c_w * rho_w * df["dV_tank_w_out [m3/s]"].fillna(0), T_tank_K, T0_K)
 
-        df["X_mix_w_out [W]"] = calc_exergy_flow(
-            c_w * rho_w * df["dV_mix_w_out [m3/s]"].fillna(0), cu.C2K(df["T_mix_w_out [°C]"]), T0_K
-        )
+        df["X_mix_w_out [W]"] = mixed_water_exergy(df, T0_K)
         df["X_mix_sup_w_in [W]"] = calc_exergy_flow(
             c_w * rho_w * df["dV_mix_sup_w_in [m3/s]"].fillna(0), cu.C2K(df["T_tank_w_in [°C]"]), T0_K
         )

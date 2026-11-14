@@ -86,7 +86,7 @@ are an operating point, a reduced one, a time average, or placeholders.
       - ``"none"`` or why a requested point has no operating point; the row then holds off-state placeholders. Values: :doc:`failure-reason-semantics`.
     * - ``capacity_clamped``
       - all
-      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP also when it was below the smallest duty the envelope's efficiency floor admits); ``"max"`` when the unit delivers less than asked.
+      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP and the boilers' ``analyze_steady`` also when it was below the smallest duty the envelope's efficiency floor admits); ``"max"`` when the unit delivers less than asked.
     * - ``capacity_binding``
       - all
       - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` on every other row.
@@ -139,7 +139,7 @@ What was asked for, what was delivered, and how a request outside the modulation
       - On a ``"max"`` row, the duty delivered (the ceiling); in a boiler's dynamic step the running machine's, not the step average (``Q_ref_tank [W]`` is ``Q_max [W]`` times ``runtime_fraction [-]``). NaN on every other row.
     * - ``Q_min [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
-      - On a ``"min"`` row, the duty of continuous operation at the minimum speed. NaN otherwise.
+      - On a ``"min"`` row, the duty of continuous operation at the minimum speed (or at the smallest duty the envelope's efficiency floor admits, where that is larger). NaN otherwise.
     * - ``PLR_request [-]``
       - ASHPB (s)
       - Requested duty over ``hp_capacity``, on every row.
@@ -159,7 +159,7 @@ What was asked for, what was delivered, and how a request outside the modulation
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Number of compressor starts inside the step (boiler dynamic steps).
     * - ``hp_stop_reason``
-      - GSHPB (d), WSHPB (d)
+      - ASHPB (d), GSHPB (d), WSHPB (d)
       - ``"condensing_limit"`` on a step in which the compressor envelope stopped the run, or kept it at the duty that holds the water around the coil at the envelope stop, while the thermostat called (or a minimum run time held it): the tank temperature at which the nameplate duty would condense above ``T_cond_max``. It is a normal end of the run, not a failure (``failure_reason`` stays ``"none"``); the row's heat and power are the step means. ``"boiling_limit"`` when the 100 °C cut-out did so. ``None`` on every other step.
     * - ``E_cycling_loss [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
@@ -221,7 +221,7 @@ temperature of the row and can be negative; only their differences are heat rate
       - Enthalpy flow of the mains water entering the mixing valve, from ``T0``.
     * - ``Q_mix_w_out [W]``
       - ASHPB
-      - Enthalpy flow of the mixed water delivered to the tap, from ``T0``.
+      - Enthalpy flow of the mixed water delivered to the tap, from ``T0``; 0 when nothing is drawn.
     * - ``Q_dhw_request [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Hot-water heat the step was asked for: scheduled draw at the set point ``T_mix_w_out``, counted from the mains temperature.
@@ -272,10 +272,10 @@ All ``E_*`` are electrical input, ≥ 0, and 0 on an off row. COPs are NaN on an
       - all
       - System COP. Boilers: ``Q_ref_tank / E_tot``. ASHP, GSHP: heat the room air receives or gives up, ``|Q_a_iu_out − Q_a_iu_in|``, over ``E_tot`` (indoor-fan heat counted once, on the air).
 
-Frost and defrost (ASHP)
-========================
+Frost and defrost (ASHP, ASHPB)
+===============================
 
-Present on every ASHP row; neutral (0 or 1) in cooling and above the frosting limit. See :doc:`/models/ashp`.
+Present on every ASHP and ASHPB row; neutral (0 or 1) in cooling, above the frosting limit and with ``defrost=False``. In an ASHPB dynamic frame ``E_defrost``, ``Q_defrost`` and the two frost-free rates are step averages like the other rates. See :doc:`/models/ashp` and :doc:`/models/ashpb`.
 
 .. list-table::
     :header-rows: 1
@@ -285,28 +285,31 @@ Present on every ASHP row; neutral (0 or 1) in cooling and above the frosting li
       - Where
       - Meaning
     * - ``defrost_fraction [-]``
-      - ASHP
+      - ASHP, ASHPB
       - Fraction of the compressor's runtime spent defrosting.
     * - ``frost_capacity_factor [-]``
-      - ASHP
+      - ASHP, ASHPB
       - Heating-capacity multiplier of the frosted coil, defrost time included; 1 without frost.
     * - ``frost_power_factor [-]``
-      - ASHP
+      - ASHP, ASHPB
       - Input-power multiplier of the frosted coil; 1 without frost.
     * - ``E_defrost [W]``
-      - ASHP
+      - ASHP, ASHPB
       - Mean compressor power spent defrosting (part of ``E_cmp``).
     * - ``Q_defrost [W]``
-      - ASHP
-      - Mean heat a reverse-cycle defrost takes from the room.
+      - ASHP, ASHPB
+      - Mean heat a reverse-cycle defrost takes from the room (ASHP) or from the tank water (ASHPB).
     * - ``Q_ref_iu_frost_free [W]``
       - ASHP
       - Indoor-coil duty of the frost-free cycle the row was solved at.
+    * - ``Q_ref_tank_frost_free [W]``
+      - ASHPB
+      - Condenser duty of the frost-free cycle the row was solved at; equal to ``Q_ref_tank [W]`` without frost.
     * - ``E_tot_frost_free [W]``
-      - ASHP
+      - ASHP, ASHPB
       - Electrical input of that frost-free cycle.
     * - ``RH_out [-]``
-      - ASHP
+      - ASHP, ASHPB
       - Outdoor relative humidity the frost correction used (fraction); NaN where no correction applies.
 
 Compressor and cycle
@@ -503,7 +506,7 @@ reuses these names for its source-water coil.
       - GSHP
       - Its rated value (echo of the model value).
     * - ``ground_approach [K]``
-      - GSHP
+      - GSHP; GSHPB (s) with ``ground_flow_control="optimal_power"``
       - Temperature difference between the loop fluid and the refrigerant saturation the ground-side heat exchanger ran at.
     * - ``ground_balance``
       - GSHP
@@ -563,8 +566,11 @@ reuses these names for its source-water coil.
 Tank and hot water
 ==================
 
-Boiler families. Flows are step means in a dynamic row; a flow that is zero is reported as NaN by ASHPB and
-as 0 by GSHPB and WSHPB.
+Boiler families. Flows are step means in a dynamic row. A stream that does not flow reports 0 for its flow, its
+enthalpy flow and its exergy flow, and NaN for its temperature (there is no water to have one), in the three
+boilers alike: on a step without a draw ``dV_mix_w_out``, ``Q_mix_w_out`` and ``X_mix_w_out`` are 0 and
+``T_mix_w_out`` is NaN. (ASHPB used to report that heat and exergy as NaN, GSHPB and WSHPB the valve's set point
+as the temperature.)
 
 .. list-table::
     :header-rows: 1
@@ -584,7 +590,7 @@ as 0 by GSHPB and WSHPB.
       - Mains water temperature, before any preheating; the same as ``T_tank_w_in [°C]`` without one.
     * - ``T_mix_w_out [°C]``
       - ASHPB, GSHPB, WSHPB
-      - Temperature of the water delivered by the mixing valve; NaN when nothing is drawn (ASHPB).
+      - Temperature of the water delivered by the mixing valve; NaN when nothing is drawn.
     * - ``dV_mix_w_out [m3/s]``
       - ASHPB, GSHPB, WSHPB
       - Mixed hot water delivered to the tap. This and the three flows below are 0 when the water does not flow.
@@ -731,17 +737,11 @@ without a running cycle carry NaN or 0.
       - ASHP, ASHPB (d)
       - Flow exergy of the air leaving the outdoor unit.
     * - ``X_bhe_f_in [W]``
-      - GSHP (d)
-      - Flow exergy of the loop fluid entering the borehole.
+      - GSHP (d), GSHPB (d), WSHPB (d)
+      - Flow exergy of the loop fluid entering the borehole (the source-water loop for WSHPB), at ``T_bhe_f_in [°C]``.
     * - ``X_bhe_f_out [W]``
-      - GSHP (d)
-      - Flow exergy of the loop fluid leaving the borehole.
-    * - ``X_bhe_in [W]``
-      - GSHPB (d), WSHPB (d)
-      - Flow exergy of the loop fluid entering the borehole (boiler name).
-    * - ``X_bhe_out [W]``
-      - GSHPB (d), WSHPB (d)
-      - Flow exergy of the loop fluid leaving the borehole (boiler name).
+      - GSHP (d), GSHPB (d), WSHPB (d)
+      - Flow exergy of the loop fluid leaving the borehole, at ``T_bhe_f_out [°C]``.
     * - ``X_cmp [W]``
       - ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)
       - Exergy of ``E_cmp [W]`` (electricity is pure exergy: the same number).
@@ -782,17 +782,14 @@ without a running cycle carry NaN or 0.
       - ASHP, ASHPB (d)
       - Exergy efficiency of the outdoor fan.
     * - ``X_eff_ou_hx [-]``
-      - ASHP
-      - Exergy efficiency of the outdoor coil.
+      - ASHP, ASHPB (d)
+      - Exergy efficiency of the outdoor coil: ``1 − Xc_ou_hx / (exergy of the refrigerant and the air entering it)``.
     * - ``X_eff_pmp [-]``
       - GSHP (d)
       - Exergy efficiency of the source-loop pump.
     * - ``X_eff_ref [-]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Exergy efficiency of the refrigerant cycle.
-    * - ``X_eff_ref_ou [-]``
-      - ASHPB (d)
-      - Exergy efficiency of the outdoor coil (evaporator).
     * - ``X_eff_ref_tank [-]``
       - ASHPB (d)
       - Exergy efficiency of the tank heat exchanger (condenser).
@@ -837,7 +834,7 @@ without a running cycle carry NaN or 0.
       - Flow exergy of the mains water entering the mixing valve.
     * - ``X_mix_w_out [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
-      - Flow exergy of the mixed water delivered.
+      - Flow exergy of the mixed water delivered; 0 when nothing is drawn.
     * - ``X_ou_fan [W]``
       - ASHP, ASHPB (d)
       - Exergy of ``E_ou_fan [W]`` (electricity is pure exergy: the same number).
@@ -912,7 +909,7 @@ without a running cycle carry NaN or 0.
       - Exergy of ``E_tot_frost_free [W]`` (electricity is pure exergy: the same number).
     * - ``Xc_bhe_hx [W]``
       - GSHP (d)
-      - Exergy consumed (destroyed) in the ground-side heat exchanger.
+      - Exergy consumed (destroyed) in the ground-side heat exchanger, both streams: the refrigerant from the expansion valve to the compressor inlet (superheating included; the reverse in cooling) and the loop fluid from the pump to the borehole. Not the same control volume as ``Xc_ground [W]``.
     * - ``Xc_cmp [W]``
       - ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)
       - Exergy consumed (destroyed) in the compressor.
@@ -921,7 +918,7 @@ without a running cycle carry NaN or 0.
       - Exergy consumed (destroyed) in the expansion valve.
     * - ``Xc_ground [W]``
       - GSHPB (d)
-      - Exergy consumed (destroyed) in the ground loop.
+      - Exergy consumed (destroyed) between the loop fluid and the evaporating refrigerant: the fluid's exergy drop across the evaporator minus ``X_ref_ground [W]`` (the heat's exergy at the evaporating temperature). The suction superheating is not in it, so it differs from GSHP's ``Xc_bhe_hx [W]`` (by about 1 % at the default machine).
     * - ``Xc_iu_fan [W]``
       - ASHP, GSHP (d)
       - Exergy consumed (destroyed) in the indoor fan.
@@ -935,14 +932,11 @@ without a running cycle carry NaN or 0.
       - ASHP, ASHPB (d)
       - Exergy consumed (destroyed) in the outdoor fan.
     * - ``Xc_ou_hx [W]``
-      - ASHP
-      - Exergy consumed (destroyed) in the outdoor coil.
+      - ASHP, ASHPB (d)
+      - Exergy consumed (destroyed) in the outdoor coil: refrigerant and outdoor air in, minus refrigerant and air (before the fan) out.
     * - ``Xc_pmp [W]``
       - GSHP (d), GSHPB (d), WSHPB (d)
       - Exergy consumed (destroyed) in the source-loop pump.
-    * - ``Xc_ref_ou [W]``
-      - ASHPB (d)
-      - Exergy consumed (destroyed) in the outdoor coil (evaporator).
     * - ``Xc_ref_tank [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Exergy consumed (destroyed) in the tank heat exchanger (condenser).
@@ -951,7 +945,7 @@ without a running cycle carry NaN or 0.
       - Exergy consumed (destroyed) in the tank.
     * - ``Xc_water [W]``
       - WSHPB (d)
-      - Exergy consumed (destroyed) in the source-water loop.
+      - ``Xc_ground [W]`` of the source-water evaporator (named by location): the water's exergy drop across it minus ``X_ref_water [W]``.
     * - ``Xst_tank [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Rate at which exergy is stored in the tank water.
@@ -1008,6 +1002,14 @@ only (below).
       - GSHPB with ``tank_model="stratified"`` or ``"hybrid"``, dynamic
       - Top-node, bottom-node and draw-off temperatures of the multi-node
         tank.
+    * - ``T_ref_cond_sat_l_peak [°C]``
+      - GSHPB with ``tank_model="stratified"`` or ``"hybrid"``, dynamic
+      - Highest condensing temperature (bubble point) of the step's run:
+        the level the run ends on when it warms the water around the coil,
+        the condensing limit on a step held at the envelope stop. No heated
+        node ends the step above it. ``T_ref_cond_sat_l [°C]`` on the same
+        row is the mean over the run, the temperature the row's power
+        belongs to. ``NaN`` on a step without a run.
     * - ``ground_temperature_residual [K]``, ``candidate_ground_flow_ratio``,
         ``flow_optimizer_method``
       - GSHP, GSHPB with the hydraulic pump model or
@@ -1019,7 +1021,7 @@ only (below).
 Renamed keys
 ============
 
-Nine names that differed between the families for the same quantity were
+Names that differed between the families for the same quantity were
 replaced by one name each (#96, round 5). The results carry only the new
 names: there is no alias, no old key next to the new one and no deprecation
 warning, so code that reads an old name gets a ``KeyError`` (a ``dict``) or a
@@ -1064,6 +1066,14 @@ the step goldens use the new column names; their values are unchanged.
         ``err_Q_water [W]`` (WSHPB)
       - ``source_hx_residual [W]``
       - The pair of ``tank_hx_residual [W]``.
+    * - ``X_bhe_in [W]``, ``X_bhe_out [W]`` (GSHPB, WSHPB)
+      - ``X_bhe_f_in [W]``, ``X_bhe_f_out [W]``
+      - GSHP's name: the flow exergy of the loop fluid at ``T_bhe_f_in`` /
+        ``T_bhe_f_out``, the same definition in the three families.
+    * - ``Xc_ref_ou [W]``, ``X_eff_ref_ou [-]`` (ASHPB)
+      - ``Xc_ou_hx [W]``, ``X_eff_ou_hx [-]``
+      - ASHP's name: the same control volume (refrigerant and outdoor air
+        through the outdoor coil) and the same formula.
 
 Checking a result in code
 =========================

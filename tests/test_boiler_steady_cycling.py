@@ -190,7 +190,7 @@ def test_en14825_trend_harness_compares_the_running_machine():
     calculation. The harness therefore solves the running machine
     (``Cd_cycling=None``), and its points B-D -- all below the minimum-speed
     duty -- are the ones committed in ``validation/data``. With the default
-    report they would read 4.77 / 5.34 / 5.25 instead of 4.84 / 5.88 / 7.55.
+    report they would read 4.53 / 5.34 / 5.26 instead of 4.56 / 5.89 / 7.56.
     """
     pd = pytest.importorskip("pandas")
     from pathlib import Path

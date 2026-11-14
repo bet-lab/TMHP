@@ -161,6 +161,20 @@ def main() -> None:
     print()
     print(f"  wrote {OUT_MATCHED.relative_to(REPO_ROOT)}")
     print(f"  wrote {OUT_SWEEP.relative_to(REPO_ROOT)}")
+    if not args.reuse:
+        from validation import study_provenance
+
+        study_provenance.write(
+            OUT_MATCHED.parent / "provenance" / "refrigerant_diagnosis.json",
+            "validation/analysis/refrigerant_diagnosis.py",
+            [OUT_MATCHED, OUT_SWEEP],
+            {
+                "matched_point": "library defaults (cooling at the nameplate: no cycling, no frost)",
+                "nameplate_sweep": "the parity harness's own model (validation.parity.run._build_model)",
+            },
+            "is the air-to-air R410A parity offset the refrigerant, or the machine-level block it comes with",
+            command="python -m validation.analysis.refrigerant_diagnosis",
+        )
 
 
 if __name__ == "__main__":

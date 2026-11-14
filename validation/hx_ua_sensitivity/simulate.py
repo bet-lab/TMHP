@@ -27,6 +27,13 @@ Passes
 The ``joint`` pass at scale 1.0 must reproduce pass 1 bit for bit; that gate
 runs before anything else is written.
 
+Every model is the running cycle (:data:`CYCLE_SETTINGS`): no on-off averaging
+below the speed floor (``Cd_cycling=None``) and no frost (``defrost=False``),
+so the sub-floor rows stay the minimum-capacity state the verdicts separate.
+A scaled coil the library cannot rate (its reference state does not close,
+``ReferenceStateError``) is kept as rows with that failure reason rather than
+stopping the sweep.
+
 Run::
 
     uv run python3 -m validation.hx_ua_sensitivity.simulate [--jobs 24]
@@ -63,6 +70,9 @@ SPLIT_CASES = ((0.5, 1.0), (2.0, 1.0), (1.0, 0.5), (1.0, 2.0))
 #: Fan-flow lower bound hard-coded in ``calc_HX_perf_for_target_heat``.
 FAN_FLOOR = 0.05
 
+#: Constructor arguments of every model: the running cycle, no frost.
+CYCLE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
+
 _MODELS: dict = {}
 
 
@@ -81,12 +91,13 @@ def _model(cap: float, ref: str, s_ou: float | None, s_iu: float | None):
     key = (cap, ref, s_ou, s_iu)
     if key not in _MODELS:
         if s_ou is None:
-            _MODELS[key] = AirSourceHeatPump(hp_capacity=cap, ref=ref)
+            _MODELS[key] = AirSourceHeatPump(hp_capacity=cap, ref=ref, **CYCLE_SETTINGS)
         else:
             probe = _default_ua(cap, ref)
             _MODELS[key] = AirSourceHeatPump(
                 hp_capacity=cap,
                 ref=ref,
+                **CYCLE_SETTINGS,
                 UA_ou_rated=probe[0] * s_ou,
                 UA_iu_rated=probe[1] * float(s_iu),
             )
@@ -104,10 +115,59 @@ def _num(r: dict, key: str) -> float:
     return float(v) if isinstance(v, (int, float)) else float("nan")
 
 
+def coil_state(m, r: dict, side: str) -> tuple[float, float, float]:
+    """``(UA, NTU, epsilon)`` of one coil of a solved row, from the model's own law.
+
+    The library does not report the coil conductance, so it is evaluated here
+    at the solved airflow with exactly the call the model makes
+    (``tmhp.heat_exchanger.calc_UA_from_dV_fan`` on the coil's rated UA,
+    reference flow, cross-section and exponent; air density at the coil inlet).
+    A study that patches that law (``refrigerant_ua_sensitivity.patch``) gets
+    the patched value, provided its state is set to the solved row first.
+    """
+    import math
+
+    from tmhp import heat_exchanger
+    from tmhp.air_properties import air_density
+    from tmhp.constants import c_a
+
+    dV = _num(r, f"dV_{side}_a [m3/s]")
+    t_in = _num(r, f"T_{side}_a_in [°C]")
+    if not (math.isfinite(dV) and dV > 0.0 and math.isfinite(t_in)):
+        return float("nan"), float("nan"), float("nan")
+    if side == "ou":
+        args = (m.dV_ou_fan_a_ref, m.A_cross_ou, m.UA_ou_rated, m.n_ou)
+    else:
+        args = (m.dV_iu_fan_a_ref, m.A_cross_iu, m.UA_iu_rated, m.n_iu)
+    ua = float(heat_exchanger.calc_UA_from_dV_fan(dV, *args))
+    ntu = ua / (c_a * float(air_density(t_in)) * dV)
+    return ua, ntu, 1.0 - math.exp(-ntu)
+
+
 def run_point(task: dict) -> dict:
     from tmhp.compressor_efficiency import COEFFICIENT_VERSION
+    from tmhp.reference_state import ReferenceStateError
 
-    m = _model(task["capacity_W"], task["refrigerant"], task["scale_ou"], task["scale_iu"])
+    try:
+        m = _model(task["capacity_W"], task["refrigerant"], task["scale_ou"], task["scale_iu"])
+    except ReferenceStateError as exc:
+        return {
+            "variant": task["variant"],
+            "pass": task["pass"],
+            "scale_ou": task["scale_ou"] if task["scale_ou"] is not None else 1.0,
+            "scale_iu": task["scale_iu"] if task["scale_iu"] is not None else 1.0,
+            "model_class": "ASHP",
+            "duty": task["duty"],
+            "refrigerant": task["refrigerant"],
+            "capacity_W": task["capacity_W"],
+            "t_outdoor_C": task["t_outdoor_C"],
+            "t_sink_C": task["t_sink_C"],
+            "plr_request": task["plr_request"],
+            "q_request_W": task["capacity_W"] * task["plr_request"],
+            "failure_reason": f"model_not_built: {str(exc).split(':', 1)[0]}",
+            "converged": False,
+            "coefficient_version": COEFFICIENT_VERSION,
+        }
 
     heating = task["duty"] == "heating"
     sign = -1.0 if heating else 1.0
@@ -124,7 +184,8 @@ def run_point(task: dict) -> dict:
     delivered = abs(_num(r, "Q_ref_iu [W]"))
     fan_ou = _num(r, "dV_ou_a [m3/s]") / m.dV_ou_fan_a_rated
     fan_iu = _num(r, "dV_iu_a [m3/s]") / m.dV_iu_fan_a_rated
-    ua_ou, ua_iu = _num(r, "UA_ou [W/K]"), _num(r, "UA_iu [W/K]")
+    ua_ou, ntu_ou, eps_ou = coil_state(m, r, "ou")
+    ua_iu, ntu_iu, eps_iu = coil_state(m, r, "iu")
     t_evap, t_cond = _num(r, "T_ref_evap_sat [°C]"), _num(r, "T_ref_cond_sat_v [°C]")
     t_ou_in, t_iu_in = _num(r, "T_ou_a_in [°C]"), _num(r, "T_iu_a_in [°C]")
 
@@ -170,10 +231,10 @@ def run_point(task: dict) -> dict:
         "UA_iu": ua_iu,
         "UA_evap": ua_evap,
         "UA_cond": ua_cond,
-        "NTU_ou": _num(r, "NTU_ou [-]"),
-        "NTU_iu": _num(r, "NTU_iu [-]"),
-        "epsilon_ou": _num(r, "epsilon_ou [-]"),
-        "epsilon_iu": _num(r, "epsilon_iu [-]"),
+        "NTU_ou": ntu_ou,
+        "NTU_iu": ntu_iu,
+        "epsilon_ou": eps_ou,
+        "epsilon_iu": eps_iu,
         "T_evap_C": t_evap,
         "T_cond_C": t_cond,
         "T_dis_C": _num(r, "T_ref_cmp_out [°C]"),
@@ -236,7 +297,10 @@ def _tasks(pass_name: str, s_ou: float | None, s_iu: float | None) -> list[dict]
 
 def _run(tasks: list[dict], jobs: int) -> pd.DataFrame:
     with ProcessPoolExecutor(max_workers=jobs) as ex:
-        return pd.DataFrame(list(ex.map(run_point, tasks, chunksize=2)))
+        rows = list(ex.map(run_point, tasks, chunksize=2))
+    # A model that could not be built gives a short row; keep the full row's column order.
+    columns = list(max(rows, key=len))
+    return pd.DataFrame(rows, columns=columns)
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +336,8 @@ def main() -> None:
     print("regression (joint scale 1.0 vs library defaults), max relative deviation:")
     for c, v in worst.items():
         print(f"    {c:<10} {v:.3e}")
-    if max(worst.values()) > 1e-12:
+    # ``not (v <= tol)``: a NaN deviation (a column the library stopped reporting) fails too.
+    if any(not (v <= 1e-12) for v in worst.values()):
         raise SystemExit(f"REGRESSION FAILED: scale 1.0 does not reproduce the shipped model ({worst})")
 
     # --- pass 3: one coil at a time -------------------------------------
@@ -297,11 +362,21 @@ def main() -> None:
         "n_rows": int(len(out)),
         "n_failures": int((out.failure_reason != "none").sum()),
         "n_speed_floor": int((out.capacity_clamped == "min").sum()),
-        "n_fan_floor_ou": int(out.fan_floor_ou.sum()),
-        "n_fan_floor_iu": int(out.fan_floor_iu.sum()),
+        "n_fan_floor_ou": int(out.fan_floor_ou.astype("boolean").fillna(False).sum()),
+        "n_fan_floor_iu": int(out.fan_floor_iu.astype("boolean").fillna(False).sum()),
         "coefficient_version": str(out.coefficient_version.iloc[0]),
     }
     (OUT_DIR / "run_manifest.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    from validation import study_provenance
+
+    study_provenance.write(
+        OUT_DIR / "provenance.json",
+        "validation/hx_ua_sensitivity/",
+        sorted(p for p in OUT_DIR.iterdir() if p.suffix in (".csv", ".json") and p.name != "provenance.json"),
+        {**CYCLE_SETTINGS, "cases": CASES, "joint_scales": JOINT_SCALES, "split_cases": SPLIT_CASES},
+        "how the part-load curve of the running cycle moves with the rated coil conductance",
+        command="python -m validation.hx_ua_sensitivity.simulate && python -m validation.hx_ua_sensitivity.figures",
+    )
     print(json.dumps(meta, indent=2))
     print(f"wrote {OUT_DIR / CSV_NAME}")
 

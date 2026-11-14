@@ -45,6 +45,7 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     GRIDLINE,
     HAIRLINE,
     apply_style,
+    cover_data_ylim,
     finalize,
     panel_letter,
     ticks,
@@ -205,8 +206,9 @@ def _axis(
 ) -> None:
     lo, hi, step = _fit_step(values, step, max_ticks=max_ticks)
     ax.set_ylabel(ylabel)
-    ax.set_ylim(lo, hi)
-    ax.set_yticks(ticks(lo, hi, step))
+    # The range follows the modulating rows; widen it only where a drawn curve
+    # (a floor row, another case) would otherwise leave the axes.
+    cover_data_ylim(ax, lo, hi, step)
     if title:
         ax.set_title(title, fontsize=dm.fs(-2), loc="left")
     if legend:

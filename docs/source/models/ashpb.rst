@@ -75,6 +75,22 @@ cap. ``analyze_steady`` against a hotter tank returns a reduced duty
 (``capacity_binding == "condensing_temperature"``) or the off state with
 ``failure_reason == "condensing_temp_above_max"``.
 
+That cap is the *envelope stop* (``T_cond_max − hp_capacity / UA_tank_hx`` at
+the condensing-limit pressure), and the in-step thermostat stops the
+compressor there whatever ``min_on_time_s`` says, as in :doc:`gshpb` and
+:doc:`wshpb`: a protection stop outranks the minimum run time. The step is a
+normal one (``failure_reason == "none"``) with ``hp_stop_reason ==
+"condensing_limit"``; ``hp_stop_reason`` is on every dynamic row and ``None``
+elsewhere. Before, a minimum run time carried the tank past the stop by an
+amount that depended on the step, and the run ended in a
+``condensing_temp_above_max`` step: R32 with ``min_on_time_s=1800`` peaked at
+62.6 °C with 60 s steps and at 65.1 °C with 600 s steps (1.51 against
+1.95 kWh of heat in 2 h); it now stops at 60.0 °C with both (1.055 kWh).
+Runs without a minimum run time are unchanged. ``ASHPB_PV_ESS``,
+``ASHPB_STC_preheat`` and ``ASHPB_STC_tank`` inherit the step and behave the
+same (a collector may still heat the tank beyond the stop, up to its own
+storage limit).
+
 Steady state below the minimum capacity
 =======================================
 
@@ -106,6 +122,24 @@ returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
 outdoor approach with the fan at its lowest flow, a running-machine COP of
 4.27 where the floor offers 5.29.
 
+The minimum speed is not always the lower end of continuous operation. At a
+large lift the shipped isentropic-efficiency fit, read below its data, falls
+under the envelope's floor (``ETA_ISEN_MIN`` = 0.30,
+:doc:`../developer/reference-operating-limits`) before ``rps_min`` is reached:
+the default 15 kW R290 unit at −7 °C outdoors against a 65 °C tank runs down
+to about 3.8 kW (frost-free) and no further, R134a at −15 °C against 40 °C to
+2.5 kW. A request below that duty was answered with the unit switched off
+(``failure_reason == "eta_isen_below_min"``) while a larger one ran. It is now
+met the same way as one below the minimum speed, and as :doc:`ashp` does: the
+unit cycles at the smallest duty the envelope admits. The row has
+``capacity_clamped == "min"``, ``Q_min [W]`` is that duty (found by bisection
+on the duty, to 0.5 %; the same for every request below it), and the
+compressor speed of the row is above ``rps_min``. With ``Cd_cycling=None`` the
+row is that continuous point, which delivers more than the request.
+``eta_isen_below_min`` remains the reason where no larger duty runs either, or
+another limit refuses a larger duty first. A dynamic step is not affected: its
+thermostat runs the compressor at the nameplate duty.
+
 ``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
 for an untested unit), ``1 − P_off / P_on`` for a unit with a measured standby
 power, ``1.0`` for loss-free cycling, and ``None`` for the continuous
@@ -126,6 +160,130 @@ at 162 W (system COP 2.47 against 4.49 for the running machine).
 A dynamic run is not affected: the tank thermostat already switches the
 compressor, which runs at ``hp_capacity`` for ``runtime_fraction [-]`` of a
 step.
+
+.. _ashpb-frost:
+
+Frost and defrost
+=================
+
+Below 5 °C outdoor the coil frosts and the unit stops heating from time to
+time to melt it; a catalogue figure at A2 or A−7 is the mean over both. The
+boiler applies the adjustment :doc:`ashp` applies (:mod:`tmhp.defrost`: the
+EnergyPlus DX heating-coil model with on-demand reverse-cycle defrost, its
+constants unchanged, growing from nothing at 5 °C to its full size at 2 °C),
+on by default, in ``analyze_steady`` and in the cycle of every dynamic step:
+
+- The request is met by the mean, so the frost-free cycle is solved at the
+  larger duty ``(Q_ref_tank + Q_defrost) / frost_capacity_factor`` and the row
+  is then averaged. ``Q_ref_tank [W]`` is the mean heat that reaches the tank:
+  the request, unless that larger duty runs into the compressor's speed
+  ceiling or the operating envelope (``capacity_clamped == "max"``).
+- ``E_cmp [W]`` is the frost-free compressor power times
+  ``frost_power_factor + defrost_fraction`` (heating, then defrosting — the
+  compressor is taken to draw the same power while it defrosts);
+  ``E_defrost [W]`` is the defrosting part. ``E_ou_fan [W]`` is multiplied by
+  ``frost_power_factor [-]``.
+- ``Q_defrost [W]`` is the heat a reverse-cycle defrost takes back from the
+  tank water. A unit cycling below its minimum capacity defrosts only while
+  it runs, so that heat is ``runtime_fraction [-]`` of the continuous figure.
+- Heat and flow rates (``Q_ref_ou``, ``Q_ou_a``, ``m_dot_ref``, ``dV_ou_a``)
+  are scaled with the delivered heat; temperatures, pressures, speed and
+  efficiencies are those of the frost-free cycle, whose duty and input are
+  ``Q_ref_tank_frost_free [W]`` and ``E_tot_frost_free [W]``. ``Q_min [W]``
+  of a cycling row is the frost-free duty at the minimum speed.
+- In a dynamic step the thermostat asks for ``hp_capacity`` and the running
+  cycle is that mean; ``E_defrost [W]`` and ``Q_defrost [W]`` are step
+  averages like the other rates.
+
+.. code-block:: python
+
+   from tmhp import AirSourceHeatPumpBoiler
+   from tmhp.defrost import DefrostModel
+
+   AirSourceHeatPumpBoiler()                                   # frost and defrost, 84 % RH
+   AirSourceHeatPumpBoiler(defrost=False)                      # the frost-free steady state
+   AirSourceHeatPumpBoiler(defrost=DefrostModel(RH_out=0.70))  # another default humidity
+
+   # Humidity per call, per step, or as a schedule (fraction, 0-1):
+   # model.analyze_steady(T_tank_w=45.0, T0=0.0, Q_ref_tank=8000.0, RH_out=0.9)
+   # model.analyze_dynamic(..., RH_out_schedule=rh)      # one value per step
+   # model.step(state, {..., "RH_out": 0.9}, dt_s)
+
+**Part load.** The correction is that of the load the coil carries
+(:ref:`frost at part load <ashp-frost-load>`): the coil sits ``r (0.18 T_out + 8.589)`` below the
+air, with ``r`` the frost-free duty over the capacity the correlation's unit
+has at that outdoor temperature (``hp_capacity`` at 7 °C, 0.6 of it at
+−15 °C), at most 1. At ``r = 1`` it is the EnergyPlus correction unchanged;
+below, the deposition and the fixed losses shrink with the frost drive that is
+left, to nothing once the coil is at the air's frost point.
+``DefrostModel(load_weighted=False)`` applies the full correction at every
+load.
+
+The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP
+(``defrost=False`` is what every version before returned):
+
+.. list-table::
+    :header-rows: 1
+    :widths: 28 12 12 12 12 12 12
+
+    * - Outdoor air
+      - 7 °C
+      - 4 °C
+      - 2 °C
+      - 0 °C
+      - −7 °C
+      - −15 °C
+    * - Frost-free
+      - 4.22
+      - 3.94
+      - 3.74
+      - 3.52
+      - 2.67
+      - 2.08
+    * - With frost and defrost
+      - 4.22
+      - 3.85
+      - 3.22
+      - 3.01
+      - 2.27
+      - 1.84
+    * - Load ratio ``r``
+      - —
+      - 0.58
+      - 0.69
+      - 0.72
+      - 0.84
+      - 1.00
+    * - ``defrost_fraction [-]``
+      - 0
+      - 0.012
+      - 0.065
+      - 0.061
+      - 0.036
+      - 0.018
+    * - ``load_weighted=False``
+      - 4.22
+      - 3.67
+      - 2.91
+      - 2.76
+      - 2.18
+      - 1.84
+
+At 4 kW the same unit hardly frosts (``r`` 0.3: 3.57 at 2 °C against 3.61
+frost-free). Frost also lowers what the unit can deliver: at A2 against a
+35 °C tank the default unit reaches its speed ceiling at a frost-free 18.6 kW,
+a mean of 14.6 kW for a 15 kW request. In a dynamic run the thermostat asks
+for ``hp_capacity``, so every running step is at ``r = 1``.
+
+.. note::
+
+   The multipliers come from air-to-air DX coils and depend on the outdoor
+   temperature, the humidity and the load ratio, not on the coil the model
+   solves; the condenser approach, the discharge temperature and the envelope
+   checks are those of the frost-free cycle at the larger duty, not of a coil
+   with frost on it. The load term takes the air flow as independent of the
+   load, and it inherits the EnergyPlus fixed loss in air too dry to frost
+   (:doc:`ashp`, *Frost and defrost*). See :doc:`/concepts/scope-and-limits`.
 
 Default compressor efficiencies
 ===============================

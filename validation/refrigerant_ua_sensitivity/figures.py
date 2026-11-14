@@ -29,6 +29,7 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     GRIDLINE,
     HAIRLINE,
     apply_style,
+    cover_data_ylim,
     finalize,
     panel_letter,
     ticks,
@@ -122,13 +123,15 @@ def _panel(ax, d, duty, col, ylabel, ylim, ystep, scale=1.0, title=None, legend=
         g = d[(d.duty == duty) & (d.variant == v)]
         _series(ax, g, col, VAR_COLOR[v], label=VAR_LABEL[v], scale=scale)
     ax.set_ylabel(ylabel)
-    ax.set_ylim(*ylim)
-    ax.set_yticks(ticks(ylim[0], ylim[1], ystep))
+    # The fixed range is the one the study was first drawn with; widen it only
+    # where today's curves would leave it.
+    lo, hi, _ = cover_data_ylim(ax, ylim[0], ylim[1], ystep)
     if title:
         ax.set_title(title, fontsize=dm.fs(-2), loc="left")
     if legend:
         ax.legend(loc=legend, frameon=False, fontsize=dm.fs(-3.5))
     _plr_axis(ax)
+    return lo, hi
 
 
 def _source(d, cols, name) -> None:
@@ -283,7 +286,7 @@ def fig06(d) -> None:
     lims = {"heating": ((5.0, 6.5), 0.25), "cooling": ((4.75, 6.5), 0.25)}
     for ax, duty, letter in zip(axes, ("heating", "cooling"), "ab", strict=True):
         ylim, ystep = lims[duty]
-        _panel(
+        ylim = _panel(
             ax,
             sub,
             duty,

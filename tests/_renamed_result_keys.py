@@ -26,4 +26,8 @@ RENAMED_RESULT_KEYS: dict[str, str | None] = {
     "err_Q_evap [W]": "source_hx_residual [W]",
     "err_Q_ground [W]": "source_hx_residual [W]",
     "err_Q_water [W]": "source_hx_residual [W]",
+    "X_bhe_in [W]": "X_bhe_f_in [W]",
+    "X_bhe_out [W]": "X_bhe_f_out [W]",
+    "Xc_ref_ou [W]": "Xc_ou_hx [W]",
+    "X_eff_ref_ou [-]": "X_eff_ou_hx [-]",
 }

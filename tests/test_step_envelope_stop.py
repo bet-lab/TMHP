@@ -181,6 +181,10 @@ def test_top_coil_stops_at_the_envelope_stop_and_holds(top_coil_runs):
         assert (df["T_tank_w [°C]"] < m.T_tank_w_lower_bound + 2.0).all()
     q = {dt: float(df["Q_ref_tank [W]"].sum() * dt) for dt, (_, df) in top_coil_runs.items()}
     assert q[600.0] == pytest.approx(q[60.0], rel=0.01)
+    # R5H: the electricity too. The first 600 s step used to take the condensing temperature its
+    # run ended on (75 degC, the limit) for the whole run from 60 degC: 4.2 % more than 60 s steps.
+    e = {dt: float(df["E_tot [W]"].sum() * dt) for dt, (_, df) in top_coil_runs.items()}
+    assert e[600.0] == pytest.approx(e[60.0], rel=0.01)
 
 
 @pytest.fixture(scope="module")
@@ -233,10 +237,139 @@ def test_coil_cut_out_keeps_the_full_duty_run_while_the_mean_falls(draining_runs
     assert first[600.0][1] == pytest.approx(first[60.0][1], rel=0.05)
 
 
+def test_draining_top_coil_does_not_depend_on_the_step(draining_runs):
+    """R5H: the whole hour of the draining run, 60 s against 600 s steps.
+
+    Was 1.911 / 2.117 kWh of electricity (+10.8 %) for 5.927 / 6.052 kWh of heat: a 600 s step
+    took the condensing temperature its run ended on, its trial tank steps drew less than the
+    step itself once the top cooled, and a hold could ask for more than the nameplate duty while
+    the cold front arrived. A step the tank cut short was a new start in the next one (2 starts
+    at 600 s for 1 at 60 s), and its top node ended above the envelope stop (72.4 degC for 70).
+    """
+    from tmhp.compressor_envelope import condensing_tank_cutout
+
+    total = {}
+    for dt, (m, df, _) in draining_runs.items():
+        total[dt] = (float(df["Q_ref_tank [W]"].sum() * dt), float(df["E_tot [W]"].sum() * dt))
+        assert df["hp_starts [-]"].sum() == 1, dt  # one run: stopped, held and run flat out again
+        assert df["T_tank_w_top [°C]"].max() <= condensing_tank_cutout(m) + 0.05, dt
+        ran = df["runtime_fraction [-]"] > 0.0
+        # The row's condensing temperature is the run's mean, below the highest it reached.
+        assert (df.loc[ran, "T_ref_cond_sat_l [°C]"] <= df.loc[ran, "T_ref_cond_sat_l_peak [°C]"] + 1e-9).all()
+        assert df.loc[~ran, "T_ref_cond_sat_l_peak [°C]"].isna().all()
+    # The heat keeps the 2 % of the tank's own time resolution (upwind advection: 0.3 % with the
+    # tank sub-stepped twenty times finer); the electricity is inside the 5 % of invariant T6.
+    assert total[600.0][0] == pytest.approx(total[60.0][0], rel=0.03)
+    assert total[600.0][1] == pytest.approx(total[60.0][1], rel=0.05)
+
+
+def test_a_held_step_is_not_a_stop_for_the_minimum_rest(draining_runs):
+    """R5H: a step the coil's limit held is the same run in the next step.
+
+    Was: the tank cut such a step short and the compressor counted as stopped, so the next step
+    was a new start -- which a minimum rest then delayed. With ``min_off_time_s=600`` the draining
+    run delivered 5.93 kWh at 60 s steps, 5.02 at 300 s and 4.55 at 600 s (1, 3 and 3 starts)."""
+    _, base, _ = draining_runs[600.0]
+    m = _quiet(
+        tmhp.GroundSourceHeatPumpBoiler,
+        tank_model="stratified",
+        condenser_node=0,
+        min_off_time_s=600.0,
+        dt_s=600.0,
+        t_max_s=86400.0,
+    )
+    df = _quiet(m.analyze_dynamic, 3600.0, 600.0, 55.0, np.full(6, 1e-4), np.full(6, 7.0))
+    assert df["hp_starts [-]"].sum() == 1
+    assert (df["runtime_fraction [-]"] > 0.0).all()  # no step waited
+    assert df["Q_ref_tank [W]"].sum() == pytest.approx(base["Q_ref_tank [W]"].sum(), rel=1e-9)
+    assert df["E_tot [W]"].sum() == pytest.approx(base["E_tot [W]"].sum(), rel=1e-9)
+
+
 def test_lumped_default_run_has_no_stop_reason():
     m = _quiet(tmhp.GroundSourceHeatPumpBoiler, dt_s=600.0, t_max_s=86400.0)
     df = _quiet(m.analyze_dynamic, 6 * 600.0, 600.0, 50.0, np.zeros(6), np.full(6, 7.0))
     assert df["hp_is_on"].any() and df["hp_stop_reason"].isna().all()
+
+
+# ---------------------------------------------------------------------------
+# ASHPB (single-node tank): the same connection (R5K)
+# ---------------------------------------------------------------------------
+
+
+def _ashpb_run(model, T_init, n=12, dt=600.0, **schedules):
+    return _quiet(model.analyze_dynamic, n * dt, dt, T_init, np.zeros(n), np.full(n, 7.0), **schedules)
+
+
+@pytest.fixture(scope="module")
+def ashpb_min_run():
+    """R32 ASHPB (envelope stop 60 degC), 53-58 degC band, 30 min minimum run, 2 h from 52 degC."""
+    m = _quiet(
+        tmhp.AirSourceHeatPumpBoiler,
+        ref="R32",
+        min_on_time_s=1800.0,
+        T_tank_w_lower_bound=53.0,
+        T_tank_w_upper_bound=58.0,
+    )
+    return m, _ashpb_run(m, 52.0)
+
+
+def test_ashpb_minimum_run_time_stops_at_the_envelope_stop(ashpb_min_run):
+    """Was: the run went on to 66.2 degC and ended in a ``condensing_temp_above_max`` step."""
+    from tmhp.compressor_envelope import condensing_tank_cutout
+
+    m, df = ashpb_min_run
+    cutout = condensing_tank_cutout(m)
+    assert cutout == pytest.approx(60.0, abs=1e-6) and m.T_tank_w_upper_bound == 58.0
+    assert (df["failure_reason"] == "none").all()
+    # The minimum run time carries the run past the 58 degC bound; the stop ends it.
+    assert df["T_tank_w [°C]"].max() == pytest.approx(cutout, abs=0.05)
+    stopped = df["hp_stop_reason"] == STOP_CONDENSING_LIMIT
+    assert stopped.sum() == 1 and df.loc[stopped, "hp_is_on"].all()
+    step = int(np.flatnonzero(stopped.to_numpy())[0])
+    assert 0.0 < df["runtime_fraction [-]"].iloc[step] < 1.0  # stopped inside the step
+    # A normal end of the run: the compressor rests afterwards, nothing is reported as failed.
+    assert not df["hp_is_on"].iloc[step + 1 :].any()
+    assert df["hp_stop_reason"].iloc[step + 1 :].isna().all()
+
+
+def test_ashpb_stop_does_not_depend_on_the_step(ashpb_min_run):
+    m, coarse = ashpb_min_run
+    fine = _ashpb_run(m, 52.0, n=120, dt=60.0)
+    heat = [float(df["Q_ref_tank [W]"].sum() * dt) for df, dt in ((fine, 60.0), (coarse, 600.0))]
+    assert heat[1] == pytest.approx(heat[0], rel=0.02)
+    assert fine["T_tank_w [°C]"].max() == pytest.approx(coarse["T_tank_w [°C]"].max(), abs=0.05)
+    assert (fine["hp_stop_reason"] == STOP_CONDENSING_LIMIT).sum() == 1
+
+
+def test_ashpb_default_run_has_no_stop_reason_and_the_column_is_on_every_row():
+    """Without a minimum run time the thermostat's own bound ends the run: values as before."""
+    m = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32")
+    df = _ashpb_run(m, 50.0, n=6)
+    assert df["hp_is_on"].any() and not df["hp_is_on"].all()
+    assert "hp_stop_reason" in df.columns and df["hp_stop_reason"].isna().all()
+    assert df["T_tank_w [°C]"].max() <= m.T_tank_w_upper_bound + 0.05
+    # No condensing limit: no envelope stop either (the boiling point is the cut-out).
+    free = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", min_on_time_s=1800.0, T_cond_max=None)
+    df = _ashpb_run(free, 59.0, n=2)
+    assert df["hp_stop_reason"].isna().all() and df["T_tank_w [°C]"].max() > 66.0
+
+
+def test_ashpb_scenario_classes_take_the_same_path():
+    """The PV/ESS and collector variants inherit ``step``: the stop and its column are theirs too."""
+    from tmhp.subsystems import PhotovoltaicSystem, SolarThermalCollector
+
+    variants = {
+        "ASHPB_PV_ESS": dict(pv=PhotovoltaicSystem()),
+        "ASHPB_STC_preheat": dict(stc=SolarThermalCollector()),
+        "ASHPB_STC_tank": dict(stc=SolarThermalCollector()),
+    }
+    for name, extra in variants.items():
+        m = _quiet(getattr(tmhp, name), ref="R32", min_on_time_s=1800.0, **extra)
+        # At night: no collector heat, so the tank's peak is the heat pump's.
+        df = _ashpb_run(m, 54.0, n=6, I_DN_schedule=np.zeros(6), I_dH_schedule=np.zeros(6))
+        assert (df["failure_reason"] == "none").all(), name
+        assert (df["hp_stop_reason"] == STOP_CONDENSING_LIMIT).sum() == 1, name
+        assert df["T_tank_w [°C]"].max() <= m.T_tank_w_upper_bound + 0.05, name
 
 
 # ---------------------------------------------------------------------------

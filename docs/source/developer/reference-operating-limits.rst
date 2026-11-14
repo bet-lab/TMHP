@@ -598,7 +598,15 @@ How each family answers a point the control cannot hold:
   ``capacity_binding`` naming the limit (see
   :doc:`/concepts/failure-reason-semantics`), ``Q_max [W]`` and
   ``Q_request [W]``. If none runs the off state carries the request's own
-  reason. The limits are not monotone in the duty together: above the duties
+  reason -- except a request the efficiency floor refuses, which is then tried
+  at *larger* duties (:func:`tmhp.compressor_envelope.raise_duty_within_envelope`:
+  5 to 200 % of the nameplate from the bottom, the boundary bisected to
+  0.5 %): the fit falls below its floor towards low speed, so the smallest
+  duty that runs is the lower end of continuous operation, returned with
+  ``capacity_clamped == "min"`` and averaged over the on/off period like a
+  minimum-speed row (``Q_min [W]`` is that duty). The search stops, and the
+  request keeps its reason, when a larger duty is refused for another limit
+  before one runs. The limits are not monotone in the duty together: above the duties
   that run the pressure ratio or the heat exchanger refuses, below them the
   discharge temperature does (at low speed the efficiency falls). So when no
   rung runs, two neighbouring rungs refused for different reasons are

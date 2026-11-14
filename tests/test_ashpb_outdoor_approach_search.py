@@ -79,8 +79,9 @@ def test_search_is_not_beaten_by_a_dense_scan():
 
 def test_request_below_minimum_speed_delivers_the_floor_capacity():
     """Same convention as ASHP and GSHP: run at rps_min, mark 'min', stay within the nameplate."""
-    # The running machine (``Cd_cycling=None``: no averaging over the cycling period).
-    model = AirSourceHeatPumpBoiler(ref="R32", Cd_cycling=None)
+    # The running machine (``Cd_cycling=None``: no averaging over the cycling period;
+    # ``defrost=False``: nor over frost and defrost, which this point at -7 degC has).
+    model = AirSourceHeatPumpBoiler(ref="R32", Cd_cycling=None, defrost=False)
     result = _steady(model, T_tank_w=50.0, T0=-7.0, Q_ref_tank=750.0)
     _assert_running(model, result)
     assert result["capacity_clamped"] == "min"
@@ -88,7 +89,7 @@ def test_request_below_minimum_speed_delivers_the_floor_capacity():
     assert 750.0 < result["Q_ref_tank [W]"] <= model.hp_capacity
     assert result["Q_request [W]"] == 750.0
     # By default the row is the cycling mean of that machine: the request is delivered.
-    mean = _steady(AirSourceHeatPumpBoiler(ref="R32"), T_tank_w=50.0, T0=-7.0, Q_ref_tank=750.0)
+    mean = _steady(AirSourceHeatPumpBoiler(ref="R32", defrost=False), T_tank_w=50.0, T0=-7.0, Q_ref_tank=750.0)
     assert mean["capacity_clamped"] == "min" and mean["Q_ref_tank [W]"] == pytest.approx(750.0, rel=1e-12)
     assert mean["Q_min [W]"] == pytest.approx(result["Q_ref_tank [W]"], rel=1e-9)
     assert mean["cmp_rpm [rpm]"] == pytest.approx(60.0 * model.rps_min)

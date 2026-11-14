@@ -1,0 +1,14 @@
+{
+ "status": "dated: not regenerated with the current model",
+ "script": "validation/diagnostics/power_cop_breakdown.py",
+ "command": "python -m validation.diagnostics.power_cop_breakdown",
+ "outputs": [
+  "validation/data/power_cop/"
+ ],
+ "made_at_commit": "0e01483a49eff1a73f5742fff88f067670f99064",
+ "made_on": "2026-10-01",
+ "coefficient_version": "v2026-09-24",
+ "model_settings": "library defaults of that commit. Defaults that changed after it: on-off averaging below the minimum capacity (Cd_cycling, #134), condensing-temperature cap on and GSHPB/WSHPB default R290 (#136), source fluid MEG-25 % (#137), coil air density at the inlet (#139, #146), ASHP/ASHPB frost and defrost on with load weighting (#154), compressor coefficients BITZER-three-C3-absolute-N-2026-10-06",
+ "why_not_regenerated": "Nothing is simulated: it re-reads validation/data/final_report/ (see final_report.json), so it is as current as that report.",
+ "checked_against": "635bb437098ad3624db032994c95002a71ce4602"
+}

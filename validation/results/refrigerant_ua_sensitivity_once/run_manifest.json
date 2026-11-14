@@ -1,7 +1,7 @@
 {
   "m_dot_ref_rated_kg_s": {
-    "heating": 0.010978747402336491,
-    "cooling": 0.014294792543810634
+    "heating": 0.01096141404980077,
+    "cooling": 0.014419553122434337
   },
   "regression_max_rel_dev": {
     "cop_sys": 0.0,
@@ -15,10 +15,10 @@
   },
   "n_rows": 644,
   "n_failures": 0,
-  "n_speed_floor": 154,
+  "n_speed_floor": 308,
   "n_fan_floor_ou": 0,
   "n_fan_floor_iu": 0,
-  "fan_fraction_ou_min": 0.3029505851042814,
+  "fan_fraction_ou_min": 0.5079497415835249,
   "combos": [
     [
       0.05,

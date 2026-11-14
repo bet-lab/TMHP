@@ -209,7 +209,10 @@ def _solve(model, Q_r_iu, **kwargs):
 
 @pytest.fixture(scope="module")
 def hp():
-    return AirSourceHeatPump()
+    # The EnergyPlus form at every load: these tests pin that correction and its
+    # bookkeeping at stated requests. The load weighting the default adds on top
+    # is tested in test_defrost_load_weighting.py.
+    return AirSourceHeatPump(defrost=DefrostModel(load_weighted=False))
 
 
 @pytest.fixture(scope="module")
@@ -223,7 +226,8 @@ def frosted(hp):
 
 
 def test_the_frost_model_is_on_by_default_and_can_be_switched_off(hp, frost_free):
-    assert hp.defrost == DefrostModel()
+    assert AirSourceHeatPump().defrost == DefrostModel() and DefrostModel().load_weighted is True
+    assert hp.defrost == DefrostModel(load_weighted=False)
     assert frost_free.defrost is None and AirSourceHeatPump(defrost=False).defrost is None
 
 
@@ -394,7 +398,7 @@ def test_the_steady_result_has_no_step_at_the_frost_limit(hp):
     # No quarter-kelvin step carries more than a seventh of the whole frost penalty.
     assert np.max(np.diff(cop)) < 0.15 * (cop[-1] - cop[0])
     # Outside the transition nothing moved: full correction at 2 degC, none above 5 degC.
-    switch = AirSourceHeatPump(defrost=DefrostModel(transition_K=0.0))
+    switch = AirSourceHeatPump(defrost=DefrostModel(transition_K=0.0, load_weighted=False))
     for T in (-7.0, 2.0, 5.5, 7.0):
         a, b = _solve(hp, -2000.0, T0=T, **room), _solve(switch, -2000.0, T0=T, **room)
         assert a["cop_sys [-]"] == pytest.approx(b["cop_sys [-]"], rel=1e-12)

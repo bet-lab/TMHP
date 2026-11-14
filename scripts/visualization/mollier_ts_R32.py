@@ -23,12 +23,16 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, record_figure, static_path  # noqa: E402
 
 REF = "R32"
 T_TANK_W = 60.0
 T0 = 12.0
 Q_COND = 8_000
+
+#: The cycle at this point, nothing averaged over it: no on-off averaging
+#: below the minimum capacity, no frost or defrost (neither is a cycle state).
+CYCLE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
 
 
 def _envelope_ts(refrigerant: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -70,7 +74,7 @@ def _cycle_ts(result: dict) -> dict[str, tuple[float, float]]:
 def main() -> None:
     apply_style("report", hashsalt="tmhp.visualization.mollier-ts-r32")
 
-    ashpb = AirSourceHeatPumpBoiler(ref=REF)
+    ashpb = AirSourceHeatPumpBoiler(ref=REF, **CYCLE_SETTINGS)
     res = ashpb.analyze_steady(T_tank_w=T_TANK_W, T0=T0, Q_ref_tank=Q_COND)
     assert isinstance(res, dict)
     pts = _cycle_ts(res)
@@ -98,7 +102,12 @@ def main() -> None:
             linestyle="None",
             zorder=3,
         )
-    label_offsets = {"1": (8, -6), "2": (8, -12), "3": (-30, 8), "4": (-30, -14)}
+    label_offsets = {
+        "1": (6, 3, "left", "bottom"),
+        "2": (5, 0, "left", "center"),
+        "3": (-4, 3, "right", "bottom"),
+        "4": (-4, -3, "right", "top"),
+    }
     for k in CLOSED:
         x, y = pts[k]
         ax.plot(
@@ -111,9 +120,16 @@ def main() -> None:
             linestyle="None",
             zorder=3,
         )
-        dx, dy = label_offsets[k]
+        dx, dy, ha, va = label_offsets[k]
         ax.annotate(
-            NODE_LABEL[k], (x, y), xytext=(dx, dy), textcoords="offset points", fontsize=dm.fs(-1), color=COLORS["ink"]
+            NODE_LABEL[k],
+            (x, y),
+            xytext=(dx, dy),
+            textcoords="offset points",
+            ha=ha,
+            va=va,
+            fontsize=dm.fs(-1),
+            color=COLORS["ink"],
         )
 
     # Reference temperature lines: tank water + ambient.
@@ -132,6 +148,23 @@ def main() -> None:
     out = static_path("mollier_ts_R32.svg").with_suffix("")
     finalize(fig, out)
     plt.close(fig)
+    record_figure(
+        "mollier_ts_R32",
+        "scripts/visualization/mollier_ts_R32.py",
+        {"ref": REF, **CYCLE_SETTINGS},
+        f"R32 cycle nodes at T_tank_w {T_TANK_W} °C, T0 {T0} °C, {Q_COND} W, on a T-s plane",
+        {
+            k: res.get(k)
+            for k in [
+                "cop_sys [-]",
+                "E_cmp [W]",
+                "Q_ref_tank [W]",
+                "T_ref_evap_sat [°C]",
+                "T_ref_cond_sat_v [°C]",
+                "T_ref_cmp_out [°C]",
+            ]
+        },
+    )
     print(f"wrote {out}.svg")
 
 

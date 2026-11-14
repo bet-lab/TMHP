@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone, drawing or rejecting heat through the same g-function borehole heat exchanger as GSHPB. Overview: The class is tmhp.GroundSourceHeatPump. Use it when the heat pump’s job..." />
 
-    <meta property="article:modified_time" content="2026-11-14T08:34:10+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -409,9 +409,16 @@ ethylene glycol by default (<code class="docutils literal notranslate"><span cla
 never colder than its freezing point plus 3 K – -8.0 °C for the default,
 3 °C for water. A heating duty that would chill it further is reduced to the
 largest one that does not (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;source_fluid_freezing&quot;</span></code>), and when none does – also
-when the compressor is already on its speed floor, switching on and off –
-the unit is off with <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;source_fluid_freezing&quot;</span></code>. Cooling
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;source_fluid_freezing&quot;</span></code>), and when none does the unit
+is off with <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;source_fluid_freezing&quot;</span></code>. On the compressor’s
+speed floor the running machine has no smaller state, so against a prescribed
+wall or fluid temperature (<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>) a minimum-speed machine that
+leaves the liquid below the limit is off at every request. In a dynamic step
+the borehole wall answers the <em>mean</em> load: a unit that cycles with shorter
+runs sees a warmer loop, and the step is reduced to the largest mean duty
+whose running liquid stays on the limit (a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row that is an on/off
+mean: <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> and <code class="docutils literal notranslate"><span class="pre">capacity_ratio</span> <span class="pre">[-]</span></code> below 1, <code class="docutils literal notranslate"><span class="pre">Q_unmet</span>
+<span class="pre">[W]</span></code> the part not delivered). Cooling
 warms the loop and is not affected unless the ground itself is below the
 limit. The ISO 13256-1 ground-loop heating point (liquid entering at 0 °C,
 leaving near -3 °C) and a 0 °C borehole wall are antifreeze conditions, which
@@ -570,11 +577,25 @@ step is not resolved beyond that one block.</p>
 <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> repeats it and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names what set it.
 <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (signed, as asked) and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> (the part of the
 request that is not delivered) are on every row.</p>
+<p>With the compressor at <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> the delivered heat hardly depends on the
+indoor airflow – it varies by a tenth of a percent across the approaches the
+fan can serve, while the electrical input varies by several percent. The
+ceiling row is therefore not the candidate of largest heat: heat within 0.5 %
+of the largest counts as the same ceiling, and among those candidates the one
+of least total input is reported, normally the fan at its largest airflow
+(the least lift). A ceiling found by bisection on the duty (a coil or an
+envelope limit, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> other than <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code>) is solved
+as that duty, so its row is the least-input operating point of the duty too.</p>
 <p>What the cycling model does not contain: no standby power is added while the
 compressor is off, and a start is not resolved in time — the degradation is
-the standard’s seasonal-average figure. The coupled ground-flow solver
-(<a class="reference internal" href="ground-flow.html"><span class="doc">Coupled ground-loop flow</span></a>, <code class="docutils literal notranslate"><span class="pre">ground_flow_control</span></code> other than <code class="docutils literal notranslate"><span class="pre">&quot;constant&quot;</span></code>) does
-not cycle: a request below its minimum-speed duty is reported as the failure
+the standard’s seasonal-average figure.</p>
+<p>The coupled ground-flow solver (<a class="reference internal" href="ground-flow.html"><span class="doc">Coupled ground-loop flow</span></a>: a prescribed ground flow,
+or <code class="docutils literal notranslate"><span class="pre">ground_flow_control</span></code> other than plain constant flow) cycles the same
+way. Its minimum-speed machine is the one the fixed-flow search finds at that
+loop flow, averaged as above, so a prescribed flow equal to the reference
+flow returns the fixed-flow row; a variable flow is chosen for the least mean
+input for the request. Only with <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> does that solver report
+a request below its minimum-speed duty as the failure
 <code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code>.</p>
 </section>
 <section id="cop-boundary">
@@ -941,9 +962,12 @@ a cycling row, and with it the pulse a dynamic step adds to the ground
 history, is the mean ground-side heat, while the fluid temperatures of
 the row are those of the running machine. <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> restores
 continuous operation at the minimum speed (the row then delivers more
-than the request). The coupled ground-flow solver
-(<code class="docutils literal notranslate"><span class="pre">ground_flow_control</span></code> other than <code class="docutils literal notranslate"><span class="pre">&quot;constant&quot;</span></code>) does not cycle: there
-a request below the minimum-speed duty is <code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code>.</p>
+than the request). The coupled ground-flow solver (a prescribed ground
+flow, or <code class="docutils literal notranslate"><span class="pre">ground_flow_control</span></code> other than plain constant flow) cycles
+the same way: its minimum-speed machine is the one the fixed-flow search
+finds at that flow, and a variable flow is chosen for the least mean
+input. Only with <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> is a request below its
+minimum-speed duty the failure <code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code>.</p>
 <p><strong>Defaults that follow the capacity.</strong> With only <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> (and
 <code class="docutils literal notranslate"><span class="pre">ref</span></code>) given, the ground side and the indoor airflow are sized from it,
 so the rating-point COP is the same at every capacity:</p>
@@ -984,9 +1008,14 @@ never colder than its operating limit, the freezing point plus 3 K
 (-8.0 °C for the default, 3 °C for water): a heating duty that would
 chill it further is reduced to the largest one that does not
 (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span>
-<span class="pre">&quot;source_fluid_freezing&quot;</span></code>), and when no duty does – also when the
-compressor is already on its speed floor – the unit is off with
-<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;source_fluid_freezing&quot;</span></code>. The liquid’s density, heat
+<span class="pre">&quot;source_fluid_freezing&quot;</span></code>), and when no duty does the unit is off with
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;source_fluid_freezing&quot;</span></code>. A compressor on its speed
+floor has no smaller running state: against a prescribed wall or fluid
+temperature a minimum-speed machine that leaves the liquid below the
+limit is off at every request. In a dynamic step the wall answers the
+mean load, so a cycling unit is reduced to the largest mean duty whose
+running liquid stays on the limit (a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row that is an on/off
+mean, <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> below 1). The liquid’s density, heat
 capacity, viscosity and conductivity enter the loop balance, the default
 flow and the borehole resistance.</p>
 <p><strong>Borehole dynamics.</strong> <code class="docutils literal notranslate"><span class="pre">borehole_dynamics=None</span></code> (default) adds the heat

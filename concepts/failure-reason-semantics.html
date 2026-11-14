@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-14T06:33:37+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -322,7 +322,10 @@ condensing temperature would be above the critical point (formerly
 low-speed continuation), is below <code class="docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code> = 0.30 at the
 solved point (ASHP, GSHP: at every candidate). The fit never goes
 below 0.336 inside its data. Not checked for scalar or user
-efficiencies.</p></td>
+efficiencies. ASHP does not report it for a request that is only too
+<em>small</em> (the fit falls below the floor towards low speed while a
+larger duty runs): that request is met by on/off cycling at the
+smallest duty the envelope admits (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>).</p></td>
 <td><p>No — only off-mode placeholders.</p></td>
 </tr>
 </tbody>
@@ -356,7 +359,10 @@ compressor’s lowest speed (<code class="docutils literal notranslate"><span cl
 that a <em>smaller</em> duty keeps on the limit is not a failure: it returns
 that duty with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span>
 <span class="pre">&quot;source_fluid_freezing&quot;</span></code>, in <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> and in every dynamic
-step. Fill the loop with an antifreeze mixture, or a stronger one
+step. On the speed floor a smaller duty helps only where the unit
+cycles and the source answers the mean load (a GSHP dynamic step:
+shorter runs see a warmer borehole); the reduced row is then an
+on/off mean. Fill the loop with an antifreeze mixture, or a stronger one
 (<code class="docutils literal notranslate"><span class="pre">source_fluid=&quot;MEG-30%&quot;</span></code>; see <a class="reference internal" href="../models/gshpb.html#source-fluid"><span class="std std-ref">Ground-loop liquid and its freezing limit</span></a>).</p></td>
 <td><p>No — only off-mode placeholders.</p></td>
 </tr>
@@ -422,7 +428,9 @@ in this path. (An envelope rejection keeps its own reason:
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code></p></td>
 <td><p>The requested duty is below what the compressor delivers at
 <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>), so the exact duty cannot
-be met.</p></td>
+be met. The ground-source heat pump meets such a request by on/off
+cycling instead (<a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a>); it reports this reason only
+with <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_max_speed</span></code></p></td>
 <td><p>The requested duty is above what the compressor delivers at

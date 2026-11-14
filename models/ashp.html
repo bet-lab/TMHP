@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-11-14T08:34:10+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -480,6 +480,19 @@ behaviour (continuous operation at the minimum speed, <code class="docutils lite
 the request, <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> of 1). The operating-point search weighs
 the degradation, so the minimum-speed point may sit a few watts from the one
 found with <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code>.</p>
+<p>The minimum speed is not always the lower end of continuous operation. At a
+large lift the shipped isentropic-efficiency fit, read below its data, falls
+under the envelope’s floor (<code class="docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code> = 0.30,
+<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>) before <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is reached:
+the default R134a unit at -25 °C outdoors and 24 °C indoors runs down to
+about 0.65 kW (frost-free) and no further. A request below that duty was
+answered with the unit switched off (<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span>
+<span class="pre">&quot;eta_isen_below_min&quot;</span></code>) while a larger one ran. It is now met the same way as
+one below the minimum speed: the unit cycles at the smallest duty the
+envelope admits. The row has <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is
+that duty (found by bisection on the duty, to 0.5 %), and the compressor
+speed of the row is above <code class="docutils literal notranslate"><span class="pre">rps_min</span></code>. <code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code> remains the
+reason where no larger duty runs either.</p>
 <p><strong>Above the maximum capacity</strong> the unit runs flat out
 (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>): <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> is the ceiling,
 <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> repeats it, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names what set it and
@@ -778,7 +791,12 @@ speed, the compressor cycles on and off. Such an hour is reported with
 <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code> as the mean over the cycling period: the
 delivered heat equals the request, the electrical input carries the EN
 14825 degradation (<code class="docutils literal notranslate"><span class="pre">Cd_cycling</span></code>), and <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> is the
-share of the time the compressor runs (<a class="reference internal" href="../api/support/simulation.html#module-tmhp.cycling" title="tmhp.cycling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.cycling</span></code></a>).</p>
+share of the time the compressor runs (<a class="reference internal" href="../api/support/simulation.html#module-tmhp.cycling" title="tmhp.cycling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.cycling</span></code></a>). The same
+holds where the envelope ends continuous operation above the minimum
+speed: at a large lift the shipped isentropic fit falls below its floor
+(<code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code>) towards low speed, and a request below the
+smallest duty that stays inside is met by cycling at that duty
+(<code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code>), not answered with the unit switched off.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-11-14T08:31:59+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1117,6 +1117,15 @@ built by <a class="reference internal" href="#tmhp.g_function.GFunction.from_fie
 <p>Uses <a class="reference internal" href="#tmhp.g_function.GFunction.step_mean" title="tmhp.g_function.GFunction.step_mean"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GFunction.step_mean()</span></code></a> (exact) when available; any other
 callable <code class="docutils literal notranslate"><span class="pre">g(t)</span></code> (a user or test g-function) is integrated with an
 8-point Gauss–Legendre rule per step.</p>
+<p>A g-function rises from zero on the time scale <code class="docutils literal notranslate"><span class="pre">r_b²/α</span></code> (tens of
+minutes) and like <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">t</span></code> afterwards, so one rule cannot resolve an
+interval that starts at or near <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">0</span></code> and is much longer than that:
+for the first step of a line source it is 5e-4 off with daily steps and
+1e-3 with monthly ones. An interval with <code class="docutils literal notranslate"><span class="pre">τ</span> <span class="pre">&lt;</span> <span class="pre">dt</span></code> (the first step of a
+run, a run window of the current step) is therefore integrated on panels
+that narrow towards its start, 8 points each; against the closed-form
+step mean of a line source that is exact to 2e-9 for steps from a minute
+to a year. Intervals with <code class="docutils literal notranslate"><span class="pre">τ</span> <span class="pre">&gt;=</span> <span class="pre">dt</span></code> use the single rule.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
@@ -3978,6 +3987,15 @@ and <code class="docutils literal notranslate"><span class="pre">capacity_bindin
 the liquid already reaches the heat pump below the limit, or it leaves below
 the limit even at the compressor’s lowest speed – the compressor does not
 run: the off state with <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;source_fluid_freezing&quot;</span></code>.</p>
+<p>At the lowest speed the running machine cannot take less heat, but a unit
+that switches on and off can run for less of the time. That warms the liquid
+only where the source answers the mean load: a borehole wall in a dynamic
+step of the ground-source heat pump, which is warmer under shorter runs. The
+duty is then lowered further, into the cycling range, to the largest mean
+duty whose running liquid stays on the limit; the row is an on/off mean with
+<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>. Against a prescribed source or wall
+temperature, and in a model that does not cycle, a smaller duty leaves the
+running liquid as cold as before (one trial shows it) and the unit is off.</p>
 </section>
 <section id="properties">
 <h3>Properties<a class="headerlink" href="#properties" title="Link to this heading">¶</a></h3>
@@ -4256,7 +4274,11 @@ warms it, the first two refused duties are extrapolated; a duty another
 limit refuses bounds the search from below). The largest duty found is
 returned with
 <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">=</span> <span class="pre">&quot;max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">=</span> <span class="pre">&quot;source_fluid_freezing&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>. When no duty runs – the liquid enters
+<code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>. On the compressor’s speed floor
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>) the search goes on only while a smaller
+duty leaves the liquid warmer – a unit that cycles against a source
+answering the mean load; two duties on the floor with the same liquid
+temperature end it. When no duty runs – the liquid enters
 below the limit while it gives heat up (<code class="xref py py-data docutils literal notranslate"><span class="pre">DETAIL_INLET</span></code>), it leaves
 below the limit at the compressor’s lowest speed, or another limit refuses
 every smaller duty – <code class="docutils literal notranslate"><span class="pre">off(detail)</span></code> is returned and a <code class="docutils literal notranslate"><span class="pre">RuntimeWarning</span></code>

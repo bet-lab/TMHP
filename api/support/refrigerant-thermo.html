@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-11-14T08:30:14+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -248,6 +248,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.reference_state.HXSide.T_in_C"><code class="docutils literal notranslate">T_in_C</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.reference_state.HXSide.UA"><code class="docutils literal notranslate">UA</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.reference_state.HXSide.volume_flow"><code class="docutils literal notranslate">volume_flow</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.reference_state.HXSide.rho_cp"><code class="docutils literal notranslate">rho_cp</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.reference_state.HXSide.conductance"><code class="docutils literal notranslate">conductance</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.reference_state.HXSide.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 </ul>
@@ -1877,13 +1878,21 @@ temperature, the conservative end of the condenser water range.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">HXSide</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#HXSide"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.HXSide" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">HXSide</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_cp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#HXSide"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.HXSide" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Secondary side of one refrigerant heat exchanger at the rating point.</p>
 <p><code class="docutils literal notranslate"><span class="pre">fluid</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;air&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;water&quot;</span></code> for a single-phase stream crossing a
 constant-saturation-temperature surface (<code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">=</span> <span class="pre">eps</span> <span class="pre">C</span> <span class="pre">dT</span></code>,
 <code class="docutils literal notranslate"><span class="pre">eps</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">exp(-UA</span> <span class="pre">/</span> <span class="pre">C)</span></code>), or <code class="docutils literal notranslate"><span class="pre">&quot;tank&quot;</span></code> for the boiler condenser
 immersed in a lumped tank (<code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">=</span> <span class="pre">UA</span> <span class="pre">dT</span></code>), as in the models’ own cycles.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho_cp</span></code> is the stream’s volumetric heat capacity <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">c_p</span></code>
+[J/(m³ K)]. Left out, the stream is standard air or water (the constants
+of <a class="reference internal" href="utilities.html#module-tmhp.constants" title="tmhp.constants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.constants</span></code></a>). A source loop filled with an antifreeze
+mixture is a <code class="docutils literal notranslate"><span class="pre">&quot;water&quot;</span></code> (liquid) side that carries the mixture’s own
+value – <code class="docutils literal notranslate"><span class="pre">SourceFluid.rho</span> <span class="pre">*</span> <span class="pre">SourceFluid.cp</span></code>, what the model’s cycle
+uses on that side – so that the reference state and the cycle solve the
+rating point with one heat capacity rate. (The default 25 % ethylene
+glycol holds 8 % less heat per litre than water.)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1891,6 +1900,7 @@ immersed in a lumped tank (<code class="docutils literal notranslate"><span clas
 <li><p><strong>T_in_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>UA</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>volume_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>rho_cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -1914,6 +1924,11 @@ immersed in a lumped tank (<code class="docutils literal notranslate"><span clas
 <span class="sig-name descname"><span class="pre">volume_flow</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.reference_state.HXSide.volume_flow" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.reference_state.HXSide.rho_cp">
+<span class="sig-name descname"><span class="pre">rho_cp</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.reference_state.HXSide.rho_cp" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide.conductance">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">conductance</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.HXSide.conductance" title="Link to this definition">¶</a></dt>
@@ -1922,7 +1937,7 @@ immersed in a lumped tank (<code class="docutils literal notranslate"><span clas
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.reference_state.HXSide.__init__" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_cp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.reference_state.HXSide.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1930,6 +1945,7 @@ immersed in a lumped tank (<code class="docutils literal notranslate"><span clas
 <li><p><strong>T_in_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>UA</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>volume_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>rho_cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>

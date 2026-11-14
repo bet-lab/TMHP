@@ -155,8 +155,8 @@ Condensing pressure (``T_cond_max``)
     A boiler's thermostat is told where the envelope ends
     (:func:`limit_tank_setpoints_to_envelope`): an upper set point above the
     tank temperature at which the nameplate duty condenses on the limit
-    (:func:`condensing_tank_cutout`) is capped there at construction, with a
-    ``UserWarning``. A dynamic step solves one cycle and applies its heat over
+    (:func:`condensing_tank_cutout`) is capped there at construction, with an
+    :class:`~tmhp.OperatingLimitWarning`. A dynamic step solves one cycle and applies its heat over
     the step, so without the cap a long step overran the limit and the
     temperature at which the heat pump stopped depended on the step.
 
@@ -192,6 +192,7 @@ from scipy.optimize import brentq
 
 from . import calc_util as cu
 from .compressor_efficiency import efficiency_extrapolated
+from .operating_limits import OperatingLimitWarning
 from .refrigerant import _props
 
 __all__ = [
@@ -583,8 +584,9 @@ def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
     :func:`condensing_tank_cutout`, the model's upper bound becomes that
     cut-out; a lower bound that is not below it is moved down to keep the
     width of the band. The values asked for stay in
-    ``T_tank_w_setpoints_requested`` (lower, upper), and a ``UserWarning``
-    says what was changed. Up to the cut-out the machine runs at its nameplate
+    ``T_tank_w_setpoints_requested`` (lower, upper), and an
+    :class:`~tmhp.OperatingLimitWarning` (a ``UserWarning``) says what was
+    changed. Up to the cut-out the machine runs at its nameplate
     duty; the duty reduction of :func:`reduce_duty_within_envelope` then
     serves ``analyze_steady`` and the steps a tank model or a minimum run
     time takes past it.
@@ -604,7 +606,7 @@ def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
         f"less the {approach:.1f} K tank heat-exchanger approach). The thermostat stops the heat pump at "
         f"{cutout:.1f} °C{moved}. Lower the set points, use a refrigerant with a higher limit (e.g. R290, "
         "R134a), or give the T_cond_max of the actual compressor (None switches the limit off)",
-        UserWarning,
+        OperatingLimitWarning,
         stacklevel=3,
     )
 

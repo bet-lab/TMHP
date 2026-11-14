@@ -12,7 +12,7 @@ import math
 import pytest
 
 from tests._fluids import ANTIFREEZE_WITH_WATER_PROPERTIES
-from tmhp import GroundSourceHeatPump
+from tmhp import GroundSourceHeatPump, OperatingLimitWarning
 from tmhp.ground_loop import calc_bhe_fluid_temperatures
 
 
@@ -167,7 +167,7 @@ def test_unsolvable_point_returns_off_state_with_reason():
     # A pressure-ratio ceiling just above the floor leaves no valid cycle for
     # a 0 -> 20 degC lift.
     model = GroundSourceHeatPump(ref="R32", Ts=0.0, PR_cycle_max=1.6, R_b=0.12, t_max_s=3600)
-    with pytest.warns(RuntimeWarning, match="no operating point"):
+    with pytest.warns(OperatingLimitWarning, match="pr_above_max"):
         row = steady(model, -3000.0, 20.0)
     assert not row["converged"] and not row["hp_is_on"]
     assert row["failure_reason"] == "pr_above_max"

@@ -10,7 +10,7 @@ import math
 
 import pytest
 
-from tmhp import GroundSourceHeatPump
+from tmhp import GroundSourceHeatPump, OperatingLimitWarning
 
 # The cases are built around an indoor unit with a 0.8 m3/s reference airflow
 # (the default before the 400 cfm/ton rule), so the fan range is given
@@ -95,7 +95,7 @@ def test_fan_that_cannot_turn_down_fails_without_a_capacity_search():
     # A fan held at its reference airflow over-delivers a small heating duty
     # at every approach; that is not a capacity limit.
     model = GroundSourceHeatPump(**GROUND, dV_iu_fan_a_min=0.79, dV_iu_fan_a_max=0.80, rps_min=1.0)
-    with pytest.warns(RuntimeWarning, match="no operating point"):
+    with pytest.warns(OperatingLimitWarning, match="hx_not_converged"):
         row = steady(model, -300.0, 20.0, 30.0)
     assert not row["converged"] and row["failure_reason"] == "hx_not_converged"
     assert row["Q_ref_iu [W]"] == 0 and row["E_tot [W]"] == 0

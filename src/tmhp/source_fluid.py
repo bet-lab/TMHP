@@ -119,6 +119,7 @@ from typing import Any, TypeVar, cast
 
 from .compressor_envelope import CONTROL_KEY, QUALITY_KEY, SUPERHEAT_KEY
 from .constants import c_w, k_w, mu_w, rho_w, water_viscosity
+from .operating_limits import note_refusal
 
 __all__ = [
     "FREEZE_MARGIN_K",
@@ -456,21 +457,6 @@ def freeze_violation(result: Mapping[str, Any], fluid: SourceFluid) -> str | Non
     return None
 
 
-def _message(fluid: SourceFluid, coldest: float, what: str) -> str:
-    return (
-        f"{what}: the source-loop liquid would run at {coldest:.1f} °C, below the operating limit of "
-        f"{fluid.describe()}. "
-    )
-
-
-def _warn(model: Any, text: str, once: bool) -> None:
-    if once:
-        if getattr(model, "_source_freeze_warned", False):
-            return
-        model._source_freeze_warned = True
-    warnings.warn(text, RuntimeWarning, stacklevel=5)
-
-
 def limit_duty_to_source_freeze(
     model: Any,
     result: dict,
@@ -506,9 +492,14 @@ def limit_duty_to_source_freeze(
     temperature end it. When no duty runs -- the liquid enters
     below the limit while it gives heat up (:data:`DETAIL_INLET`), it leaves
     below the limit at the compressor's lowest speed, or another limit refuses
-    every smaller duty -- ``off(detail)`` is returned and a ``RuntimeWarning``
-    names the temperatures (``once``: only the first time in a dynamic run,
-    where a reduced duty is reported the same way).
+    every smaller duty -- ``off(detail)`` is returned.
+
+    Nothing warns here. The liquid temperature that was refused is left for
+    the call that owns the result (:func:`tmhp.operating_limits.note_refusal`):
+    ``analyze_steady`` reports a point that does not run, or runs reduced, in
+    one :class:`~tmhp.OperatingLimitWarning`, and a dynamic run counts such
+    steps in its end-of-run summary. ``once`` and ``what`` are accepted for
+    callers written against the earlier per-call warning and have no effect.
     """
     fluid: SourceFluid = model.source_fluid
     detail = freeze_violation(result, fluid)
@@ -527,19 +518,10 @@ def limit_duty_to_source_freeze(
     # which one trial shows.
     on_speed_floor = result.get("capacity_clamped") == "min"
 
+    # What the limit refused, for the warning of the call this solve belongs to.
+    note_refusal(SOURCE_FLUID_FREEZING, magnitude, refused_at, detail)
+
     def refuse(reason_detail: str) -> dict:
-        remedy = (
-            "an antifreeze mixture, e.g. source_fluid='MPG-25%'"
-            if fluid.is_water
-            else "a mixture with a lower freezing point"
-        )
-        _warn(
-            model,
-            _message(fluid, refused_at, what) + "No smaller duty keeps it above the limit: the compressor does not "
-            f"run (failure_reason={SOURCE_FLUID_FREEZING!r}). A loop this cold needs {remedy}."
-            + (" Reported once per run." if once else ""),
-            once,
-        )
         row = off(reason_detail)
         row.setdefault("failure_detail", reason_detail)
         # The steady-state keys every result carries (compressor envelope), in their off values.
@@ -639,14 +621,6 @@ def limit_duty_to_source_freeze(
         best["Q_unmet [W]"] = max(magnitude - delivered(best, q_lo), 0.0)
     if "PLR_request [-]" in best and getattr(model, "hp_capacity", 0) > 0:
         best["PLR_request [-]"] = magnitude / model.hp_capacity
-    if once:
-        _warn(
-            model,
-            _message(fluid, refused_at, what) + f"The duty is reduced to keep it on the limit "
-            f"(capacity_binding={SOURCE_FLUID_FREEZING!r}; steps where no duty does are off with that "
-            "failure_reason). Reported once per run.",
-            once,
-        )
     return best
 
 
@@ -662,9 +636,8 @@ def source_freeze_limited(duty_arg: str, off: str, delivered_key: str = "Q_ref_t
     decorated method returns :func:`limit_duty_to_source_freeze` of its
     result. Put it outside a compressor-envelope decorator, so the duties it
     tries are themselves inside the envelope. A ``return_dict=False`` call
-    gets its one-row DataFrame back. A model that sets
-    ``_source_freeze_context`` to ``"analyze_dynamic"`` around the calls of a
-    dynamic run gets the limit reported once per run instead of on every call.
+    gets its one-row DataFrame back. The limit is reported by the call that
+    owns the result (:mod:`tmhp.operating_limits`), never here.
     """
 
     def decorate(function: _F) -> _F:
@@ -687,7 +660,6 @@ def source_freeze_limited(duty_arg: str, off: str, delivered_key: str = "Q_ref_t
                     trial = inspect.BoundArguments(signature, arguments)  # type: ignore[arg-type]
                     return function(*trial.args, **trial.kwargs)
 
-                context = getattr(self, "_source_freeze_context", None)
                 result = limit_duty_to_source_freeze(
                     self,
                     result,
@@ -695,8 +667,6 @@ def source_freeze_limited(duty_arg: str, off: str, delivered_key: str = "Q_ref_t
                     request,
                     lambda detail: getattr(self, off)(dict(bound.arguments), detail),
                     delivered_key=delivered_key,
-                    once=context is not None,
-                    what=context or "analyze_steady",
                 )
             if want_dict or not isinstance(result, dict):
                 return result

@@ -391,6 +391,14 @@ tank cut the draw. ``analyze_dynamic`` warns once
 (``tmhp.dhw.DHWUnmetWarning``) when a run leaves demand unmet; see
 :ref:`hot-water-service` for the run totals.
 
+A step on which the thermostat called but the compressor could not run (an
+off row with a ``failure_reason``), or ran below the nameplate duty
+(``capacity_clamped == "max"``), is not reported while the run goes on.
+``analyze_dynamic`` ends with one ``tmhp.OperatingLimitWarning`` that counts
+such steps by limit and says what they did to the tank, and the same totals
+are in ``df.attrs["operating_limits"]``; ``analyze_steady`` warns once about a
+point that does not run or runs reduced (:ref:`operating-limit-warning`).
+
 Composed variants
 =================
 

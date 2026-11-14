@@ -297,6 +297,13 @@ step is not resolved beyond that one block.
 ``Q_request [W]`` (signed, as asked) and ``Q_unmet [W]`` (the part of the
 request that is not delivered) are on every row.
 
+A request that is not delivered in full is also said in words:
+``analyze_steady`` issues one ``tmhp.OperatingLimitWarning`` for a point that
+runs at its ceiling or does not run at all (the request, what is delivered,
+the limit and what removes it), and ``analyze_dynamic`` one at the end of a
+run with the steps stopped or limited and the unmet energy; the totals are in
+``df.attrs["operating_limits"]`` (:ref:`operating-limit-warning`).
+
 With the compressor at ``rps_max`` the delivered heat hardly depends on the
 indoor airflow -- it varies by a tenth of a percent across the approaches the
 fan can serve, while the electrical input varies by several percent. The

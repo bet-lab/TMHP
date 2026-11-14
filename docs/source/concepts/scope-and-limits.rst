@@ -256,6 +256,14 @@ Demand side
       - A draw the tank cannot serve at the set point is not an error
       - ``Q_dhw_unmet [W]`` per step and one ``DHWUnmetWarning`` per run
         (:ref:`hot-water-service`)
+    * - A compressor that cannot run
+      - A point outside the operating range of the machine -- a discharge
+        temperature, condensing pressure or pressure ratio above the limit,
+        a source liquid that would freeze -- is the off state or a reduced
+        duty, not an error
+      - ``failure_reason`` / ``capacity_binding`` on the row and one
+        ``OperatingLimitWarning`` per steady call or dynamic run
+        (:ref:`operating-limit-warning`)
     * - Time step and thermostat
       - The thermostat switches inside a step, but one cycle is solved per
         step
@@ -281,6 +289,9 @@ A short checklist for any result
 Then, where they exist: ``capacity_clamped == "max"`` for a row that delivered less than
 asked, ``Q_unmet [W]`` or ``Q_dhw_unmet [W]`` for demand
 that was not served, ``efficiency_extrapolated`` and ``discharge_control`` for
-points at the edge of the compressor data. Warnings raised during a run (``UserWarning`` at
-construction, ``RuntimeWarning`` for a point that fell back to off) say the
-same things once, in words.
+points at the edge of the compressor data. ``tmhp.OperatingLimitWarning`` says the
+same things once, in words: at construction for a set point the compressor
+envelope does not reach, from ``analyze_steady`` for a point that does not run
+or runs below the request, and at the end of ``analyze_dynamic`` with the
+steps stopped or limited and what they left unserved
+(``df.attrs["operating_limits"]``; :ref:`operating-limit-warning`).

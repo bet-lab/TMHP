@@ -160,6 +160,29 @@ water means the machine or the tank is too small for the draw profile, or
 the thermostat band lets the tank fall too far before the compressor starts
 — it is a result about the system, not a solver failure.
 
+Did the heat pump run when it was called?
+-----------------------------------------
+
+Outside its operating range the compressor does not run however long the
+thermostat calls -- a hot tank in very cold air, for one, can put the
+discharge temperature above the compressor's limit. Such a step is an off row
+with a ``failure_reason``; nearer the limit the unit runs at a reduced duty
+(``capacity_clamped == "max"``). Nothing is printed per step.
+``analyze_dynamic`` ends with one ``tmhp.OperatingLimitWarning`` when it
+happened, and the totals are attached to the result:
+
+.. code-block:: python
+
+   limits = df.attrs["operating_limits"]      # or tmhp.summarize_operating_limits(df, dt_s)
+   print(f"called but off: {limits['off_steps [-]']} steps {limits['off_reasons']}")
+   print(f"reduced duty:   {limits['limited_steps [-]']} steps {limits['limited_bindings']}")
+   print(f"tank minimum:   {limits['T_tank_w_min [°C]']:.1f} °C")
+
+The warning names each limit and what removes it
+(:ref:`operating-limit-warning`). ``warnings.simplefilter("error",
+tmhp.OperatingLimitWarning)`` turns it into an exception for a batch that
+must not continue past such a run.
+
 Common next moves
 =================
 

@@ -368,8 +368,9 @@ off-mode row: ``hp_is_on == False``, ``converged == False``, zero heat and
 power, NaN COP, and no heat into the tank or out of the ground. The call
 for heat persists, so the next step tries again.
 
-**"Did the model warn me about anything?"** Look at
-``failure_reason`` directly:
+**"Which steps were stopped, and why?"** Look at
+``failure_reason`` directly (``df.attrs["operating_limits"]`` has the counts
+of a dynamic run; :ref:`operating-limit-warning`):
 
 .. code-block:: python
 
@@ -384,6 +385,188 @@ the converged flag with the failure reason:
 .. code-block:: python
 
    trustworthy = (df["converged"]) & (df["failure_reason"] == "none")
+
+.. _operating-limit-warning:
+
+Being told: ``OperatingLimitWarning``
+=====================================
+
+A reason in a result key is easy to miss, so the models also say it. Every
+notice that the machine did not do what it was asked is one warning category,
+``tmhp.OperatingLimitWarning`` (a ``UserWarning``):
+
+.. list-table::
+    :header-rows: 1
+    :widths: 24 76
+
+    * - Where
+      - What is reported
+    * - ``analyze_steady``
+      - One warning for the *final* result of a call whose compressor was
+        asked to run and does not (``failure_reason`` other than ``"none"``)
+        or delivers less than asked (``capacity_clamped == "max"``). It names
+        the model and the call, the request and what is delivered, the limit
+        in words with its value, and what removes it. The trial solves a call
+        makes on the way (duty reduction, frost mean, smallest-duty search)
+        never warn, and an on/off mean (``capacity_clamped == "min"``) is
+        normal operation and is not reported.
+    * - ``analyze_dynamic``
+      - Nothing per step. One warning at the end of a run in which a step was
+        stopped or limited: the steps on which the compressor was called but
+        did not run (by reason, with the first time), the steps on which it
+        ran below the requested duty, and what that left unserved -- the
+        lowest tank temperature, the time below the lower set point and the
+        hot water not delivered for a boiler, the unmet load for ASHP and
+        GSHP. The same totals are in ``df.attrs["operating_limits"]``.
+    * - Construction
+      - A boiler whose upper set point is above what its compressor envelope
+        reaches says so once (the set points are capped; see
+        ``condensing_temp_above_max`` below).
+    * - Hot water
+      - ``tmhp.dhw.DHWUnmetWarning`` (a subclass): a run delivered less hot
+        water than its draw schedule asked for (:ref:`hot-water-service`).
+
+.. code-block:: python
+
+   import warnings
+   import tmhp
+
+   warnings.simplefilter("error", tmhp.OperatingLimitWarning)   # stop at the first
+   warnings.simplefilter("always", tmhp.OperatingLimitWarning)  # report every point
+   warnings.simplefilter("ignore", tmhp.OperatingLimitWarning)  # none
+
+Without a filter a steady warning is issued **once per model and limit**: the
+first point a model is stopped by ``discharge_temp_above_max`` is reported in
+full and says that later ones are not, so a sweep of thousands of points
+prints a handful of lines. The rows are not affected -- every point carries
+its ``failure_reason``, ``capacity_clamped`` and ``capacity_binding`` -- and
+``"always"`` reports each one. ``tmhp.operating_limits.reset_notices(model)``
+starts over for a model.
+
+The totals of a dynamic result, also for rows collected from ``step()`` (which
+does not warn):
+
+.. code-block:: python
+
+   limits = tmhp.summarize_operating_limits(df, dt_s)   # == df.attrs["operating_limits"]
+   limits["off_steps [-]"], limits["off_reasons"]       # called but did not run
+   limits["limited_steps [-]"], limits["limited_bindings"]
+
+``tmhp.simulation_summary.print_operating_limit_summary(df, dt_s)`` prints
+them, and ``tmhp.operating_limits.warn_if_operating_limited(df, dt_s, who,
+model)`` gives a frame of ``step()`` rows the report ``analyze_dynamic`` gives.
+
+Each limit in words, and what to do
+-----------------------------------
+
+The warnings take their wording from this table
+(``tmhp.operating_limits.LIMITS``). A limit that stops a point is named by
+``failure_reason``; the same limit on a point that runs at a reduced duty is
+named by ``capacity_binding``.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 26 34 40
+
+    * - ``failure_reason`` / ``capacity_binding``
+      - In words
+      - What to do
+    * - ``discharge_temp_above_max``, ``discharge_temperature`` (binding)
+      - The compressor discharge temperature is above its protection limit
+        T_dis_max, even with the suction superheat taken to 0 K and wet
+        suction.
+      - Reduce the temperature lift (a lower tank or supply temperature, or a
+        warmer source), or use a refrigerant that discharges cooler (R290,
+        R134a) or the efficiency map of the actual compressor. T_dis_max=<°C>
+        sets the limit of another compressor.
+    * - ``condensing_temp_above_max``, ``condensing_temperature`` (binding)
+      - The condensing temperature is above T_cond_max, the top of the
+        compressor envelope.
+      - Lower the temperature the heat is delivered at (the tank set points of
+        a boiler), or use a refrigerant with a higher limit (R290, R134a).
+        T_cond_max=<°C> sets the limit of another compressor.
+    * - ``pr_above_max``, ``pressure_ratio`` (binding)
+      - The compressor pressure ratio is above PR_cycle_max, the single-stage
+        limit.
+      - Reduce the temperature lift (a lower tank or supply temperature, or a
+        warmer source). PR_cycle_max=<ratio> sets the limit of another
+        compressor.
+    * - ``eta_isen_below_min``, ``compressor_efficiency`` (binding)
+      - The shipped compressor efficiency map, read outside its data, is below
+        its floor (isentropic efficiency 0.30).
+      - Reduce the temperature lift (a lower tank or supply temperature, or a
+        warmer source), or give the efficiency map of the actual compressor
+        (eta_cmp_isen).
+    * - ``source_fluid_freezing``
+      - The source-loop liquid would run below its operating limit, its
+        freezing point plus 3 K.
+      - Fill the loop with an antifreeze mixture, or a stronger one
+        (source_fluid='MEG-30%'), or take less heat from the source.
+    * - ``hx_not_converged``
+      - A heat exchanger cannot carry the duty inside its flow range and the
+        approach temperatures the search admits.
+      - Reduce the request, or enlarge the heat exchanger that is short (its
+        UA or its largest flow); failure_detail names the fan limit on the
+        air-source boiler.
+    * - ``outdoor_coil`` (binding)
+      - The outdoor coil is short of the evaporator duty at the fan's largest
+        airflow.
+      - Reduce the request, or give the outdoor coil and fan of the actual
+        unit (UA_ou_rated, dV_fan_a_max).
+    * - ``source_heat_exchanger`` (binding)
+      - The source heat exchanger cannot absorb the evaporator duty at the
+        approach temperatures the search admits.
+      - Reduce the request, raise the source temperature or flow, or enlarge
+        the source heat exchanger.
+    * - ``cycle`` (binding)
+      - A coil is at its largest airflow and the widest approach temperature
+        the search admits.
+      - Reduce the request, or size the machine for it (hp_capacity scales the
+        coils and the compressor).
+    * - ``compressor_max_speed``, ``compressor`` (binding)
+      - The compressor is at its maximum speed (rps_max).
+      - Size the machine for the load (hp_capacity), or reduce the request.
+    * - ``cycle_invalid``
+      - No refrigerant cycle closes at this condition (for example a
+        condensing temperature at or above the critical point), or the solved
+        cycle is not an operating point.
+      - Check the temperatures against the refrigerant's range and reduce the
+        lift or the request; failure_detail names the check where there is
+        one.
+    * - ``t_cond_below_t_in``
+      - The condensing temperature is at or below the water entering the
+        condenser, so no heat can flow to the water.
+      - Check the tank and water-loop temperatures given for this point.
+    * - ``optimizer_failed``
+      - The operating-point search did not settle: a numerical failure, not a
+        limit of the machine.
+      - Treat the point as unsolved (a neighbouring condition usually solves),
+        and report a condition that fails repeatedly.
+    * - ``pressure_ratio_limit``
+      - The cycle is invalid and its pressure ratio is at PR_cycle_min or
+        PR_cycle_max (ground-coupled solve).
+      - Reduce the temperature lift (a lower tank or supply temperature, or a
+        warmer source).
+    * - ``compressor_min_speed``
+      - The request is below what the compressor delivers at its minimum
+        speed, and on/off cycling is switched off (Cd_cycling=None).
+      - Leave on/off cycling on (the default Cd_cycling), or lower rps_min.
+    * - ``compressor_capacity_limit``
+      - The delivered duty differs from the request for another reason than
+        the compressor's speed limits (ground-coupled solve).
+      - Reduce the request, or check the compressor's speed range against it.
+    * - ``compressor_speed_limit``
+      - The compressor-speed solve did not converge (ground-coupled solve).
+      - Treat the point as unsolved (a neighbouring condition usually solves),
+        and report a condition that fails repeatedly.
+    * - ``load_hx_capacity_insufficient``
+      - The load-side heat exchanger (indoor coil or tank condenser) cannot
+        transfer the duty.
+      - Reduce the request, or enlarge the load-side heat exchanger.
+    * - ``ground_hx_capacity_insufficient``
+      - The ground heat exchanger cannot supply the evaporator duty at any
+        approach temperature the search admits.
+      - Reduce the request, or enlarge the borefield or its flow.
 
 What triggers each value
 ========================
@@ -558,7 +741,8 @@ When ``failure_reason`` is ``"cycle_invalid"``, ``"pr_above_max"``,
 ``"t_cond_below_t_in"`` — and, for WSHPB and for GSHPB outside the
 ground-coupled path, for every reason other than ``"none"`` — the
 steady-state path
-emits a ``RuntimeWarning`` and substitutes an off-mode result:
+substitutes an off-mode result and reports it in one
+``tmhp.OperatingLimitWarning`` (:ref:`operating-limit-warning`):
 ``hp_is_on = False``, all power and duty fields zeroed. In
 ``analyze_dynamic`` every called-but-unsolved step of ASHPB, GSHPB and
 WSHPB becomes the same kind of off-mode row. This keeps

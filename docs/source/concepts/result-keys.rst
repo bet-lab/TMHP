@@ -86,7 +86,7 @@ are an operating point, a reduced one, a time average, or placeholders.
       - ``"none"`` or why a requested point has no operating point; the row then holds off-state placeholders. Values: :doc:`failure-reason-semantics`.
     * - ``capacity_clamped``
       - all
-      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP also when it was below the smallest duty the envelope's efficiency floor admits); ``"max"`` when the unit delivers less than asked.
+      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP and the boilers' ``analyze_steady`` also when it was below the smallest duty the envelope's efficiency floor admits); ``"max"`` when the unit delivers less than asked.
     * - ``capacity_binding``
       - all
       - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` on every other row.
@@ -148,7 +148,7 @@ What was asked for, what was delivered, and how a request outside the modulation
       - On a ``"max"`` row, the duty delivered (the ceiling); in a boiler's dynamic step the running machine's, not the step average (``Q_ref_tank [W]`` is ``Q_max [W]`` times ``runtime_fraction [-]``). NaN on every other row.
     * - ``Q_min [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
-      - On a ``"min"`` row, the duty of continuous operation at the minimum speed. NaN otherwise.
+      - On a ``"min"`` row, the duty of continuous operation at the minimum speed (or at the smallest duty the envelope's efficiency floor admits, where that is larger). NaN otherwise.
     * - ``Q_ref_tank_request [W]``
       - ASHPB
       - ASHPB: the ``Q_ref_tank`` argument, on every row (dynamic: as ``Q_request [W]``). Compare with ``Q_ref_tank [W]`` on a ``"max"`` row.
@@ -174,7 +174,7 @@ What was asked for, what was delivered, and how a request outside the modulation
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Number of compressor starts inside the step (boiler dynamic steps).
     * - ``hp_stop_reason``
-      - GSHPB (d), WSHPB (d)
+      - ASHPB (d), GSHPB (d), WSHPB (d)
       - ``"condensing_limit"`` on a step in which the compressor envelope stopped the run, or kept it at the duty that holds the water around the coil at the envelope stop, while the thermostat called (or a minimum run time held it): the tank temperature at which the nameplate duty would condense above ``T_cond_max``. It is a normal end of the run, not a failure (``failure_reason`` stays ``"none"``); the row's heat and power are the step means. ``"boiling_limit"`` when the 100 °C cut-out did so. ``None`` on every other step.
     * - ``E_cycling_loss [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
@@ -236,7 +236,7 @@ temperature of the row and can be negative; only their differences are heat rate
       - Enthalpy flow of the mains water entering the mixing valve, from ``T0``.
     * - ``Q_mix_w_out [W]``
       - ASHPB
-      - Enthalpy flow of the mixed water delivered to the tap, from ``T0``.
+      - Enthalpy flow of the mixed water delivered to the tap, from ``T0``; 0 when nothing is drawn.
     * - ``Q_dhw_request [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Hot-water heat the step was asked for: scheduled draw at the set point ``T_mix_w_out``, counted from the mains temperature.
@@ -608,8 +608,11 @@ reuses these names for its source-water coil.
 Tank and hot water
 ==================
 
-Boiler families. Flows are step means in a dynamic row; a flow that is zero is reported as NaN by ASHPB and
-as 0 by GSHPB and WSHPB.
+Boiler families. Flows are step means in a dynamic row. A stream that does not flow reports 0 for its flow, its
+enthalpy flow and its exergy flow, and NaN for its temperature (there is no water to have one), in the three
+boilers alike: on a step without a draw ``dV_mix_w_out``, ``Q_mix_w_out`` and ``X_mix_w_out`` are 0 and
+``T_mix_w_out`` is NaN. (ASHPB used to report that heat and exergy as NaN, GSHPB and WSHPB the valve's set point
+as the temperature.)
 
 .. list-table::
     :header-rows: 1
@@ -629,7 +632,7 @@ as 0 by GSHPB and WSHPB.
       - Mains water temperature.
     * - ``T_mix_w_out [°C]``
       - ASHPB, GSHPB, WSHPB
-      - Temperature of the water delivered by the mixing valve; NaN when nothing is drawn (ASHPB).
+      - Temperature of the water delivered by the mixing valve; NaN when nothing is drawn.
     * - ``dV_mix_w_out [m3/s]``
       - ASHPB, GSHPB, WSHPB
       - Mixed hot water delivered to the tap. This and the three flows below are 0 when the water does not flow.
@@ -882,7 +885,7 @@ without a running cycle carry NaN or 0.
       - Flow exergy of the mains water entering the mixing valve.
     * - ``X_mix_w_out [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
-      - Flow exergy of the mixed water delivered.
+      - Flow exergy of the mixed water delivered; 0 when nothing is drawn.
     * - ``X_ou_fan [W]``
       - ASHP, ASHPB (d)
       - Exergy of ``E_ou_fan [W]`` (electricity is pure exergy: the same number).

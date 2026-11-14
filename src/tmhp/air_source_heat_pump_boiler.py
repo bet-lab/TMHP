@@ -49,7 +49,14 @@ from scipy.optimize import OptimizeResult, brentq, minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._boiler_results import complete_capacity_keys, fill_missing, report_condenser_dew_point, step_request
+from ._boiler_results import (
+    complete_capacity_keys,
+    fill_missing,
+    mixed_water_enthalpy_flow,
+    mixed_water_exergy,
+    report_condenser_dew_point,
+    step_request,
+)
 from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, specific_energy_objective
 from ._tank_solve import recover_tank_temperature
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
@@ -61,11 +68,13 @@ from .compressor_envelope import (
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
+    condensing_tank_cutout,
     discharge_controlled,
     envelope_excess,
     envelope_violation,
     limit_tank_setpoints_to_envelope,
     reduce_duty_within_envelope,
+    remember_smallest_duty,
     resolve_condensing_temp_max,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
@@ -92,6 +101,7 @@ from .defrost import (
 )
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    T_WATER_BOIL_C,
     TANK_LEVEL_MIN,
     ControlState,
     DynamicState,
@@ -102,6 +112,7 @@ from .dynamic_context import (
     delivered_tank_heat,
     determine_heat_source_on_off,
     determine_tank_refill_flow,
+    in_step_stop_reason,
     resolve_step_operation,
     step_hp_result,
     tank_mass_energy_residual,
@@ -770,7 +781,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             Q_tank_w_in: float = calc_energy_flow(G=c_w * rho_w * dV_tank_w_in, T=self.T_tank_w_in_K, T0=T0_K)
             Q_tank_w_out: float = calc_energy_flow(G=c_w * rho_w * dV_tank_w_out, T=T_tank_w_K, T0=T0_K)
             Q_mix_sup_w_in: float = calc_energy_flow(G=c_w * rho_w * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=T0_K)
-            Q_mix_w_out: float = calc_energy_flow(G=c_w * rho_w * dV_mix_w_out_val, T=T_mix_w_out_val_K, T0=T0_K)
+            Q_mix_w_out: float = mixed_water_enthalpy_flow(dV_mix_w_out_val, T_mix_w_out_val_K, T0_K)
 
             cs = calc_ref_state(
                 T_evap_K=T_ou_sat_K,
@@ -1158,7 +1169,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         Q_tank_w_in = calc_energy_flow(G=c_w * rho_w * dV_tank_w_in, T=self.T_tank_w_in_K, T0=T0_K)
         Q_tank_w_out = calc_energy_flow(G=c_w * rho_w * dV_tank_w_out, T=T_tank_w_K, T0=T0_K)
         Q_mix_sup_w_in = calc_energy_flow(G=c_w * rho_w * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=T0_K)
-        Q_mix_w_out = calc_energy_flow(G=c_w * rho_w * dV_mix_w_out_val, T=T_mix_w_out_val_K, T0=T0_K)
+        Q_mix_w_out = mixed_water_enthalpy_flow(dV_mix_w_out_val, T_mix_w_out_val_K, T0_K)
 
         result = reportable_state(cs)
 
@@ -1733,6 +1744,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         )
         self._complete_steady_result(result, Q_ref_tank)
 
+    @remember_smallest_duty
     @steady_defrost(duty_arg="Q_ref_tank", outdoor_arg="T0", humidity_arg="RH_out")
     @steady_cycling(duty_arg="Q_ref_tank")
     @steady_envelope(duty_arg="Q_ref_tank", bindings=_CAPACITY_BINDINGS)
@@ -1786,7 +1798,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               the discharge exceeds ``T_dis_max``),
               ``"condensing_temp_above_max"`` (even a reduced duty condenses
               above ``T_cond_max``: the tank is too hot), ``"eta_isen_below_min"``
-              (the shipped isentropic fit, extrapolated, is below 0.30),
+              (the shipped isentropic fit, extrapolated, is below 0.30, and
+              no larger duty runs either: a request that is only too small
+              for the floor is a ``"min"`` point, below),
               ``"hx_not_converged"``, or ``"optimizer_failed"``.
             - ``"failure_detail"`` (str, failures only) — on
               ``"cycle_invalid"``, which check of
@@ -1798,7 +1812,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               ``"outdoor_coil_no_band"``).
             - ``"capacity_clamped"`` (str | None) — ``"min"`` when the
               requested duty was below what the compressor delivers at
-              ``rps_min`` and the cycle was solved at that floor instead,
+              ``rps_min`` and the cycle was solved at that floor instead (or
+              below the smallest duty the envelope's efficiency floor admits,
+              where the shipped fit falls under 0.30 before ``rps_min`` is
+              reached: the cycle is then solved at that duty, above
+              ``rps_min``),
               ``"max"`` for the corresponding ceiling case, ``None`` when the
               request was met exactly. A clamped point is **converged**: the
               request simply lay outside the machine's deliverable band, which
@@ -1827,7 +1845,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             - ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
               ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
               ``"E_cycling_loss [W]"`` — on every row. A request below the
-              duty at ``rps_min`` (``capacity_clamped == "min"``) is reported
+              smallest continuous duty (``capacity_clamped == "min"``) is reported
               as the mean of on/off cycling: ``Q_ref_tank [W]`` equals the
               request (``Q_min [W]`` is the continuous duty), heat and
               refrigerant rates are the running machine's times
@@ -2297,8 +2315,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_mix_sup_w_in = (1 - alp) * dV_mix_w_out
         r.update(
             {
-                # A flow that does not run is 0, as in GSHPB and WSHPB (the
-                # temperature of the water that does not flow stays NaN).
+                # A flow that does not run is 0, and so is the heat it carries
+                # (the temperature of the water that does not flow is NaN), as
+                # in GSHPB and WSHPB.
                 "dV_mix_w_out [m3/s]": max(dV_mix_w_out, 0.0),
                 "dV_tank_w_out [m3/s]": max(dV_tank_w_out, 0.0),
                 "dV_tank_w_in [m3/s]": max(dV_tank_w_in, 0.0),
@@ -2306,7 +2325,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_tank_w_in [W]": calc_energy_flow(G=rc * dV_tank_w_in, T=self.T_tank_w_in_K, T0=ctx.T0_K),
                 "Q_tank_w_out [W]": calc_energy_flow(G=rc * dV_tank_w_out, T=T_solved_K, T0=ctx.T0_K),
                 "Q_mix_sup_w_in [W]": calc_energy_flow(G=rc * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=ctx.T0_K),
-                "Q_mix_w_out [W]": calc_energy_flow(G=rc * dV_mix_w_out, T=T_mix_K, T0=ctx.T0_K),
+                "Q_mix_w_out [W]": mixed_water_enthalpy_flow(dV_mix_w_out, T_mix_K, ctx.T0_K),
             }
         )
         # Hot-water service: the heat the draw schedule asked for at the set
@@ -2593,7 +2612,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         The tank thermostat is followed inside the step
         (:func:`tmhp.dynamic_context.resolve_step_operation`): the compressor
         stops when the tank reaches the upper bound and starts when it falls
-        to the lower bound, at any point of the step. The heat, power and
+        to the lower bound, at any point of the step. It also stops at the
+        envelope stop (:func:`tmhp.compressor_envelope.condensing_tank_cutout`:
+        the tank temperature at which the nameplate duty condenses on
+        ``T_cond_max``) whatever ``min_on_time_s`` says; such a step is a
+        normal one with ``hp_stop_reason == "condensing_limit"``
+        (``hp_stop_reason`` is on every row, ``None`` otherwise). The heat, power and
         refrigerant-flow rates in ``result_row`` are averages over ``dt_s``
         (the running cycle times ``runtime_fraction [-]``), so
         ``rate * dt_s`` is the step's energy; ``hp_is_on`` says the
@@ -2709,7 +2733,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # Bounds are reached part-way through a step: the compressor runs
         # only until the tank reaches the upper bound, and starts when it
         # reaches the lower bound, instead of holding its start-of-step state
-        # for the whole step (#96 T6).
+        # for the whole step (#96 T6). It stops at the envelope stop
+        # temperature whatever its minimum run time (the tank is one mixed
+        # node: the water around the coil is the tank).
+        cutout = condensing_tank_cutout(self)
+        T_limit_C = T_WATER_BOIL_C if cutout is None else min(T_WATER_BOIL_C, cutout)
         run, cycle_result = resolve_step_operation(
             T_start_K=ctx.T_tank_w_K,
             call_start=call_start,
@@ -2729,6 +2757,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             Q_request=self.hp_capacity,
             min_on_time_s=self.min_on_time_s,
             min_off_time_s=self.min_off_time_s,
+            T_limit_C=T_limit_C,
         )
         hp_result = step_hp_result(
             run,
@@ -2736,6 +2765,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             lambda: self._off_cycle_result(ctx, T_start_C),
             self._RUNTIME_SCALED_KEYS,
         )
+        hp_result["hp_stop_reason"] = in_step_stop_reason(run, T_limit_C)
         hp_is_on = bool(hp_result.get("hp_is_on", False))
         Q_ref_cond = delivered_tank_heat(hp_result)
 
@@ -3061,11 +3091,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             cu.C2K(df["T_tank_w [°C]"]),
             T0_K,
         )
-        df["X_mix_w_out [W]"] = calc_exergy_flow(
-            c_w * rho_w * df["dV_mix_w_out [m3/s]"].fillna(0),
-            cu.C2K(df["T_mix_w_out [°C]"]),
-            T0_K,
-        )
+        # 0 on a step without a draw (its T_mix_w_out is NaN), as the other water streams.
+        df["X_mix_w_out [W]"] = mixed_water_exergy(df, T0_K)
         df["X_mix_sup_w_in [W]"] = calc_exergy_flow(
             c_w * rho_w * df["dV_mix_sup_w_in [m3/s]"].fillna(0),
             cu.C2K(df["T_sup_w [°C]"]),

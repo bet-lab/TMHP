@@ -529,6 +529,40 @@ def test_t6_multi_node_tank_time_step_independence(case):
     expect(max(top60, top600) <= cutout + 0.05, f"top node {top60:.2f} / {top600:.2f} degC, envelope stop {cutout:.2f}")
 
 
+# T6 extended to ASHPB (R5K): its step did not hand the envelope stop to the in-step thermostat,
+# so a minimum run time took the (single-node) tank past it. Was, R32 (stop 60 degC), min on-time
+# 30 min, 2 h without a draw: 1.51 vs 1.95 kWh and a 62.6 / 65.05 degC peak at 60 / 600 s with
+# the band at the stop, 1.82 vs 2.50 kWh and 62.4 / 66.2 degC with a 53-58 degC band, each with a
+# condensing_temp_above_max step. Now the protection stop outranks the minimum run time.
+@pytest.mark.parametrize(
+    "band, T_init",
+    [pytest.param(None, 54.0, id="band-at-the-stop"), pytest.param((53.0, 58.0), 52.0, id="band-below-the-stop")],
+)
+def test_t6_ashpb_envelope_stop_inside_the_step(band, T_init):
+    from tmhp.compressor_envelope import condensing_tank_cutout
+
+    kw = {} if band is None else dict(T_tank_w_lower_bound=band[0], T_tank_w_upper_bound=band[1])
+    out = {}
+    for dt in (60, 600):
+        m = tmhp.AirSourceHeatPumpBoiler(ref="R32", min_on_time_s=1800.0, **kw)
+        cutout = condensing_tank_cutout(m)
+        require(m.T_tank_w_upper_bound <= cutout + 1e-6, "the band must not lie above the envelope stop")
+        df, _ = _ashpb_dynamic(m, 2.0, dt, T_init, None)
+        failed = int((df["failure_reason"] != "none").sum())
+        expect(failed == 0, f"dt {dt}: {failed} steps failed ({df['failure_reason'].value_counts().to_dict()})")
+        expect((df["hp_stop_reason"] == "condensing_limit").any(), f"dt {dt}: no envelope stop reported")
+        out[dt] = (
+            float(df["Q_ref_tank [W]"].sum() * dt),
+            float(df["E_tot [W]"].sum() * dt),
+            float(df["T_tank_w [°C]"].max()),
+        )
+    (q60, e60, top60), (q600, e600, top600) = out[60], out[600]
+    expect(abs(q600 - q60) < 0.02 * q60, f"heat {q60 / 3.6e6:.3f} vs {q600 / 3.6e6:.3f} kWh")
+    expect(abs(e600 - e60) < 0.05 * e60, f"electricity {e60 / 3.6e6:.3f} vs {e600 / 3.6e6:.3f} kWh")
+    # One mixed node: the water around the coil is the tank, so the tank itself stops at the stop.
+    expect(max(top60, top600) <= cutout + 0.05, f"peak {top60:.2f} / {top600:.2f} degC, envelope stop {cutout:.2f}")
+
+
 # T8 fixed: the collector runs at the tank's make-up flow (mains -> collector -> tank; the
 # mixing valve's cold side takes mains water), solved with the tank temperature, and the
 # preheated inflow is the reported tank inlet; was 1.74 kWh reported vs 0.99 kWh delivered.

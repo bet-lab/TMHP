@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-11-14T14:06:27+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T06:02:09+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -331,7 +331,7 @@ so it needs the bundled <code class="docutils literal notranslate"><span class="
 </ul>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbSlave">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbSlave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu.html#TmhpAshpbSlave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbSlave" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbSlave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu.html#TmhpAshpbSlave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbSlave" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Fmi2Slave</span></code></p>
 <p>ASHPB single-timestep co-simulation kernel (FMI 2.0).</p>
 <dl class="field-list simple">
@@ -341,12 +341,12 @@ so it needs the bundled <code class="docutils literal notranslate"><span class="
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbSlave.author">
-<span class="sig-name descname"><span class="pre">author</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></span><a class="headerlink" href="#tmhp.integrations.TmhpAshpbSlave.author" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">author</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></em><a class="headerlink" href="#tmhp.integrations.TmhpAshpbSlave.author" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbSlave.description">
-<span class="sig-name descname"><span class="pre">description</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tmhp</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">2.0)'</span></span><a class="headerlink" href="#tmhp.integrations.TmhpAshpbSlave.description" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tmhp</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">2.0)'</span></em><a class="headerlink" href="#tmhp.integrations.TmhpAshpbSlave.description" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -365,7 +365,7 @@ so it needs the bundled <code class="docutils literal notranslate"><span class="
 <dd><p>Build a static FMI 2.0 model description for PythonFMU.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p>
+<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></span></p>
@@ -403,7 +403,7 @@ so it needs the bundled <code class="docutils literal notranslate"><span class="
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbFmi3Slave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbFmi3Slave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Fmi3Slave</span></code></p>
 <p>ASHPB single-timestep co-simulation kernel (FMI 3.0).</p>
 <dl class="field-list simple">
@@ -413,12 +413,12 @@ so it needs the bundled <code class="docutils literal notranslate"><span class="
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave.author">
-<span class="sig-name descname"><span class="pre">author</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></span><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.author" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">author</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></em><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.author" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave.description">
-<span class="sig-name descname"><span class="pre">description</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'TMHP</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">3.0)'</span></span><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.description" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'TMHP</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">3.0)'</span></em><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.description" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -437,7 +437,7 @@ so it needs the bundled <code class="docutils literal notranslate"><span class="
 <dd><p>Build a static FMI 3.0 model description for PythonFMU3.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p>
+<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></span></p>
@@ -477,7 +477,7 @@ so it needs the bundled <code class="docutils literal notranslate"><span class="
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpPlantInit">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantInit</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantInit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpPlantInit" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantInit</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantInit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpPlantInit" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyPlusPlugin</span></code></p>
 <p>One-shot sizing actuators so the plant loop dispatches load to the ASHPB.</p>
 <p>Bind to the <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> <em>initialization</em> program-calling
@@ -504,7 +504,7 @@ manager (E+ runs it once before plant sizing).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpPlantSurrogate">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantSurrogate</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantSurrogate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpPlantSurrogate" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantSurrogate</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantSurrogate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpPlantSurrogate" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyPlusPlugin</span></code></p>
 <p>Per-call ASHPB driver: read loop inlet + outdoor, solve, actuate.</p>
 <p>Bind to the <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> <em>simulation</em> program-calling
@@ -563,7 +563,7 @@ No save-state/rollback at this scope (single-pass co-sim only).</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.fmu.TmhpAshpbSlave">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.fmu.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbSlave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu.html#TmhpAshpbSlave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu.TmhpAshpbSlave" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.fmu.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbSlave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu.html#TmhpAshpbSlave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu.TmhpAshpbSlave" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Fmi2Slave</span></code></p>
 <p>ASHPB single-timestep co-simulation kernel (FMI 2.0).</p>
 <dl class="field-list simple">
@@ -573,12 +573,12 @@ No save-state/rollback at this scope (single-pass co-sim only).</p>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.integrations.fmu.TmhpAshpbSlave.author">
-<span class="sig-name descname"><span class="pre">author</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></span><a class="headerlink" href="#tmhp.integrations.fmu.TmhpAshpbSlave.author" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">author</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></em><a class="headerlink" href="#tmhp.integrations.fmu.TmhpAshpbSlave.author" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.integrations.fmu.TmhpAshpbSlave.description">
-<span class="sig-name descname"><span class="pre">description</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tmhp</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">2.0)'</span></span><a class="headerlink" href="#tmhp.integrations.fmu.TmhpAshpbSlave.description" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tmhp</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">2.0)'</span></em><a class="headerlink" href="#tmhp.integrations.fmu.TmhpAshpbSlave.description" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -597,7 +597,7 @@ No save-state/rollback at this scope (single-pass co-sim only).</p>
 <dd><p>Build a static FMI 2.0 model description for PythonFMU.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p>
+<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></span></p>
@@ -650,7 +650,7 @@ or array variables. Those features are useful for embedded controls and
 multi-rate models; TMHP’s current ASHPB FMU boundary is scalar Co-Simulation.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.fmu3.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbFmi3Slave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.fmu3.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbFmi3Slave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Fmi3Slave</span></code></p>
 <p>ASHPB single-timestep co-simulation kernel (FMI 3.0).</p>
 <dl class="field-list simple">
@@ -660,12 +660,12 @@ multi-rate models; TMHP’s current ASHPB FMU boundary is scalar Co-Simulation.<
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.author">
-<span class="sig-name descname"><span class="pre">author</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></span><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.author" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">author</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></em><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.author" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.description">
-<span class="sig-name descname"><span class="pre">description</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'TMHP</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">3.0)'</span></span><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.description" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'TMHP</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">3.0)'</span></em><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.description" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -684,7 +684,7 @@ multi-rate models; TMHP’s current ASHPB FMU boundary is scalar Co-Simulation.<
 <dd><p>Build a static FMI 3.0 model description for PythonFMU3.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p>
+<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></span></p>
@@ -830,7 +830,7 @@ variables <code class="docutils literal notranslate"><span class="pre">&quot;...
 </section>
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.integrations.energyplus_plugin.delivered_heat_and_power">
-<span class="sig-prename descclassname"><span class="pre">tmhp.integrations.energyplus_plugin.</span></span><span class="sig-name descname"><span class="pre">delivered_heat_and_power</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#delivered_heat_and_power"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.delivered_heat_and_power" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.integrations.energyplus_plugin.</span></span><span class="sig-name descname"><span class="pre">delivered_heat_and_power</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#delivered_heat_and_power"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.delivered_heat_and_power" title="Link to this definition">¶</a></dt>
 <dd><p>Heat put into the loop [W] and the electricity metered for it [W].</p>
 <p><code class="docutils literal notranslate"><span class="pre">q_request</span></code> is the load EnergyPlus asked for (capped at the nominal capacity).
 The solved cycle delivers <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> at <code class="docutils literal notranslate"><span class="pre">E_tot</span></code>; the loop receives
@@ -854,7 +854,7 @@ metered for the matching share of the timestep (see the module docstring).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.energyplus_plugin.TmhpPlantInit">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.energyplus_plugin.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantInit</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantInit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.TmhpPlantInit" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.energyplus_plugin.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantInit</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantInit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.TmhpPlantInit" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyPlusPlugin</span></code></p>
 <p>One-shot sizing actuators so the plant loop dispatches load to the ASHPB.</p>
 <p>Bind to the <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> <em>initialization</em> program-calling
@@ -881,7 +881,7 @@ manager (E+ runs it once before plant sizing).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.energyplus_plugin.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantSurrogate</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantSurrogate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.energyplus_plugin.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantSurrogate</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantSurrogate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyPlusPlugin</span></code></p>
 <p>Per-call ASHPB driver: read loop inlet + outdoor, solve, actuate.</p>
 <p>Bind to the <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> <em>simulation</em> program-calling
@@ -995,7 +995,7 @@ the g-function route (20 W/m, <code class="docutils literal notranslate"><span c
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.geolink.ResponseMatrixGFunction">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.geolink.</span></span><span class="sig-name descname"><span class="pre">ResponseMatrixGFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">soil</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">points_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#ResponseMatrixGFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.ResponseMatrixGFunction" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.geolink.</span></span><span class="sig-name descname"><span class="pre">ResponseMatrixGFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">soil</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">points_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#ResponseMatrixGFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.ResponseMatrixGFunction" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Field g-function <code class="docutils literal notranslate"><span class="pre">g(t)</span></code> [m.K/W] from a response-matrix provider.</p>
 <p>Every borehole carries the same load per metre <code class="docutils literal notranslate"><span class="pre">q'</span></code> (the field load
@@ -1032,15 +1032,15 @@ earlier geolink versions and for other providers.</p>
 [K per W/m], receiver index first.</p></li>
 <li><p><strong>field</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Passed through to <code class="docutils literal notranslate"><span class="pre">response_matrix</span></code> unchanged.</p></li>
 <li><p><strong>soil</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Passed through to <code class="docutils literal notranslate"><span class="pre">response_matrix</span></code> unchanged.</p></li>
-<li><p><strong>depths</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Active length of each borehole [m] (a scalar for equal lengths).</p></li>
-<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Expected simulation length [s].</p></li>
-<li><p><strong>points_per_decade</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Node density of the grid (default 24, as <code class="docutils literal notranslate"><span class="pre">GFunction</span></code>).</p></li>
+<li><p><strong>depths</strong> (<em>array_like</em>) – Active length of each borehole [m] (a scalar for equal lengths).</p></li>
+<li><p><strong>t_max_s</strong> (<em>float</em>) – Expected simulation length [s].</p></li>
+<li><p><strong>points_per_decade</strong> (<em>float</em><em>, </em><em>optional</em>) – Node density of the grid (default 24, as <code class="docutils literal notranslate"><span class="pre">GFunction</span></code>).</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.integrations.geolink.ResponseMatrixGFunction.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">soil</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">points_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#ResponseMatrixGFunction.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.__init__" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">soil</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">points_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#ResponseMatrixGFunction.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1090,7 +1090,7 @@ earlier geolink versions and for other providers.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.integrations.geolink.geolink_gfunction">
-<span class="sig-prename descclassname"><span class="pre">tmhp.integrations.geolink.</span></span><span class="sig-name descname"><span class="pre">geolink_gfunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_velocity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#geolink_gfunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.geolink_gfunction" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.integrations.geolink.</span></span><span class="sig-name descname"><span class="pre">geolink_gfunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_velocity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/geolink.html#geolink_gfunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.geolink.geolink_gfunction" title="Link to this definition">¶</a></dt>
 <dd><p>Field g-function computed by <code class="docutils literal notranslate"><span class="pre">geolink</span></code> for boreholes at <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code>.</p>
 <p>Without groundwater it is geolink’s native finite line source
 (boreholes may have different lengths). With <code class="docutils literal notranslate"><span class="pre">groundwater_velocity</span></code>
@@ -1099,22 +1099,22 @@ which needs equal lengths and the ground heat capacity.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Borehole coordinates [m].</p></li>
-<li><p><strong>y</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Borehole coordinates [m].</p></li>
-<li><p><strong>H</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Active borehole length [m], one value or one per borehole.</p></li>
-<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m].</p></li>
-<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground conductivity [W/(m K)] and diffusivity [m2/s].</p></li>
-<li><p><strong>alpha_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground conductivity [W/(m K)] and diffusivity [m2/s].</p></li>
-<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Expected simulation length [s].</p></li>
-<li><p><strong>D</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Buried depth of the borehole heads [m].</p></li>
-<li><p><strong>groundwater_velocity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Darcy velocity of the groundwater [m/s]; 0 (default) is pure conduction.</p></li>
-<li><p><strong>groundwater_direction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Flow direction [rad], counter-clockwise from the x axis.</p></li>
-<li><p><strong>dispersivity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Longitudinal thermal dispersivity [m] (isotropic in geolink).</p></li>
-<li><p><strong>rho_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ground density [kg/m3] and specific heat [J/(kg K)]; required with
+<li><p><strong>x</strong> (<em>array_like</em>) – Borehole coordinates [m].</p></li>
+<li><p><strong>y</strong> (<em>array_like</em>) – Borehole coordinates [m].</p></li>
+<li><p><strong>H</strong> (<em>float</em><em> or </em><em>array_like</em>) – Active borehole length [m], one value or one per borehole.</p></li>
+<li><p><strong>r_b</strong> (<em>float</em>) – Borehole radius [m].</p></li>
+<li><p><strong>k_s</strong> (<em>float</em>) – Ground conductivity [W/(m K)] and diffusivity [m2/s].</p></li>
+<li><p><strong>alpha_s</strong> (<em>float</em>) – Ground conductivity [W/(m K)] and diffusivity [m2/s].</p></li>
+<li><p><strong>t_max_s</strong> (<em>float</em>) – Expected simulation length [s].</p></li>
+<li><p><strong>D</strong> (<em>float</em><em>, </em><em>optional</em>) – Buried depth of the borehole heads [m].</p></li>
+<li><p><strong>groundwater_velocity</strong> (<em>float</em><em>, </em><em>optional</em>) – Darcy velocity of the groundwater [m/s]; 0 (default) is pure conduction.</p></li>
+<li><p><strong>groundwater_direction</strong> (<em>float</em><em>, </em><em>optional</em>) – Flow direction [rad], counter-clockwise from the x axis.</p></li>
+<li><p><strong>dispersivity</strong> (<em>float</em><em>, </em><em>optional</em>) – Longitudinal thermal dispersivity [m] (isotropic in geolink).</p></li>
+<li><p><strong>rho_s</strong> (<em>float</em><em>, </em><em>optional</em>) – Ground density [kg/m3] and specific heat [J/(kg K)]; required with
 groundwater flow (they set the thermal front velocity).</p></li>
-<li><p><strong>c_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ground density [kg/m3] and specific heat [J/(kg K)]; required with
+<li><p><strong>c_s</strong> (<em>float</em><em>, </em><em>optional</em>) – Ground density [kg/m3] and specific heat [J/(kg K)]; required with
 groundwater flow (they set the thermal front velocity).</p></li>
-<li><p><strong>response</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – A geolink response model to use instead of the two above.</p></li>
+<li><p><strong>response</strong> (<em>optional</em>) – A geolink response model to use instead of the two above.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -1176,8 +1176,8 @@ groundwater flow (they set the thermal front velocity).</p></li>
   </div>
 </footer>
       <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
-      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -1187,6 +1187,7 @@ groundwater flow (they set the thermal front velocity).</p></li>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>

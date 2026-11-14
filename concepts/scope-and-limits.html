@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP aims at a useful accuracy from a nameplate ( Minimal input), not at reproducing one machine from its drawings. That bargain has a price: some things are outside the models and are refused, and..." />
 
-    <meta property="article:modified_time" content="2026-11-14T10:47:29+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T06:02:09+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -512,7 +512,16 @@ density and specific heat</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code> per step and one <code class="docutils literal notranslate"><span class="pre">DHWUnmetWarning</span></code> per run
 (<a class="reference internal" href="../getting-started/first-dynamic-simulation.html#hot-water-service"><span class="std std-ref">Was the hot water delivered?</span></a>)</p></td>
 </tr>
-<tr class="row-odd"><td><p>Time step and thermostat</p></td>
+<tr class="row-odd"><td><p>A compressor that cannot run</p></td>
+<td><p>A point outside the operating range of the machine – a discharge
+temperature, condensing pressure or pressure ratio above the limit,
+a source liquid that would freeze – is the off state or a reduced
+duty, not an error</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> / <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> on the row and one
+<code class="docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code> per steady call or dynamic run
+(<a class="reference internal" href="failure-reason-semantics.html#operating-limit-warning"><span class="std std-ref">Being told: OperatingLimitWarning</span></a>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Time step and thermostat</p></td>
 <td><p>The thermostat switches inside a step, but one cycle is solved per
 step</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>; step-size guidance in
@@ -539,9 +548,12 @@ units held back and the reasons are in <a class="reference internal" href="../va
 <p>Then, where they exist: <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> for a row that delivered less than
 asked, <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> or <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code> for demand
 that was not served, <code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code> and <code class="docutils literal notranslate"><span class="pre">discharge_control</span></code> for
-points at the edge of the compressor data. Warnings raised during a run (<code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> at
-construction, <code class="docutils literal notranslate"><span class="pre">RuntimeWarning</span></code> for a point that fell back to off) say the
-same things once, in words.</p>
+points at the edge of the compressor data. <code class="docutils literal notranslate"><span class="pre">tmhp.OperatingLimitWarning</span></code> says the
+same things once, in words: at construction for a set point the compressor
+envelope does not reach, from <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> for a point that does not run
+or runs below the request, and at the end of <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> with the
+steps stopped or limited and what they left unserved
+(<code class="docutils literal notranslate"><span class="pre">df.attrs[&quot;operating_limits&quot;]</span></code>; <a class="reference internal" href="failure-reason-semantics.html#operating-limit-warning"><span class="std std-ref">Being told: OperatingLimitWarning</span></a>).</p>
 </section>
 </section>
 
@@ -592,8 +604,8 @@ same things once, in words.</p>
   </div>
 </footer>
       <script src="../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
-      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -603,6 +615,7 @@ same things once, in words.</p>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script defer="defer" src="../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>

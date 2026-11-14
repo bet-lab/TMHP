@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="For ASHPB, analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest p..." />
 
-    <meta property="article:modified_time" content="2026-11-14T13:34:05+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T06:02:09+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -153,6 +153,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#what-a-real-run-looks-like">What a real run looks like</a></li>
 <li><a class="reference internal" href="#what-the-result-contains">What the result contains</a><ul>
 <li><a class="reference internal" href="#was-the-hot-water-delivered">Was the hot water delivered?</a></li>
+<li><a class="reference internal" href="#did-the-heat-pump-run-when-it-was-called">Did the heat pump run when it was called?</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#common-next-moves">Common next moves</a></li>
@@ -338,6 +339,26 @@ water means the machine or the tank is too small for the draw profile, or
 the thermostat band lets the tank fall too far before the compressor starts
 — it is a result about the system, not a solver failure.</p>
 </section>
+<section id="did-the-heat-pump-run-when-it-was-called">
+<h3>Did the heat pump run when it was called?<a class="headerlink" href="#did-the-heat-pump-run-when-it-was-called" title="Link to this heading">¶</a></h3>
+<p>Outside its operating range the compressor does not run however long the
+thermostat calls – a hot tank in very cold air, for one, can put the
+discharge temperature above the compressor’s limit. Such a step is an off row
+with a <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>; nearer the limit the unit runs at a reduced duty
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>). Nothing is printed per step.
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> ends with one <code class="docutils literal notranslate"><span class="pre">tmhp.OperatingLimitWarning</span></code> when it
+happened, and the totals are attached to the result:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">limits</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;operating_limits&quot;</span><span class="p">]</span>      <span class="c1"># or tmhp.summarize_operating_limits(df, dt_s)</span>
+</span><span data-line="2"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;called but off: </span><span class="si">{</span><span class="n">limits</span><span class="p">[</span><span class="s1">&#39;off_steps [-]&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> steps </span><span class="si">{</span><span class="n">limits</span><span class="p">[</span><span class="s1">&#39;off_reasons&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="3"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;reduced duty:   </span><span class="si">{</span><span class="n">limits</span><span class="p">[</span><span class="s1">&#39;limited_steps [-]&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> steps </span><span class="si">{</span><span class="n">limits</span><span class="p">[</span><span class="s1">&#39;limited_bindings&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="4"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;tank minimum:   </span><span class="si">{</span><span class="n">limits</span><span class="p">[</span><span class="s1">&#39;T_tank_w_min [°C]&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C&quot;</span><span class="p">)</span>
+</span></pre></div>
+</div>
+<p>The warning names each limit and what removes it
+(<a class="reference internal" href="../concepts/failure-reason-semantics.html#operating-limit-warning"><span class="std std-ref">Being told: OperatingLimitWarning</span></a>). <code class="docutils literal notranslate"><span class="pre">warnings.simplefilter(&quot;error&quot;,</span>
+<span class="pre">tmhp.OperatingLimitWarning)</span></code> turns it into an exception for a batch that
+must not continue past such a run.</p>
+</section>
 </section>
 <section id="common-next-moves">
 <h2>Common next moves<a class="headerlink" href="#common-next-moves" title="Link to this heading">¶</a></h2>
@@ -474,8 +495,8 @@ so the heat pump never runs, as <code class="docutils literal notranslate"><span
   </div>
 </footer>
       <script src="../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
-      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -485,6 +506,7 @@ so the heat pump never runs, as <code class="docutils literal notranslate"><span
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script defer="defer" src="../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>

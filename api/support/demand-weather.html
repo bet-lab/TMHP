@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Irradiance co..." />
 
-    <meta property="article:modified_time" content="2026-11-13T22:57:17+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T06:02:09+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -236,17 +236,17 @@ irradiance (GHI, e.g. KMA data) is split into DNI and DHI with
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ghi</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Global horizontal irradiance timeseries [W/m2]. Must have DatetimeIndex.</p></li>
-<li><p><strong>latitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Location latitude.</p></li>
-<li><p><strong>longitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Location longitude.</p></li>
-<li><p><strong>tilt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Surface tilt angle [deg].</p></li>
-<li><p><strong>azimuth</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Surface azimuth [deg]. 180 is South.</p></li>
-<li><p><strong>altitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Location altitude [m]. Default is 0.</p></li>
-<li><p><strong>tz</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Timezone. Default is ‘Asia/Seoul’.</p></li>
-<li><p><strong>decomposition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – DNI/DHI decomposition model: <code class="docutils literal notranslate"><span class="pre">'erbs'</span></code> (default), <code class="docutils literal notranslate"><span class="pre">'disc'</span></code>,
+<li><p><strong>ghi</strong> (<em>np.ndarray</em><em> or </em><em>pd.Series</em>) – Global horizontal irradiance timeseries [W/m2]. Must have DatetimeIndex.</p></li>
+<li><p><strong>latitude</strong> (<em>float</em>) – Location latitude.</p></li>
+<li><p><strong>longitude</strong> (<em>float</em>) – Location longitude.</p></li>
+<li><p><strong>tilt</strong> (<em>float</em>) – Surface tilt angle [deg].</p></li>
+<li><p><strong>azimuth</strong> (<em>float</em>) – Surface azimuth [deg]. 180 is South.</p></li>
+<li><p><strong>altitude</strong> (<em>float</em><em>, </em><em>optional</em>) – Location altitude [m]. Default is 0.</p></li>
+<li><p><strong>tz</strong> (<em>str</em><em>, </em><em>optional</em>) – Timezone. Default is ‘Asia/Seoul’.</p></li>
+<li><p><strong>decomposition</strong> (<em>str</em><em>, </em><em>optional</em>) – DNI/DHI decomposition model: <code class="docutils literal notranslate"><span class="pre">'erbs'</span></code> (default), <code class="docutils literal notranslate"><span class="pre">'disc'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'dirint'</span></code> or <code class="docutils literal notranslate"><span class="pre">'boland'</span></code> (pvlib). Any other name raises
 <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
-<li><p><strong>transposition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – POA transposition model (‘perez’, ‘isotropic’, etc). Default is ‘perez’.</p></li>
+<li><p><strong>transposition</strong> (<em>str</em><em>, </em><em>optional</em>) – POA transposition model (‘perez’, ‘isotropic’, etc). Default is ‘perez’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -256,7 +256,7 @@ which are the <code class="docutils literal notranslate"><span class="pre">I_DN_
 dynamic models.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+<dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>
@@ -268,15 +268,15 @@ dynamic models.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>csv_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to CSV file.</p></li>
-<li><p><strong>encoding</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – File encoding. Default is ‘euc-kr’.</p></li>
+<li><p><strong>csv_path</strong> (<em>str</em>) – Path to CSV file.</p></li>
+<li><p><strong>encoding</strong> (<em>str</em><em>, </em><em>optional</em>) – File encoding. Default is ‘euc-kr’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>DataFrame with datetime index, ‘T0_K’, and ‘ghi’ columns.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+<dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>
@@ -289,22 +289,22 @@ cumulative solar irradiance CSV.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>csv_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to CSV file.</p></li>
-<li><p><strong>encoding</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – File encoding. Default is ‘euc-kr’.</p></li>
+<li><p><strong>csv_path</strong> (<em>str</em>) – Path to CSV file.</p></li>
+<li><p><strong>encoding</strong> (<em>str</em><em>, </em><em>optional</em>) – File encoding. Default is ‘euc-kr’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>DataFrame with datetime index and ‘ghi’ column [W/m2].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+<dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.weather.plane_of_array_irradiance">
-<span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">plane_of_array_irradiance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dni</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dhi</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">zenith</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tilt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_azimuth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">albedo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sky_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'perez'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">day_of_year</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">79.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#plane_of_array_irradiance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.plane_of_array_irradiance" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">plane_of_array_irradiance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dni</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dhi</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zenith</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tilt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_azimuth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">albedo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sky_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'perez'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">day_of_year</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">79.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#plane_of_array_irradiance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.plane_of_array_irradiance" title="Link to this definition">¶</a></dt>
 <dd><p>Irradiance on a tilted plane [W/m²] from DNI and DHI and the sun position.</p>
 <p>Beam <code class="docutils literal notranslate"><span class="pre">DNI·cos</span> <span class="pre">θ</span></code> (zero with the sun below the horizon or behind the
 plane), sky diffuse from <code class="docutils literal notranslate"><span class="pre">sky_model</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;perez&quot;</span></code> (default, as
@@ -336,7 +336,7 @@ and the sky diffuse is isotropic.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.weather.solar_position">
-<span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">solar_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">day_of_year</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">37.57</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">longitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">126.98</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">utc_offset_h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#solar_position"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.solar_position" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">solar_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">day_of_year</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">37.57</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">longitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">126.98</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">utc_offset_h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#solar_position"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.solar_position" title="Link to this definition">¶</a></dt>
 <dd><p>Solar zenith and azimuth [deg] at a fractional day of year (local standard time).</p>
 <p><code class="docutils literal notranslate"><span class="pre">day_of_year</span></code> counts from 1 at 1 January 00:00 local standard time
 (<code class="docutils literal notranslate"><span class="pre">utc_offset_h</span></code> hours ahead of UTC); its fraction is the clock time.
@@ -371,7 +371,7 @@ did not deliver (<a class="reference internal" href="#tmhp.dhw.dhw_service_colum
 (<a class="reference internal" href="#tmhp.dhw.warn_if_dhw_unmet" title="tmhp.dhw.warn_if_dhw_unmet"><code class="xref py py-func docutils literal notranslate"><span class="pre">warn_if_dhw_unmet()</span></code></a>).</p>
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.dhw.DHW_REQUEST_KEY">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHW_REQUEST_KEY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Q_dhw_request</span> <span class="pre">[W]'</span></span><a class="headerlink" href="#tmhp.dhw.DHW_REQUEST_KEY" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHW_REQUEST_KEY</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Q_dhw_request</span> <span class="pre">[W]'</span></em><a class="headerlink" href="#tmhp.dhw.DHW_REQUEST_KEY" title="Link to this definition">¶</a></dt>
 <dd><p>hot-water heat a step was asked to deliver [W].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -382,7 +382,7 @@ did not deliver (<a class="reference internal" href="#tmhp.dhw.dhw_service_colum
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.dhw.DHW_SETPOINT_TOL_K">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHW_SETPOINT_TOL_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></span><a class="headerlink" href="#tmhp.dhw.DHW_SETPOINT_TOL_K" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHW_SETPOINT_TOL_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></em><a class="headerlink" href="#tmhp.dhw.DHW_SETPOINT_TOL_K" title="Link to this definition">¶</a></dt>
 <dd><p>Width of the service set point [K].</p>
 <p>A delivery whose shortfall is no more than the requested flow cooled by this
 much counts as met (<code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code> is 0). The mixing valve of a
@@ -393,7 +393,7 @@ last digits; neither is a hot-water shortfall. 0.01 K is 0.04 % of a 25 K lift.<
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.dhw.DHW_UNMET_KEY">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHW_UNMET_KEY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Q_dhw_unmet</span> <span class="pre">[W]'</span></span><a class="headerlink" href="#tmhp.dhw.DHW_UNMET_KEY" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHW_UNMET_KEY</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Q_dhw_unmet</span> <span class="pre">[W]'</span></em><a class="headerlink" href="#tmhp.dhw.DHW_UNMET_KEY" title="Link to this definition">¶</a></dt>
 <dd><p>part of <code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code> a step did not deliver [W].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -404,9 +404,12 @@ last digits; neither is a hot-water shortfall. 0.01 K is 0.04 % of a 25 K lift.<
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="tmhp.dhw.DHWUnmetWarning">
-<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHWUnmetWarning</span></span><a class="reference internal" href="../../_modules/tmhp/dhw.html#DHWUnmetWarning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.DHWUnmetWarning" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">UserWarning</span></code></p>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHWUnmetWarning</span></span><a class="reference internal" href="../../_modules/tmhp/dhw.html#DHWUnmetWarning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.DHWUnmetWarning" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="simulation.html#tmhp.operating_limits.OperatingLimitWarning" title="tmhp.operating_limits.OperatingLimitWarning"><code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code></a></p>
 <p>A dynamic run delivered less hot water than its draw schedule asked for.</p>
+<p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.OperatingLimitWarning</span></code> (itself a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code>): a filter
+on that class covers this one together with the warnings about a
+compressor that did not run or ran below the request.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -416,22 +419,22 @@ last digits; neither is a hot-water shortfall. 0.01 K is 0.04 % of a 25 K lift.<
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>entries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Schedule entry list. Each item is (start_str, end_str, frac) format.</p></li>
-<li><p><strong>t_array</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Array of time seconds from start of day.</p></li>
+<li><p><strong>entries</strong> (<em>list</em><em>[</em><em>tuple</em><em>[</em><em>str</em><em>, </em><em>str</em><em>, </em><em>float</em><em>]</em><em>]</em>) – Schedule entry list. Each item is (start_str, end_str, frac) format.</p></li>
+<li><p><strong>t_array</strong> (<em>np.ndarray</em>) – Array of time seconds from start of day.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Array of fractions corresponding to <code class="docutils literal notranslate"><span class="pre">t_array</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.dhw.calc_cold_water_temp">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">calc_cold_water_temp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_date_str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#calc_cold_water_temp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.calc_cold_water_temp" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">calc_cold_water_temp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_date_str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#calc_cold_water_temp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.calc_cold_water_temp" title="Link to this definition">¶</a></dt>
 <dd><p>Mains water temperature [°C] by the EnergyPlus <code class="docutils literal notranslate"><span class="pre">Site:WaterMainsTemperature</span></code> correlation.</p>
 <p>The correlation of Burch &amp; Christensen (NREL; Hendron et al. 2004) as
 EnergyPlus evaluates it (Engineering Reference, “Water Mains
@@ -454,17 +457,17 @@ SimBuild 2004, IBPSA-USA. EnergyPlus Engineering Reference, Water Systems.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – The twelve monthly mean outdoor temperatures [°C] in a column whose
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – The twelve monthly mean outdoor temperatures [°C] in a column whose
 name contains <code class="docutils literal notranslate"><span class="pre">T_avg</span></code> (or <code class="docutils literal notranslate"><span class="pre">기온</span></code>, <code class="docutils literal notranslate"><span class="pre">temp</span></code>, <code class="docutils literal notranslate"><span class="pre">T0</span></code>, <code class="docutils literal notranslate"><span class="pre">°C</span></code>, <code class="docutils literal notranslate"><span class="pre">℃</span></code>).</p></li>
-<li><p><strong>target_date_str</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Target date string in ‘YYYY-MM-DD’ format.</p></li>
-<li><p><strong>latitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Site latitude [°]; negative flips the season. <code class="docutils literal notranslate"><span class="pre">None</span></code>: northern hemisphere.</p></li>
+<li><p><strong>target_date_str</strong> (<em>str</em>) – Target date string in ‘YYYY-MM-DD’ format.</p></li>
+<li><p><strong>latitude</strong> (<em>float</em><em> | </em><em>None</em>) – Site latitude [°]; negative flips the season. <code class="docutils literal notranslate"><span class="pre">None</span></code>: northern hemisphere.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Mains water temperature [°C].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
@@ -476,17 +479,17 @@ name contains <code class="docutils literal notranslate"><span class="pre">T_avg
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>schedule</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Schedule list. Each item is (start_str, end_str, ratio) format.</p></li>
-<li><p><strong>peak_load_m3s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Peak load water flow rate [m3/s].</p></li>
-<li><p><strong>info</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Flag to print info. Default is True.</p></li>
-<li><p><strong>info_unit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Unit to print info. Default is ‘L’.</p></li>
+<li><p><strong>schedule</strong> (<em>list</em><em>[</em><em>tuple</em><em>[</em><em>str</em><em>, </em><em>str</em><em>, </em><em>float</em><em>]</em><em>]</em>) – Schedule list. Each item is (start_str, end_str, ratio) format.</p></li>
+<li><p><strong>peak_load_m3s</strong> (<em>float</em>) – Peak load water flow rate [m3/s].</p></li>
+<li><p><strong>info</strong> (<em>bool</em><em>, </em><em>optional</em>) – Flag to print info. Default is True.</p></li>
+<li><p><strong>info_unit</strong> (<em>str</em><em>, </em><em>optional</em>) – Unit to print info. Default is ‘L’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Total daily water usage [m3].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
@@ -516,11 +519,11 @@ water was delivered (<code class="docutils literal notranslate"><span class="pre
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dV_request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mixed-water flow the draw schedule asks for [m³/s].</p></li>
-<li><p><strong>dV_delivered</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mixed-water flow that left the mixing valve [m³/s].</p></li>
-<li><p><strong>T_delivered_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Temperature of the delivered water [K]; unused when nothing was delivered.</p></li>
-<li><p><strong>T_set_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Service set point of the mixing valve [K].</p></li>
-<li><p><strong>T_sup_w_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mains water temperature [K].</p></li>
+<li><p><strong>dV_request</strong> (<em>float</em>) – Mixed-water flow the draw schedule asks for [m³/s].</p></li>
+<li><p><strong>dV_delivered</strong> (<em>float</em>) – Mixed-water flow that left the mixing valve [m³/s].</p></li>
+<li><p><strong>T_delivered_K</strong> (<em>float</em>) – Temperature of the delivered water [K]; unused when nothing was delivered.</p></li>
+<li><p><strong>T_set_K</strong> (<em>float</em>) – Service set point of the mixing valve [K].</p></li>
+<li><p><strong>T_sup_w_K</strong> (<em>float</em>) – Mains water temperature [K].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -529,7 +532,7 @@ step without a draw, and when the mains water is already at the set
 point (nothing to heat).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+<dd class="field-odd"><p>dict[str, float]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -543,16 +546,16 @@ into a schedule list with specified time step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>flow_rate_array</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Array of flow rates [L/min]. Data should represent 24 hours.</p></li>
-<li><p><strong>df_time_step</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Time step of the input <code class="docutils literal notranslate"><span class="pre">flow_rate_array</span></code> [min].</p></li>
-<li><p><strong>simulation_time_step</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Target time step for the simulation schedule [s].</p></li>
+<li><p><strong>flow_rate_array</strong> (<em>np.ndarray</em>) – Array of flow rates [L/min]. Data should represent 24 hours.</p></li>
+<li><p><strong>df_time_step</strong> (<em>int</em>) – Time step of the input <code class="docutils literal notranslate"><span class="pre">flow_rate_array</span></code> [min].</p></li>
+<li><p><strong>simulation_time_step</strong> (<em>int</em>) – Target time step for the simulation schedule [s].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>List of tuples (start_time, end_time, fraction).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span></p>
+<dd class="field-odd"><p>list[tuple[str, str, float]]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -564,9 +567,9 @@ into a schedule list with specified time step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – Result of a boiler <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> (or rows of <code class="docutils literal notranslate"><span class="pre">step</span></code>) carrying
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – Result of a boiler <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> (or rows of <code class="docutils literal notranslate"><span class="pre">step</span></code>) carrying
 <code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code>.</p></li>
-<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Time step of the result [s].</p></li>
+<li><p><strong>dt_s</strong> (<em>float</em>) – Time step of the result [s].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -583,7 +586,7 @@ with a draw (NaN without a draw or without the column).</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+<dd class="field-odd"><p>dict[str, float]</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>KeyError</strong> – If <code class="docutils literal notranslate"><span class="pre">df</span></code> does not carry the two hot-water columns.</p>
@@ -617,7 +620,7 @@ columns.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 13, 2026
+  Last updated Nov 14, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -663,8 +666,8 @@ columns.</p>
   </div>
 </footer>
       <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
-      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -674,6 +677,7 @@ columns.</p>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>

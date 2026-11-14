@@ -656,8 +656,8 @@ def simulate_thermostat_step(
         by running the fraction ``Q_hold / Q_on`` of the time (cycling on its
         protection, or a variable-speed unit at the duty the limit allows):
         the heat that keeps the water around the coil at the cut-out. It
-        then runs so to the end of the step and counts as running (one start
-        at most). ``None`` (the default): the water around the coil is the
+        runs so until the call ends (the tank reaches ``T_upper``) or the
+        step does, and counts as running (one start at most). ``None`` (the default): the water around the coil is the
         tank, so the heat that balances the tank's free heat at the cut-out;
         0: it stays off until the tank falls below the cut-out.
 
@@ -717,6 +717,8 @@ def simulate_thermostat_step(
         want = call and scheduled
         at_limit = tw >= T_limit_C - TEMPERATURE_TOL_K
         hold = want and at_limit and q_hold > 0.0 and q_on > 0.0
+        # Holding is decided again at every event: the call can end meanwhile.
+        holding = False
         if running:
             if hold:
                 # The call stands at the cut-out: it holds the water there.
@@ -748,16 +750,23 @@ def simulate_thermostat_step(
         # --- next event ---
         rem = dt - t
         if holding:
-            # Held at the cut-out to the end of the step.
+            # Held at the cut-out until the call ends (the tank reaches the
+            # upper bound) or the step does.
             duty = min(1.0, q_hold / q_on)
-            T_new = _advance(tw, rem, p_const + duty * q_on, slope, C)
+            drive = p_const + duty * q_on
+            step, target = rem, None
+            if tw < T_hi - tol:
+                t_hi = _time_to_reach(tw, T_hi, drive, slope, C)
+                if t_hi < rem - EVENT_TIME_TOL_S:
+                    step, target = t_hi, T_hi
+            T_new = target if target is not None else _advance(tw, step, drive, slope, C)
             if tw_on_first is None:
                 tw_on_first = tw
-            on_time += duty * rem
-            on_T_integral += duty * rem * 0.5 * (tw + T_new)
+            on_time += duty * step
+            on_T_integral += duty * step * 0.5 * (tw + T_new)
             tw = T_new
-            age += rem
-            t = dt
+            age += step
+            t = t + step if target is not None else dt
             continue
         if n_events >= 1000 and q_on > 0.0 and scheduled:
             # Fast-cycling limit: hold the tank where it is.

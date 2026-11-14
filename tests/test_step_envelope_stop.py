@@ -94,6 +94,14 @@ def test_call_at_the_cut_out_holds_or_waits():
     assert again.starts == 0 and again.runtime_fraction == pytest.approx(0.2)
 
 
+def test_hold_ends_when_the_tank_reaches_the_upper_bound():
+    """A hold that warms the tank to the set point ends the call there, not at the step end."""
+    run = _sim(T_start_C=64.0, T_limit_C=60.0, Q_hold=5_000.0, running_prev=True, phase_age_s=600.0)
+    # 1 K at 5 kW into 600 kJ/K: 120 s at half the nameplate duty, then off.
+    assert run.runtime_fraction == pytest.approx(0.5 * 120.0 / 600.0)
+    assert not run.running_end and not run.call_end and run.limit_stop
+
+
 def test_lumped_hold_balances_the_loss():
     """``Q_hold=None``: the tank is the coil's water, held where its loss is made up."""
     run = _sim(T_start_C=60.0, T_limit_C=60.0, free_heat=LOSS, running_prev=True, phase_age_s=600.0)

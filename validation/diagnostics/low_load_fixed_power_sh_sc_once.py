@@ -411,12 +411,12 @@ def _figures(df: pd.DataFrame) -> None:
     apply_style()
     MS = 2.6
 
-    def save(fig, name: str, **margins) -> None:
+    def save(fig, name: str, gutter=None, **margins) -> None:
         OUT_DIR.mkdir(parents=True, exist_ok=True)
         for extra in (0, 2, 4, 6, 8, 12):
             try:
                 kw = {k: f"{float(v.rstrip('%')) + extra}%" for k, v in margins.items()}
-                finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", **kw)
+                finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", gutter=gutter, **kw)
                 break
             except RuntimeError as exc:
                 if extra == 12:
@@ -509,7 +509,7 @@ def _figures(df: pd.DataFrame) -> None:
         ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "01_fixed_power_cop_vs_plr")
+    save(fig, "01_fixed_power_cop_vs_plr", gutter="8pt")
 
     # -- 02 fixed-power fraction -----------------------------------------
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.34))
@@ -532,7 +532,7 @@ def _figures(df: pd.DataFrame) -> None:
         ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4))
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "02_fixed_power_fraction_vs_plr")
+    save(fig, "02_fixed_power_fraction_vs_plr", gutter="8pt")
 
     # -- 03 low-load summary ---------------------------------------------
     rows = []
@@ -581,7 +581,7 @@ def _figures(df: pd.DataFrame) -> None:
     _panels.append((ax, "b"))
     s.to_csv(OUT_DIR / "fig03_fixed_power_lowload_summary.csv", index=False)
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "03_fixed_power_lowload_summary")
+    save(fig, "03_fixed_power_lowload_summary", gutter="8pt")
 
     # -- 04..08 case comparisons, mode A solid / mode B dashed ------------
     def case_panels(name: str, quantities: list[tuple[str, str, tuple | None, float | None]], margins: dict) -> None:
@@ -676,11 +676,11 @@ def _figures(df: pd.DataFrame) -> None:
                 )
             xaxis(ax, label=(i == 1))
             ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
-            ax.set_title(f"{cond_title[cond]} — {mlab}", fontsize=dm.fs(-3), loc="left")
+            ax.set_title(f"{cond_title[cond]}\n{mlab}", fontsize=dm.fs(-3), loc="left")
             _panels.append((ax, "abcdef"[i * 3 + j]))
     axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-5), ncol=2)
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "09_sh_sc_cop_vs_plr")
+    save(fig, "09_sh_sc_cop_vs_plr", gutter="8pt")
 
     # -- 10 / 11 SH-only and SC-only -------------------------------------
     def split_fig(name: str, pairs: list[tuple[float, float]], fixed_txt: str, label_fn) -> None:
@@ -730,7 +730,7 @@ def _figures(df: pd.DataFrame) -> None:
         ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "12_combined_effect_cop_vs_plr")
+    save(fig, "12_combined_effect_cop_vs_plr", gutter="8pt")
 
 
 def main() -> None:

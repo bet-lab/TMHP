@@ -79,7 +79,7 @@ def main() -> None:
     # (c) carries long y-tick labels ("ASUH12LPAS  (3.23)") on its left, so the
     # gutter has to hold those *and* the panel letter. At wspace=0.42 both were
     # landing inside (b).
-    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.46), gridspec_kw={"wspace": 0.62})
+    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.46))
     _panels: list = []
 
     # --- (a) the back-out itself ------------------------------------------
@@ -199,7 +199,7 @@ def main() -> None:
 
     out = static_path("validation_residuals.svg").with_suffix("")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, out)
+    finalize(fig, out, gutter="8pt")
     plt.close(fig)
     print(f"wrote {out}.svg")
     print(

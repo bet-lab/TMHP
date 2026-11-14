@@ -274,11 +274,11 @@ def figures(
     MS = 3.0
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    def save(fig, name, **margins):
+    def save(fig, name, gutter=None, **margins):
         for extra in (0, 2, 4, 6, 8, 12):
             try:
                 kw = {k: f"{float(v.rstrip('%')) + extra}%" for k, v in margins.items()}
-                finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", **kw)
+                finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", gutter=gutter, **kw)
                 break
             except RuntimeError as exc:
                 if extra == 12:
@@ -354,7 +354,7 @@ def figures(
     _panels.append((axes[0], "a"))
     _panels.append((axes[1], "b"))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "01_pto_vs_capacity")
+    save(fig, "01_pto_vs_capacity", gutter="8pt")
 
     # -- 02 parity (air-to-air, leave-one-unit-out) ----------------------
     fig, ax = plt.subplots(figsize=dm.figsize("8cm", 0.85))
@@ -464,7 +464,7 @@ def figures(
     _panels.append((axes[0], "a"))
     _panels.append((axes[1], "b"))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "04_plr_cop_with_pto_proxy")
+    save(fig, "04_plr_cop_with_pto_proxy", gutter="8pt")
 
 
 def plr_table(plr: pd.DataFrame, w_values) -> pd.DataFrame:

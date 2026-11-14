@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -223,6 +223,9 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.compressor_envelope.efficiency_extrapolated_at"><code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated_at()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.steady_envelope"><code class="docutils literal notranslate"><span class="pre">steady_envelope()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.reduce_duty_within_envelope"><code class="docutils literal notranslate"><span class="pre">reduce_duty_within_envelope()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.raise_duty_within_envelope"><code class="docutils literal notranslate"><span class="pre">raise_duty_within_envelope()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.remembering_smallest_duties"><code class="docutils literal notranslate"><span class="pre">remembering_smallest_duties()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.remember_smallest_duty"><code class="docutils literal notranslate"><span class="pre">remember_smallest_duty()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT"><code class="docutils literal notranslate"><span class="pre">X_SUCTION_MIN_DEFAULT</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.resolve_x_suction_min"><code class="docutils literal notranslate"><span class="pre">resolve_x_suction_min()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.discharge_controlled"><code class="docutils literal notranslate"><span class="pre">discharge_controlled()</span></code></a></li>
@@ -867,7 +870,12 @@ duty, or is an off step with that reason when no duty fits. The boilers
 answer every limit a smaller duty cures this way – the pressure-ratio
 ceiling, the source heat exchanger’s range and the efficiency floor as
 well (<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>); <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names the
-limit.</p>
+limit. The efficiency floor also has a lower side: towards low speed the
+shipped fit falls below it while larger duties run. A boiler’s
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> answers a request refused there with the smallest duty
+that runs (<a class="reference internal" href="#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">raise_duty_within_envelope()</span></code></a>, <code class="docutils literal notranslate"><span class="pre">capacity_clamped='min'</span></code>),
+which is then reported as the mean of on/off cycling like a request below
+the minimum speed.</p>
 </dd>
 <dt>Condensing pressure (<code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>)</dt><dd><p>The top of every published envelope is a maximum condensing temperature,
 which is a maximum high-side pressure: the shell, the scroll set and the
@@ -1620,7 +1628,11 @@ smaller duties; the largest one with an operating point is returned with
 <code class="docutils literal notranslate"><span class="pre">capacity_clamped='max'</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit,
 <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (the request keys of the family hold
 the caller’s request). If no smaller duty runs, the original off-state
-result stands. The trial solves run silently. <code class="docutils literal notranslate"><span class="pre">bindings</span></code> renames a
+result stands – unless the efficiency floor refused the request and a
+larger duty runs: the smallest such duty is then returned with
+<code class="docutils literal notranslate"><span class="pre">capacity_clamped='min'</span></code> (<a class="reference internal" href="#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">raise_duty_within_envelope()</span></code></a>), for the
+cycling decorator outside this one to average. The trial solves run
+silently. <code class="docutils literal notranslate"><span class="pre">bindings</span></code> renames a
 <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> for the family (<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1676,6 +1688,86 @@ tried is refused by the limit.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.raise_duty_within_envelope">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">raise_duty_within_envelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Q_ref_tank</span> <span class="pre">[W]'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#raise_duty_within_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.raise_duty_within_envelope" title="Link to this definition">¶</a></dt>
+<dd><p>The smallest duty with an operating point when the efficiency floor refuses the request from below.</p>
+<p>The counterpart of <a class="reference internal" href="#tmhp.compressor_envelope.reduce_duty_within_envelope" title="tmhp.compressor_envelope.reduce_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_duty_within_envelope()</span></code></a>. The compressor’s
+speed floor is not the only lower end of continuous operation: where the
+shipped isentropic fit, extrapolated towards low speed, falls below
+<a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a> before <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is reached (a large lift), the
+envelope refuses every duty below the one at which the fit crosses the
+floor, while larger duties run. A unit does not stay off there: it runs
+at the smallest duty the envelope admits and switches off when the tank
+has had enough, exactly as it does below its minimum speed.</p>
+<p><code class="docutils literal notranslate"><span class="pre">result</span></code> is the solve at <code class="docutils literal notranslate"><span class="pre">request</span></code>, refused with
+<a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN" title="tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_BELOW_MIN</span></code></a> after no smaller duty ran; <code class="docutils literal notranslate"><span class="pre">solve(q)</span></code> solves
+the same point at duty <code class="docutils literal notranslate"><span class="pre">q</span></code>. A ladder of duties above the request
+(<code class="xref py py-data docutils literal notranslate"><span class="pre">_RAISE_LADDER</span></code>, fractions of <code class="docutils literal notranslate"><span class="pre">model.hp_capacity</span></code>) finds one that
+runs and a bisection closes on the smallest (to <code class="xref py py-data docutils literal notranslate"><span class="pre">_RAISE_REL_TOL</span></code>).
+That continuous row is returned with <code class="docutils literal notranslate"><span class="pre">capacity_clamped='min'</span></code> and the
+caller’s request in its request keys: it delivers more than the request,
+and <a class="reference internal" href="simulation.html#tmhp.cycling.steady_cycling" title="tmhp.cycling.steady_cycling"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.cycling.steady_cycling()</span></code></a> averages it over the on/off period
+like a minimum-speed row (<code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is its duty). <code class="docutils literal notranslate"><span class="pre">result</span></code> is
+returned unchanged when a duty above the request is refused for another
+reason before one runs, or none runs. A trial at the compressor’s speed
+ceiling (it delivers less than its duty) bounds the search from above but
+is not returned. The trial solves run silently.</p>
+<p><code class="docutils literal notranslate"><span class="pre">condition</span></code> identifies the operating condition (everything but the
+duty); with it and inside <a class="reference internal" href="#tmhp.compressor_envelope.remembering_smallest_duties" title="tmhp.compressor_envelope.remembering_smallest_duties"><code class="xref py py-func docutils literal notranslate"><span class="pre">remembering_smallest_duties()</span></code></a> the row
+found is reused for every smaller request at the same condition.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>solve</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
+<li><p><strong>request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.remembering_smallest_duties">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">remembering_smallest_duties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#remembering_smallest_duties"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.remembering_smallest_duties" title="Link to this definition">¶</a></dt>
+<dd><p>Reuse the rows of <a class="reference internal" href="#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">raise_duty_within_envelope()</span></code></a> while the block runs.</p>
+<p>The smallest continuous duty belongs to the condition, not to the request.
+One <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> call can solve the same condition at several duties
+(the frost balance of <a class="reference internal" href="simulation.html#tmhp.defrost.steady_defrost" title="tmhp.defrost.steady_defrost"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.defrost.steady_defrost()</span></code></a>); inside the
+block the search runs once per condition. The memory ends with the block,
+because the model may be changed between calls.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.remember_smallest_duty">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">remember_smallest_duty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#remember_smallest_duty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.remember_smallest_duty" title="Link to this definition">¶</a></dt>
+<dd><p>Decorate an <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> so that its trial solves share <a class="reference internal" href="#tmhp.compressor_envelope.remembering_smallest_duties" title="tmhp.compressor_envelope.remembering_smallest_duties"><code class="xref py py-func docutils literal notranslate"><span class="pre">remembering_smallest_duties()</span></code></a>.</p>
+<p>Outermost: above the frost correction, whose solves at other duties are
+the ones that share the search.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>function</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_F</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>])</span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_F</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>])</span></p>
 </dd>
 </dl>
 </dd></dl>

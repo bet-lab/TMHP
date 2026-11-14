@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-14T10:47:29+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -3301,7 +3301,8 @@ are left to the caller, which knows how they are defined.</p>
 <span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">report_cycling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivery_power_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_power_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'E_tot</span> <span class="pre">[W]'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#report_cycling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.report_cycling" title="Link to this definition">¶</a></dt>
 <dd><p>Write the cycling keys of a solved row; average it if the unit cycles (in place).</p>
 <p>The row cycles when it is a running operating point on the compressor’s
-speed floor (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>) that delivers more than the
+speed floor, or at the smallest duty the envelope admits
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>), that delivers more than the
 <code class="docutils literal notranslate"><span class="pre">request</span></code> and a degradation model is given: it is then averaged with
 <a class="reference internal" href="#tmhp.cycling.apply_cycling" title="tmhp.cycling.apply_cycling"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_cycling()</span></code></a>. Every other row – continuous operation, the off
 state, a failed solve, cycling switched off (<code class="docutils literal notranslate"><span class="pre">cycling=None</span></code>) – is left

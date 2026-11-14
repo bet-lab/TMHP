@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-14T10:47:29+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -339,6 +339,21 @@ construction with a <code class="docutils literal notranslate"><span class="pre"
 cap. <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> against a hotter tank returns a reduced duty
 (<code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;condensing_temperature&quot;</span></code>) or the off state with
 <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;condensing_temp_above_max&quot;</span></code>.</p>
+<p>That cap is the <em>envelope stop</em> (<code class="docutils literal notranslate"><span class="pre">T_cond_max</span> <span class="pre">−</span> <span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code> at
+the condensing-limit pressure), and the in-step thermostat stops the
+compressor there whatever <code class="docutils literal notranslate"><span class="pre">min_on_time_s</span></code> says, as in <a class="reference internal" href="gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a> and
+<a class="reference internal" href="wshpb.html"><span class="doc">Water-source heat pump boiler (WSHPB)</span></a>: a protection stop outranks the minimum run time. The step is a
+normal one (<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;none&quot;</span></code>) with <code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span> <span class="pre">==</span>
+<span class="pre">&quot;condensing_limit&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code> is on every dynamic row and <code class="docutils literal notranslate"><span class="pre">None</span></code>
+elsewhere. Before, a minimum run time carried the tank past the stop by an
+amount that depended on the step, and the run ended in a
+<code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code> step: R32 with <code class="docutils literal notranslate"><span class="pre">min_on_time_s=1800</span></code> peaked at
+62.6 °C with 60 s steps and at 65.1 °C with 600 s steps (1.51 against
+1.95 kWh of heat in 2 h); it now stops at 60.0 °C with both (1.055 kWh).
+Runs without a minimum run time are unchanged. <code class="docutils literal notranslate"><span class="pre">ASHPB_PV_ESS</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code> and <code class="docutils literal notranslate"><span class="pre">ASHPB_STC_tank</span></code> inherit the step and behave the
+same (a collector may still heat the tank beyond the stop, up to its own
+storage limit).</p>
 </section>
 <section id="steady-state-below-the-minimum-capacity">
 <h2>Steady state below the minimum capacity<a class="headerlink" href="#steady-state-below-the-minimum-capacity" title="Link to this heading">¶</a></h2>
@@ -369,6 +384,23 @@ power instead, which at the floor is nearly flat in the outdoor approach and
 returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
 outdoor approach with the fan at its lowest flow, a running-machine COP of
 4.27 where the floor offers 5.29.</p>
+<p>The minimum speed is not always the lower end of continuous operation. At a
+large lift the shipped isentropic-efficiency fit, read below its data, falls
+under the envelope’s floor (<code class="docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code> = 0.30,
+<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>) before <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is reached:
+the default 15 kW R290 unit at −7 °C outdoors against a 65 °C tank runs down
+to about 3.8 kW (frost-free) and no further, R134a at −15 °C against 40 °C to
+2.5 kW. A request below that duty was answered with the unit switched off
+(<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;eta_isen_below_min&quot;</span></code>) while a larger one ran. It is now
+met the same way as one below the minimum speed, and as <a class="reference internal" href="ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a> does: the
+unit cycles at the smallest duty the envelope admits. The row has
+<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is that duty (found by bisection
+on the duty, to 0.5 %; the same for every request below it), and the
+compressor speed of the row is above <code class="docutils literal notranslate"><span class="pre">rps_min</span></code>. With <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> the
+row is that continuous point, which delivers more than the request.
+<code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code> remains the reason where no larger duty runs either, or
+another limit refuses a larger duty first. A dynamic step is not affected: its
+thermostat runs the compressor at the nameplate duty.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Cd_cycling</span></code> is the coefficient <code class="docutils literal notranslate"><span class="pre">Cc</span></code>: 0.9 by default (the standard’s value
 for an untested unit), <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">−</span> <span class="pre">P_off</span> <span class="pre">/</span> <span class="pre">P_on</span></code> for a unit with a measured standby
 power, <code class="docutils literal notranslate"><span class="pre">1.0</span></code> for loss-free cycling, and <code class="docutils literal notranslate"><span class="pre">None</span></code> for the continuous
@@ -1559,7 +1591,9 @@ under the discharge-temperature control and at a reduced duty
 the discharge exceeds <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>),
 <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temp_above_max&quot;</span></code> (even a reduced duty condenses
 above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>: the tank is too hot), <code class="docutils literal notranslate"><span class="pre">&quot;eta_isen_below_min&quot;</span></code>
-(the shipped isentropic fit, extrapolated, is below 0.30),
+(the shipped isentropic fit, extrapolated, is below 0.30, and
+no larger duty runs either: a request that is only too small
+for the floor is a <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> point, below),
 <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_detail&quot;</span></code> (str, failures only) — on
 <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, which check of
@@ -1571,7 +1605,11 @@ outdoor coil fails at every approach the cycle reaches
 <code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil_no_band&quot;</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;capacity_clamped&quot;</span></code> (str | None) — <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when the
 requested duty was below what the compressor delivers at
-<code class="docutils literal notranslate"><span class="pre">rps_min</span></code> and the cycle was solved at that floor instead,
+<code class="docutils literal notranslate"><span class="pre">rps_min</span></code> and the cycle was solved at that floor instead (or
+below the smallest duty the envelope’s efficiency floor admits,
+where the shipped fit falls under 0.30 before <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is
+reached: the cycle is then solved at that duty, above
+<code class="docutils literal notranslate"><span class="pre">rps_min</span></code>),
 <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> for the corresponding ceiling case, <code class="docutils literal notranslate"><span class="pre">None</span></code> when the
 request was met exactly. A clamped point is <strong>converged</strong>: the
 request simply lay outside the machine’s deliverable band, which
@@ -1600,7 +1638,7 @@ the glide for a zeotropic blend.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;runtime_fraction</span> <span class="pre">[-]&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;capacity_ratio</span> <span class="pre">[-]&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;part_load_factor</span> <span class="pre">[-]&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;Q_min</span> <span class="pre">[W]&quot;</span></code> and
 <code class="docutils literal notranslate"><span class="pre">&quot;E_cycling_loss</span> <span class="pre">[W]&quot;</span></code> — on every row. A request below the
-duty at <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>) is reported
+smallest continuous duty (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>) is reported
 as the mean of on/off cycling: <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code> equals the
 request (<code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is the continuous duty), heat and
 refrigerant rates are the running machine’s times
@@ -1690,7 +1728,12 @@ at a time and re-run it independently.</p>
 <p>The tank thermostat is followed inside the step
 (<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.resolve_step_operation()</span></code>): the compressor
 stops when the tank reaches the upper bound and starts when it falls
-to the lower bound, at any point of the step. The heat, power and
+to the lower bound, at any point of the step. It also stops at the
+envelope stop (<a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.condensing_tank_cutout" title="tmhp.compressor_envelope.condensing_tank_cutout"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.condensing_tank_cutout()</span></code></a>:
+the tank temperature at which the nameplate duty condenses on
+<code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>) whatever <code class="docutils literal notranslate"><span class="pre">min_on_time_s</span></code> says; such a step is a
+normal one with <code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span> <span class="pre">==</span> <span class="pre">&quot;condensing_limit&quot;</span></code>
+(<code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code> is on every row, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise). The heat, power and
 refrigerant-flow rates in <code class="docutils literal notranslate"><span class="pre">result_row</span></code> are averages over <code class="docutils literal notranslate"><span class="pre">dt_s</span></code>
 (the running cycle times <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>), so
 <code class="docutils literal notranslate"><span class="pre">rate</span> <span class="pre">*</span> <span class="pre">dt_s</span></code> is the step’s energy; <code class="docutils literal notranslate"><span class="pre">hp_is_on</span></code> says the

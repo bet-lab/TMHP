@@ -522,117 +522,118 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="319"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Write the cycling keys of a solved row; average it if the unit cycles (in place).</span>
 </span><span data-line="320">
 </span><span data-line="321"><span class="sd">    The row cycles when it is a running operating point on the compressor&#39;s</span>
-</span><span data-line="322"><span class="sd">    speed floor (``capacity_clamped == &quot;min&quot;``) that delivers more than the</span>
-</span><span data-line="323"><span class="sd">    ``request`` and a degradation model is given: it is then averaged with</span>
-</span><span data-line="324"><span class="sd">    :func:`apply_cycling`. Every other row -- continuous operation, the off</span>
-</span><span data-line="325"><span class="sd">    state, a failed solve, cycling switched off (``cycling=None``) -- is left</span>
-</span><span data-line="326"><span class="sd">    as it is and gets the keys of :func:`continuous_keys` (``Q_min [W]`` is</span>
-</span><span data-line="327"><span class="sd">    the continuous delivery of a row on the speed floor, NaN elsewhere).</span>
-</span><span data-line="328"><span class="sd">    Returns whether the row was averaged; COP columns and sums the caller</span>
-</span><span data-line="329"><span class="sd">    derives from the averaged terms are left to the caller.</span>
-</span><span data-line="330"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="331">    <span class="n">running</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
-</span><span data-line="332">    <span class="n">delivered</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">delivered_key</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)))</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="333">    <span class="n">on_floor</span> <span class="o">=</span> <span class="n">running</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;min&quot;</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">delivered</span><span class="p">)</span>
-</span><span data-line="334">    <span class="n">asked</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
-</span><span data-line="335">    <span class="k">if</span> <span class="n">on_floor</span> <span class="ow">and</span> <span class="n">cycling</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">asked</span> <span class="o">&lt;</span> <span class="n">delivered</span><span class="p">:</span>
-</span><span data-line="336">        <span class="n">state</span> <span class="o">=</span> <span class="n">cycling</span><span class="o">.</span><span class="n">state</span><span class="p">(</span><span class="n">asked</span><span class="p">,</span> <span class="n">delivered</span><span class="p">)</span>
-</span><span data-line="337">        <span class="n">apply_cycling</span><span class="p">(</span>
-</span><span data-line="338">            <span class="n">result</span><span class="p">,</span>
-</span><span data-line="339">            <span class="n">state</span><span class="p">,</span>
-</span><span data-line="340">            <span class="n">delivered_key</span><span class="o">=</span><span class="n">delivered_key</span><span class="p">,</span>
-</span><span data-line="341">            <span class="n">rate_keys</span><span class="o">=</span><span class="n">rate_keys</span><span class="p">,</span>
-</span><span data-line="342">            <span class="n">power_keys</span><span class="o">=</span><span class="n">power_keys</span><span class="p">,</span>
-</span><span data-line="343">            <span class="n">delivery_power_keys</span><span class="o">=</span><span class="n">delivery_power_keys</span><span class="p">,</span>
-</span><span data-line="344">            <span class="n">total_power_key</span><span class="o">=</span><span class="n">total_power_key</span><span class="p">,</span>
-</span><span data-line="345">        <span class="p">)</span>
-</span><span data-line="346">        <span class="k">return</span> <span class="kc">True</span>
-</span><span data-line="347">    <span class="n">continuous_keys</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">CONTINUOUS</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="n">OFF</span><span class="p">,</span> <span class="n">delivered</span> <span class="k">if</span> <span class="n">on_floor</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-</span><span data-line="348">    <span class="k">return</span> <span class="kc">False</span></div>
+</span><span data-line="322"><span class="sd">    speed floor, or at the smallest duty the envelope admits</span>
+</span><span data-line="323"><span class="sd">    (``capacity_clamped == &quot;min&quot;``), that delivers more than the</span>
+</span><span data-line="324"><span class="sd">    ``request`` and a degradation model is given: it is then averaged with</span>
+</span><span data-line="325"><span class="sd">    :func:`apply_cycling`. Every other row -- continuous operation, the off</span>
+</span><span data-line="326"><span class="sd">    state, a failed solve, cycling switched off (``cycling=None``) -- is left</span>
+</span><span data-line="327"><span class="sd">    as it is and gets the keys of :func:`continuous_keys` (``Q_min [W]`` is</span>
+</span><span data-line="328"><span class="sd">    the continuous delivery of a row on the speed floor, NaN elsewhere).</span>
+</span><span data-line="329"><span class="sd">    Returns whether the row was averaged; COP columns and sums the caller</span>
+</span><span data-line="330"><span class="sd">    derives from the averaged terms are left to the caller.</span>
+</span><span data-line="331"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="332">    <span class="n">running</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="333">    <span class="n">delivered</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">delivered_key</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)))</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="334">    <span class="n">on_floor</span> <span class="o">=</span> <span class="n">running</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;min&quot;</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">delivered</span><span class="p">)</span>
+</span><span data-line="335">    <span class="n">asked</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+</span><span data-line="336">    <span class="k">if</span> <span class="n">on_floor</span> <span class="ow">and</span> <span class="n">cycling</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">asked</span> <span class="o">&lt;</span> <span class="n">delivered</span><span class="p">:</span>
+</span><span data-line="337">        <span class="n">state</span> <span class="o">=</span> <span class="n">cycling</span><span class="o">.</span><span class="n">state</span><span class="p">(</span><span class="n">asked</span><span class="p">,</span> <span class="n">delivered</span><span class="p">)</span>
+</span><span data-line="338">        <span class="n">apply_cycling</span><span class="p">(</span>
+</span><span data-line="339">            <span class="n">result</span><span class="p">,</span>
+</span><span data-line="340">            <span class="n">state</span><span class="p">,</span>
+</span><span data-line="341">            <span class="n">delivered_key</span><span class="o">=</span><span class="n">delivered_key</span><span class="p">,</span>
+</span><span data-line="342">            <span class="n">rate_keys</span><span class="o">=</span><span class="n">rate_keys</span><span class="p">,</span>
+</span><span data-line="343">            <span class="n">power_keys</span><span class="o">=</span><span class="n">power_keys</span><span class="p">,</span>
+</span><span data-line="344">            <span class="n">delivery_power_keys</span><span class="o">=</span><span class="n">delivery_power_keys</span><span class="p">,</span>
+</span><span data-line="345">            <span class="n">total_power_key</span><span class="o">=</span><span class="n">total_power_key</span><span class="p">,</span>
+</span><span data-line="346">        <span class="p">)</span>
+</span><span data-line="347">        <span class="k">return</span> <span class="kc">True</span>
+</span><span data-line="348">    <span class="n">continuous_keys</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">CONTINUOUS</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="n">OFF</span><span class="p">,</span> <span class="n">delivered</span> <span class="k">if</span> <span class="n">on_floor</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+</span><span data-line="349">    <span class="k">return</span> <span class="kc">False</span></div>
 
-</span><span data-line="349">
 </span><span data-line="350">
+</span><span data-line="351">
 <div class="viewcode-block" id="report_boiler_cycling">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.report_boiler_cycling">[docs]</a>
-</span><span data-line="351"><span class="k">def</span><span class="w"> </span><span class="nf">report_boiler_cycling</span><span class="p">(</span>
-</span><span data-line="352">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="353">    <span class="n">cycling</span><span class="p">:</span> <span class="n">CyclingDegradation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="354">    <span class="n">request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="355">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="356">    <span class="n">rate_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-</span><span data-line="357">    <span class="n">power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-</span><span data-line="358">    <span class="n">source_heat_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="359">    <span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="360"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="361"><span class="w">    </span><span class="sd">&quot;&quot;&quot;:func:`report_cycling` for a boiler&#39;s steady row (heat to the tank, ``Q_ref_tank [W]``).</span>
-</span><span data-line="362">
-</span><span data-line="363"><span class="sd">    An averaged row also gets back what a boiler row derives from the averaged</span>
-</span><span data-line="364"><span class="sd">    terms: both COPs (the heat to the tank over the compressor input and over</span>
-</span><span data-line="365"><span class="sd">    the total input), ``PLR_delivered [-]`` (with ``hp_capacity``), the source</span>
-</span><span data-line="366"><span class="sd">    loop&#39;s net heat ``Q_bhe [W]`` (``source_heat_key`` less the pump power)</span>
-</span><span data-line="367"><span class="sd">    and ``E_cmp_plus_pmp [W]``, each where the row has it.</span>
-</span><span data-line="368"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="369">    <span class="n">averaged</span> <span class="o">=</span> <span class="n">report_cycling</span><span class="p">(</span>
-</span><span data-line="370">        <span class="n">result</span><span class="p">,</span>
-</span><span data-line="371">        <span class="n">cycling</span><span class="p">,</span>
-</span><span data-line="372">        <span class="n">request</span><span class="p">,</span>
-</span><span data-line="373">        <span class="n">delivered_key</span><span class="o">=</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span>
-</span><span data-line="374">        <span class="n">rate_keys</span><span class="o">=</span><span class="n">rate_keys</span><span class="p">,</span>
-</span><span data-line="375">        <span class="n">power_keys</span><span class="o">=</span><span class="n">power_keys</span><span class="p">,</span>
-</span><span data-line="376">    <span class="p">)</span>
-</span><span data-line="377">    <span class="k">if</span> <span class="n">averaged</span><span class="p">:</span>
-</span><span data-line="378">        <span class="n">delivered</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">])</span>
-</span><span data-line="379">        <span class="n">result</span><span class="p">[</span><span class="s2">&quot;cop_ref [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivered</span> <span class="o">/</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span>
-</span><span data-line="380">        <span class="n">result</span><span class="p">[</span><span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivered</span> <span class="o">/</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span>
-</span><span data-line="381">        <span class="k">if</span> <span class="s2">&quot;PLR_delivered [-]&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">hp_capacity</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span data-line="382">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;PLR_delivered [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivered</span> <span class="o">/</span> <span class="n">hp_capacity</span>
-</span><span data-line="383">        <span class="k">if</span> <span class="n">source_heat_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;Q_bhe [W]&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
-</span><span data-line="384">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;Q_bhe [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">source_heat_key</span><span class="p">]</span> <span class="o">-</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span>
-</span><span data-line="385">        <span class="k">if</span> <span class="s2">&quot;E_cmp_plus_pmp [W]&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
-</span><span data-line="386">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_cmp_plus_pmp [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span>
-</span><span data-line="387">    <span class="k">return</span> <span class="n">averaged</span></div>
+</span><span data-line="352"><span class="k">def</span><span class="w"> </span><span class="nf">report_boiler_cycling</span><span class="p">(</span>
+</span><span data-line="353">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="354">    <span class="n">cycling</span><span class="p">:</span> <span class="n">CyclingDegradation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="355">    <span class="n">request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="356">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="357">    <span class="n">rate_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span data-line="358">    <span class="n">power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span data-line="359">    <span class="n">source_heat_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="360">    <span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="361"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="362"><span class="w">    </span><span class="sd">&quot;&quot;&quot;:func:`report_cycling` for a boiler&#39;s steady row (heat to the tank, ``Q_ref_tank [W]``).</span>
+</span><span data-line="363">
+</span><span data-line="364"><span class="sd">    An averaged row also gets back what a boiler row derives from the averaged</span>
+</span><span data-line="365"><span class="sd">    terms: both COPs (the heat to the tank over the compressor input and over</span>
+</span><span data-line="366"><span class="sd">    the total input), ``PLR_delivered [-]`` (with ``hp_capacity``), the source</span>
+</span><span data-line="367"><span class="sd">    loop&#39;s net heat ``Q_bhe [W]`` (``source_heat_key`` less the pump power)</span>
+</span><span data-line="368"><span class="sd">    and ``E_cmp_plus_pmp [W]``, each where the row has it.</span>
+</span><span data-line="369"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="370">    <span class="n">averaged</span> <span class="o">=</span> <span class="n">report_cycling</span><span class="p">(</span>
+</span><span data-line="371">        <span class="n">result</span><span class="p">,</span>
+</span><span data-line="372">        <span class="n">cycling</span><span class="p">,</span>
+</span><span data-line="373">        <span class="n">request</span><span class="p">,</span>
+</span><span data-line="374">        <span class="n">delivered_key</span><span class="o">=</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span>
+</span><span data-line="375">        <span class="n">rate_keys</span><span class="o">=</span><span class="n">rate_keys</span><span class="p">,</span>
+</span><span data-line="376">        <span class="n">power_keys</span><span class="o">=</span><span class="n">power_keys</span><span class="p">,</span>
+</span><span data-line="377">    <span class="p">)</span>
+</span><span data-line="378">    <span class="k">if</span> <span class="n">averaged</span><span class="p">:</span>
+</span><span data-line="379">        <span class="n">delivered</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">])</span>
+</span><span data-line="380">        <span class="n">result</span><span class="p">[</span><span class="s2">&quot;cop_ref [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivered</span> <span class="o">/</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span>
+</span><span data-line="381">        <span class="n">result</span><span class="p">[</span><span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivered</span> <span class="o">/</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span>
+</span><span data-line="382">        <span class="k">if</span> <span class="s2">&quot;PLR_delivered [-]&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">hp_capacity</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="383">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;PLR_delivered [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivered</span> <span class="o">/</span> <span class="n">hp_capacity</span>
+</span><span data-line="384">        <span class="k">if</span> <span class="n">source_heat_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;Q_bhe [W]&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+</span><span data-line="385">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;Q_bhe [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">source_heat_key</span><span class="p">]</span> <span class="o">-</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span>
+</span><span data-line="386">        <span class="k">if</span> <span class="s2">&quot;E_cmp_plus_pmp [W]&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+</span><span data-line="387">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_cmp_plus_pmp [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span>
+</span><span data-line="388">    <span class="k">return</span> <span class="n">averaged</span></div>
 
-</span><span data-line="388">
 </span><span data-line="389">
+</span><span data-line="390">
 <div class="viewcode-block" id="steady_cycling">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.steady_cycling">[docs]</a>
-</span><span data-line="390"><span class="k">def</span><span class="w"> </span><span class="nf">steady_cycling</span><span class="p">(</span><span class="n">duty_arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">_F</span><span class="p">],</span> <span class="n">_F</span><span class="p">]:</span>
-</span><span data-line="391"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorate a boiler&#39;s ``analyze_steady`` with the part-load report.</span>
-</span><span data-line="392">
-</span><span data-line="393"><span class="sd">    The decorated method is solved as before; its result row is then handed</span>
-</span><span data-line="394"><span class="sd">    to the model&#39;s ``_report_part_load(result, request)`` with the caller&#39;s</span>
-</span><span data-line="395"><span class="sd">    ``duty_arg``. It sits outside the envelope&#39;s duty reduction</span>
-</span><span data-line="396"><span class="sd">    (:func:`tmhp.compressor_envelope.steady_envelope`), whose trial solves</span>
-</span><span data-line="397"><span class="sd">    must see the continuous rows.</span>
-</span><span data-line="398"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="399">
-</span><span data-line="400">    <span class="k">def</span><span class="w"> </span><span class="nf">decorate</span><span class="p">(</span><span class="n">function</span><span class="p">:</span> <span class="n">_F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_F</span><span class="p">:</span>
-</span><span data-line="401">        <span class="n">signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
-</span><span data-line="402">
-</span><span data-line="403">        <span class="nd">@wraps</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
-</span><span data-line="404">        <span class="k">def</span><span class="w"> </span><span class="nf">wrapped</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span data-line="405">            <span class="n">bound</span> <span class="o">=</span> <span class="n">signature</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span data-line="406">            <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
-</span><span data-line="407">            <span class="n">want_dict</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;return_dict&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
-</span><span data-line="408">            <span class="k">if</span> <span class="s2">&quot;return_dict&quot;</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">:</span>
-</span><span data-line="409">                <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="s2">&quot;return_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span data-line="410">            <span class="n">result</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">bound</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">bound</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span data-line="411">            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-</span><span data-line="412">                <span class="k">return</span> <span class="n">result</span>
-</span><span data-line="413">            <span class="bp">self</span><span class="o">.</span><span class="n">_report_part_load</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="n">duty_arg</span><span class="p">]))</span>
-</span><span data-line="414">            <span class="k">if</span> <span class="n">want_dict</span><span class="p">:</span>
-</span><span data-line="415">                <span class="k">return</span> <span class="n">result</span>
-</span><span data-line="416">            <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-</span><span data-line="417">
-</span><span data-line="418">            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span>
-</span><span data-line="419">
-</span><span data-line="420">        <span class="c1"># ``analyze_steady.__wrapped__`` stays the undecorated solve (one</span>
-</span><span data-line="421">        <span class="c1"># request, no duty reduction, no averaging), as it is under</span>
-</span><span data-line="422">        <span class="c1"># ``steady_envelope`` alone.</span>
-</span><span data-line="423">        <span class="n">wrapped</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="s2">&quot;__wrapped__&quot;</span><span class="p">,</span> <span class="n">function</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
-</span><span data-line="424">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">_F</span><span class="p">,</span> <span class="n">wrapped</span><span class="p">)</span>
-</span><span data-line="425">
-</span><span data-line="426">    <span class="k">return</span> <span class="n">decorate</span></div>
+</span><span data-line="391"><span class="k">def</span><span class="w"> </span><span class="nf">steady_cycling</span><span class="p">(</span><span class="n">duty_arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">_F</span><span class="p">],</span> <span class="n">_F</span><span class="p">]:</span>
+</span><span data-line="392"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorate a boiler&#39;s ``analyze_steady`` with the part-load report.</span>
+</span><span data-line="393">
+</span><span data-line="394"><span class="sd">    The decorated method is solved as before; its result row is then handed</span>
+</span><span data-line="395"><span class="sd">    to the model&#39;s ``_report_part_load(result, request)`` with the caller&#39;s</span>
+</span><span data-line="396"><span class="sd">    ``duty_arg``. It sits outside the envelope&#39;s duty reduction</span>
+</span><span data-line="397"><span class="sd">    (:func:`tmhp.compressor_envelope.steady_envelope`), whose trial solves</span>
+</span><span data-line="398"><span class="sd">    must see the continuous rows.</span>
+</span><span data-line="399"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="400">
+</span><span data-line="401">    <span class="k">def</span><span class="w"> </span><span class="nf">decorate</span><span class="p">(</span><span class="n">function</span><span class="p">:</span> <span class="n">_F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_F</span><span class="p">:</span>
+</span><span data-line="402">        <span class="n">signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="403">
+</span><span data-line="404">        <span class="nd">@wraps</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="405">        <span class="k">def</span><span class="w"> </span><span class="nf">wrapped</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="406">            <span class="n">bound</span> <span class="o">=</span> <span class="n">signature</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="407">            <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
+</span><span data-line="408">            <span class="n">want_dict</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;return_dict&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+</span><span data-line="409">            <span class="k">if</span> <span class="s2">&quot;return_dict&quot;</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">:</span>
+</span><span data-line="410">                <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="s2">&quot;return_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="411">            <span class="n">result</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">bound</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">bound</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="412">            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span data-line="413">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="414">            <span class="bp">self</span><span class="o">.</span><span class="n">_report_part_load</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="n">duty_arg</span><span class="p">]))</span>
+</span><span data-line="415">            <span class="k">if</span> <span class="n">want_dict</span><span class="p">:</span>
+</span><span data-line="416">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="417">            <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="418">
+</span><span data-line="419">            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span>
+</span><span data-line="420">
+</span><span data-line="421">        <span class="c1"># ``analyze_steady.__wrapped__`` stays the undecorated solve (one</span>
+</span><span data-line="422">        <span class="c1"># request, no duty reduction, no averaging), as it is under</span>
+</span><span data-line="423">        <span class="c1"># ``steady_envelope`` alone.</span>
+</span><span data-line="424">        <span class="n">wrapped</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="s2">&quot;__wrapped__&quot;</span><span class="p">,</span> <span class="n">function</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+</span><span data-line="425">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">_F</span><span class="p">,</span> <span class="n">wrapped</span><span class="p">)</span>
+</span><span data-line="426">
+</span><span data-line="427">    <span class="k">return</span> <span class="n">decorate</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

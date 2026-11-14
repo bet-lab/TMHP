@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-11-14T00:32:01+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -810,7 +810,15 @@ largest duty that runs is returned with <code class="docutils literal notranslat
 <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit (see
 <a class="reference internal" href="../concepts/failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>), <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>. If none runs the off state carries the request’s own
-reason. The limits are not monotone in the duty together: above the duties
+reason – except a request the efficiency floor refuses, which is then tried
+at <em>larger</em> duties (<a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.raise_duty_within_envelope()</span></code></a>:
+5 to 200 % of the nameplate from the bottom, the boundary bisected to
+0.5 %): the fit falls below its floor towards low speed, so the smallest
+duty that runs is the lower end of continuous operation, returned with
+<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code> and averaged over the on/off period like a
+minimum-speed row (<code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is that duty). The search stops, and the
+request keeps its reason, when a larger duty is refused for another limit
+before one runs. The limits are not monotone in the duty together: above the duties
 that run the pressure ratio or the heat exchanger refuses, below them the
 discharge temperature does (at low speed the efficiency falls). So when no
 rung runs, two neighbouring rungs refused for different reasons are

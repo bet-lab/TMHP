@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -322,7 +322,8 @@ condensing temperature would be above the critical point (formerly
 low-speed continuation), is below <code class="docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code> = 0.30 at the
 solved point (ASHP, GSHP: at every candidate). The fit never goes
 below 0.336 inside its data. Not checked for scalar or user
-efficiencies. ASHP does not report it for a request that is only too
+efficiencies. ASHP and the boilers (ASHPB, GSHPB, WSHPB:
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>) do not report it for a request that is only too
 <em>small</em> (the fit falls below the floor towards low speed while a
 larger duty runs): that request is met by on/off cycling at the
 smallest duty the envelope admits (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>).</p></td>

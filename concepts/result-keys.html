@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="analyze_steady returns a flat dict and analyze_dynamic a pandas.DataFrame whose columns are the same keys, one row per time step. This page lists every key the five released families return with th..." />
 
-    <meta property="article:modified_time" content="2026-11-14T10:47:29+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -292,7 +292,7 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_clamped</span></code></p></td>
 <td><p>all</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the request was met (and on an off or failed row); <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when it was below the minimum-speed duty (the row is then the on/off mean, see <em>Request, capacity and part load</em>; ASHP also when it was below the smallest duty the envelope’s efficiency floor admits); <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> when the unit delivers less than asked.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the request was met (and on an off or failed row); <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when it was below the minimum-speed duty (the row is then the on/off mean, see <em>Request, capacity and part load</em>; ASHP and the boilers’ <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> also when it was below the smallest duty the envelope’s efficiency floor admits); <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> when the unit delivers less than asked.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p></td>
 <td><p>all</p></td>
@@ -378,7 +378,7 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
-<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> row, the duty of continuous operation at the minimum speed. NaN otherwise.</p></td>
+<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> row, the duty of continuous operation at the minimum speed (or at the smallest duty the envelope’s efficiency floor admits, where that is larger). NaN otherwise.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_ref_tank_request</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB</p></td>
@@ -413,7 +413,7 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 <td><p>Number of compressor starts inside the step (boiler dynamic steps).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code></p></td>
-<td><p>GSHPB (d), WSHPB (d)</p></td>
+<td><p>ASHPB (d), GSHPB (d), WSHPB (d)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;condensing_limit&quot;</span></code> on a step in which the compressor envelope stopped the run, or kept it at the duty that holds the water around the coil at the envelope stop, while the thermostat called (or a minimum run time held it): the tank temperature at which the nameplate duty would condense above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>. It is a normal end of the run, not a failure (<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> stays <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>); the row’s heat and power are the step means. <code class="docutils literal notranslate"><span class="pre">&quot;boiling_limit&quot;</span></code> when the 100 °C cut-out did so. <code class="docutils literal notranslate"><span class="pre">None</span></code> on every other step.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">E_cycling_loss</span> <span class="pre">[W]</span></code></p></td>
@@ -498,7 +498,7 @@ temperature of the row and can be negative; only their differences are heat rate
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_mix_w_out</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB</p></td>
-<td><p>Enthalpy flow of the mixed water delivered to the tap, from <code class="docutils literal notranslate"><span class="pre">T0</span></code>.</p></td>
+<td><p>Enthalpy flow of the mixed water delivered to the tap, from <code class="docutils literal notranslate"><span class="pre">T0</span></code>; 0 when nothing is drawn.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB (d), GSHPB (d), WSHPB (d)</p></td>
@@ -1013,8 +1013,11 @@ reuses these names for its source-water coil.</p>
 </section>
 <section id="tank-and-hot-water">
 <h2>Tank and hot water<a class="headerlink" href="#tank-and-hot-water" title="Link to this heading">¶</a></h2>
-<p>Boiler families. Flows are step means in a dynamic row; a flow that is zero is reported as NaN by ASHPB and
-as 0 by GSHPB and WSHPB.</p>
+<p>Boiler families. Flows are step means in a dynamic row. A stream that does not flow reports 0 for its flow, its
+enthalpy flow and its exergy flow, and NaN for its temperature (there is no water to have one), in the three
+boilers alike: on a step without a draw <code class="docutils literal notranslate"><span class="pre">dV_mix_w_out</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_mix_w_out</span></code> and <code class="docutils literal notranslate"><span class="pre">X_mix_w_out</span></code> are 0 and
+<code class="docutils literal notranslate"><span class="pre">T_mix_w_out</span></code> is NaN. (ASHPB used to report that heat and exergy as NaN, GSHPB and WSHPB the valve’s set point
+as the temperature.)</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -1043,7 +1046,7 @@ as 0 by GSHPB and WSHPB.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_mix_w_out</span> <span class="pre">[°C]</span></code></p></td>
 <td><p>ASHPB, GSHPB, WSHPB</p></td>
-<td><p>Temperature of the water delivered by the mixing valve; NaN when nothing is drawn (ASHPB).</p></td>
+<td><p>Temperature of the water delivered by the mixing valve; NaN when nothing is drawn.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dV_mix_w_out</span> <span class="pre">[m3/s]</span></code></p></td>
 <td><p>ASHPB, GSHPB, WSHPB</p></td>
@@ -1383,7 +1386,7 @@ without a running cycle carry NaN or 0.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">X_mix_w_out</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB (d), GSHPB (d), WSHPB (d)</p></td>
-<td><p>Flow exergy of the mixed water delivered.</p></td>
+<td><p>Flow exergy of the mixed water delivered; 0 when nothing is drawn.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">X_ou_fan</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, ASHPB (d)</p></td>

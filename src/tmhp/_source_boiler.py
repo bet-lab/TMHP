@@ -61,6 +61,7 @@ from .ground_defaults import (
     default_borefield_layout,
     default_ground_flow_lpm,
 )
+from .operating_limits import OperatingLimitWarning
 from .pump import ASHRAE_PUMP_GRADE_W_PER_TON, WATT_PER_TON, default_ground_pump_power
 
 _Outcome = TypeVar("_Outcome")
@@ -182,7 +183,7 @@ def warn_if_setpoint_unreachable(
     hp_capacity: float,
     UA_tank_hx: float,
 ) -> None:
-    """``UserWarning`` when the upper set point needs a condensing state the refrigerant lacks.
+    """:class:`~tmhp.OperatingLimitWarning` when the upper set point needs a condensing state the refrigerant lacks.
 
     Charging the tank to ``T_tank_w_upper_bound`` at the rated duty condenses at
     ``T_tank_w_upper_bound + hp_capacity / UA_tank_hx``. At or above the
@@ -202,7 +203,7 @@ def warn_if_setpoint_unreachable(
             "(failure_reason='cycle_invalid') and the tank will not reach its set point. Lower "
             "T_tank_w_upper_bound, enlarge UA_tank_hx, or use a refrigerant with a higher critical "
             "temperature (e.g. R134a, R290)",
-            UserWarning,
+            OperatingLimitWarning,
             stacklevel=4,
         )
 

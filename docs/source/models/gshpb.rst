@@ -264,11 +264,12 @@ and ``capacity_binding == "source_fluid_freezing"``, ``Q_max [W]`` being what it
 delivers. When no duty helps -- the liquid already arrives below the limit, or
 it leaves below it even at the compressor's lowest speed -- the compressor does
 not run: the off state with ``failure_reason == "source_fluid_freezing"`` (heat
-and power 0, COP NaN) and a ``RuntimeWarning``. In ``analyze_dynamic`` the
-limit is applied to the liquid while the compressor runs
+and power 0, COP NaN) and a ``tmhp.OperatingLimitWarning`` that names the
+liquid's limit and the temperature it would have run at. In ``analyze_dynamic``
+the limit is applied to the liquid while the compressor runs
 (``T_bhe_f_in_running [°C]``); reduced steps carry ``capacity_binding``, off
-steps the ``failure_reason``, and one ``RuntimeWarning`` per run says that it
-happened.
+steps the ``failure_reason``, and the warning at the end of the run counts both
+(:ref:`operating-limit-warning`).
 
 .. code-block:: python
 
@@ -544,6 +545,14 @@ left the mixing valve below the set point (the tank was colder than it) or
 a level-varying tank cut the draw. ``analyze_dynamic`` warns once
 (``tmhp.dhw.DHWUnmetWarning``) when a run leaves demand unmet; see
 :ref:`hot-water-service` for the run totals.
+
+A step on which the thermostat called but the compressor could not run (an
+off row with a ``failure_reason``), or ran below the nameplate duty
+(``capacity_clamped == "max"``), is not reported while the run goes on.
+``analyze_dynamic`` ends with one ``tmhp.OperatingLimitWarning`` that counts
+such steps by limit and says what they did to the tank, and the same totals
+are in ``df.attrs["operating_limits"]``; ``analyze_steady`` warns once about a
+point that does not run or runs reduced (:ref:`operating-limit-warning`).
 
 A tank whose level varies (``tank_always_full=False`` or
 ``prevent_simultaneous_flow``) follows the rules of the air-source boiler

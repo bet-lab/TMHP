@@ -16,6 +16,7 @@ import pandas as pd
 
 from . import calc_util as cu
 from .constants import c_w, rho_w
+from .operating_limits import OperatingLimitWarning
 
 __all__ = [
     "DHW_REQUEST_KEY",
@@ -48,8 +49,13 @@ last digits; neither is a hot-water shortfall. 0.01 K is 0.04 % of a 25 K lift.
 """
 
 
-class DHWUnmetWarning(UserWarning):
-    """A dynamic run delivered less hot water than its draw schedule asked for."""
+class DHWUnmetWarning(OperatingLimitWarning):
+    """A dynamic run delivered less hot water than its draw schedule asked for.
+
+    A :class:`tmhp.OperatingLimitWarning` (itself a ``UserWarning``): a filter
+    on that class covers this one together with the warnings about a
+    compressor that did not run or ran below the request.
+    """
 
 
 def dhw_service_columns(

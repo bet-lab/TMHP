@@ -7,6 +7,7 @@ import math
 import pandas as pd
 
 from .dhw import DHW_REQUEST_KEY, DHW_UNMET_KEY, summarize_dhw_service
+from .operating_limits import limit_for, summarize_operating_limits
 
 
 def _running(df: pd.DataFrame, column: str, active_mask: pd.Series) -> pd.Series:
@@ -183,12 +184,66 @@ def print_dhw_service_summary(df: pd.DataFrame, simulation_time_step: float) -> 
     print("-" * 50)
 
 
+def print_operating_limit_summary(
+    df: pd.DataFrame, simulation_time_step: float, T_tank_w_lower_bound: float | None = None
+) -> None:
+    """Print what the operating limits did to a dynamic result.
+
+    The steps on which the compressor was called but did not run, by
+    ``failure_reason``, the steps on which it ran below the request, by
+    ``capacity_binding``, and what that left unserved
+    (:func:`tmhp.operating_limits.summarize_operating_limits`), followed by
+    what to do about each limit. Works on the result of any model; prints
+    nothing for a frame without ``failure_reason``.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Simulation result DataFrame.
+    simulation_time_step : float
+        Time step [s].
+    T_tank_w_lower_bound : float | None
+        Lower thermostat set point of a boiler [°C], for the time the tank
+        spent below it. ``None``: not printed.
+    """
+    if "failure_reason" not in df.columns:
+        return
+    s = summarize_operating_limits(df, simulation_time_step, T_tank_w_lower_bound=T_tank_w_lower_bound)
+    steps = s["steps [-]"]
+    print("[Operating Limits]")
+    print(f"  - Called but did not run: {s['off_steps [-]']} / {steps} steps ({s['off_time [h]']:.1f} h)")
+    for reason, entry in s["off_reasons"].items():
+        print(f"      {reason}: {entry['steps [-]']} steps, first at {entry['first_time [s]'] / 3600.0:.2f} h")
+    print(f"  - Ran below the request: {s['limited_steps [-]']} / {steps} steps ({s['limited_time [h]']:.1f} h)")
+    for binding, entry in s["limited_bindings"].items():
+        print(f"      {binding}: {entry['steps [-]']} steps, first at {entry['first_time [s]'] / 3600.0:.2f} h")
+    if s["kind"] == "space":
+        print(
+            f"  - Unmet load: {s['Q_unmet [kWh]']:.2f} kWh of {s['Q_request [kWh]']:.2f} kWh "
+            f"({100.0 * s['unmet_fraction [-]']:.1f}%)"
+        )
+    else:
+        print(f"  - Heat short of the requested duty while limited: {s['Q_below_request [kWh]']:.2f} kWh")
+        line = f"  - Tank minimum: {s['T_tank_w_min [°C]']:.1f} °C"
+        if math.isfinite(s["time_below_lower_setpoint [h]"]):
+            line += f" | Below the lower set point: {s['time_below_lower_setpoint [h]']:.1f} h"
+        print(line)
+    for reason in s["off_reasons"]:
+        print(f"  - {reason}: {limit_for(reason=reason).remedy}")
+    for binding in s["limited_bindings"]:
+        print(f"  - {binding}: {limit_for(binding=binding).remedy}")
+    print("-" * 50)
+
+
 def print_simulation_summary(df: pd.DataFrame, simulation_time_step: int, dV_ou_a_design: float) -> None:
     """Print a comprehensive summary of simulation results.
 
     A boiler result also gets the hot-water service section
     (:func:`print_dhw_service_summary`): requested, delivered and unmet heat
-    and the number of draw steps left short.
+    and the number of draw steps left short. A result with a
+    ``failure_reason`` column gets the operating-limit section
+    (:func:`print_operating_limit_summary`): steps on which the compressor
+    was called but did not run, or ran below the request.
 
     Parameters
     ----------
@@ -218,4 +273,8 @@ def print_simulation_summary(df: pd.DataFrame, simulation_time_step: int, dV_ou_
     if DHW_REQUEST_KEY in df.columns and DHW_UNMET_KEY in df.columns:
         print("-" * 50)
         print_dhw_service_summary(df, simulation_time_step)
+    if "failure_reason" in df.columns:
+        if not (DHW_REQUEST_KEY in df.columns and DHW_UNMET_KEY in df.columns):
+            print("-" * 50)
+        print_operating_limit_summary(df, simulation_time_step)
     print("=" * 50)

@@ -256,6 +256,13 @@ reason where no larger duty runs either.
 ``Q_request [W]`` (signed, as asked) and ``Q_unmet [W]`` are on every row, so a
 schedule's unmet energy is the sum of ``Q_unmet [W]`` times the time step.
 
+A request that is not delivered in full is also said in words:
+``analyze_steady`` issues one ``tmhp.OperatingLimitWarning`` for a point that
+runs at its ceiling or does not run at all (the request, what is delivered,
+the limit and what removes it), and ``analyze_dynamic`` one at the end of a
+run with the steps stopped or limited and the unmet energy; the totals are in
+``df.attrs["operating_limits"]`` (:ref:`operating-limit-warning`).
+
 The ceiling is the unit running **flat out**: the compressor at ``rps_max`` and
 both fans at their largest airflow. A coil carries a duty with the smallest
 temperature difference at its largest airflow, so this is the least lift — the

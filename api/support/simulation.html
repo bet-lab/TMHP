@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-14T09:14:50+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:40:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -667,7 +667,7 @@ a subsystem reads and writes its entry.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">InStepRun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#InStepRun"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">InStepRun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit_stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#InStepRun"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Compressor operation inside one step, resolved at thermostat events.</p>
 <dl class="py attribute">
@@ -775,6 +775,20 @@ be solved), so it did not; the call stands for the next step.</p>
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">limit_stop</span></span></dt>
+<dd><p>The cut-out <code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code> of <code class="xref py py-func docutils literal notranslate"><span class="pre">simulate_thermostat_step()</span></code> stopped
+the compressor, or kept it from starting, while the thermostat (its
+call, or a minimum run time) would have had it run: a protection stop,
+not the thermostat reaching its upper bound.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -787,6 +801,7 @@ be solved), so it did not; the call stands for the next step.</p>
 <li><p><strong>T_on_mean_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>heat_unavailable</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>T_on_first_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>limit_stop</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -835,9 +850,14 @@ be solved), so it did not; the call stands for the next step.</p>
 <span class="sig-name descname"><span class="pre">T_on_first_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">limit_stop</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit_stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -850,6 +870,7 @@ be solved), so it did not; the call stands for the next step.</p>
 <li><p><strong>T_on_mean_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>heat_unavailable</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>T_on_first_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>limit_stop</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -1521,7 +1542,31 @@ limits both flows to what the tank can pass (<code class="xref py py-func docuti
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">resolve_step_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_curr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_free</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve_cycle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#resolve_step_operation"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">in_step_stop_reason</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_limit_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#in_step_stop_reason"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code> of a step: why a cut-out stopped the compressor, <code class="docutils literal notranslate"><span class="pre">None</span></code> if none did.</p>
+<p>A tank cut-out below the boiling point, or a coil cut-out (a finite
+<code class="docutils literal notranslate"><span class="pre">run_limit_s</span></code>), is the envelope stop the boiler passed
+(<code class="xref py py-data docutils literal notranslate"><span class="pre">STOP_CONDENSING_LIMIT</span></code>); otherwise it is the boiling point
+(<code class="xref py py-data docutils literal notranslate"><span class="pre">STOP_BOILING_LIMIT</span></code>). Such a stop is a normal end of the run (no
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>): the heat pump has charged the tank as far as its
+compressor allows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">InStepRun</span></code></span>)</p></li>
+<li><p><strong>T_limit_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>run_limit_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">resolve_step_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_curr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_free</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve_cycle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_limit_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#resolve_step_operation"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Compressor operation in one step and the cycle it ran.</p>
 <p><code class="docutils literal notranslate"><span class="pre">residual_free(T_K)</span></code> is the boiler’s own implicit tank residual built
 with a zero heat-source rate; it supplies the heat the tank gains or
@@ -1551,6 +1596,11 @@ first pass expects, for boilers whose source responds to the
 step-average load. Each step searches its operating point from scratch:
 starting from the previous step’s point would change which candidates
 the search evaluates, and so its optimum.</p>
+<p><code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code> (tank cut-out, default the boiling point), <code class="docutils literal notranslate"><span class="pre">run_limit_s</span></code>
+and <code class="docutils literal notranslate"><span class="pre">Q_hold</span></code> (coil cut-out of a multi-node tank and its holding heat)
+are passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">simulate_thermostat_step()</span></code>: a boiler gives its
+envelope stop, so the compressor stops there inside the step whatever
+its minimum run time.</p>
 <p>Returns the <code class="xref py py-class docutils literal notranslate"><span class="pre">InStepRun</span></code> and the cycle result (<code class="docutils literal notranslate"><span class="pre">None</span></code> if the
 compressor never had to run in this step).</p>
 <p>When the linearised model puts a switching event within round-off of the
@@ -1575,6 +1625,9 @@ result.</p>
 <li><p><strong>Q_request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>min_on_time_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>min_off_time_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_limit_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>run_limit_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_hold</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1607,7 +1660,7 @@ running values. Adds <code class="docutils literal notranslate"><span class="pre
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">simulate_thermostat_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free_heat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#simulate_thermostat_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">simulate_thermostat_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free_heat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_limit_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#simulate_thermostat_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Resolve the on/off thermostat inside one step at its switching events.</p>
 <p>The tank is one fully mixed node, <code class="docutils literal notranslate"><span class="pre">C·dT/dt</span> <span class="pre">=</span> <span class="pre">s(t)·Q_on</span> <span class="pre">+</span> <span class="pre">P(T)</span></code>, where
 <code class="docutils literal notranslate"><span class="pre">s</span></code> is the compressor state and <code class="docutils literal notranslate"><span class="pre">P</span></code> the heat rate from everything else
@@ -1640,10 +1693,40 @@ delays a start the call asks for.</p></li>
 <li><p><strong>min_off_time_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Minimum compressor run and rest times [s]. A minimum run holds the
 compressor past the upper bound (up to <code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code>); a minimum rest
 delays a start the call asks for.</p></li>
-<li><p><strong>T_limit_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Absolute cut-out [°C]; the effective upper bound is
-<code class="docutils literal notranslate"><span class="pre">min(T_upper,</span> <span class="pre">T_limit_C)</span></code>. The constructors refuse bounds above
-100 °C, so the cut-out acts when a minimum run time holds the
-compressor past the upper bound.</p></li>
+<li><p><strong>T_limit_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank cut-out [°C], for a tank whose water is the coil’s: it stops a
+running compressor whatever its minimum run time, and above it the
+compressor does not start. The call is the thermostat’s (<code class="docutils literal notranslate"><span class="pre">T_lower</span></code>,
+<code class="docutils literal notranslate"><span class="pre">T_upper</span></code>); the cut-out does not end it. While the call stands at
+the cut-out the compressor holds the tank there: it runs the share of
+the time that balances the tank’s free heat at <code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code> (cycling
+on its protection, or a variable-speed unit at the duty the limit
+allows) until the call ends or the step does, as one run (one start
+at most). That is the limit of a restart with no differential (start
+as soon as the tank is below the cut-out, stop at it), which the
+fast-cycling limit below would reach after 1000 events; a tank above
+the cut-out cools to it first (an event). The default is the boiling
+point (constructors refuse bounds above 100 °C, so it acts when a
+minimum run time holds the compressor past the upper bound); GSHPB
+and WSHPB pass the tank temperature at which their compressor
+envelope stops them (<a class="reference internal" href="refrigerant-thermo.html#tmhp.compressor_envelope.condensing_tank_cutout" title="tmhp.compressor_envelope.condensing_tank_cutout"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.condensing_tank_cutout()</span></code></a>),
+so the protection stop happens inside the step, not at a step
+boundary.</p></li>
+<li><p><strong>run_limit_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Cut-out of the water around a multi-node tank’s coil, which can be
+hotter than the mean <code class="docutils literal notranslate"><span class="pre">T</span></code> this model follows: after <code class="docutils literal notranslate"><span class="pre">run_limit_s</span></code>
+of running in the step [s] (the time the boiler found the coil’s
+water to reach its envelope stop; 0: already there; <code class="docutils literal notranslate"><span class="pre">inf</span></code>: not in
+this step) the compressor stops, and while the call stands it holds
+that water there by giving <code class="docutils literal notranslate"><span class="pre">Q_hold</span></code> [W] (running <code class="docutils literal notranslate"><span class="pre">Q_hold</span> <span class="pre">/</span> <span class="pre">Q_on</span></code>
+of the time; 0: it stays off for the rest of the step).</p></li>
+<li><p><strong>Q_hold</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Cut-out of the water around a multi-node tank’s coil, which can be
+hotter than the mean <code class="docutils literal notranslate"><span class="pre">T</span></code> this model follows: after <code class="docutils literal notranslate"><span class="pre">run_limit_s</span></code>
+of running in the step [s] (the time the boiler found the coil’s
+water to reach its envelope stop; 0: already there; <code class="docutils literal notranslate"><span class="pre">inf</span></code>: not in
+this step) the compressor stops, and while the call stands it holds
+that water there by giving <code class="docutils literal notranslate"><span class="pre">Q_hold</span></code> [W] (running <code class="docutils literal notranslate"><span class="pre">Q_hold</span> <span class="pre">/</span> <span class="pre">Q_on</span></code>
+of the time; 0: it stays off for the rest of the step).</p></li>
+<li><p><strong>thermostat</strong> (<em>A stop</em><em> or </em><em>a blocked start either cut-out causes while the</em>)</p></li>
+<li><p><strong>limit_stop.</strong> (<em>would have run sets</em>)</p></li>
 <li><p><strong>the</strong> (<em>More than 1000 switching events in one step</em><em> (</em><em>a band too narrow for</em>)</p></li>
 <li><p><strong>limit</strong> (<em>step</em><em>) </em><em>are closed by the fast-cycling</em>)</p></li>
 <li><p><strong>rest</strong> (<em>temperature it reached and the compressor runs the fraction</em><em> of </em><em>the</em>)</p></li>
@@ -1679,6 +1762,19 @@ but had no cycle reports the cycle’s off-mode failure row; otherwise
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">STOP_BOILING_LIMIT</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'boiling_limit'</span></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code> of a step the boiling cut-out stopped inside.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">STOP_CONDENSING_LIMIT</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'condensing_limit'</span></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code> of a step the compressor envelope stopped inside
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">in_step_stop_reason()</span></code>).</p>
 </dd></dl>
 
 <dl class="py data">

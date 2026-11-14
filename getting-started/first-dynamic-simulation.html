@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="For ASHPB, analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest p..." />
 
-    <meta property="article:modified_time" content="2026-11-13T22:57:17+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:40:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -394,11 +394,35 @@ compressors are held to a minimum run and rest time (typically 3–5
 minutes); set <code class="docutils literal notranslate"><span class="pre">min_on_time_s</span></code> / <code class="docutils literal notranslate"><span class="pre">min_off_time_s</span></code> on the boiler to
 apply them. A minimum run holds the compressor past the upper bound, so
 the tank overshoots it by up to <code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">*</span> <span class="pre">min_on_time_s</span> <span class="pre">/</span> <span class="pre">C_tank</span></code>.</p>
+<p>GSHPB and WSHPB also stop the compressor inside the step at their
+<em>envelope stop</em>: the tank temperature at which the nameplate duty would
+condense above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> (<code class="docutils literal notranslate"><span class="pre">T_cond_max</span> <span class="pre">−</span> <span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code>
+at the condensing-limit pressure; 69.9 °C for the default R290 machines).
+The set points are already capped there (see <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>), so
+this matters when a minimum run time would carry the run past it (the
+protection stop outranks the minimum run time: the default R290 machine
+with <code class="docutils literal notranslate"><span class="pre">min_on_time_s=1800</span></code> peaked at 73.1, 75.4 and 77.4 °C with 60,
+300 and 600 s steps and now stops at 69.9 °C with all three), and in a
+<code class="docutils literal notranslate"><span class="pre">&quot;stratified&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;hybrid&quot;</span></code> tank whose coil water is hotter than the
+tank mean the thermostat reads (a coil in the top node): there the stop is
+the run time at the nameplate duty after which the water around the coil
+gets to the envelope stop, found on trial steps of the node model. While
+the thermostat still calls at the stop, the compressor holds the water at
+it (it runs the share of the step that delivers the heat the water loses,
+one start), instead of failing step after step; a lumped tank called at
+its envelope stop is held there against its losses the same way. Such a
+step is a normal stop: <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> stays <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;condensing_limit&quot;</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">hp_on_schedule</span></code> limits when the heat pump may run, as windows
+<code class="docutils literal notranslate"><span class="pre">[(start_h,</span> <span class="pre">end_h),</span> <span class="pre">...]</span></code> of the hour of day (<code class="docutils literal notranslate"><span class="pre">start_h</span> <span class="pre">&lt;=</span> <span class="pre">hour</span> <span class="pre">&lt;</span>
+<span class="pre">end_h</span></code>). <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default) is always; an empty list has no window,
+so the heat pump never runs, as <code class="docutils literal notranslate"><span class="pre">[(0,</span> <span class="pre">0)]</span></code> (GSHPB and WSHPB used to read
+<code class="docutils literal notranslate"><span class="pre">[]</span></code> as always).</p>
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 13, 2026
+  Last updated Nov 14, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

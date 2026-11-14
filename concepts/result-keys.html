@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="analyze_steady returns a flat dict and analyze_dynamic a pandas.DataFrame whose columns are the same keys, one row per time step. This page lists every key the five released families return with th..." />
 
-    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:40:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -412,7 +412,11 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 <td><p>ASHPB (d), GSHPB (d), WSHPB (d)</p></td>
 <td><p>Number of compressor starts inside the step (boiler dynamic steps).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">E_cycling_loss</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code></p></td>
+<td><p>GSHPB (d), WSHPB (d)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;condensing_limit&quot;</span></code> on a step in which the compressor envelope stopped the run, or kept it at the duty that holds the water around the coil at the envelope stop, while the thermostat called (or a minimum run time held it): the tank temperature at which the nameplate duty would condense above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>. It is a normal end of the run, not a failure (<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> stays <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>); the row’s heat and power are the step means. <code class="docutils literal notranslate"><span class="pre">&quot;boiling_limit&quot;</span></code> when the 100 °C cut-out did so. <code class="docutils literal notranslate"><span class="pre">None</span></code> on every other step.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">E_cycling_loss</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
 <td><p>Mean electrical power drawn beyond <code class="docutils literal notranslate"><span class="pre">capacity_ratio</span></code> times the continuous power: the cost of on/off operation. 0 on a row that does not cycle.</p></td>
 </tr>
@@ -701,7 +705,7 @@ temperature of the row and can be negative; only their differences are heat rate
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_cond</span> <span class="pre">[°C]</span></code></p></td>
 <td><p>GSHPB, WSHPB</p></td>
-<td><p>Condensing temperature (bubble point); on an off row the tank temperature.</p></td>
+<td><p>Condensing temperature (bubble point). NaN on an off row (no condensing pressure).</p></td>
 </tr>
 </tbody>
 </table>

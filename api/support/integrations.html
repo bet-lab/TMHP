@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-11-14T09:14:50+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:57:08+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -748,10 +748,16 @@ always belong to the same operating state:</p>
 (continuously running) cycle:</p>
 <ul class="simple">
 <li><p><strong>Minimum-speed clamp.</strong> Below its minimum compressor speed the machine cannot
-deliver the requested part load; it would deliver <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> &gt; request. The
-plugin treats that as on/off cycling: the time-averaged heat equals the load
-request and the electricity is scaled by the same duty fraction (no
-cycling-degradation penalty). <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> documents the
+deliver the requested part load continuously. With the model’s default
+<code class="docutils literal notranslate"><span class="pre">Cd_cycling</span></code> the cycle result is already the on/off mean of the
+minimum-speed machine (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>
+below 1): <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> equals the request and <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> includes the cycling
+loss (<code class="docutils literal notranslate"><span class="pre">E_cycling_loss</span> <span class="pre">[W]</span></code>), so the duty fraction below is 1 and the loss is
+metered. Only a model built with <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> returns the continuous
+minimum-speed point (<code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> &gt; request); the plugin then treats it as
+on/off cycling itself: the time-averaged heat equals the load request and the
+electricity is scaled by the same duty fraction, with no cycling-degradation
+penalty. <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> documents the
 <code class="docutils literal notranslate"><span class="pre">Load</span> <span class="pre">Request</span> <span class="pre">for</span> <span class="pre">Plant</span> <span class="pre">Connection</span> <span class="pre">N</span></code> as the <em>desired operating capacity</em> for
 a connection in a load-meeting mode, and the loop outlet temperature is
 <code class="docutils literal notranslate"><span class="pre">T_in</span> <span class="pre">+</span> <span class="pre">q</span> <span class="pre">/</span> <span class="pre">(m_dot</span> <span class="pre">cp)</span></code>: supplying the clamped <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> instead would
@@ -1005,15 +1011,20 @@ from one hour to <code class="docutils literal notranslate"><span class="pre">1.
 interpolated linearly, and are recomputed when a later time is
 requested, like <a class="reference internal" href="heat-transfer.html#tmhp.g_function.GFunction" title="tmhp.g_function.GFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.g_function.GFunction</span></code></a>.</p>
 <p>The provider is called once per decade of time, never with the whole
-grid. geolink’s groundwater model (<code class="docutils literal notranslate"><span class="pre">MFLSResponse</span></code>) sets its quadrature
-from the time span of one call (bet-lab/geolink#581): asked for the four
-to six decades of a table at once, its field response is up to 4e-5
-m.K/W off for a 2 x 2 field and 2.5e-3 m.K/W (0.7 %) for a 10 x 10 field
-at a Darcy velocity of 1e-6 m/s; with decade calls 2e-5 and 1.3e-4
-(150 m boreholes, 6 m spacing, against the same integral on a grid 500
-times finer). The table then takes five to seven calls instead of one,
-0.7 s -&gt; 4 s for the 10 x 10 field. Conduction-only responses are the
-same either way to round-off.</p>
+grid. Until the fix of bet-lab/geolink#581, geolink’s groundwater model
+(<code class="docutils literal notranslate"><span class="pre">MFLSResponse</span></code>) set its quadrature from the time span of one call:
+asked for the four to six decades of a table at once, its field response
+is up to 4e-5 m.K/W off for a 2 x 2 field and 2.5e-3 m.K/W (0.7 %) for a
+10 x 10 field at a Darcy velocity of 1e-6 m/s; with decade calls 2e-5
+and 1.3e-4 (150 m boreholes, 6 m spacing, against the same integral on a
+grid 500 times finer). The table then takes five to seven calls instead
+of one, 0.7 s -&gt; 4 s for the 10 x 10 field. Conduction-only responses
+are the same either way to round-off.</p>
+<p>With the fix (bet-lab/geolink#583, checked on its branch at <code class="docutils literal notranslate"><span class="pre">69bbbf1d</span></code>,
+2026-11-14) the same fields are within 2e-10 m.K/W of that reference
+however the times are grouped, a table of the 10 x 10 field takes 0.14 s,
+and the split changes the values by 2e-11 at most. It is kept for
+earlier geolink versions and for other providers.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

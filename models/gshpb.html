@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and a DHW tank sink. Overview: solves the closed refrigerant cycle against a borehole he..." />
 
-    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T09:40:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -174,6 +174,8 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_DRAW_TOL_K"><code class="docutils literal notranslate"><span class="pre">NODAL_DRAW_TOL_K</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_END_CONDUCTANCE"><code class="docutils literal notranslate"><span class="pre">NODAL_END_CONDUCTANCE</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_MIN_RUN_SHARE"><code class="docutils literal notranslate"><span class="pre">NODAL_MIN_RUN_SHARE</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.ENVELOPE_STOP_TOL_K"><code class="docutils literal notranslate"><span class="pre">ENVELOPE_STOP_TOL_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.ENVELOPE_STOP_TIME_TOL_S"><code class="docutils literal notranslate"><span class="pre">ENVELOPE_STOP_TIME_TOL_S</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.cycling"><code class="docutils literal notranslate">cycling</span></code></a></li>
@@ -884,6 +886,23 @@ one-node <code class="docutils literal notranslate"><span class="pre">&quot;stra
 (a coil in the top node only), the compressor stops when that water
 reaches <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>: the row’s <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span></code>, heat and power are cut
 to what was delivered and the thermostat call stands.</p></li>
+<li><p>The water around the coil can reach the envelope stop (the tank
+temperature at which the nameplate duty condenses on <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>,
+above) while the mean the thermostat reads is still below the set point.
+The in-step thermostat stops the compressor when the coil’s condensing
+level reaches the limit: after the run time at the nameplate duty that
+trial steps of the node model give for it (not at a mean temperature: with
+a large draw the coil’s water warms while the mean falls). While the call
+stands it then holds the coil’s water there: it runs the share of the rest
+of the step that delivers the heat the water loses (to the draw, the nodes
+below, the wall). The row is a normal
+one (<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;none&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span> <span class="pre">==</span>
+<span class="pre">&quot;condensing_limit&quot;</span></code>), and the condensing temperature never needs to go
+above the limit. Before, each such step was an off row with
+<code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code> and two or three cycle solves, and the
+results depended on the step (a top coil, R290, 6 h: 353 of 360 steps at
+60 s, 30 of 36 at 600 s); the heat delivered now agrees from 60 s to 600 s
+steps (0.2738 kWh in that run).</p></li>
 </ul>
 <p>The thermostat reads the volume-average temperature <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>, so
 on/off timing and delivered heat follow the lumped tank; with a coil that
@@ -1266,6 +1285,21 @@ approach is at least half the nominal <code class="docutils literal notranslate"
 <span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">NODAL_MIN_RUN_SHARE</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-06</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.NODAL_MIN_RUN_SHARE" title="Link to this definition">¶</a></dt>
 <dd><p>Share of the step’s condenser heat below which a multi-node tank that could
 not take it counts as having taken none (the compressor did not run).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.ENVELOPE_STOP_TOL_K">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">ENVELOPE_STOP_TOL_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.ENVELOPE_STOP_TOL_K" title="Link to this definition">¶</a></dt>
+<dd><p>A multi-node tank’s coil water counts as at its envelope stop when its
+condensing level is within this of the limit [K]
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler._envelope_stop()</span></code>).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.ENVELOPE_STOP_TIME_TOL_S">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">ENVELOPE_STOP_TIME_TOL_S</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.ENVELOPE_STOP_TIME_TOL_S" title="Link to this definition">¶</a></dt>
+<dd><p>Run time [s] to which the trial tank steps resolve when the water around a
+multi-node tank’s coil reaches the envelope stop (0.1 s at 8 kW is 0.8 kJ).</p>
 </dd></dl>
 
 <dl class="py class">

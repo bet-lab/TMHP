@@ -208,12 +208,13 @@ def test_borehole_wall_rating_no_longer_collapses_with_the_capacity():
 
 
 def test_supplied_values_are_used_as_given():
-    # A water loop: nine boreholes on 16 kW keep it turbulent (Re 5200). The
-    # default glycol would be laminar there (Re 1564) and the constructor would say so.
+    # A water loop: nine boreholes on 16 kW keep it turbulent (Re 2900 with water
+    # at its 0 °C design viscosity; 5200 at 20 °C). The default glycol would be
+    # laminar there (Re 1564) and the constructor would say so.
     model = build(hp_capacity=16000.0, N_1=3, N_2=3, source_fluid="water")
     assert (model.N_1, model.N_2, model.n_boreholes, model.H_b) == (3, 3, 9, 100.0)
     assert model.ground_flow_ref_lpm == pytest.approx(4 * 14.33, abs=0.05)  # flow still follows the capacity
-    assert model.Re_bhe_ref == pytest.approx(5200.0, rel=0.01)
+    assert model.Re_bhe_ref == pytest.approx(2900.0, rel=0.01)
     with pytest.warns(UserWarning, match=r"laminar at the reference flow: Re = 1564 "):
         GroundSourceHeatPump(**SHORT, hp_capacity=16000.0, N_1=3, N_2=3)
     # Any one of N_1, N_2, H_b fixes the field: the others take 1, 1, 100 m.
@@ -239,20 +240,21 @@ def test_legacy_flow_alias_keeps_its_place_and_its_warning():
 
 
 def test_laminar_loop_is_reported_at_construction():
-    # The former default: 20.04 L/min of water shared by nine boreholes.
-    with pytest.warns(UserWarning, match=r"laminar at the reference flow: Re = 1817 .*9 parallel borehole"):
+    # The former default: 20.04 L/min of water shared by nine boreholes (Re 1817
+    # with water at 20 °C, 1014 at the 0 °C design viscosity).
+    with pytest.warns(UserWarning, match=r"laminar at the reference flow: Re = 1014 .*9 parallel borehole"):
         model = GroundSourceHeatPump(
             **SHORT, hp_capacity=16000.0, N_1=3, N_2=3, ground_flow_ref_lpm=20.04, source_fluid="water"
         )
-    assert model.Re_bhe_ref == pytest.approx(1817.0, abs=1.0)
+    assert model.Re_bhe_ref == pytest.approx(1014.0, abs=1.0)
     with pytest.warns(UserWarning, match="laminar at the constant setpoint flow"):
         GroundSourceHeatPump(**SHORT, ground_flow_constant_lpm=2.5, ground_flow_min_lpm=2.0)
 
 
 def test_small_machine_on_the_default_glycol_reports_its_laminar_loop():
-    # 25 % ethylene glycol at 0 °C is 3.7 times as viscous as water: the
+    # 25 % ethylene glycol at 0 °C is 2.1 times as viscous as water at 0 °C: the
     # default 3 K flow of a 2 kW machine (7.7 L/min in one 26 mm U-tube) is
-    # laminar, where water at 7.2 L/min is not.
+    # laminar (Re 1760), where water at 7.2 L/min is not (Re 3260).
     with pytest.warns(UserWarning, match=r"laminar at the reference flow: Re = 17\d\d "):
         small = GroundSourceHeatPump(**SHORT, hp_capacity=2000.0)
     assert small.Re_bhe_ref < 2300 < build(hp_capacity=2000.0, source_fluid="water").Re_bhe_ref
@@ -360,5 +362,6 @@ def test_ground_closure_at_the_pressure_ratio_floor_closes_every_candidate():
     assert set(statuses) <= {"equality", "slack_floor", "slack_bound"}
     assert cycles[0] < 100
     # The operating point itself is unchanged (370.9 W with a water loop; the
-    # default glycol's slightly larger borehole resistance adds 0.8 W).
-    assert row["E_tot [W]"] == pytest.approx(371.7, rel=2e-3)
+    # default glycol's slightly larger borehole resistance adds 0.8 W; the 27 °C
+    # room air, 3.9 % lighter than standard air, another 0.9 W, #96).
+    assert row["E_tot [W]"] == pytest.approx(372.6, rel=2e-3)

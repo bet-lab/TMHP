@@ -274,6 +274,24 @@ def solve_compressor_speed(
         except ValueError:
             return -math.inf
 
+    def bracketed(left: float, f_left: float, right: float, f_right: float) -> Callable[[float], float]:
+        """``residual`` that answers its two bracket ends from the values in hand.
+
+        ``brentq`` evaluates both ends of its bracket first; the residual at
+        each is the number already computed above, so it is not computed again.
+        Interior points still go to ``residual`` itself, and an error it raises
+        there still reaches the caller.
+        """
+
+        def known(rps: float) -> float:
+            if rps == left:
+                return f_left
+            if rps == right:
+                return f_right
+            return residual(rps)
+
+        return known
+
     low = value(rps_min)
     if not math.isfinite(low):
         return rps_min, False, None
@@ -284,7 +302,7 @@ def solve_compressor_speed(
     high = value(rps_max)
     if math.isfinite(high) and high >= 0:
         try:
-            return brentq(residual, rps_min, rps_max), True, None
+            return brentq(bracketed(rps_min, low, rps_max, high), rps_min, rps_max), True, None
         except ValueError:
             bound = rps_min if abs(low) < abs(high) else rps_max
             return bound, False, None
@@ -292,7 +310,9 @@ def solve_compressor_speed(
     # become invalid at high N; the guarded defaults are held above 72.5 rev/s.
     # Locate the maximum and solve its rising branch, as in the source study.
     peak = minimize_scalar(lambda rps: -value(rps), bounds=(rps_min, rps_max), method="bounded")
-    n_peak, f_peak = float(peak.x), value(peak.x)
+    # ``peak.fun`` is the objective at ``peak.x`` -- minus the residual there --
+    # so the residual at the peak is already known.
+    n_peak, f_peak = float(peak.x), -float(peak.fun)
     if not math.isfinite(f_peak):
         return rps_min, False, None
     if f_peak < 0:
@@ -300,4 +320,4 @@ def solve_compressor_speed(
         if math.isfinite(high) and rps_max - n_peak < 1e-4 and high >= f_peak:
             return rps_max, True, CAPACITY_CLAMPED_MAX
         return n_peak, True, CAPACITY_CLAMPED_MAX
-    return brentq(residual, rps_min, n_peak), True, None
+    return brentq(bracketed(rps_min, low, n_peak, f_peak), rps_min, n_peak), True, None

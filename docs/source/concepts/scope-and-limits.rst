@@ -42,9 +42,10 @@ named in ``capacity_binding``.
       - What happens
       - Read more
     * - Transcritical cycles (R744 at heating temperatures)
-      - Construction fails: ``ReferenceStateError``
-        (``reference_capacity_inconsistent``), naming the condensing
-        temperature and the critical temperature
+      - Construction fails. A water heater: ``ValueError``, the critical
+        temperature is not above the delivery set point. The other families:
+        ``ReferenceStateError`` (``reference_capacity_inconsistent``), naming
+        the condensing temperature and the critical temperature
       - :doc:`refrigerant-and-coolprop`
     * - User-defined ``HEOS::`` mixtures
       - Not supported. The constructor raises ``ValueError`` (the default
@@ -157,13 +158,12 @@ Air side
       - What it means
       - How it shows
     * - Dry air at one standard atmosphere
-      - ASHP (both coils) and ASHPB take the density of the air a coil draws
-        in — outdoor air at ``T0``, room air at ``T_a_room`` — as dry
-        ideal-gas air at 101 325 Pa
-        (:func:`tmhp.air_properties.air_density`). The specific heat is
-        constant (1005 J/(kg K)); humidity and altitude are left out, and fan
-        power does not follow the density. The indoor coil of GSHP keeps
-        15 °C standard air (1.225 kg/m³)
+      - Every air coil (ASHP both coils, ASHPB, the GSHP indoor coil, also in
+        the empirical GSHP) takes the density of the air it draws in —
+        outdoor air at ``T0``, room air at ``T_a_room`` — as dry ideal-gas air
+        at 101 325 Pa (:func:`tmhp.air_properties.air_density`). The specific
+        heat is constant (1005 J/(kg K)); humidity and altitude are left out,
+        and fan power does not follow the density
       - Not flagged. ``dV_ou_a [m3/s]`` and ``dV_iu_a [m3/s]`` are volumes at
         the coil inlet; at 1 600 m the real density is 18 % lower
         (:ref:`ashp-air-density`)
@@ -276,8 +276,7 @@ A short checklist for any result
    ok = (df["failure_reason"] == "none") & df["converged"]   # an operating point (or a legitimate off row)
    averaged = df["runtime_fraction [-]"] < 1                 # a time average, not a continuous point
 
-Then, where they exist: ``capacity_clamped == "max"`` (in a boiler's dynamic
-frame, a ``capacity_binding`` column) for a row that delivered less than
+Then, where they exist: ``capacity_clamped == "max"`` for a row that delivered less than
 asked, ``Q_unmet [W]`` or ``Q_dhw_unmet [W]`` for demand
 that was not served, ``efficiency_extrapolated`` and ``discharge_control`` for
 points at the edge of the compressor data. Warnings raised during a run (``UserWarning`` at

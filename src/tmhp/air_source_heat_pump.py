@@ -86,6 +86,7 @@ from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
 from .hx_fan import INDOOR_AIRFLOW_PER_W, SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
+    _props,
     calc_ref_state,
     calc_ref_state_without_discharge,
     props_si,
@@ -302,6 +303,178 @@ class _NarrowFanSearch:
         key = min(self.rows, key=lambda k: self.rows[k][0])
         value, perf, _ = self.rows[key]
         return value, self.approaches(*key), perf
+
+
+class _NotARow(Exception):
+    """A steady result that :func:`_exergy_row` leaves to the frame form of the post-processing."""
+
+
+def _boxed(value: Any) -> Any:
+    """A cell of a one-row frame as ``DataFrame.iloc[0].to_dict()`` hands it back.
+
+    Only the types a steady result holds are decided here; any other goes
+    through the frame.
+    """
+    kind = type(value)
+    if value is None or kind in (float, str, bool, int):
+        return value
+    if kind is np.float64:
+        return float(value)
+    if kind is np.bool_:
+        return bool(value)
+    if kind is np.int64:
+        return int(value)
+    raise _NotARow(kind)
+
+
+def _exergy_row(result: dict, ref: str) -> dict:
+    """The exergy variables of one steady result: ``AirSourceHeatPump.postprocess_exergy`` on scalars.
+
+    Every line is the corresponding line of ``postprocess_exergy`` and of the
+    helpers it calls (``calc_refrigerant_exergy``, ``convert_electricity_to_exergy``,
+    ``calc_exergy_flow``), with the operations in the same order, so a one-row
+    frame and this give the same bits. Arithmetic is on ``np.float64``: a zero
+    divisor gives ``inf``/``nan`` as in a frame, not ``ZeroDivisionError``.
+    Raises :class:`_NotARow` where the frame would not behave as written
+    (a number held as anything but a float, a string where a frame holds a
+    number); a missing key raises ``KeyError`` where the frame does.
+    """
+    row = {key: _boxed(value) for key, value in result.items()}
+    if "T0 [°C]" not in row or "h_ref_cmp_in [J/kg]" not in row:
+        raise _NotARow("no refrigerant state: the frame returns the row unchanged")
+
+    def num(key: str) -> np.float64:
+        value = row[key]
+        if type(value) is not float and type(value) is not np.float64:
+            raise _NotARow(key)
+        return np.float64(value)
+
+    def filled(key: str) -> np.float64:
+        """``fillna(0)`` of a number column."""
+        value = num(key)
+        return np.float64(0.0) if value != value else value
+
+    def divided(numerator: np.float64, denominator: np.float64) -> np.float64:
+        """``numerator / denominator.replace(0, nan)``."""
+        return numerator / (np.float64(np.nan) if denominator == 0 else denominator)
+
+    def exergy_flow(G: np.float64, T: np.float64, T0: np.float64) -> np.float64:
+        """``calc_exergy_flow`` on a one-row series: zero where a temperature is not positive."""
+        invalid = T <= 0 or T0 <= 0
+        T_safe = np.float64(1.0) if T <= 0 else T
+        T0_safe = np.float64(1.0) if T0 <= 0 else T0
+        # np.log of a one-element array: the loop a frame's column goes through.
+        log = np.log(np.array([T_safe / T0_safe]))[0]
+        return np.float64(0.0) if invalid else G * ((T_safe - T0_safe) - T0_safe * log)
+
+    with np.errstate(all="ignore"):
+        T0_K = cu.C2K(num("T0 [°C]"))
+
+        # ── 1. Refrigerant exergy ────────────────────────
+        h0 = s0 = np.float64(np.nan)
+        if T0_K == T0_K:
+            try:
+                h0, s0 = (np.float64(v) for v in _props("HS", "T", float(T0_K), "P", 101325, ref))
+            except Exception:
+                h0 = s0 = np.float64(np.nan)
+        m_dot = num("m_dot_ref [kg/s]") if "m_dot_ref [kg/s]" in row else np.float64(np.nan)
+        for name in ("cmp_in", "cmp_out", "exp_in", "exp_out"):
+            h_key, s_key = f"h_ref_{name} [J/kg]", f"s_ref_{name} [J/(kg·K)]"
+            if h_key not in row or s_key not in row:
+                continue
+            x_val = (num(h_key) - h0) - T0_K * (num(s_key) - s0)
+            row[f"x_ref_{name} [J/kg]"] = x_val
+            row[f"X_ref_{name} [W]"] = m_dot * x_val
+
+        # ── 2. Electricity = exergy ─────────────────────
+        for key in list(row):
+            if key.startswith("E_") and key.endswith(" [W]"):
+                row["X_" + key[2:]] = row[key]
+        if "E_iu_fan [W]" in row:
+            row["X_iu_fan [W]"] = row["E_iu_fan [W]"]
+
+        # ── 3. Air exergy (outdoor unit, indoor unit) ───
+        for side in ("ou", "iu"):
+            if f"dV_{side}_a [m3/s]" in row and f"T_{side}_a_in [°C]" in row:
+                T_in_C = num(f"T_{side}_a_in [°C]")
+                G = air_heat_capacity_rate(np.array([filled(f"dV_{side}_a [m3/s]")]), np.array([T_in_C]))[0]
+                T_in, T_mid = cu.C2K(T_in_C), cu.C2K(num(f"T_{side}_a_mid [°C]"))
+                T_out = cu.C2K(num(f"T_{side}_a_out [°C]")) if f"T_{side}_a_out [°C]" in row else T_in
+                row[f"X_a_{side}_in [W]"] = exergy_flow(G, T_in, T0_K)
+                row[f"X_a_{side}_out [W]"] = exergy_flow(G, T_out, T0_K)
+                row[f"X_a_{side}_mid [W]"] = exergy_flow(G, T_mid, T0_K)
+
+        # ── 4. HX Carnot exergy (mode-aware IU/OU) ─────
+        mode = row.get("mode")
+        if mode is not None and type(mode) is not str:
+            raise _NotARow("mode")
+        if "T_ref_cond_sat_v [°C]" in row and "T_ref_evap_sat [°C]" in row and "mode" in row:
+            heating = mode == "heating"
+            cond, evap = num("T_ref_cond_sat_v [°C]"), num("T_ref_evap_sat [°C]")
+            T_iu_sat_K = cu.C2K(cond if heating else evap)
+            T_ou_sat_K = cu.C2K(evap if heating else cond)
+            row["X_ref_iu [W]"] = num("Q_ref_iu [W]") * (1 - T0_K / T_iu_sat_K)
+            row["X_ref_ou [W]"] = num("Q_ref_ou [W]") * (1 - T0_K / T_ou_sat_K)
+
+        # ── 5. Total exergy input ───────────────────────
+        X_tot = num("E_cmp [W]") + filled("E_ou_fan [W]") + filled("E_iu_fan [W]")
+        row["X_tot [W]"] = X_tot
+
+        # ── 6. Component exergy destruction (IU/OU naming) ──
+        def air(key: str) -> np.float64:
+            return filled(key) if key in row else np.float64(0.0)
+
+        X_a_ou_in, X_a_ou_mid, X_a_ou_out = air("X_a_ou_in [W]"), air("X_a_ou_mid [W]"), air("X_a_ou_out [W]")
+        X_a_iu_in, X_a_iu_mid, X_a_iu_out = air("X_a_iu_in [W]"), air("X_a_iu_mid [W]"), air("X_a_iu_out [W]")
+
+        if "X_cmp [W]" not in row:
+            return {key: _boxed(value) for key, value in row.items()}
+
+        heating, cooling = row["mode"] == "heating", row["mode"] == "cooling"
+        X_ref_cmp_in, X_ref_cmp_out = num("X_ref_cmp_in [W]"), num("X_ref_cmp_out [W]")
+        X_ref_exp_in, X_ref_exp_out = num("X_ref_exp_in [W]"), num("X_ref_exp_out [W]")
+
+        # ── 6a. Compressor ──
+        row["X_in_cmp [W]"] = X_in_cmp = num("X_cmp [W]") + X_ref_cmp_in
+        row["X_out_cmp [W]"] = X_ref_cmp_out
+        row["Xc_cmp [W]"] = Xc_cmp = X_in_cmp - X_ref_cmp_out
+
+        # ── 6b. Expansion valve ──
+        row["X_in_exp [W]"] = X_ref_exp_in
+        row["X_out_exp [W]"] = X_ref_exp_out
+        row["Xc_exp [W]"] = Xc_exp = X_ref_exp_in - X_ref_exp_out
+
+        # ── 6c / 6d. Indoor and outdoor unit HX (a mode that is neither leaves zeros) ──
+        X_in_iu = X_out_iu = X_in_ou = X_out_ou = np.float64(0.0)
+        if heating:
+            X_in_iu, X_out_iu = X_ref_cmp_out + X_a_iu_in, X_ref_exp_in + X_a_iu_mid
+            X_in_ou, X_out_ou = X_ref_exp_out + X_a_ou_in, X_ref_cmp_in + X_a_ou_mid
+        elif cooling:
+            X_in_iu, X_out_iu = X_ref_exp_out + X_a_iu_in, X_ref_cmp_in + X_a_iu_mid
+            X_in_ou, X_out_ou = X_ref_cmp_out + X_a_ou_in, X_ref_exp_in + X_a_ou_mid
+        row["X_in_iu_hx [W]"], row["X_out_iu_hx [W]"] = X_in_iu, X_out_iu
+        row["Xc_iu_hx [W]"] = Xc_iu_hx = X_in_iu - X_out_iu
+        row["X_in_ou_hx [W]"], row["X_out_ou_hx [W]"] = X_in_ou, X_out_ou
+        row["Xc_ou_hx [W]"] = Xc_ou_hx = X_in_ou - X_out_ou
+
+        # ── 6e / 6f. Outdoor and indoor fan ──
+        X_in_ou_fan = filled("X_ou_fan [W]") + X_a_ou_mid
+        row["X_in_ou_fan [W]"], row["X_out_ou_fan [W]"] = X_in_ou_fan, X_a_ou_out
+        row["Xc_ou_fan [W]"] = Xc_ou_fan = X_in_ou_fan - X_a_ou_out
+        X_in_iu_fan = filled("X_iu_fan [W]") + X_a_iu_mid
+        row["X_in_iu_fan [W]"], row["X_out_iu_fan [W]"] = X_in_iu_fan, X_a_iu_out
+        row["Xc_iu_fan [W]"] = Xc_iu_fan = X_in_iu_fan - X_a_iu_out
+
+        # ── 7. Exergetic efficiency metrics ─────────────
+        row["X_eff_sys [-]"] = divided(X_a_iu_out - X_a_iu_in, X_tot)
+        row["X_eff_cmp [-]"] = 1 - divided(Xc_cmp, X_in_cmp)
+        row["X_eff_exp [-]"] = 1 - divided(Xc_exp, X_ref_exp_in)
+        row["X_eff_iu_hx [-]"] = 1 - divided(Xc_iu_hx, X_in_iu)
+        row["X_eff_ou_hx [-]"] = 1 - divided(Xc_ou_hx, X_in_ou)
+        row["X_eff_ou_fan [-]"] = 1 - divided(Xc_ou_fan, X_in_ou_fan)
+        row["X_eff_iu_fan [-]"] = 1 - divided(Xc_iu_fan, X_in_iu_fan)
+
+    return {key: _boxed(value) for key, value in row.items()}
 
 
 class AirSourceHeatPump(ReferenceStateMixin):
@@ -1631,7 +1804,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
 
         if postprocess:
-            result = self.postprocess_exergy(pd.DataFrame([result])).iloc[0].to_dict()
+            result = self._exergy_of_row(result)
         return result
 
     # =============================================================
@@ -2458,9 +2631,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             self._write_frost_free(result, frost)
 
         if postprocess and result:
-            df_temp = pd.DataFrame([result])
-            df_temp = self.postprocess_exergy(df_temp)
-            result = df_temp.iloc[0].to_dict()
+            result = self._exergy_of_row(result)
 
         if return_dict:
             return result
@@ -2570,6 +2741,24 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # =============================================================
     # Exergy post-processing
     # =============================================================
+
+    def _exergy_of_row(self, result: dict) -> dict:
+        """``result`` with its exergy variables, as :meth:`postprocess_exergy` gives them for a one-row frame.
+
+        A steady point is one row, and filling some fifty columns of a
+        one-row frame one assignment at a time costs more than the cycle
+        solve's last step. The row is computed here from the same formulas on
+        scalars (:func:`_exergy_row`); the keys, their order, the types and the
+        values are those of ``postprocess_exergy(pd.DataFrame([result])).iloc[0].to_dict()``,
+        to the last bit. A row that is not of the usual shape -- a value of a
+        type a frame would treat differently, a missing column the frame
+        would raise on or skip the exergy for -- goes through the frame.
+        """
+        try:
+            return _exergy_row(result, self.ref)
+        except (_NotARow, KeyError):
+            processed: dict = self.postprocess_exergy(pd.DataFrame([result])).iloc[0].to_dict()
+            return processed
 
     def postprocess_exergy(self, df: pd.DataFrame) -> pd.DataFrame:
         """Compute ASHP-specific exergy variables.

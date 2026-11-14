@@ -53,6 +53,10 @@ def make_model() -> AirSourceHeatPumpBoiler:
         T_cond_max=None,
         PR_cycle_max=20.0,
         rps_max=150.0,
+        # The frost-free cycle, as recorded in the goldens (before 2026-11-14):
+        # both schedules run below 5 degC, where the default now averages the
+        # running cycle over frost and defrost (tests/test_ashpb_defrost.py).
+        defrost=False,
     )
 
 

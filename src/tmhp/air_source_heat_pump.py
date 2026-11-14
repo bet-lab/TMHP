@@ -1704,11 +1704,43 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # Frost on the outdoor coil and its defrost
     # =============================================================
 
-    def _frost_state(self, Q_r_iu: float, T0: float, RH_out: float | None) -> FrostState:
-        """Frost correction for this request (:data:`~tmhp.defrost.NO_FROST` outside heating)."""
+    def _frost_state(self, Q_r_iu: float, T0: float, RH_out: float | None, *, full_load: bool = False) -> FrostState:
+        """Frost correction for this request (:data:`~tmhp.defrost.NO_FROST` outside heating).
+
+        With a load-weighted frost model the coil is estimated at the load
+        ratio of the request (:meth:`~tmhp.defrost.DefrostModel.frost_state_at_duty`);
+        ``full_load`` asks for the rated-load state instead (the capacity
+        ceiling, where ``Q_r_iu`` only carries the mode). Without load
+        weighting both are ``frost_state(T0, RH_out)``.
+        """
         if self.defrost is None or not Q_r_iu < 0:
             return NO_FROST
-        return self.defrost.frost_state(T0, RH_out)
+        if full_load:
+            return self.defrost.frost_state(T0, RH_out)
+        return self.defrost.frost_state_at_duty(T0, RH_out, abs(Q_r_iu), self.hp_capacity)
+
+    def _frost_state_of_running(self, result: dict, frost: FrostState, T0: float) -> FrostState:
+        """Frost state of the machine a frost-free row runs, given the state of its request.
+
+        The same state, unless the frost model is load-weighted and the row
+        sits on the compressor's speed floor: the machine then runs at
+        ``Q_min [W]``, more than the duty the load ratio was taken from, and
+        the coil is loaded by what the running machine absorbs. A request too
+        small to frost by its own ratio is frosted there if ``Q_min`` is.
+        """
+        model = self.defrost
+        running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+        if model is None or not model.load_weighted or not running:
+            return frost
+        if result.get("capacity_clamped") != CAPACITY_CLAMPED_MIN:
+            return frost
+        q_min = abs(float(result.get(MIN_CAPACITY_KEY, math.nan)))
+        if not (math.isfinite(q_min) and q_min > 0.0):
+            return frost
+        ratio = model.load_ratio(q_min, self.hp_capacity, T0)
+        if ratio <= frost.load_ratio:
+            return frost
+        return model.frost_state(T0, frost.RH_out, load_ratio=ratio)
 
     def _write_frost_free(self, result: dict, frost: FrostState) -> None:
         """Frost keys of a row the correction left alone (in place)."""
@@ -1782,6 +1814,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return solved
 
         result = frost_free(gross)
+        # On its speed floor the machine runs at Q_min, more than the duty the
+        # load ratio was taken from (`_frost_state_of_running`): the frost is
+        # that of Q_min, and the row is solved again with it.
+        on_floor = self._frost_state_of_running(result, frost, T0)
+        if on_floor is not frost:
+            frost = on_floor
+            q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
+            gross = model.gross_duty(frost, Q_r_iu, q_defrost)
+            result = frost_free(gross)
         request = abs(float(Q_r_iu))
         running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
 
@@ -2289,7 +2330,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "Q_max_frost_free [W]": lo_q,
             "defrost_fraction [-]": 0.0,
         }
-        frost = self._frost_state(sign, T0, RH_out)
+        frost = self._frost_state(sign, T0, RH_out, full_load=True)
         if frost.active:
             # The ceiling analyze_steady delivers: the mean over frosting and defrost.
             mean = dict(lo_perf)
@@ -2766,6 +2807,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         if result:
             self._report_part_load(result, Q_r_iu)
+            # A request the frost model finds too small to frost may be met by
+            # a machine that does: on its speed floor the unit runs at more
+            # than the request (a load-weighted frost model; otherwise unchanged).
+            running_frost = self._frost_state_of_running(result, frost, T0)
+            if running_frost.active and not frost.active:
+                with self._remembering_floors():
+                    return self._analyze_steady_frosted(
+                        running_frost, Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose
+                    )
 
         if result:
             self._write_frost_free(result, frost)

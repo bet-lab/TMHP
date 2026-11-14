@@ -205,7 +205,9 @@ def main() -> None:
     top_x = float(np.ceil(hi_x * 1.10 / 20.0) * 20.0)
     top_y = float(np.ceil(hi_y * 1.12 / 20.0) * 20.0)
     ax.set_xlim(-top_x * 0.06, top_x)
-    ax.set_ylim(0.0, top_y)
+    # A tenth of the range below zero: a point near the axis keeps its name
+    # (placed under it, PANEL_C_LABEL) clear of the x tick labels. Ticks start at 0.
+    ax.set_ylim(-top_y * 0.10, top_y)
     ax.set_xticks(ticks(0.0, top_x, 20.0))
     ax.set_yticks(ticks(0.0, top_y, 20.0))
     panel_letter(ax, "c")

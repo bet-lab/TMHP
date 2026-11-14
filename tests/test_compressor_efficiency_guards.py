@@ -192,6 +192,9 @@ _STEADY_FLOW = {
 def _ashpb(**kwargs):
     from tmhp import AirSourceHeatPumpBoiler
 
+    # The frost-free cycle: the guards are pinned at the cycle's own duty and
+    # speed (frost solves a cold point at a larger duty).
+    kwargs.setdefault("defrost", False)
     return AirSourceHeatPumpBoiler(ref="R32", **kwargs)
 
 

@@ -11,6 +11,10 @@ every row of a family the same keys: what does not apply to a row is ``None``
 
 They only add keys a row does not have and fill in the zeotropic dew point;
 no cycle, control or tank quantity changes.
+
+The two family-independent helpers, :func:`fill_missing` and
+:func:`report_condenser_dew_point`, also finish the rows of the
+space-conditioning models (ASHP, GSHP: their ``_complete_row``).
 """
 
 from __future__ import annotations

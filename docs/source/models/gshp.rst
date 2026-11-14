@@ -135,9 +135,16 @@ ethylene glycol by default (``"MEG-25%"``, freezing at -11.0 °C), or
 never colder than its freezing point plus 3 K -- -8.0 °C for the default,
 3 °C for water. A heating duty that would chill it further is reduced to the
 largest one that does not (``capacity_clamped == "max"``,
-``capacity_binding == "source_fluid_freezing"``), and when none does -- also
-when the compressor is already on its speed floor, switching on and off --
-the unit is off with ``failure_reason == "source_fluid_freezing"``. Cooling
+``capacity_binding == "source_fluid_freezing"``), and when none does the unit
+is off with ``failure_reason == "source_fluid_freezing"``. On the compressor's
+speed floor the running machine has no smaller state, so against a prescribed
+wall or fluid temperature (``analyze_steady``) a minimum-speed machine that
+leaves the liquid below the limit is off at every request. In a dynamic step
+the borehole wall answers the *mean* load: a unit that cycles with shorter
+runs sees a warmer loop, and the step is reduced to the largest mean duty
+whose running liquid stays on the limit (a ``"max"`` row that is an on/off
+mean: ``runtime_fraction [-]`` and ``capacity_ratio [-]`` below 1, ``Q_unmet
+[W]`` the part not delivered). Cooling
 warms the loop and is not affected unless the ground itself is below the
 limit. The ISO 13256-1 ground-loop heating point (liquid entering at 0 °C,
 leaving near -3 °C) and a 0 °C borehole wall are antifreeze conditions, which
@@ -290,11 +297,27 @@ step is not resolved beyond that one block.
 ``Q_request [W]`` (signed, as asked) and ``Q_unmet [W]`` (the part of the
 request that is not delivered) are on every row.
 
+With the compressor at ``rps_max`` the delivered heat hardly depends on the
+indoor airflow -- it varies by a tenth of a percent across the approaches the
+fan can serve, while the electrical input varies by several percent. The
+ceiling row is therefore not the candidate of largest heat: heat within 0.5 %
+of the largest counts as the same ceiling, and among those candidates the one
+of least total input is reported, normally the fan at its largest airflow
+(the least lift). A ceiling found by bisection on the duty (a coil or an
+envelope limit, ``capacity_binding`` other than ``"compressor"``) is solved
+as that duty, so its row is the least-input operating point of the duty too.
+
 What the cycling model does not contain: no standby power is added while the
 compressor is off, and a start is not resolved in time — the degradation is
-the standard's seasonal-average figure. The coupled ground-flow solver
-(:doc:`ground-flow`, ``ground_flow_control`` other than ``"constant"``) does
-not cycle: a request below its minimum-speed duty is reported as the failure
+the standard's seasonal-average figure.
+
+The coupled ground-flow solver (:doc:`ground-flow`: a prescribed ground flow,
+or ``ground_flow_control`` other than plain constant flow) cycles the same
+way. Its minimum-speed machine is the one the fixed-flow search finds at that
+loop flow, averaged as above, so a prescribed flow equal to the reference
+flow returns the fixed-flow row; a variable flow is chosen for the least mean
+input for the request. Only with ``Cd_cycling=None`` does that solver report
+a request below its minimum-speed duty as the failure
 ``compressor_min_speed``.
 
 COP boundary

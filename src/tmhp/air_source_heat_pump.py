@@ -18,7 +18,7 @@ heat exchange at the indoor unit.
 
 import contextlib
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from typing import Any, Literal
 
 import numpy as np
@@ -28,6 +28,7 @@ from tqdm import tqdm
 
 from . import _opt_utils
 from . import calc_util as cu
+from ._boiler_results import fill_missing, report_condenser_dew_point
 from ._opt_utils import efficiency_evaluator, safe_float_attr, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
@@ -408,9 +409,10 @@ def _exergy_row(result: dict, ref: str) -> dict:
         mode = row.get("mode")
         if mode is not None and type(mode) is not str:
             raise _NotARow("mode")
-        if "T_ref_cond_sat_v [°C]" in row and "T_ref_evap_sat [°C]" in row and "mode" in row:
+        # The bubble point, as in ``postprocess_exergy`` (``T_ref_cond_sat_v`` is a zeotrope's dew point).
+        if "T_ref_cond_sat_l [°C]" in row and "T_ref_evap_sat [°C]" in row and "mode" in row:
             heating = mode == "heating"
-            cond, evap = num("T_ref_cond_sat_v [°C]"), num("T_ref_evap_sat [°C]")
+            cond, evap = num("T_ref_cond_sat_l [°C]"), num("T_ref_evap_sat [°C]")
             T_iu_sat_K = cu.C2K(cond if heating else evap)
             T_ou_sat_K = cu.C2K(evap if heating else cond)
             row["X_ref_iu [W]"] = num("Q_ref_iu [W]") * (1 - T0_K / T_iu_sat_K)
@@ -499,7 +501,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
     ``capacity_clamped == "min"`` as the mean over the cycling period: the
     delivered heat equals the request, the electrical input carries the EN
     14825 degradation (``Cd_cycling``), and ``runtime_fraction [-]`` is the
-    share of the time the compressor runs (:mod:`tmhp.cycling`).
+    share of the time the compressor runs (:mod:`tmhp.cycling`). The same
+    holds where the envelope ends continuous operation above the minimum
+    speed: at a large lift the shipped isentropic fit falls below its floor
+    (``eta_isen_below_min``) towards low speed, and a request below the
+    smallest duty that stays inside is met by cycling at that duty
+    (``Q_min [W]``), not answered with the unit switched off.
     """
 
     #: Heat and flow rates averaged with the capacity ratio while cycling.
@@ -1534,6 +1541,34 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return 1.0
         return 1.0 / self.cycling.part_load_factor(min(1.0, abs(Q_r_iu) / delivered))
 
+    #: Keys every row carries whatever path the point took, with the value on
+    #: a row they do not apply to (``None``: a name, NaN: a number) -- the
+    #: convention of the boilers' rows (:mod:`tmhp._boiler_results`). A
+    #: dynamic frame is the union of its rows, so without them its columns
+    #: depend on what the run happened to do.
+    _ROW_DEFAULTS: Mapping[str, Any] = {
+        "capacity_binding": None,
+        "Q_max [W]": math.nan,
+        "n_star [-]": math.nan,
+        "pr_cmp [-]": math.nan,
+        "eta_cmp_isen [-]": math.nan,
+        "eta_cmp_vol [-]": math.nan,
+        "eta_cmp [-]": math.nan,
+    }
+
+    def _complete_row(self, result: dict) -> dict:
+        """Give a finished row the keys every row has, and its condenser dew point (in place).
+
+        Adds what the row's path did not write (:attr:`_ROW_DEFAULTS`: the
+        ceiling keys of a row that is not at a ceiling, the compressor keys
+        of an off or failed row). ``T_ref_cond_sat_v [°C]`` becomes the dew
+        point of the condensing pressure for a zeotropic blend
+        (:func:`~tmhp._boiler_results.report_condenser_dew_point`); for a pure
+        refrigerant nothing changes. No cycle or control quantity is touched.
+        """
+        fill_missing(result, self._ROW_DEFAULTS)
+        return report_condenser_dew_point(result, self.ref)
+
     def _report_part_load(self, result: dict, Q_r_iu: float) -> None:
         """Write the part-load keys of a solved row and average a cycling one (in place).
 
@@ -2379,6 +2414,97 @@ class AirSourceHeatPump(ReferenceStateMixin):
         )
         return state
 
+    #: Duties tried, as fractions of the nameplate and from the bottom, to find
+    #: one that runs above a request the efficiency floor refuses.
+    _FLOOR_LADDER: tuple[float, ...] = (0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0)
+    #: Relative width at which the bisection for the smallest continuous duty stops.
+    _FLOOR_REL_TOL = 5e-3
+
+    def _smallest_continuous_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
+        """The smallest duty above a request the efficiency floor refuses, as a continuous state.
+
+        The compressor's speed floor is not the only lower end of continuous
+        operation. Where the shipped isentropic fit, extrapolated towards low
+        speed, falls below :data:`~tmhp.compressor_envelope.ETA_ISEN_MIN`
+        before ``rps_min`` is reached (a large lift: a low-pressure refrigerant
+        in severe cold), the envelope refuses every duty below the one at
+        which the fit crosses the floor -- while larger duties run. A unit
+        does not stay off there: it runs at the smallest duty the envelope
+        admits and switches off when the room has had enough, exactly as it
+        does below its minimum speed.
+
+        A ladder of duties above the request finds one with an operating
+        point and a bisection closes on the smallest (to
+        :attr:`_FLOOR_REL_TOL`); every trial is the ordinary search
+        (:meth:`_optimize_operation`), so a request at or above the duty
+        returned is one :meth:`analyze_steady` solves in continuous
+        operation. The state is returned with ``capacity_clamped == "min"``:
+        it delivers more than the request and is averaged over the cycling
+        period like a minimum-speed row (:meth:`_report_part_load`). ``None``
+        when a duty above the request is refused for another reason first, or
+        none runs.
+        """
+        sign, request = math.copysign(1.0, Q_r_iu), abs(float(Q_r_iu))
+        # The floor belongs to the condition, not to the request: inside one
+        # frost balance or one dynamic run (the model does not change there)
+        # it is searched once per condition and reused for smaller requests.
+        memo, key = self._floor_memo, (sign, float(T0), float(T_a_room))
+        if memo is not None and key in memo and request < abs(float(memo[key]["Q_ref_iu [W]"])):
+            return dict(memo[key])
+
+        def trial(q: float) -> tuple[dict | None, str | None]:
+            opt = self._optimize_operation(Q_r_iu=sign * q, T0=T0, T_a_room=T_a_room)
+            if not (bool(getattr(opt, "success", False)) and float(opt.fun) < OBJ_CAPACITY_LIMITED):
+                return None, getattr(opt, "least_lift_reason", None)
+            state = self._calc_state(
+                dT_ref_evap=opt.x[0], dT_ref_cond=opt.x[1], Q_r_iu=sign * q, T0=T0, T_a_room=T_a_room
+            )
+            if state is None or not state.get("converged", False) or state.get("capacity_clamped") is not None:
+                return None, None
+            return state, None
+
+        q_lo, q_hi, running = request, math.nan, None
+        for fraction in self._FLOOR_LADDER:
+            q = fraction * self.hp_capacity
+            if not q > request * (1.0 + self._FLOOR_REL_TOL):
+                continue
+            state, reason = trial(q)
+            if state is not None:
+                q_hi, running = q, state
+                break
+            if reason != ETA_ISEN_BELOW_MIN:
+                return None  # another limit is in the way: not a lower end of continuous operation
+            q_lo = q
+        if running is None:
+            return None
+        while q_hi - q_lo > self._FLOOR_REL_TOL * q_hi:
+            mid = 0.5 * (q_lo + q_hi)
+            state, _ = trial(mid)
+            if state is not None:
+                q_hi, running = mid, state
+            else:
+                q_lo = mid
+        floor = dict(running)
+        floor["capacity_clamped"] = CAPACITY_CLAMPED_MIN
+        if memo is not None:
+            memo[key] = dict(floor)
+        return floor
+
+    #: Smallest continuous states found in the frost balance or dynamic run in
+    #: progress, by (mode sign, T0, T_a_room); ``None`` outside one.
+    _floor_memo: dict[tuple[float, float, float], dict] | None = None
+
+    @contextlib.contextmanager
+    def _remembering_floors(self) -> Iterator[None]:
+        """Reuse :meth:`_smallest_continuous_operating_point` results while the block runs."""
+        outer = self._floor_memo
+        if outer is None:
+            self._floor_memo = {}
+        try:
+            yield
+        finally:
+            self._floor_memo = outer
+
     # =============================================================
     # Steady-state analysis
     # =============================================================
@@ -2484,7 +2610,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # defrost: solved frost-free at a larger duty, then averaged.
         frost = self._frost_state(Q_r_iu, T0, RH_out)
         if frost.active:
-            return self._analyze_steady_frosted(frost, Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose)
+            # The frost balance solves the frost-free cycle at several duties.
+            with self._remembering_floors():
+                return self._analyze_steady_frosted(
+                    frost, Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose
+                )
 
         if Q_r_iu == 0:
             result: dict | None = self._calc_state(
@@ -2583,6 +2713,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         result = ceiling_state
                         failure_reason = "none"
 
+            if failure_reason == ETA_ISEN_BELOW_MIN:
+                # Refused for the efficiency floor at low speed while larger
+                # duties run: the unit's smallest continuous duty lies above
+                # the request, and the request is met by cycling at it.
+                with contextlib.suppress(Exception):
+                    floor_state = self._smallest_continuous_operating_point(Q_r_iu, T0, T_a_room)
+                    if floor_state is not None:
+                        result = floor_state
+                        failure_reason = "none"
+
             if failure_reason != "none":
                 if verbose:
                     warnings.warn(
@@ -2629,6 +2769,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         if result:
             self._write_frost_free(result, frost)
+            self._complete_row(result)
 
         if postprocess and result:
             result = self._exergy_of_row(result)
@@ -2707,30 +2848,33 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         results_data: list[dict] = []
 
-        for n in tqdm(range(tN), desc="ASHP Simulating"):
-            t_s: float = time[n]
-            hr: float = t_s * cu.s2h
+        # The model does not change during a run: the smallest continuous
+        # duty of a condition (the efficiency floor) is searched once.
+        with self._remembering_floors():
+            for n in tqdm(range(tN), desc="ASHP Simulating"):
+                t_s: float = time[n]
+                hr: float = t_s * cu.s2h
 
-            Q_r_iu_n: float = Q_r_iu_schedule[n]
-            T0_n: float = T0_schedule[n]
-            T_a_room_n: float = T_a_room_arr[n]
+                Q_r_iu_n: float = Q_r_iu_schedule[n]
+                T0_n: float = T0_schedule[n]
+                T_a_room_n: float = T_a_room_arr[n]
 
-            # Use analyze_steady for robust calculation and fallback handling
-            hp_result = self.analyze_steady(
-                Q_r_iu=Q_r_iu_n,
-                T0=T0_n,
-                T_a_room=T_a_room_n,
-                return_dict=True,
-                postprocess=False,  # Exergy postprocessing applied in bulk at the end
-                verbose=False,  # Suppress warnings during long dynamic loops
-                RH_out=None if RH_out_arr is None else float(RH_out_arr[n]),
-            )
+                # Use analyze_steady for robust calculation and fallback handling
+                hp_result = self.analyze_steady(
+                    Q_r_iu=Q_r_iu_n,
+                    T0=T0_n,
+                    T_a_room=T_a_room_n,
+                    return_dict=True,
+                    postprocess=False,  # Exergy postprocessing applied in bulk at the end
+                    verbose=False,  # Suppress warnings during long dynamic loops
+                    RH_out=None if RH_out_arr is None else float(RH_out_arr[n]),
+                )
 
-            # Add time columns
-            hp_result["time [s]"] = t_s
-            hp_result["time [h]"] = hr
+                # Add time columns
+                hp_result["time [s]"] = t_s
+                hp_result["time [h]"] = hr
 
-            results_data.append(hp_result)
+                results_data.append(hp_result)
 
         results_df: pd.DataFrame = pd.DataFrame(results_data)
         results_df = self.postprocess_exergy(results_df)
@@ -2836,10 +2980,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # the refrigerant role it plays in the current mode. Output exergy is
         # labelled by location (X_ref_iu/X_ref_ou); the refrigerant-state
         # saturation keys remain cond/evap (refrigerant-intrinsic).
-        if {"T_ref_cond_sat_v [°C]", "T_ref_evap_sat [°C]", "mode"} <= set(df.columns):
+        # The condenser's factor uses the temperature the cycle condenses at,
+        # the bubble point ``T_ref_cond_sat_l`` -- the value
+        # ``T_ref_cond_sat_v`` repeated before it reported a zeotrope's dew point.
+        if {"T_ref_cond_sat_l [°C]", "T_ref_evap_sat [°C]", "mode"} <= set(df.columns):
             is_heating = df["mode"] == "heating"
-            T_iu_sat_K = cu.C2K(df["T_ref_cond_sat_v [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"]))
-            T_ou_sat_K = cu.C2K(df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_v [°C]"]))
+            T_iu_sat_K = cu.C2K(df["T_ref_cond_sat_l [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"]))
+            T_ou_sat_K = cu.C2K(df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_l [°C]"]))
             df["X_ref_iu [W]"] = df["Q_ref_iu [W]"] * (1 - T0_K / T_iu_sat_K)
             df["X_ref_ou [W]"] = df["Q_ref_ou [W]"] * (1 - T0_K / T_ou_sat_K)
 

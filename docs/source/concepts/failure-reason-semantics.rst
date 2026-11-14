@@ -117,7 +117,10 @@ Common to all families
         low-speed continuation), is below ``ETA_ISEN_MIN`` = 0.30 at the
         solved point (ASHP, GSHP: at every candidate). The fit never goes
         below 0.336 inside its data. Not checked for scalar or user
-        efficiencies.
+        efficiencies. ASHP does not report it for a request that is only too
+        *small* (the fit falls below the floor towards low speed while a
+        larger duty runs): that request is met by on/off cycling at the
+        smallest duty the envelope admits (``capacity_clamped == "min"``).
       - No — only off-mode placeholders.
 
 Liquid-source families (GSHP, GSHPB, WSHPB)
@@ -141,7 +144,10 @@ Liquid-source families (GSHP, GSHPB, WSHPB)
         that a *smaller* duty keeps on the limit is not a failure: it returns
         that duty with ``capacity_clamped == "max"`` and ``capacity_binding ==
         "source_fluid_freezing"``, in ``analyze_steady`` and in every dynamic
-        step. Fill the loop with an antifreeze mixture, or a stronger one
+        step. On the speed floor a smaller duty helps only where the unit
+        cycles and the source answers the mean load (a GSHP dynamic step:
+        shorter runs see a warmer borehole); the reduced row is then an
+        on/off mean. Fill the loop with an antifreeze mixture, or a stronger one
         (``source_fluid="MEG-30%"``; see :ref:`source-fluid`).
       - No — only off-mode placeholders.
 
@@ -188,7 +194,9 @@ also appear).
     * - ``compressor_min_speed``
       - The requested duty is below what the compressor delivers at
         ``rps_min`` (``capacity_clamped == "min"``), so the exact duty cannot
-        be met.
+        be met. The ground-source heat pump meets such a request by on/off
+        cycling instead (:doc:`../models/gshp`); it reports this reason only
+        with ``Cd_cycling=None``.
     * - ``compressor_max_speed``
       - The requested duty is above what the compressor delivers at
         ``rps_max`` (``capacity_clamped == "max"``).

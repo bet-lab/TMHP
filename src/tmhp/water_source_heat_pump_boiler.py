@@ -95,6 +95,7 @@ from .enex_functions import (
 )
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
+from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
 from .source_fluid import (
@@ -303,8 +304,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         # balances, its freezing point the operating limit (tmhp.source_fluid).
         fluid = resolve_source_fluid(source_fluid, WATER_LOOP_FLUID_DEFAULT)
         self.source_fluid: SourceFluid = fluid
-        #: Set once a dynamic run has reported the freezing limit (one warning per run).
-        self._source_freeze_warned: bool = False
         # Capacity-scaled defaults (tmhp._source_boiler): a machine given only
         # hp_capacity and a refrigerant keeps the same rated performance at any
         # capacity. Every value the caller supplies is used as given.
@@ -1029,8 +1028,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             lambda detail: self._failed_cycle_result(
                 T_tank_w, cu.K2C(ctx.T0_K), self._step_flow_state(ctx, T_tank_w), SOURCE_FLUID_FREEZING, detail
             ),
-            once=True,
-            what="analyze_dynamic",
         )
 
     def _solve_cycle_at_duty(self, ctx: StepContext, T_tank_w: float, Q_tank_load: float) -> dict:
@@ -1273,6 +1270,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     # Orchestration
     # =============================================================
 
+    @dynamic_notice
     def analyze_dynamic(
         self,
         simulation_period_sec: float,
@@ -1340,7 +1338,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         # second run starts from the first run's last source temperature (#96 T13).
         self.T_bhe_f_out_K = self.Ts_K
         self.Q_bhe = 0.0
-        self._source_freeze_warned = False
 
         # DHW schedule handling: direct m³/s flow array
         dhw_flow_m3s = np.asarray(dhw_usage_schedule, dtype=float)
@@ -1612,6 +1609,15 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         (:func:`tmhp.cycling.report_boiler_cycling`): the rates a dynamic step
         averages with its run time are multiplied by ``capacity_ratio [-]``,
         the electrical inputs by ``capacity_ratio / part_load_factor``.
+
+        Warns
+        -----
+        OperatingLimitWarning
+            Once, at the end of a run in which the compressor was called but
+            did not run on some step, or ran below the request: the steps by
+            limit and what they left unserved. The totals are in
+            ``df.attrs["operating_limits"]``
+            (:func:`tmhp.operating_limits.summarize_operating_limits`).
         """
         report_boiler_cycling(
             result,
@@ -1624,6 +1630,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         )
         self._complete_steady_result(result, Q_ref_tank)
 
+    @steady_notice()
     @steady_cycling(duty_arg="Q_ref_tank")
     @source_freeze_limited(duty_arg="Q_ref_tank", off="_steady_freeze_off")
     @steady_envelope(duty_arg="Q_ref_tank")
@@ -1715,10 +1722,19 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             Every reason other than ``"none"`` comes with an off-mode state:
             ``Q_ref_tank [W] = E_cmp [W] = 0`` and NaN COP. No unsolved point
             is returned with cycle numbers.
+
+        Warns
+        -----
+        OperatingLimitWarning
+            Once, when the compressor was asked to run and the result is the
+            off state (``failure_reason`` other than ``"none"``) or a running
+            point that delivers less than the request (``capacity_clamped ==
+            "max"``): the request, what is delivered, the limit in words and
+            what removes it. Issued once per model and limit unless the
+            ``"always"`` filter is set (:mod:`tmhp.operating_limits`).
         """
         validate_steady(locals())
         import contextlib
-        import warnings
 
         # Empty flow state as steady state ignores dynamic withdrawal/refill
         flow_state = {
@@ -1762,15 +1778,18 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             if result is None:
                 failure_reason = opt_result.failure_reason if not opt_result.success else "cycle_invalid"
                 detail = opt_result.detail
-                warnings.warn(
-                    f"analyze_steady: fell back to HP-off state "
-                    f"(reason={failure_reason!r}"
-                    + (f", detail={detail!r}" if detail else "")
-                    + f", T_tank_w={T_tank_w:.1f}°C, T_source={T_source:.1f}°C, "
-                    f"Q_ref_tank={Q_ref_tank:.0f}W). "
-                    "Consider increasing UA_rated or fan-flow rated.",
-                    RuntimeWarning,
-                    stacklevel=2,
+                # Not a warning here: this solve may be a trial of the duty
+                # reduction. The call that owns the result words it
+                # (tmhp.operating_limits.steady_notice).
+                pr_event = self._last_pr_event
+                above_ceiling = (
+                    failure_reason == "pr_above_max" and pr_event is not None and pr_event[0] == failure_reason
+                )
+                note_refusal(
+                    failure_reason,
+                    Q_ref_tank,
+                    pr_event[1] if above_ceiling and pr_event is not None else None,
+                    detail,
                 )
                 result = self._failed_cycle_result(T_tank_w, T0, flow_state, failure_reason, detail)
             else:

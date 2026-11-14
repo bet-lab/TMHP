@@ -112,6 +112,7 @@ from .heat_exchanger import (
     resolve_fan_flow_limits,
 )
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
+from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .pump import default_ground_pump_power
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
@@ -588,10 +589,6 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         # balances, its freezing point the operating limit (tmhp.source_fluid).
         fluid = resolve_source_fluid(source_fluid, GROUND_LOOP_FLUID_DEFAULT)
         self.source_fluid: SourceFluid = fluid
-        #: Set once a dynamic run has reported the freezing limit (one warning per run).
-        self._source_freeze_warned: bool = False
-        #: ``"analyze_dynamic"`` while a dynamic step is being solved, else ``None``.
-        self._source_freeze_context: str | None = None
         # Ground side sized from the capacity when the caller gives none of it
         # (see tmhp.ground_defaults): flow, pump power and the borefield.
         borefield_defaulted = N_1 is None and N_2 is None and H_b is None
@@ -2564,6 +2561,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     # Steady-state analysis
     # =============================================================
 
+    @steady_notice(delivered_key="Q_ref_iu [W]")
     @steady_envelope()
     def analyze_steady(
         self,
@@ -2646,6 +2644,16 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         ------
         ValueError
             For a non-finite load, temperature or flow input.
+
+        Warns
+        -----
+        OperatingLimitWarning
+            Once, when the compressor was asked to run and the result is the
+            off state (``failure_reason`` other than ``"none"``) or a running
+            point that delivers less than the request (``capacity_clamped ==
+            "max"``): the request, what is delivered, the limit in words and
+            what removes it. Issued once per model and limit unless the
+            ``"always"`` filter is set (:mod:`tmhp.operating_limits`).
         """
         validate_steady(locals())
         if T_a_room is None:
@@ -2705,14 +2713,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             wall_K = None if T_bhe_wall is None else cu.C2K(T_bhe_wall)
             result = self._solve_operating_point(Q_r_iu, T0, T_a_room, wall_K=wall_K)
             if result["failure_reason"] != "none":
-                warnings.warn(
-                    f"analyze_steady: no operating point; returning the HP-off state "
-                    f"(reason={result['failure_reason']!r}, Q_r_iu={Q_r_iu:.0f}W, "
-                    f"T0={T0:.1f}°C, T_a_room={T_a_room:.1f}°C). "
-                    "Consider calibrating UA_rated or increasing the explicit fan-flow maximum.",
-                    RuntimeWarning,
-                    stacklevel=2,
-                )
+                # The off state with its reason; the caller is told by
+                # tmhp.operating_limits.steady_notice, not here.
+                detail = result.get("failure_detail")
+                note_refusal(str(result["failure_reason"]), Q_r_iu, detail=None if detail is None else str(detail))
 
         self._complete_row(result)
         # Echo of the argument (NaN: not given, the fluid leaves the borefield at the model state).
@@ -2725,6 +2729,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     # Dynamic simulation
     # =============================================================
 
+    @dynamic_notice
     def analyze_dynamic(
         self,
         simulation_period_sec: int,
@@ -2760,6 +2765,15 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         (a block of ``mean load / running load`` of the step at its start)
         under the running load, so the fluid does not drop by the full
         ``q' R_b`` of the running load the moment a short run begins.
+
+        Warns
+        -----
+        OperatingLimitWarning
+            Once, at the end of a run in which the compressor was called but
+            did not run on some step, or ran below the request: the steps by
+            limit and what they left unserved. The totals are in
+            ``df.attrs["operating_limits"]``
+            (:func:`tmhp.operating_limits.summarize_operating_limits`).
         """
         validate_dynamic(locals())
         time = np.arange(0, simulation_period_sec, dt_s)
@@ -2796,7 +2810,6 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.T_bhe_f_out = self.Ts
         self.T_bhe_f_out_K = self.Ts_K
         self.Q_bhe = 0.0
-        self._source_freeze_warned = False
 
         Q_bhe_unit_pulse = np.zeros(tN)
         Q_bhe_unit_old = 0.0
@@ -2840,19 +2853,14 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     self, n, time, history_rise, Q_bhe_unit_old, g_own_step, self._bhe_run_history
                 )
 
-                # The source fluid's freezing limit is reported once per run.
-                self._source_freeze_context = "analyze_dynamic"
-                try:
-                    if self._ground_settings["active"]:
-                        hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
-                    else:
-                        # The ground fluid is closed against that wall inside the
-                        # step, so the cycle and the fluid temperature of one row
-                        # belong to the same step (#96 G1). A failed step comes
-                        # back as the off state with its reason.
-                        hp_result = self._solve_operating_point(Q_r_iu_n, T0_n, T_a_room_n, wall_K=wall_response)
-                finally:
-                    self._source_freeze_context = None
+                if self._ground_settings["active"]:
+                    hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
+                else:
+                    # The ground fluid is closed against that wall inside the
+                    # step, so the cycle and the fluid temperature of one row
+                    # belong to the same step (#96 G1). A failed step comes
+                    # back as the off state with its reason.
+                    hp_result = self._solve_operating_point(Q_r_iu_n, T0_n, T_a_room_n, wall_K=wall_response)
 
             if hp_result is None:
                 # Off-mode cycle itself failed — fall back to an inert row so

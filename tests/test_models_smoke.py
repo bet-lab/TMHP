@@ -15,6 +15,7 @@ from tmhp import (
     AirSourceHeatPumpBoiler,
     GroundSourceHeatPump,
     GroundSourceHeatPumpBoiler,
+    OperatingLimitWarning,
     WaterSourceHeatPumpBoiler,
     check_pr_envelope,
 )
@@ -417,8 +418,8 @@ def test_wshpb_pr_ceiling_rejects():
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         result = wshpb.analyze_steady(T_tank_w=50.0, T_source=12.0, Q_ref_tank=8000.0, T0=15.0)
-    runtime_messages = [str(w.message) for w in caught if issubclass(w.category, RuntimeWarning)]
-    assert any("pr_above_max" in message for message in runtime_messages)
+    limit_messages = [str(w.message) for w in caught if issubclass(w.category, OperatingLimitWarning)]
+    assert any("pr_above_max" in message for message in limit_messages)
     assert result["converged"] is False
     assert result["failure_reason"] == "pr_above_max"
     assert wshpb._last_pr_event is not None

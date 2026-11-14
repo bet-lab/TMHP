@@ -32,6 +32,7 @@ from .gshpb_stc_preheat import GSHPB_STC_preheat
 from .gshpb_stc_routed import GSHPB_STC_routed, default_solar_router
 from .gshpb_stc_tank import GSHPB_STC_tank
 from .heat_transfer import *  # noqa: F401, F403
+from .operating_limits import OperatingLimitWarning, summarize_operating_limits
 from .refrigerant import *  # noqa: F401, F403
 from .subsystems import *  # noqa: F401, F403
 from .thermodynamics import *  # noqa: F401, F403
@@ -56,6 +57,8 @@ __all__ = [
     "GSHPB_STC_preheat",
     "GSHPB_STC_routed",
     "GSHPB_STC_tank",
+    "OperatingLimitWarning",
     "WaterSourceHeatPumpBoiler",
     "default_solar_router",
+    "summarize_operating_limits",
 ]

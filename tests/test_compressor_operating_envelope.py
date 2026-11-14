@@ -637,7 +637,10 @@ def test_request_the_outdoor_coil_cannot_carry_runs_at_the_duty_it_can(r134a_15k
     assert r["Q_ref_tank [W]"] > 8000.0
     assert r["T_ref_cmp_out [°C]"] <= r134a_15kw.T_dis_max + DISCHARGE_TOL_K
     assert r["pr_cmp [-]"] == pytest.approx(r134a_15kw.PR_cycle_max, rel=1e-3)
-    with pytest.warns(RuntimeWarning, match="hx_not_converged"):
+    # The undecorated solve is what the duty reduction tries: it reports the
+    # refusal in its row and does not warn (tmhp.operating_limits).
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", tmhp.OperatingLimitWarning)
         above = tmhp.AirSourceHeatPumpBoiler.analyze_steady.__wrapped__(
             r134a_15kw, T_tank_w=58.0, T0=-12.0, Q_ref_tank=r["Q_ref_tank [W]"] + 0.0101 * 15000.0
         )

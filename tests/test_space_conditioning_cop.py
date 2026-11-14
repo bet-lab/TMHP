@@ -6,7 +6,7 @@ import math
 import numpy as np
 import pytest
 
-from tmhp import AirSourceHeatPump, GroundSourceHeatPump
+from tmhp import AirSourceHeatPump, GroundSourceHeatPump, OperatingLimitWarning
 from tmhp.air_properties import air_density
 from tmhp.constants import c_a
 
@@ -116,7 +116,7 @@ def test_failed_cycle_returns_off_delivery(model, monkeypatch):
         return None if Q_r_iu else original(dT_ref_evap, dT_ref_cond, Q_r_iu, T0, T_a_room, **kwargs)
 
     monkeypatch.setattr(model, "_calc_state", invalid_active)
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(OperatingLimitWarning, match="does not run"):
         row = model.analyze_steady(Q_r_iu=3000, T0=30, T_a_room=26)
     assert not row["hp_is_on"]
     assert row["failure_reason"] != "none"

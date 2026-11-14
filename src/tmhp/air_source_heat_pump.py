@@ -29,7 +29,7 @@ from tqdm import tqdm
 from . import _opt_utils
 from . import calc_util as cu
 from ._boiler_results import fill_missing, report_condenser_dew_point
-from ._opt_utils import efficiency_evaluator, safe_float_attr, specific_energy_objective
+from ._opt_utils import efficiency_evaluator, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
 from .compressor_efficiency import reject_invalid_efficiency
@@ -85,6 +85,7 @@ from .enex_functions import (
 )
 from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
 from .hx_fan import INDOOR_AIRFLOW_PER_W, SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
+from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     _props,
@@ -2550,6 +2551,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # Steady-state analysis
     # =============================================================
 
+    @steady_notice(delivered_key="Q_ref_iu [W]")
     @steady_envelope()
     def analyze_steady(
         self,
@@ -2577,7 +2579,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         postprocess : bool
             If True, apply postprocess_exergy to the output.
         verbose : bool
-            If True, print warnings upon convergence failure.
+            If False, the ``[PR guard]`` line and the
+            :class:`~tmhp.OperatingLimitWarning` of this call are not issued
+            (the row is the same).
         RH_out : float | None
             Outdoor relative humidity as a fraction (0-1), used by the frost
             correction in heating. None: the frost model's default (0.84).
@@ -2640,9 +2644,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ``E_tot_frost_free [W]`` the frost-free cycle the row was solved
             at. Without frost those two repeat ``Q_ref_iu [W]`` and
             ``E_tot [W]``.
+
+        Warns
+        -----
+        OperatingLimitWarning
+            Once, when the compressor was asked to run and the result is the
+            off state (``failure_reason`` other than ``"none"``) or a running
+            point that delivers less than the request (``capacity_clamped ==
+            "max"``): the request, what is delivered, the limit in words and
+            what removes it. Issued once per model and limit unless the
+            ``"always"`` filter is set (:mod:`tmhp.operating_limits`).
         """
         validate_steady(locals())
-        import warnings
 
         if T_a_room is None:
             T_a_room = self.T_a_room
@@ -2765,19 +2778,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         failure_reason = "none"
 
             if failure_reason != "none":
-                if verbose:
-                    warnings.warn(
-                        f"analyze_steady: fell back to HP-off state "
-                        f"(reason={failure_reason!r}, "
-                        f"Q_r_iu={Q_r_iu:.0f}W, T0={T0:.1f}°C, "
-                        f"T_a_room={T_a_room:.1f}°C, "
-                        f"opt_success={opt_success}, "
-                        f"opt_x=({opt_result.x[0]:.2f}, {opt_result.x[1]:.2f}), "
-                        f"opt_fun={safe_float_attr(opt_result, 'fun', float('nan')):.3g}). "
-                        "Consider increasing UA_ou_rated/UA_iu_rated or fan-flow rated.",
-                        RuntimeWarning,
-                        stacklevel=2,
-                    )
+                # Not a warning here: this solve may be the frost-free trial of
+                # a frosted request. The call that owns the result words it
+                # (tmhp.operating_limits.steady_notice); the value that broke
+                # the limit is known when the search ended on that probe.
+                ended_on_it = least_lift_reason is None and pr_event is not None and pr_event[0] == failure_reason
+                note_refusal(failure_reason, Q_r_iu, pr_event[1] if ended_on_it and pr_event is not None else None)
                 result = self._calc_state(
                     dT_ref_evap=5.0,
                     dT_ref_cond=5.0,
@@ -2832,6 +2838,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # Dynamic simulation
     # =============================================================
 
+    @dynamic_notice
     def analyze_dynamic(
         self,
         simulation_period_sec: int,
@@ -2867,6 +2874,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         -------
         pd.DataFrame
             Per-timestep result DataFrame.
+
+        Warns
+        -----
+        OperatingLimitWarning
+            Once, at the end of a run in which the compressor was called but
+            did not run on some step, or ran below the request: the steps by
+            limit and what they left unserved. The totals are in
+            ``df.attrs["operating_limits"]``
+            (:func:`tmhp.operating_limits.summarize_operating_limits`).
         """
         validate_dynamic(locals())
         time: np.ndarray = np.arange(0, simulation_period_sec, dt_s)

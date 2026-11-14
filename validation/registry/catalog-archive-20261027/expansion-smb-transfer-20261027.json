@@ -1,0 +1,47 @@
+{
+  "verified_at": "2026-10-27T06:03:25.708386+00:00",
+  "source_packages": 5,
+  "files": 13,
+  "bytes": 82536343,
+  "incoming_smb_readback": "allmatched",
+  "final_smb_readback": "allmatched",
+  "final_nfs_read_hash": "allmatched",
+  "existing_raw_modified": false,
+  "shared_metadata_written": false,
+  "merged": false,
+  "site_published": false,
+  "incoming_batch": "receipt-nas:datasets/_incoming/20261027-tmhp-expansion-5-rich-entries",
+  "candidate_originals_retained": true,
+  "canonical_inventory": [
+    {
+      "id": "gmcc-rotary-catalogue-2026-v1",
+      "files": 1,
+      "tree_sha256": "b3a1a3c750e0058a972554ae52ed42cb36d4573717ff9df4f31dafcfc634027e",
+      "matches": true
+    },
+    {
+      "id": "gmcc-scroll-catalogue-2026-v1",
+      "files": 1,
+      "tree_sha256": "af3452fdd94fbb5d2302927afea1627f27f291198b2757f2986e3ee2f9e1e57b",
+      "matches": true
+    },
+    {
+      "id": "gree-sapphire-r32-documents-20261027-v1",
+      "files": 6,
+      "tree_sha256": "18bdc8efa7887a9c8e7f0a8d53557ee029642319ae691b813d88b5993ebab88e",
+      "matches": true
+    },
+    {
+      "id": "mitsubishi-ecodan-puz-wz-vol1-v1",
+      "files": 1,
+      "tree_sha256": "ce659c70ddd3680fd6be0d32d79cf2a1bb047ab46d2162ae0caadcf71ec8a482",
+      "matches": true
+    },
+    {
+      "id": "ossorio-navarroperis-compressor-inverter-2023-v1",
+      "files": 4,
+      "tree_sha256": "c0ac1513bdafe33b8850f707f96ff4bee1dd7f8855940e4fbf35e65bf849ef85",
+      "matches": true
+    }
+  ]
+}

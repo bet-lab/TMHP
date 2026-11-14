@@ -1,0 +1,169 @@
+{
+  "checked_on": "2026-10-27T04:25:00.097236+00:00",
+  "source_payload_location": "actual NAS /mnt/datasets; files added over existing receipt-nas SMB",
+  "nas_new_raw_files_verified": true,
+  "nas_new_raw_datasets": 37,
+  "nas_new_raw_files": 43,
+  "nas_bytes": 450867643,
+  "new_metadata_merged": false,
+  "site_published": false,
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "_tools/dataset_pool.py",
+        "render",
+        ".",
+        "--payload",
+        "/mnt/datasets"
+      ],
+      "exit_code": 0,
+      "stdout": "rendered 124 records: catalog.json, catalog.csv, pages, dataset README blocks; nothing published; evidence checked under /mnt/datasets\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "/home/habin/papers/worktrees/tmhp-catalog-archive-20261027/validation/registry/catalog-archive-20261027/validate.py",
+        "--payload",
+        "/mnt/datasets",
+        "--catalog-checkout",
+        "/home/habin/dataset-catalog-tmhp-20261027"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"sources\": 128, \"model_condition_records\": 890, \"purpose_rows\": 5340, \"field_rows\": 161, \"metadata_relationships\": \"passed\", \"payload_root\": \"/mnt/datasets\", \"payload_datasets\": 37, \"payload_files\": 43, \"payload_bytes\": 450867643, \"payload_hashes\": \"passed\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "_tools/audit_metadata.py",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "METADATA_AUDIT_PASSED: 124 records, 27933 v3 file entries\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "_tools/qa_catalog.py",
+        ".",
+        "--metadata-only"
+      ],
+      "exit_code": 0,
+      "stdout": "CATALOG_QA_PASSED: 124 pages, 87 sampled previews, 87 insights.json, 87 background.json, guide page (48 links), HTTP=no, share not scanned\n",
+      "stderr": "warning: building-energy/annex81-six-buildings-v3/insights.json: 1.09 MB (> 1 MB)\n"
+    },
+    {
+      "command": [
+        "python3",
+        ".agents/scripts/check_harness.py"
+      ],
+      "exit_code": 0,
+      "stdout": "harness: 11 rule files, 8 skills, 0 problems, 0 warnings\n",
+      "stderr": ""
+    }
+  ],
+  "smb_transfer_receipt": "smb-transfer.json",
+  "prior_local_validation": {
+    "checked_on": "2026-10-27",
+    "source_payload_location": "new local handoff + existing NAS read-only validation overlay",
+    "nas_new_raw_files_registered": false,
+    "site_published": false,
+    "checks": [
+      {
+        "command": [
+          "python3",
+          "_tools/dataset_pool.py",
+          "render",
+          ".",
+          "--payload",
+          "/home/habin/tmhp-archive-handoff-20261027/validation-payload"
+        ],
+        "exit_code": 0,
+        "stdout": "rendered 124 records: catalog.json, catalog.csv, pages, dataset README blocks; nothing published; evidence checked under /home/habin/tmhp-archive-handoff-20261027/validation-payload\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "_tools/dataset_pool.py",
+          "verify",
+          "/home/habin/tmhp-archive-handoff-20261027/payload"
+        ],
+        "exit_code": 0,
+        "stdout": "fujitsu-eu-2018-source: 1 files\nmidea-it-2024-source: 1 files\npanasonic-cgz-2025-source: 1 files\ndanfoss-coolselector-user-guide-20261024: 1 files\ndanfoss-application-guide-20261024: 1 files\ndaikin-ecpen24-022-source: 1 files\nguth-atakan-r290-scroll-supplement-2023-v1: 1 files\nfujitsu-halcyon-2022-source: 1 files\nhighly-web-d-20261025-source: 2 files\nhighly-web-g-20261025-source: 2 files\nhighly-web-h-20261025-source: 2 files\nhighly-web-l-20261025-source: 2 files\nhighly-web-th-20261025-source: 2 files\nlg-us-em-sz-artcool-premier-r32-0125-source: 1 files\nlg-us-em-sz-extpipe-r32-0725-source: 1 files\nlg-us-em-sz-stdeff-mega-r32-0725-source: 1 files\nlg-rotary-2024-source: 1 files\nlg-rotary-web-20261025-source: 2 files\nmeuk-5331-source: 1 files\nmeuk-5330-source: 1 files\nmitsubishi-sci-rotary-local-85e2c806: 1 files\nmeuk-4366-source: 1 files\nmeuk-4486-source: 1 files\nmeuk-4591-source: 1 files\npanasonic-paci-2020-source: 1 files\npanasonic-wh-mxc09j3e8-12j9e8-service-papamy2110029ce: 1 files\npanasonic-wh-mxc16j9e8-service-papamy2112029ce: 1 files\npanasonic-wh-uq-he8-service-papamy1704053ce: 1 files\npanasonic-wh-sdc0316m9e8-wxg-service-pcz2411004ce: 1 files\npanasonic-aquarea-catalogue-2025-held-copy: 1 files\npanasonic-bigrac-gen26-lt-source: 1 files\nfujitsu-uk-cassette-2018-source: 1 files\nfujitsu-uk-km-2018-source: 1 files\nsamsung-ehs-mono-ht-quiet-r32-50hz-held-copy: 1 files\nfujitsu-uk-split-2020-source: 1 files\nhighly-india-2015-source: 1 files\ncuevas-lebrun-scroll-2009-local-fbb842ce: 1 files\nverified 37 datasets, 43 files\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "_tools/audit_metadata.py",
+          "."
+        ],
+        "exit_code": 0,
+        "stdout": "METADATA_AUDIT_PASSED: 124 records, 27933 v3 file entries\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "_tools/qa_catalog.py",
+          ".",
+          "--metadata-only"
+        ],
+        "exit_code": 0,
+        "stdout": "CATALOG_QA_PASSED: 124 pages, 87 sampled previews, 87 insights.json, 87 background.json, guide page (48 links), HTTP=no, share not scanned\n",
+        "stderr": "warning: building-energy/annex81-six-buildings-v3/insights.json: 1.09 MB (> 1 MB)\n"
+      },
+      {
+        "command": [
+          "python3",
+          ".agents/scripts/check_harness.py"
+        ],
+        "exit_code": 0,
+        "stdout": "warn  .agents/rules/pdf-extraction.md: paths glob '*/*/extraction.json' matches no tracked file\nharness: 11 rule files, 8 skills, 0 problems, 1 warnings\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/home/habin/papers/worktrees/tmhp-catalog-archive-20261027/validation/registry/catalog-archive-20261027/validate.py",
+          "--payload",
+          "/home/habin/tmhp-archive-handoff-20261027/payload",
+          "--catalog-checkout",
+          "/home/habin/dataset-catalog-tmhp-20261027"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"sources\": 128, \"model_condition_records\": 890, \"purpose_rows\": 5340, \"field_rows\": 161, \"metadata_relationships\": \"passed\", \"staged_datasets\": 37, \"staged_files\": 43, \"staged_bytes\": 450867643, \"staged_hashes\": \"passed\", \"nas_registered\": false}\n",
+        "stderr": ""
+      }
+    ],
+    "ui": {
+      "new_pages": 37,
+      "widths": [
+        1440,
+        390
+      ],
+      "views": 74,
+      "http_errors": 0,
+      "horizontal_overflow": 0,
+      "screenshots": 6
+    },
+    "limits": [
+      "full numeric-table cross-check not complete",
+      "LG pilot 670/1423 different cells unresolved",
+      "warehouse not registered",
+      "NAS readonly/publickey authentication failure",
+      "metadata-only CI does not establish NAS publication"
+    ]
+  },
+  "limits": [
+    "full numeric-table cross-check not complete",
+    "LG pilot 670/1423 different cells unresolved",
+    "warehouse not registered",
+    "shared-root canonical verify for new IDs follows merge and shared metadata checkout update",
+    "metadata-only CI does not establish site publication"
+  ]
+}

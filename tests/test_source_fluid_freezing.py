@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
+from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler, OperatingLimitWarning, WaterSourceHeatPumpBoiler
 from tmhp.constants import c_w, k_w, mu_w, rho_w
 from tmhp.source_fluid import (
     FREEZE_MARGIN_K,
@@ -50,7 +50,12 @@ def _quiet(fn, *args, **kwargs):
 
 
 def _freezing_warnings(caught) -> list[str]:
-    return [str(w.message) for w in caught if "source-loop liquid" in str(w.message)]
+    """Operating-limit warnings that name the freezing limit (a steady point, or the summary of a dynamic run)."""
+    return [
+        str(w.message)
+        for w in caught
+        if issubclass(w.category, OperatingLimitWarning) and SOURCE_FLUID_FREEZING in str(w.message)
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -107,6 +112,7 @@ def test_default_machines_run_their_brine_rating_points(machines):
     for T_tank, cop_sys in ((35.0, 3.870), (55.0, 2.651)):
         with warnings.catch_warnings():
             warnings.simplefilter("error", RuntimeWarning)
+            warnings.simplefilter("error", OperatingLimitWarning)
             r = gshpb.analyze_steady(T_tank_w=T_tank, T_source=0.0, Q_ref_tank=8000.0)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["Q_ref_tank [W]"] == pytest.approx(8000.0)
@@ -222,7 +228,8 @@ def test_water_entering_below_its_limit_does_not_run(machines, family, T_source)
     assert r["efficiency_extrapolated"] is False and r["discharge_control"] is False
     assert math.isnan(r["x_ref_cmp_in [-]"]) and math.isnan(r["dT_ref_superheat [K]"])
     (message,) = _freezing_warnings(caught)
-    assert "3.0 °C" in message and "MPG-25%" in message
+    # The limit of the liquid in the loop, and a remedy that removes it.
+    assert "3.0 °C for water" in message and "antifreeze mixture" in message
 
 
 @pytest.mark.parametrize("family", list(BOILERS))
@@ -453,7 +460,11 @@ def test_dynamic_steps_are_reduced_or_off_and_warn_once(machines):
     cold = df.iloc[2:4]
     assert cold["hp_is_on"].all() and (cold["capacity_binding"] == SOURCE_FLUID_FREEZING).all()
     assert (cold["Q_ref_tank [W]"] < 0.9 * df["Q_ref_tank [W]"].iloc[0]).all()
+    # One summary at the end of the run: the off steps by reason, the reduced ones by binding.
     assert len(messages) == 1 and "analyze_dynamic" in messages[0]
+    assert "did not run on 2 of 6 steps" in messages[0] and "below the requested duty on 2 of 6 steps" in messages[0]
+    assert df.attrs["operating_limits"]["off_reasons"][SOURCE_FLUID_FREEZING]["steps [-]"] == 2
+    assert df.attrs["operating_limits"]["limited_bindings"][SOURCE_FLUID_FREEZING]["steps [-]"] == 2
     # A second run reports again, once.
     _, again = _run_wshpb(machine, [1.0, 1.0])
     assert len(again) == 1

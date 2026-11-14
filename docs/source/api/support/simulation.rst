@@ -38,6 +38,14 @@ Frost and defrost of an outdoor coil
     :undoc-members:
     :show-inheritance:
 
+Operating-limit warnings and summaries
+======================================
+
+.. automodule:: tmhp.operating_limits
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Simulation summary tables
 =========================
 

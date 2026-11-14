@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from tmhp import AirSourceHeatPumpBoiler
+from tmhp import AirSourceHeatPumpBoiler, OperatingLimitWarning
 from tmhp import air_source_heat_pump_boiler as ashpb_module
 from tmhp import calc_util as cu
 
@@ -94,7 +94,7 @@ def test_final_pr_clamped_condensing_temperature_cannot_be_at_loop_inlet(hp, mon
 
     monkeypatch.setattr(CP, "PropsSI", lambda *args: cu.C2K(50.0))
 
-    with pytest.warns(RuntimeWarning, match="t_cond_below_t_in"):
+    with pytest.warns(OperatingLimitWarning, match="t_cond_below_t_in"):
         result = hp.analyze_steady(T_tank_w=50.0, T0=45.0, Q_ref_tank=1000.0, m_dot_w=1.0)
 
     assert result["converged"] is False

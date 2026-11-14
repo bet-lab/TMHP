@@ -17,7 +17,7 @@ import math
 import numpy as np
 import pytest
 
-from tmhp import CyclingDegradation, GroundSourceHeatPump
+from tmhp import CyclingDegradation, GroundSourceHeatPump, OperatingLimitWarning
 from tmhp.air_properties import air_density
 from tmhp.constants import c_a
 from tmhp.cycling import (
@@ -161,7 +161,7 @@ def test_gshp_off_and_failed_rows_report_no_runtime(gshp):
     off = gshp.analyze_steady(Q_r_iu=0.0, T0=0.0, T_a_room=20.0)
     assert off[RUNTIME_FRACTION_KEY] == 0.0 and off[CAPACITY_RATIO_KEY] == 0.0
     assert off["Q_request [W]"] == 0.0 and off["Q_unmet [W]"] == 0.0
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(OperatingLimitWarning, match="does not run"):
         failed = gshp.analyze_steady(Q_r_iu=-4000.0, T0=0.0, T_a_room=20.0, T_bhe_wall=-40.0)
     assert failed["failure_reason"] != "none" and not failed["hp_is_on"]
     assert failed[RUNTIME_FRACTION_KEY] == 0.0 and failed["Q_unmet [W]"] == 4000.0

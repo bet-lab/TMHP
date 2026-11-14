@@ -63,7 +63,10 @@ from ._validation import validate_ctor, validate_dynamic, validate_initial_state
 from .air_properties import air_heat_capacity_rate
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
+    CONDENSING_TEMP_ABOVE_MAX,
     CYCLE_KEY,
+    DISCHARGE_TEMP_ABOVE_MAX,
+    ETA_ISEN_BELOW_MIN,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
@@ -128,6 +131,7 @@ from .enex_functions import (
 from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
 from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is_generic_fan_curve
+from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector, add_uv_power_to_e_tot
@@ -1722,6 +1726,22 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self._restore_request(result, Q_ref_tank)
         return result
 
+    def _refused_value(
+        self, failure_reason: str, refused_state: dict | None, pr_event: tuple[str, float, float] | None
+    ) -> float | None:
+        """The quantity that broke the limit at a refused operating point, for the warning text (``None``: unknown)."""
+        if failure_reason == "pr_above_max" and pr_event is not None and pr_event[0] == "pr_above_max":
+            return float(pr_event[1])
+        if refused_state is None:
+            return None
+        if failure_reason == DISCHARGE_TEMP_ABOVE_MAX:
+            return float(refused_state.get("T_ref_cmp_out [°C]", math.nan))
+        if failure_reason == CONDENSING_TEMP_ABOVE_MAX:
+            return float(getattr(self, "_condensing_refused_C", math.nan))
+        if failure_reason == ETA_ISEN_BELOW_MIN:
+            return float(refused_state.get("eta_cmp_isen [-]", math.nan))
+        return None
+
     def _report_part_load(self, result: dict, Q_ref_tank: float) -> None:
         """Write the cycling keys of an ``analyze_steady`` row; average it if the unit cycles.
 
@@ -1742,6 +1762,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         )
         self._complete_steady_result(result, Q_ref_tank)
 
+    @steady_notice()
     @remember_smallest_duty
     @steady_defrost(duty_arg="Q_ref_tank", outdoor_arg="T0", humidity_arg="RH_out")
     @steady_cycling(duty_arg="Q_ref_tank")
@@ -1893,9 +1914,18 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             runs (``capacity_clamped = "max"`` above); ``"cycle_invalid"``
             with no cycle at all (a condensing temperature at or above the
             critical point) is not reduced.
+
+        Warns
+        -----
+        OperatingLimitWarning
+            Once, when the compressor was asked to run and the result is the
+            off state (``failure_reason`` other than ``"none"``) or a running
+            point that delivers less than the request (``capacity_clamped ==
+            "max"``): the request, what is delivered, the limit in words and
+            what removes it. Issued once per model and limit unless the
+            ``"always"`` filter is set (:mod:`tmhp.operating_limits`).
         """
         validate_steady(locals())
-        import warnings
 
         # Empty flow state as steady state ignores dynamic withdrawal/refill
         flow_state = {
@@ -1934,32 +1964,20 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             # rejected like an infeasible one; see unphysical_cycle_detail.
             invalid_detail: str | None = None
             envelope_reason: str | None = None
+            refused_state: dict | None = None  # the solved state a check refuses, for the caller's warning
             if isinstance(result, dict) and result.get("hp_is_on") and result.get("converged", False):
                 invalid_detail = unphysical_cycle_detail(result, self.hp_capacity)
                 if invalid_detail is None:
                     envelope_reason = envelope_violation(result, self)
                 if invalid_detail is not None or envelope_reason is not None:
-                    result = None
+                    refused_state, result = result, None
 
-            # Pressure-ratio envelope hint for the final operating point
-            # (one message per call; per-probe events are silent). Floor ->
-            # clamp (cycle still solved); ceiling -> reject (HP-off fallback).
+            # Pressure-ratio envelope event of the final operating point.
+            # Floor -> the ratio is held on it and the cycle is solved (the
+            # row says so: ``pr_floor_active``); ceiling -> rejected, the off
+            # state with ``pr_above_max`` below. Nothing is printed.
             pr_event = self._last_pr_event
             cycle_failure_reason = self._last_cycle_failure_reason
-            if pr_event is not None:
-                kind, pr_val, bound = pr_event
-                if kind == "pr_below_min":
-                    print(
-                        f"[PR guard] clamp 하한(below PR_cycle_min): "
-                        f"PR={pr_val:.3f} -> {bound:.2f} "
-                        f"(T_tank_w={T_tank_w:.1f}°C, T0={T0:.1f}°C, Q_ref_tank={Q_ref_tank:.0f}W)"
-                    )
-                else:  # pr_above_max
-                    print(
-                        f"[PR guard] reject 상한(above PR_cycle_max): "
-                        f"PR={pr_val:.3f} > {bound:.2f} "
-                        f"(T_tank_w={T_tank_w:.1f}°C, T0={T0:.1f}°C, Q_ref_tank={Q_ref_tank:.0f}W)"
-                    )
 
             # Diagnose what (if anything) went wrong. failure_reason is a
             # *report*; the fallback trigger condition is preserved as
@@ -1993,18 +2011,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 if failure_reason == "hx_not_converged":
                     # Which fan limit the outdoor coil fails at every approach.
                     invalid_detail = getattr(opt_result, "failure_detail", None)
-                warnings.warn(
-                    f"analyze_steady: fell back to HP-off state "
-                    f"(reason={failure_reason!r}, "
-                    + (f"detail={invalid_detail!r}, " if invalid_detail else "")
-                    + f"T_tank_w={T_tank_w:.1f}°C, T0={T0:.1f}°C, "
-                    f"Q_ref_tank={Q_ref_tank:.0f}W, "
-                    f"opt_success={opt_success}, "
-                    f"opt_x={safe_float_attr(opt_result, 'x', float('nan')):.2f}, "
-                    f"opt_fun={safe_float_attr(opt_result, 'fun', float('nan')):.3g}). "
-                    "Consider calibrating UA_rated or increasing the explicit fan-flow maximum.",
-                    RuntimeWarning,
-                    stacklevel=2,
+                # Not a warning here: this solve may be a trial of a larger
+                # search. The call that owns the result words it
+                # (tmhp.operating_limits.steady_notice).
+                note_refusal(
+                    failure_reason,
+                    Q_ref_tank,
+                    self._refused_value(failure_reason, refused_state, pr_event),
+                    invalid_detail,
                 )
                 try:
                     result = self._calc_state(
@@ -2842,6 +2856,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     # Main dynamic simulation
     # =============================================================
 
+    @dynamic_notice
     def analyze_dynamic(
         self,
         simulation_period_sec: int,
@@ -2902,6 +2917,15 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             ``time [h]`` at the start of the step, and the same columns
             whatever the run did (a key a step has no value for is ``None``
             or NaN; a flow that does not run is 0).
+
+        Warns
+        -----
+        OperatingLimitWarning
+            Once, at the end of a run in which the compressor was called but
+            did not run on some step, or ran below the request: the steps by
+            limit and what they left unserved. The totals are in
+            ``df.attrs["operating_limits"]``
+            (:func:`tmhp.operating_limits.summarize_operating_limits`).
         """
         validate_dynamic(locals())
 

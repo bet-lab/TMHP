@@ -50,7 +50,10 @@ def test_default_raw_fit_reference_closes_despite_decreasing_low_speed_condenser
     # 20.884 rev/s before the validity-domain guard (issue #96): the rated point
     # (PR 7.40, ~21-25 rev/s) lies outside the fitting box on both axes, where
     # the raw quadratic was followed; the guarded fit gives eta_is 0.229 there.
-    assert state.rps_rated == pytest.approx(25.48516636708881, rel=1e-9)
+    # 25.485 rev/s while the rating point's source side was solved as water: the
+    # loop is the default 25 % ethylene glycol, whose 24 L/min carry 8 % less
+    # heat per kelvin, so the evaporator needs a larger approach (#96).
+    assert state.rps_rated == pytest.approx(25.55024770904721, rel=1e-9)
     expected_evap = state.condition.source.conductance * (state.condition.source.T_in_C - state.T_evap_sat_C)
     assert state.Q_cond == pytest.approx(8000, rel=1e-9)
     assert state.Q_evap == pytest.approx(expected_evap, rel=1e-9)
@@ -64,6 +67,7 @@ def _capacity_probe(mode, *, binding="cycle", other=80.0, ceiling_error=False, c
     """A failed request plus an independently controlled envelope candidate."""
     hp = object.__new__(AirSourceHeatPump)
     hp._last_pr_event = None
+    hp.ref = "R32"  # the finished row reports the condenser's dew point for its refrigerant
     hp._optimize_operation = lambda **_: SimpleNamespace(x=[5.0, 5.0], fun=OBJ_INFEASIBLE, success=True)
 
     def max_capacity(**_):

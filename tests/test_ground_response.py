@@ -8,6 +8,7 @@ import warnings
 
 import numpy as np
 import pytest
+from scipy.special import exp1
 
 gt = pytest.importorskip("pygfunction")
 
@@ -99,6 +100,59 @@ def test_generic_callable_step_mean_uses_quadrature():
     got = g_step_mean(g, np.array([0.0, 500.0]), 600.0)
     ref = [step_mean_quad(g, 0.0, 600.0), step_mean_quad(g, 500.0, 600.0)]
     np.testing.assert_allclose(got, ref, rtol=1e-8)
+
+
+def _line_source(t):
+    """Infinite line source ``E1(r_b²/4αt) / 4πk_s`` [m·K/W]."""
+    t = np.asarray(t, dtype=float)
+    out = np.zeros_like(t)
+    out[t > 0] = exp1(R_B**2 / (4.0 * ALPHA * t[t > 0])) / (4.0 * np.pi * K_S)
+    return out
+
+
+def _line_source_step_mean(tau: float, dt: float) -> float:
+    """Its mean over ``[tau, tau + dt]`` in closed form: ``∫_0^t E1(a/s) ds = (t + a) E1(a/t) − t e^{−a/t}``."""
+    a = R_B**2 / (4.0 * ALPHA)
+
+    def primitive(t: float) -> float:
+        return ((t + a) * float(exp1(a / t)) - t * math.exp(-a / t)) / (4.0 * np.pi * K_S) if t > 0 else 0.0
+
+    return (primitive(tau + dt) - primitive(tau)) / dt
+
+
+@pytest.mark.parametrize("dt", [900.0, 3600.0, 6 * 3600.0, 86400.0, 7 * 86400.0, 30 * 86400.0, YEAR])
+def test_generic_callable_first_step_matches_the_closed_form(dt):
+    """One 8-point rule on ``[0, dt]`` was up to 1e-3 off (5e-4 with daily steps)."""
+    assert float(g_step_mean(_line_source, 0.0, dt)) == pytest.approx(_line_source_step_mean(0.0, dt), rel=1e-8)
+    # A run window of the current step, and an interval that starts just after zero.
+    for tau, width in ((0.0, 0.25 * dt), (1e-3 * dt, dt), (0.5 * dt, dt)):
+        got = float(g_step_mean(_line_source, tau, width))
+        assert got == pytest.approx(_line_source_step_mean(tau, width), rel=1e-8), (tau, width)
+
+
+def test_generic_callable_later_steps_keep_the_single_rule():
+    """Only intervals with ``tau < dt`` are refined: every later lag is the 8-point value, bit for bit."""
+    dt = 86400.0
+    lags = np.arange(400) * dt
+    got = np.asarray(g_step_mean(_line_source, lags, dt))
+    nodes, weights = np.polynomial.legendre.leggauss(8)
+    points = lags[:, None] + 0.5 * dt * (nodes + 1.0)
+    single = 0.5 * _line_source(points.reshape(-1)).reshape(points.shape) @ weights
+    assert np.array_equal(got[1:], single[1:])
+    exact = np.array([_line_source_step_mean(float(tau), dt) for tau in lags])
+    np.testing.assert_allclose(got, exact, rtol=1e-8)
+    assert abs(single[0] - exact[0]) > 1e-4 * exact[0]  # what the single rule gave for the first step
+    assert got.shape == lags.shape and np.ndim(g_step_mean(_line_source, 0.0, dt)) == 0
+
+
+def test_coupler_with_a_callable_g_reports_the_first_daily_step():
+    dt, q, n = 86400.0, 20.0, 30
+    time = np.arange(n) * dt
+    coupler = AggregateGFunctionCoupler(_line_source)
+    coupler.reset(n, time, dt_s=dt)
+    rise = np.array([coupler.wall_temperature_rise(i, time, q) for i in range(n)])
+    exact = q * np.array([_line_source_step_mean(float(tau), dt) for tau in time])
+    np.testing.assert_allclose(rise, exact, rtol=1e-8)
 
 
 def test_hourly_means_do_not_depend_on_the_time_step():

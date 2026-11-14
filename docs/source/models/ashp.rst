@@ -235,6 +235,20 @@ the request, ``runtime_fraction [-]`` of 1). The operating-point search weighs
 the degradation, so the minimum-speed point may sit a few watts from the one
 found with ``Cd_cycling=None``.
 
+The minimum speed is not always the lower end of continuous operation. At a
+large lift the shipped isentropic-efficiency fit, read below its data, falls
+under the envelope's floor (``ETA_ISEN_MIN`` = 0.30,
+:doc:`../developer/reference-operating-limits`) before ``rps_min`` is reached:
+the default R134a unit at -25 °C outdoors and 24 °C indoors runs down to
+about 0.65 kW (frost-free) and no further. A request below that duty was
+answered with the unit switched off (``failure_reason ==
+"eta_isen_below_min"``) while a larger one ran. It is now met the same way as
+one below the minimum speed: the unit cycles at the smallest duty the
+envelope admits. The row has ``capacity_clamped == "min"``, ``Q_min [W]`` is
+that duty (found by bisection on the duty, to 0.5 %), and the compressor
+speed of the row is above ``rps_min``. ``eta_isen_below_min`` remains the
+reason where no larger duty runs either.
+
 **Above the maximum capacity** the unit runs flat out
 (``capacity_clamped == "max"``): ``Q_ref_iu [W]`` is the ceiling,
 ``Q_max [W]`` repeats it, ``capacity_binding`` names what set it and

@@ -148,12 +148,22 @@ class HXSide:
     constant-saturation-temperature surface (``Q = eps C dT``,
     ``eps = 1 - exp(-UA / C)``), or ``"tank"`` for the boiler condenser
     immersed in a lumped tank (``Q = UA dT``), as in the models' own cycles.
+
+    ``rho_cp`` is the stream's volumetric heat capacity ``rho c_p``
+    [J/(m³ K)]. Left out, the stream is standard air or water (the constants
+    of :mod:`tmhp.constants`). A source loop filled with an antifreeze
+    mixture is a ``"water"`` (liquid) side that carries the mixture's own
+    value -- ``SourceFluid.rho * SourceFluid.cp``, what the model's cycle
+    uses on that side -- so that the reference state and the cycle solve the
+    rating point with one heat capacity rate. (The default 25 % ethylene
+    glycol holds 8 % less heat per litre than water.)
     """
 
     fluid: Fluid
     T_in_C: float
     UA: float
     volume_flow: float | None = None
+    rho_cp: float | None = None
 
     def __post_init__(self) -> None:
         if not math.isfinite(self.T_in_C):
@@ -164,6 +174,8 @@ class HXSide:
             self.volume_flow is not None and math.isfinite(self.volume_flow) and self.volume_flow > 0
         ):
             raise ValueError("Rating reference flow must be positive and finite")
+        if self.rho_cp is not None and not (self.fluid != "tank" and math.isfinite(self.rho_cp) and self.rho_cp > 0):
+            raise ValueError("Rating stream rho_cp must be positive and finite (and is not used for a tank)")
 
     @property
     def conductance(self) -> float:
@@ -171,7 +183,10 @@ class HXSide:
         if self.fluid == "tank":
             return self.UA
         assert self.volume_flow is not None
-        C = (c_a * rho_a if self.fluid == "air" else c_w * rho_w) * self.volume_flow
+        rho_cp = self.rho_cp
+        if rho_cp is None:
+            rho_cp = c_a * rho_a if self.fluid == "air" else c_w * rho_w
+        C = rho_cp * self.volume_flow
         return C * (1.0 - math.exp(-self.UA / C))
 
 

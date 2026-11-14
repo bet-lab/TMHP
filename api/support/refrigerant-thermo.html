@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T14:06:27+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1626,8 +1626,7 @@ boilers, whose requested duty is fixed), a request that fails on a limit a
 smaller duty can cure (<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>) is retried at
 smaller duties; the largest one with an operating point is returned with
 <code class="docutils literal notranslate"><span class="pre">capacity_clamped='max'</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit,
-<code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (the request keys of the family hold
-the caller’s request). If no smaller duty runs, the original off-state
+<code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (the caller’s request). If no smaller duty runs, the original off-state
 result stands – unless the efficiency floor refused the request and a
 larger duty runs: the smallest such duty is then returned with
 <code class="docutils literal notranslate"><span class="pre">capacity_clamped='min'</span></code> (<a class="reference internal" href="#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">raise_duty_within_envelope()</span></code></a>), for the

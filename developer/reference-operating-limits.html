@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T14:06:27+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -203,7 +203,7 @@ data-aria-dark="Switch to auto color mode">
 maximum operating limit. <code class="docutils literal notranslate"><span class="pre">ref</span></code> denotes a fixed normalization point in flow
 scaling APIs. Physical/control limits use explicit <code class="docutils literal notranslate"><span class="pre">_min</span></code>/<code class="docutils literal notranslate"><span class="pre">_max</span></code> names;
 fixed operating commands use <code class="docutils literal notranslate"><span class="pre">_constant</span></code> or <code class="docutils literal notranslate"><span class="pre">_setpoint</span></code>. Ratios state their
-denominator, for example <code class="docutils literal notranslate"><span class="pre">ground_flow_ref_ratio</span></code> or <code class="docutils literal notranslate"><span class="pre">fan_flow_ratio_to_ref</span></code>.
+denominator, for example <code class="docutils literal notranslate"><span class="pre">ground_flow_ratio</span></code> or <code class="docutils literal notranslate"><span class="pre">fan_flow_ratio_to_ref</span></code>.
 Never change a normalization denominator when expanding an operating range.</p>
 <p>Existing thermodynamic identifiers containing <code class="docutils literal notranslate"><span class="pre">ref</span></code> (refrigerant), such as
 <code class="docutils literal notranslate"><span class="pre">T_ref_sat_K</span></code> and actual <code class="docutils literal notranslate"><span class="pre">m_dot_ref</span></code>, are thermodynamic states, not scaling
@@ -234,7 +234,7 @@ November 2026, see <a class="reference internal" href="../models/gshp.html"><spa
 attribute for compatibility, never the final candidate’s mutable state.</p>
 <p><code class="docutils literal notranslate"><span class="pre">analyze_steady(...,</span> <span class="pre">ground_flow_lpm=24)</span></code> forces an actual candidate; the
 previous <code class="docutils literal notranslate"><span class="pre">ground_flow_ratio</span></code> argument remains a deprecated ratio-to-reference
-adapter. Results expose <code class="docutils literal notranslate"><span class="pre">ground_flow</span> <span class="pre">[m3/s]</span></code>, <code class="docutils literal notranslate"><span class="pre">ground_flow_ref_ratio</span></code>,
+adapter. Results expose <code class="docutils literal notranslate"><span class="pre">ground_flow</span> <span class="pre">[m3/s]</span></code>, <code class="docutils literal notranslate"><span class="pre">ground_flow_ratio</span></code>,
 <code class="docutils literal notranslate"><span class="pre">ground_flow_at_min</span></code> and <code class="docutils literal notranslate"><span class="pre">ground_flow_at_max</span></code>. Historical result keys
 <code class="docutils literal notranslate"><span class="pre">dV_bhe_f</span> <span class="pre">[m3/s]</span></code> and <code class="docutils literal notranslate"><span class="pre">ground_flow_ratio</span></code> remain aliases. A failed candidate
 reports zero delivered flow and NaN ratio/COP, while retaining candidate diagnostics.</p>
@@ -292,8 +292,8 @@ cannot carry is answered as for a variable fan: ASHPB runs at the largest duty
 the coil carries (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span>
 <span class="pre">&quot;outdoor_coil&quot;</span></code>), GSHP and ASHP fail with <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span>
 <span class="pre">&quot;hx_not_converged&quot;</span></code>.</p>
-<p>A constant-speed fan sits at both limits, so both <code class="docutils literal notranslate"><span class="pre">fan_flow_min_limit</span></code> and
-<code class="docutils literal notranslate"><span class="pre">fan_flow_max_limit</span></code> (<code class="docutils literal notranslate"><span class="pre">iu_*</span></code> / <code class="docutils literal notranslate"><span class="pre">ou_*</span></code>) are true; the direction in which a
+<p>A constant-speed fan sits at both limits, so both <code class="docutils literal notranslate"><span class="pre">ou_fan_flow_min_limit</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ou_fan_flow_max_limit</span></code> (<code class="docutils literal notranslate"><span class="pre">iu_*</span></code> for an indoor fan) are true; the direction in which a
 coil duty misses is in <code class="docutils literal notranslate"><span class="pre">capacity_margin_W</span></code> of the coil solve. Fan power is the
 power curve evaluated at the flow ratio, so at the reference flow it is
 <code class="docutils literal notranslate"><span class="pre">curve(1)</span></code> times the reference power: 0.998262 for the default single-zone

@@ -98,6 +98,93 @@
      "nfs_read": true
     }
    ]
+  },
+  {
+   "verified_at": "2026-11-14T04:33:03.500137+00:00",
+   "scope": "air-to-water outdoor airflow sources",
+   "files": 11,
+   "smb_readback_sha256": "11/11 matched",
+   "nfs_read_sha256": "11/11 matched (re-read after NFS propagation delay; first read 0/11)",
+   "destination_preflight": "all dataset folders absent before upload",
+   "files_detail": [
+    {
+     "path": "energy-systems/meuk-ecodan-databook-puz-wz-vol1-0-source/files/source/MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0.pdf",
+     "bytes": 44665136,
+     "sha256": "d6cc1ca7c6bb2e2af75e15930c0031623de6c25bbf49b636bb42c56004077886",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/meuk-ecodan-databook-r290-r32-vol6-0-source/files/source/MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0.pdf",
+     "bytes": 77569477,
+     "sha256": "a6e42fa53a6e5e0dd93ae98645ccd68c9b924b0fd322b665b04e4f9b6cb23e01",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/nibe-s2125-14-ihb-en-2525-1-source/files/source/NIBE_S2125-14_IHB_EN_2525-1.pdf",
+     "bytes": 7655159,
+     "sha256": "530058ed939b65cf5c13f6aa9d20a9c575a7ae0ba357e57e3f536ce11c7e4707",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/nibe-s2125-ihb-en-2525-1-8-12-16-20-source/files/source/NIBE_S2125_IHB_EN_2525-1_8-12-16-20.pdf",
+     "bytes": 11265445,
+     "sha256": "6c0e7fee514577b53610a77951b6010721b952f1b30152a912dc0dba63346d9b",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/samsung-cs-gb-ae040rxedeg-source/files/source/SAMSUNG_CS_GB_AE040RXEDEG.html",
+     "bytes": 267429,
+     "sha256": "4ffade44018169c7905ee7a2724e50cbb8e044f77bde42b279302ef8c34e5279",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/samsung-cs-gb-ae050cxydek-source/files/source/SAMSUNG_CS_GB_AE050CXYDEK.html",
+     "bytes": 214551,
+     "sha256": "8ddb10ffc068703e0d03e5a0b85c7b0831b02049e9b010f5e7db29494e244ee3",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/samsung-cs-gb-ae060rxedeg-source/files/source/SAMSUNG_CS_GB_AE060RXEDEG.html",
+     "bytes": 267429,
+     "sha256": "b13ceec273aed4b775e947b6a92a4241c6e639e40e0a6231d842ab2f4ce5dd5b",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/samsung-cs-gb-ae080cxydek-source/files/source/SAMSUNG_CS_GB_AE080CXYDEK.html",
+     "bytes": 214829,
+     "sha256": "719f065fa6a2146829b19e4ea3c8dc3c77954ee362fb8cfe3504a6248d3718cd",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/samsung-cs-gb-ae090rxedeg-source/files/source/SAMSUNG_CS_GB_AE090RXEDEG.html",
+     "bytes": 275871,
+     "sha256": "fb6e75f9fc6fb0c31f2780f47fb190d24bb5992aa8859b40b948aad5c2e2ca6b",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/samsung-cs-gb-ae120cxydek-source/files/source/SAMSUNG_CS_GB_AE120CXYDEK.html",
+     "bytes": 214873,
+     "sha256": "a98307d87a9544812d7df4d85ada0f3bc24c45219c1bf5460bf21b42d70ea46c",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/samsung-cs-gb-ae160cxydek-source/files/source/SAMSUNG_CS_GB_AE160CXYDEK.html",
+     "bytes": 214873,
+     "sha256": "a327f18a37909a78656d4b54f2c7edd5bfbb21802ea9c9bb328079c143d1657f",
+     "smb_readback": true,
+     "nfs_read": true
+    }
+   ]
   }
  ]
 }

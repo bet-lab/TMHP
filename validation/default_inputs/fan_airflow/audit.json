@@ -1,10 +1,11 @@
 {
-  "records": 738,
-  "eligible": 670,
+  "records": 779,
+  "eligible": 706,
   "excluded": {
     "indoor rated/nominal airflow is the test airflow, not a maximum": 10,
     "no nominal capacity printed": 6,
     "floor_ceiling_convertible: indoor type ambiguous, not fitted": 36,
+    "no model-size capacity printed (A7/W35 row is EN 14511 partial load)": 5,
     "indoor airflow without a printed fan step is not a maximum": 16
   },
   "strata": {
@@ -15,10 +16,11 @@
     "airflow|heating|indoor|floor_standing": 26,
     "airflow|heating|indoor|wall_mounted": 131,
     "airflow|heating|indoor|water_to_air": 52,
+    "airflow|heating|outdoor|air_to_water": 36,
     "airflow|heating|outdoor|single_split": 125
   },
-  "source_count": 22,
-  "data_sha256": "d2defd6a4c6b6c916dd68459886c353ac32520e371d6eb0fa25bee46bd79c97f",
+  "source_count": 33,
+  "data_sha256": "435ecd76566e4883dc5044f66cb2846a1021bcda88101184d85a739ac11345b8",
   "is_latest_release": true,
   "all_checks_passed": true
 }

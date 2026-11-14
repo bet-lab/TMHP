@@ -75,3 +75,15 @@ def test_airflow_refuses_missing_or_ungated_strata():
             _, mode, side, product = key.split("|")
             with pytest.raises(ValueError, match="shipping gate"):
                 estimate_max_airflow(3500.0, side=side, product=product, mode=mode)
+
+
+@pytest.mark.parametrize(
+    ("side", "product", "mode", "capacity"),
+    [("indoor", "water_to_air", "cooling", 10500.0), ("outdoor", "air_to_water", "heating", 8000.0)],
+)
+def test_new_product_class_strata_are_shipped(side, product, mode, capacity):
+    """GSHP indoor and ASHPB outdoor classes have their own catalogue strata (#86 decision 4)."""
+    estimate = estimate_max_airflow(capacity, side=side, product=product, mode=mode)
+    assert 0.2 < estimate.value < 2.0
+    assert not estimate.extrapolated
+    assert len(estimate.source_ids) >= 2

@@ -773,5 +773,195 @@
         "nested_family_MAPE_pct": 16.426061488023393
       }
     }
+  },
+  {
+    "version": "fan-airflow-v2026-11-14e",
+    "date": "2026-11-14",
+    "data_sha256": "435ecd76566e4883dc5044f66cb2846a1021bcda88101184d85a739ac11345b8",
+    "records": 779,
+    "eligible": 706,
+    "errata_applied": 5,
+    "changes": [
+      "airflow|heating|outdoor|air_to_water: added"
+    ],
+    "note": "air-to-water outdoor stratum: Mitsubishi Ecodan (7 families) and Samsung EHS (2 families), x = model-size heating capacity; NIBE recorded, excluded (no model-size capacity)",
+    "groups": {
+      "airflow|cooling|indoor|floor_standing": {
+        "n": 26,
+        "manufacturers": [
+          "Daikin",
+          "Fujitsu",
+          "Mitsubishi Electric"
+        ],
+        "capacity_range_W": [
+          2400.0,
+          13600.0
+        ],
+        "selected_law": {
+          "kind": "proportional",
+          "a": 0.04250598241909443
+        },
+        "nested_family_RMSE": 0.04893051973120702,
+        "nested_family_MAPE_pct": 12.797696581080947
+      },
+      "airflow|cooling|indoor|wall_mounted": {
+        "n": 130,
+        "manufacturers": [
+          "Daikin",
+          "Fujitsu",
+          "LG",
+          "Mitsubishi Electric",
+          "Panasonic"
+        ],
+        "capacity_range_W": [
+          1500.0,
+          9671.345309999999
+        ],
+        "selected_law": {
+          "kind": "linear",
+          "a": 0.03204107373864972,
+          "b": 0.10350835349541901
+        },
+        "nested_family_RMSE": 0.040506294403945084,
+        "nested_family_MAPE_pct": 12.901282363517646
+      },
+      "airflow|cooling|indoor|water_to_air": {
+        "n": 52,
+        "manufacturers": [
+          "ClimateMaster",
+          "Daikin Applied",
+          "Enertech Global",
+          "WaterFurnace"
+        ],
+        "capacity_range_W": [
+          4689.137119999999,
+          21628.644966
+        ],
+        "selected_law": {
+          "kind": "linear",
+          "a": 0.049109066490394496,
+          "b": 0.13045183734755236
+        },
+        "nested_family_RMSE": 0.0753329349843951,
+        "nested_family_MAPE_pct": 9.591309644382786
+      },
+      "airflow|cooling|outdoor|single_split": {
+        "n": 128,
+        "manufacturers": [
+          "Fujitsu",
+          "LG",
+          "Mitsubishi Electric",
+          "Panasonic"
+        ],
+        "capacity_range_W": [
+          1500.0,
+          13600.0
+        ],
+        "selected_law": {
+          "kind": "linear",
+          "a": 0.10840271695646415,
+          "b": 0.1776229204750964
+        },
+        "nested_family_RMSE": 0.15812348964371759,
+        "nested_family_MAPE_pct": 14.494412451803178
+      },
+      "airflow|heating|indoor|floor_standing": {
+        "n": 26,
+        "manufacturers": [
+          "Daikin",
+          "Fujitsu",
+          "Mitsubishi Electric"
+        ],
+        "capacity_range_W": [
+          3200.0,
+          16000.0
+        ],
+        "selected_law": {
+          "kind": "linear",
+          "a": 0.03302115963628598,
+          "b": 0.04015705134678007
+        },
+        "nested_family_RMSE": 0.048109648729562006,
+        "nested_family_MAPE_pct": 10.938090573020515
+      },
+      "airflow|heating|indoor|wall_mounted": {
+        "n": 131,
+        "manufacturers": [
+          "Daikin",
+          "Fujitsu",
+          "LG",
+          "Mitsubishi Electric",
+          "Panasonic"
+        ],
+        "capacity_range_W": [
+          2000.0,
+          11200.0
+        ],
+        "selected_law": {
+          "kind": "linear",
+          "a": 0.031187542939473758,
+          "b": 0.0949850203569232
+        },
+        "nested_family_RMSE": 0.04506949650302232,
+        "nested_family_MAPE_pct": 12.389414689710938
+      },
+      "airflow|heating|indoor|water_to_air": {
+        "n": 52,
+        "manufacturers": [
+          "ClimateMaster",
+          "Daikin Applied",
+          "Enertech Global",
+          "WaterFurnace"
+        ],
+        "capacity_range_W": [
+          3370.317305,
+          16939.507846
+        ],
+        "selected_law": {
+          "kind": "power",
+          "a": 0.11584561389687512,
+          "b": 0.823991127374524
+        },
+        "nested_family_RMSE": 0.07138615748690551,
+        "nested_family_MAPE_pct": 8.247025937869811
+      },
+      "airflow|heating|outdoor|air_to_water": {
+        "n": 36,
+        "manufacturers": [
+          "Mitsubishi Electric",
+          "Samsung"
+        ],
+        "capacity_range_W": [
+          3000.0,
+          16000.0
+        ],
+        "selected_law": {
+          "kind": "power",
+          "a": 0.22015398808245054,
+          "b": 0.6726159912971565
+        },
+        "nested_family_RMSE": 0.21629530098174818,
+        "nested_family_MAPE_pct": 19.587079685443765
+      },
+      "airflow|heating|outdoor|single_split": {
+        "n": 125,
+        "manufacturers": [
+          "Fujitsu",
+          "LG",
+          "Mitsubishi Electric",
+          "Panasonic"
+        ],
+        "capacity_range_W": [
+          2000.0,
+          16000.0
+        ],
+        "selected_law": {
+          "kind": "proportional",
+          "a": 0.1224237624808853
+        },
+        "nested_family_RMSE": 0.1439317230430908,
+        "nested_family_MAPE_pct": 16.426061488023393
+      }
+    }
   }
 ]

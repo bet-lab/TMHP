@@ -1,6 +1,6 @@
 {
-  "version": "fan-airflow-v2026-11-14d",
-  "data_sha256": "d2defd6a4c6b6c916dd68459886c353ac32520e371d6eb0fa25bee46bd79c97f",
+  "version": "fan-airflow-v2026-11-14e",
+  "data_sha256": "435ecd76566e4883dc5044f66cb2846a1021bcda88101184d85a739ac11345b8",
   "law_capacity_unit": "kW",
   "output_unit": "m3/s",
   "meaning": "largest published fan airflow (High/Max step, or the single printed outdoor value)",
@@ -253,6 +253,41 @@
         "ENERTECH-20D455-11NN-VSVT",
         "WATERFURNACE-SC2500AN",
         "WATERFURNACE-SC2700ANC"
+      ]
+    },
+    "airflow|heating|outdoor|air_to_water": {
+      "selected_law": {
+        "kind": "power",
+        "a": 0.22015398808245054,
+        "b": 0.6726159912971565
+      },
+      "capacity_range_W": [
+        3000.0,
+        16000.0
+      ],
+      "n": 36,
+      "n_families": 9,
+      "manufacturers": [
+        "Mitsubishi Electric",
+        "Samsung"
+      ],
+      "nested_family_cv": {
+        "n": 36,
+        "MAPE_pct": 19.587079685443765,
+        "RMSE": 0.21629530098174818,
+        "bias_pct": 6.871047591769887
+      },
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0",
+        "MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0",
+        "SAMSUNG_CS_GB_AE040RXEDEG",
+        "SAMSUNG_CS_GB_AE050CXYDEK",
+        "SAMSUNG_CS_GB_AE060RXEDEG",
+        "SAMSUNG_CS_GB_AE080CXYDEK",
+        "SAMSUNG_CS_GB_AE090RXEDEG",
+        "SAMSUNG_CS_GB_AE120CXYDEK",
+        "SAMSUNG_CS_GB_AE160CXYDEK"
       ]
     },
     "airflow|heating|outdoor|single_split": {

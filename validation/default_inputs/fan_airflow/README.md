@@ -5,6 +5,19 @@ floor-standing indoor units of 1:1 single splits and their outdoor units (ASHP);
 pumps (`indoor_type=water_to_air`, GSHP indoor side); air-to-water outdoor units (`indoor_type=air_to_water`,
 outdoor rows, ASHPB). Ducted and cassette split indoor units are out of scope (user decision 2026-10-26).
 
+Air-to-water outdoor units (added 2026-11-14):
+
+- `capacity_text` is the **model size**: the heating capacity the manufacturer declares as the unit's size (user decision
+  2026-11-14), read exactly as printed. Mitsubishi defines it as the heating reference capacity (Partload1) at A2/W35
+  (Ecodan R290/R32 databook Vol.6.0) or at A-7/W35 (PUZ-WZ databook Vol.1.0); Samsung prints the kW class. The printed
+  A7/W35 EN 14511 rating is often a reduced or part-load point (e.g. PUZ-WZ100 5.80 kW against a 10.0 kW reference
+  capacity) and is kept in `note`. The model number is not decoded (SUZ-SWM80 is 7.5 kW as printed).
+- NIBE S2125 prints no model-size capacity (its A7/W35 row is EN 14511 partial load); its rows are recorded and excluded.
+- Outdoor airflow is the single printed value (`airflow_basis=single_value`), taken as the maximum per the README rule;
+  no source with a model-size capacity prints an explicit maximum, so the explicit-max sensitivity is unavailable here.
+- Samsung pages come from samsung-climatesolutions.com, accepted as official (operated by Samsung Electronics Air
+  Conditioner Europe B.V. / Samsung Electronics Limited per its privacy notice; linked from samsung.com).
+
 Water-to-air units (added 2026-11-14):
 
 - Capacity is the ISO 13256-1 ground-loop (GLHP) full-load rating printed in the same document.

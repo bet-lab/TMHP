@@ -149,8 +149,9 @@ def main() -> None:
                 row.point,
                 (row.plr, row.cop),
                 textcoords="offset points",
-                xytext=(0, 7),
+                xytext=(0, -5),
                 ha="center",
+                va="top",
                 fontsize=dm.fs(-2),
                 color=COLORS["ink"],
             )

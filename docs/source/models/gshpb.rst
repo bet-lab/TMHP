@@ -600,6 +600,23 @@ refrigerant:
   (a coil in the top node only), the compressor stops when that water
   reaches ``T_cond``: the row's ``runtime_fraction``, heat and power are cut
   to what was delivered and the thermostat call stands.
+- The water around the coil can reach the envelope stop (the tank
+  temperature at which the nameplate duty condenses on ``T_cond_max``,
+  above) while the mean the thermostat reads is still below the set point.
+  The in-step thermostat stops the compressor when the coil's condensing
+  level reaches the limit: after the run time at the nameplate duty that
+  trial steps of the node model give for it (not at a mean temperature: with
+  a large draw the coil's water warms while the mean falls). While the call
+  stands it then holds the coil's water there: it runs the share of the rest
+  of the step that delivers the heat the water loses (to the draw, the nodes
+  below, the wall). The row is a normal
+  one (``failure_reason == "none"``, ``hp_stop_reason ==
+  "condensing_limit"``), and the condensing temperature never needs to go
+  above the limit. Before, each such step was an off row with
+  ``condensing_temp_above_max`` and two or three cycle solves, and the
+  results depended on the step (a top coil, R290, 6 h: 353 of 360 steps at
+  60 s, 30 of 36 at 600 s); the heat delivered now agrees from 60 s to 600 s
+  steps (0.2738 kWh in that run).
 
 The thermostat reads the volume-average temperature ``T_tank_w [°C]``, so
 on/off timing and delivered heat follow the lumped tank; with a coil that

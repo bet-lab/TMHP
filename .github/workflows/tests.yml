@@ -14,11 +14,14 @@ concurrency:
 env:
   UV_PYTHON: "3.12"
 
+# Every job runs on GitHub-hosted ubuntu-24.04, for pull requests and main pushes
+# alike. TMHP is public, so hosted runners cost nothing and never queue behind the
+# lab's self-hosted machines (2026-11-14: main pushes pinned to ml-main queued for
+# about four hours while the same checks on PRs were green).
 jobs:
   lint-type:
     name: Static analysis
-    # Public PR checks use an isolated GitHub-hosted runner; trusted events keep ml-main.
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04"]' || '["self-hosted", "ml-main"]') }}
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
@@ -44,8 +47,7 @@ jobs:
 
   test-scope:
     name: Pytest matrix scope
-    # Public PR checks use an isolated GitHub-hosted runner; trusted events keep ml-main.
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04"]' || '["self-hosted", "ml-main"]') }}
+    runs-on: ubuntu-24.04
     outputs:
       run-matrix: ${{ steps.changed-files.outputs.run-matrix }}
     steps:
@@ -69,8 +71,9 @@ jobs:
           changed_files="$(git diff --name-only "$base_sha" "$head_sha")"
 
           # docs/ and validation/ are inputs to tests (test_docs_alignment,
-          # test_validation_docs_alignment, test_docs_examples read them).
-          if printf '%s\n' "$changed_files" | grep -E '^README\.md$|^src/|^tests/|^scripts/|^docs/|^validation/|^pyproject\.toml$|^uv\.lock$|^\.github/workflows/tests\.yml$' >/dev/null; then
+          # test_validation_docs_alignment, test_docs_examples read them), and
+          # every workflow file is read by test_ci_workflow_acceleration.
+          if printf '%s\n' "$changed_files" | grep -E '^README\.md$|^src/|^tests/|^scripts/|^docs/|^validation/|^pyproject\.toml$|^uv\.lock$|^\.github/workflows/' >/dev/null; then
             echo "run-matrix=true" >> "$GITHUB_OUTPUT"
           else
             echo "run-matrix=false" >> "$GITHUB_OUTPUT"
@@ -79,8 +82,7 @@ jobs:
   test:
     needs: test-scope
     if: needs.test-scope.outputs.run-matrix == 'true'
-    # Public PR checks use an isolated GitHub-hosted runner; trusted events keep ml-main.
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04"]' || '["self-hosted", "ml-main"]') }}
+    runs-on: ubuntu-24.04
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     strategy:
@@ -127,8 +129,7 @@ jobs:
 
   docs:
     # Sphinx output is Python-version-independent; run once and gate PRs on it.
-    # Public PR checks use an isolated GitHub-hosted runner; trusted events keep ml-main.
-    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04"]' || '["self-hosted", "ml-main"]') }}
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:

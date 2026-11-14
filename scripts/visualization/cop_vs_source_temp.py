@@ -8,6 +8,14 @@ source-temperature envelope obvious next to the ASHP's wide but
 COP-eroding one.
 
 Operating point: tank water 55 °C, condenser duty 8 kW.
+
+The figure is about how the *cycle* responds to the source temperature, so
+both units are built with :data:`CYCLE_SETTINGS`: no on-off averaging below
+the minimum capacity (``Cd_cycling=None``) and, for the air-source unit, no
+frost or defrost (``defrost=False``; with the shipped default the ASHP curve
+also carries the frost band's capacity and defrost penalty between about
+-7 and +5 °C). The compressor envelope stays on: where it binds, the point is
+left out rather than drawn.
 """
 
 from __future__ import annotations
@@ -22,10 +30,15 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, record_figure, static_path  # noqa: E402
 
 T_TANK_W = 55.0  # °C — typical DHW set-point
 Q_COND = 8_000  # W
+
+#: Constructor arguments of both units: the running cycle (no on-off
+#: averaging), no frost. ``defrost`` applies to the air-source unit only.
+CYCLE_SETTINGS: dict = {"Cd_cycling": None}
+ASHP_SETTINGS: dict = {**CYCLE_SETTINGS, "defrost": False}
 
 # Sweep ranges chosen to match each technology's realistic envelope.
 T_AMB_RANGE = np.linspace(-15.0, 30.0, 19)
@@ -43,7 +56,7 @@ def _cop_or_nan(result: dict | None) -> float:
 
 def sweep_ashp() -> tuple[np.ndarray, np.ndarray]:
     """ASHP system COP as a function of outdoor air temperature."""
-    ashpb = AirSourceHeatPumpBoiler(ref="R32")
+    ashpb = AirSourceHeatPumpBoiler(ref="R32", **ASHP_SETTINGS)
     cops = []
     for t in T_AMB_RANGE:
         res = ashpb.analyze_steady(T_tank_w=T_TANK_W, T0=float(t), Q_ref_tank=Q_COND)
@@ -57,6 +70,7 @@ def sweep_gshp() -> tuple[np.ndarray, np.ndarray]:
     # response, not the long-term ground response.
     gshpb = GroundSourceHeatPumpBoiler(
         ref="R410A",
+        **CYCLE_SETTINGS,
         N_1=1,
         N_2=1,
         H_b=100.0,
@@ -122,6 +136,13 @@ def main() -> None:
     out = static_path("cop_vs_source_temp.svg").with_suffix("")
     finalize(fig, out)
     plt.close(fig)
+    record_figure(
+        "cop_vs_source_temp",
+        "scripts/visualization/cop_vs_source_temp.py",
+        {"ASHPB": {"ref": "R32", **ASHP_SETTINGS}, "GSHPB": {"ref": "R410A", **CYCLE_SETTINGS}},
+        "system COP of the running cycle against heat-source temperature, 55 °C tank, 8 kW",
+        {"T_amb_C": t_amb, "cop_ashp": cop_ashp, "T_source_C": t_src, "cop_gshp": cop_gshp},
+    )
     print(f"wrote {out}.svg")
 
 

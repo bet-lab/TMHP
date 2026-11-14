@@ -176,6 +176,34 @@ def static_path(name: str) -> Path:
     return out
 
 
+def record_figure(name: str, script: str, model_settings: dict, question: str, data: dict) -> Path:
+    """Write ``docs/source/_static/provenance/<name>.json`` for a figure drawn from the model.
+
+    The record names the script, the commit and source trees it ran on, the
+    model settings the figure chose, and ``data``: the plotted values, so
+    ``tests/test_study_results_current.py`` can recompute a few of them and
+    say when the figure no longer shows what the model does.
+    """
+    import sys
+
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from validation import study_provenance
+
+    path = static_path(f"provenance/{name}.json")
+    study_provenance.write(
+        path,
+        script,
+        [static_path(f"{name}.svg")],
+        model_settings,
+        question,
+        command=f"python {script}",
+        extra={"data": data},
+    )
+    return path
+
+
 # Named tokens used across the docs figures. Keeping them here means every
 # figure shares the same accent, refrigerant phase colours, and dim grey,
 # which makes the gallery read as a single design system instead of seven

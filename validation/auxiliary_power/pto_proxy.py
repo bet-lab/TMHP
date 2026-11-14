@@ -575,6 +575,18 @@ def main() -> None:
 
     if "fig" in want:
         figures(da, das, dw, res_s, res_a, res_w, plr, w_fit, chosen)
+    from validation import study_provenance
+
+    study_provenance.write(
+        OUT_DIR / "provenance.json",
+        "validation/auxiliary_power/pto_proxy.py",
+        sorted(p for p in OUT_DIR.iterdir() if p.suffix in (".csv", ".json") and p.name != "provenance.json"),
+        {
+            "plr_cop_with_pto_proxy": f"post-processing of {APPENDIX_D_CSV.relative_to(REPO_ROOT)} (its own model settings)"
+        },
+        "is the measured thermostat-off power large enough to change the low-load COP behaviour",
+        command="python -m validation.auxiliary_power.pto_proxy" + (f" --only {' '.join(a.only)}" if a.only else ""),
+    )
     print("wrote", OUT_DIR)
 
 

@@ -1,7 +1,7 @@
 """Monkeypatch that adds a refrigerant-side resistance to the coil UA.
 
 The production model scales the coil UA with **airflow only**
-(``hx_fan.calc_UA_from_dV_fan``: ``UA = UA_rated (v/v_rated)^n``).  This module
+(``heat_exchanger.calc_UA_from_dV_fan``: ``UA = UA_rated (v/v_rated)^n``).  This module
 replaces that law, at runtime and only inside a sensitivity script, with a
 two-resistance series model (plan Sec. 7-8)::
 
@@ -34,7 +34,7 @@ from __future__ import annotations
 import sys
 
 import tmhp.air_source_heat_pump as _ashp
-import tmhp.enex_functions as _ef
+import tmhp.heat_exchanger as _hx
 
 __all__ = ["install", "set_law", "state", "selftest"]
 
@@ -48,13 +48,18 @@ state: dict = {
     "x_ref_min": float("inf"),
 }
 
-_orig_ua = _ef.calc_UA_from_dV_fan
+#: The law the coil solver calls (``calc_HX_perf_for_target_heat`` looks it up in
+#: ``tmhp.heat_exchanger``; patching the re-export in ``enex_functions`` -- as this
+#: module once did -- leaves the solver untouched and every variant equal to the baseline).
+_orig_ua = _hx.calc_UA_from_dV_fan
 _orig_hx = _ashp.calc_HX_perf_for_target_heat
 _installed = False
 
 
-def _ua_series(dV_fan, dV_fan_rated, A_cross, UA, exponent=0.71):
+def _ua_series(dV_fan, dV_fan_rated=None, A_cross=None, UA=None, exponent=0.71, *, dV_fan_ref=None):
     """Two-resistance UA law; identical to the original when ``f_ref == 0``."""
+    if dV_fan_rated is None:
+        dV_fan_rated = dV_fan_ref
     v = dV_fan / A_cross if A_cross > 0 else 0.0
     v_rated = dV_fan_rated / A_cross if A_cross > 0 else 0.0
     x_air = (v / v_rated) if v_rated > 0 else 0.0
@@ -102,7 +107,7 @@ def install() -> None:
     global _installed
     if _installed:
         return
-    _ef.calc_UA_from_dV_fan = _ua_series  # type: ignore[assignment]
+    _hx.calc_UA_from_dV_fan = _ua_series  # type: ignore[assignment]
     _ashp.calc_HX_perf_for_target_heat = _hx_shim  # type: ignore[assignment]
     _installed = True
 

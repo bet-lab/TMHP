@@ -17,7 +17,7 @@ import CoolProp.CoolProp as CP
 import dartwork_mpl as dm
 import matplotlib.pyplot as plt
 import numpy as np
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, static_path
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, record_figure, static_path
 
 from tmhp import AirSourceHeatPumpBoiler
 
@@ -25,6 +25,10 @@ REF = "R32"
 T_TANK_W = 60.0  # °C
 T0 = 12.0  # °C
 Q_COND = 8_000  # W
+
+#: The cycle at this point, nothing averaged over it: no on-off averaging
+#: below the minimum capacity, no frost or defrost (neither is a cycle state).
+CYCLE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
 
 OUTPUT_STEM: Path = static_path("mollier_cycle_R32.svg").with_suffix("")
 
@@ -147,7 +151,7 @@ def _draw_cycle(ax, pts: dict[str, tuple[float, float]], label_offsets: dict[str
 def main() -> None:
     apply_style("report", hashsalt="tmhp.visualization.mollier-cycle-r32")
 
-    ashpb = AirSourceHeatPumpBoiler(ref=REF)
+    ashpb = AirSourceHeatPumpBoiler(ref=REF, **CYCLE_SETTINGS)
     result = ashpb.analyze_steady(T_tank_w=T_TANK_W, T0=T0, Q_ref_tank=Q_COND)
     assert isinstance(result, dict)
 
@@ -208,6 +212,23 @@ def main() -> None:
     panel_letter(ax_th, "b")
 
     finalize(fig, OUTPUT_STEM)
+    record_figure(
+        "mollier_cycle_R32",
+        "scripts/visualization/mollier_cycle_R32.py",
+        {"ref": REF, **CYCLE_SETTINGS},
+        f"R32 cycle nodes at T_tank_w {T_TANK_W} °C, T0 {T0} °C, {Q_COND} W",
+        {
+            k: result.get(k)
+            for k in [
+                "cop_sys [-]",
+                "E_cmp [W]",
+                "Q_ref_tank [W]",
+                "T_ref_evap_sat [°C]",
+                "T_ref_cond_sat_v [°C]",
+                "T_ref_cmp_out [°C]",
+            ]
+        },
+    )
     print(f"wrote {OUTPUT_STEM}.svg")
 
 

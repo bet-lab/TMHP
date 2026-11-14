@@ -106,6 +106,24 @@ returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
 outdoor approach with the fan at its lowest flow, a running-machine COP of
 4.27 where the floor offers 5.29.
 
+The minimum speed is not always the lower end of continuous operation. At a
+large lift the shipped isentropic-efficiency fit, read below its data, falls
+under the envelope's floor (``ETA_ISEN_MIN`` = 0.30,
+:doc:`../developer/reference-operating-limits`) before ``rps_min`` is reached:
+the default 15 kW R290 unit at −7 °C outdoors against a 65 °C tank runs down
+to about 3.8 kW (frost-free) and no further, R134a at −15 °C against 40 °C to
+2.5 kW. A request below that duty was answered with the unit switched off
+(``failure_reason == "eta_isen_below_min"``) while a larger one ran. It is now
+met the same way as one below the minimum speed, and as :doc:`ashp` does: the
+unit cycles at the smallest duty the envelope admits. The row has
+``capacity_clamped == "min"``, ``Q_min [W]`` is that duty (found by bisection
+on the duty, to 0.5 %; the same for every request below it), and the
+compressor speed of the row is above ``rps_min``. With ``Cd_cycling=None`` the
+row is that continuous point, which delivers more than the request.
+``eta_isen_below_min`` remains the reason where no larger duty runs either, or
+another limit refuses a larger duty first. A dynamic step is not affected: its
+thermostat runs the compressor at the nameplate duty.
+
 ``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
 for an untested unit), ``1 − P_off / P_on`` for a unit with a measured standby
 power, ``1.0`` for loss-free cycling, and ``None`` for the continuous

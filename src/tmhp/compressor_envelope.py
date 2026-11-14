@@ -75,7 +75,12 @@ Discharge temperature (``T_dis_max``)
     answer every limit a smaller duty cures this way -- the pressure-ratio
     ceiling, the source heat exchanger's range and the efficiency floor as
     well (:func:`duty_reduction_binding`); ``capacity_binding`` names the
-    limit.
+    limit. The efficiency floor also has a lower side: towards low speed the
+    shipped fit falls below it while larger duties run. A boiler's
+    ``analyze_steady`` answers a request refused there with the smallest duty
+    that runs (:func:`raise_duty_within_envelope`, ``capacity_clamped='min'``),
+    which is then reported as the mean of on/off cycling like a request below
+    the minimum speed.
 
 Condensing pressure (``T_cond_max``)
     The top of every published envelope is a maximum condensing temperature,
@@ -179,7 +184,7 @@ import inspect
 import io
 import math
 import warnings
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from functools import lru_cache, wraps
 from typing import Any, Literal, TypeVar, cast
 
@@ -236,6 +241,9 @@ __all__ = [
     "efficiency_extrapolated_at",
     "steady_envelope",
     "reduce_duty_within_envelope",
+    "raise_duty_within_envelope",
+    "remembering_smallest_duties",
+    "remember_smallest_duty",
     "X_SUCTION_MIN_DEFAULT",
     "resolve_x_suction_min",
     "discharge_controlled",
@@ -1161,6 +1169,21 @@ _REDUCIBLE_CYCLE_DETAIL: Mapping[str, str] = {"discharge_state_undefined": BINDI
 #: brackets the duties that run (:func:`_between_reasons`).
 _CURED_BY_MORE_DUTY = frozenset({DISCHARGE_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN, "cycle_invalid"})
 
+#: Duties tried, as fractions of the nameplate and from the bottom, to find one
+#: that runs above a request the efficiency floor refuses
+#: (:func:`raise_duty_within_envelope`; the ladder of
+#: :class:`~tmhp.AirSourceHeatPump`'s own search).
+_RAISE_LADDER = (0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0)
+#: Relative width at which the bisection for the smallest continuous duty stops.
+_RAISE_REL_TOL = 5e-3
+#: Refusals of a request that :func:`raise_duty_within_envelope` answers with
+#: the smallest duty that runs. Only the efficiency floor: it is a statement
+#: about the shipped fit towards low speed, which a larger duty leaves behind.
+_RAISED_OVER = frozenset({ETA_ISEN_BELOW_MIN})
+#: Model attribute holding the smallest continuous rows found while
+#: :func:`remembering_smallest_duties` is active (``None`` outside it).
+_SMALLEST_DUTY_MEMO = "_smallest_duty_memo"
+
 
 def duty_reduction_binding(result: Mapping[str, Any], bindings: Mapping[str, str] | None = None) -> str | None:
     """The limit a failed fixed-duty result ran into, if a smaller duty may run; else ``None``.
@@ -1553,6 +1576,173 @@ def reduce_duty_within_envelope(
     return reduced
 
 
+@contextlib.contextmanager
+def remembering_smallest_duties(model: Any) -> Iterator[None]:
+    """Reuse the rows of :func:`raise_duty_within_envelope` while the block runs.
+
+    The smallest continuous duty belongs to the condition, not to the request.
+    One ``analyze_steady`` call can solve the same condition at several duties
+    (the frost balance of :func:`tmhp.defrost.steady_defrost`); inside the
+    block the search runs once per condition. The memory ends with the block,
+    because the model may be changed between calls.
+    """
+    outer = getattr(model, _SMALLEST_DUTY_MEMO, None)
+    if outer is None:
+        setattr(model, _SMALLEST_DUTY_MEMO, {})
+    try:
+        yield
+    finally:
+        setattr(model, _SMALLEST_DUTY_MEMO, outer)
+
+
+def remember_smallest_duty(function: _F) -> _F:
+    """Decorate an ``analyze_steady`` so that its trial solves share :func:`remembering_smallest_duties`.
+
+    Outermost: above the frost correction, whose solves at other duties are
+    the ones that share the search.
+    """
+
+    @wraps(function)
+    def wrapped(self: Any, *args: Any, **kwargs: Any) -> Any:
+        with remembering_smallest_duties(self):
+            return function(self, *args, **kwargs)
+
+    # ``analyze_steady.__wrapped__`` stays the undecorated solve.
+    wrapped.__wrapped__ = getattr(function, "__wrapped__", function)  # type: ignore[attr-defined]
+    return cast(_F, wrapped)
+
+
+def _as_smallest_duty(model: Any, running: Mapping[str, Any], request: float) -> dict:
+    """``running`` as the row of a ``request`` below it: ``capacity_clamped='min'`` and the caller's request."""
+    floor = dict(running)
+    floor["capacity_clamped"] = "min"
+    floor["Q_request [W]"] = request
+    for key in _REQUEST_KEYS:
+        if key in floor:
+            floor[key] = request
+    if "PLR_request [-]" in floor and getattr(model, "hp_capacity", 0) > 0:
+        floor["PLR_request [-]"] = request / model.hp_capacity
+    return floor
+
+
+def _condition_key(arguments: Mapping[str, Any], duty_arg: str) -> object:
+    """Everything an ``analyze_steady`` call was given but the duty, as a dictionary key (``None`` if unhashable)."""
+    items = tuple((name, value) for name, value in arguments.items() if name not in ("self", duty_arg, "return_dict"))
+    try:
+        hash(items)
+    except TypeError:
+        return None
+    return items
+
+
+def _remembered_smallest_duty(
+    model: Any, result: Mapping[str, Any], request: float, delivered_key: str, condition: object
+) -> dict | None:
+    """The smallest continuous row already found at this condition, for a request the floor refuses below it."""
+    memo = getattr(model, _SMALLEST_DUTY_MEMO, None)
+    if memo is None or condition is None or condition not in memo:
+        return None
+    if result.get("failure_reason") not in _RAISED_OVER or not request < _delivered(memo[condition], delivered_key):
+        return None
+    return _as_smallest_duty(model, memo[condition], request)
+
+
+def raise_duty_within_envelope(
+    model: Any,
+    result: dict,
+    solve: Callable[[float], Any],
+    request: float,
+    delivered_key: str = "Q_ref_tank [W]",
+    condition: object = None,
+) -> dict:
+    """The smallest duty with an operating point when the efficiency floor refuses the request from below.
+
+    The counterpart of :func:`reduce_duty_within_envelope`. The compressor's
+    speed floor is not the only lower end of continuous operation: where the
+    shipped isentropic fit, extrapolated towards low speed, falls below
+    :data:`ETA_ISEN_MIN` before ``rps_min`` is reached (a large lift), the
+    envelope refuses every duty below the one at which the fit crosses the
+    floor, while larger duties run. A unit does not stay off there: it runs
+    at the smallest duty the envelope admits and switches off when the tank
+    has had enough, exactly as it does below its minimum speed.
+
+    ``result`` is the solve at ``request``, refused with
+    :data:`ETA_ISEN_BELOW_MIN` after no smaller duty ran; ``solve(q)`` solves
+    the same point at duty ``q``. A ladder of duties above the request
+    (:data:`_RAISE_LADDER`, fractions of ``model.hp_capacity``) finds one that
+    runs and a bisection closes on the smallest (to :data:`_RAISE_REL_TOL`).
+    That continuous row is returned with ``capacity_clamped='min'`` and the
+    caller's request in its request keys: it delivers more than the request,
+    and :func:`tmhp.cycling.steady_cycling` averages it over the on/off period
+    like a minimum-speed row (``Q_min [W]`` is its duty). ``result`` is
+    returned unchanged when a duty above the request is refused for another
+    reason before one runs, or none runs. A trial at the compressor's speed
+    ceiling (it delivers less than its duty) bounds the search from above but
+    is not returned. The trial solves run silently.
+
+    ``condition`` identifies the operating condition (everything but the
+    duty); with it and inside :func:`remembering_smallest_duties` the row
+    found is reused for every smaller request at the same condition.
+    """
+    capacity = float(getattr(model, "hp_capacity", math.nan))
+    if not (
+        request > 0
+        and math.isfinite(request)
+        and capacity > 0
+        and math.isfinite(capacity)
+        and result.get("failure_reason") in _RAISED_OVER
+    ):
+        return result
+    refusal = result.get("failure_reason")
+    remembered = _remembered_smallest_duty(model, result, request, delivered_key, condition)
+    if remembered is not None:
+        return remembered
+    memo = getattr(model, _SMALLEST_DUTY_MEMO, None)
+
+    def trial(q: float) -> tuple[dict | None, dict]:
+        with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
+            warnings.simplefilter("ignore")
+            out = solve(q)
+        out = out if isinstance(out, dict) else {}
+        return (out if _running(out) else None), out
+
+    # The bracket is made of ladder rungs and their midpoints, never of the
+    # request: every request below the duty found gets the same row. A duty at
+    # or below the request needs no solve (the floor refuses it as well).
+    q_lo, q_hi, running = 0.0, math.nan, None
+    for fraction in _RAISE_LADDER:
+        q = fraction * capacity
+        if not q > request:
+            q_lo = q
+            continue
+        state, out = trial(q)
+        if state is not None:
+            if state.get("capacity_clamped") is None:
+                q_hi, running = q, state
+            elif state.get("capacity_clamped") == "max" and _delivered(state, delivered_key) > q_lo:
+                # The compressor's ceiling lies below this rung: the smallest
+                # continuous duty, if there is one, is below what it delivers.
+                q_hi = _delivered(state, delivered_key)
+            break
+        if out.get("failure_reason") != refusal:
+            return result  # another limit is in the way: not a lower end of continuous operation
+        q_lo = q
+    if not math.isfinite(q_hi):
+        return result
+    while q_hi - q_lo > _RAISE_REL_TOL * q_hi:
+        mid = 0.5 * (q_lo + q_hi)
+        state = None if mid <= request else trial(mid)[0]
+        if state is not None and state.get("capacity_clamped") is None:
+            q_hi, running = mid, state
+        else:
+            q_lo = mid
+    if running is None:
+        return result
+    if memo is not None and condition is not None:
+        memo[condition] = dict(running)
+    return _as_smallest_duty(model, running, request)
+
+
 def _condensing_limit_binds(model: Any, result: Mapping[str, Any], solve_again: Callable[[], Any]) -> bool:
     """Whether a capacity ceiling the family could not name is the condensing limit.
 
@@ -1600,7 +1790,11 @@ def steady_envelope(
     ``capacity_clamped='max'``, ``capacity_binding`` naming the limit,
     ``Q_max [W]`` and ``Q_request [W]`` (the request keys of the family hold
     the caller's request). If no smaller duty runs, the original off-state
-    result stands. The trial solves run silently. ``bindings`` renames a
+    result stands -- unless the efficiency floor refused the request and a
+    larger duty runs: the smallest such duty is then returned with
+    ``capacity_clamped='min'`` (:func:`raise_duty_within_envelope`), for the
+    cycling decorator outside this one to average. The trial solves run
+    silently. ``bindings`` renames a
     ``capacity_binding`` for the family (:func:`duty_reduction_binding`).
     """
 
@@ -1639,7 +1833,13 @@ def steady_envelope(
                     trial = inspect.BoundArguments(signature, arguments)  # type: ignore[arg-type]
                     return function(*trial.args, **trial.kwargs)
 
-                result = reduce_duty_within_envelope(self, result, solve, request, delivered_key, bindings)
+                condition = _condition_key(bound.arguments, duty_arg)
+                remembered = _remembered_smallest_duty(self, result, request, delivered_key, condition)
+                if remembered is not None:
+                    result = remembered
+                else:
+                    result = reduce_duty_within_envelope(self, result, solve, request, delivered_key, bindings)
+                    result = raise_duty_within_envelope(self, result, solve, request, delivered_key, condition)
             _annotate(self, result)
             if want_dict:
                 return result

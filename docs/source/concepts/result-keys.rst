@@ -86,7 +86,7 @@ are an operating point, a reduced one, a time average, or placeholders.
       - ``"none"`` or why a requested point has no operating point; the row then holds off-state placeholders. Values: :doc:`failure-reason-semantics`.
     * - ``capacity_clamped``
       - all
-      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP also when it was below the smallest duty the envelope's efficiency floor admits); ``"max"`` when the unit delivers less than asked.
+      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP and the boilers' ``analyze_steady`` also when it was below the smallest duty the envelope's efficiency floor admits); ``"max"`` when the unit delivers less than asked.
     * - ``capacity_binding``
       - all
       - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` on every other row.
@@ -148,7 +148,7 @@ What was asked for, what was delivered, and how a request outside the modulation
       - On a ``"max"`` row, the duty delivered (the ceiling); in a boiler's dynamic step the running machine's, not the step average (``Q_ref_tank [W]`` is ``Q_max [W]`` times ``runtime_fraction [-]``). NaN on every other row.
     * - ``Q_min [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
-      - On a ``"min"`` row, the duty of continuous operation at the minimum speed. NaN otherwise.
+      - On a ``"min"`` row, the duty of continuous operation at the minimum speed (or at the smallest duty the envelope's efficiency floor admits, where that is larger). NaN otherwise.
     * - ``Q_ref_tank_request [W]``
       - ASHPB
       - ASHPB: the ``Q_ref_tank`` argument, on every row (dynamic: as ``Q_request [W]``). Compare with ``Q_ref_tank [W]`` on a ``"max"`` row.

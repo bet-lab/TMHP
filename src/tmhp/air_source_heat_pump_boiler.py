@@ -66,6 +66,7 @@ from .compressor_envelope import (
     envelope_violation,
     limit_tank_setpoints_to_envelope,
     reduce_duty_within_envelope,
+    remember_smallest_duty,
     resolve_condensing_temp_max,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
@@ -1733,6 +1734,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         )
         self._complete_steady_result(result, Q_ref_tank)
 
+    @remember_smallest_duty
     @steady_defrost(duty_arg="Q_ref_tank", outdoor_arg="T0", humidity_arg="RH_out")
     @steady_cycling(duty_arg="Q_ref_tank")
     @steady_envelope(duty_arg="Q_ref_tank", bindings=_CAPACITY_BINDINGS)
@@ -1786,7 +1788,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               the discharge exceeds ``T_dis_max``),
               ``"condensing_temp_above_max"`` (even a reduced duty condenses
               above ``T_cond_max``: the tank is too hot), ``"eta_isen_below_min"``
-              (the shipped isentropic fit, extrapolated, is below 0.30),
+              (the shipped isentropic fit, extrapolated, is below 0.30, and
+              no larger duty runs either: a request that is only too small
+              for the floor is a ``"min"`` point, below),
               ``"hx_not_converged"``, or ``"optimizer_failed"``.
             - ``"failure_detail"`` (str, failures only) — on
               ``"cycle_invalid"``, which check of
@@ -1798,7 +1802,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               ``"outdoor_coil_no_band"``).
             - ``"capacity_clamped"`` (str | None) — ``"min"`` when the
               requested duty was below what the compressor delivers at
-              ``rps_min`` and the cycle was solved at that floor instead,
+              ``rps_min`` and the cycle was solved at that floor instead (or
+              below the smallest duty the envelope's efficiency floor admits,
+              where the shipped fit falls under 0.30 before ``rps_min`` is
+              reached: the cycle is then solved at that duty, above
+              ``rps_min``),
               ``"max"`` for the corresponding ceiling case, ``None`` when the
               request was met exactly. A clamped point is **converged**: the
               request simply lay outside the machine's deliverable band, which
@@ -1827,7 +1835,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             - ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
               ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
               ``"E_cycling_loss [W]"`` — on every row. A request below the
-              duty at ``rps_min`` (``capacity_clamped == "min"``) is reported
+              smallest continuous duty (``capacity_clamped == "min"``) is reported
               as the mean of on/off cycling: ``Q_ref_tank [W]`` equals the
               request (``Q_min [W]`` is the continuous duty), heat and
               refrigerant rates are the running machine's times

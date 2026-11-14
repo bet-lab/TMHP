@@ -1267,7 +1267,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 "capacity_clamped": capacity_clamped,
                 "iu_fan_flow_min_limit": iu_hx.get("min_limit", False),
                 "iu_fan_flow_max_limit": iu_hx.get("max_limit", False),
-                "err_Q_evap [W]": err_Q_evap,
+                "source_hx_residual [W]": err_Q_evap,
                 # Temperatures [°C]
                 "T_iu_a_in [°C]": T_a_room,
                 "T_iu_a_mid [°C]": T_iu_a_mid,
@@ -1285,9 +1285,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 "dV_bhe_f [m3/s]": loop["dV"] if is_active else 0.0,
                 "m_dot_ref [kg/s]": m_dot_ref,
                 "cmp_rpm [rpm]": cmp_rps * 60,
-                "cmp_rps [rev/s]": cmp_rps,
                 "n_star [-]": cmp_rps / self.rps_rated,
-                "pressure_ratio": ratio_P_cmp,
+                "pr_cmp [-]": ratio_P_cmp,
                 "pr_floor_active": self._last_pr_event is not None and self._last_pr_event[0] == "pr_below_min",
                 # Energy rates [W]
                 "E_iu_fan [W]": E_iu_fan,
@@ -1310,9 +1309,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 # duty includes refrigerant work, not those external losses.
                 "E_cmp_ref [W]": E_cmp_ref,
                 "E_cmp_loss [W]": E_cmp_loss,
-                "eta_is [-]": val_eta_isen,
-                "eta_v [-]": val_eta_vol,
-                "eta_em [-]": val_eta_em,
+                "eta_cmp_isen [-]": val_eta_isen,
+                "eta_cmp_vol [-]": val_eta_vol,
+                "eta_cmp [-]": val_eta_em,
                 "UA_ground_rated [W/K]": UA_ground_rated,
                 "UA_iu_rated [W/K]": UA_iu_rated,
                 "E_tot [W]": E_tot,
@@ -1772,7 +1771,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     return "invalid", None, g, T_out
                 g = max(lo, approach_at(0.5 * (last_sat + bad_sat), T_out))
                 continue
-            residual = float(row["err_Q_evap [W]"])
+            residual = float(row["source_hx_residual [W]"])
             tolerance = max(0.01, 1e-5 * abs(float(row["Q_ref_ground [W]"])))
             if wall_K is None:
                 T_next = T_out

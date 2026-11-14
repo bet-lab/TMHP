@@ -411,7 +411,7 @@ def test_off_rows_carry_no_performance_figures(run: str, request: pytest.Fixture
         assert df.loc[off, key].isna().all(), key
         assert df.loc[~off, key].notna().all(), key
     # Compressor descriptors of a stopped machine: absent (NaN) or zero.
-    for key in ("eta_cmp_isen [-]", "cmp_rps [rev/s]", "cmp_rpm [rpm]", "pr_cmp [-]"):
+    for key in ("eta_cmp_isen [-]", "cmp_rpm [rpm]", "pr_cmp [-]"):
         if key in df.columns:
             values = df.loc[off, key].to_numpy(dtype=float)
             assert np.all(np.isnan(values) | (values == 0.0)), key

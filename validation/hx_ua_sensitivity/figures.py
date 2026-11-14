@@ -33,6 +33,7 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     GRIDLINE,
     HAIRLINE,
     apply_style,
+    cover_data_ylim,
     finalize,
     panel_letter,
     ticks,
@@ -179,8 +180,9 @@ def _fit_step(values, step: float, pad: float = 0.0) -> tuple[float, float, floa
 def _axis(ax, values, ylabel: str, step: float, *, title=None, legend=None, ncol=1) -> None:
     lo, hi, step = _fit_step(values, step)
     ax.set_ylabel(ylabel)
-    ax.set_ylim(lo, hi)
-    ax.set_yticks(ticks(lo, hi, step))
+    # The range follows the modulating rows; widen it only where a drawn curve
+    # (a floor row, another case) would otherwise leave the axes.
+    cover_data_ylim(ax, lo, hi, step)
     if title:
         ax.set_title(title, fontsize=dm.fs(-2), loc="left")
     if legend:

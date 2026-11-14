@@ -37,6 +37,16 @@ Passes
 Pass 1 with ``R32`` must reproduce a default-constructed model bit for bit;
 that regression gate runs before anything is written.
 
+Since the library sizes the compressor by capacity alone
+(:func:`tmhp.compressor_speed.default_displacement`) and lets the refrigerant
+set the rated speed instead, the displacement "the library derives for" a
+fluid is the same for every fluid, and the two passes coincide; both are kept
+so the comparison reads the same as before.
+
+Every model is the running cycle (:data:`CYCLE_SETTINGS`): no on-off
+averaging below the speed floor (``Cd_cycling=None``) and no frost
+(``defrost=False``).
+
 Run::
 
     uv run python3 -m validation.refrigerant_only_plr_cop.simulate [--jobs 16]
@@ -86,23 +96,18 @@ FIT_DOMAIN_PR = (1.5, 7.3)
 #: Fan-flow lower bound hard-coded in the HX routines.
 FAN_FLOOR = 0.05
 
+#: Constructor arguments of every model: the running cycle, no frost.
+CYCLE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
+
 _MODELS: dict = {}
 
 
 # ---------------------------------------------------------------------------
 # model construction
 # ---------------------------------------------------------------------------
-def _rated_point(model_class: str):
-    from tmhp.compressor_speed import RATED_POINT_AIR_TO_AIR, RATED_POINT_AIR_TO_WATER
-
-    return RATED_POINT_AIR_TO_AIR if model_class == "ASHP" else RATED_POINT_AIR_TO_WATER
-
-
 def displacement(model_class: str, capacity: float, ref: str) -> float:
-    """Displacement the library derives for ``ref`` on this equipment class."""
-    from tmhp.compressor_speed import default_displacement
-
-    return float(default_displacement(capacity, ref, _rated_point(model_class)))
+    """Displacement the library derives for ``ref`` on this equipment class (read off a default model)."""
+    return float(_model(model_class, capacity, ref, None).V_cmp_ref)
 
 
 def _model(model_class: str, cap: float, ref: str, v_cmp: float | None):
@@ -118,7 +123,7 @@ def _model(model_class: str, cap: float, ref: str, v_cmp: float | None):
     if key not in _MODELS:
         cls = AirSourceHeatPump if model_class == "ASHP" else AirSourceHeatPumpBoiler
         kw = {} if v_cmp is None else {"V_cmp_ref": v_cmp}
-        _MODELS[key] = cls(hp_capacity=cap, ref=ref, **kw)
+        _MODELS[key] = cls(hp_capacity=cap, ref=ref, **CYCLE_SETTINGS, **kw)
     return _MODELS[key]
 
 
@@ -145,7 +150,7 @@ def run_point(task: dict) -> dict:
         e_iu_fan = float("nan")
         fan_ou = _num(r, "dV_ou_a [m3/s]") / m.dV_fan_a_rated
         fan_iu = float("nan")
-        fan_floor_ou = bool(r.get("fan_flow_min_limit", False)) or fan_ou <= FAN_FLOOR * 1.01
+        fan_floor_ou = bool(r.get("ou_fan_flow_min_limit", False)) or fan_ou <= FAN_FLOOR * 1.01
         fan_floor_iu = False
     else:
         sign = -1.0 if heating else 1.0
@@ -436,7 +441,7 @@ def main() -> None:
         "n_rows": int(len(out)),
         "n_failures": int((out.failure_reason != "none").sum()),
         "n_speed_floor": int((out.speed_bound == "min").sum()),
-        "n_fan_floor_ou": int(out.fan_floor_ou.sum()),
+        "n_fan_floor_ou": int(out.fan_floor_ou.astype("boolean").fillna(False).sum()),
         "fit_domain_n_star": list(FIT_DOMAIN_N_STAR),
         "fit_domain_pr": list(FIT_DOMAIN_PR),
         "coefficient_version": str(out.coefficient_version.iloc[0]),
@@ -445,6 +450,16 @@ def main() -> None:
     print(json.dumps({k: meta[k] for k in ("n_rows", "n_failures", "n_speed_floor", "coefficient_version")}, indent=2))
     print(f"wrote {OUT_DIR / CSV_NAME}")
     print(f"wrote {OUT_DIR / METRICS_NAME}")
+    from validation import study_provenance
+
+    study_provenance.write(
+        OUT_DIR / "provenance.json",
+        "validation/refrigerant_only_plr_cop/",
+        sorted(p for p in OUT_DIR.iterdir() if p.suffix in (".csv", ".json") and p.name != "provenance.json"),
+        {**CYCLE_SETTINGS, "cases": CASES, "refrigerants": REFRIGERANTS},
+        "how the part-load curve of the running cycle depends on the refrigerant alone",
+        command="python -m validation.refrigerant_only_plr_cop.simulate && python -m validation.refrigerant_only_plr_cop.figures",
+    )
 
 
 if __name__ == "__main__":

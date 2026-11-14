@@ -32,7 +32,7 @@ from tmhp import ASHPB_PV_ESS
 from tmhp.subsystems import EnergyStorageSystem, PhotovoltaicSystem
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, record_figure, static_path  # noqa: E402
 
 SIM_HOURS = 24
 DT_S = 60
@@ -88,26 +88,48 @@ def _clearsky_irradiance(n: int) -> tuple[np.ndarray, np.ndarray]:
     return i_dn, i_dh
 
 
-def main() -> None:
-    apply_style("report", hashsalt="tmhp.visualization.pv-ess-energy-balance")
+def simulate():
+    """The documented ``ASHPB_PV_ESS`` call with library defaults for the heat pump.
 
+    The page shows what the documented construction does, so the figure
+    follows the defaults on purpose and is redrawn when they change;
+    ``tests/test_study_results_current.py`` checks the recorded daily ledger
+    against a fresh run.
+    """
     pv = PhotovoltaicSystem(A_pv=A_PV_M2)
     ess = EnergyStorageSystem(C_ess_max=C_ESS_J)
     model = ASHPB_PV_ESS(pv=pv, ess=ess, ref="R32")
-
-    dhw = _dhw_profile(N_STEPS)
-    t0 = _t0_profile(N_STEPS)
     i_dn, i_dh = _clearsky_irradiance(N_STEPS)
-
-    df = model.analyze_dynamic(
+    return model.analyze_dynamic(
         simulation_period_sec=SIM_HOURS * 3600,
         dt_s=DT_S,
         T_tank_w_init_C=50.0,
-        dhw_usage_schedule=dhw,
-        T0_schedule=t0,
+        dhw_usage_schedule=_dhw_profile(N_STEPS),
+        T0_schedule=_t0_profile(N_STEPS),
         I_DN_schedule=i_dn,
         I_dH_schedule=i_dh,
     )
+
+
+def daily_totals(df) -> dict:
+    """What the record keeps of a run: the daily ledger [kWh]."""
+    dt_h = DT_S / 3600.0
+    return {
+        key: float(df[col].fillna(0.0).sum() * dt_h / 1000.0)
+        for key, col in (
+            ("E_pv_out_kWh", "E_pv_out [W]"),
+            ("E_cmp_kWh", "E_cmp [W]"),
+            ("E_grid_import_kWh", "E_grid_import [W]"),
+            ("E_ess_chg_kWh", "E_ess_chg [W]"),
+            ("E_ess_dis_kWh", "E_ess_dis [W]"),
+        )
+    }
+
+
+def main() -> None:
+    apply_style("report", hashsalt="tmhp.visualization.pv-ess-energy-balance")
+
+    df = simulate()
 
     t_h = np.arange(len(df)) * DT_S / 3600.0
     e_pv = df["E_pv_out [W]"].to_numpy() / 1_000.0
@@ -230,6 +252,13 @@ def main() -> None:
     out = static_path("pv_ess_energy_balance.svg").with_suffix("")
     finalize(fig, out, margin="3%")
     plt.close(fig)
+    record_figure(
+        "pv_ess_energy_balance",
+        "scripts/visualization/pv_ess_energy_balance.py",
+        {"ref": "R32", "A_pv_m2": A_PV_M2, "C_ess_J": C_ESS_J, "settings": "library defaults (the documented call)"},
+        "the daily PV/ESS/grid ledger of the documented ASHPB_PV_ESS call",
+        daily_totals(df),
+    )
     print(f"wrote {out}.svg")
 
 

@@ -17,7 +17,9 @@ for a manufacturer map, and three times over:
     prescribed -- the models solve it from the requested duty -- so the duty is
     swept and the speed the solver returns is used as the abscissa, which is
     the same curve read the other way round.  Rows where the solver hit the
-    speed floor or ceiling are dropped: there the abscissa stops moving.
+    speed floor or ceiling are dropped: there the abscissa stops moving.  The
+    models are built with ``sweep.CYCLE_SETTINGS`` (the running cycle: no
+    on-off averaging below the floor, no frost).
 
 Output: ``validation/data/fixed_boundary_plr/speed_sweep.csv`` and the figure
 ``F9_cop_vs_speed`` next to the coefficient archive.
@@ -56,6 +58,7 @@ from tmhp.compressor_efficiency_legacy import (  # noqa: E402
     eta_isen_default,
     make_eta_em,
 )
+from validation.fixed_boundary_plr.sweep import CYCLE_SETTINGS, write_provenance  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "validation" / "data" / "fixed_boundary_plr"
@@ -116,7 +119,7 @@ def air_to_water() -> pd.DataFrame:
     rows = []
     for tank in A2W_TANK:
         for outdoor in A2W_OUTDOOR:
-            model = AirSourceHeatPumpBoiler(hp_capacity=A2W_CAPACITY, ref=A2W_REF)
+            model = AirSourceHeatPumpBoiler(hp_capacity=A2W_CAPACITY, ref=A2W_REF, **CYCLE_SETTINGS)
             for f in A2W_FRACTIONS:
                 r = model.analyze_steady(T_tank_w=tank, T0=outdoor, Q_ref_tank=A2W_CAPACITY * f, return_dict=True)
                 assert isinstance(r, dict)
@@ -141,7 +144,7 @@ def air_to_air() -> pd.DataFrame:
     rows = []
     for outdoor in A2A_OUTDOOR:
         for room in A2A_ROOM:
-            model = AirSourceHeatPump(hp_capacity=A2A_CAPACITY, ref=A2A_REF)
+            model = AirSourceHeatPump(hp_capacity=A2A_CAPACITY, ref=A2A_REF, **CYCLE_SETTINGS)
             for f in A2A_FRACTIONS:
                 r = model.analyze_steady(
                     Q_r_iu=A2A_CAPACITY * f, T0=outdoor, T_a_room=room, return_dict=True, verbose=False
@@ -264,6 +267,7 @@ def main() -> None:
         interior = ((peaks.n_star > span["min"] + 1e-6) & (peaks.n_star < span["max"] - 1e-6)).sum()
         print(f"   COP peak strictly inside each curve's own speed range: {interior}/{len(peaks)} conditions")
         print(peaks.join(span, rsuffix="_range")[["min", "max", "n_star", "cop"]].round(2).to_string())
+    write_provenance()
     print(f"\n-> {out_csv}")
 
 

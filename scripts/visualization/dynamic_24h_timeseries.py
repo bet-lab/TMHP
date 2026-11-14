@@ -25,7 +25,7 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, record_figure, static_path  # noqa: E402
 
 SIM_HOURS = 24
 DT_S = 60  # 1-minute step
@@ -51,21 +51,42 @@ def _ambient_profile(n: int) -> np.ndarray:
     return 7.0 + 6.0 * np.sin((t_h - 9.0) * np.pi / 12.0)
 
 
-def main() -> None:
-    apply_style("report", hashsalt="tmhp.visualization.dynamic-24h")
+def simulate():
+    """The documented call, run as the getting-started page shows it: library defaults.
 
+    The figure illustrates what ``AirSourceHeatPumpBoiler(ref="R32")`` does, so
+    it follows the defaults on purpose (on-off operation below the minimum
+    capacity, frost and defrost, the condensing-temperature cap) and is
+    redrawn when they change; ``tests/test_study_results_current.py`` checks
+    the recorded daily totals against a fresh run.
+    """
     ashpb = AirSourceHeatPumpBoiler(ref="R32")
-
-    dhw = _dhw_profile(N_STEPS)
-    t0 = _ambient_profile(N_STEPS)
-
     df = ashpb.analyze_dynamic(
         simulation_period_sec=SIM_HOURS * 3600,
         dt_s=DT_S,
         T_tank_w_init_C=T_INIT_C,
-        dhw_usage_schedule=dhw,
-        T0_schedule=t0,
+        dhw_usage_schedule=_dhw_profile(N_STEPS),
+        T0_schedule=_ambient_profile(N_STEPS),
     )
+    return ashpb, df
+
+
+def daily_totals(df) -> dict:
+    """What the record keeps of a run: daily heat and electricity [kWh], end tank temperature."""
+    dt_h = DT_S / 3600.0
+    return {
+        "Q_ref_tank_kWh": float(df["Q_ref_tank [W]"].fillna(0.0).sum() * dt_h / 1000.0),
+        "E_cmp_kWh": float(df["E_cmp [W]"].fillna(0.0).sum() * dt_h / 1000.0),
+        "E_tot_kWh": float(df["E_tot [W]"].fillna(0.0).sum() * dt_h / 1000.0),
+        "T_tank_w_end_C": float(df["T_tank_w [°C]"].iloc[-1]),
+        "hp_on_steps": int(df["hp_is_on"].fillna(False).astype(bool).sum()),
+    }
+
+
+def main() -> None:
+    apply_style("report", hashsalt="tmhp.visualization.dynamic-24h")
+
+    ashpb, df = simulate()
 
     t_h = np.arange(len(df)) * DT_S / 3600.0
     q_cond_kw = df["Q_ref_tank [W]"].to_numpy() / 1_000.0
@@ -158,6 +179,13 @@ def main() -> None:
     out = static_path("dynamic_24h_timeseries.svg").with_suffix("")
     finalize(fig, out, margin="3%")
     plt.close(fig)
+    record_figure(
+        "dynamic_24h_timeseries",
+        "scripts/visualization/dynamic_24h_timeseries.py",
+        {"ref": "R32", "settings": "library defaults (the documented call)"},
+        "a 24 h run of the documented ASHPB call with two DHW draws",
+        daily_totals(df),
+    )
     print(f"wrote {out}.svg")
 
 

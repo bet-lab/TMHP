@@ -1,0 +1,38 @@
+{
+ "script": "scripts/visualization/mollier_ts_R32.py",
+ "command": "python scripts/visualization/mollier_ts_R32.py",
+ "question": "R32 cycle nodes at T_tank_w 60.0 °C, T0 12.0 °C, 8000 W, on a T-s plane",
+ "model_settings": {
+  "ref": "R32",
+  "Cd_cycling": null,
+  "defrost": false
+ },
+ "outputs": [
+  "docs/source/_static/mollier_ts_R32.svg"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "7ac51600cde1d1ab8fbaa095e6212707daca2e18",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "70e02579b1efb0dfee1550da81d5385febd23ab5",
+ "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-14T04:16:32+00:00",
+ "data": {
+  "cop_sys [-]": 2.8590187387244375,
+  "E_cmp [W]": 2720.663199504221,
+  "Q_ref_tank [W]": 8000.000000000001,
+  "T_ref_evap_sat [°C]": 7.235259654773813,
+  "T_ref_cond_sat_v [°C]": 62.666666666666686,
+  "T_ref_cmp_out [°C]": 138.3661664961424
+ }
+}

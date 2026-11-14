@@ -14,8 +14,16 @@ version, Python/CoolProp/platform, time); the summary refuses units whose
 records disagree and the manifest carries what they share.
 `tests/test_validation_results_current.py` fails when the code no longer
 reproduces the committed numbers. Other result folders under `results/`
-and `data/` are dated studies; check their own provenance before using them for
-a current system-COP comparison. Coil-based capacity,
+and `data/` are one-off studies. Each carries a provenance record
+(`results/<study>/provenance.json`, `data/provenance/<study>.json`, written by
+`validation/study_provenance.py`): the script and command, the commit and source
+trees, and the model settings the study chose explicitly (a study of the running
+cycle passes `Cd_cycling=None` and `defrost=False` rather than inheriting the
+defaults). `tests/test_study_results_current.py` reruns a sample of each cheap
+study, and of the model-drawn docs figures (`docs/source/_static/provenance/`),
+against the committed numbers; a record with `"status": "dated"` says why that
+study was not rerun. Check the record before using a study for a current
+system-COP comparison. Coil-based capacity,
 requested/delivered PLR and catalogue-specific COP boundaries remain separate.
 DHW and empirical models keep their existing definitions. See
 `docs/source/models/ashp.rst` and `gshp.rst` for electrical boundaries,

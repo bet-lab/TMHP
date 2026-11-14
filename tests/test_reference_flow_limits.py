@@ -90,7 +90,7 @@ def test_identical_actual_point_has_identical_physics_for_both_controls(cls):
     constant = run(ground_model(cls, control="constant"))
     prescribed = run(ground_model(cls, control="optimal_power"), 24)
     assert constant["converged"] and prescribed["converged"]
-    assert constant["ground_flow_ref_ratio"] == prescribed["ground_flow_ref_ratio"] == 1
+    assert constant["ground_flow_ratio"] == prescribed["ground_flow_ratio"] == 1
     for key in (
         "UA_ground [W/K]",
         "R_b_eff [mK/W]",
@@ -110,11 +110,11 @@ def test_constant_setpoint_is_not_the_reference_or_maximum():
     row = run(ground_model(constant=30))
     assert row["converged"]
     assert row["ground_flow [m3/s]"] == pytest.approx(30 / 60000)
-    assert row["ground_flow_ref_ratio"] == pytest.approx(1.25)
+    assert row["ground_flow_ratio"] == pytest.approx(1.25)
     assert not row["ground_flow_at_max"]
     hp = ground_model()
     row = run(hp, 36)
-    assert row["ground_flow_ref_ratio"] == pytest.approx(1.5)
+    assert row["ground_flow_ratio"] == pytest.approx(1.5)
     assert row["ground_flow_at_max"]
     with pytest.raises(ValueError, match="not both"):
         hp.analyze_steady(Q_r_iu=4000, T0=26, ground_flow_ratio=1, ground_flow_lpm=24)
@@ -280,7 +280,7 @@ def test_expanded_ground_flow_can_close_low_load_with_explicit_indoor_approach_r
     expanded = GroundSourceHeatPump(**common, indoor_approach_max_K=25)
     row = expanded.analyze_steady(Q_r_iu=2400, T0=26, T_a_room=26, T_bhe_wall=15, ground_flow_lpm=36)
     assert row["converged"] and row["hx_feasible"]
-    assert row["ground_flow_ref_ratio"] == pytest.approx(1.5)
+    assert row["ground_flow_ratio"] == pytest.approx(1.5)
     assert row["Q_ref_iu [W]"] == pytest.approx(2400)
     assert row["Q_HX_available [W]"] == pytest.approx(row["Q_ref_required [W]"], abs=0.1)
     assert row["T_ref_evap_sat [°C]"] > 0

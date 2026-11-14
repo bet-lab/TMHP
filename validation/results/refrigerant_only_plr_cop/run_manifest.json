@@ -39,32 +39,31 @@
     0.12
   ],
   "fixed_displacement_cm3": {
-    "ASHP_heating": 9.365415077969358,
-    "ASHP_cooling": 9.365415077969358,
-    "ASHPB_heating": 35.32918345659227
+    "ASHP_heating": 16.333333333333332,
+    "ASHP_cooling": 16.333333333333332,
+    "ASHPB_heating": 42.0
   },
   "own_displacement_cm3": {
-    "ASHP_heating/R32": 9.365415077969358,
-    "ASHP_heating/R410A": 10.386417881417204,
-    "ASHP_heating/R290": 17.69134083197758,
-    "ASHP_heating/R407C": 16.17613424043611,
-    "ASHP_heating/R134a": 22.682412992020094,
-    "ASHP_heating/R22": 14.810613035175768,
-    "ASHP_cooling/R32": 9.365415077969358,
-    "ASHP_cooling/R410A": 10.386417881417204,
-    "ASHP_cooling/R290": 17.69134083197758,
-    "ASHP_cooling/R407C": 16.17613424043611,
-    "ASHP_cooling/R134a": 22.682412992020094,
-    "ASHP_cooling/R22": 14.810613035175768,
-    "ASHPB_heating/R32": 35.32918345659227,
-    "ASHPB_heating/R410A": 38.369630773994466,
-    "ASHPB_heating/R290": 66.38454652869356,
-    "ASHPB_heating/R134a": 89.61151527250456,
-    "ASHPB_heating/R22": 56.90528438866905
+    "ASHP_heating/R32": 16.333333333333332,
+    "ASHP_heating/R410A": 16.333333333333332,
+    "ASHP_heating/R290": 16.333333333333332,
+    "ASHP_heating/R407C": 16.333333333333332,
+    "ASHP_heating/R134a": 16.333333333333332,
+    "ASHP_heating/R22": 16.333333333333332,
+    "ASHP_cooling/R32": 16.333333333333332,
+    "ASHP_cooling/R410A": 16.333333333333332,
+    "ASHP_cooling/R290": 16.333333333333332,
+    "ASHP_cooling/R407C": 16.333333333333332,
+    "ASHP_cooling/R134a": 16.333333333333332,
+    "ASHP_cooling/R22": 16.333333333333332,
+    "ASHPB_heating/R32": 42.0,
+    "ASHPB_heating/R410A": 42.0,
+    "ASHPB_heating/R290": 42.0,
+    "ASHPB_heating/R407C": 42.0,
+    "ASHPB_heating/R134a": 42.0,
+    "ASHPB_heating/R22": 42.0
   },
-  "own_displacement_skipped": {
-    "ASHPB_heating/R407C": "ValueError: Two-phase inputs not supported for pseudo-pure for now : PropsSI(\"H\",\"T\",308.15,\"P\",1541186.027,\"R407C\")"
-  },
+  "own_displacement_skipped": {},
   "regression_max_rel_dev": {
     "COP_comp": 0.0,
     "COP_sys": 0.0,
@@ -75,9 +74,9 @@
     "T_cond_sat": 0.0,
     "m_ref": 0.0
   },
-  "n_rows": 805,
+  "n_rows": 828,
   "n_failures": 0,
-  "n_speed_floor": 168,
+  "n_speed_floor": 236,
   "n_fan_floor_ou": 0,
   "fit_domain_n_star": [
     0.27,
@@ -87,5 +86,5 @@
     1.5,
     7.3
   ],
-  "coefficient_version": "v2026-09-24"
+  "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06"
 }

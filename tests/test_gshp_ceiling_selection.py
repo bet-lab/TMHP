@@ -74,7 +74,7 @@ def test_ceiling_is_the_least_input_candidate_among_the_largest_heat(r1234yf):
     assert row["E_tot [W]"] <= min(c[2] for c in qualifying) + 1e-6  # was the largest input of the band
     # The fan runs at its largest airflow: the least lift at which the flat-out duty is delivered.
     assert row["dV_iu_a [m3/s]"] == pytest.approx(r1234yf.dV_iu_fan_a_max, rel=1e-4)
-    assert row["cmp_rps [rev/s]"] == pytest.approx(r1234yf.rps_max, rel=1e-9)
+    assert row["cmp_rpm [rpm]"] / 60 == pytest.approx(r1234yf.rps_max, rel=1e-9)
 
 
 def test_ceiling_row_joins_the_requests_just_below_it(r1234yf):

@@ -244,7 +244,7 @@ def test_duty_is_reduced_onto_the_limit(machines, family):
     assert r["capacity_clamped"] == "max" and r["capacity_binding"] == SOURCE_FLUID_FREEZING
     # On the limit, within the band the reduction closes to.
     assert FREEZE_MARGIN_K - TOL_K <= r["T_bhe_f_in [°C]"] <= FREEZE_MARGIN_K + 0.05
-    assert r["Q_request [W]"] == 8000.0 and r["Q_tank_load [W]"] == 8000.0
+    assert r["Q_request [W]"] == 8000.0
     assert r["Q_max [W]"] == pytest.approx(r["Q_ref_tank [W]"])
     # 2 K of the 3 K loop difference is left: about two thirds of the duty.
     assert 0.55 * 8000.0 < r["Q_ref_tank [W]"] < 0.80 * 8000.0

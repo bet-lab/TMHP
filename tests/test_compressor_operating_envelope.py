@@ -227,7 +227,7 @@ def test_boiler_request_above_the_limit_returns_the_largest_duty_inside_it():
     assert _running(r)
     assert r["capacity_clamped"] == "max"
     assert r["capacity_binding"] == BINDING_DISCHARGE
-    assert r["Q_request [W]"] == 8000.0 and r["Q_tank_load [W]"] == 8000.0
+    assert r["Q_request [W]"] == 8000.0
     assert r["Q_ref_tank [W]"] < 8000.0
     assert r["Q_max [W]"] == pytest.approx(r["Q_ref_tank [W]"])
     assert r["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
@@ -612,7 +612,7 @@ def _steady_ashpb(hp, T_tank_w, T0, Q):
 def _reduced(r: dict, request: float, binding: str) -> None:
     assert _running(r), (r.get("failure_reason"), r.get("failure_detail"))
     assert r["capacity_clamped"] == "max" and r["capacity_binding"] == binding
-    assert r["Q_request [W]"] == request and r["Q_ref_tank_request [W]"] == request
+    assert r["Q_request [W]"] == request
     assert 0.0 < r["Q_ref_tank [W]"] < request
     assert r["Q_max [W]"] == pytest.approx(r["Q_ref_tank [W]"])
 

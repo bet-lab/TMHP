@@ -205,7 +205,7 @@ def test_frosted_row_is_the_mean_of_the_frost_free_cycle_at_the_gross_duty(frost
     assert result["RH_out [-]"] == 0.84
     # The request is met by the mean ...
     assert result["Q_ref_tank [W]"] == pytest.approx(request, rel=1e-9)
-    assert result["Q_ref_tank_request [W]"] == request
+    assert result["Q_request [W]"] == request
     q_defrost = DefrostModel.defrost_load(frost, T0, frosting.hp_capacity)
     gross = (request + q_defrost) / frost.capacity_multiplier
     assert result["Q_defrost [W]"] == pytest.approx(q_defrost, rel=1e-12)
@@ -262,7 +262,7 @@ def test_request_the_unit_cannot_make_up_under_frost_is_delivered_short(frosting
     result = frosting.analyze_steady(T_tank_w=35.0, T0=2.0, Q_ref_tank=15000.0)
     assert result["failure_reason"] == "none" and result["capacity_clamped"] == "max"
     assert result["cmp_rpm [rpm]"] == pytest.approx(60.0 * frosting.rps_max, rel=1e-9)
-    assert result["Q_ref_tank_request [W]"] == 15000.0
+    assert result["Q_request [W]"] == 15000.0
     delivered = result["frost_capacity_factor [-]"] * result["Q_ref_tank_frost_free [W]"] - result["Q_defrost [W]"]
     assert result["Q_ref_tank [W]"] == pytest.approx(delivered, rel=1e-12)
     assert 0.9 * 15000.0 < result["Q_ref_tank [W]"] < 15000.0 * (1.0 - 0.01)
@@ -276,7 +276,7 @@ def test_envelope_ceiling_under_frost_reports_the_mean_it_delivers(frosting, fro
     assert limited["capacity_clamped"] == "max" and limited["capacity_binding"] == "pressure_ratio"
     result = frosting.analyze_steady(T_tank_w=55.0, T0=-15.0, Q_ref_tank=15000.0)
     assert result["capacity_clamped"] == "max" and result["capacity_binding"] == "pressure_ratio"
-    assert result["Q_request [W]"] == 15000.0 and result["Q_ref_tank_request [W]"] == 15000.0
+    assert result["Q_request [W]"] == 15000.0
     assert result["Q_max [W]"] == result["Q_ref_tank [W]"]
     assert result["Q_ref_tank_frost_free [W]"] == pytest.approx(limited["Q_ref_tank [W]"], rel=2e-3)
     assert result["Q_ref_tank [W]"] == pytest.approx(
@@ -470,7 +470,7 @@ def test_every_dynamic_row_has_the_frost_keys(cold_runs):
     assert off["RH_out [-]"].isna().all()  # no frost model, no humidity used
     # A step the thermostat called carries the nameplate request, frost or not.
     called = on[on["hp_is_on"]]
-    assert (called["Q_request [W]"] == 15000.0).all() and (called["Q_ref_tank_request [W]"] == 15000.0).all()
+    assert (called["Q_request [W]"] == 15000.0).all()
     limited = called[called["capacity_clamped"] == "max"]
     running_heat = limited["Q_ref_tank [W]"] / limited["runtime_fraction [-]"]
     np.testing.assert_allclose(limited["Q_max [W]"], running_heat, rtol=1e-9)

@@ -806,9 +806,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                     "converged": True,
                     "converged_rps": True,
                     "capacity_clamped": None,
-                    "pr_clamped": False,
-                    "fan_flow_min_limit": False,
-                    "fan_flow_max_limit": False,
+                    "pr_floor_active": False,
+                    "ou_fan_flow_min_limit": False,
+                    "ou_fan_flow_max_limit": False,
                     # Temperatures [°C]
                     "T_ou_a_in [°C]": T0,
                     "T_ou_a_mid [°C]": T0,
@@ -968,7 +968,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "rps": rps_i,
                 "converged_rps": converged_i,
                 "capacity_clamped": clamped_i,
-                "pr_clamped": pr_clamped_i,
+                "pr_floor_active": pr_clamped_i,
                 "pr": ratio,
                 "eta_vol": eta_vol_i,
                 "eta_isen": eta_isen_i,
@@ -1081,7 +1081,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         cmp_rps = state["rps"]
         converged_rps = state["converged_rps"]
         capacity_clamped = state["capacity_clamped"]
-        pr_clamped = state["pr_clamped"]
+        pr_clamped = state["pr_floor_active"]
         m_dot_ref = state["m_dot_ref"]
         dT_ref_tank = state["dT_tank"]
         Q_ref_tank_calc = state["Q_tank"]
@@ -1119,9 +1119,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 CYCLE_KEY: reportable_state(cs),
                 "converged_rps": bool(converged_rps),
                 "capacity_clamped": capacity_clamped,
-                "pr_clamped": pr_clamped,
-                "fan_flow_min_limit": HX_perf_ou.get("min_limit", False),
-                "fan_flow_max_limit": HX_perf_ou.get("max_limit", False),
+                "pr_floor_active": pr_clamped,
+                "ou_fan_flow_min_limit": HX_perf_ou.get("min_limit", False),
+                "ou_fan_flow_max_limit": HX_perf_ou.get("max_limit", False),
             }
 
         dV_ou_a: float = HX_perf_ou["dV_fan"]
@@ -1183,8 +1183,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "converged": bool(converged_rps),
                 "converged_rps": bool(converged_rps),
                 "capacity_clamped": capacity_clamped,
-                "pr_clamped": pr_clamped,
-                "Q_ref_tank_request [W]": Q_ref_tank,
+                "pr_floor_active": pr_clamped,
                 # Heat-exchanger closure diagnostics. `dT_ref_tank` is the
                 # approach the cycle ran at, `tank_hx_residual` how far the
                 # condenser is from carrying the delivered duty.
@@ -1198,8 +1197,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "epsilon_ou [-]": HX_perf_ou.get("epsilon", np.nan),
                 "PLR_request [-]": (Q_ref_tank / self.hp_capacity if self.hp_capacity > 0 else np.nan),
                 "PLR_delivered [-]": (Q_ref_tank_calc / self.hp_capacity if self.hp_capacity > 0 else np.nan),
-                "fan_flow_min_limit": at_min_airflow,
-                "fan_flow_max_limit": at_max_airflow,
+                "ou_fan_flow_min_limit": at_min_airflow,
+                "ou_fan_flow_max_limit": at_max_airflow,
                 # Temperatures [°C]
                 "T_ou_a_in [°C]": T0,
                 "T_ou_a_mid [°C]": T_ou_a_mid,
@@ -1648,9 +1647,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
     def _restore_request(self, result: dict, Q_ref_tank: float) -> None:
         """Request keys of a row solved frost-free at a larger duty: the caller's request (in place)."""
-        for key in ("Q_ref_tank_request [W]", "Q_request [W]"):
-            if key in result:
-                result[key] = float(Q_ref_tank)
+        if "Q_request [W]" in result:
+            result["Q_request [W]"] = float(Q_ref_tank)
         if "PLR_request [-]" in result and self.hp_capacity > 0:
             result["PLR_request [-]"] = Q_ref_tank / self.hp_capacity
 
@@ -1844,7 +1842,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               a real inverter unit answers by running at its limit and cycling.
               A ``"min"`` point is reported as that cycling mean (below); at a
               ``"max"`` point compare ``"Q_ref_tank [W]"`` against
-              ``"Q_ref_tank_request [W]"`` for the shortfall. A ``"max"`` point carries
+              ``"Q_request [W]"`` for the shortfall. A ``"max"`` point carries
               ``"capacity_binding"``: ``"compressor"`` (``rps_max``), or the
               operating limit the request ran into when a smaller duty runs --
               ``"discharge_temperature"`` (``T_dis_max``),
@@ -2433,7 +2431,6 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             # (an overridden hook): the keys of a row that was not corrected.
             self._write_frost_free(r, self._step_frost(ctx))
         complete_capacity_keys(r, request, step_average=True)
-        r.setdefault("Q_ref_tank_request [W]", request)
         fill_missing(r, self._DYNAMIC_ROW_DEFAULTS)
         report_condenser_dew_point(r, self.ref)
         r["time [s]"] = float(ctx.current_time_s)
@@ -2444,12 +2441,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         """The keys every ``analyze_steady`` row carries, whatever the point (in place).
 
         The capacity keys (``Q_request [W]`` is the requested ``Q_ref_tank``
-        on every row), ``Q_ref_tank_request [W]``, ``PLR_request [-]`` and
+        on every row), ``PLR_request [-]`` and
         ``PLR_delivered [-]``, the running-only keys of
         :attr:`_STEADY_ROW_DEFAULTS` and the condenser dew point.
         """
         complete_capacity_keys(result, Q_ref_tank)
-        result.setdefault("Q_ref_tank_request [W]", float(Q_ref_tank))
         result.setdefault("PLR_request [-]", float(Q_ref_tank) / self.hp_capacity)
         result.setdefault("PLR_delivered [-]", float(result.get("Q_ref_tank [W]", 0.0)) / self.hp_capacity)
         fill_missing(result, self._STEADY_ROW_DEFAULTS)
@@ -3165,7 +3161,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             0.0,
         )
         df["Xc_exp [W]"] = df["X_ref_exp_in [W]"] - df["X_ref_exp_out [W]"]
-        df["Xc_ref_ou [W]"] = (df["X_ref_exp_out [W]"] + df["X_a_ou_in [W]"]) - (
+        df["Xc_ou_hx [W]"] = (df["X_ref_exp_out [W]"] + df["X_a_ou_in [W]"]) - (
             df["X_ref_cmp_in [W]"] + df["X_a_ou_mid [W]"]
         )
         df["Xc_ou_fan [W]"] = df["X_ou_fan [W]"] + df["X_a_ou_mid [W]"] - df["X_a_ou_out [W]"]
@@ -3201,7 +3197,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         a_ou_in = df["X_a_ou_in [W]"].fillna(0) if "X_a_ou_in [W]" in df.columns else 0.0
         X_in_ref_ou = df["X_ref_exp_out [W]"] + a_ou_in
-        df["X_eff_ref_ou [-]"] = 1 - df["Xc_ref_ou [W]"] / X_in_ref_ou.replace(0, np.nan)
+        df["X_eff_ou_hx [-]"] = 1 - df["Xc_ou_hx [W]"] / X_in_ref_ou.replace(0, np.nan)
 
         a_ou_mid = df["X_a_ou_mid [W]"].fillna(0) if "X_a_ou_mid [W]" in df.columns else 0.0
         X_in_ou_fan = df["X_ou_fan [W]"] + a_ou_mid

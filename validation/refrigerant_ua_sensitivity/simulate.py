@@ -53,6 +53,10 @@ M_GRID = (0.4, 0.6, 0.8)
 #: Fan-flow lower bound hard-coded in ``calc_HX_perf_for_target_heat``.
 FAN_FLOOR = 0.05
 
+#: Constructor arguments of every model: the running cycle (no on-off
+#: averaging below the speed floor), no frost.
+CYCLE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
+
 _MODELS: dict = {}
 _PATCHED = False
 
@@ -75,7 +79,7 @@ def _model(cap: float, ref: str):
 
     key = (cap, ref)
     if key not in _MODELS:
-        _MODELS[key] = AirSourceHeatPump(hp_capacity=cap, ref=ref)
+        _MODELS[key] = AirSourceHeatPump(hp_capacity=cap, ref=ref, **CYCLE_SETTINGS)
     return _MODELS[key]
 
 
@@ -86,6 +90,7 @@ def _num(r: dict, key: str) -> float:
 
 def run_point(task: dict) -> dict:
     from tmhp.compressor_efficiency import COEFFICIENT_VERSION
+    from validation.hx_ua_sensitivity.simulate import coil_state
 
     m = _model(task["capacity_W"], task["refrigerant"])
     ua_calls, x_ref_min = float("nan"), float("nan")
@@ -109,13 +114,16 @@ def run_point(task: dict) -> dict:
 
         ua_calls = float(patch.state["ua_calls"])
         x_ref_min = float(patch.state["x_ref_min"])
+        # The coil state of the solved row: the law at its own refrigerant flow.
+        patch.state["m_dot_cur"] = _num(r, "m_dot_ref [kg/s]")
 
     delivered = abs(_num(r, "Q_ref_iu [W]"))
     m_dot = _num(r, "m_dot_ref [kg/s]")
     m_dot_rated = task.get("m_dot_rated")
     fan_ou = _num(r, "dV_ou_a [m3/s]") / m.dV_ou_fan_a_rated
     fan_iu = _num(r, "dV_iu_a [m3/s]") / m.dV_iu_fan_a_rated
-    ua_ou, ua_iu = _num(r, "UA_ou [W/K]"), _num(r, "UA_iu [W/K]")
+    ua_ou, ntu_ou, eps_ou = coil_state(m, r, "ou")
+    ua_iu, ntu_iu, eps_iu = coil_state(m, r, "iu")
     return {
         "variant": task["variant"],
         "pass": task["pass"],
@@ -151,13 +159,13 @@ def run_point(task: dict) -> dict:
         "UA_ou": ua_ou,
         "UA_ou_rated": m.UA_ou_rated,
         "ua_ratio_ou": ua_ou / m.UA_ou_rated,
-        "NTU_ou": _num(r, "NTU_ou [-]"),
-        "epsilon_ou": _num(r, "epsilon_ou [-]"),
+        "NTU_ou": ntu_ou,
+        "epsilon_ou": eps_ou,
         "UA_iu": ua_iu,
         "UA_iu_rated": m.UA_iu_rated,
         "ua_ratio_iu": ua_iu / m.UA_iu_rated,
-        "NTU_iu": _num(r, "NTU_iu [-]"),
-        "epsilon_iu": _num(r, "epsilon_iu [-]"),
+        "NTU_iu": ntu_iu,
+        "epsilon_iu": eps_iu,
         "fan_fraction_ou": fan_ou,
         "fan_fraction_iu": fan_iu,
         "fan_floor_ou": bool(fan_ou <= FAN_FLOOR * 1.01),
@@ -239,7 +247,8 @@ def main() -> None:
     print("regression (f_ref=0 vs unpatched), max relative deviation:")
     for c, v in worst.items():
         print(f"    {c:<12} {v:.3e}")
-    if max(worst.values()) > 1e-12:
+    # ``not (v <= tol)``: a NaN deviation (a column the library stopped reporting) fails too.
+    if any(not (v <= 1e-12) for v in worst.values()):
         raise SystemExit(f"REGRESSION FAILED: f_ref=0 does not reproduce the shipped model ({worst})")
 
     # --- m_dot_ref,rated from the PLR = 1.0 baseline rows ---------------
@@ -264,6 +273,9 @@ def main() -> None:
     print(f"variants : {len(combos)} (f_ref, m) combinations, {len(tasks)} points")
     var_df = _run(tasks, a.jobs, patched=True)
     print(f"variants : {len(var_df)} rows, failures {(var_df.failure_reason != 'none').sum()}")
+    solved = var_df[var_df.failure_reason == "none"]
+    if not (solved.ua_eval_count > 0).all():
+        raise SystemExit("the UA patch was never called by the coil solver: every variant would equal the baseline")
 
     out = pd.concat([ref_df, base_df, var_df], ignore_index=True)
     out.to_csv(OUT_DIR / CSV_NAME, index=False)
@@ -274,8 +286,8 @@ def main() -> None:
         "n_rows": int(len(out)),
         "n_failures": int((out.failure_reason != "none").sum()),
         "n_speed_floor": int((out.capacity_clamped == "min").sum()),
-        "n_fan_floor_ou": int(out.fan_floor_ou.sum()),
-        "n_fan_floor_iu": int(out.fan_floor_iu.sum()),
+        "n_fan_floor_ou": int(out.fan_floor_ou.astype("boolean").fillna(False).sum()),
+        "n_fan_floor_iu": int(out.fan_floor_iu.astype("boolean").fillna(False).sum()),
         "fan_fraction_ou_min": float(out.fan_fraction_ou.min()),
         "combos": sorted([list(c) for c in combos]),
         "fractions": list(FRACTIONS),
@@ -283,6 +295,16 @@ def main() -> None:
     (OUT_DIR / "run_manifest.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(json.dumps(meta, indent=2))
     print(f"wrote {OUT_DIR / CSV_NAME}")
+    from validation import study_provenance
+
+    study_provenance.write(
+        OUT_DIR / "provenance.json",
+        "validation/refrigerant_ua_sensitivity/",
+        sorted(p for p in OUT_DIR.iterdir() if p.suffix in (".csv", ".json") and p.name != "provenance.json"),
+        {**CYCLE_SETTINGS, "cases": CASES, "f_ref": sorted(set(F_REF_MAIN) | set(F_REF_GRID)), "m": M_GRID},
+        "how a refrigerant-side coil resistance would move the part-load curve of the running cycle",
+        command="python -m validation.refrigerant_ua_sensitivity.simulate && python -m validation.refrigerant_ua_sensitivity.figures",
+    )
 
 
 if __name__ == "__main__":

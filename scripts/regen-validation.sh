@@ -11,6 +11,8 @@
 #                                                          coefficient_ablation_parity.csv,
 #                                                          en14825_seasonal_trend_a2w_manifest.json
 # 3. the site's static data (validation-points.json, validation-summary.json),
+#    Gate A (validation/results/gate_a/: rated-point errors and residual bins,
+#    computed from the unit CSVs of step 1 alone),
 #    and the figures the validation pages show:
 #    validation_parity, validation_residuals, validation_part_load, validation_en14825_verdict.
 #
@@ -34,7 +36,7 @@
 set -euo pipefail
 
 usage() {
-    sed -n '2,32p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 jobs=6
@@ -171,6 +173,7 @@ echo
 echo "==> 3/3 site data, figures"
 phase_start=$SECONDS
 run_job site-data -m scripts.data.gen_validation_data
+run_job gate-a -m validation.parity.rated_point
 run_job parity_figure -m scripts.validation.parity_figure
 run_job residual_figure -m scripts.validation.residual_figure --jobs "$jobs"
 run_job part_load_figure -m scripts.validation.part_load_figure

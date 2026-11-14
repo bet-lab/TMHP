@@ -1,0 +1,30 @@
+{
+ "script": "validation/analysis/refrigerant_diagnosis.py",
+ "command": "python -m validation.analysis.refrigerant_diagnosis",
+ "question": "is the air-to-air R410A parity offset the refrigerant, or the machine-level block it comes with",
+ "model_settings": {
+  "matched_point": "library defaults (cooling at the nameplate: no cycling, no frost)",
+  "nameplate_sweep": "the parity harness's own model (validation.parity.run._build_model)"
+ },
+ "outputs": [
+  "validation/data/refrigerant_matched_point.csv",
+  "validation/data/refrigerant_nameplate_sweep.csv"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "b169f47c35f139347f57fb0a749b04b026de2035",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "cdebb14c06e30874fb26faafa7d7b8fc29b61469",
+ "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-14T02:17:02+00:00"
+}

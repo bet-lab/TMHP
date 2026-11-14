@@ -58,7 +58,7 @@ def test_ground_efficiency_api_and_mass_work_balances(cls, kind):
     expected = [
         v - (0.03 if i == 1 else 0.01) * (1 - speed / 150) if kind == "pr_speed" else v for i, v in enumerate(vals)
     ]
-    assert [row[k] for k in ("eta_is [-]", "eta_v [-]", "eta_em [-]")] == pytest.approx(expected)
+    assert [row[k] for k in ("eta_cmp_isen [-]", "eta_cmp_vol [-]", "eta_cmp [-]")] == pytest.approx(expected)
     mass = hp.V_cmp_ref * row["rho_ref_cmp_in [kg/m3]"] * expected[1] * speed
     assert row["m_dot_ref [kg/s]"] == pytest.approx(mass)
     gas = mass * (row["h_ref_cmp_out [J/kg]"] - row["h_ref_cmp_in [J/kg]"])

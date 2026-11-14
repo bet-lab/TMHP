@@ -203,7 +203,7 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
                 "eta_cmp_isen": result.get("eta_cmp_isen [-]", float("nan")),
                 "eta_cmp": result.get("eta_cmp [-]", float("nan")),
                 "capacity_clamped": result.get("capacity_clamped"),
-                "pr_clamped": result.get("pr_clamped"),
+                "pr_floor_active": result.get("pr_floor_active"),
                 "failure_reason": failure,
                 "usable": usable,
             }

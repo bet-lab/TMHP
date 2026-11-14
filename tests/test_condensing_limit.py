@@ -193,13 +193,13 @@ def test_tank_at_65C_used_to_run_at_70C_condensing(boilers, family):
     assert r["failure_reason"] == CONDENSING_TEMP_ABOVE_MAX
     assert not r["hp_is_on"] and r["converged"] is False
     assert r["Q_ref_tank [W]"] == 0.0 and r["E_cmp [W]"] == 0.0 and math.isnan(r["cop_sys [-]"])
-    assert "capacity_binding" not in r
+    assert r["capacity_binding"] is None and math.isnan(r["Q_max [W]"])
 
 
 @pytest.mark.parametrize("family", list(BOILERS))
 def test_request_inside_the_limit_is_untouched(boilers, family):
     r, free = _steady(boilers[family], family, 55.0), _steady(boilers[family, "off"], family, 55.0)
-    assert _running(r) and r["capacity_clamped"] is None and "capacity_binding" not in r
+    assert _running(r) and r["capacity_clamped"] is None and r["capacity_binding"] is None
     assert r["T_ref_cond_sat_l [°C]"] == pytest.approx(60.0, abs=1e-6)
     for key in ("Q_ref_tank [W]", "E_tot [W]", "cop_sys [-]", "P_ref_cmp_out [Pa]"):
         assert r[key] == pytest.approx(free[key], rel=1e-12), key
@@ -356,7 +356,7 @@ def test_dynamic_run_stops_at_the_cut_out_whatever_the_step(family):
         ran = df["hp_is_on"].astype(bool)
         assert ran.any() and (df["failure_reason"] == "none").all()
         assert not any(condensing_temp_exceeded(p, 65.0, "R410A") for p in df.loc[ran, "P_ref_cmp_out [Pa]"])
-        assert "capacity_binding" not in df.columns or df["capacity_binding"].isna().all()  # nameplate duty
+        assert df["capacity_binding"].isna().all()  # nameplate duty
         assert df["T_tank_w [°C]"].max() == pytest.approx(T_CUTOUT_R410A, abs=0.05)
         out[dt] = float(df["Q_ref_tank [W]"].sum() * dt)
     assert out[600.0] == pytest.approx(out[60.0], rel=0.01)

@@ -71,6 +71,27 @@ mixtures (``INCOMP::MPG[0.25]`` and the like; concentrations by mass) at
 :data:`PROPERTY_REFERENCE_C` = 0 °C, the liquid inlet temperature of the
 ISO 13256-1 ground-loop and EN 14511 brine rating points and the cold end an
 antifreeze loop is designed for. They are constants in a run, like water's.
+
+Viscosity of the source-side Reynolds number
+--------------------------------------------
+The viscosity changes far more with temperature than the other properties:
+water has 1.79 mPa s at 0 °C, 1.31 at 10 °C and 1.00 at 20 °C (the constant
+``mu_w``), 25 % ethylene glycol 3.70 mPa s at 0 °C and 1.90 at 20 °C.
+:meth:`SourceFluid.viscosity` gives it at a temperature (water:
+:func:`tmhp.constants.water_viscosity`; mixtures: the same CoolProp mixture),
+and the source-side Reynolds number of the heat pump hosts -- the laminar-flow
+warning and the pipe convection inside the borehole or coil resistance
+``R_b`` -- takes it at the loop's design liquid temperature: the source
+inlet temperature of the family's heating rating point,
+:data:`GROUND_LOOP_DESIGN_INLET_C` (0 °C, EN 14511 B0 and ISO 13256-1 ground
+loop) for GSHP and GSHPB and :data:`WATER_LOOP_DESIGN_INLET_C` (10 °C,
+EN 14511 W10 and ISO 13256-1 ground water) for WSHPB. Those quantities are
+evaluated once, at the reference flow, like ``R_b`` itself; the default glycol
+is therefore evaluated at the temperature its properties are read at (0 °C,
+unchanged), and water no longer at 20 °C (in a ground loop 1.79 mPa s at
+0 °C, the coldest it is liquid; in the water-source boiler 1.31 mPa s). The ground-loop helpers that run during a step (hydraulic pump loss,
+flow-dependent ``R_b``) keep the properties of water, see
+:func:`warn_if_loop_modelled_as_water`.
 """
 
 from __future__ import annotations
@@ -87,15 +108,17 @@ from functools import wraps
 from typing import Any, TypeVar, cast
 
 from .compressor_envelope import CONTROL_KEY, QUALITY_KEY, SUPERHEAT_KEY
-from .constants import c_w, k_w, mu_w, rho_w
+from .constants import c_w, k_w, mu_w, rho_w, water_viscosity
 
 __all__ = [
     "FREEZE_MARGIN_K",
+    "GROUND_LOOP_DESIGN_INLET_C",
     "GROUND_LOOP_FLUID_DEFAULT",
     "PROPERTY_REFERENCE_C",
     "SOURCE_FLUID_FREEZING",
     "SOURCE_FLUID_PRESETS",
     "WATER_LOOP_FLUID_DEFAULT",
+    "WATER_LOOP_DESIGN_INLET_C",
     "SourceFluid",
     "freeze_violation",
     "limit_duty_to_source_freeze",
@@ -114,8 +137,18 @@ DETAIL_INLET = "source_inlet_below_limit"
 DETAIL_OUTLET = "source_outlet_below_limit"
 #: Operating lower limit above the freezing point [K]; see the module docstring.
 FREEZE_MARGIN_K = 3.0
+#: Pressure the liquid properties are read at [Pa] (a pressurised loop).
+_PROPERTY_PRESSURE_PA = 2.0e5
 #: Temperature at which the properties of an antifreeze mixture are read [°C].
 PROPERTY_REFERENCE_C = 0.0
+#: Design liquid temperature of a ground loop [°C]: the source inlet of the
+#: heating rating points (EN 14511 B0, ISO 13256-1 ground loop 0 °C). The
+#: source-side Reynolds number of GSHP and GSHPB takes the viscosity there.
+GROUND_LOOP_DESIGN_INLET_C = 0.0
+#: Design liquid temperature of a water-source loop [°C]: the source inlet of
+#: the heating rating points (EN 14511 W10, ISO 13256-1 ground water 10 °C),
+#: for the source-side Reynolds number of WSHPB.
+WATER_LOOP_DESIGN_INLET_C = 10.0
 #: Tolerance of the comparison with the limit [K]. Results are solved by root
 #: finding and differ between platforms at the 1e-9 level; 0.01 K is far below
 #: any meaning the limit has.
@@ -185,6 +218,12 @@ class SourceFluid:
         Coldest the liquid may run [°C]. ``None`` (default):
         ``T_freeze_C + FREEZE_MARGIN_K``. It may not lie below the freezing
         point.
+    coolprop : str | None
+        Where :meth:`viscosity` reads the viscosity at another temperature:
+        ``"Water"`` (:func:`tmhp.constants.water_viscosity`) or a CoolProp
+        incompressible fluid (``"INCOMP::MEG[0.25]"``). ``None`` (default, a
+        fluid built by the caller): ``mu`` at every temperature -- water built
+        this way keeps the 20 °C viscosity everywhere, as before.
     """
 
     name: str
@@ -194,6 +233,7 @@ class SourceFluid:
     mu: float
     k: float
     T_min_C: float | None = None
+    coolprop: str | None = None
 
     def __post_init__(self) -> None:
         if not (isinstance(self.name, str) and self.name):
@@ -217,6 +257,23 @@ class SourceFluid:
         """The operating lower limit [°C] as a float (``T_min_C`` after defaulting)."""
         return cast(float, self.T_min_C)
 
+    def viscosity(self, T_C: float) -> float:
+        """Dynamic viscosity [Pa s] at ``T_C`` [°C].
+
+        Read from :attr:`coolprop` at ``T_C`` held between the freezing point
+        and the upper end of the CoolProp mixture's range; ``mu`` when the
+        fluid names no source (``coolprop=None``).
+        """
+        if self.coolprop is None:
+            return float(self.mu)
+        T = max(float(T_C), self.T_freeze_C)
+        if self.coolprop == "Water":
+            return float(water_viscosity(T))
+        import CoolProp.CoolProp as CP
+
+        T_max_C = float(CP.PropsSI("Tmax", "", 0, "", 0, self.coolprop)) - 273.15
+        return float(CP.PropsSI("V", "T", min(T, T_max_C) + 273.15, "P", _PROPERTY_PRESSURE_PA, self.coolprop))
+
     @property
     def is_water(self) -> bool:
         """True for the default fluid, whose properties the ground-loop helpers assume."""
@@ -227,8 +284,9 @@ class SourceFluid:
         return f"{self.name} (freezes at {self.T_freeze_C:.1f} °C, operating limit {self.limit_C:.1f} °C)"
 
 
-#: Plain water with the constants every model has always used.
-WATER = SourceFluid("water", 0.0, float(rho_w), float(c_w), float(mu_w), float(k_w))
+#: Plain water with the constants every model has always used; its viscosity
+#: at another temperature follows :func:`tmhp.constants.water_viscosity`.
+WATER = SourceFluid("water", 0.0, float(rho_w), float(c_w), float(mu_w), float(k_w), coolprop="Water")
 
 
 def _mixture(base: str, percent: float, label: str) -> SourceFluid:
@@ -241,10 +299,11 @@ def _mixture(base: str, percent: float, label: str) -> SourceFluid:
             f"source_fluid {label!r}: the {described} concentration must be {low:g}-{high:g} % by mass, got {percent:g} %"
         )
     fluid = f"INCOMP::{coolprop}[{percent / 100.0:.6f}]"
-    T_ref_K, pressure = PROPERTY_REFERENCE_C + 273.15, 2.0e5
+    T_ref_K, pressure = PROPERTY_REFERENCE_C + 273.15, _PROPERTY_PRESSURE_PA
     T_freeze_C = float(CP.PropsSI("T_freeze", "T", T_ref_K, "P", pressure, fluid)) - 273.15
     rho, cp, mu, k = (float(CP.PropsSI(prop, "T", T_ref_K, "P", pressure, fluid)) for prop in ("D", "C", "V", "L"))
-    return SourceFluid(f"{coolprop if base != 'ethanol' else 'ethanol'}-{percent:g}%", T_freeze_C, rho, cp, mu, k)
+    name = f"{coolprop if base != 'ethanol' else 'ethanol'}-{percent:g}%"
+    return SourceFluid(name, T_freeze_C, rho, cp, mu, k, coolprop=fluid)
 
 
 _CACHE: dict[str, SourceFluid] = {}

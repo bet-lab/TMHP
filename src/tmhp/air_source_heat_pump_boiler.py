@@ -49,6 +49,7 @@ from scipy.optimize import OptimizeResult, brentq, minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
+from ._boiler_results import complete_capacity_keys, fill_missing, report_condenser_dew_point, step_request
 from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, specific_energy_objective
 from ._tank_solve import recover_tank_temperature
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
@@ -158,9 +159,6 @@ class _OutdoorSearch:
         self.T0 = T0
         self.flow_state = flow_state
         self.m_dot_w = m_dot_w
-        # Surplus is credited only while the tank has thermal headroom to
-        # store it (see `_opt_utils.specific_energy_objective`).
-        self.storable = math.inf if T_tank_w < model.T_tank_w_upper_bound - 0.5 else 0.0
         #: approach -> (objective, max-flow margin [W], min-flow margin [W])
         self.rows: dict[float, tuple[float, float, float]] = {}
         #: approach -> (cycle state, pressure-ratio event, cycle failure reason) as evaluated
@@ -205,11 +203,23 @@ class _OutdoorSearch:
         outside = envelope_excess(perf, self.model)
         if outside > 0.0:
             return _OBJ_OUTSIDE_ENVELOPE + min(outside, 0.45 * PENALTY)
+        # Cost of the requested heat. Where the compressor modulates, every
+        # candidate delivers the request and this is ``E_tot``. On the speed
+        # floor the candidates deliver different amounts, all above the
+        # request, and the whole delivery is credited whatever the tank
+        # temperature: the row is the most efficient machine the floor offers.
+        # With the credit capped at the request the ranking is ``E_tot``
+        # again, which there is nearly flat in the approach and has a second
+        # minimum at the starved coil (R290 A45/W65: 8.7 K and 16.1 K within
+        # 3 W of each other, system COP 5.1 and 4.3), so 3 W decided a fifth
+        # of the COP. The surplus is not lost on a full tank either: a request
+        # below the floor is met by running part of the time, and
+        # `analyze_steady` reports the on/off mean of this machine.
         return specific_energy_objective(
             float(perf.get("E_tot [W]", math.nan)),
             float(perf.get("Q_ref_tank [W]", 0.0)),
             self.Q_ref_tank,
-            self.storable,
+            math.inf,
         )
 
     def __call__(self, x: float) -> float:
@@ -289,7 +299,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     (0.9: while the compressor is off the unit draws a tenth of its running
     input; 1.0: nothing; a tested unit has ``Cc = 1 - P_off / P_on``).
     ``Cd_cycling=None`` returns the continuous minimum-speed point, which
-    delivers more than the request. Dynamic runs are not affected: there the
+    delivers more than the request. Of the machines the speed floor offers
+    (the outdoor fan still has a range there) the row is the most efficient
+    one, whatever the tank temperature. Dynamic runs are not affected: there the
     tank thermostat switches the compressor, which runs at ``hp_capacity`` for
     ``runtime_fraction [-]`` of a step.
     """
@@ -745,10 +757,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                     # Volume flow rates [m3/s]
                     "dV_ou_a [m3/s]": 0.0,
                     "v_ou_a [m/s]": 0.0,
-                    "dV_mix_w_out [m3/s]": (dV_mix_w_out_val if dV_mix_w_out_val > 0 else np.nan),
-                    "dV_tank_w_out [m3/s]": (dV_tank_w_out if dV_tank_w_out > 0 else np.nan),
-                    "dV_tank_w_in [m3/s]": (dV_tank_w_in if dV_tank_w_in > 0 else np.nan),
-                    "dV_mix_sup_w_in [m3/s]": (dV_mix_sup_w_in if dV_mix_sup_w_in > 0 else np.nan),
+                    "dV_mix_w_out [m3/s]": max(dV_mix_w_out_val, 0.0),
+                    "dV_tank_w_out [m3/s]": max(dV_tank_w_out, 0.0),
+                    "dV_tank_w_in [m3/s]": max(dV_tank_w_in, 0.0),
+                    "dV_mix_sup_w_in [m3/s]": max(dV_mix_sup_w_in, 0.0),
                     "m_dot_ref [kg/s]": 0.0,
                     "cmp_rpm [rpm]": 0.0,
                     # Energy rates [W]
@@ -1136,10 +1148,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 # Volume flow rates [m3/s]
                 "dV_ou_a [m3/s]": dV_ou_a,
                 "v_ou_a [m/s]": v_ou_a,
-                "dV_mix_w_out [m3/s]": (dV_mix_w_out_val if dV_mix_w_out_val > 0 else np.nan),
-                "dV_tank_w_out [m3/s]": (dV_tank_w_out if dV_tank_w_out > 0 else np.nan),
-                "dV_tank_w_in [m3/s]": (dV_tank_w_in if dV_tank_w_in > 0 else np.nan),
-                "dV_mix_sup_w_in [m3/s]": (dV_mix_sup_w_in if dV_mix_sup_w_in > 0 else np.nan),
+                "dV_mix_w_out [m3/s]": max(dV_mix_w_out_val, 0.0),
+                "dV_tank_w_out [m3/s]": max(dV_tank_w_out, 0.0),
+                "dV_tank_w_in [m3/s]": max(dV_tank_w_in, 0.0),
+                "dV_mix_sup_w_in [m3/s]": max(dV_mix_sup_w_in, 0.0),
                 "m_dot_ref [kg/s]": m_dot_ref,  # Mass flow rate [kg/s]
                 "cmp_rpm [rpm]": cmp_rps * 60,
                 "n_star [-]": cmp_rps / self.rps_rated,
@@ -1517,6 +1529,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             source_heat_key=self._CYCLING_SOURCE_HEAT_KEY,
             hp_capacity=self.hp_capacity,
         )
+        self._complete_steady_result(result, Q_ref_tank)
 
     @steady_cycling(duty_arg="Q_ref_tank")
     @steady_envelope(duty_arg="Q_ref_tank", bindings=_CAPACITY_BINDINGS)
@@ -1596,6 +1609,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               largest duty that runs is then returned, with ``"Q_max [W]"``
               and ``"Q_request [W]"``; see
               :func:`tmhp.compressor_envelope.reduce_duty_within_envelope`.
+            - ``"capacity_clamped"``, ``"capacity_binding"``, ``"Q_max [W]"``
+              and ``"Q_request [W]"`` are on every row (``None`` or NaN where
+              they do not apply; ``"Q_request [W]"`` is the ``Q_ref_tank``
+              asked for), and an off or failed row carries every key of a
+              running one (NaN where it has no value): the keys do not depend
+              on the point. ``"T_ref_cond_sat_v [°C]"`` is the dew point of
+              the condensing pressure, above ``"T_ref_cond_sat_l [°C]"`` by
+              the glide for a zeotropic blend.
             - ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
               ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
               ``"E_cycling_loss [W]"`` — on every row. A request below the
@@ -2016,10 +2037,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_mix_sup_w_in = (1 - alp) * dV_mix_w_out
         r.update(
             {
-                "dV_mix_w_out [m3/s]": dV_mix_w_out if dV_mix_w_out > 0 else np.nan,
-                "dV_tank_w_out [m3/s]": dV_tank_w_out if dV_tank_w_out > 0 else np.nan,
-                "dV_tank_w_in [m3/s]": dV_tank_w_in if dV_tank_w_in > 0 else np.nan,
-                "dV_mix_sup_w_in [m3/s]": dV_mix_sup_w_in if dV_mix_sup_w_in > 0 else np.nan,
+                # A flow that does not run is 0, as in GSHPB and WSHPB (the
+                # temperature of the water that does not flow stays NaN).
+                "dV_mix_w_out [m3/s]": max(dV_mix_w_out, 0.0),
+                "dV_tank_w_out [m3/s]": max(dV_tank_w_out, 0.0),
+                "dV_tank_w_in [m3/s]": max(dV_tank_w_in, 0.0),
+                "dV_mix_sup_w_in [m3/s]": max(dV_mix_sup_w_in, 0.0),
                 "Q_tank_w_in [W]": calc_energy_flow(G=rc * dV_tank_w_in, T=self.T_tank_w_in_K, T0=ctx.T0_K),
                 "Q_tank_w_out [W]": calc_energy_flow(G=rc * dV_tank_w_out, T=T_solved_K, T0=ctx.T0_K),
                 "Q_mix_sup_w_in [W]": calc_energy_flow(G=rc * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=ctx.T0_K),
@@ -2036,12 +2059,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             r["dV_mix_w_out_unmet [m3/s]"] = flows.dV_mix_w_out_unmet if flows is not None else 0.0
 
         # Diagnostics of the steady solve, not time-series quantities: keep them
-        # on the analyze_steady dict and out of the dynamic frame (an object
-        # column of None/str breaks numeric frame comparisons downstream, and
-        # the heat-exchanger closure terms describe one operating point rather
-        # than the tank trajectory).
+        # on the analyze_steady dict and out of the dynamic frame (the
+        # heat-exchanger closure terms describe one operating point rather than
+        # the tank trajectory). `capacity_clamped` stays: with the other
+        # capacity keys it is on every step (_complete_dynamic_row).
         for key in (
-            "capacity_clamped",
             "failure_detail",
             "_hx_diag",
             "dT_ref_tank [K]",
@@ -2057,7 +2079,70 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         ):
             r.pop(key, None)
 
+        return self._complete_dynamic_row(r, ctx)
+
+    #: Keys a running step has and an off step lacks, with the off step's value.
+    _DYNAMIC_ROW_DEFAULTS: dict[str, Any] = {
+        "eta_cmp [-]": math.nan,
+        "eta_cmp_isen [-]": math.nan,
+        "eta_cmp_vol [-]": math.nan,
+        "n_star [-]": math.nan,
+        "pr_cmp [-]": math.nan,
+        "dT_ref_superheat [K]": math.nan,
+        "x_ref_cmp_in [-]": math.nan,
+        "discharge_control": False,
+    }
+
+    #: Keys a running ``analyze_steady`` row has and an off or failed one lacks, with that row's value.
+    _STEADY_ROW_DEFAULTS: dict[str, Any] = {
+        "eta_cmp [-]": math.nan,
+        "eta_cmp_isen [-]": math.nan,
+        "eta_cmp_vol [-]": math.nan,
+        "n_star [-]": math.nan,
+        "pr_cmp [-]": math.nan,
+        "dT_ref_tank [K]": math.nan,
+        "UA_tank_hx [W/K]": math.nan,
+        "C_w_tank [W/K]": math.nan,
+        "epsilon_tank_hx [-]": math.nan,
+        "tank_hx_residual [W]": math.nan,
+        "UA_ou [W/K]": math.nan,
+        "NTU_ou [-]": math.nan,
+        "epsilon_ou [-]": math.nan,
+        "failure_detail": None,
+    }
+
+    def _complete_dynamic_row(self, r: dict, ctx: StepContext) -> dict:
+        """The keys every step carries, whatever the step did (in place).
+
+        Time at the start of the step (``time [s]``, ``time [h]``, as ASHP and
+        GSHP), the capacity keys (:func:`tmhp._boiler_results.complete_capacity_keys`:
+        the request is ``hp_capacity`` on a step the thermostat called the
+        compressor, 0 otherwise), the running-only keys of
+        :attr:`_DYNAMIC_ROW_DEFAULTS` and the condenser dew point.
+        """
+        request = step_request(r, self.hp_capacity)
+        complete_capacity_keys(r, request, step_average=True)
+        r.setdefault("Q_ref_tank_request [W]", request)
+        fill_missing(r, self._DYNAMIC_ROW_DEFAULTS)
+        report_condenser_dew_point(r, self.ref)
+        r["time [s]"] = float(ctx.current_time_s)
+        r["time [h]"] = float(ctx.current_hour)
         return r
+
+    def _complete_steady_result(self, result: dict, Q_ref_tank: float) -> dict:
+        """The keys every ``analyze_steady`` row carries, whatever the point (in place).
+
+        The capacity keys (``Q_request [W]`` is the requested ``Q_ref_tank``
+        on every row), ``Q_ref_tank_request [W]``, ``PLR_request [-]`` and
+        ``PLR_delivered [-]``, the running-only keys of
+        :attr:`_STEADY_ROW_DEFAULTS` and the condenser dew point.
+        """
+        complete_capacity_keys(result, Q_ref_tank)
+        result.setdefault("Q_ref_tank_request [W]", float(Q_ref_tank))
+        result.setdefault("PLR_request [-]", float(Q_ref_tank) / self.hp_capacity)
+        result.setdefault("PLR_delivered [-]", float(result.get("Q_ref_tank [W]", 0.0)) / self.hp_capacity)
+        fill_missing(result, self._STEADY_ROW_DEFAULTS)
+        return report_condenser_dew_point(result, self.ref)
 
     # =============================================================
     # Template Method Hooks (override in scenario subclasses)
@@ -2263,7 +2348,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dt_s : float
             Timestep [s].
         """
-        validate_step(inputs, dt_s)
+        validate_step(inputs, dt_s, self.V_tank_full)
         n = inputs["n"]
         t_s: float = inputs["current_time_s"]
         hr: float = t_s * cu.s2h
@@ -2509,7 +2594,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         Returns
         -------
         pd.DataFrame
-            Per-timestep result DataFrame.
+            Per-timestep result DataFrame, one row per step: ``time [s]`` and
+            ``time [h]`` at the start of the step, and the same columns
+            whatever the run did (a key a step has no value for is ``None``
+            or NaN; a flow that does not run is 0).
         """
         validate_dynamic(locals())
 
@@ -2665,7 +2753,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         Q_ref_ou = df["Q_ref_ou [W]"].fillna(0)
         df["X_ref_tank [W]"] = np.where(
             Q_ref_tank > 0,
-            Q_ref_tank * (1 - T0_K / cu.C2K(df["T_ref_cond_sat_v [°C]"])),
+            # Condenser heat at the bubble-point condensing temperature: the value
+            # T_ref_cond_sat_v repeated before it reported a zeotrope's dew point.
+            Q_ref_tank * (1 - T0_K / cu.C2K(df["T_ref_cond_sat_l [°C]"])),
             0.0,
         )
         df["X_ref_ou [W]"] = np.where(

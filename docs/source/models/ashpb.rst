@@ -96,6 +96,16 @@ water (:ref:`boiler-steady-cycling` has the formula and a table):
   ``part_load_factor [-]``; ``E_cycling_loss [W]`` is the off-state part.
 - Temperatures, pressures and speed are those of the running machine.
 
+On the speed floor the outdoor fan still has a range to choose from, and each
+airflow is a machine that delivers a different heat, all above the request.
+The running machine of the row is the most efficient of them (the least
+``E_tot`` per unit of heat delivered), at any tank temperature. A tank within
+0.5 K of ``T_tank_w_upper_bound``, or above it, used to be ranked on total
+power instead, which at the floor is nearly flat in the outdoor approach and
+returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
+outdoor approach with the fan at its lowest flow, a running-machine COP of
+4.27 where the floor offers 5.29.
+
 ``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
 for an untested unit), ``1 − P_off / P_on`` for a unit with a measured standby
 power, ``1.0`` for loss-free cycling, and ``None`` for the continuous
@@ -196,7 +206,11 @@ it, and a make-up valve opens when the level reaches
 (1 L/s) until the level is back at ``tank_level_upper_bound`` (1.0). The
 valve is followed inside each step, so a step can refill part of its
 length. ``prevent_simultaneous_flow`` admits make-up only while nothing
-is drawn. Either way the step balances the water and its energy
+is drawn. A draw that would replace the whole tank in less than 10 s
+(``tmhp._validation.DHW_TANK_TURNOVER_MIN_S``: 15 L/s for the 151 L default
+tank) is refused as a unit slip -- the schedule is in m³/s, and a value in
+L/s or L/min lands far above it; the same check applies to GSHPB, WSHPB and
+``step()``. Either way the step balances the water and its energy
 together,
 
 .. math::

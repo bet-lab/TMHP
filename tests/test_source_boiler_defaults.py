@@ -152,10 +152,10 @@ def test_overloaded_field_laminar_flow_and_unreachable_set_point_warn():
     with pytest.warns(UserWarning, match=r"112 W per metre.*above 80 W/m"):
         GroundSourceHeatPumpBoiler(hp_capacity=3e4, N_1=1, t_max_s=86400.0)
     # The default flow of 8 kW split over 16 boreholes: Re 440 with the default
-    # 25 % ethylene glycol (1463 with water).
+    # 25 % ethylene glycol (816 with water at its 0 °C design viscosity, 1463 at 20 °C).
     with pytest.warns(UserWarning, match=r"laminar, Re = 4\d\d "):
         GroundSourceHeatPumpBoiler(N_1=4, N_2=4, H_b=50.0, t_max_s=86400.0)
-    with pytest.warns(UserWarning, match=r"laminar, Re = 14\d\d "):
+    with pytest.warns(UserWarning, match=r"laminar, Re = 8\d\d "):
         GroundSourceHeatPumpBoiler(N_1=4, N_2=4, H_b=50.0, t_max_s=86400.0, source_fluid="water")
     # 500 W/K at 8 kW is a 16 K approach: 65 + 16 = 81 °C is above the R410A critical point.
     # (Without the condensing limit: with it this machine is refused at its rating point.)
@@ -338,7 +338,7 @@ def test_default_machine_charges_to_its_default_upper_set_point(default_runs, fa
     # It condenses at most 5 K above the 65 °C set point; the envelope never reduces the duty.
     assert df.loc[ran, "T_ref_cond_sat_l [°C]"].max() <= m.T_tank_w_upper_bound + 5.0 + 1e-6
     assert df.loc[ran, "T_ref_cond_sat_l [°C]"].max() < m.T_cond_max - 4.0
-    bindings = set(df["capacity_binding"].dropna()) if "capacity_binding" in df.columns else set()
+    bindings = set(df["capacity_binding"].dropna())
     # The ground loop (glycol) runs at the nameplate duty all the way. The
     # water-source loop is water: on the 6 °C source-water steps the duty is
     # turned down to keep the loop at its 3 °C limit (the source-fluid limit).

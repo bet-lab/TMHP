@@ -231,7 +231,13 @@ and properties of a mixture are read from CoolProp's incompressible mixtures
 Secondary Working Fluids for Indirect Systems*, IIR, 2010) at 0 °C, the liquid
 inlet of the brine rating points, and are constants during a run; water keeps
 the constants the models have always used (1000 kg/m³, 4186 J/(kg K),
-1.0 mPa s, 0.606 W/(m K)).
+1.0 mPa s, 0.606 W/(m K)). The Reynolds number of the source side (the
+laminar-flow warning and the film inside the U-tube in ``R_b``) takes the
+viscosity at the heating rating inlet instead, 0 °C for GSHP and GSHPB and
+10 °C for WSHPB: the table's value for a mixture, and for water 1.79 mPa s
+(ground loop) or 1.31 mPa s (water-source boiler) rather than 1.0
+(:meth:`tmhp.source_fluid.SourceFluid.viscosity`, attribute
+``mu_bhe_f_design``).
 A :class:`tmhp.source_fluid.SourceFluid` built by hand stands for any other
 liquid or any other limit.
 
@@ -333,7 +339,8 @@ give a larger ``ground_flow_ref_lpm`` or a smaller pipe.
    The ground-source models now default to 25 % ethylene glycol, which runs
    down to -8.0 °C and whose properties move the results a little (system
    COP of the 4 kW ``GroundSourceHeatPump`` against a 0 °C borehole wall
-   3.508, 3.520 before; B0/W35 and B0/W55 of this boiler are the same with
+   3.508, 3.520 before, and 3.495 since its indoor coil takes the room-air
+   density; B0/W35 and B0/W55 of this boiler are the same with
    the glycol as they were with water, 3.870 and 2.651 with R290), and a loop
    declared as water stops at 3 °C. To reproduce the
    earlier numbers exactly -- the properties of water and no limit to speak
@@ -552,7 +559,11 @@ Tank backends
 -------------
 
 ``tank_model`` selects how the tank itself is resolved (always-full tank,
-no ``stc``/``pv``/``uv`` subsystem in the multi-node modes):
+no ``stc``/``pv``/``uv`` subsystem in the multi-node modes). A multi-node tank
+keeps its volume -- every litre drawn is replaced at once -- so it cannot
+hold the draw and the make-up apart: ``prevent_simultaneous_flow=True`` with
+``"stratified"`` or ``"hybrid"`` raises ``ValueError`` (use the lumped tank
+for a level that falls during a draw):
 
 .. list-table::
    :header-rows: 1

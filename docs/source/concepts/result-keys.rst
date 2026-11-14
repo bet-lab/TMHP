@@ -85,11 +85,11 @@ are an operating point, a reduced one, a time average, or placeholders.
       - all
       - ``"none"`` or why a requested point has no operating point; the row then holds off-state placeholders. Values: :doc:`failure-reason-semantics`.
     * - ``capacity_clamped``
-      - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
-      - ``None`` when the request was met; ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*); ``"max"`` when the unit delivers less than asked.
+      - all
+      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*); ``"max"`` when the unit delivers less than asked.
     * - ``capacity_binding``
-      - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
-      - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` or absent otherwise.
+      - all
+      - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` otherwise: on every boiler row, on the ASHP and GSHP rows that have it.
     * - ``efficiency_extrapolated``
       - ASHP, GSHP (s), ASHPB (s), GSHPB (s), WSHPB (s)
       - A default compressor-efficiency fit is read outside its data box (PR 1.50–7.15, 33.8–72.5 rev/s) at this point. Scalar and user efficiencies give ``False``.
@@ -138,29 +138,29 @@ What was asked for, what was delivered, and how a request outside the modulation
       - Where
       - Meaning
     * - ``Q_request [W]``
-      - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
-      - The duty asked for, with the sign it was given (``Q_r_iu``: negative heating, positive cooling; boilers: positive). On every ASHP and GSHP row; in a boiler result only on a row whose duty was reduced.
+      - all
+      - The duty asked for, with the sign it was given (``Q_r_iu``: negative heating, positive cooling; boilers: positive), on every row. A boiler's ``analyze_steady``: the ``Q_ref_tank`` argument. A boiler's dynamic step: ``hp_capacity`` when the thermostat called the compressor during the step (whether it ran or failed), 0 when it did not.
     * - ``Q_unmet [W]``
       - ASHP, GSHP
       - Part of the request not delivered, ≥ 0. Sum it times the time step for a schedule's unmet energy.
     * - ``Q_max [W]``
-      - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
-      - On a ``"max"`` row, the duty delivered (the ceiling). ``None`` or absent otherwise.
+      - all
+      - On a ``"max"`` row, the duty delivered (the ceiling); in a boiler's dynamic step the running machine's, not the step average (``Q_ref_tank [W]`` is ``Q_max [W]`` times ``runtime_fraction [-]``). NaN on every other boiler row; absent on the other ASHP and GSHP rows.
     * - ``Q_min [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
       - On a ``"min"`` row, the duty of continuous operation at the minimum speed. NaN otherwise.
     * - ``Q_ref_tank_request [W]``
       - ASHPB
-      - ASHPB: the ``Q_ref_tank`` argument. Compare with ``Q_ref_tank [W]`` on a ``"max"`` row.
+      - ASHPB: the ``Q_ref_tank`` argument, on every row (dynamic: as ``Q_request [W]``). Compare with ``Q_ref_tank [W]`` on a ``"max"`` row.
     * - ``Q_tank_load [W]``
       - GSHPB, WSHPB
       - GSHPB, WSHPB: the tank heat the cycle was asked for (the ``Q_ref_tank`` argument).
     * - ``PLR_request [-]``
       - ASHPB (s)
-      - Requested duty over ``hp_capacity``.
+      - Requested duty over ``hp_capacity``, on every row.
     * - ``PLR_delivered [-]``
       - ASHPB (s)
-      - Delivered duty over ``hp_capacity``.
+      - Delivered duty over ``hp_capacity`` (0 on an off or failed row).
     * - ``capacity_ratio [-]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
       - Request over the minimum-speed duty (the *CR* of EN 14825); 1 on a row that does not cycle, 0 when off.
@@ -626,7 +626,7 @@ as 0 by GSHPB and WSHPB.
       - Temperature of the water delivered by the mixing valve; NaN when nothing is drawn (ASHPB).
     * - ``dV_mix_w_out [m3/s]``
       - ASHPB, GSHPB, WSHPB
-      - Mixed hot water delivered to the tap.
+      - Mixed hot water delivered to the tap. This and the three flows below are 0 when the water does not flow.
     * - ``dV_mix_sup_w_in [m3/s]``
       - ASHPB, GSHPB, WSHPB
       - Mains water entering the mixing valve.
@@ -658,8 +658,8 @@ as 0 by GSHPB and WSHPB.
 Time
 ====
 
-Only the space-conditioning frames carry a time column. A boiler frame has one row per step in order:
-row ``i`` covers ``i·dt_s`` to ``(i+1)·dt_s``.
+Every dynamic frame carries the time of its rows; the index stays the step number. Row ``i`` covers
+``i·dt_s`` to ``(i+1)·dt_s``.
 
 .. list-table::
     :header-rows: 1
@@ -669,10 +669,10 @@ row ``i`` covers ``i·dt_s`` to ``(i+1)·dt_s``.
       - Where
       - Meaning
     * - ``time [s]``
-      - ASHP (d), GSHP (d)
-      - Start of the step, seconds from the start of the run.
+      - all (d)
+      - Start of the step, seconds from the start of the run (``i·dt_s``). A boiler's ``step()`` row carries the ``current_time_s`` it was given.
     * - ``time [h]``
-      - ASHP (d), GSHP (d)
+      - all (d)
       - The same in hours.
 
 Refrigerant state points
@@ -680,8 +680,11 @@ Refrigerant state points
 
 Every family reports the same seven points of the cycle, in ``analyze_steady`` and in every dynamic row.
 An off or failed row carries NaN. For a zeotropic blend the condenser's dew and bubble points differ by
-the glide; GSHPB and WSHPB report the bubble-point temperature under both ``T_ref_cond_sat_v`` and
-``T_ref_cond_sat_l``.
+the glide (R407C: about 4.5 K; R410A: 0.1 K). The boilers report the dew point under
+``T_ref_cond_sat_v`` and the bubble point, which the cycle condenses at, under ``T_ref_cond_sat_l``; ASHP
+and GSHP report the bubble point under both. The condensing limit ``T_cond_max`` is a dew-point
+temperature (:mod:`tmhp.compressor_envelope`), and a boiler's condenser-heat exergy ``X_ref_tank [W]``
+uses the bubble point. For a pure refrigerant the two keys are equal.
 
 .. list-table::
     :header-rows: 1
@@ -1008,11 +1011,12 @@ These are not in every default result. Composed variants (solar thermal, PV
 and storage, UV lamp) add their own columns, described on :doc:`/models/ashpb`
 and :doc:`/models/gshpb`.
 
-A steady result is a ``dict`` built for the path the point took, so a key
-that describes a reduced or failed point can be missing from an ordinary one:
-``capacity_binding``, ``Q_max [W]`` and ``Q_request [W]`` of a boiler are
-present only on a row that delivers less than asked, and ``failure_detail``
-only on some failures. Read them with ``row.get(...)``.
+A boiler result has the same keys on every row and in every run of the same
+machine: what does not apply to a row is ``None`` or NaN. An ASHP or GSHP
+steady result is a ``dict`` built for the path the point took, so a key that
+describes a reduced or failed point can be missing from an ordinary one
+(``capacity_binding``, ``Q_max [W]``, ``failure_detail``). Read those with
+``row.get(...)``.
 
 .. list-table::
     :header-rows: 1
@@ -1021,16 +1025,11 @@ only on some failures. Read them with ``row.get(...)``.
     * - Key
       - Appears when
       - Meaning
-    * - ``capacity_binding``, ``Q_max [W]``, ``Q_request [W]`` in a boiler's
-        dynamic frame
-      - at least one step of the run ran at a reduced duty
-      - As in ``analyze_steady``, on the reduced steps; empty on the others.
-        A boiler's dynamic frame has no ``capacity_clamped`` column: test
-        ``capacity_binding`` instead.
     * - ``failure_detail``
-      - a boiler ``analyze_steady`` fails with ``cycle_invalid``, ASHPB with
-        ``hx_not_converged``, or a liquid-source family (GSHP, GSHPB, WSHPB)
-        with ``source_fluid_freezing``
+      - a boiler ``analyze_steady`` (``None`` unless it fails with
+        ``cycle_invalid``, ASHPB with ``hx_not_converged``, or GSHPB and WSHPB
+        with ``source_fluid_freezing``); GSHP when it fails with
+        ``source_fluid_freezing``. Not in dynamic frames.
       - Which check rejected the point; see :doc:`failure-reason-semantics`.
     * - ``dV_mix_w_out_unmet [m3/s]``
       - the tank level varies (``tank_always_full=False``), dynamic
@@ -1057,9 +1056,8 @@ Checking a result in code
    electricity_kWh = (df["E_tot [W]"] * dt_s).sum() / 3.6e6
 
 These four columns are in every frame of every family. A row that delivered
-less than asked has ``capacity_clamped == "max"`` in a steady result and in an
-ASHP or GSHP frame; in a boiler frame look for a ``capacity_binding`` column
-(see the table above).
+less than asked has ``capacity_clamped == "max"``, in a steady result and in a
+dynamic frame of every family.
 
 A new key added to a model has to be added here as well:
 ``tests/test_docs_alignment.py`` runs each family and fails when a result

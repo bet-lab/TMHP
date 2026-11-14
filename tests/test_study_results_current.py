@@ -259,6 +259,29 @@ def test_dynamic_docs_figures_reproduce(name: str) -> None:
     assert not mismatches, f"docs/source/_static/{name}.svg: {HINT}.\n  " + "\n  ".join(mismatches)
 
 
+def test_source_cop_timeseries_figure_reproduces() -> None:
+    """The ASHP/GSHP figure: the ground-loop run in full, the hourly COP at a sample of hours."""
+    import numpy as np
+
+    fig = _figure_script("source_cop_timeseries")
+    recorded = _figure_record("source_cop_timeseries")["data"]
+    t_h, t0, t_loop = fig.source_temperatures()
+    sample = [0, 7, 18, 30, 42, 66]  # night, a draw dip, afternoon, the coldest night, the frost band, the warmest
+    idx = fig.hour_index(np.array(sample), len(t_h))
+    cop_a, cop_g = fig.hourly_cop(t0[idx], t_loop[idx])
+    mismatches = []
+    for j, h in enumerate(sample):
+        i = recorded["hours"].index(h)
+        fresh = {
+            "T0_at_hour_C": float(t0[idx[j]]),
+            "T_loop_at_hour_C": float(t_loop[idx[j]]),
+            "cop_ashp": float(cop_a[j]),
+            "cop_gshp": float(cop_g[j]),
+        }
+        mismatches += _compare_values(fresh, {k: recorded[k][i] for k in fresh}, f"source_cop_timeseries h={h}")
+    assert not mismatches, f"docs/source/_static/source_cop_timeseries.svg: {HINT}.\n  " + "\n  ".join(mismatches)
+
+
 # ---------------------------------------------------------------------------
 # Every committed study says what it is
 # ---------------------------------------------------------------------------
@@ -298,4 +321,4 @@ def test_every_study_has_a_provenance_record() -> None:
     folders = {p.name for p in RESULTS.iterdir() if p.is_dir() and p.name not in ("provenance", "gate_a")}
     assert folders <= covered, f"study folders without a provenance record: {sorted(folders - covered)}"
     figures = {p.stem for p in FIGURE_RECORDS.glob("*.json")}
-    assert {"mollier_cycle_R32", "mollier_ts_R32", "refrigerant_compare_ph"} <= figures
+    assert {"mollier_cycle_R32", "mollier_ts_R32", "refrigerant_compare_ph", "source_cop_timeseries"} <= figures

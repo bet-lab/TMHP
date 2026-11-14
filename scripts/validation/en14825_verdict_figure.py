@@ -105,7 +105,7 @@ def main() -> None:
     band = pd.read_csv(BAND)
     parity = pd.read_csv(PARITY).set_index("variant")
 
-    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36))
+    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("19.2cm", 0.319), gridspec_kw={"wspace": 0.42})
 
     # --- (a), (b) the certified trajectory ---------------------------------
     for ax, (application, letter, title) in zip(axes[:2], APPLICATIONS, strict=True):
@@ -149,8 +149,9 @@ def main() -> None:
                 row.point,
                 (row.plr, row.cop),
                 textcoords="offset points",
-                xytext=(0, 7),
+                xytext=(0, -5),
                 ha="center",
+                va="top",
                 fontsize=dm.fs(-2),
                 color=COLORS["ink"],
             )

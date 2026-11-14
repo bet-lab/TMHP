@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="“Refrigerant-agnostic” is one of the headline properties of TMHP — and this is the page that makes it concrete. The refrigerant is a constructor argument on every released cycle-resolved model fami..." />
 
-    <meta property="article:modified_time" content="2026-11-14T07:20:48+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T08:30:14+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -267,18 +267,21 @@ DHW operating envelope.</p>
 critical point — a transcritical cycle. The cycle is written against a
 subcritical-condenser assumption, so R744 is <strong>not supported</strong> on the
 boiler families (<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> and the ground- and
-water-source counterparts). The constructor only warns that
-<code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code> could not be derived (pass <code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> to silence
-it), and <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> then raises a CoolProp <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
-because the condensing temperature (for example 330.8 K at a 55 °C
-tank) is above the numerical critical point (304.1 K):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R744&quot;</span><span class="p">,</span> <span class="n">rps_rated</span><span class="o">=</span><span class="mf">40.0</span><span class="p">)</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span>
-</span><span data-line="2">    <span class="n">T_tank_w</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">Q_ref_tank</span><span class="o">=</span><span class="mf">8000.0</span>
-</span><span data-line="3"><span class="p">)</span>
-</span><span data-line="4"><span class="c1"># ValueError: Temperature to QT_flash [330.81667 K] may not be above</span>
-</span><span data-line="5"><span class="c1"># the numerical critical point of 304.1282 K</span>
+water-source counterparts). Their constructors refuse a refrigerant whose
+critical temperature is not above the delivery set point <code class="docutils literal notranslate"><span class="pre">T_mix_w_out</span></code>,
+with or without <code class="docutils literal notranslate"><span class="pre">rps_rated</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R744&quot;</span><span class="p">)</span>
+</span><span data-line="2"><span class="c1"># ValueError: ref=&#39;R744&#39;: its critical temperature (31.0 degC) is not above</span>
+</span><span data-line="3"><span class="c1"># the delivery set point T_mix_w_out=40.0 degC, so no subcritical cycle of</span>
+</span><span data-line="4"><span class="c1"># R744 can heat the water; ... choose a subcritical refrigerant, for</span>
+</span><span data-line="5"><span class="c1"># example R290, R32 or R134a</span>
 </span></pre></div>
 </div>
+<p>A rating point whose condenser would be supercritical (R744 in the
+space-conditioning families, or a boiler asked for colder water than that)
+fails in the reference solve with <code class="docutils literal notranslate"><span class="pre">reference_capacity_inconsistent</span></code>,
+naming the condensing and the critical temperature
+(<a class="reference internal" href="../models/reference-state.html"><span class="doc">Compressor reference state</span></a>).</p>
 <p>A faithful transcritical model would need a gas-cooler block in place of the
 condenser. The cycle-closure interface (<code class="docutils literal notranslate"><span class="pre">_optimize_operation</span></code>) is
 designed so that swapping the high-side block in is a localised

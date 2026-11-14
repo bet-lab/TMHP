@@ -195,492 +195,500 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="21"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_util</span> <span class="k">as</span> <span class="n">cu</span>
 </span><span data-line="22"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">g_function</span> <span class="k">as</span> <span class="n">gf</span>
 </span><span data-line="23"><span class="kn">from</span><span class="w"> </span><span class="nn">._validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_ctor</span><span class="p">,</span> <span class="n">validate_steady</span>
-</span><span data-line="24"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_a</span><span class="p">,</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">k_w</span><span class="p">,</span> <span class="n">rho_a</span><span class="p">,</span> <span class="n">rho_w</span>
-</span><span data-line="25"><span class="kn">from</span><span class="w"> </span><span class="nn">.cop</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span data-line="26">    <span class="n">GSHP_EQFIT_COP_REF</span><span class="p">,</span>
-</span><span data-line="27">    <span class="n">GSHP_EQFIT_DOMAIN</span><span class="p">,</span>
-</span><span data-line="28">    <span class="n">GSHP_EQFIT_T_REF_K</span><span class="p">,</span>
-</span><span data-line="29">    <span class="n">EquationFitRangeError</span><span class="p">,</span>
-</span><span data-line="30">    <span class="n">gshp_equation_fit_ratios</span><span class="p">,</span>
-</span><span data-line="31"><span class="p">)</span>
-</span><span data-line="32"><span class="kn">from</span><span class="w"> </span><span class="nn">.g_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">g_step_mean</span><span class="p">,</span> <span class="n">precompute_gfunction</span>
-</span><span data-line="33"><span class="kn">from</span><span class="w"> </span><span class="nn">.hx_fan</span><span class="w"> </span><span class="kn">import</span> <span class="n">SINGLE_ZONE_VAV_COEFFICIENTS</span><span class="p">,</span> <span class="n">calc_fan_power_from_dV_fan</span>
-</span><span data-line="34">
-</span><span data-line="35"><span class="c1"># Aliases to match the borehole-fluid naming convention in the original code</span>
-</span><span data-line="36"><span class="n">c_f</span> <span class="o">=</span> <span class="n">c_w</span>
-</span><span data-line="37"><span class="n">rho_f</span> <span class="o">=</span> <span class="n">rho_w</span>
-</span><span data-line="38">
-</span><span data-line="39"><span class="c1">#: Entering (room) air temperature [°C] used when ``T_a_room`` is not given.</span>
-</span><span data-line="40"><span class="n">T_A_ROOM_DEFAULT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;cooling&quot;</span><span class="p">:</span> <span class="mf">27.0</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span> <span class="mf">21.0</span><span class="p">,</span> <span class="s2">&quot;off&quot;</span><span class="p">:</span> <span class="mf">22.0</span><span class="p">}</span>
-</span><span data-line="41">
+</span><span data-line="24"><span class="kn">from</span><span class="w"> </span><span class="nn">.air_properties</span><span class="w"> </span><span class="kn">import</span> <span class="n">air_density</span>
+</span><span data-line="25"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_a</span><span class="p">,</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">k_w</span><span class="p">,</span> <span class="n">rho_a</span><span class="p">,</span> <span class="n">rho_w</span><span class="p">,</span> <span class="n">water_viscosity</span>
+</span><span data-line="26"><span class="kn">from</span><span class="w"> </span><span class="nn">.cop</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="27">    <span class="n">GSHP_EQFIT_COP_REF</span><span class="p">,</span>
+</span><span data-line="28">    <span class="n">GSHP_EQFIT_DOMAIN</span><span class="p">,</span>
+</span><span data-line="29">    <span class="n">GSHP_EQFIT_T_REF_K</span><span class="p">,</span>
+</span><span data-line="30">    <span class="n">EquationFitRangeError</span><span class="p">,</span>
+</span><span data-line="31">    <span class="n">gshp_equation_fit_ratios</span><span class="p">,</span>
+</span><span data-line="32"><span class="p">)</span>
+</span><span data-line="33"><span class="kn">from</span><span class="w"> </span><span class="nn">.g_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">g_step_mean</span><span class="p">,</span> <span class="n">precompute_gfunction</span>
+</span><span data-line="34"><span class="kn">from</span><span class="w"> </span><span class="nn">.hx_fan</span><span class="w"> </span><span class="kn">import</span> <span class="n">SINGLE_ZONE_VAV_COEFFICIENTS</span><span class="p">,</span> <span class="n">calc_fan_power_from_dV_fan</span>
+</span><span data-line="35">
+</span><span data-line="36"><span class="c1"># Aliases to match the borehole-fluid naming convention in the original code</span>
+</span><span data-line="37"><span class="n">c_f</span> <span class="o">=</span> <span class="n">c_w</span>
+</span><span data-line="38"><span class="n">rho_f</span> <span class="o">=</span> <span class="n">rho_w</span>
+</span><span data-line="39">
+</span><span data-line="40"><span class="c1">#: Entering (room) air temperature [°C] used when ``T_a_room`` is not given.</span>
+</span><span data-line="41"><span class="n">T_A_ROOM_DEFAULT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;cooling&quot;</span><span class="p">:</span> <span class="mf">27.0</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span> <span class="mf">21.0</span><span class="p">,</span> <span class="s2">&quot;off&quot;</span><span class="p">:</span> <span class="mf">22.0</span><span class="p">}</span>
 </span><span data-line="42">
+</span><span data-line="43">
 <div class="viewcode-block" id="GroundSourceHeatPumpEmpirical">
 <a class="viewcode-back" href="../../models/gshp.html#tmhp.GroundSourceHeatPumpEmpirical">[docs]</a>
-</span><span data-line="43"><span class="nd">@dataclass</span>
-</span><span data-line="44"><span class="k">class</span><span class="w"> </span><span class="nc">GroundSourceHeatPumpEmpirical</span><span class="p">:</span>
-</span><span data-line="45"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ground source heat pump model using the EnergyPlus EquationFit COP model.</span>
-</span><span data-line="46">
-</span><span data-line="47"><span class="sd">    Uses borehole heat exchangers with pygfunction step-response</span>
-</span><span data-line="48"><span class="sd">    factor array for precise soil thermal response with temporal</span>
-</span><span data-line="49"><span class="sd">    superposition of dynamic building loads.</span>
-</span><span data-line="50">
-</span><span data-line="51"><span class="sd">    This model computes borehole thermal resistance R_b* automatically</span>
-</span><span data-line="52"><span class="sd">    using the pygfunction multipole method (Hellström 1991), and fan</span>
-</span><span data-line="53"><span class="sd">    power using the default single-zone VAV surrogate.</span>
-</span><span data-line="54">
-</span><span data-line="55"><span class="sd">    **Performance curve and its limits.** COP and available capacity come</span>
-</span><span data-line="56"><span class="sd">    from the ClimateMaster TCH072_GLHP EquationFit curves of EnergyPlus</span>
-</span><span data-line="57"><span class="sd">    (:func:`~tmhp.cop.gshp_equation_fit_ratios`). They describe full-load</span>
-</span><span data-line="58"><span class="sd">    operation at the rated air flow; a smaller load is met by cycling, so the</span>
-</span><span data-line="59"><span class="sd">    COP does not depend on the part-load ratio (no cycling degradation is</span>
-</span><span data-line="60"><span class="sd">    applied). The available capacity is ``Q_rated_{cooling,heating} ×</span>
-</span><span data-line="61"><span class="sd">    CAP_ratio(T_air, EWT)``; a larger request is served at that ceiling and</span>
-</span><span data-line="62"><span class="sd">    flagged ``capacity_clamped = &quot;max&quot;``. Outside the fitted domain</span>
-</span><span data-line="63"><span class="sd">    (:data:`~tmhp.cop.GSHP_EQFIT_DOMAIN`: entering water −1.25–32.06 °C in</span>
-</span><span data-line="64"><span class="sd">    heating, 9.85–48.72 °C in cooling; entering air 9.85–26.51 °C dry-bulb in</span>
-</span><span data-line="65"><span class="sd">    heating, 9.85–23.73 °C wet-bulb in cooling; the water temperature is</span>
-</span><span data-line="66"><span class="sd">    judged at the converged, self-consistent entering water, not at the</span>
-</span><span data-line="67"><span class="sd">    undisturbed ground) the unit does not run for that step: heat, compressor and pump power are zero, ``COP`` is NaN and</span>
-</span><span data-line="68"><span class="sd">    ``failure_reason`` says why. COP and compressor power are therefore never</span>
-</span><span data-line="69"><span class="sd">    negative.</span>
-</span><span data-line="70">
-</span><span data-line="71"><span class="sd">    **Time convention.** Each call of :meth:`system_update` is one step of</span>
-</span><span data-line="72"><span class="sd">    ``dt_hours``; the borehole-wall temperature is the mean over that step,</span>
-</span><span data-line="73"><span class="sd">    including the response to the step&#39;s own load (step-mean g-function, the</span>
-</span><span data-line="74"><span class="sd">    same convention as the physics-based ground-source models).</span>
-</span><span data-line="75">
-</span><span data-line="76"><span class="sd">    For a full refrigerant-cycle model, see :class:`~tmhp.GroundSourceHeatPump`.</span>
-</span><span data-line="77"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="78">
-</span><span data-line="79">    <span class="c1"># 1. Borehole parameters</span>
-</span><span data-line="80">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">150.0</span>  <span class="c1"># Borehole height [m]</span>
-</span><span data-line="81">    <span class="n">D_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>  <span class="c1"># Borehole burial depth [m]</span>
-</span><span data-line="82">    <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.08</span>  <span class="c1"># Borehole radius [m]</span>
-</span><span data-line="83">
-</span><span data-line="84">    <span class="c1"># 2. Pipe &amp; Grout parameters</span>
-</span><span data-line="85">    <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.4</span>  <span class="c1"># Pipe thermal conductivity [W/mK] (HDPE)</span>
-</span><span data-line="86">    <span class="n">k_grout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span>  <span class="c1"># Grout thermal conductivity [W/mK]</span>
-</span><span data-line="87">    <span class="n">r_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.016</span>  <span class="c1"># Pipe outer radius [m] (32mm OD / 2)</span>
-</span><span data-line="88">    <span class="n">r_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.013</span>  <span class="c1"># Pipe inner radius [m] (26mm ID / 2)</span>
-</span><span data-line="89">    <span class="n">D_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.032</span>  <span class="c1"># Distance from borehole centre to pipe centre [m]</span>
-</span><span data-line="90">
-</span><span data-line="91">    <span class="c1"># 3. Ground parameters</span>
-</span><span data-line="92">    <span class="n">k_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>  <span class="c1"># Ground thermal conductivity [W/mK]</span>
-</span><span data-line="93">    <span class="n">c_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">800.0</span>  <span class="c1"># Ground specific heat capacity [J/(kgK)]</span>
-</span><span data-line="94">    <span class="n">rho_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2000.0</span>  <span class="c1"># Ground density [kg/m³]</span>
-</span><span data-line="95">    <span class="n">T_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">15.0</span>  <span class="c1"># Initial ground temperature [°C]</span>
-</span><span data-line="96">
-</span><span data-line="97">    <span class="c1"># 4. Fluid parameters</span>
-</span><span data-line="98">    <span class="n">dV_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span>  <span class="c1"># Volumetric flow rate of fluid [L/min]</span>
-</span><span data-line="99">
-</span><span data-line="100">    <span class="c1"># 5. Rated Performance &amp; Design</span>
-</span><span data-line="101">    <span class="n">Q_rated_cooling</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20590.0</span>  <span class="c1"># [W]</span>
-</span><span data-line="102">    <span class="n">Q_rated_heating</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">16450.0</span>  <span class="c1"># [W]</span>
-</span><span data-line="103">    <span class="n">E_pmp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">100.0</span>  <span class="c1"># Pump power input [W]</span>
-</span><span data-line="104">    <span class="n">dP_iu_fan_design</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span>  <span class="c1"># Design pressure drop [Pa]</span>
-</span><span data-line="105">    <span class="n">eta_iu_fan_design</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span>  <span class="c1"># Design fan efficiency</span>
-</span><span data-line="106">
-</span><span data-line="107">    <span class="c1"># 6. Simulation Control</span>
-</span><span data-line="108">    <span class="n">dt_hours</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
-</span><span data-line="109">    <span class="n">sim_hours</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8760</span>
-</span><span data-line="110">    <span class="c1"># Axial boundary condition for the g-function: &#39;UBWT&#39; or &#39;UHTR&#39;</span>
-</span><span data-line="111">    <span class="n">gfunc_boundary_condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;UBWT&quot;</span>
-</span><span data-line="112">
-</span><span data-line="113">    <span class="c1"># 7. Runtime Inputs (per-timestep)</span>
-</span><span data-line="114">    <span class="n">Q_r_iu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># Indoor load request [W]: &gt;0 cooling, &lt;0 heating, 0 off</span>
-</span><span data-line="115">    <span class="n">T0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span>  <span class="c1"># Dead-state (outdoor) temperature [°C]</span>
-</span><span data-line="116">    <span class="c1"># Entering (room) air temperature [°C]; None uses T_A_ROOM_DEFAULT per mode.</span>
-</span><span data-line="117">    <span class="n">T_a_room</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="118">
-</span><span data-line="119">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span data-line="120">        <span class="n">validate_ctor</span><span class="p">(</span><span class="s2">&quot;GSHP_EMPIRICAL&quot;</span><span class="p">,</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
-</span><span data-line="121">        <span class="c1"># Initialize historical and temporal states</span>
-</span><span data-line="122">        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="123">        <span class="bp">self</span><span class="o">.</span><span class="n">dt_sec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_hours</span> <span class="o">*</span> <span class="mf">3600.0</span>
-</span><span data-line="124">        <span class="bp">self</span><span class="o">.</span><span class="n">q_b_history</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
-</span><span data-line="125">        <span class="bp">self</span><span class="o">.</span><span class="n">_n_steps</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span data-line="126">
-</span><span data-line="127">        <span class="c1"># Calculate Effective Borehole Thermal Resistance R_b*</span>
-</span><span data-line="128">        <span class="c1"># Single U-tube (series): each pipe leg carries the full borehole flow.</span>
-</span><span data-line="129">        <span class="c1"># Using water properties at approx 15-20 degC (mu_f = 0.00114 Pa·s)</span>
-</span><span data-line="130">        <span class="n">m_flow_borehole</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_f</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">L2m3</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">s2m</span> <span class="o">*</span> <span class="n">rho_f</span>  <span class="c1"># Total borehole mass flow [kg/s]</span>
-</span><span data-line="131">        <span class="bp">self</span><span class="o">.</span><span class="n">R_b</span> <span class="o">=</span> <span class="n">gf</span><span class="o">.</span><span class="n">calc_borehole_thermal_resistance</span><span class="p">(</span>
-</span><span data-line="132">            <span class="n">k_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_g</span><span class="p">,</span>
-</span><span data-line="133">            <span class="n">k_g</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_grout</span><span class="p">,</span>
-</span><span data-line="134">            <span class="n">k_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_p</span><span class="p">,</span>
-</span><span data-line="135">            <span class="n">r_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_b</span><span class="p">,</span>
-</span><span data-line="136">            <span class="n">r_out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out</span><span class="p">,</span>
-</span><span data-line="137">            <span class="n">r_in</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in</span><span class="p">,</span>
-</span><span data-line="138">            <span class="n">D_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">D_s</span><span class="p">,</span>
-</span><span data-line="139">            <span class="n">H_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">H_b</span><span class="p">,</span>
-</span><span data-line="140">            <span class="n">m_flow_borehole</span><span class="o">=</span><span class="n">m_flow_borehole</span><span class="p">,</span>
-</span><span data-line="141">            <span class="n">rho_f</span><span class="o">=</span><span class="n">rho_f</span><span class="p">,</span>
-</span><span data-line="142">            <span class="n">mu_f</span><span class="o">=</span><span class="mf">0.00114</span><span class="p">,</span>
-</span><span data-line="143">            <span class="n">cp_f</span><span class="o">=</span><span class="n">c_f</span><span class="p">,</span>
-</span><span data-line="144">            <span class="n">k_f</span><span class="o">=</span><span class="n">k_w</span><span class="p">,</span>
-</span><span data-line="145">        <span class="p">)</span>
-</span><span data-line="146">
-</span><span data-line="147">        <span class="c1"># Fan parameters (VSD model)</span>
-</span><span data-line="148">        <span class="n">_hp_capacity</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_rated_cooling</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_rated_heating</span><span class="p">)</span>
-</span><span data-line="149">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_iu_fan_design</span> <span class="o">=</span> <span class="n">_hp_capacity</span> <span class="o">/</span> <span class="p">(</span><span class="n">rho_a</span> <span class="o">*</span> <span class="n">c_a</span> <span class="o">*</span> <span class="mf">10.0</span><span class="p">)</span>
-</span><span data-line="150">        <span class="bp">self</span><span class="o">.</span><span class="n">E_iu_fan_design</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_iu_fan_design</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dP_iu_fan_design</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_iu_fan_design</span>
-</span><span data-line="151">        <span class="bp">self</span><span class="o">.</span><span class="n">vsd_coeffs_iu</span> <span class="o">=</span> <span class="n">SINGLE_ZONE_VAV_COEFFICIENTS</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-</span><span data-line="152">        <span class="bp">self</span><span class="o">.</span><span class="n">fan_params_iu</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="153">            <span class="s2">&quot;fan_design_flow_rate&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_iu_fan_design</span><span class="p">,</span>
-</span><span data-line="154">            <span class="s2">&quot;fan_design_power&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_iu_fan_design</span><span class="p">,</span>
-</span><span data-line="155">        <span class="p">}</span>
-</span><span data-line="156">
-</span><span data-line="157">        <span class="c1"># Precompute dimensional g-function [mK/W]</span>
-</span><span data-line="158">        <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_g</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rho_g</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g</span><span class="p">)</span>
-</span><span data-line="159">        <span class="bp">self</span><span class="o">.</span><span class="n">g_func_interp</span> <span class="o">=</span> <span class="n">precompute_gfunction</span><span class="p">(</span>
-</span><span data-line="160">            <span class="n">N_1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span><span data-line="161">            <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span><span data-line="162">            <span class="n">B</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
-</span><span data-line="163">            <span class="n">H_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">H_b</span><span class="p">,</span>
-</span><span data-line="164">            <span class="n">D_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">D_b</span><span class="p">,</span>
-</span><span data-line="165">            <span class="n">r_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_b</span><span class="p">,</span>
-</span><span data-line="166">            <span class="n">alpha_s</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
-</span><span data-line="167">            <span class="n">k_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_g</span><span class="p">,</span>
-</span><span data-line="168">            <span class="n">t_max_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_hours</span> <span class="o">*</span> <span class="mf">3600.0</span><span class="p">,</span>
-</span><span data-line="169">            <span class="n">dt_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt_sec</span><span class="p">,</span>
-</span><span data-line="170">            <span class="n">boundary_condition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gfunc_boundary_condition</span><span class="p">,</span>
-</span><span data-line="171">        <span class="p">)</span>
-</span><span data-line="172">        <span class="c1"># Load-pulse history and the step-mean response for every lag.</span>
-</span><span data-line="173">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="174">        <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="175">        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_history_capacity</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_hours</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_hours</span><span class="p">)),</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-</span><span data-line="176">
-</span><span data-line="177">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="178">    <span class="c1"># Ground response bookkeeping</span>
-</span><span data-line="179">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="180">    <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_history_capacity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="181"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Make room for ``n`` steps of pulses and step-mean responses.&quot;&quot;&quot;</span>
-</span><span data-line="182">        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">):</span>
-</span><span data-line="183">            <span class="k">return</span>
-</span><span data-line="184">        <span class="n">n</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">))</span>
-</span><span data-line="185">        <span class="n">pulses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-</span><span data-line="186">        <span class="n">pulses</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span>
-</span><span data-line="187">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span> <span class="o">=</span> <span class="n">pulses</span>
-</span><span data-line="188">        <span class="n">lags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_sec</span>
-</span><span data-line="189">        <span class="n">gbar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">g_step_mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g_func_interp</span><span class="p">,</span> <span class="n">lags</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_sec</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-</span><span data-line="190">        <span class="c1"># Reversed so that Σ_{i&lt;n} p_i ḡ[n-i] is one contiguous dot product.</span>
-</span><span data-line="191">        <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">gbar</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</span><span data-line="192">
-</span><span data-line="193">    <span class="k">def</span><span class="w"> </span><span class="nf">_history_effect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="194"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mean wall-temperature change over step ``n`` from the loads of steps ``0..n-1`` [K].&quot;&quot;&quot;</span>
-</span><span data-line="195">        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="196">            <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="197">        <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span><span class="p">)</span>
-</span><span data-line="198">        <span class="c1"># ḡ[n-i] for i = 0..n-1 is rev[L-1-n+i].</span>
-</span><span data-line="199">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[:</span><span class="n">n</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span><span class="p">[</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n</span> <span class="p">:</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]))</span>
-</span><span data-line="200">
+</span><span data-line="44"><span class="nd">@dataclass</span>
+</span><span data-line="45"><span class="k">class</span><span class="w"> </span><span class="nc">GroundSourceHeatPumpEmpirical</span><span class="p">:</span>
+</span><span data-line="46"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ground source heat pump model using the EnergyPlus EquationFit COP model.</span>
+</span><span data-line="47">
+</span><span data-line="48"><span class="sd">    Uses borehole heat exchangers with pygfunction step-response</span>
+</span><span data-line="49"><span class="sd">    factor array for precise soil thermal response with temporal</span>
+</span><span data-line="50"><span class="sd">    superposition of dynamic building loads.</span>
+</span><span data-line="51">
+</span><span data-line="52"><span class="sd">    This model computes borehole thermal resistance R_b* automatically</span>
+</span><span data-line="53"><span class="sd">    using the pygfunction multipole method (Hellström 1991), and fan</span>
+</span><span data-line="54"><span class="sd">    power using the default single-zone VAV surrogate.</span>
+</span><span data-line="55">
+</span><span data-line="56"><span class="sd">    **Performance curve and its limits.** COP and available capacity come</span>
+</span><span data-line="57"><span class="sd">    from the ClimateMaster TCH072_GLHP EquationFit curves of EnergyPlus</span>
+</span><span data-line="58"><span class="sd">    (:func:`~tmhp.cop.gshp_equation_fit_ratios`). They describe full-load</span>
+</span><span data-line="59"><span class="sd">    operation at the rated air flow; a smaller load is met by cycling, so the</span>
+</span><span data-line="60"><span class="sd">    COP does not depend on the part-load ratio (no cycling degradation is</span>
+</span><span data-line="61"><span class="sd">    applied). The available capacity is ``Q_rated_{cooling,heating} ×</span>
+</span><span data-line="62"><span class="sd">    CAP_ratio(T_air, EWT)``; a larger request is served at that ceiling and</span>
+</span><span data-line="63"><span class="sd">    flagged ``capacity_clamped = &quot;max&quot;``. Outside the fitted domain</span>
+</span><span data-line="64"><span class="sd">    (:data:`~tmhp.cop.GSHP_EQFIT_DOMAIN`: entering water −1.25–32.06 °C in</span>
+</span><span data-line="65"><span class="sd">    heating, 9.85–48.72 °C in cooling; entering air 9.85–26.51 °C dry-bulb in</span>
+</span><span data-line="66"><span class="sd">    heating, 9.85–23.73 °C wet-bulb in cooling; the water temperature is</span>
+</span><span data-line="67"><span class="sd">    judged at the converged, self-consistent entering water, not at the</span>
+</span><span data-line="68"><span class="sd">    undisturbed ground) the unit does not run for that step: heat, compressor and pump power are zero, ``COP`` is NaN and</span>
+</span><span data-line="69"><span class="sd">    ``failure_reason`` says why. COP and compressor power are therefore never</span>
+</span><span data-line="70"><span class="sd">    negative.</span>
+</span><span data-line="71">
+</span><span data-line="72"><span class="sd">    **Time convention.** Each call of :meth:`system_update` is one step of</span>
+</span><span data-line="73"><span class="sd">    ``dt_hours``; the borehole-wall temperature is the mean over that step,</span>
+</span><span data-line="74"><span class="sd">    including the response to the step&#39;s own load (step-mean g-function, the</span>
+</span><span data-line="75"><span class="sd">    same convention as the physics-based ground-source models).</span>
+</span><span data-line="76">
+</span><span data-line="77"><span class="sd">    For a full refrigerant-cycle model, see :class:`~tmhp.GroundSourceHeatPump`.</span>
+</span><span data-line="78"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="79">
+</span><span data-line="80">    <span class="c1"># 1. Borehole parameters</span>
+</span><span data-line="81">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">150.0</span>  <span class="c1"># Borehole height [m]</span>
+</span><span data-line="82">    <span class="n">D_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>  <span class="c1"># Borehole burial depth [m]</span>
+</span><span data-line="83">    <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.08</span>  <span class="c1"># Borehole radius [m]</span>
+</span><span data-line="84">
+</span><span data-line="85">    <span class="c1"># 2. Pipe &amp; Grout parameters</span>
+</span><span data-line="86">    <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.4</span>  <span class="c1"># Pipe thermal conductivity [W/mK] (HDPE)</span>
+</span><span data-line="87">    <span class="n">k_grout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span>  <span class="c1"># Grout thermal conductivity [W/mK]</span>
+</span><span data-line="88">    <span class="n">r_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.016</span>  <span class="c1"># Pipe outer radius [m] (32mm OD / 2)</span>
+</span><span data-line="89">    <span class="n">r_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.013</span>  <span class="c1"># Pipe inner radius [m] (26mm ID / 2)</span>
+</span><span data-line="90">    <span class="n">D_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.032</span>  <span class="c1"># Distance from borehole centre to pipe centre [m]</span>
+</span><span data-line="91">
+</span><span data-line="92">    <span class="c1"># 3. Ground parameters</span>
+</span><span data-line="93">    <span class="n">k_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>  <span class="c1"># Ground thermal conductivity [W/mK]</span>
+</span><span data-line="94">    <span class="n">c_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">800.0</span>  <span class="c1"># Ground specific heat capacity [J/(kgK)]</span>
+</span><span data-line="95">    <span class="n">rho_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2000.0</span>  <span class="c1"># Ground density [kg/m³]</span>
+</span><span data-line="96">    <span class="n">T_g</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">15.0</span>  <span class="c1"># Initial ground temperature [°C]</span>
+</span><span data-line="97">
+</span><span data-line="98">    <span class="c1"># 4. Fluid parameters</span>
+</span><span data-line="99">    <span class="n">dV_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span>  <span class="c1"># Volumetric flow rate of fluid [L/min]</span>
+</span><span data-line="100">
+</span><span data-line="101">    <span class="c1"># 5. Rated Performance &amp; Design</span>
+</span><span data-line="102">    <span class="n">Q_rated_cooling</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20590.0</span>  <span class="c1"># [W]</span>
+</span><span data-line="103">    <span class="n">Q_rated_heating</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">16450.0</span>  <span class="c1"># [W]</span>
+</span><span data-line="104">    <span class="n">E_pmp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">100.0</span>  <span class="c1"># Pump power input [W]</span>
+</span><span data-line="105">    <span class="n">dP_iu_fan_design</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span>  <span class="c1"># Design pressure drop [Pa]</span>
+</span><span data-line="106">    <span class="n">eta_iu_fan_design</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span>  <span class="c1"># Design fan efficiency</span>
+</span><span data-line="107">
+</span><span data-line="108">    <span class="c1"># 6. Simulation Control</span>
+</span><span data-line="109">    <span class="n">dt_hours</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span data-line="110">    <span class="n">sim_hours</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8760</span>
+</span><span data-line="111">    <span class="c1"># Axial boundary condition for the g-function: &#39;UBWT&#39; or &#39;UHTR&#39;</span>
+</span><span data-line="112">    <span class="n">gfunc_boundary_condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;UBWT&quot;</span>
+</span><span data-line="113">
+</span><span data-line="114">    <span class="c1"># 7. Runtime Inputs (per-timestep)</span>
+</span><span data-line="115">    <span class="n">Q_r_iu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># Indoor load request [W]: &gt;0 cooling, &lt;0 heating, 0 off</span>
+</span><span data-line="116">    <span class="n">T0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span>  <span class="c1"># Dead-state (outdoor) temperature [°C]</span>
+</span><span data-line="117">    <span class="c1"># Entering (room) air temperature [°C]; None uses T_A_ROOM_DEFAULT per mode.</span>
+</span><span data-line="118">    <span class="n">T_a_room</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="119">
+</span><span data-line="120">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span data-line="121">        <span class="n">validate_ctor</span><span class="p">(</span><span class="s2">&quot;GSHP_EMPIRICAL&quot;</span><span class="p">,</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+</span><span data-line="122">        <span class="c1"># Initialize historical and temporal states</span>
+</span><span data-line="123">        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="124">        <span class="bp">self</span><span class="o">.</span><span class="n">dt_sec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_hours</span> <span class="o">*</span> <span class="mf">3600.0</span>
+</span><span data-line="125">        <span class="bp">self</span><span class="o">.</span><span class="n">q_b_history</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+</span><span data-line="126">        <span class="bp">self</span><span class="o">.</span><span class="n">_n_steps</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="127">
+</span><span data-line="128">        <span class="c1"># Calculate Effective Borehole Thermal Resistance R_b*</span>
+</span><span data-line="129">        <span class="c1"># Single U-tube (series): each pipe leg carries the full borehole flow.</span>
+</span><span data-line="130">        <span class="c1"># Water properties; the viscosity at the initial ground temperature,</span>
+</span><span data-line="131">        <span class="c1"># around which the loop runs (1.14 mPa s at the default 15 °C).</span>
+</span><span data-line="132">        <span class="n">m_flow_borehole</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_f</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">L2m3</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">s2m</span> <span class="o">*</span> <span class="n">rho_f</span>  <span class="c1"># Total borehole mass flow [kg/s]</span>
+</span><span data-line="133">        <span class="bp">self</span><span class="o">.</span><span class="n">R_b</span> <span class="o">=</span> <span class="n">gf</span><span class="o">.</span><span class="n">calc_borehole_thermal_resistance</span><span class="p">(</span>
+</span><span data-line="134">            <span class="n">k_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_g</span><span class="p">,</span>
+</span><span data-line="135">            <span class="n">k_g</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_grout</span><span class="p">,</span>
+</span><span data-line="136">            <span class="n">k_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_p</span><span class="p">,</span>
+</span><span data-line="137">            <span class="n">r_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_b</span><span class="p">,</span>
+</span><span data-line="138">            <span class="n">r_out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_out</span><span class="p">,</span>
+</span><span data-line="139">            <span class="n">r_in</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_in</span><span class="p">,</span>
+</span><span data-line="140">            <span class="n">D_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">D_s</span><span class="p">,</span>
+</span><span data-line="141">            <span class="n">H_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">H_b</span><span class="p">,</span>
+</span><span data-line="142">            <span class="n">m_flow_borehole</span><span class="o">=</span><span class="n">m_flow_borehole</span><span class="p">,</span>
+</span><span data-line="143">            <span class="n">rho_f</span><span class="o">=</span><span class="n">rho_f</span><span class="p">,</span>
+</span><span data-line="144">            <span class="n">mu_f</span><span class="o">=</span><span class="n">water_viscosity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_g</span><span class="p">),</span>
+</span><span data-line="145">            <span class="n">cp_f</span><span class="o">=</span><span class="n">c_f</span><span class="p">,</span>
+</span><span data-line="146">            <span class="n">k_f</span><span class="o">=</span><span class="n">k_w</span><span class="p">,</span>
+</span><span data-line="147">        <span class="p">)</span>
+</span><span data-line="148">
+</span><span data-line="149">        <span class="c1"># Fan parameters (VSD model)</span>
+</span><span data-line="150">        <span class="n">_hp_capacity</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_rated_cooling</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_rated_heating</span><span class="p">)</span>
+</span><span data-line="151">        <span class="c1"># Design volume flow: the rated capacity at a 10 K air temperature</span>
+</span><span data-line="152">        <span class="c1"># change in standard air (15 °C). Operating flows below are volumes</span>
+</span><span data-line="153">        <span class="c1"># of room air at its own density.</span>
+</span><span data-line="154">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_iu_fan_design</span> <span class="o">=</span> <span class="n">_hp_capacity</span> <span class="o">/</span> <span class="p">(</span><span class="n">rho_a</span> <span class="o">*</span> <span class="n">c_a</span> <span class="o">*</span> <span class="mf">10.0</span><span class="p">)</span>
+</span><span data-line="155">        <span class="bp">self</span><span class="o">.</span><span class="n">E_iu_fan_design</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_iu_fan_design</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dP_iu_fan_design</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_iu_fan_design</span>
+</span><span data-line="156">        <span class="bp">self</span><span class="o">.</span><span class="n">vsd_coeffs_iu</span> <span class="o">=</span> <span class="n">SINGLE_ZONE_VAV_COEFFICIENTS</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span data-line="157">        <span class="bp">self</span><span class="o">.</span><span class="n">fan_params_iu</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="158">            <span class="s2">&quot;fan_design_flow_rate&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_iu_fan_design</span><span class="p">,</span>
+</span><span data-line="159">            <span class="s2">&quot;fan_design_power&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_iu_fan_design</span><span class="p">,</span>
+</span><span data-line="160">        <span class="p">}</span>
+</span><span data-line="161">
+</span><span data-line="162">        <span class="c1"># Precompute dimensional g-function [mK/W]</span>
+</span><span data-line="163">        <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_g</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rho_g</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g</span><span class="p">)</span>
+</span><span data-line="164">        <span class="bp">self</span><span class="o">.</span><span class="n">g_func_interp</span> <span class="o">=</span> <span class="n">precompute_gfunction</span><span class="p">(</span>
+</span><span data-line="165">            <span class="n">N_1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span data-line="166">            <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span data-line="167">            <span class="n">B</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+</span><span data-line="168">            <span class="n">H_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">H_b</span><span class="p">,</span>
+</span><span data-line="169">            <span class="n">D_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">D_b</span><span class="p">,</span>
+</span><span data-line="170">            <span class="n">r_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_b</span><span class="p">,</span>
+</span><span data-line="171">            <span class="n">alpha_s</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+</span><span data-line="172">            <span class="n">k_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k_g</span><span class="p">,</span>
+</span><span data-line="173">            <span class="n">t_max_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_hours</span> <span class="o">*</span> <span class="mf">3600.0</span><span class="p">,</span>
+</span><span data-line="174">            <span class="n">dt_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt_sec</span><span class="p">,</span>
+</span><span data-line="175">            <span class="n">boundary_condition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gfunc_boundary_condition</span><span class="p">,</span>
+</span><span data-line="176">        <span class="p">)</span>
+</span><span data-line="177">        <span class="c1"># Load-pulse history and the step-mean response for every lag.</span>
+</span><span data-line="178">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="179">        <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="180">        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_history_capacity</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_hours</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_hours</span><span class="p">)),</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span><span data-line="181">
+</span><span data-line="182">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="183">    <span class="c1"># Ground response bookkeeping</span>
+</span><span data-line="184">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="185">    <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_history_capacity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="186"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Make room for ``n`` steps of pulses and step-mean responses.&quot;&quot;&quot;</span>
+</span><span data-line="187">        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">):</span>
+</span><span data-line="188">            <span class="k">return</span>
+</span><span data-line="189">        <span class="n">n</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">))</span>
+</span><span data-line="190">        <span class="n">pulses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="191">        <span class="n">pulses</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span>
+</span><span data-line="192">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span> <span class="o">=</span> <span class="n">pulses</span>
+</span><span data-line="193">        <span class="n">lags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_sec</span>
+</span><span data-line="194">        <span class="n">gbar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">g_step_mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g_func_interp</span><span class="p">,</span> <span class="n">lags</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_sec</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="195">        <span class="c1"># Reversed so that Σ_{i&lt;n} p_i ḡ[n-i] is one contiguous dot product.</span>
+</span><span data-line="196">        <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">gbar</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="197">
+</span><span data-line="198">    <span class="k">def</span><span class="w"> </span><span class="nf">_history_effect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="199"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mean wall-temperature change over step ``n`` from the loads of steps ``0..n-1`` [K].&quot;&quot;&quot;</span>
+</span><span data-line="200">        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="201">            <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="202">        <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span><span class="p">)</span>
+</span><span data-line="203">        <span class="c1"># ḡ[n-i] for i = 0..n-1 is rev[L-1-n+i].</span>
+</span><span data-line="204">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[:</span><span class="n">n</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span><span class="p">[</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n</span> <span class="p">:</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]))</span>
+</span><span data-line="205">
 <div class="viewcode-block" id="GroundSourceHeatPumpEmpirical.system_update">
 <a class="viewcode-back" href="../../models/gshp.html#tmhp.GroundSourceHeatPumpEmpirical.system_update">[docs]</a>
-</span><span data-line="201">    <span class="k">def</span><span class="w"> </span><span class="nf">system_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span data-line="202"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Advance the model by one timestep.</span>
-</span><span data-line="203">
-</span><span data-line="204"><span class="sd">        Call this method once per timestep after setting ``Q_r_iu``,</span>
-</span><span data-line="205"><span class="sd">        ``T0`` and optionally ``T_a_room``. The method computes COP,</span>
-</span><span data-line="206"><span class="sd">        temperatures, fan power, and component exergy balances.</span>
-</span><span data-line="207">
-</span><span data-line="208"><span class="sd">        Status attributes set on every call:</span>
-</span><span data-line="209">
-</span><span data-line="210"><span class="sd">        - ``failure_reason`` — ``&quot;none&quot;``, or ``&quot;outside_curve_domain&quot;``</span>
-</span><span data-line="211"><span class="sd">          (entering air or water temperature outside the fitted range; the</span>
-</span><span data-line="212"><span class="sd">          unit is off for the step and ``failure_detail`` names the variable)</span>
-</span><span data-line="213"><span class="sd">          or ``&quot;not_converged&quot;`` (the ground/fluid iteration did not settle).</span>
-</span><span data-line="214"><span class="sd">        - ``capacity_clamped`` — ``&quot;max&quot;`` when the request exceeds the</span>
-</span><span data-line="215"><span class="sd">          available capacity ``Q_cap`` and ``None`` otherwise.</span>
-</span><span data-line="216"><span class="sd">        - ``Q_iu`` — the load actually served [W], signed like ``Q_r_iu``.</span>
-</span><span data-line="217">
-</span><span data-line="218"><span class="sd">        A physically impossible input (non-finite ``Q_r_iu``; ``T0`` or</span>
-</span><span data-line="219"><span class="sd">        ``T_a_room`` outside −90..100 °C) is a caller error and raises</span>
-</span><span data-line="220"><span class="sd">        :class:`ValueError` (:mod:`tmhp._validation`). A valid input whose</span>
-</span><span data-line="221"><span class="sd">        operating point lies outside the curve fit is a *result*: the step is</span>
-</span><span data-line="222"><span class="sd">        reported with ``failure_reason = &quot;outside_curve_domain&quot;``, never raised.</span>
-</span><span data-line="223">
-</span><span data-line="224"><span class="sd">        Raises</span>
-</span><span data-line="225"><span class="sd">        ------</span>
-</span><span data-line="226"><span class="sd">        ValueError</span>
-</span><span data-line="227"><span class="sd">            ``&quot;&lt;name&gt; must be …, got &lt;value&gt;&quot;`` for an impossible input.</span>
-</span><span data-line="228"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="229">        <span class="n">validate_steady</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
-</span><span data-line="230">
-</span><span data-line="231">        <span class="c1"># Unit conversion</span>
-</span><span data-line="232">        <span class="n">dV_f_m3s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_f</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">s2m</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">L2m3</span>  <span class="c1"># Nominal flow rate [m³/s]</span>
-</span><span data-line="233">
-</span><span data-line="234">        <span class="c1"># Determine mode based on load sign</span>
-</span><span data-line="235">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_r_iu</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="236">            <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;cooling&quot;</span>
-</span><span data-line="237">        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_r_iu</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="238">            <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;heating&quot;</span>
-</span><span data-line="239">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="240">            <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span>
-</span><span data-line="241">        <span class="n">T_a_room</span> <span class="o">=</span> <span class="n">T_A_ROOM_DEFAULT</span><span class="p">[</span><span class="n">mode</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_room</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_room</span><span class="p">)</span>
-</span><span data-line="242">        <span class="n">Q_request</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_r_iu</span><span class="p">))</span>
-</span><span data-line="243">
-</span><span data-line="244">        <span class="c1"># Temperatures in Kelvin</span>
-</span><span data-line="245">        <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T0</span><span class="p">)</span>
-</span><span data-line="246">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_in</span> <span class="o">=</span> <span class="n">T_a_room</span>
-</span><span data-line="247">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_a_room</span><span class="p">)</span>
-</span><span data-line="248">        <span class="bp">self</span><span class="o">.</span><span class="n">T_g_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_g</span><span class="p">)</span>
-</span><span data-line="249">
-</span><span data-line="250">        <span class="c1"># ---------------------------------------------------------------------</span>
-</span><span data-line="251">        <span class="c1"># A. Historical temperature effect (superposition of committed pulses)</span>
-</span><span data-line="252">        <span class="c1"># ---------------------------------------------------------------------</span>
-</span><span data-line="253">        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_steps</span>
-</span><span data-line="254">        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_history_capacity</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
-</span><span data-line="255">        <span class="n">T_b_history_effect</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history_effect</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-</span><span data-line="256">        <span class="n">q_prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_b_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-</span><span data-line="257">        <span class="c1"># Step-mean response to the current step&#39;s own pulse [mK/W]</span>
-</span><span data-line="258">        <span class="bp">self</span><span class="o">.</span><span class="n">g_i_dim</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</span><span data-line="259">        <span class="bp">self</span><span class="o">.</span><span class="n">T_b_history_effect</span> <span class="o">=</span> <span class="n">T_b_history_effect</span>
-</span><span data-line="260">
-</span><span data-line="261">        <span class="k">def</span><span class="w"> </span><span class="nf">ground_state</span><span class="p">(</span><span class="n">q_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dV</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-</span><span data-line="262"><span class="w">            </span><span class="sd">&quot;&quot;&quot;(T_b, T_f, T_f_in, T_f_out) [K] for a per-metre load q_b (injection-positive).&quot;&quot;&quot;</span>
-</span><span data-line="263">            <span class="n">T_b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_g_K</span> <span class="o">+</span> <span class="n">T_b_history_effect</span> <span class="o">+</span> <span class="p">(</span><span class="n">q_b</span> <span class="o">-</span> <span class="n">q_prev</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_i_dim</span>
-</span><span data-line="264">            <span class="n">T_f</span> <span class="o">=</span> <span class="n">T_b</span> <span class="o">+</span> <span class="n">q_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_b</span>
-</span><span data-line="265">            <span class="n">dT</span> <span class="o">=</span> <span class="n">q_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_b</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">c_f</span> <span class="o">*</span> <span class="n">rho_f</span> <span class="o">*</span> <span class="n">dV</span><span class="p">)</span> <span class="k">if</span> <span class="n">dV</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="266">            <span class="k">return</span> <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f</span> <span class="o">+</span> <span class="n">dT</span><span class="p">,</span> <span class="n">T_f</span> <span class="o">-</span> <span class="n">dT</span>
-</span><span data-line="267">
-</span><span data-line="268">        <span class="n">failure_reason</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
-</span><span data-line="269">        <span class="n">failure_detail</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="270">        <span class="n">capacity_clamped</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="271">        <span class="n">converged</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span data-line="272">        <span class="n">Q_cap</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
-</span><span data-line="273">        <span class="n">COP</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="274">        <span class="n">E_cmp</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="275">        <span class="n">Q_served</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="276">        <span class="n">Q_r_ghx</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="277">        <span class="n">q_b</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="278">        <span class="n">running</span> <span class="o">=</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;off&quot;</span>
-</span><span data-line="279">
-</span><span data-line="280">        <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f_in</span><span class="p">,</span> <span class="n">T_f_out</span> <span class="o">=</span> <span class="n">ground_state</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="281">        <span class="k">if</span> <span class="n">running</span><span class="p">:</span>
-</span><span data-line="282">            <span class="n">Q_rated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_rated_cooling</span> <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;cooling&quot;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_rated_heating</span>
-</span><span data-line="283">            <span class="n">x_lo</span><span class="p">,</span> <span class="n">x_hi</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span> <span class="o">*</span> <span class="n">GSHP_EQFIT_T_REF_K</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">GSHP_EQFIT_DOMAIN</span><span class="p">[</span><span class="n">mode</span><span class="p">][</span><span class="s2">&quot;x&quot;</span><span class="p">])</span>
-</span><span data-line="284">            <span class="k">try</span><span class="p">:</span>
-</span><span data-line="285">                <span class="c1"># Entering air (and the rated air-flow ratio y = 1) does not</span>
-</span><span data-line="286">                <span class="c1"># depend on the iteration: check it once, at a mid-range EWT.</span>
-</span><span data-line="287">                <span class="n">gshp_equation_fit_ratios</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_lo</span> <span class="o">+</span> <span class="n">x_hi</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
-</span><span data-line="288">            <span class="k">except</span> <span class="n">EquationFitRangeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-</span><span data-line="289">                <span class="n">failure_reason</span><span class="p">,</span> <span class="n">failure_detail</span> <span class="o">=</span> <span class="s2">&quot;outside_curve_domain&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
-</span><span data-line="290">                <span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="291">        <span class="k">if</span> <span class="n">running</span><span class="p">:</span>
-</span><span data-line="292">            <span class="c1"># Iterate the entering-water temperature, starting from the fluid</span>
-</span><span data-line="293">            <span class="c1"># temperature with this step unloaded. Iterates are evaluated with</span>
-</span><span data-line="294">            <span class="c1"># the EWT held inside the fitted range; only the converged EWT</span>
-</span><span data-line="295">            <span class="c1"># decides whether the point is inside the curve domain, so a</span>
-</span><span data-line="296">            <span class="c1"># first guess outside the range does not switch off a valid point.</span>
-</span><span data-line="297">            <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="mf">1e-2</span>
-</span><span data-line="298">            <span class="n">converged</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="299">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
-</span><span data-line="300">                <span class="n">T_f_in_old</span> <span class="o">=</span> <span class="n">T_f_in</span>
-</span><span data-line="301">                <span class="n">T_eval</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">T_f_out</span><span class="p">,</span> <span class="n">x_lo</span><span class="p">),</span> <span class="n">x_hi</span><span class="p">)</span>
-</span><span data-line="302">                <span class="c1"># Rated air flow while the compressor runs (y = 1).</span>
-</span><span data-line="303">                <span class="n">cap_ratio</span><span class="p">,</span> <span class="n">pwr_ratio</span> <span class="o">=</span> <span class="n">gshp_equation_fit_ratios</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span><span class="p">,</span> <span class="n">T_eval</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
-</span><span data-line="304">                <span class="n">Q_cap</span> <span class="o">=</span> <span class="n">Q_rated</span> <span class="o">*</span> <span class="n">cap_ratio</span>
-</span><span data-line="305">                <span class="n">Q_served</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">Q_request</span><span class="p">,</span> <span class="n">Q_cap</span><span class="p">)</span>
-</span><span data-line="306">                <span class="n">COP</span> <span class="o">=</span> <span class="n">GSHP_EQFIT_COP_REF</span><span class="p">[</span><span class="n">mode</span><span class="p">]</span> <span class="o">*</span> <span class="n">cap_ratio</span> <span class="o">/</span> <span class="n">pwr_ratio</span>
-</span><span data-line="307">                <span class="n">E_cmp</span> <span class="o">=</span> <span class="n">Q_served</span> <span class="o">/</span> <span class="n">COP</span>
-</span><span data-line="308">                <span class="n">Q_r_ghx</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_served</span> <span class="o">+</span> <span class="n">E_cmp</span><span class="p">)</span> <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;cooling&quot;</span> <span class="k">else</span> <span class="p">(</span><span class="o">-</span><span class="n">Q_served</span> <span class="o">+</span> <span class="n">E_cmp</span><span class="p">)</span>
-</span><span data-line="309">                <span class="n">q_b</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_r_ghx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_pmp</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_b</span>
-</span><span data-line="310">                <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f_in</span><span class="p">,</span> <span class="n">T_f_out</span> <span class="o">=</span> <span class="n">ground_state</span><span class="p">(</span><span class="n">q_b</span><span class="p">,</span> <span class="n">dV_f_m3s</span><span class="p">)</span>
-</span><span data-line="311">                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_f_in</span> <span class="o">-</span> <span class="n">T_f_in_old</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">:</span>
-</span><span data-line="312">                    <span class="n">converged</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span data-line="313">                    <span class="k">break</span>
-</span><span data-line="314">            <span class="k">if</span> <span class="ow">not</span> <span class="n">converged</span><span class="p">:</span>
-</span><span data-line="315">                <span class="n">failure_reason</span> <span class="o">=</span> <span class="s2">&quot;not_converged&quot;</span>
-</span><span data-line="316">            <span class="k">elif</span> <span class="ow">not</span> <span class="n">x_lo</span> <span class="o">&lt;=</span> <span class="n">T_f_out</span> <span class="o">&lt;=</span> <span class="n">x_hi</span><span class="p">:</span>
-</span><span data-line="317">                <span class="c1"># The self-consistent entering water lies outside the fit.</span>
-</span><span data-line="318">                <span class="k">try</span><span class="p">:</span>
-</span><span data-line="319">                    <span class="n">gshp_equation_fit_ratios</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span><span class="p">,</span> <span class="n">T_f_out</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
-</span><span data-line="320">                <span class="k">except</span> <span class="n">EquationFitRangeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-</span><span data-line="321">                    <span class="n">failure_reason</span><span class="p">,</span> <span class="n">failure_detail</span> <span class="o">=</span> <span class="s2">&quot;outside_curve_domain&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
-</span><span data-line="322">            <span class="k">if</span> <span class="n">failure_reason</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
-</span><span data-line="323">                <span class="n">capacity_clamped</span> <span class="o">=</span> <span class="s2">&quot;max&quot;</span> <span class="k">if</span> <span class="n">Q_request</span> <span class="o">&gt;</span> <span class="n">Q_cap</span> <span class="k">else</span> <span class="kc">None</span>
-</span><span data-line="324">        <span class="k">if</span> <span class="n">failure_reason</span> <span class="o">!=</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
-</span><span data-line="325">            <span class="c1"># The unit does not run this step: no heat, no power, no ground load.</span>
-</span><span data-line="326">            <span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="327">            <span class="n">COP</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
-</span><span data-line="328">            <span class="n">E_cmp</span> <span class="o">=</span> <span class="n">Q_served</span> <span class="o">=</span> <span class="n">Q_r_ghx</span> <span class="o">=</span> <span class="n">q_b</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="329">            <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f_in</span><span class="p">,</span> <span class="n">T_f_out</span> <span class="o">=</span> <span class="n">ground_state</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="330">
-</span><span data-line="331">        <span class="n">mode_run</span> <span class="o">=</span> <span class="n">mode</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="s2">&quot;off&quot;</span>
-</span><span data-line="332">        <span class="k">if</span> <span class="n">mode_run</span> <span class="o">==</span> <span class="s2">&quot;cooling&quot;</span><span class="p">:</span>
-</span><span data-line="333">            <span class="n">dT_r_ghx</span><span class="p">,</span> <span class="n">dT_r_iu</span><span class="p">,</span> <span class="n">dT_a_iu</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">10.0</span>
-</span><span data-line="334">        <span class="k">elif</span> <span class="n">mode_run</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span>
-</span><span data-line="335">            <span class="n">dT_r_ghx</span><span class="p">,</span> <span class="n">dT_r_iu</span><span class="p">,</span> <span class="n">dT_a_iu</span> <span class="o">=</span> <span class="o">-</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">,</span> <span class="mf">10.0</span>
-</span><span data-line="336">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="337">            <span class="n">dT_r_ghx</span><span class="p">,</span> <span class="n">dT_r_iu</span><span class="p">,</span> <span class="n">dT_a_iu</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
-</span><span data-line="338">        <span class="n">dV_f_m3s_active</span> <span class="o">=</span> <span class="n">dV_f_m3s</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="339">        <span class="n">E_pmp_active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_pmp</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="340">
-</span><span data-line="341">        <span class="bp">self</span><span class="o">.</span><span class="n">failure_reason</span> <span class="o">=</span> <span class="n">failure_reason</span>
-</span><span data-line="342">        <span class="bp">self</span><span class="o">.</span><span class="n">failure_detail</span> <span class="o">=</span> <span class="n">failure_detail</span>
-</span><span data-line="343">        <span class="bp">self</span><span class="o">.</span><span class="n">converged</span> <span class="o">=</span> <span class="n">converged</span> <span class="ow">and</span> <span class="n">failure_reason</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
-</span><span data-line="344">        <span class="bp">self</span><span class="o">.</span><span class="n">capacity_clamped</span> <span class="o">=</span> <span class="n">capacity_clamped</span>
-</span><span data-line="345">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_cap</span> <span class="o">=</span> <span class="n">Q_cap</span>
-</span><span data-line="346">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_iu</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="n">Q_served</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_r_iu</span><span class="p">)</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="347">        <span class="bp">self</span><span class="o">.</span><span class="n">COP</span> <span class="o">=</span> <span class="n">COP</span>
-</span><span data-line="348">        <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">=</span> <span class="n">E_cmp</span>
-</span><span data-line="349">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_r_ghx</span> <span class="o">=</span> <span class="n">Q_r_ghx</span>
-</span><span data-line="350">        <span class="bp">self</span><span class="o">.</span><span class="n">q_b</span> <span class="o">=</span> <span class="n">q_b</span>
-</span><span data-line="351">        <span class="bp">self</span><span class="o">.</span><span class="n">T_b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_in</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_out</span> <span class="o">=</span> <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f_in</span><span class="p">,</span> <span class="n">T_f_out</span>
-</span><span data-line="352">        <span class="bp">self</span><span class="o">.</span><span class="n">dT_r_ghx</span> <span class="o">=</span> <span class="n">dT_r_ghx</span>
-</span><span data-line="353">        <span class="bp">self</span><span class="o">.</span><span class="n">dT_r_iu</span> <span class="o">=</span> <span class="n">dT_r_iu</span>
-</span><span data-line="354">        <span class="k">if</span> <span class="n">mode_run</span> <span class="o">==</span> <span class="s2">&quot;off&quot;</span><span class="p">:</span>
-</span><span data-line="355">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0</span>
-</span><span data-line="356">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0</span>
-</span><span data-line="357">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T0</span><span class="p">)</span>
-</span><span data-line="358">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T0</span><span class="p">)</span>
-</span><span data-line="359">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="360">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu</span> <span class="o">=</span> <span class="n">T_a_room</span> <span class="o">+</span> <span class="n">dT_r_iu</span>  <span class="c1"># Indoor unit refrigerant [°C]</span>
-</span><span data-line="361">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu</span><span class="p">)</span>
-</span><span data-line="362">            <span class="c1"># Refrigerant on the ground side, from the entering water</span>
-</span><span data-line="363">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx_K</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_out</span> <span class="o">+</span> <span class="n">dT_r_ghx</span>
-</span><span data-line="364">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx_K</span><span class="p">)</span>
-</span><span data-line="365">
-</span><span data-line="366">        <span class="c1"># Indoor air flow (VAV surrogate: 10 K air temperature change)</span>
-</span><span data-line="367">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_out_K</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span> <span class="o">+</span> <span class="n">dT_a_iu</span>
-</span><span data-line="368">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_a</span> <span class="o">=</span> <span class="n">Q_served</span> <span class="o">/</span> <span class="p">(</span><span class="n">c_a</span> <span class="o">*</span> <span class="n">rho_a</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">dT_a_iu</span><span class="p">))</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="369">
-</span><span data-line="370">        <span class="c1"># ---------------------------------------------------------------------</span>
-</span><span data-line="371">        <span class="c1"># C. Store the finalized load to history for the next timestep</span>
-</span><span data-line="372">        <span class="c1"># ---------------------------------------------------------------------</span>
-</span><span data-line="373">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_b</span> <span class="o">-</span> <span class="n">q_prev</span>
-</span><span data-line="374">        <span class="bp">self</span><span class="o">.</span><span class="n">q_b_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_b</span><span class="p">)</span>
-</span><span data-line="375">        <span class="bp">self</span><span class="o">.</span><span class="n">_n_steps</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span>
-</span><span data-line="376">        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_hours</span>
-</span><span data-line="377">        <span class="c1"># ---------------------------------------------------------------------</span>
-</span><span data-line="378">
-</span><span data-line="379">        <span class="c1"># Temperature</span>
-</span><span data-line="380">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_in_K</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span>
-</span><span data-line="381">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_out</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_out_K</span><span class="p">)</span>
-</span><span data-line="382">
-</span><span data-line="383">        <span class="c1"># Fan power (VSD model from hx_fan)</span>
-</span><span data-line="384">        <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span> <span class="o">=</span> <span class="n">calc_fan_power_from_dV_fan</span><span class="p">(</span>
-</span><span data-line="385">            <span class="n">dV_fan</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dV_a</span><span class="p">,</span>
-</span><span data-line="386">            <span class="n">fan_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fan_params_iu</span><span class="p">,</span>
-</span><span data-line="387">            <span class="n">vsd_coeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vsd_coeffs_iu</span><span class="p">,</span>
-</span><span data-line="388">            <span class="n">is_active</span><span class="o">=</span><span class="n">running</span><span class="p">,</span>
-</span><span data-line="389">        <span class="p">)</span>
+</span><span data-line="206">    <span class="k">def</span><span class="w"> </span><span class="nf">system_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span data-line="207"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Advance the model by one timestep.</span>
+</span><span data-line="208">
+</span><span data-line="209"><span class="sd">        Call this method once per timestep after setting ``Q_r_iu``,</span>
+</span><span data-line="210"><span class="sd">        ``T0`` and optionally ``T_a_room``. The method computes COP,</span>
+</span><span data-line="211"><span class="sd">        temperatures, fan power, and component exergy balances.</span>
+</span><span data-line="212">
+</span><span data-line="213"><span class="sd">        Status attributes set on every call:</span>
+</span><span data-line="214">
+</span><span data-line="215"><span class="sd">        - ``failure_reason`` — ``&quot;none&quot;``, or ``&quot;outside_curve_domain&quot;``</span>
+</span><span data-line="216"><span class="sd">          (entering air or water temperature outside the fitted range; the</span>
+</span><span data-line="217"><span class="sd">          unit is off for the step and ``failure_detail`` names the variable)</span>
+</span><span data-line="218"><span class="sd">          or ``&quot;not_converged&quot;`` (the ground/fluid iteration did not settle).</span>
+</span><span data-line="219"><span class="sd">        - ``capacity_clamped`` — ``&quot;max&quot;`` when the request exceeds the</span>
+</span><span data-line="220"><span class="sd">          available capacity ``Q_cap`` and ``None`` otherwise.</span>
+</span><span data-line="221"><span class="sd">        - ``Q_iu`` — the load actually served [W], signed like ``Q_r_iu``.</span>
+</span><span data-line="222">
+</span><span data-line="223"><span class="sd">        A physically impossible input (non-finite ``Q_r_iu``; ``T0`` or</span>
+</span><span data-line="224"><span class="sd">        ``T_a_room`` outside −90..100 °C) is a caller error and raises</span>
+</span><span data-line="225"><span class="sd">        :class:`ValueError` (:mod:`tmhp._validation`). A valid input whose</span>
+</span><span data-line="226"><span class="sd">        operating point lies outside the curve fit is a *result*: the step is</span>
+</span><span data-line="227"><span class="sd">        reported with ``failure_reason = &quot;outside_curve_domain&quot;``, never raised.</span>
+</span><span data-line="228">
+</span><span data-line="229"><span class="sd">        Raises</span>
+</span><span data-line="230"><span class="sd">        ------</span>
+</span><span data-line="231"><span class="sd">        ValueError</span>
+</span><span data-line="232"><span class="sd">            ``&quot;&lt;name&gt; must be …, got &lt;value&gt;&quot;`` for an impossible input.</span>
+</span><span data-line="233"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="234">        <span class="n">validate_steady</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+</span><span data-line="235">
+</span><span data-line="236">        <span class="c1"># Unit conversion</span>
+</span><span data-line="237">        <span class="n">dV_f_m3s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_f</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">s2m</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">L2m3</span>  <span class="c1"># Nominal flow rate [m³/s]</span>
+</span><span data-line="238">
+</span><span data-line="239">        <span class="c1"># Determine mode based on load sign</span>
+</span><span data-line="240">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_r_iu</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="241">            <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;cooling&quot;</span>
+</span><span data-line="242">        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_r_iu</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="243">            <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;heating&quot;</span>
+</span><span data-line="244">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="245">            <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span>
+</span><span data-line="246">        <span class="n">T_a_room</span> <span class="o">=</span> <span class="n">T_A_ROOM_DEFAULT</span><span class="p">[</span><span class="n">mode</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_room</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_room</span><span class="p">)</span>
+</span><span data-line="247">        <span class="n">Q_request</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_r_iu</span><span class="p">))</span>
+</span><span data-line="248">
+</span><span data-line="249">        <span class="c1"># Temperatures in Kelvin</span>
+</span><span data-line="250">        <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T0</span><span class="p">)</span>
+</span><span data-line="251">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_in</span> <span class="o">=</span> <span class="n">T_a_room</span>
+</span><span data-line="252">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_a_room</span><span class="p">)</span>
+</span><span data-line="253">        <span class="bp">self</span><span class="o">.</span><span class="n">T_g_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_g</span><span class="p">)</span>
+</span><span data-line="254">
+</span><span data-line="255">        <span class="c1"># ---------------------------------------------------------------------</span>
+</span><span data-line="256">        <span class="c1"># A. Historical temperature effect (superposition of committed pulses)</span>
+</span><span data-line="257">        <span class="c1"># ---------------------------------------------------------------------</span>
+</span><span data-line="258">        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_steps</span>
+</span><span data-line="259">        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_history_capacity</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+</span><span data-line="260">        <span class="n">T_b_history_effect</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history_effect</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="261">        <span class="n">q_prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_b_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span><span data-line="262">        <span class="c1"># Step-mean response to the current step&#39;s own pulse [mK/W]</span>
+</span><span data-line="263">        <span class="bp">self</span><span class="o">.</span><span class="n">g_i_dim</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="264">        <span class="bp">self</span><span class="o">.</span><span class="n">T_b_history_effect</span> <span class="o">=</span> <span class="n">T_b_history_effect</span>
+</span><span data-line="265">
+</span><span data-line="266">        <span class="k">def</span><span class="w"> </span><span class="nf">ground_state</span><span class="p">(</span><span class="n">q_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dV</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="267"><span class="w">            </span><span class="sd">&quot;&quot;&quot;(T_b, T_f, T_f_in, T_f_out) [K] for a per-metre load q_b (injection-positive).&quot;&quot;&quot;</span>
+</span><span data-line="268">            <span class="n">T_b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_g_K</span> <span class="o">+</span> <span class="n">T_b_history_effect</span> <span class="o">+</span> <span class="p">(</span><span class="n">q_b</span> <span class="o">-</span> <span class="n">q_prev</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_i_dim</span>
+</span><span data-line="269">            <span class="n">T_f</span> <span class="o">=</span> <span class="n">T_b</span> <span class="o">+</span> <span class="n">q_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_b</span>
+</span><span data-line="270">            <span class="n">dT</span> <span class="o">=</span> <span class="n">q_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_b</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">c_f</span> <span class="o">*</span> <span class="n">rho_f</span> <span class="o">*</span> <span class="n">dV</span><span class="p">)</span> <span class="k">if</span> <span class="n">dV</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="271">            <span class="k">return</span> <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f</span> <span class="o">+</span> <span class="n">dT</span><span class="p">,</span> <span class="n">T_f</span> <span class="o">-</span> <span class="n">dT</span>
+</span><span data-line="272">
+</span><span data-line="273">        <span class="n">failure_reason</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="274">        <span class="n">failure_detail</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="275">        <span class="n">capacity_clamped</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="276">        <span class="n">converged</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="277">        <span class="n">Q_cap</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
+</span><span data-line="278">        <span class="n">COP</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="279">        <span class="n">E_cmp</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="280">        <span class="n">Q_served</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="281">        <span class="n">Q_r_ghx</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="282">        <span class="n">q_b</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="283">        <span class="n">running</span> <span class="o">=</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;off&quot;</span>
+</span><span data-line="284">
+</span><span data-line="285">        <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f_in</span><span class="p">,</span> <span class="n">T_f_out</span> <span class="o">=</span> <span class="n">ground_state</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="286">        <span class="k">if</span> <span class="n">running</span><span class="p">:</span>
+</span><span data-line="287">            <span class="n">Q_rated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_rated_cooling</span> <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;cooling&quot;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_rated_heating</span>
+</span><span data-line="288">            <span class="n">x_lo</span><span class="p">,</span> <span class="n">x_hi</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span> <span class="o">*</span> <span class="n">GSHP_EQFIT_T_REF_K</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">GSHP_EQFIT_DOMAIN</span><span class="p">[</span><span class="n">mode</span><span class="p">][</span><span class="s2">&quot;x&quot;</span><span class="p">])</span>
+</span><span data-line="289">            <span class="k">try</span><span class="p">:</span>
+</span><span data-line="290">                <span class="c1"># Entering air (and the rated air-flow ratio y = 1) does not</span>
+</span><span data-line="291">                <span class="c1"># depend on the iteration: check it once, at a mid-range EWT.</span>
+</span><span data-line="292">                <span class="n">gshp_equation_fit_ratios</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_lo</span> <span class="o">+</span> <span class="n">x_hi</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+</span><span data-line="293">            <span class="k">except</span> <span class="n">EquationFitRangeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="294">                <span class="n">failure_reason</span><span class="p">,</span> <span class="n">failure_detail</span> <span class="o">=</span> <span class="s2">&quot;outside_curve_domain&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+</span><span data-line="295">                <span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="296">        <span class="k">if</span> <span class="n">running</span><span class="p">:</span>
+</span><span data-line="297">            <span class="c1"># Iterate the entering-water temperature, starting from the fluid</span>
+</span><span data-line="298">            <span class="c1"># temperature with this step unloaded. Iterates are evaluated with</span>
+</span><span data-line="299">            <span class="c1"># the EWT held inside the fitted range; only the converged EWT</span>
+</span><span data-line="300">            <span class="c1"># decides whether the point is inside the curve domain, so a</span>
+</span><span data-line="301">            <span class="c1"># first guess outside the range does not switch off a valid point.</span>
+</span><span data-line="302">            <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="mf">1e-2</span>
+</span><span data-line="303">            <span class="n">converged</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="304">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+</span><span data-line="305">                <span class="n">T_f_in_old</span> <span class="o">=</span> <span class="n">T_f_in</span>
+</span><span data-line="306">                <span class="n">T_eval</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">T_f_out</span><span class="p">,</span> <span class="n">x_lo</span><span class="p">),</span> <span class="n">x_hi</span><span class="p">)</span>
+</span><span data-line="307">                <span class="c1"># Rated air flow while the compressor runs (y = 1).</span>
+</span><span data-line="308">                <span class="n">cap_ratio</span><span class="p">,</span> <span class="n">pwr_ratio</span> <span class="o">=</span> <span class="n">gshp_equation_fit_ratios</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span><span class="p">,</span> <span class="n">T_eval</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+</span><span data-line="309">                <span class="n">Q_cap</span> <span class="o">=</span> <span class="n">Q_rated</span> <span class="o">*</span> <span class="n">cap_ratio</span>
+</span><span data-line="310">                <span class="n">Q_served</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">Q_request</span><span class="p">,</span> <span class="n">Q_cap</span><span class="p">)</span>
+</span><span data-line="311">                <span class="n">COP</span> <span class="o">=</span> <span class="n">GSHP_EQFIT_COP_REF</span><span class="p">[</span><span class="n">mode</span><span class="p">]</span> <span class="o">*</span> <span class="n">cap_ratio</span> <span class="o">/</span> <span class="n">pwr_ratio</span>
+</span><span data-line="312">                <span class="n">E_cmp</span> <span class="o">=</span> <span class="n">Q_served</span> <span class="o">/</span> <span class="n">COP</span>
+</span><span data-line="313">                <span class="n">Q_r_ghx</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_served</span> <span class="o">+</span> <span class="n">E_cmp</span><span class="p">)</span> <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;cooling&quot;</span> <span class="k">else</span> <span class="p">(</span><span class="o">-</span><span class="n">Q_served</span> <span class="o">+</span> <span class="n">E_cmp</span><span class="p">)</span>
+</span><span data-line="314">                <span class="n">q_b</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_r_ghx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_pmp</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_b</span>
+</span><span data-line="315">                <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f_in</span><span class="p">,</span> <span class="n">T_f_out</span> <span class="o">=</span> <span class="n">ground_state</span><span class="p">(</span><span class="n">q_b</span><span class="p">,</span> <span class="n">dV_f_m3s</span><span class="p">)</span>
+</span><span data-line="316">                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_f_in</span> <span class="o">-</span> <span class="n">T_f_in_old</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">:</span>
+</span><span data-line="317">                    <span class="n">converged</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="318">                    <span class="k">break</span>
+</span><span data-line="319">            <span class="k">if</span> <span class="ow">not</span> <span class="n">converged</span><span class="p">:</span>
+</span><span data-line="320">                <span class="n">failure_reason</span> <span class="o">=</span> <span class="s2">&quot;not_converged&quot;</span>
+</span><span data-line="321">            <span class="k">elif</span> <span class="ow">not</span> <span class="n">x_lo</span> <span class="o">&lt;=</span> <span class="n">T_f_out</span> <span class="o">&lt;=</span> <span class="n">x_hi</span><span class="p">:</span>
+</span><span data-line="322">                <span class="c1"># The self-consistent entering water lies outside the fit.</span>
+</span><span data-line="323">                <span class="k">try</span><span class="p">:</span>
+</span><span data-line="324">                    <span class="n">gshp_equation_fit_ratios</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span><span class="p">,</span> <span class="n">T_f_out</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+</span><span data-line="325">                <span class="k">except</span> <span class="n">EquationFitRangeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="326">                    <span class="n">failure_reason</span><span class="p">,</span> <span class="n">failure_detail</span> <span class="o">=</span> <span class="s2">&quot;outside_curve_domain&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+</span><span data-line="327">            <span class="k">if</span> <span class="n">failure_reason</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+</span><span data-line="328">                <span class="n">capacity_clamped</span> <span class="o">=</span> <span class="s2">&quot;max&quot;</span> <span class="k">if</span> <span class="n">Q_request</span> <span class="o">&gt;</span> <span class="n">Q_cap</span> <span class="k">else</span> <span class="kc">None</span>
+</span><span data-line="329">        <span class="k">if</span> <span class="n">failure_reason</span> <span class="o">!=</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+</span><span data-line="330">            <span class="c1"># The unit does not run this step: no heat, no power, no ground load.</span>
+</span><span data-line="331">            <span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="332">            <span class="n">COP</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
+</span><span data-line="333">            <span class="n">E_cmp</span> <span class="o">=</span> <span class="n">Q_served</span> <span class="o">=</span> <span class="n">Q_r_ghx</span> <span class="o">=</span> <span class="n">q_b</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="334">            <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f_in</span><span class="p">,</span> <span class="n">T_f_out</span> <span class="o">=</span> <span class="n">ground_state</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="335">
+</span><span data-line="336">        <span class="n">mode_run</span> <span class="o">=</span> <span class="n">mode</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="s2">&quot;off&quot;</span>
+</span><span data-line="337">        <span class="k">if</span> <span class="n">mode_run</span> <span class="o">==</span> <span class="s2">&quot;cooling&quot;</span><span class="p">:</span>
+</span><span data-line="338">            <span class="n">dT_r_ghx</span><span class="p">,</span> <span class="n">dT_r_iu</span><span class="p">,</span> <span class="n">dT_a_iu</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">10.0</span>
+</span><span data-line="339">        <span class="k">elif</span> <span class="n">mode_run</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span>
+</span><span data-line="340">            <span class="n">dT_r_ghx</span><span class="p">,</span> <span class="n">dT_r_iu</span><span class="p">,</span> <span class="n">dT_a_iu</span> <span class="o">=</span> <span class="o">-</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">,</span> <span class="mf">10.0</span>
+</span><span data-line="341">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="342">            <span class="n">dT_r_ghx</span><span class="p">,</span> <span class="n">dT_r_iu</span><span class="p">,</span> <span class="n">dT_a_iu</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+</span><span data-line="343">        <span class="n">dV_f_m3s_active</span> <span class="o">=</span> <span class="n">dV_f_m3s</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="344">        <span class="n">E_pmp_active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_pmp</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="345">
+</span><span data-line="346">        <span class="bp">self</span><span class="o">.</span><span class="n">failure_reason</span> <span class="o">=</span> <span class="n">failure_reason</span>
+</span><span data-line="347">        <span class="bp">self</span><span class="o">.</span><span class="n">failure_detail</span> <span class="o">=</span> <span class="n">failure_detail</span>
+</span><span data-line="348">        <span class="bp">self</span><span class="o">.</span><span class="n">converged</span> <span class="o">=</span> <span class="n">converged</span> <span class="ow">and</span> <span class="n">failure_reason</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="349">        <span class="bp">self</span><span class="o">.</span><span class="n">capacity_clamped</span> <span class="o">=</span> <span class="n">capacity_clamped</span>
+</span><span data-line="350">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_cap</span> <span class="o">=</span> <span class="n">Q_cap</span>
+</span><span data-line="351">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_iu</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="n">Q_served</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_r_iu</span><span class="p">)</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="352">        <span class="bp">self</span><span class="o">.</span><span class="n">COP</span> <span class="o">=</span> <span class="n">COP</span>
+</span><span data-line="353">        <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">=</span> <span class="n">E_cmp</span>
+</span><span data-line="354">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_r_ghx</span> <span class="o">=</span> <span class="n">Q_r_ghx</span>
+</span><span data-line="355">        <span class="bp">self</span><span class="o">.</span><span class="n">q_b</span> <span class="o">=</span> <span class="n">q_b</span>
+</span><span data-line="356">        <span class="bp">self</span><span class="o">.</span><span class="n">T_b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_in</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_out</span> <span class="o">=</span> <span class="n">T_b</span><span class="p">,</span> <span class="n">T_f</span><span class="p">,</span> <span class="n">T_f_in</span><span class="p">,</span> <span class="n">T_f_out</span>
+</span><span data-line="357">        <span class="bp">self</span><span class="o">.</span><span class="n">dT_r_ghx</span> <span class="o">=</span> <span class="n">dT_r_ghx</span>
+</span><span data-line="358">        <span class="bp">self</span><span class="o">.</span><span class="n">dT_r_iu</span> <span class="o">=</span> <span class="n">dT_r_iu</span>
+</span><span data-line="359">        <span class="k">if</span> <span class="n">mode_run</span> <span class="o">==</span> <span class="s2">&quot;off&quot;</span><span class="p">:</span>
+</span><span data-line="360">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0</span>
+</span><span data-line="361">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0</span>
+</span><span data-line="362">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T0</span><span class="p">)</span>
+</span><span data-line="363">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T0</span><span class="p">)</span>
+</span><span data-line="364">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="365">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu</span> <span class="o">=</span> <span class="n">T_a_room</span> <span class="o">+</span> <span class="n">dT_r_iu</span>  <span class="c1"># Indoor unit refrigerant [°C]</span>
+</span><span data-line="366">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu</span><span class="p">)</span>
+</span><span data-line="367">            <span class="c1"># Refrigerant on the ground side, from the entering water</span>
+</span><span data-line="368">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx_K</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_out</span> <span class="o">+</span> <span class="n">dT_r_ghx</span>
+</span><span data-line="369">            <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx_K</span><span class="p">)</span>
+</span><span data-line="370">
+</span><span data-line="371">        <span class="c1"># Indoor air flow (VAV surrogate: 10 K air temperature change)</span>
+</span><span data-line="372">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_out_K</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span> <span class="o">+</span> <span class="n">dT_a_iu</span>
+</span><span data-line="373">        <span class="c1"># The fan draws room air: the mass flow that carries Q_served across the</span>
+</span><span data-line="374">        <span class="c1"># 10 K change is that volume at the density of the entering air.</span>
+</span><span data-line="375">        <span class="bp">self</span><span class="o">.</span><span class="n">rho_a_iu</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">air_density</span><span class="p">(</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span><span class="p">)))</span>
+</span><span data-line="376">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_a</span> <span class="o">=</span> <span class="n">Q_served</span> <span class="o">/</span> <span class="p">(</span><span class="n">c_a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho_a_iu</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">dT_a_iu</span><span class="p">))</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="377">
+</span><span data-line="378">        <span class="c1"># ---------------------------------------------------------------------</span>
+</span><span data-line="379">        <span class="c1"># C. Store the finalized load to history for the next timestep</span>
+</span><span data-line="380">        <span class="c1"># ---------------------------------------------------------------------</span>
+</span><span data-line="381">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_b</span> <span class="o">-</span> <span class="n">q_prev</span>
+</span><span data-line="382">        <span class="bp">self</span><span class="o">.</span><span class="n">q_b_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_b</span><span class="p">)</span>
+</span><span data-line="383">        <span class="bp">self</span><span class="o">.</span><span class="n">_n_steps</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span data-line="384">        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_hours</span>
+</span><span data-line="385">        <span class="c1"># ---------------------------------------------------------------------</span>
+</span><span data-line="386">
+</span><span data-line="387">        <span class="c1"># Temperature</span>
+</span><span data-line="388">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_in_K</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_room_K</span>
+</span><span data-line="389">        <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_out</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_out_K</span><span class="p">)</span>
 </span><span data-line="390">
-</span><span data-line="391">        <span class="c1"># System COP calculation</span>
-</span><span data-line="392">        <span class="n">total_pwr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span> <span class="o">+</span> <span class="n">E_pmp_active</span>
-</span><span data-line="393">        <span class="k">if</span> <span class="ow">not</span> <span class="n">running</span> <span class="ow">and</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;off&quot;</span><span class="p">:</span>
-</span><span data-line="394">            <span class="bp">self</span><span class="o">.</span><span class="n">COP_sys</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
-</span><span data-line="395">        <span class="k">elif</span> <span class="n">total_pwr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="396">            <span class="bp">self</span><span class="o">.</span><span class="n">COP_sys</span> <span class="o">=</span> <span class="n">Q_served</span> <span class="o">/</span> <span class="n">total_pwr</span>
-</span><span data-line="397">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="398">            <span class="bp">self</span><span class="o">.</span><span class="n">COP_sys</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="399">
-</span><span data-line="400">        <span class="c1"># Helper for thermal exergy</span>
-</span><span data-line="401">        <span class="k">def</span><span class="w"> </span><span class="nf">get_thermal_exergy</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">dV</span><span class="p">,</span> <span class="n">T_stream</span><span class="p">,</span> <span class="n">T_env</span><span class="p">):</span>
-</span><span data-line="402">            <span class="k">if</span> <span class="n">T_stream</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">dV</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="403">                <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="404">            <span class="k">return</span> <span class="n">c</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">dV</span> <span class="o">*</span> <span class="p">((</span><span class="n">T_stream</span> <span class="o">-</span> <span class="n">T_env</span><span class="p">)</span> <span class="o">-</span> <span class="n">T_env</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">T_stream</span> <span class="o">/</span> <span class="n">T_env</span><span class="p">))</span>
-</span><span data-line="405">
-</span><span data-line="406">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="407">        <span class="c1"># Exergy of air streams</span>
-</span><span data-line="408">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="409">        <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_in</span> <span class="o">=</span> <span class="n">get_thermal_exergy</span><span class="p">(</span><span class="n">c_a</span><span class="p">,</span> <span class="n">rho_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_in_K</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="410">        <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_out</span> <span class="o">=</span> <span class="n">get_thermal_exergy</span><span class="p">(</span><span class="n">c_a</span><span class="p">,</span> <span class="n">rho_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_out_K</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="411">
-</span><span data-line="412">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="413">        <span class="c1"># Exergy of refrigerant streams</span>
+</span><span data-line="391">        <span class="c1"># Fan power (VSD model from hx_fan)</span>
+</span><span data-line="392">        <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span> <span class="o">=</span> <span class="n">calc_fan_power_from_dV_fan</span><span class="p">(</span>
+</span><span data-line="393">            <span class="n">dV_fan</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dV_a</span><span class="p">,</span>
+</span><span data-line="394">            <span class="n">fan_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fan_params_iu</span><span class="p">,</span>
+</span><span data-line="395">            <span class="n">vsd_coeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vsd_coeffs_iu</span><span class="p">,</span>
+</span><span data-line="396">            <span class="n">is_active</span><span class="o">=</span><span class="n">running</span><span class="p">,</span>
+</span><span data-line="397">        <span class="p">)</span>
+</span><span data-line="398">
+</span><span data-line="399">        <span class="c1"># System COP calculation</span>
+</span><span data-line="400">        <span class="n">total_pwr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span> <span class="o">+</span> <span class="n">E_pmp_active</span>
+</span><span data-line="401">        <span class="k">if</span> <span class="ow">not</span> <span class="n">running</span> <span class="ow">and</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;off&quot;</span><span class="p">:</span>
+</span><span data-line="402">            <span class="bp">self</span><span class="o">.</span><span class="n">COP_sys</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
+</span><span data-line="403">        <span class="k">elif</span> <span class="n">total_pwr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="404">            <span class="bp">self</span><span class="o">.</span><span class="n">COP_sys</span> <span class="o">=</span> <span class="n">Q_served</span> <span class="o">/</span> <span class="n">total_pwr</span>
+</span><span data-line="405">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="406">            <span class="bp">self</span><span class="o">.</span><span class="n">COP_sys</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="407">
+</span><span data-line="408">        <span class="c1"># Helper for thermal exergy</span>
+</span><span data-line="409">        <span class="k">def</span><span class="w"> </span><span class="nf">get_thermal_exergy</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">dV</span><span class="p">,</span> <span class="n">T_stream</span><span class="p">,</span> <span class="n">T_env</span><span class="p">):</span>
+</span><span data-line="410">            <span class="k">if</span> <span class="n">T_stream</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">dV</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="411">                <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="412">            <span class="k">return</span> <span class="n">c</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">dV</span> <span class="o">*</span> <span class="p">((</span><span class="n">T_stream</span> <span class="o">-</span> <span class="n">T_env</span><span class="p">)</span> <span class="o">-</span> <span class="n">T_env</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">T_stream</span> <span class="o">/</span> <span class="n">T_env</span><span class="p">))</span>
+</span><span data-line="413">
 </span><span data-line="414">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="415">        <span class="k">if</span> <span class="ow">not</span> <span class="n">running</span><span class="p">:</span>
-</span><span data-line="416">            <span class="bp">self</span><span class="o">.</span><span class="n">X_g</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="417">            <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="418">            <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="419">            <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="420">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="421">            <span class="bp">self</span><span class="o">.</span><span class="n">X_g</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_g_K</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">q_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_b</span><span class="p">)</span>
-</span><span data-line="422">            <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_b</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">q_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_b</span><span class="p">)</span>
-</span><span data-line="423">            <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_iu</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu_K</span><span class="p">)</span>
-</span><span data-line="424">            <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_r_ghx</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx_K</span><span class="p">)</span>
-</span><span data-line="425">
-</span><span data-line="426">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="427">        <span class="c1"># Exergy of water streams</span>
-</span><span data-line="428">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="429">        <span class="bp">self</span><span class="o">.</span><span class="n">X_f_in</span> <span class="o">=</span> <span class="n">get_thermal_exergy</span><span class="p">(</span><span class="n">c_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">dV_f_m3s_active</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_in</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="430">        <span class="bp">self</span><span class="o">.</span><span class="n">X_f_out</span> <span class="o">=</span> <span class="n">get_thermal_exergy</span><span class="p">(</span><span class="n">c_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">dV_f_m3s_active</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="431">
-</span><span data-line="432">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="433">        <span class="c1"># Component exergy balance</span>
+</span><span data-line="415">        <span class="c1"># Exergy of air streams</span>
+</span><span data-line="416">        <span class="c1"># -------------------------------------------------------------</span>
+</span><span data-line="417">        <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_in</span> <span class="o">=</span> <span class="n">get_thermal_exergy</span><span class="p">(</span><span class="n">c_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho_a_iu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_in_K</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="418">        <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_out</span> <span class="o">=</span> <span class="n">get_thermal_exergy</span><span class="p">(</span><span class="n">c_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho_a_iu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_a_iu_out_K</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="419">
+</span><span data-line="420">        <span class="c1"># -------------------------------------------------------------</span>
+</span><span data-line="421">        <span class="c1"># Exergy of refrigerant streams</span>
+</span><span data-line="422">        <span class="c1"># -------------------------------------------------------------</span>
+</span><span data-line="423">        <span class="k">if</span> <span class="ow">not</span> <span class="n">running</span><span class="p">:</span>
+</span><span data-line="424">            <span class="bp">self</span><span class="o">.</span><span class="n">X_g</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="425">            <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="426">            <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="427">            <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="428">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="429">            <span class="bp">self</span><span class="o">.</span><span class="n">X_g</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_g_K</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">q_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_b</span><span class="p">)</span>
+</span><span data-line="430">            <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_b</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">q_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_b</span><span class="p">)</span>
+</span><span data-line="431">            <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_iu</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_r_iu_K</span><span class="p">)</span>
+</span><span data-line="432">            <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_r_ghx</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_r_ghx_K</span><span class="p">)</span>
+</span><span data-line="433">
 </span><span data-line="434">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="435">        <span class="k">if</span> <span class="ow">not</span> <span class="n">running</span><span class="p">:</span>
-</span><span data-line="436">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_g</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="437">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_ghx</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="438">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_r</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="439">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_iu</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="440">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="441">            <span class="c1"># Ground</span>
-</span><span data-line="442">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_g</span>
-</span><span data-line="443">            <span class="bp">self</span><span class="o">.</span><span class="n">X_out_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span>
-</span><span data-line="444">            <span class="bp">self</span><span class="o">.</span><span class="n">X_c_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_in_g</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_g</span>
-</span><span data-line="445">
-</span><span data-line="446">            <span class="c1"># Ground heat exchanger</span>
-</span><span data-line="447">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span> <span class="o">+</span> <span class="n">E_pmp_active</span>
-</span><span data-line="448">            <span class="bp">self</span><span class="o">.</span><span class="n">X_out_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span>
-</span><span data-line="449">            <span class="bp">self</span><span class="o">.</span><span class="n">X_c_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_in_ghx</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_ghx</span>
-</span><span data-line="450">
-</span><span data-line="451">            <span class="c1"># Refrigerant loop</span>
-</span><span data-line="452">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span>
-</span><span data-line="453">            <span class="bp">self</span><span class="o">.</span><span class="n">X_out_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span>
-</span><span data-line="454">            <span class="bp">self</span><span class="o">.</span><span class="n">X_c_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_in_r</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_r</span>
-</span><span data-line="455">
-</span><span data-line="456">            <span class="c1"># Indoor unit</span>
-</span><span data-line="457">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span>
-</span><span data-line="458">            <span class="bp">self</span><span class="o">.</span><span class="n">X_out_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_out</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_in</span>
-</span><span data-line="459">            <span class="bp">self</span><span class="o">.</span><span class="n">X_c_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_in_iu</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_iu</span>
-</span><span data-line="460">
-</span><span data-line="461">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="462">        <span class="c1"># Exergy efficiency</span>
-</span><span data-line="463">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="464">        <span class="k">if</span> <span class="ow">not</span> <span class="n">running</span><span class="p">:</span>
-</span><span data-line="465">            <span class="bp">self</span><span class="o">.</span><span class="n">X_eff</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="466">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="467">            <span class="bp">self</span><span class="o">.</span><span class="n">X_eff</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_out</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_in</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">+</span> <span class="n">E_pmp_active</span><span class="p">)</span>
+</span><span data-line="435">        <span class="c1"># Exergy of water streams</span>
+</span><span data-line="436">        <span class="c1"># -------------------------------------------------------------</span>
+</span><span data-line="437">        <span class="bp">self</span><span class="o">.</span><span class="n">X_f_in</span> <span class="o">=</span> <span class="n">get_thermal_exergy</span><span class="p">(</span><span class="n">c_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">dV_f_m3s_active</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_in</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="438">        <span class="bp">self</span><span class="o">.</span><span class="n">X_f_out</span> <span class="o">=</span> <span class="n">get_thermal_exergy</span><span class="p">(</span><span class="n">c_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">dV_f_m3s_active</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_f_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="439">
+</span><span data-line="440">        <span class="c1"># -------------------------------------------------------------</span>
+</span><span data-line="441">        <span class="c1"># Component exergy balance</span>
+</span><span data-line="442">        <span class="c1"># -------------------------------------------------------------</span>
+</span><span data-line="443">        <span class="k">if</span> <span class="ow">not</span> <span class="n">running</span><span class="p">:</span>
+</span><span data-line="444">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_g</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="445">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_ghx</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="446">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_r</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="447">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_iu</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="448">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="449">            <span class="c1"># Ground</span>
+</span><span data-line="450">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_g</span>
+</span><span data-line="451">            <span class="bp">self</span><span class="o">.</span><span class="n">X_out_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span>
+</span><span data-line="452">            <span class="bp">self</span><span class="o">.</span><span class="n">X_c_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_in_g</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_g</span>
+</span><span data-line="453">
+</span><span data-line="454">            <span class="c1"># Ground heat exchanger</span>
+</span><span data-line="455">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span> <span class="o">+</span> <span class="n">E_pmp_active</span>
+</span><span data-line="456">            <span class="bp">self</span><span class="o">.</span><span class="n">X_out_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span>
+</span><span data-line="457">            <span class="bp">self</span><span class="o">.</span><span class="n">X_c_ghx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_in_ghx</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_ghx</span>
+</span><span data-line="458">
+</span><span data-line="459">            <span class="c1"># Refrigerant loop</span>
+</span><span data-line="460">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span>
+</span><span data-line="461">            <span class="bp">self</span><span class="o">.</span><span class="n">X_out_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span>
+</span><span data-line="462">            <span class="bp">self</span><span class="o">.</span><span class="n">X_c_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_in_r</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_r</span>
+</span><span data-line="463">
+</span><span data-line="464">            <span class="c1"># Indoor unit</span>
+</span><span data-line="465">            <span class="bp">self</span><span class="o">.</span><span class="n">X_in_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span>
+</span><span data-line="466">            <span class="bp">self</span><span class="o">.</span><span class="n">X_out_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_out</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_in</span>
+</span><span data-line="467">            <span class="bp">self</span><span class="o">.</span><span class="n">X_c_iu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_in_iu</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_out_iu</span>
 </span><span data-line="468">
 </span><span data-line="469">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="470">        <span class="c1"># Structured exergy balance</span>
+</span><span data-line="470">        <span class="c1"># Exergy efficiency</span>
 </span><span data-line="471">        <span class="c1"># -------------------------------------------------------------</span>
-</span><span data-line="472">        <span class="bp">self</span><span class="o">.</span><span class="n">exergy_bal</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="473">            <span class="s2">&quot;indoor unit&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span data-line="474">                <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span data-line="475">                    <span class="s2">&quot;X_r_iu&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span><span class="p">,</span>
-</span><span data-line="476">                    <span class="s2">&quot;E_fan_iu&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span><span class="p">,</span>
-</span><span data-line="477">                <span class="p">},</span>
-</span><span data-line="478">                <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span data-line="479">                    <span class="s2">&quot;X_a_iu_out&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_out</span><span class="p">,</span>
-</span><span data-line="480">                    <span class="s2">&quot;X_a_iu_in&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_in</span><span class="p">,</span>
-</span><span data-line="481">                <span class="p">},</span>
-</span><span data-line="482">                <span class="s2">&quot;con&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_c_iu&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_iu</span><span class="p">},</span>
-</span><span data-line="483">            <span class="p">},</span>
-</span><span data-line="484">            <span class="s2">&quot;refrigerant loop&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span data-line="485">                <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span data-line="486">                    <span class="s2">&quot;X_r_ghx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span><span class="p">,</span>
-</span><span data-line="487">                    <span class="s2">&quot;E_cmp&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span><span class="p">,</span>
-</span><span data-line="488">                <span class="p">},</span>
-</span><span data-line="489">                <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_r_iu&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span><span class="p">},</span>
-</span><span data-line="490">                <span class="s2">&quot;con&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_c_r&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_r</span><span class="p">},</span>
+</span><span data-line="472">        <span class="k">if</span> <span class="ow">not</span> <span class="n">running</span><span class="p">:</span>
+</span><span data-line="473">            <span class="bp">self</span><span class="o">.</span><span class="n">X_eff</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="474">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="475">            <span class="bp">self</span><span class="o">.</span><span class="n">X_eff</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_out</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_in</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">+</span> <span class="n">E_pmp_active</span><span class="p">)</span>
+</span><span data-line="476">
+</span><span data-line="477">        <span class="c1"># -------------------------------------------------------------</span>
+</span><span data-line="478">        <span class="c1"># Structured exergy balance</span>
+</span><span data-line="479">        <span class="c1"># -------------------------------------------------------------</span>
+</span><span data-line="480">        <span class="bp">self</span><span class="o">.</span><span class="n">exergy_bal</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="481">            <span class="s2">&quot;indoor unit&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="482">                <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="483">                    <span class="s2">&quot;X_r_iu&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span><span class="p">,</span>
+</span><span data-line="484">                    <span class="s2">&quot;E_fan_iu&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_iu</span><span class="p">,</span>
+</span><span data-line="485">                <span class="p">},</span>
+</span><span data-line="486">                <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="487">                    <span class="s2">&quot;X_a_iu_out&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_out</span><span class="p">,</span>
+</span><span data-line="488">                    <span class="s2">&quot;X_a_iu_in&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_a_iu_in</span><span class="p">,</span>
+</span><span data-line="489">                <span class="p">},</span>
+</span><span data-line="490">                <span class="s2">&quot;con&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_c_iu&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_iu</span><span class="p">},</span>
 </span><span data-line="491">            <span class="p">},</span>
-</span><span data-line="492">            <span class="s2">&quot;ground heat exchanger&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="492">            <span class="s2">&quot;refrigerant loop&quot;</span><span class="p">:</span> <span class="p">{</span>
 </span><span data-line="493">                <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span data-line="494">                    <span class="s2">&quot;X_b&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span><span class="p">,</span>
-</span><span data-line="495">                    <span class="s2">&quot;E_pmp&quot;</span><span class="p">:</span> <span class="n">E_pmp_active</span><span class="p">,</span>
+</span><span data-line="494">                    <span class="s2">&quot;X_r_ghx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span><span class="p">,</span>
+</span><span data-line="495">                    <span class="s2">&quot;E_cmp&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span><span class="p">,</span>
 </span><span data-line="496">                <span class="p">},</span>
-</span><span data-line="497">                <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_r_ghx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span><span class="p">},</span>
-</span><span data-line="498">                <span class="s2">&quot;con&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_c_ghx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_ghx</span><span class="p">},</span>
+</span><span data-line="497">                <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_r_iu&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_iu</span><span class="p">},</span>
+</span><span data-line="498">                <span class="s2">&quot;con&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_c_r&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_r</span><span class="p">},</span>
 </span><span data-line="499">            <span class="p">},</span>
-</span><span data-line="500">            <span class="s2">&quot;ground&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span data-line="501">                <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_g&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_g</span><span class="p">},</span>
-</span><span data-line="502">                <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_b&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span><span class="p">},</span>
-</span><span data-line="503">                <span class="s2">&quot;con&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_c_g&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_g</span><span class="p">},</span>
-</span><span data-line="504">            <span class="p">},</span>
-</span><span data-line="505">        <span class="p">}</span></div>
+</span><span data-line="500">            <span class="s2">&quot;ground heat exchanger&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="501">                <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="502">                    <span class="s2">&quot;X_b&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span><span class="p">,</span>
+</span><span data-line="503">                    <span class="s2">&quot;E_pmp&quot;</span><span class="p">:</span> <span class="n">E_pmp_active</span><span class="p">,</span>
+</span><span data-line="504">                <span class="p">},</span>
+</span><span data-line="505">                <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_r_ghx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_r_ghx</span><span class="p">},</span>
+</span><span data-line="506">                <span class="s2">&quot;con&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_c_ghx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_ghx</span><span class="p">},</span>
+</span><span data-line="507">            <span class="p">},</span>
+</span><span data-line="508">            <span class="s2">&quot;ground&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="509">                <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_g&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_g</span><span class="p">},</span>
+</span><span data-line="510">                <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_b&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_b</span><span class="p">},</span>
+</span><span data-line="511">                <span class="s2">&quot;con&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;X_c_g&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X_c_g</span><span class="p">},</span>
+</span><span data-line="512">            <span class="p">},</span>
+</span><span data-line="513">        <span class="p">}</span></div>
 </div>
 
 </span></pre></div>

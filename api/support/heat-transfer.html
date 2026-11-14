@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-11-14T07:02:31+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T08:31:59+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -402,12 +402,15 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#operating-lower-limit">Operating lower limit</a></li>
 <li><a class="reference internal" href="#what-happens-at-the-limit">What happens at the limit</a></li>
 <li><a class="reference internal" href="#properties">Properties</a></li>
+<li><a class="reference internal" href="#viscosity-of-the-source-side-reynolds-number">Viscosity of the source-side Reynolds number</a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.FREEZE_MARGIN_K"><code class="docutils literal notranslate"><span class="pre">FREEZE_MARGIN_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.source_fluid.GROUND_LOOP_DESIGN_INLET_C"><code class="docutils literal notranslate"><span class="pre">GROUND_LOOP_DESIGN_INLET_C</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.GROUND_LOOP_FLUID_DEFAULT"><code class="docutils literal notranslate"><span class="pre">GROUND_LOOP_FLUID_DEFAULT</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.PROPERTY_REFERENCE_C"><code class="docutils literal notranslate"><span class="pre">PROPERTY_REFERENCE_C</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SOURCE_FLUID_FREEZING"><code class="docutils literal notranslate"><span class="pre">SOURCE_FLUID_FREEZING</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SOURCE_FLUID_PRESETS"><code class="docutils literal notranslate"><span class="pre">SOURCE_FLUID_PRESETS</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.WATER_LOOP_FLUID_DEFAULT"><code class="docutils literal notranslate"><span class="pre">WATER_LOOP_FLUID_DEFAULT</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.source_fluid.WATER_LOOP_DESIGN_INLET_C"><code class="docutils literal notranslate"><span class="pre">WATER_LOOP_DESIGN_INLET_C</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid"><code class="docutils literal notranslate"><span class="pre">SourceFluid</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.name"><code class="docutils literal notranslate">name</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.T_freeze_C"><code class="docutils literal notranslate">T_freeze_C</span></code></a></li>
@@ -416,7 +419,9 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.mu"><code class="docutils literal notranslate">mu</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.k"><code class="docutils literal notranslate">k</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.T_min_C"><code class="docutils literal notranslate">T_min_C</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.coolprop"><code class="docutils literal notranslate">coolprop</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.limit_C"><code class="docutils literal notranslate">limit_C</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.viscosity"><code class="docutils literal notranslate">viscosity()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.is_water"><code class="docutils literal notranslate">is_water</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.describe"><code class="docutils literal notranslate">describe()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.source_fluid.SourceFluid.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
@@ -3984,10 +3989,44 @@ mixtures (<code class="docutils literal notranslate"><span class="pre">INCOMP::M
 ISO 13256-1 ground-loop and EN 14511 brine rating points and the cold end an
 antifreeze loop is designed for. They are constants in a run, like water’s.</p>
 </section>
+<section id="viscosity-of-the-source-side-reynolds-number">
+<h3>Viscosity of the source-side Reynolds number<a class="headerlink" href="#viscosity-of-the-source-side-reynolds-number" title="Link to this heading">¶</a></h3>
+<p>The viscosity changes far more with temperature than the other properties:
+water has 1.79 mPa s at 0 °C, 1.31 at 10 °C and 1.00 at 20 °C (the constant
+<code class="docutils literal notranslate"><span class="pre">mu_w</span></code>), 25 % ethylene glycol 3.70 mPa s at 0 °C and 1.90 at 20 °C.
+<a class="reference internal" href="#tmhp.source_fluid.SourceFluid.viscosity" title="tmhp.source_fluid.SourceFluid.viscosity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">SourceFluid.viscosity()</span></code></a> gives it at a temperature (water:
+<a class="reference internal" href="utilities.html#tmhp.constants.water_viscosity" title="tmhp.constants.water_viscosity"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.constants.water_viscosity()</span></code></a>; mixtures: the same CoolProp mixture),
+and the source-side Reynolds number of the heat pump hosts – the laminar-flow
+warning and the pipe convection inside the borehole or coil resistance
+<code class="docutils literal notranslate"><span class="pre">R_b</span></code> – takes it at the loop’s design liquid temperature: the source
+inlet temperature of the family’s heating rating point,
+<a class="reference internal" href="#tmhp.source_fluid.GROUND_LOOP_DESIGN_INLET_C" title="tmhp.source_fluid.GROUND_LOOP_DESIGN_INLET_C"><code class="xref py py-data docutils literal notranslate"><span class="pre">GROUND_LOOP_DESIGN_INLET_C</span></code></a> (0 °C, EN 14511 B0 and ISO 13256-1 ground
+loop) for GSHP and GSHPB and <a class="reference internal" href="#tmhp.source_fluid.WATER_LOOP_DESIGN_INLET_C" title="tmhp.source_fluid.WATER_LOOP_DESIGN_INLET_C"><code class="xref py py-data docutils literal notranslate"><span class="pre">WATER_LOOP_DESIGN_INLET_C</span></code></a> (10 °C,
+EN 14511 W10 and ISO 13256-1 ground water) for WSHPB. Those quantities are
+evaluated once, at the reference flow, like <code class="docutils literal notranslate"><span class="pre">R_b</span></code> itself; the default glycol
+is therefore evaluated at the temperature its properties are read at (0 °C,
+unchanged), and water no longer at 20 °C (in a ground loop 1.79 mPa s at
+0 °C, the coldest it is liquid; in the water-source boiler 1.31 mPa s). The ground-loop helpers that run during a step (hydraulic pump loss,
+flow-dependent <code class="docutils literal notranslate"><span class="pre">R_b</span></code>) keep the properties of water, see
+<a class="reference internal" href="#tmhp.source_fluid.warn_if_loop_modelled_as_water" title="tmhp.source_fluid.warn_if_loop_modelled_as_water"><code class="xref py py-func docutils literal notranslate"><span class="pre">warn_if_loop_modelled_as_water()</span></code></a>.</p>
+</section>
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.source_fluid.FREEZE_MARGIN_K">
 <span class="sig-prename descclassname"><span class="pre">tmhp.source_fluid.</span></span><span class="sig-name descname"><span class="pre">FREEZE_MARGIN_K</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3.0</span></span><a class="headerlink" href="#tmhp.source_fluid.FREEZE_MARGIN_K" title="Link to this definition">¶</a></dt>
 <dd><p>Operating lower limit above the freezing point [K]; see the module docstring.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.source_fluid.GROUND_LOOP_DESIGN_INLET_C">
+<span class="sig-prename descclassname"><span class="pre">tmhp.source_fluid.</span></span><span class="sig-name descname"><span class="pre">GROUND_LOOP_DESIGN_INLET_C</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#tmhp.source_fluid.GROUND_LOOP_DESIGN_INLET_C" title="Link to this definition">¶</a></dt>
+<dd><p>the source inlet of the
+heating rating points (EN 14511 B0, ISO 13256-1 ground loop 0 °C). The
+source-side Reynolds number of GSHP and GSHPB takes the viscosity there.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Design liquid temperature of a ground loop [°C]</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py data">
@@ -4036,9 +4075,22 @@ operating limit, and <code class="docutils literal notranslate"><span class="pre
 </dl>
 </dd></dl>
 
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.source_fluid.WATER_LOOP_DESIGN_INLET_C">
+<span class="sig-prename descclassname"><span class="pre">tmhp.source_fluid.</span></span><span class="sig-name descname"><span class="pre">WATER_LOOP_DESIGN_INLET_C</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10.0</span></span><a class="headerlink" href="#tmhp.source_fluid.WATER_LOOP_DESIGN_INLET_C" title="Link to this definition">¶</a></dt>
+<dd><p>the source inlet of
+the heating rating points (EN 14511 W10, ISO 13256-1 ground water 10 °C),
+for the source-side Reynolds number of WSHPB.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Design liquid temperature of a water-source loop [°C]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.source_fluid.SourceFluid">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.source_fluid.</span></span><span class="sig-name descname"><span class="pre">SourceFluid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_freeze_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_min_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/source_fluid.html#SourceFluid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.source_fluid.SourceFluid" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.source_fluid.</span></span><span class="sig-name descname"><span class="pre">SourceFluid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_freeze_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_min_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coolprop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/source_fluid.html#SourceFluid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.source_fluid.SourceFluid" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Liquid of the source loop: freezing point, operating limit and properties.</p>
 <dl class="field-list simple">
@@ -4057,6 +4109,11 @@ and thermal conductivity [W/(m K)], constant during a run.</p></li>
 <li><p><strong>T_min_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Coldest the liquid may run [°C]. <code class="docutils literal notranslate"><span class="pre">None</span></code> (default):
 <code class="docutils literal notranslate"><span class="pre">T_freeze_C</span> <span class="pre">+</span> <span class="pre">FREEZE_MARGIN_K</span></code>. It may not lie below the freezing
 point.</p></li>
+<li><p><strong>coolprop</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Where <a class="reference internal" href="#tmhp.source_fluid.SourceFluid.viscosity" title="tmhp.source_fluid.SourceFluid.viscosity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">viscosity()</span></code></a> reads the viscosity at another temperature:
+<code class="docutils literal notranslate"><span class="pre">&quot;Water&quot;</span></code> (<a class="reference internal" href="utilities.html#tmhp.constants.water_viscosity" title="tmhp.constants.water_viscosity"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.constants.water_viscosity()</span></code></a>) or a CoolProp
+incompressible fluid (<code class="docutils literal notranslate"><span class="pre">&quot;INCOMP::MEG[0.25]&quot;</span></code>). <code class="docutils literal notranslate"><span class="pre">None</span></code> (default, a
+fluid built by the caller): <code class="docutils literal notranslate"><span class="pre">mu</span></code> at every temperature – water built
+this way keeps the 20 °C viscosity everywhere, as before.</p></li>
 </ul>
 </dd>
 </dl>
@@ -4095,10 +4152,32 @@ point.</p></li>
 <span class="sig-name descname"><span class="pre">T_min_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.source_fluid.SourceFluid.T_min_C" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.source_fluid.SourceFluid.coolprop">
+<span class="sig-name descname"><span class="pre">coolprop</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.source_fluid.SourceFluid.coolprop" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="tmhp.source_fluid.SourceFluid.limit_C">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">limit_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.source_fluid.SourceFluid.limit_C" title="Link to this definition">¶</a></dt>
 <dd><p>The operating lower limit [°C] as a float (<code class="docutils literal notranslate"><span class="pre">T_min_C</span></code> after defaulting).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.source_fluid.SourceFluid.viscosity">
+<span class="sig-name descname"><span class="pre">viscosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/source_fluid.html#SourceFluid.viscosity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.source_fluid.SourceFluid.viscosity" title="Link to this definition">¶</a></dt>
+<dd><p>Dynamic viscosity [Pa s] at <code class="docutils literal notranslate"><span class="pre">T_C</span></code> [°C].</p>
+<p>Read from <a class="reference internal" href="#tmhp.source_fluid.SourceFluid.coolprop" title="tmhp.source_fluid.SourceFluid.coolprop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">coolprop</span></code></a> at <code class="docutils literal notranslate"><span class="pre">T_C</span></code> held between the freezing point
+and the upper end of the CoolProp mixture’s range; <code class="docutils literal notranslate"><span class="pre">mu</span></code> when the
+fluid names no source (<code class="docutils literal notranslate"><span class="pre">coolprop=None</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -4120,7 +4199,7 @@ point.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.source_fluid.SourceFluid.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_freeze_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_min_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.source_fluid.SourceFluid.__init__" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_freeze_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_min_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coolprop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.source_fluid.SourceFluid.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -4131,6 +4210,7 @@ point.</p></li>
 <li><p><strong>mu</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>k</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>T_min_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>coolprop</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>

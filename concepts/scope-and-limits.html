@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP aims at a useful accuracy from a nameplate ( Minimal input), not at reproducing one machine from its drawings. That bargain has a price: some things are outside the models and are refused, and..." />
 
-    <meta property="article:modified_time" content="2026-11-14T07:20:48+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T08:31:59+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -238,9 +238,10 @@ named in <code class="docutils literal notranslate"><span class="pre">capacity_b
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Transcritical cycles (R744 at heating temperatures)</p></td>
-<td><p>Construction fails: <code class="docutils literal notranslate"><span class="pre">ReferenceStateError</span></code>
-(<code class="docutils literal notranslate"><span class="pre">reference_capacity_inconsistent</span></code>), naming the condensing
-temperature and the critical temperature</p></td>
+<td><p>Construction fails. A water heater: <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, the critical
+temperature is not above the delivery set point. The other families:
+<code class="docutils literal notranslate"><span class="pre">ReferenceStateError</span></code> (<code class="docutils literal notranslate"><span class="pre">reference_capacity_inconsistent</span></code>), naming
+the condensing temperature and the critical temperature</p></td>
 <td><p><a class="reference internal" href="refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>User-defined <code class="docutils literal notranslate"><span class="pre">HEOS::</span></code> mixtures</p></td>
@@ -384,13 +385,12 @@ annual balance</p></td>
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Dry air at one standard atmosphere</p></td>
-<td><p>ASHP (both coils) and ASHPB take the density of the air a coil draws
-in — outdoor air at <code class="docutils literal notranslate"><span class="pre">T0</span></code>, room air at <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code> — as dry
-ideal-gas air at 101 325 Pa
-(<a class="reference internal" href="../api/support/heat-transfer.html#tmhp.air_properties.air_density" title="tmhp.air_properties.air_density"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.air_properties.air_density()</span></code></a>). The specific heat is
-constant (1005 J/(kg K)); humidity and altitude are left out, and fan
-power does not follow the density. The indoor coil of GSHP keeps
-15 °C standard air (1.225 kg/m³)</p></td>
+<td><p>Every air coil (ASHP both coils, ASHPB, the GSHP indoor coil, also in
+the empirical GSHP) takes the density of the air it draws in —
+outdoor air at <code class="docutils literal notranslate"><span class="pre">T0</span></code>, room air at <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code> — as dry ideal-gas air
+at 101 325 Pa (<a class="reference internal" href="../api/support/heat-transfer.html#tmhp.air_properties.air_density" title="tmhp.air_properties.air_density"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.air_properties.air_density()</span></code></a>). The specific
+heat is constant (1005 J/(kg K)); humidity and altitude are left out,
+and fan power does not follow the density</p></td>
 <td><p>Not flagged. <code class="docutils literal notranslate"><span class="pre">dV_ou_a</span> <span class="pre">[m3/s]</span></code> and <code class="docutils literal notranslate"><span class="pre">dV_iu_a</span> <span class="pre">[m3/s]</span></code> are volumes at
 the coil inlet; at 1 600 m the real density is 18 % lower
 (<a class="reference internal" href="../models/ashp.html#ashp-air-density"><span class="std std-ref">Air density</span></a>)</p></td>
@@ -535,8 +535,7 @@ units held back and the reasons are in <a class="reference internal" href="../va
 </span><span data-line="2"><span class="n">averaged</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;runtime_fraction [-]&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span>                 <span class="c1"># a time average, not a continuous point</span>
 </span></pre></div>
 </div>
-<p>Then, where they exist: <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> (in a boiler’s dynamic
-frame, a <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> column) for a row that delivered less than
+<p>Then, where they exist: <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> for a row that delivered less than
 asked, <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> or <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code> for demand
 that was not served, <code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code> and <code class="docutils literal notranslate"><span class="pre">discharge_control</span></code> for
 points at the edge of the compressor data. Warnings raised during a run (<code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> at

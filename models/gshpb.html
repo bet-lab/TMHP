@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and a DHW tank sink. Overview: solves the closed refrigerant cycle against a borehole he..." />
 
-    <meta property="article:modified_time" content="2026-11-14T07:02:31+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T08:34:10+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -189,6 +189,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_dis_max"><code class="docutils literal notranslate">T_dis_max</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_cond_max"><code class="docutils literal notranslate">T_cond_max</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.x_suction_min"><code class="docutils literal notranslate">x_suction_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.mu_bhe_f_design"><code class="docutils literal notranslate">mu_bhe_f_design</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_tank_LOAD_OFF_TOL"><code class="docutils literal notranslate">Q_tank_LOAD_OFF_TOL</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dt_s"><code class="docutils literal notranslate">dt_s</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.borehole_dynamics"><code class="docutils literal notranslate">borehole_dynamics</span></code></a></li>
@@ -512,7 +513,13 @@ and properties of a mixture are read from CoolProp’s incompressible mixtures
 Secondary Working Fluids for Indirect Systems</em>, IIR, 2010) at 0 °C, the liquid
 inlet of the brine rating points, and are constants during a run; water keeps
 the constants the models have always used (1000 kg/m³, 4186 J/(kg K),
-1.0 mPa s, 0.606 W/(m K)).
+1.0 mPa s, 0.606 W/(m K)). The Reynolds number of the source side (the
+laminar-flow warning and the film inside the U-tube in <code class="docutils literal notranslate"><span class="pre">R_b</span></code>) takes the
+viscosity at the heating rating inlet instead, 0 °C for GSHP and GSHPB and
+10 °C for WSHPB: the table’s value for a mixture, and for water 1.79 mPa s
+(ground loop) or 1.31 mPa s (water-source boiler) rather than 1.0
+(<a class="reference internal" href="../api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.viscosity" title="tmhp.source_fluid.SourceFluid.viscosity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tmhp.source_fluid.SourceFluid.viscosity()</span></code></a>, attribute
+<code class="docutils literal notranslate"><span class="pre">mu_bhe_f_design</span></code>).
 A <a class="reference internal" href="../api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid" title="tmhp.source_fluid.SourceFluid"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.source_fluid.SourceFluid</span></code></a> built by hand stands for any other
 liquid or any other limit.</p>
 <p><strong>The limit.</strong> The loop liquid is never colder than its freezing point plus
@@ -607,7 +614,8 @@ cold source returned a running cycle with “water” at -3 °C (B0) or -12 °C.
 The ground-source models now default to 25 % ethylene glycol, which runs
 down to -8.0 °C and whose properties move the results a little (system
 COP of the 4 kW <code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> against a 0 °C borehole wall
-3.508, 3.520 before; B0/W35 and B0/W55 of this boiler are the same with
+3.508, 3.520 before, and 3.495 since its indoor coil takes the room-air
+density; B0/W35 and B0/W55 of this boiler are the same with
 the glycol as they were with water, 3.870 and 2.651 with R290), and a loop
 declared as water stops at 3 °C. To reproduce the
 earlier numbers exactly – the properties of water and no limit to speak
@@ -825,7 +833,11 @@ run starts with <code class="docutils literal notranslate"><span class="pre">tan
 <section id="tank-backends">
 <h3>Tank backends<a class="headerlink" href="#tank-backends" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">tank_model</span></code> selects how the tank itself is resolved (always-full tank,
-no <code class="docutils literal notranslate"><span class="pre">stc</span></code>/<code class="docutils literal notranslate"><span class="pre">pv</span></code>/<code class="docutils literal notranslate"><span class="pre">uv</span></code> subsystem in the multi-node modes):</p>
+no <code class="docutils literal notranslate"><span class="pre">stc</span></code>/<code class="docutils literal notranslate"><span class="pre">pv</span></code>/<code class="docutils literal notranslate"><span class="pre">uv</span></code> subsystem in the multi-node modes). A multi-node tank
+keeps its volume – every litre drawn is replaced at once – so it cannot
+hold the draw and the make-up apart: <code class="docutils literal notranslate"><span class="pre">prevent_simultaneous_flow=True</span></code> with
+<code class="docutils literal notranslate"><span class="pre">&quot;stratified&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;hybrid&quot;</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> (use the lumped tank
+for a level that falls during a draw):</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -1618,6 +1630,14 @@ replaces it with <code class="docutils literal notranslate"><span class="pre">de
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.mu_bhe_f_design">
+<span class="sig-name descname"><span class="pre">mu_bhe_f_design</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.mu_bhe_f_design" title="Link to this definition">¶</a></dt>
+<dd><p>Loop-liquid viscosity of the source-side Reynolds number [Pa s], at
+the design liquid temperature (heating rating inlet, 0 °C; see
+<a class="reference internal" href="../api/support/heat-transfer.html#module-tmhp.source_fluid" title="tmhp.source_fluid"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.source_fluid</span></code></a>).</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_tank_LOAD_OFF_TOL">
 <span class="sig-name descname"><span class="pre">Q_tank_LOAD_OFF_TOL</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_tank_LOAD_OFF_TOL" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1766,6 +1786,14 @@ With the coupled ground-flow controller the reasons of
 <code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.ground_flow_control</span></code> apply.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_detail&quot;</span></code> (str, failures only) — which check
 rejected a <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code> point.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;capacity_clamped&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;capacity_binding&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;Q_max</span> <span class="pre">[W]&quot;</span></code>
+and <code class="docutils literal notranslate"><span class="pre">&quot;Q_request</span> <span class="pre">[W]&quot;</span></code> are on every row (<code class="docutils literal notranslate"><span class="pre">None</span></code> or NaN where
+they do not apply; <code class="docutils literal notranslate"><span class="pre">&quot;Q_request</span> <span class="pre">[W]&quot;</span></code> is the <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code>
+asked for), and an off or failed row carries every key of a
+running one (NaN where it has no value): the keys do not depend
+on the point. <code class="docutils literal notranslate"><span class="pre">&quot;T_ref_cond_sat_v</span> <span class="pre">[°C]&quot;</span></code> is the dew point of
+the condensing pressure, above <code class="docutils literal notranslate"><span class="pre">&quot;T_ref_cond_sat_l</span> <span class="pre">[°C]&quot;</span></code> by
+the glide for a zeotropic blend.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;runtime_fraction</span> <span class="pre">[-]&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;capacity_ratio</span> <span class="pre">[-]&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;part_load_factor</span> <span class="pre">[-]&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;Q_min</span> <span class="pre">[W]&quot;</span></code> and
 <code class="docutils literal notranslate"><span class="pre">&quot;E_cycling_loss</span> <span class="pre">[W]&quot;</span></code> — on every row. A request below the

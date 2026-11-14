@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-14T07:14:02+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T08:39:44+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -358,6 +358,15 @@ input while the compressor is off. Both COPs are the continuous ones times
 <code class="docutils literal notranslate"><span class="pre">part_load_factor</span> <span class="pre">[-]</span></code>; <code class="docutils literal notranslate"><span class="pre">E_cycling_loss</span> <span class="pre">[W]</span></code> is the off-state part.</p></li>
 <li><p>Temperatures, pressures and speed are those of the running machine.</p></li>
 </ul>
+<p>On the speed floor the outdoor fan still has a range to choose from, and each
+airflow is a machine that delivers a different heat, all above the request.
+The running machine of the row is the most efficient of them (the least
+<code class="docutils literal notranslate"><span class="pre">E_tot</span></code> per unit of heat delivered), at any tank temperature. A tank within
+0.5 K of <code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code>, or above it, used to be ranked on total
+power instead, which at the floor is nearly flat in the outdoor approach and
+returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
+outdoor approach with the fan at its lowest flow, a running-machine COP of
+4.27 where the floor offers 5.29.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Cd_cycling</span></code> is the coefficient <code class="docutils literal notranslate"><span class="pre">Cc</span></code>: 0.9 by default (the standard’s value
 for an untested unit), <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">−</span> <span class="pre">P_off</span> <span class="pre">/</span> <span class="pre">P_on</span></code> for a unit with a measured standby
 power, <code class="docutils literal notranslate"><span class="pre">1.0</span></code> for loss-free cycling, and <code class="docutils literal notranslate"><span class="pre">None</span></code> for the continuous
@@ -450,7 +459,11 @@ it, and a make-up valve opens when the level reaches
 (1 L/s) until the level is back at <code class="docutils literal notranslate"><span class="pre">tank_level_upper_bound</span></code> (1.0). The
 valve is followed inside each step, so a step can refill part of its
 length. <code class="docutils literal notranslate"><span class="pre">prevent_simultaneous_flow</span></code> admits make-up only while nothing
-is drawn. Either way the step balances the water and its energy
+is drawn. A draw that would replace the whole tank in less than 10 s
+(<code class="docutils literal notranslate"><span class="pre">tmhp._validation.DHW_TANK_TURNOVER_MIN_S</span></code>: 15 L/s for the 151 L default
+tank) is refused as a unit slip – the schedule is in m³/s, and a value in
+L/s or L/min lands far above it; the same check applies to GSHPB, WSHPB and
+<code class="docutils literal notranslate"><span class="pre">step()</span></code>. Either way the step balances the water and its energy
 together,</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -934,7 +947,9 @@ of a unit delivering to water – <code class="docutils literal notranslate"><sp
 (0.9: while the compressor is off the unit draws a tenth of its running
 input; 1.0: nothing; a tested unit has <code class="docutils literal notranslate"><span class="pre">Cc</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">P_off</span> <span class="pre">/</span> <span class="pre">P_on</span></code>).
 <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> returns the continuous minimum-speed point, which
-delivers more than the request. Dynamic runs are not affected: there the
+delivers more than the request. Of the machines the speed floor offers
+(the outdoor fan still has a range there) the row is the most efficient
+one, whatever the tank temperature. Dynamic runs are not affected: there the
 tank thermostat switches the compressor, which runs at <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> for
 <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> of a step.</p>
 <dl class="field-list simple">
@@ -1407,6 +1422,14 @@ coil is short at the fan’s largest airflow) or
 largest duty that runs is then returned, with <code class="docutils literal notranslate"><span class="pre">&quot;Q_max</span> <span class="pre">[W]&quot;</span></code>
 and <code class="docutils literal notranslate"><span class="pre">&quot;Q_request</span> <span class="pre">[W]&quot;</span></code>; see
 <a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.reduce_duty_within_envelope" title="tmhp.compressor_envelope.reduce_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.reduce_duty_within_envelope()</span></code></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;capacity_clamped&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;capacity_binding&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;Q_max</span> <span class="pre">[W]&quot;</span></code>
+and <code class="docutils literal notranslate"><span class="pre">&quot;Q_request</span> <span class="pre">[W]&quot;</span></code> are on every row (<code class="docutils literal notranslate"><span class="pre">None</span></code> or NaN where
+they do not apply; <code class="docutils literal notranslate"><span class="pre">&quot;Q_request</span> <span class="pre">[W]&quot;</span></code> is the <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code>
+asked for), and an off or failed row carries every key of a
+running one (NaN where it has no value): the keys do not depend
+on the point. <code class="docutils literal notranslate"><span class="pre">&quot;T_ref_cond_sat_v</span> <span class="pre">[°C]&quot;</span></code> is the dew point of
+the condensing pressure, above <code class="docutils literal notranslate"><span class="pre">&quot;T_ref_cond_sat_l</span> <span class="pre">[°C]&quot;</span></code> by
+the glide for a zeotropic blend.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;runtime_fraction</span> <span class="pre">[-]&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;capacity_ratio</span> <span class="pre">[-]&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;part_load_factor</span> <span class="pre">[-]&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;Q_min</span> <span class="pre">[W]&quot;</span></code> and
 <code class="docutils literal notranslate"><span class="pre">&quot;E_cycling_loss</span> <span class="pre">[W]&quot;</span></code> — on every row. A request below the
@@ -1530,7 +1553,10 @@ is used for every step (backward-compatible).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Per-timestep result DataFrame.</p>
+<dd class="field-even"><p>Per-timestep result DataFrame, one row per step: <code class="docutils literal notranslate"><span class="pre">time</span> <span class="pre">[s]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">time</span> <span class="pre">[h]</span></code> at the start of the step, and the same columns
+whatever the run did (a key a step has no value for is <code class="docutils literal notranslate"><span class="pre">None</span></code>
+or NaN; a flow that does not run is 0).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>

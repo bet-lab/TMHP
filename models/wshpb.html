@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Source side is a water loop with a prescribed inlet temperature; sink side is the shared DHW tank demand model used by the boiler families. Overview: The class is tmhp.WaterSourceHeatPumpBoiler. Un..." />
 
-    <meta property="article:modified_time" content="2026-11-14T07:02:31+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T08:34:10+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -160,6 +160,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler"><code class="docutils literal notranslate"><span class="pre">WaterSourceHeatPumpBoiler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.cycling"><code class="docutils literal notranslate">cycling</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.mu_bhe_f_design"><code class="docutils literal notranslate">mu_bhe_f_design</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.analyze_dynamic"><code class="docutils literal notranslate">analyze_dynamic()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.analyze_steady"><code class="docutils literal notranslate">analyze_steady()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.postprocess_exergy"><code class="docutils literal notranslate">postprocess_exergy()</span></code></a></li>
@@ -561,6 +562,14 @@ tank thermostat switches the compressor, which runs at <code class="docutils lit
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.mu_bhe_f_design">
+<span class="sig-name descname"><span class="pre">mu_bhe_f_design</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.mu_bhe_f_design" title="Link to this definition">¶</a></dt>
+<dd><p>Loop-liquid viscosity of the source-side Reynolds number [Pa s], at
+the design liquid temperature (heating rating inlet, 10 °C; see
+<a class="reference internal" href="../api/support/heat-transfer.html#module-tmhp.source_fluid" title="tmhp.source_fluid"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.source_fluid</span></code></a>).</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.analyze_dynamic">
 <span class="sig-name descname"><span class="pre">analyze_dynamic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulation_period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_init_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dhw_usage_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_DN_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_source_w_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_save_csv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sur_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/water_source_heat_pump_boiler.html#WaterSourceHeatPumpBoiler.analyze_dynamic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.analyze_dynamic" title="Link to this definition">¶</a></dt>
@@ -624,6 +633,14 @@ a smaller duty keeps on the limit returns that duty with
 <a class="reference internal" href="../api/support/heat-transfer.html#module-tmhp.source_fluid" title="tmhp.source_fluid"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.source_fluid</span></code></a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_detail&quot;</span></code> (str, failures only) — which check
 rejected a <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code> point.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;capacity_clamped&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;capacity_binding&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;Q_max</span> <span class="pre">[W]&quot;</span></code>
+and <code class="docutils literal notranslate"><span class="pre">&quot;Q_request</span> <span class="pre">[W]&quot;</span></code> are on every row (<code class="docutils literal notranslate"><span class="pre">None</span></code> or NaN where
+they do not apply; <code class="docutils literal notranslate"><span class="pre">&quot;Q_request</span> <span class="pre">[W]&quot;</span></code> is the <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code>
+asked for), and an off or failed row carries every key of a
+running one (NaN where it has no value): the keys do not depend
+on the point. <code class="docutils literal notranslate"><span class="pre">&quot;T_ref_cond_sat_v</span> <span class="pre">[°C]&quot;</span></code> is the dew point of
+the condensing pressure, above <code class="docutils literal notranslate"><span class="pre">&quot;T_ref_cond_sat_l</span> <span class="pre">[°C]&quot;</span></code> by
+the glide for a zeotropic blend.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;runtime_fraction</span> <span class="pre">[-]&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;capacity_ratio</span> <span class="pre">[-]&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;part_load_factor</span> <span class="pre">[-]&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;Q_min</span> <span class="pre">[W]&quot;</span></code> and
 <code class="docutils literal notranslate"><span class="pre">&quot;E_cycling_loss</span> <span class="pre">[W]&quot;</span></code> — on every row. A request below the

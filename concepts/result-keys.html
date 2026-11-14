@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="analyze_steady returns a flat dict and analyze_dynamic a pandas.DataFrame whose columns are the same keys, one row per time step. This page lists every key the five released families return with th..." />
 
-    <meta property="article:modified_time" content="2026-11-14T07:20:48+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T08:30:14+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -291,12 +291,12 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> or why a requested point has no operating point; the row then holds off-state placeholders. Values: <a class="reference internal" href="failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_clamped</span></code></p></td>
-<td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the request was met; <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when it was below the minimum-speed duty (the row is then the on/off mean, see <em>Request, capacity and part load</em>); <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> when the unit delivers less than asked.</p></td>
+<td><p>all</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the request was met (and on an off or failed row); <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when it was below the minimum-speed duty (the row is then the on/off mean, see <em>Request, capacity and part load</em>); <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> when the unit delivers less than asked.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p></td>
-<td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
-<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row, the limit the next larger duty runs into: <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> (ASHP, GSHP: a coil at the edge of the approach search), <code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code> (ASHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_heat_exchanger&quot;</span></code> (GSHPB, WSHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_fluid_freezing&quot;</span></code> (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). <code class="docutils literal notranslate"><span class="pre">None</span></code> or absent otherwise.</p></td>
+<td><p>all</p></td>
+<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row, the limit the next larger duty runs into: <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> (ASHP, GSHP: a coil at the edge of the approach search), <code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code> (ASHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_heat_exchanger&quot;</span></code> (GSHPB, WSHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_fluid_freezing&quot;</span></code> (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise: on every boiler row, on the ASHP and GSHP rows that have it.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code></p></td>
 <td><p>ASHP, GSHP (s), ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
@@ -365,16 +365,16 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code></p></td>
-<td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
-<td><p>The duty asked for, with the sign it was given (<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>: negative heating, positive cooling; boilers: positive). On every ASHP and GSHP row; in a boiler result only on a row whose duty was reduced.</p></td>
+<td><p>all</p></td>
+<td><p>The duty asked for, with the sign it was given (<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>: negative heating, positive cooling; boilers: positive), on every row. A boiler’s <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>: the <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code> argument. A boiler’s dynamic step: <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> when the thermostat called the compressor during the step (whether it ran or failed), 0 when it did not.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
 <td><p>Part of the request not delivered, ≥ 0. Sum it times the time step for a schedule’s unmet energy.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code></p></td>
-<td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
-<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row, the duty delivered (the ceiling). <code class="docutils literal notranslate"><span class="pre">None</span></code> or absent otherwise.</p></td>
+<td><p>all</p></td>
+<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row, the duty delivered (the ceiling); in a boiler’s dynamic step the running machine’s, not the step average (<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code> is <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> times <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>). NaN on every other boiler row; absent on the other ASHP and GSHP rows.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
@@ -382,7 +382,7 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_ref_tank_request</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB</p></td>
-<td><p>ASHPB: the <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code> argument. Compare with <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code> on a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row.</p></td>
+<td><p>ASHPB: the <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code> argument, on every row (dynamic: as <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>). Compare with <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code> on a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_tank_load</span> <span class="pre">[W]</span></code></p></td>
 <td><p>GSHPB, WSHPB</p></td>
@@ -390,11 +390,11 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PLR_request</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHPB (s)</p></td>
-<td><p>Requested duty over <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code>.</p></td>
+<td><p>Requested duty over <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code>, on every row.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PLR_delivered</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHPB (s)</p></td>
-<td><p>Delivered duty over <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code>.</p></td>
+<td><p>Delivered duty over <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> (0 on an off or failed row).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_ratio</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
@@ -1039,7 +1039,7 @@ as 0 by GSHPB and WSHPB.</p>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dV_mix_w_out</span> <span class="pre">[m3/s]</span></code></p></td>
 <td><p>ASHPB, GSHPB, WSHPB</p></td>
-<td><p>Mixed hot water delivered to the tap.</p></td>
+<td><p>Mixed hot water delivered to the tap. This and the three flows below are 0 when the water does not flow.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dV_mix_sup_w_in</span> <span class="pre">[m3/s]</span></code></p></td>
 <td><p>ASHPB, GSHPB, WSHPB</p></td>
@@ -1083,8 +1083,8 @@ as 0 by GSHPB and WSHPB.</p>
 </section>
 <section id="time">
 <h2>Time<a class="headerlink" href="#time" title="Link to this heading">¶</a></h2>
-<p>Only the space-conditioning frames carry a time column. A boiler frame has one row per step in order:
-row <code class="docutils literal notranslate"><span class="pre">i</span></code> covers <code class="docutils literal notranslate"><span class="pre">i·dt_s</span></code> to <code class="docutils literal notranslate"><span class="pre">(i+1)·dt_s</span></code>.</p>
+<p>Every dynamic frame carries the time of its rows; the index stays the step number. Row <code class="docutils literal notranslate"><span class="pre">i</span></code> covers
+<code class="docutils literal notranslate"><span class="pre">i·dt_s</span></code> to <code class="docutils literal notranslate"><span class="pre">(i+1)·dt_s</span></code>.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -1100,11 +1100,11 @@ row <code class="docutils literal notranslate"><span class="pre">i</span></code>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time</span> <span class="pre">[s]</span></code></p></td>
-<td><p>ASHP (d), GSHP (d)</p></td>
-<td><p>Start of the step, seconds from the start of the run.</p></td>
+<td><p>all (d)</p></td>
+<td><p>Start of the step, seconds from the start of the run (<code class="docutils literal notranslate"><span class="pre">i·dt_s</span></code>). A boiler’s <code class="docutils literal notranslate"><span class="pre">step()</span></code> row carries the <code class="docutils literal notranslate"><span class="pre">current_time_s</span></code> it was given.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">time</span> <span class="pre">[h]</span></code></p></td>
-<td><p>ASHP (d), GSHP (d)</p></td>
+<td><p>all (d)</p></td>
 <td><p>The same in hours.</p></td>
 </tr>
 </tbody>
@@ -1115,8 +1115,11 @@ row <code class="docutils literal notranslate"><span class="pre">i</span></code>
 <h2>Refrigerant state points<a class="headerlink" href="#refrigerant-state-points" title="Link to this heading">¶</a></h2>
 <p>Every family reports the same seven points of the cycle, in <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> and in every dynamic row.
 An off or failed row carries NaN. For a zeotropic blend the condenser’s dew and bubble points differ by
-the glide; GSHPB and WSHPB report the bubble-point temperature under both <code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_v</span></code> and
-<code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l</span></code>.</p>
+the glide (R407C: about 4.5 K; R410A: 0.1 K). The boilers report the dew point under
+<code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_v</span></code> and the bubble point, which the cycle condenses at, under <code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l</span></code>; ASHP
+and GSHP report the bubble point under both. The condensing limit <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> is a dew-point
+temperature (<a class="reference internal" href="../api/support/refrigerant-thermo.html#module-tmhp.compressor_envelope" title="tmhp.compressor_envelope"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_envelope</span></code></a>), and a boiler’s condenser-heat exergy <code class="docutils literal notranslate"><span class="pre">X_ref_tank</span> <span class="pre">[W]</span></code>
+uses the bubble point. For a pure refrigerant the two keys are equal.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -1552,11 +1555,12 @@ without a running cycle carry NaN or 0.</p>
 <p>These are not in every default result. Composed variants (solar thermal, PV
 and storage, UV lamp) add their own columns, described on <a class="reference internal" href="../models/ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a>
 and <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>.</p>
-<p>A steady result is a <code class="docutils literal notranslate"><span class="pre">dict</span></code> built for the path the point took, so a key
-that describes a reduced or failed point can be missing from an ordinary one:
-<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> of a boiler are
-present only on a row that delivers less than asked, and <code class="docutils literal notranslate"><span class="pre">failure_detail</span></code>
-only on some failures. Read them with <code class="docutils literal notranslate"><span class="pre">row.get(...)</span></code>.</p>
+<p>A boiler result has the same keys on every row and in every run of the same
+machine: what does not apply to a row is <code class="docutils literal notranslate"><span class="pre">None</span></code> or NaN. An ASHP or GSHP
+steady result is a <code class="docutils literal notranslate"><span class="pre">dict</span></code> built for the path the point took, so a key that
+describes a reduced or failed point can be missing from an ordinary one
+(<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">failure_detail</span></code>). Read those with
+<code class="docutils literal notranslate"><span class="pre">row.get(...)</span></code>.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -1571,30 +1575,24 @@ only on some failures. Read them with <code class="docutils literal notranslate"
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> in a boiler’s
-dynamic frame</p></td>
-<td><p>at least one step of the run ran at a reduced duty</p></td>
-<td><p>As in <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>, on the reduced steps; empty on the others.
-A boiler’s dynamic frame has no <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span></code> column: test
-<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> instead.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">failure_detail</span></code></p></td>
-<td><p>a boiler <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> fails with <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>, ASHPB with
-<code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code>, or a liquid-source family (GSHP, GSHPB, WSHPB)
-with <code class="docutils literal notranslate"><span class="pre">source_fluid_freezing</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">failure_detail</span></code></p></td>
+<td><p>a boiler <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> (<code class="docutils literal notranslate"><span class="pre">None</span></code> unless it fails with
+<code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>, ASHPB with <code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code>, or GSHPB and WSHPB
+with <code class="docutils literal notranslate"><span class="pre">source_fluid_freezing</span></code>); GSHP when it fails with
+<code class="docutils literal notranslate"><span class="pre">source_fluid_freezing</span></code>. Not in dynamic frames.</p></td>
 <td><p>Which check rejected the point; see <a class="reference internal" href="failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dV_mix_w_out_unmet</span> <span class="pre">[m3/s]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dV_mix_w_out_unmet</span> <span class="pre">[m3/s]</span></code></p></td>
 <td><p>the tank level varies (<code class="docutils literal notranslate"><span class="pre">tank_always_full=False</span></code>), dynamic</p></td>
 <td><p>Scheduled hot-water flow the tank could not supply at its lowest
 level.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_tank_w_top</span> <span class="pre">[°C]</span></code>, <code class="docutils literal notranslate"><span class="pre">T_tank_w_bottom</span> <span class="pre">[°C]</span></code>, <code class="docutils literal notranslate"><span class="pre">T_tank_w_out</span> <span class="pre">[°C]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T_tank_w_top</span> <span class="pre">[°C]</span></code>, <code class="docutils literal notranslate"><span class="pre">T_tank_w_bottom</span> <span class="pre">[°C]</span></code>, <code class="docutils literal notranslate"><span class="pre">T_tank_w_out</span> <span class="pre">[°C]</span></code></p></td>
 <td><p>GSHPB with <code class="docutils literal notranslate"><span class="pre">tank_model=&quot;stratified&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;hybrid&quot;</span></code>, dynamic</p></td>
 <td><p>Top-node, bottom-node and draw-off temperatures of the multi-node
 tank.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ground_temperature_residual</span> <span class="pre">[K]</span></code>, <code class="docutils literal notranslate"><span class="pre">candidate_ground_flow_ratio</span></code>,
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ground_temperature_residual</span> <span class="pre">[K]</span></code>, <code class="docutils literal notranslate"><span class="pre">candidate_ground_flow_ratio</span></code>,
 <code class="docutils literal notranslate"><span class="pre">flow_optimizer_method</span></code></p></td>
 <td><p>GSHP, GSHPB with the hydraulic pump model or
 <code class="docutils literal notranslate"><span class="pre">ground_flow_control=&quot;optimal_power&quot;</span></code></p></td>
@@ -1613,9 +1611,8 @@ tank.</p></td>
 </span></pre></div>
 </div>
 <p>These four columns are in every frame of every family. A row that delivered
-less than asked has <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> in a steady result and in an
-ASHP or GSHP frame; in a boiler frame look for a <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> column
-(see the table above).</p>
+less than asked has <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>, in a steady result and in a
+dynamic frame of every family.</p>
 <p>A new key added to a model has to be added here as well:
 <code class="docutils literal notranslate"><span class="pre">tests/test_docs_alignment.py</span></code> runs each family and fails when a result
 carries a key this page does not name.</p>

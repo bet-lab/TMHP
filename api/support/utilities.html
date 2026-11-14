@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Unit-conversion helpers and physical constants used across the package. Unit conversions: Unit conversion utilities and conversion constants. This module provides temperature conversion functions a..." />
 
-    <meta property="article:modified_time" content="2026-11-14T07:02:31+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T08:31:59+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -158,7 +158,10 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.calc_util.C2F"><code class="docutils literal notranslate"><span class="pre">C2F()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-tmhp.constants">Physical constants</a></li>
+<li><a class="reference internal" href="#module-tmhp.constants">Physical constants</a><ul>
+<li><a class="reference internal" href="#tmhp.constants.water_viscosity"><code class="docutils literal notranslate"><span class="pre">water_viscosity()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -265,6 +268,29 @@ e.g. <code class="docutils literal notranslate"><span class="pre">h2s</span> <sp
 </ol>
 </dd>
 </dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.constants.water_viscosity">
+<span class="sig-prename descclassname"><span class="pre">tmhp.constants.</span></span><span class="sig-name descname"><span class="pre">water_viscosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/constants.html#water_viscosity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.constants.water_viscosity" title="Link to this definition">¶</a></dt>
+<dd><p>Dynamic viscosity of liquid water [Pa·s] at <code class="docutils literal notranslate"><span class="pre">T_C</span></code> [°C] and low pressure.</p>
+<p>Kestin, Sokolov and Wakeham (1978), <em>J. Phys. Chem. Ref. Data</em> 7(3), the
+two branches around <code class="docutils literal notranslate"><span class="pre">mu(20</span> <span class="pre">°C)</span> <span class="pre">=</span> <span class="pre">1.002</span> <span class="pre">mPa</span> <span class="pre">s</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">T_C</span> <span class="pre">&lt;=</span> <span class="pre">20</span></code>: <code class="docutils literal notranslate"><span class="pre">log10(mu</span> <span class="pre">/</span> <span class="pre">mu20)</span> <span class="pre">=</span> <span class="pre">d</span> <span class="pre">/</span> <span class="pre">(T_C</span> <span class="pre">+</span> <span class="pre">96)</span> <span class="pre">*</span> <span class="pre">(1.2378</span> <span class="pre">-</span> <span class="pre">1.303e-3</span> <span class="pre">d</span>
+<span class="pre">+</span> <span class="pre">3.06e-6</span> <span class="pre">d**2</span> <span class="pre">+</span> <span class="pre">2.55e-8</span> <span class="pre">d**3)</span></code>, <code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">=</span> <span class="pre">20</span> <span class="pre">-</span> <span class="pre">T_C</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_C</span> <span class="pre">&gt;</span> <span class="pre">20</span></code>: <code class="docutils literal notranslate"><span class="pre">log10(mu</span> <span class="pre">/</span> <span class="pre">mu20)</span> <span class="pre">=</span> <span class="pre">d</span> <span class="pre">/</span> <span class="pre">(T_C</span> <span class="pre">+</span> <span class="pre">105)</span> <span class="pre">*</span> <span class="pre">(-1.3272</span> <span class="pre">-</span> <span class="pre">1.053e-3</span> <span class="pre">d)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">=</span> <span class="pre">T_C</span> <span class="pre">-</span> <span class="pre">20</span></code>.</p></li>
+</ul>
+<p>Within 0.2 % of IAPWS 2008 (CoolProp <code class="docutils literal notranslate"><span class="pre">Water</span></code>) from 0 to 100 °C; below
+0 °C it continues smoothly into supercooled water (2.15 mPa s at -5 °C).
+<code class="docutils literal notranslate"><span class="pre">T_C</span></code> may be a scalar or an array. The constant <code class="xref py py-data docutils literal notranslate"><span class="pre">mu_w</span></code> is this
+function near 20 °C.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">water_viscosity</span><span class="p">(</span><span class="mf">20.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">water_viscosity</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</span><span data-line="2"><span class="go">(1.002, 1.793)</span>
+</span></pre></div>
+</div>
+</dd></dl>
+
 </section>
 </section>
 

@@ -349,3 +349,84 @@ def test_off_is_the_frost_free_boiler(boilers):
     result = boilers["off"].analyze_steady(T_tank_w=45.0, T0=-7.0, Q_ref_tank=8000.0)
     assert result["cop_sys [-]"] == pytest.approx(2.666745555466922, rel=1e-6)  # before any frost correction
     assert result["defrost_fraction [-]"] == 0.0 and math.isnan(result["RH_out [-]"])
+
+
+# ---------------------------------------------------------------------------
+# through the air-to-air model
+# ---------------------------------------------------------------------------
+
+#: ``AirSourceHeatPump()`` (EnergyPlus form, no load weighting) heating a 20 degC room, on main 91f3fe5
+#: before the load weighting was wired in: (T0, share of the nameplate) -> (cop_sys, E_tot, defrost fraction).
+ASHP_ENERGYPLUS = {
+    (2.0, 1.0): (3.3922343308322094, 1105.1200372307485, 0.09825873459029008),
+    (2.0, 0.5): (3.9336095346190443, 512.6969706263664, 0.09825873459029008),
+    (-7.0, 0.5): (3.5309779171735722, 571.4314173739375, 0.04429631693979417),
+    (-15.0, 1.0): (2.4874513619548884, 1523.6402988952505, 0.01847577393553896),
+}
+
+
+@pytest.fixture(scope="module")
+def heat_pumps():
+    from tmhp import AirSourceHeatPump
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return {
+            "off": AirSourceHeatPump(defrost=False),
+            "energyplus": AirSourceHeatPump(defrost=ENERGYPLUS),
+            "load": AirSourceHeatPump(defrost=LOAD_WEIGHTED),
+        }
+
+
+def _heat(model, T0: float, share: float) -> dict:
+    return model.analyze_steady(Q_r_iu=-share * model.hp_capacity, T0=T0, T_a_room=20.0, verbose=False)
+
+
+@pytest.mark.parametrize("point", list(ASHP_ENERGYPLUS))
+def test_air_to_air_without_load_weighting_is_what_it_was(heat_pumps, point):
+    result = _heat(heat_pumps["energyplus"], *point)
+    for key, expected in zip(("cop_sys [-]", "E_tot [W]", "defrost_fraction [-]"), ASHP_ENERGYPLUS[point], strict=True):
+        assert result[key] == pytest.approx(expected, rel=1e-6), key
+
+
+def test_air_to_air_at_the_reference_capacity_is_energyplus(heat_pumps):
+    """The nameplate at -7 and -15 degC is more than the correlation's unit has there: a load ratio of one."""
+    for T0 in (-7.0, -15.0):
+        a, b = _heat(heat_pumps["load"], T0, 1.0), _heat(heat_pumps["energyplus"], T0, 1.0)
+        assert all(a[k] == b[k] or (a[k] != a[k] and b[k] != b[k]) for k in b), T0
+        # ... and so is 0.6 of it at -15 degC, the capacity of the correlation's unit.
+    a, b = _heat(heat_pumps["load"], -15.0, 0.6), _heat(heat_pumps["energyplus"], -15.0, 0.6)
+    assert a["cop_sys [-]"] == b["cop_sys [-]"]
+    # The capacity ceiling is the rated-load state under either model.
+    for T0 in (2.0, -15.0):
+        assert heat_pumps["load"].max_capacity(T0, mode="heating", T_a_room=20.0) == heat_pumps[
+            "energyplus"
+        ].max_capacity(T0, mode="heating", T_a_room=20.0)
+
+
+def test_air_to_air_part_load_frosts_less(heat_pumps):
+    weighted, full_load_form, frost_free = (_heat(heat_pumps[k], 2.0, 0.5) for k in ("load", "energyplus", "off"))
+    assert abs(weighted["Q_ref_iu [W]"]) == pytest.approx(2000.0, rel=1e-9)
+    assert weighted["defrost_fraction [-]"] < 0.6 * full_load_form["defrost_fraction [-]"]
+    assert full_load_form["cop_sys [-]"] < weighted["cop_sys [-]"] < frost_free["cop_sys [-]"]
+    ratio = DefrostModel.load_ratio(weighted["Q_ref_iu_frost_free [W]"], 4000.0, 2.0)
+    assert weighted["frost_capacity_factor [-]"] == pytest.approx(
+        LOAD_WEIGHTED.frost_state(2.0, load_ratio=ratio).capacity_multiplier, rel=1e-9
+    )
+    # Cooling is not touched.
+    cooling = [m.analyze_steady(Q_r_iu=2000.0, T0=35.0, T_a_room=27.0, verbose=False) for m in heat_pumps.values()]
+    assert cooling[0]["cop_sys [-]"] == cooling[1]["cop_sys [-]"] == cooling[2]["cop_sys [-]"]
+
+
+def test_air_to_air_small_request_frosts_as_the_machine_on_the_speed_floor(heat_pumps):
+    """2 % of the nameplate at 0 degC: the unit cycles at its minimum capacity, and that machine frosts."""
+    weighted, frost_free = _heat(heat_pumps["load"], 0.0, 0.02), _heat(heat_pumps["off"], 0.0, 0.02)
+    assert weighted["capacity_clamped"] == "min" and abs(weighted["Q_ref_iu [W]"]) == pytest.approx(80.0, rel=1e-9)
+    alone = LOAD_WEIGHTED.frost_state_at_duty(0.0, None, 80.0, 4000.0)
+    assert alone.capacity_multiplier > 0.999  # by its own ratio: (as good as) no frost
+    running = LOAD_WEIGHTED.frost_state(0.0, load_ratio=DefrostModel.load_ratio(weighted["Q_min [W]"], 4000.0, 0.0))
+    assert running.defrost_fraction > 0.01
+    # (Q_min moves a little between the solves of the frost balance.)
+    assert weighted["defrost_fraction [-]"] == pytest.approx(running.defrost_fraction, rel=2e-2)
+    assert weighted["frost_capacity_factor [-]"] == pytest.approx(running.capacity_multiplier, rel=2e-3)
+    assert weighted["cop_sys [-]"] < frost_free["cop_sys [-]"]

@@ -387,6 +387,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.EquivalentCylinderBorehole.C_p">C_p (tmhp.borehole_capacity.EquivalentCylinderBorehole attribute)</a>
 </li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.C_tank">C_tank (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.cop.calc_ASHP_cooling_COP">calc_ASHP_cooling_COP() (in module tmhp.cop)</a>
 
       <ul>
@@ -683,8 +685,6 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/demand-weather.html#tmhp.dhw.dhw_service_columns">dhw_service_columns() (in module tmhp.dhw)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/demand-weather.html#tmhp.dhw.DHW_SETPOINT_TOL_K">DHW_SETPOINT_TOL_K (in module tmhp.dhw)</a>
 </li>
       <li><a href="api/support/demand-weather.html#tmhp.dhw.DHW_UNMET_KEY">DHW_UNMET_KEY (in module tmhp.dhw)</a>
@@ -717,25 +717,91 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/integrations.html#tmhp.integrations.TmhpAshpbSlave.do_step">(tmhp.integrations.TmhpAshpbSlave method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dP_fan_rated">dP_fan_rated (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.dP_iu_fan_design">dP_iu_fan_design (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
+</li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.dP_iu_fan_rated">dP_iu_fan_rated (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.dP_iu_fan_rated">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.dP_ou_fan_rated">dP_ou_fan_rated (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+</li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.dt">dt (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dt">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.dT_approach_bounds">dT_approach_bounds (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 </li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.dt_hours">dt_hours (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.dT_hx_min">dT_hx_min (tmhp.reference_state.ReferenceStateMixin attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.dT_hx_min">dT_hx_min (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_hx_min">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.dT_hx_min">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dT_hx_min">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.dT_hx_min">(tmhp.reference_state.ReferenceStateMixin attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.dt_s">dt_s (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dt_s">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.dT_stc_off">dT_stc_off (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.dT_stc_on">dT_stc_on (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.dT_subcool">dT_subcool (tmhp.reference_state.ReferenceStateMixin attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.dT_subcool">dT_subcool (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_subcool">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.dT_superheat">dT_superheat (tmhp.reference_state.ReferenceStateMixin attribute)</a>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.dT_subcool">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
 </li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.dT_subcool">(tmhp.reference_state.ReferenceStateMixin attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.dT_superheat">dT_superheat (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_superheat">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.dT_superheat">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.dT_superheat">(tmhp.reference_state.ReferenceStateMixin attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.duty_reduction_binding">duty_reduction_binding() (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.dV_b_f_m3s">dV_b_f_m3s (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
 </li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.dV_f">dV_f (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_sup_w_in">dV_mix_sup_w_in (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out">dV_mix_w_out (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out_max">dV_mix_w_out_max (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.dV_stc_w">dV_stc_w (tmhp.subsystems.SolarThermalCollector attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in">dV_tank_w_in (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in_refill">dV_tank_w_in_refill (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_out">dV_tank_w_out (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.FieldGroundResponse.dynamic_gfunction">dynamic_gfunction() (tmhp.borefield.FieldGroundResponse method)</a>
 </li>
@@ -753,8 +819,22 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.E_cmp_ref">E_cmp_ref (tmhp.reference_state.ReferenceState attribute)</a>
 </li>
-      <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.E_pmp">E_pmp (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.E_fan_rated">E_fan_rated (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.E_iu_fan_rated">E_iu_fan_rated (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.E_iu_fan_rated">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.E_ou_fan_rated">E_ou_fan_rated (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+</li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.E_pmp">E_pmp (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.E_pmp">(tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.E_stc_pump">E_stc_pump (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.effective_resistance">effective_resistance() (tmhp.borehole.BoreholePipe method)</a>
@@ -787,33 +867,61 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.envelope_violation">envelope_violation() (in module tmhp.compressor_envelope)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.epsilon">epsilon (tmhp.borehole.BoreholePipe attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.cop.EquationFitRangeError">EquationFitRangeError</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.EquivalentCylinderBorehole">EquivalentCylinderBorehole (class in tmhp.borehole_capacity)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.eta0_stc">eta0_stc (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.eta_cmp">eta_cmp (tmhp.reference_state.ReferenceState attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.eta_cmp">eta_cmp (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.eta_cmp_isen">eta_cmp_isen (tmhp.reference_state.ReferenceState attribute)</a>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.eta_cmp">(tmhp.reference_state.ReferenceState attribute)</a>
 </li>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.eta_cmp_vol">eta_cmp_vol (tmhp.reference_state.ReferenceState attribute)</a>
+      </ul></li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.eta_cmp_isen">eta_cmp_isen (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_isen">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.eta_cmp_isen">(tmhp.reference_state.ReferenceState attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.eta_cmp_vol">eta_cmp_vol (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_vol">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.eta_cmp_vol">(tmhp.reference_state.ReferenceState attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem.eta_ctrl">eta_ctrl (tmhp.subsystems.PhotovoltaicSystem attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.eta_ess_chg">eta_ess_chg (tmhp.subsystems.EnergyStorageSystem attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.eta_ess_dis">eta_ess_dis (tmhp.subsystems.EnergyStorageSystem attribute)</a>
 </li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_fan_rated">eta_fan_rated (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN">ETA_ISEN_BELOW_MIN (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.ETA_ISEN_MIN">ETA_ISEN_MIN (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.eta_iu_fan_design">eta_iu_fan_design (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
+</li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.eta_iu_fan_rated">eta_iu_fan_rated (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.eta_iu_fan_rated">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.eta_ou_fan_rated">eta_ou_fan_rated (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem.eta_pv">eta_pv (tmhp.subsystems.PhotovoltaicSystem attribute)</a>
 </li>
@@ -842,6 +950,16 @@ data-aria-dark="Switch to auto color mode">
 </li>
       </ul></li>
       <li><a href="api/support/utilities.html#tmhp.calc_util.F2C">F2C() (in module tmhp.calc_util)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.fan_params">fan_params (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.fan_params_iu">fan_params_iu (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.fan_params_iu">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.fan_params_ou">fan_params_ou (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.CapacityStepResponse.far_outflow">far_outflow (tmhp.borehole_capacity.CapacityStepResponse attribute)</a>
 </li>
@@ -875,12 +993,12 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.CapacityStepResponse.fluid_no_capacity">fluid_no_capacity (tmhp.borehole_capacity.CapacityStepResponse attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler.fluid_referenced">fluid_referenced (tmhp.ground_coupling.AggregateGFunctionCoupler property)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.fluid_to_fluid_resistance">fluid_to_fluid_resistance() (tmhp.borehole.BoreholePipe method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.fluid_to_pipe_resistance">fluid_to_pipe_resistance() (in module tmhp.borehole_capacity)</a>
 
       <ul>
@@ -1019,14 +1137,22 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp._online_convolution.OnlineHistory.history">history() (tmhp._online_convolution.OnlineHistory method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.hp_capacity">hp_capacity (tmhp.reference_state.ReferenceState attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.hp_capacity">hp_capacity (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 
       <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_capacity">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.hp_capacity">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.hp_capacity">(tmhp.reference_state.ReferenceState attribute)</a>
+</li>
         <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.hp_capacity">(tmhp.reference_state.ReferenceStateMixin attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_on_schedule">hp_on_schedule (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
       <li><a href="api/support/simulation.html#tmhp.defrost.humidity_ratio">humidity_ratio() (in module tmhp.defrost)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.defrost.FrostState.humidity_ratio_difference">humidity_ratio_difference (tmhp.defrost.FrostState attribute)</a>
@@ -1207,6 +1333,18 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/simulation.html#tmhp.cycling.MIN_CAPACITY_KEY">MIN_CAPACITY_KEY (in module tmhp.cycling)</a>
 </li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_off_time_s">min_off_time_s (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.min_off_time_s">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_on_time_s">min_on_time_s (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.min_on_time_s">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/subsystems.html#tmhp.stratified_tank.mix_inversions">mix_inversions() (in module tmhp.stratified_tank)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RatingCondition.mode">mode (tmhp.reference_state.RatingCondition attribute)</a>
@@ -1342,18 +1480,26 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.DynamicGFunction.n_builds">n_builds (tmhp.borehole_capacity.DynamicGFunction property)</a>
 </li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.n_iu">n_iu (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+</li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.n_ou">n_ou (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.n_ou">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.n_pipes">n_pipes (tmhp.borehole.BoreholePipe property)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.name">name (tmhp.source_fluid.SourceFluid attribute)</a>
 </li>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.NARROW_FAN_FLOW_RATIO">NARROW_FAN_FLOW_RATIO (in module tmhp.air_source_heat_pump)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/simulation.html#tmhp.defrost.NO_FROST">NO_FROST (in module tmhp.defrost)</a>
 </li>
       <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.NODAL_DRAW_TOL_K">NODAL_DRAW_TOL_K (in module tmhp.ground_source_heat_pump_boiler)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.NODAL_HOLD_INTERVALS">NODAL_HOLD_INTERVALS (in module tmhp.ground_source_heat_pump_boiler)</a>
 </li>
       <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.NODAL_MIN_RUN_SHARE">NODAL_MIN_RUN_SHARE (in module tmhp.ground_source_heat_pump_boiler)</a>
@@ -1460,16 +1606,36 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/simulation.html#tmhp.cycling.CyclingDegradation.power_fraction">power_fraction() (tmhp.cycling.CyclingDegradation method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/simulation.html#tmhp.defrost.FrostState.power_multiplier">power_multiplier (tmhp.defrost.FrostState attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.PR_ABOVE_MAX">PR_ABOVE_MAX (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.PR_BELOW_MIN">PR_BELOW_MIN (in module tmhp.compressor_envelope)</a>
 </li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.PR_cycle_max">PR_cycle_max (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_max">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.PR_cycle_max">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.PR_cycle_max">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.PR_CYCLE_MAX_SINGLE_STAGE">PR_CYCLE_MAX_SINGLE_STAGE (in module tmhp.compressor_envelope)</a>
 </li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.PR_cycle_min">PR_cycle_min (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_min">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.PR_cycle_min">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.PR_cycle_min">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.precompute_borehole_resistance">precompute_borehole_resistance() (in module tmhp.borehole)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.precompute_borehole_resistance_from_flow">precompute_borehole_resistance_from_flow() (in module tmhp.borehole)</a>
@@ -1483,6 +1649,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.preheat_start_hour">preheat_start_hour (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.pressure_ratio">pressure_ratio (tmhp.reference_state.ReferenceState attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.prevent_simultaneous_flow">prevent_simultaneous_flow (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.hybrid_tank.HybridStratifiedTank.preview">preview() (tmhp.hybrid_tank.HybridStratifiedTank method)</a>
 
@@ -1508,6 +1676,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.refrigerant.props_si">props_si() (in module tmhp.refrigerant)</a>
 </li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.pv">pv (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem.pv_azimuth">pv_azimuth (tmhp.subsystems.PhotovoltaicSystem attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem.pv_tilt">pv_tilt (tmhp.subsystems.PhotovoltaicSystem attribute)</a>
@@ -1520,19 +1690,27 @@ data-aria-dark="Switch to auto color mode">
 <h2 id="Q">Q</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.Q_bhe">Q_bhe (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_bhe">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.q_bhe_rated">q_bhe_rated (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.Q_cond">Q_cond (tmhp.reference_state.ReferenceState attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.Q_evap">Q_evap (tmhp.reference_state.ReferenceState attribute)</a>
 </li>
-      <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.Q_r_iu">Q_r_iu (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.Q_r_iu">Q_r_iu (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
+</li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.Q_rated_cooling">Q_rated_cooling (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.Q_rated_heating">Q_rated_heating (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
+</li>
+      <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_tank_LOAD_OFF_TOL">Q_tank_LOAD_OFF_TOL (tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.enex_functions.quadratic_function">quadratic_function() (in module tmhp.enex_functions)</a>
 </li>
@@ -1544,6 +1722,8 @@ data-aria-dark="Switch to auto color mode">
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.R_a">R_a (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreField.r_b">r_b (tmhp.borefield.BoreField attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.FieldGroundResponse.R_b">R_b (tmhp.borefield.FieldGroundResponse attribute)</a>
@@ -1554,6 +1734,8 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.r_b">(tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
       </ul></li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.R_b_local">R_b_local (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.EquivalentCylinderBorehole.r_eq">r_eq (tmhp.borehole_capacity.EquivalentCylinderBorehole attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.r_in">r_in (tmhp.borehole.BoreholePipe attribute)</a>
@@ -1588,6 +1770,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RatingCondition">RatingCondition (class in tmhp.reference_state)</a>
 </li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.Re_bhe_ref">Re_bhe_ref (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
       <li><a href="api/support/simulation.html#tmhp.operating_limits.Limit.reason">reason (tmhp.operating_limits.Limit attribute)</a>
 
       <ul>
@@ -1598,8 +1782,16 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.reduce_duty_within_envelope">reduce_duty_within_envelope() (in module tmhp.compressor_envelope)</a>
 </li>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.ref">ref (tmhp.reference_state.ReferenceStateMixin attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.ref">ref (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.ref">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.ref">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.ref">(tmhp.reference_state.ReferenceStateMixin attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/simulation.html#tmhp.defrost.DefrostModel.reference_capacity">reference_capacity() (tmhp.defrost.DefrostModel static method)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.REFERENCE_CAPACITY_INCONSISTENT">REFERENCE_CAPACITY_INCONSISTENT (in module tmhp.reference_state)</a>
@@ -1680,16 +1872,36 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.EquivalentCylinderBorehole.rhoc_s">rhoc_s (tmhp.borehole_capacity.EquivalentCylinderBorehole attribute)</a>
 </li>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.rps_max">rps_max (tmhp.reference_state.ReferenceStateMixin attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.rps_max">rps_max (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_max">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.rps_max">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.rps_max">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.rps_max">(tmhp.reference_state.ReferenceStateMixin attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.RPS_MAX_ABSOLUTE">RPS_MAX_ABSOLUTE (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED">RPS_MAX_MIN_PER_RATED (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.RPS_MAX_PER_RATED">RPS_MAX_PER_RATED (in module tmhp.compressor_envelope)</a>
 </li>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.rps_min">rps_min (tmhp.reference_state.ReferenceStateMixin attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.rps_min">rps_min (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_min">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.rps_min">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.rps_min">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.rps_min">(tmhp.reference_state.ReferenceStateMixin attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.rps_rated">rps_rated (tmhp.reference_state.ReferenceState attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.rps_rated_solved">rps_rated_solved (tmhp.reference_state.ReferenceState attribute)</a>
@@ -1746,6 +1958,12 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RatingCondition.source">source (tmhp.reference_state.RatingCondition attribute)</a>
 </li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.source_fluid">source_fluid (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.source_fluid">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SOURCE_FLUID_FREEZING">SOURCE_FLUID_FREEZING (in module tmhp.source_fluid)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SOURCE_FLUID_PRESETS">SOURCE_FLUID_PRESETS (in module tmhp.source_fluid)</a>
@@ -1769,6 +1987,8 @@ data-aria-dark="Switch to auto color mode">
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/simulation.html#tmhp.cycling.CyclingDegradation.state">state() (tmhp.cycling.CyclingDegradation method)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.stc">stc (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.stc_azimuth">stc_azimuth (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
@@ -1836,20 +2056,80 @@ data-aria-dark="Switch to auto color mode">
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/subsystems.html#tmhp.hybrid_tank.HybridStratifiedTank.T">T (tmhp.hybrid_tank.HybridStratifiedTank attribute)</a>
+
+      <ul>
+        <li><a href="api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank.T">(tmhp.stratified_tank.StratifiedTank attribute)</a>
+</li>
+      </ul></li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.T0">T0 (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
-      <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.T_a_room">T_a_room (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.T_a_room">T_a_room (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.T_a_room">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
 </li>
+        <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.T_a_room">(tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
+</li>
+      </ul></li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.T_A_ROOM_DEFAULT">T_A_ROOM_DEFAULT (in module tmhp.gshp_empirical)</a>
 </li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.T_bhe">T_bhe (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.T_bhe_f">T_bhe_f (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.T_bhe_f_in">T_bhe_f_in (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.T_bhe_f_in_K">T_bhe_f_in_K (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.T_bhe_f_out">T_bhe_f_out (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f_out">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.T_bhe_f_out_K">T_bhe_f_out_K (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f_out_K">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/subsystems.html#tmhp.stratified_tank.T_BOIL_ATM_C">T_BOIL_ATM_C (in module tmhp.stratified_tank)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.defrost.FrostState.T_coil_C">T_coil_C (tmhp.defrost.FrostState attribute)</a>
 </li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.T_cond_max">T_cond_max (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_cond_max">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.T_cond_max">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_cond_max">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.T_cond_sat_C">T_cond_sat_C (tmhp.reference_state.ReferenceState attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem.T_ctrl_K">T_ctrl_K (tmhp.subsystems.PhotovoltaicSystem attribute)</a>
 </li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.T_dis_max">T_dis_max (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_dis_max">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.T_dis_max">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_dis_max">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.T_ess_K">T_ess_K (tmhp.subsystems.EnergyStorageSystem attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.T_evap_sat_C">T_evap_sat_C (tmhp.reference_state.ReferenceState attribute)</a>
@@ -1863,6 +2143,10 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.DynamicGFunction.T_JOIN">T_JOIN (tmhp.borehole_capacity.DynamicGFunction attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.T_min_C">T_min_C (tmhp.source_fluid.SourceFluid attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out">T_mix_w_out (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out_K">T_mix_w_out_K (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.defrost.DefrostModel.T_out_max">T_out_max (tmhp.defrost.DefrostModel attribute)</a>
 </li>
@@ -1880,8 +2164,36 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.T_stc_tank_max">T_stc_tank_max (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w">T_sup_w (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w_K">T_sup_w_K (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sur_K">T_sur_K (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in">T_tank_w_in (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in_K">T_tank_w_in_K (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_lower_bound">T_tank_w_lower_bound (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_upper_bound">T_tank_w_upper_bound (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_always_full">tank_always_full (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_lower_bound">tank_level_lower_bound (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_upper_bound">tank_level_upper_bound (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_physical">tank_physical (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
       <li><a href="api/support/subsystems.html#tmhp.stratified_tank.TankOverheatWarning">TankOverheatWarning</a>
 </li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.time">time (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.time">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.CapacityStepResponse.times">times (tmhp.borehole_capacity.CapacityStepResponse attribute)</a>
 </li>
       <li>
@@ -1989,6 +2301,8 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/simulation.html#module-tmhp.cycling">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     tmhp.defrost
 
@@ -2052,8 +2366,6 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/heat-transfer.html#module-tmhp.ground_superposition">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     tmhp.gshp_empirical
 
@@ -2284,6 +2596,10 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.heat_transfer.TRIDIAG_MATRIX_ALGORITHM">TRIDIAG_MATRIX_ALGORITHM() (in module tmhp.heat_transfer)</a>
 </li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.Ts">Ts (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.Ts_K">Ts_K (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -2293,6 +2609,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreField.u_shape">u_shape() (tmhp.borefield.BoreField class method)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.HXSide.UA">UA (tmhp.reference_state.HXSide attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.UA_tank_wall">UA_tank_wall (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreField.uniform_depth">uniform_depth (tmhp.borefield.BoreField property)</a>
 </li>
@@ -2314,10 +2632,22 @@ data-aria-dark="Switch to auto color mode">
 <h2 id="V">V</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.V_cmp_ref">V_cmp_ref (tmhp.reference_state.ReferenceState attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.V_cmp_ref">V_cmp_ref (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 
       <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_cmp_ref">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.V_cmp_ref">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.V_cmp_ref">(tmhp.reference_state.ReferenceState attribute)</a>
+</li>
         <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.V_cmp_ref">(tmhp.reference_state.ReferenceStateMixin attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_tank_full">V_tank_full (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.V_tank_full">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -2325,6 +2655,16 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.viscosity">viscosity() (tmhp.source_fluid.SourceFluid method)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.HXSide.volume_flow">volume_flow (tmhp.reference_state.HXSide attribute)</a>
+</li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.vsd_coeffs">vsd_coeffs (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.vsd_coeffs_iu">vsd_coeffs_iu (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.vsd_coeffs_iu">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.vsd_coeffs_ou">vsd_coeffs_ou (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -2384,10 +2724,20 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.x_air_stc">x_air_stc (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.x_ins_stc">x_ins_stc (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.x_suction_min">x_suction_min (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.x_suction_min">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.x_suction_min">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.x_suction_min">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT">X_SUCTION_MIN_DEFAULT (in module tmhp.compressor_envelope)</a>
 </li>
   </ul></td>
@@ -2431,8 +2781,8 @@ data-aria-dark="Switch to auto color mode">
   </div>
 </footer>
       <script src="_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -2442,7 +2792,6 @@ data-aria-dark="Switch to auto color mode">
       <script src="_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="_static/shibuya.js?v=cac61aee"></script>
-      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
       <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
 

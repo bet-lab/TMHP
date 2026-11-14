@@ -344,8 +344,7 @@ guards, and COP correlations.</p>
 <dt class="sig sig-object py" id="tmhp.refrigerant.calc_ref_state">
 <span class="sig-prename descclassname"><span class="pre">tmhp.refrigerant.</span></span><span class="sig-name descname"><span class="pre">calc_ref_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_evap_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_cond_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_suction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/refrigerant.html#calc_ref_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.refrigerant.calc_ref_state" title="Link to this definition">¶</a></dt>
 <dd><p>Compute the four thermodynamic state points of the refrigerant cycle.</p>
-<p>The vapour-compression cycle has four canonical state points:
-:rtype: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
+<p>The vapour-compression cycle has four canonical state points:</p>
 <ul class="simple">
 <li><p>State 1 (<code class="docutils literal notranslate"><span class="pre">cmp_in</span></code>):  compressor inlet  — low-pressure superheated vapour
 at the evaporator outlet.</p></li>
@@ -376,55 +375,58 @@ which chooses <code class="docutils literal notranslate"><span class="pre">T_eva
 this function.</p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">param T_evap_K<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type T_evap_K<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+<dt class="field-odd">type T_evap_K<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
-<dt class="field-odd">param T_cond_K<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type T_cond_K<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+<dt class="field-even">param T_evap_K<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">type T_cond_K<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
-<dt class="field-odd">param refrigerant<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type refrigerant<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+<dt class="field-even">param T_cond_K<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">type refrigerant<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
 </dd>
-<dt class="field-odd">param eta_cmp_isen<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type eta_cmp_isen<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></span></p>
+<dt class="field-even">param refrigerant<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">type eta_cmp_isen<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></span></p>
 </dd>
-<dt class="field-odd">param mode<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type mode<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+<dt class="field-even">param eta_cmp_isen<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">type mode<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
 </dd>
-<dt class="field-odd">param dT_superheat<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type dT_superheat<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+<dt class="field-even">param mode<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">type dT_superheat<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
-<dt class="field-odd">param dT_subcool<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type dT_subcool<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+<dt class="field-even">param dT_superheat<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">type dT_subcool<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
-<dt class="field-odd">param is_active<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type is_active<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+<dt class="field-even">param dT_subcool<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">type is_active<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
 </dd>
-<dt class="field-odd">param rps<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type rps<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+<dt class="field-even">param is_active<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">type rps<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
-<dt class="field-odd">param x_suction<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">type x_suction<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+<dt class="field-even">param rps<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">type x_suction<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+<dt class="field-even">param x_suction<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">rtype<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
 </dd>
 </dl>
 </section>
@@ -441,7 +443,7 @@ the heat transferred by the refrigerant cycle.</p>
 <dd class="field-odd"><p>Tuple of constraint functions (constraint_tank, constraint_hx).</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>tuple[Any, Any]</p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -454,12 +456,12 @@ the heat transferred by the refrigerant cycle.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>simulator_func</strong> (<em>callable</em>) – Function that takes <cite>[dT_ref_HX, dT_ref_tank]</cite> and returns a perf dict.</p></li>
-<li><p><strong>refrigerant</strong> (<em>str</em>) – Refrigerant name.</p></li>
-<li><p><strong>load_W</strong> (<em>float</em>) – Target heat load [W].</p></li>
-<li><p><strong>initial_guess</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Initial guess for <cite>[dT_evap, dT_cond]</cite>.</p></li>
-<li><p><strong>bounds</strong> (<em>list</em><em>[</em><em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em>) – Bounds for <cite>[dT_evap, dT_cond]</cite>.</p></li>
-<li><p><strong>constraint_funcs</strong> (<em>list</em><em>[</em><em>callable</em><em>]</em><em>, </em><em>optional</em>) – List of constraint functions. Each takes <cite>perf</cite> and returns a value
+<li><p><strong>simulator_func</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Function that takes <cite>[dT_ref_HX, dT_ref_tank]</cite> and returns a perf dict.</p></li>
+<li><p><strong>refrigerant</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Refrigerant name.</p></li>
+<li><p><strong>load_W</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Target heat load [W].</p></li>
+<li><p><strong>initial_guess</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Initial guess for <cite>[dT_evap, dT_cond]</cite>.</p></li>
+<li><p><strong>bounds</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Bounds for <cite>[dT_evap, dT_cond]</cite>.</p></li>
+<li><p><strong>constraint_funcs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – List of constraint functions. Each takes <cite>perf</cite> and returns a value
 that should be 0.</p></li>
 </ul>
 </dd>
@@ -467,7 +469,7 @@ that should be 0.</p></li>
 <dd class="field-even"><p>Optimal performance dictionary, or None if optimization fails.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict[str, Any] | None</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -557,12 +559,12 @@ given refrigerant using CoolProp (vectorized via unique T0 values).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame containing pre-computed enthalpy <code class="docutils literal notranslate"><span class="pre">h_ref_*</span> <span class="pre">[J/kg]</span></code>,
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – DataFrame containing pre-computed enthalpy <code class="docutils literal notranslate"><span class="pre">h_ref_*</span> <span class="pre">[J/kg]</span></code>,
 entropy <code class="docutils literal notranslate"><span class="pre">s_ref_*</span> <span class="pre">[J/(kg·K)]</span></code>, and mass-flow
 <code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">[kg/s]</span></code> columns.</p></li>
-<li><p><strong>ref</strong> (<em>str</em>) – CoolProp refrigerant identifier (e.g. <code class="docutils literal notranslate"><span class="pre">'R410A'</span></code>).</p></li>
-<li><p><strong>T0_K</strong> (<em>pd.Series</em>) – Dead-state (environment) temperature per row [K].</p></li>
-<li><p><strong>P0</strong> (<em>float</em>) – Dead-state pressure [Pa] (default <code class="docutils literal notranslate"><span class="pre">101325</span></code>).</p></li>
+<li><p><strong>ref</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – CoolProp refrigerant identifier (e.g. <code class="docutils literal notranslate"><span class="pre">'R410A'</span></code>).</p></li>
+<li><p><strong>T0_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code></span>) – Dead-state (environment) temperature per row [K].</p></li>
+<li><p><strong>P0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead-state pressure [Pa] (default <code class="docutils literal notranslate"><span class="pre">101325</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -570,7 +572,7 @@ entropy <code class="docutils literal notranslate"><span class="pre">s_ref_*</sp
 <code class="docutils literal notranslate"><span class="pre">x_ref_{name}</span> <span class="pre">[J/kg]</span></code>, <code class="docutils literal notranslate"><span class="pre">X_ref_{name}</span> <span class="pre">[W]</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -591,13 +593,13 @@ electricity-consumption columns.</p>
 <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> and creates corresponding <code class="docutils literal notranslate"><span class="pre">X_xxx</span> <span class="pre">[W]</span></code> columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame with <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> columns.</p>
+<dd class="field-odd"><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – DataFrame with <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> columns.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">df</span></code> with <code class="docutils literal notranslate"><span class="pre">X_xxx</span> <span class="pre">[W]</span></code> columns added.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -609,20 +611,20 @@ electricity-consumption columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>fluid</strong> (<em>str</em>) – Fluid name.</p></li>
-<li><p><strong>T</strong> (<em>float</em>) – Temperature [K].</p></li>
-<li><p><strong>P</strong> (<em>float</em>) – Pressure [Pa].</p></li>
-<li><p><strong>Q</strong> (<em>float</em>) – Quality (0 to 1).</p></li>
-<li><p><strong>T0</strong> (<em>float</em>) – Dead state temperature [K].</p></li>
-<li><p><strong>P0</strong> (<em>float</em>) – Dead state pressure [Pa].</p></li>
-<li><p><strong>phase</strong> (<em>Literal</em><em>[</em><em>'gas'</em><em>, </em><em>'liquid'</em><em>, </em><em>'twophase'</em><em>]</em><em>, </em><em>optional</em>) – Fluid phase. Default is ‘gas’.</p></li>
+<li><p><strong>fluid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Fluid name.</p></li>
+<li><p><strong>T</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Temperature [K].</p></li>
+<li><p><strong>P</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pressure [Pa].</p></li>
+<li><p><strong>Q</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Quality (0 to 1).</p></li>
+<li><p><strong>T0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead state temperature [K].</p></li>
+<li><p><strong>P0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead state pressure [Pa].</p></li>
+<li><p><strong>phase</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'gas'</span></code>, <code class="docutils literal notranslate"><span class="pre">'liquid'</span></code>, <code class="docutils literal notranslate"><span class="pre">'twophase'</span></code>]</span>) – Fluid phase. Default is ‘gas’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Entropy [J/kg-K], Enthalpy [J/kg], Exergy [J/kg].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple[float, float, float]</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -692,7 +694,7 @@ electricity-consumption columns.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.cop.GSHP_EQFIT_DOMAIN">
-<span class="sig-prename descclassname"><span class="pre">tmhp.cop.</span></span><span class="sig-name descname"><span class="pre">GSHP_EQFIT_DOMAIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'cooling':</span> <span class="pre">{'w':</span> <span class="pre">(1.0,</span> <span class="pre">1.04905),</span> <span class="pre">'x':</span> <span class="pre">(1.0,</span> <span class="pre">1.13734),</span> <span class="pre">'y':</span> <span class="pre">(0.75,</span> <span class="pre">1.25),</span> <span class="pre">'z':</span> <span class="pre">(0.5,</span> <span class="pre">1.0)},</span> <span class="pre">'heating':</span> <span class="pre">{'w':</span> <span class="pre">(1.0,</span> <span class="pre">1.05886),</span> <span class="pre">'x':</span> <span class="pre">(0.96076,</span> <span class="pre">1.07848),</span> <span class="pre">'y':</span> <span class="pre">(0.75,</span> <span class="pre">1.25),</span> <span class="pre">'z':</span> <span class="pre">(0.5,</span> <span class="pre">1.0)}}</span></em><a class="headerlink" href="#tmhp.cop.GSHP_EQFIT_DOMAIN" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.cop.</span></span><span class="sig-name descname"><span class="pre">GSHP_EQFIT_DOMAIN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'cooling':</span> <span class="pre">{'w':</span> <span class="pre">(1.0,</span> <span class="pre">1.04905),</span> <span class="pre">'x':</span> <span class="pre">(1.0,</span> <span class="pre">1.13734),</span> <span class="pre">'y':</span> <span class="pre">(0.75,</span> <span class="pre">1.25),</span> <span class="pre">'z':</span> <span class="pre">(0.5,</span> <span class="pre">1.0)},</span> <span class="pre">'heating':</span> <span class="pre">{'w':</span> <span class="pre">(1.0,</span> <span class="pre">1.05886),</span> <span class="pre">'x':</span> <span class="pre">(0.96076,</span> <span class="pre">1.07848),</span> <span class="pre">'y':</span> <span class="pre">(0.75,</span> <span class="pre">1.25),</span> <span class="pre">'z':</span> <span class="pre">(0.5,</span> <span class="pre">1.0)}}</span></span><a class="headerlink" href="#tmhp.cop.GSHP_EQFIT_DOMAIN" title="Link to this definition">¶</a></dt>
 <dd><p>Fitted domain of each curve variable, copied from the IDF <code class="docutils literal notranslate"><span class="pre">Minimum/Maximum</span>
 <span class="pre">Value</span> <span class="pre">of</span> <span class="pre">w,</span> <span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">z</span></code> fields (dimensionless, ×283 K for temperatures).
 In °C: cooling entering wet-bulb 9.85–23.73, cooling EWT 9.85–48.72;
@@ -701,7 +703,7 @@ heating entering dry-bulb 9.85–26.51, heating EWT −1.25–32.06.</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="tmhp.cop.EquationFitRangeError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.cop.</span></span><span class="sig-name descname"><span class="pre">EquationFitRangeError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cop.html#EquationFitRangeError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cop.EquationFitRangeError" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.cop.</span></span><span class="sig-name descname"><span class="pre">EquationFitRangeError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cop.html#EquationFitRangeError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cop.EquationFitRangeError" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></p>
 <p>An EquationFit curve was asked to evaluate outside its fitted domain.</p>
 <dl class="field-list simple">
@@ -1020,7 +1022,7 @@ limit (85 of 85 running points of the 2026-11-13 sweep, at 191–348 degC).</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.PR_BELOW_MIN">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_BELOW_MIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_below_min'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.PR_BELOW_MIN" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_BELOW_MIN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_below_min'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.PR_BELOW_MIN" title="Link to this definition">¶</a></dt>
 <dd><p>pressure ratio is below <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> (floor -&gt; clamp).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1031,7 +1033,7 @@ limit (85 of 85 running points of the 2026-11-13 sweep, at 191–348 degC).</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.PR_ABOVE_MAX">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_ABOVE_MAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_above_max'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.PR_ABOVE_MAX" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_ABOVE_MAX</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_above_max'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.PR_ABOVE_MAX" title="Link to this definition">¶</a></dt>
 <dd><p>pressure ratio is above <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> (ceiling -&gt; reject).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1042,7 +1044,7 @@ limit (85 of 85 running points of the 2026-11-13 sweep, at 191–348 degC).</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.PR_CYCLE_MAX_SINGLE_STAGE">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_CYCLE_MAX_SINGLE_STAGE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">11.0</span></em><a class="headerlink" href="#tmhp.compressor_envelope.PR_CYCLE_MAX_SINGLE_STAGE" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_CYCLE_MAX_SINGLE_STAGE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">11.0</span></span><a class="headerlink" href="#tmhp.compressor_envelope.PR_CYCLE_MAX_SINGLE_STAGE" title="Link to this definition">¶</a></dt>
 <dd><p>the single-stage scroll hardware limit.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1053,7 +1055,7 @@ limit (85 of 85 running points of the 2026-11-13 sweep, at 191–348 degC).</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TEMP_ABOVE_MAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'discharge_temp_above_max'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TEMP_ABOVE_MAX</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'discharge_temp_above_max'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX" title="Link to this definition">¶</a></dt>
 <dd><p>even the smallest duty tried exceeds <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1064,19 +1066,19 @@ limit (85 of 85 running points of the 2026-11-13 sweep, at 191–348 degC).</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TEMP_MAX_C</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'R32':</span> <span class="pre">150.0}</span></em><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TEMP_MAX_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'R32':</span> <span class="pre">150.0}</span></span><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C" title="Link to this definition">¶</a></dt>
 <dd><p>Default discharge-temperature limit by refrigerant [degC]; see the module docstring.</p>
 </dd></dl>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_DEFAULT_C">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TEMP_MAX_DEFAULT_C</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">135.0</span></em><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_DEFAULT_C" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TEMP_MAX_DEFAULT_C</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">135.0</span></span><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_DEFAULT_C" title="Link to this definition">¶</a></dt>
 <dd><p>Default for every refrigerant not in <a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C" title="tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_MAX_C</span></code></a> [degC].</p>
 </dd></dl>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.DISCHARGE_TOL_K">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TOL_K</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></em><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TOL_K" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TOL_K</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></span><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TOL_K" title="Link to this definition">¶</a></dt>
 <dd><p>Tolerance of every discharge-temperature comparison [K]. The control solves
 T_dis = T_dis_max by root finding, so the check that follows has to accept
 the root’s own residual (1e-5 K for the predicted closure, ~1e-3 K for the
@@ -1085,7 +1087,7 @@ bracketing fallback); 0.01 K is far below any meaning the limit has.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.CONDENSING_TEMP_ABOVE_MAX">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONDENSING_TEMP_ABOVE_MAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'condensing_temp_above_max'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.CONDENSING_TEMP_ABOVE_MAX" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONDENSING_TEMP_ABOVE_MAX</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'condensing_temp_above_max'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.CONDENSING_TEMP_ABOVE_MAX" title="Link to this definition">¶</a></dt>
 <dd><p>even the smallest duty tried condenses above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1096,7 +1098,7 @@ bracketing fallback); 0.01 K is far below any meaning the limit has.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.CONDENSING_TEMP_MAX_C">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONDENSING_TEMP_MAX_C</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'IsoButane':</span> <span class="pre">100.0,</span> <span class="pre">'R1234yf':</span> <span class="pre">75.0,</span> <span class="pre">'R1234ze(E)':</span> <span class="pre">90.0,</span> <span class="pre">'R134a':</span> <span class="pre">80.0,</span> <span class="pre">'R290':</span> <span class="pre">75.0,</span> <span class="pre">'R32':</span> <span class="pre">65.0,</span> <span class="pre">'R407C':</span> <span class="pre">65.0,</span> <span class="pre">'R410A':</span> <span class="pre">65.0,</span> <span class="pre">'R600a':</span> <span class="pre">100.0,</span> <span class="pre">'R717':</span> <span class="pre">70.0}</span></em><a class="headerlink" href="#tmhp.compressor_envelope.CONDENSING_TEMP_MAX_C" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONDENSING_TEMP_MAX_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'IsoButane':</span> <span class="pre">100.0,</span> <span class="pre">'R1234yf':</span> <span class="pre">75.0,</span> <span class="pre">'R1234ze(E)':</span> <span class="pre">90.0,</span> <span class="pre">'R134a':</span> <span class="pre">80.0,</span> <span class="pre">'R290':</span> <span class="pre">75.0,</span> <span class="pre">'R32':</span> <span class="pre">65.0,</span> <span class="pre">'R407C':</span> <span class="pre">65.0,</span> <span class="pre">'R410A':</span> <span class="pre">65.0,</span> <span class="pre">'R600a':</span> <span class="pre">100.0,</span> <span class="pre">'R717':</span> <span class="pre">70.0}</span></span><a class="headerlink" href="#tmhp.compressor_envelope.CONDENSING_TEMP_MAX_C" title="Link to this definition">¶</a></dt>
 <dd><p>Default maximum condensing temperature by refrigerant [degC] (saturation
 temperature of the highest condensing pressure; dew point for a blend).
 Sources in the module docstring.</p>
@@ -1104,7 +1106,7 @@ Sources in the module docstring.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.CONDENSING_PRESSURE_MAX_REDUCED">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONDENSING_PRESSURE_MAX_REDUCED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></em><a class="headerlink" href="#tmhp.compressor_envelope.CONDENSING_PRESSURE_MAX_REDUCED" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONDENSING_PRESSURE_MAX_REDUCED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></span><a class="headerlink" href="#tmhp.compressor_envelope.CONDENSING_PRESSURE_MAX_REDUCED" title="Link to this definition">¶</a></dt>
 <dd><p>No default condensing pressure exceeds this fraction of the critical
 pressure; it alone is the default of a refrigerant not in
 <a class="reference internal" href="#tmhp.compressor_envelope.CONDENSING_TEMP_MAX_C" title="tmhp.compressor_envelope.CONDENSING_TEMP_MAX_C"><code class="xref py py-data docutils literal notranslate"><span class="pre">CONDENSING_TEMP_MAX_C</span></code></a>.</p>
@@ -1112,7 +1114,7 @@ pressure; it alone is the default of a refrigerant not in
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.CONDENSING_TOL_K">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONDENSING_TOL_K</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></em><a class="headerlink" href="#tmhp.compressor_envelope.CONDENSING_TOL_K" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONDENSING_TOL_K</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></span><a class="headerlink" href="#tmhp.compressor_envelope.CONDENSING_TOL_K" title="Link to this definition">¶</a></dt>
 <dd><p>Tolerance of every condensing-temperature comparison [K]. The duty
 reduction solves <code class="docutils literal notranslate"><span class="pre">T_cond</span> <span class="pre">=</span> <span class="pre">T_cond_max</span></code> for the duty, so the check that
 follows has to accept that root’s residual (round-off for a tank whose
@@ -1122,7 +1124,7 @@ limit has, and it keeps the verdict the same on every platform.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.ENVELOPE_REJECTIONS">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ENVELOPE_REJECTIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({'condensing_temp_above_max',</span> <span class="pre">'discharge_temp_above_max',</span> <span class="pre">'eta_isen_below_min'})</span></em><a class="headerlink" href="#tmhp.compressor_envelope.ENVELOPE_REJECTIONS" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ENVELOPE_REJECTIONS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({'condensing_temp_above_max',</span> <span class="pre">'discharge_temp_above_max',</span> <span class="pre">'eta_isen_below_min'})</span></span><a class="headerlink" href="#tmhp.compressor_envelope.ENVELOPE_REJECTIONS" title="Link to this definition">¶</a></dt>
 <dd><p>Reasons with which the envelope rejects a candidate of the space-conditioning
 searches (<code class="docutils literal notranslate"><span class="pre">_last_pr_event[0]</span></code>); they are reported as the <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>.</p>
 </dd></dl>
@@ -1295,7 +1297,7 @@ time takes past it.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_DISCHARGE">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_DISCHARGE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'discharge_temperature'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_DISCHARGE" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_DISCHARGE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'discharge_temperature'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_DISCHARGE" title="Link to this definition">¶</a></dt>
 <dd><p>the duty was reduced to stay within <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1306,7 +1308,7 @@ time takes past it.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_CONDENSING">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_CONDENSING</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'condensing_temperature'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_CONDENSING" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_CONDENSING</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'condensing_temperature'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_CONDENSING" title="Link to this definition">¶</a></dt>
 <dd><p>the duty was reduced to stay within <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1317,7 +1319,7 @@ time takes past it.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_PRESSURE_RATIO">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_PRESSURE_RATIO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pressure_ratio'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_PRESSURE_RATIO" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_PRESSURE_RATIO</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pressure_ratio'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_PRESSURE_RATIO" title="Link to this definition">¶</a></dt>
 <dd><p>the duty was reduced to stay within <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1328,7 +1330,7 @@ time takes past it.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_HEAT_EXCHANGER">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_HEAT_EXCHANGER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'source_heat_exchanger'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_HEAT_EXCHANGER" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_HEAT_EXCHANGER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'source_heat_exchanger'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_HEAT_EXCHANGER" title="Link to this definition">¶</a></dt>
 <dd><p>the duty was reduced to what the source heat exchanger
 carries within its flow range (ASHPB reports <code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code>).</p>
 <dl class="field-list simple">
@@ -1340,7 +1342,7 @@ carries within its flow range (ASHPB reports <code class="docutils literal notra
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_EFFICIENCY">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_EFFICIENCY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'compressor_efficiency'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_EFFICIENCY" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_EFFICIENCY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'compressor_efficiency'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_EFFICIENCY" title="Link to this definition">¶</a></dt>
 <dd><p>the duty was reduced to keep the shipped isentropic fit above <a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1351,7 +1353,7 @@ carries within its flow range (ASHPB reports <code class="docutils literal notra
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_CYCLE">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_CYCLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'cycle'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_CYCLE" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_CYCLE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'cycle'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_CYCLE" title="Link to this definition">¶</a></dt>
 <dd><p>the next larger duty has no valid cycle, for a reason none of the above names.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1362,7 +1364,7 @@ carries within its flow range (ASHPB reports <code class="docutils literal notra
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.CYCLE_KEY">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CYCLE_KEY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'_cycle'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.CYCLE_KEY" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CYCLE_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'_cycle'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.CYCLE_KEY" title="Link to this definition">¶</a></dt>
 <dd><p>Key under which a candidate whose heat exchanger did not close keeps its solved cycle.</p>
 </dd></dl>
 
@@ -1377,7 +1379,7 @@ outdoor coil).</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
-<li><p><strong>bindings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p></li>
+<li><p><strong>bindings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1456,7 +1458,7 @@ switches the check off.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ETA_ISEN_BELOW_MIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'eta_isen_below_min'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ETA_ISEN_BELOW_MIN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'eta_isen_below_min'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN" title="Link to this definition">¶</a></dt>
 <dd><p>the default isentropic-efficiency fit, extrapolated, is below <a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1467,7 +1469,7 @@ switches the check off.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.ETA_ISEN_MIN">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ETA_ISEN_MIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.3</span></em><a class="headerlink" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ETA_ISEN_MIN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.3</span></span><a class="headerlink" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="Link to this definition">¶</a></dt>
 <dd><p>Lowest isentropic efficiency of the default fit accepted outside its data [-].</p>
 <p>Inside the convex hull of its 3899 data points the default scroll fit never
 goes below 0.336 (at PR 7.13, 38.6 rev/s), and its lowest value over the
@@ -1542,7 +1544,7 @@ rank candidates outside the envelope among themselves.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.RPS_MAX_PER_RATED">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RPS_MAX_PER_RATED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#tmhp.compressor_envelope.RPS_MAX_PER_RATED" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RPS_MAX_PER_RATED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></span><a class="headerlink" href="#tmhp.compressor_envelope.RPS_MAX_PER_RATED" title="Link to this definition">¶</a></dt>
 <dd><p>this multiple of the rated speed …</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1553,19 +1555,19 @@ rank candidates outside the envelope among themselves.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.RPS_MAX_ABSOLUTE">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RPS_MAX_ABSOLUTE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">120.0</span></em><a class="headerlink" href="#tmhp.compressor_envelope.RPS_MAX_ABSOLUTE" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RPS_MAX_ABSOLUTE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">120.0</span></span><a class="headerlink" href="#tmhp.compressor_envelope.RPS_MAX_ABSOLUTE" title="Link to this definition">¶</a></dt>
 <dd><p>… but no more than this [rev/s] (7200 rpm, the top of variable-speed scroll and rotary ranges) …</p>
 </dd></dl>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RPS_MAX_MIN_PER_RATED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.5</span></em><a class="headerlink" href="#tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RPS_MAX_MIN_PER_RATED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.5</span></span><a class="headerlink" href="#tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED" title="Link to this definition">¶</a></dt>
 <dd><p>… and never less than this multiple of the rated speed (catalogue maximum / rated capacity &lt;= 1.52).</p>
 </dd></dl>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.RATED_SPEED_SEARCH_MAX">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RATED_SPEED_SEARCH_MAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">150.0</span></em><a class="headerlink" href="#tmhp.compressor_envelope.RATED_SPEED_SEARCH_MAX" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RATED_SPEED_SEARCH_MAX</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">150.0</span></span><a class="headerlink" href="#tmhp.compressor_envelope.RATED_SPEED_SEARCH_MAX" title="Link to this definition">¶</a></dt>
 <dd><p>Upper speed bound for <em>solving</em> the rated speed when <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> is not given [rev/s].</p>
 </dd></dl>
 
@@ -1635,9 +1637,9 @@ silently. <code class="docutils literal notranslate"><span class="pre">bindings<
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>duty_arg</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>duty_arg</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
-<li><p><strong>bindings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p></li>
+<li><p><strong>bindings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1681,7 +1683,7 @@ tried is refused by the limit.</p>
 <li><p><strong>solve</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
 <li><p><strong>request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
-<li><p><strong>bindings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p></li>
+<li><p><strong>bindings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1726,7 +1728,7 @@ found is reused for every smaller request at the same condition.</p>
 <li><p><strong>solve</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
 <li><p><strong>request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
-<li><p><strong>condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>]</span>)</p></li>
+<li><p><strong>condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1772,7 +1774,7 @@ the ones that share the search.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">X_SUCTION_MIN_DEFAULT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></em><a class="headerlink" href="#tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">X_SUCTION_MIN_DEFAULT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></span><a class="headerlink" href="#tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT" title="Link to this definition">¶</a></dt>
 <dd><p>Default lowest suction vapour quality the discharge-temperature control may use.</p>
 <p>Two-phase suction (wet compression) is one of the methods experimentally used
 to hold the discharge temperature of R32 scroll compressors (Wang et al.,
@@ -1891,7 +1893,7 @@ limit and is not imposed on the rating point; its pressure ratio is reported.</p
 </section>
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.reference_state.REFERENCE_CAPACITY_INCONSISTENT">
-<span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">REFERENCE_CAPACITY_INCONSISTENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'reference_capacity_inconsistent'</span></em><a class="headerlink" href="#tmhp.reference_state.REFERENCE_CAPACITY_INCONSISTENT" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">REFERENCE_CAPACITY_INCONSISTENT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'reference_capacity_inconsistent'</span></span><a class="headerlink" href="#tmhp.reference_state.REFERENCE_CAPACITY_INCONSISTENT" title="Link to this definition">¶</a></dt>
 <dd><p>the rated capacity is not reachable inside the speed
 envelope (or by the subcritical cycle / rated HX) at the rating condition.</p>
 <dl class="field-list simple">
@@ -1903,7 +1905,7 @@ envelope (or by the subcritical cycle / rated HX) at the rating condition.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">ReferenceStateMixin</span></span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#ReferenceStateMixin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">ReferenceStateMixin</span></span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#ReferenceStateMixin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Shared reference-state initialization for compressor-based models.</p>
 <p>A model sets <code class="docutils literal notranslate"><span class="pre">_RATING_FAMILY</span></code> / <code class="docutils literal notranslate"><span class="pre">_RATING_DEFAULT_MODE</span></code>, implements
@@ -1913,42 +1915,42 @@ limits are known – and before anything that needs <code class="docutils litera
 (variable ground-HX UA) is configured.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin.ref">
-<span class="sig-name descname"><span class="pre">ref</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.ref" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">ref</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.ref" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin.V_cmp_ref">
-<span class="sig-name descname"><span class="pre">V_cmp_ref</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.V_cmp_ref" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">V_cmp_ref</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.V_cmp_ref" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin.hp_capacity">
-<span class="sig-name descname"><span class="pre">hp_capacity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.hp_capacity" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">hp_capacity</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.hp_capacity" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin.dT_superheat">
-<span class="sig-name descname"><span class="pre">dT_superheat</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.dT_superheat" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">dT_superheat</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.dT_superheat" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin.dT_subcool">
-<span class="sig-name descname"><span class="pre">dT_subcool</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.dT_subcool" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">dT_subcool</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.dT_subcool" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin.dT_hx_min">
-<span class="sig-name descname"><span class="pre">dT_hx_min</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.dT_hx_min" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">dT_hx_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.dT_hx_min" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin.rps_min">
-<span class="sig-name descname"><span class="pre">rps_min</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.rps_min" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">rps_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.rps_min" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin.rps_max">
-<span class="sig-name descname"><span class="pre">rps_max</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.rps_max" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">rps_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.rps_max" title="Link to this definition">¶</a></dt>
 <dd><p>The rated-speed search bound until <code class="xref py py-meth docutils literal notranslate"><span class="pre">_initialize_reference_state()</span></code>
 replaces it with <code class="docutils literal notranslate"><span class="pre">default_rps_max(rps_rated)</span></code> (when <code class="docutils literal notranslate"><span class="pre">_rps_max_derived</span></code>).</p>
 </dd></dl>
@@ -1957,7 +1959,7 @@ replaces it with <code class="docutils literal notranslate"><span class="pre">de
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.reference_state.RATING_STANDARDS">
-<span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">RATING_STANDARDS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RatingStandard</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'ASHP':</span> <span class="pre">{'cooling':</span> <span class="pre">RatingStandard(source_T_C=35.0,</span> <span class="pre">load_T_C=27.0,</span> <span class="pre">standard='ISO</span> <span class="pre">5151:2017</span> <span class="pre">T1</span> <span class="pre">cooling</span> <span class="pre">(outdoor</span> <span class="pre">35</span> <span class="pre">°C</span> <span class="pre">DB,</span> <span class="pre">indoor</span> <span class="pre">27</span> <span class="pre">°C</span> <span class="pre">DB)'),</span> <span class="pre">'heating':</span> <span class="pre">RatingStandard(source_T_C=7.0,</span> <span class="pre">load_T_C=20.0,</span> <span class="pre">standard='ISO</span> <span class="pre">5151:2017</span> <span class="pre">H1</span> <span class="pre">heating</span> <span class="pre">(outdoor</span> <span class="pre">7</span> <span class="pre">°C</span> <span class="pre">DB,</span> <span class="pre">indoor</span> <span class="pre">20</span> <span class="pre">°C</span> <span class="pre">DB)')},</span> <span class="pre">'ASHPB':</span> <span class="pre">{'heating':</span> <span class="pre">RatingStandard(source_T_C=7.0,</span> <span class="pre">load_T_C=55.0,</span> <span class="pre">standard='EN</span> <span class="pre">14511-2:2022</span> <span class="pre">A7/W55</span> <span class="pre">(outdoor</span> <span class="pre">air</span> <span class="pre">7</span> <span class="pre">°C</span> <span class="pre">DB,</span> <span class="pre">water</span> <span class="pre">outlet</span> <span class="pre">55</span> <span class="pre">°C)')},</span> <span class="pre">'GSHP':</span> <span class="pre">{'cooling':</span> <span class="pre">RatingStandard(source_T_C=25.0,</span> <span class="pre">load_T_C=27.0,</span> <span class="pre">standard='ISO</span> <span class="pre">13256-1:2021</span> <span class="pre">ground-loop</span> <span class="pre">cooling</span> <span class="pre">(liquid</span> <span class="pre">entering</span> <span class="pre">25</span> <span class="pre">°C,</span> <span class="pre">indoor</span> <span class="pre">27</span> <span class="pre">°C</span> <span class="pre">DB)'),</span> <span class="pre">'heating':</span> <span class="pre">RatingStandard(source_T_C=0.0,</span> <span class="pre">load_T_C=20.0,</span> <span class="pre">standard='ISO</span> <span class="pre">13256-1:2021</span> <span class="pre">ground-loop</span> <span class="pre">heating</span> <span class="pre">(liquid</span> <span class="pre">entering</span> <span class="pre">0</span> <span class="pre">°C,</span> <span class="pre">indoor</span> <span class="pre">20</span> <span class="pre">°C</span> <span class="pre">DB)')},</span> <span class="pre">'GSHPB':</span> <span class="pre">{'heating':</span> <span class="pre">RatingStandard(source_T_C=0.0,</span> <span class="pre">load_T_C=55.0,</span> <span class="pre">standard='EN</span> <span class="pre">14511-2:2022</span> <span class="pre">B0/W55</span> <span class="pre">(brine</span> <span class="pre">inlet</span> <span class="pre">0</span> <span class="pre">°C,</span> <span class="pre">water</span> <span class="pre">outlet</span> <span class="pre">55</span> <span class="pre">°C)')},</span> <span class="pre">'WSHPB':</span> <span class="pre">{'heating':</span> <span class="pre">RatingStandard(source_T_C=10.0,</span> <span class="pre">load_T_C=55.0,</span> <span class="pre">standard='EN</span> <span class="pre">14511-2:2022</span> <span class="pre">W10/W55</span> <span class="pre">(water</span> <span class="pre">inlet</span> <span class="pre">10</span> <span class="pre">°C,</span> <span class="pre">water</span> <span class="pre">outlet</span> <span class="pre">55</span> <span class="pre">°C)')}}</span></em><a class="headerlink" href="#tmhp.reference_state.RATING_STANDARDS" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">RATING_STANDARDS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RatingStandard</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'ASHP':</span> <span class="pre">{'cooling':</span> <span class="pre">RatingStandard(source_T_C=35.0,</span> <span class="pre">load_T_C=27.0,</span> <span class="pre">standard='ISO</span> <span class="pre">5151:2017</span> <span class="pre">T1</span> <span class="pre">cooling</span> <span class="pre">(outdoor</span> <span class="pre">35</span> <span class="pre">°C</span> <span class="pre">DB,</span> <span class="pre">indoor</span> <span class="pre">27</span> <span class="pre">°C</span> <span class="pre">DB)'),</span> <span class="pre">'heating':</span> <span class="pre">RatingStandard(source_T_C=7.0,</span> <span class="pre">load_T_C=20.0,</span> <span class="pre">standard='ISO</span> <span class="pre">5151:2017</span> <span class="pre">H1</span> <span class="pre">heating</span> <span class="pre">(outdoor</span> <span class="pre">7</span> <span class="pre">°C</span> <span class="pre">DB,</span> <span class="pre">indoor</span> <span class="pre">20</span> <span class="pre">°C</span> <span class="pre">DB)')},</span> <span class="pre">'ASHPB':</span> <span class="pre">{'heating':</span> <span class="pre">RatingStandard(source_T_C=7.0,</span> <span class="pre">load_T_C=55.0,</span> <span class="pre">standard='EN</span> <span class="pre">14511-2:2022</span> <span class="pre">A7/W55</span> <span class="pre">(outdoor</span> <span class="pre">air</span> <span class="pre">7</span> <span class="pre">°C</span> <span class="pre">DB,</span> <span class="pre">water</span> <span class="pre">outlet</span> <span class="pre">55</span> <span class="pre">°C)')},</span> <span class="pre">'GSHP':</span> <span class="pre">{'cooling':</span> <span class="pre">RatingStandard(source_T_C=25.0,</span> <span class="pre">load_T_C=27.0,</span> <span class="pre">standard='ISO</span> <span class="pre">13256-1:2021</span> <span class="pre">ground-loop</span> <span class="pre">cooling</span> <span class="pre">(liquid</span> <span class="pre">entering</span> <span class="pre">25</span> <span class="pre">°C,</span> <span class="pre">indoor</span> <span class="pre">27</span> <span class="pre">°C</span> <span class="pre">DB)'),</span> <span class="pre">'heating':</span> <span class="pre">RatingStandard(source_T_C=0.0,</span> <span class="pre">load_T_C=20.0,</span> <span class="pre">standard='ISO</span> <span class="pre">13256-1:2021</span> <span class="pre">ground-loop</span> <span class="pre">heating</span> <span class="pre">(liquid</span> <span class="pre">entering</span> <span class="pre">0</span> <span class="pre">°C,</span> <span class="pre">indoor</span> <span class="pre">20</span> <span class="pre">°C</span> <span class="pre">DB)')},</span> <span class="pre">'GSHPB':</span> <span class="pre">{'heating':</span> <span class="pre">RatingStandard(source_T_C=0.0,</span> <span class="pre">load_T_C=55.0,</span> <span class="pre">standard='EN</span> <span class="pre">14511-2:2022</span> <span class="pre">B0/W55</span> <span class="pre">(brine</span> <span class="pre">inlet</span> <span class="pre">0</span> <span class="pre">°C,</span> <span class="pre">water</span> <span class="pre">outlet</span> <span class="pre">55</span> <span class="pre">°C)')},</span> <span class="pre">'WSHPB':</span> <span class="pre">{'heating':</span> <span class="pre">RatingStandard(source_T_C=10.0,</span> <span class="pre">load_T_C=55.0,</span> <span class="pre">standard='EN</span> <span class="pre">14511-2:2022</span> <span class="pre">W10/W55</span> <span class="pre">(water</span> <span class="pre">inlet</span> <span class="pre">10</span> <span class="pre">°C,</span> <span class="pre">water</span> <span class="pre">outlet</span> <span class="pre">55</span> <span class="pre">°C)')}}</span></span><a class="headerlink" href="#tmhp.reference_state.RATING_STANDARDS" title="Link to this definition">¶</a></dt>
 <dd><p>Standard rating points per model family and mode.</p>
 <p><code class="docutils literal notranslate"><span class="pre">source_T_C</span></code> / <code class="docutils literal notranslate"><span class="pre">load_T_C</span></code> are the secondary-fluid inlet temperatures.
 TMHP’s air coils are dry (sensible only), so wet-bulb conditions of the
@@ -1968,7 +1970,7 @@ temperature, the conservative end of the condenser water range.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">HXSide</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_cp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#HXSide"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.HXSide" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">HXSide</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_cp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#HXSide"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.HXSide" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Secondary side of one refrigerant heat exchanger at the rating point.</p>
 <p><code class="docutils literal notranslate"><span class="pre">fluid</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;air&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;water&quot;</span></code> for a single-phase stream crossing a
@@ -1989,39 +1991,39 @@ glycol holds 8 % less heat per litre than water.)</p>
 <li><p><strong>fluid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'air'</span></code>, <code class="docutils literal notranslate"><span class="pre">'water'</span></code>, <code class="docutils literal notranslate"><span class="pre">'tank'</span></code>]</span>)</p></li>
 <li><p><strong>T_in_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>UA</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
-<li><p><strong>volume_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
-<li><p><strong>rho_cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>volume_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>rho_cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide.fluid">
-<span class="sig-name descname"><span class="pre">fluid</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code><span class="pre">[</span><code class="docutils literal notranslate"><span class="pre">'air'</span></code><span class="pre">,</span> <code class="docutils literal notranslate"><span class="pre">'water'</span></code><span class="pre">,</span> <code class="docutils literal notranslate"><span class="pre">'tank'</span></code><span class="pre">]</span></em><a class="headerlink" href="#tmhp.reference_state.HXSide.fluid" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fluid</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'air'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'water'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'tank'</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#tmhp.reference_state.HXSide.fluid" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide.T_in_C">
-<span class="sig-name descname"><span class="pre">T_in_C</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.HXSide.T_in_C" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">T_in_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.HXSide.T_in_C" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide.UA">
-<span class="sig-name descname"><span class="pre">UA</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.HXSide.UA" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">UA</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.HXSide.UA" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide.volume_flow">
-<span class="sig-name descname"><span class="pre">volume_flow</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#tmhp.reference_state.HXSide.volume_flow" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">volume_flow</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.reference_state.HXSide.volume_flow" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide.rho_cp">
-<span class="sig-name descname"><span class="pre">rho_cp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#tmhp.reference_state.HXSide.rho_cp" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">rho_cp</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.reference_state.HXSide.rho_cp" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="tmhp.reference_state.HXSide.conductance">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conductance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#tmhp.reference_state.HXSide.conductance" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">conductance</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.HXSide.conductance" title="Link to this definition">¶</a></dt>
 <dd><p>Duty per kelvin of approach, <code class="docutils literal notranslate"><span class="pre">eps</span> <span class="pre">C</span></code> (or <code class="docutils literal notranslate"><span class="pre">UA</span></code> for a tank) [W/K].</p>
 </dd></dl>
 
@@ -2034,8 +2036,8 @@ glycol holds 8 % less heat per litre than water.)</p>
 <li><p><strong>fluid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'air'</span></code>, <code class="docutils literal notranslate"><span class="pre">'water'</span></code>, <code class="docutils literal notranslate"><span class="pre">'tank'</span></code>]</span>)</p></li>
 <li><p><strong>T_in_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>UA</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
-<li><p><strong>volume_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
-<li><p><strong>rho_cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>volume_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>rho_cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -2045,7 +2047,7 @@ glycol holds 8 % less heat per litre than water.)</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.reference_state.RatingCondition">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">RatingCondition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">standard</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#RatingCondition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.RatingCondition" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">RatingCondition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">standard</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#RatingCondition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.RatingCondition" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Rating point: mode, both secondary sides and the standard it follows.</p>
 <dl class="field-list simple">
@@ -2060,22 +2062,22 @@ glycol holds 8 % less heat per litre than water.)</p>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.RatingCondition.mode">
-<span class="sig-name descname"><span class="pre">mode</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code><span class="pre">[</span><code class="docutils literal notranslate"><span class="pre">'heating'</span></code><span class="pre">,</span> <code class="docutils literal notranslate"><span class="pre">'cooling'</span></code><span class="pre">]</span></em><a class="headerlink" href="#tmhp.reference_state.RatingCondition.mode" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mode</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'heating'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'cooling'</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#tmhp.reference_state.RatingCondition.mode" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.RatingCondition.source">
-<span class="sig-name descname"><span class="pre">source</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#tmhp.reference_state.HXSide" title="tmhp.reference_state.HXSide"><code class="xref py py-class docutils literal notranslate"><span class="pre">HXSide</span></code></a></em><a class="headerlink" href="#tmhp.reference_state.RatingCondition.source" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#tmhp.reference_state.HXSide" title="tmhp.reference_state.HXSide"><span class="pre">HXSide</span></a></span><a class="headerlink" href="#tmhp.reference_state.RatingCondition.source" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.RatingCondition.load">
-<span class="sig-name descname"><span class="pre">load</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#tmhp.reference_state.HXSide" title="tmhp.reference_state.HXSide"><code class="xref py py-class docutils literal notranslate"><span class="pre">HXSide</span></code></a></em><a class="headerlink" href="#tmhp.reference_state.RatingCondition.load" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">load</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#tmhp.reference_state.HXSide" title="tmhp.reference_state.HXSide"><span class="pre">HXSide</span></a></span><a class="headerlink" href="#tmhp.reference_state.RatingCondition.load" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.RatingCondition.standard">
-<span class="sig-name descname"><span class="pre">standard</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#tmhp.reference_state.RatingCondition.standard" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">standard</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#tmhp.reference_state.RatingCondition.standard" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -2097,7 +2099,7 @@ glycol holds 8 % less heat per litre than water.)</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">ReferenceState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rps_rated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot_ref_rated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_cmp_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_evap_sat_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_cond_sat_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_cond</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_evap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_cmp_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_cmp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_rated_solved</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#ReferenceState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.ReferenceState" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">ReferenceState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rps_rated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot_ref_rated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_cmp_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_evap_sat_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_cond_sat_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_cond</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_evap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_cmp_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_cmp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_rated_solved</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#ReferenceState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.ReferenceState" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Self-consistent compressor reference state.</p>
 <dl class="field-list simple">
@@ -2124,87 +2126,87 @@ glycol holds 8 % less heat per litre than water.)</p>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.rps_rated">
-<span class="sig-name descname"><span class="pre">rps_rated</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.rps_rated" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">rps_rated</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.rps_rated" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.m_dot_ref_rated">
-<span class="sig-name descname"><span class="pre">m_dot_ref_rated</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.m_dot_ref_rated" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">m_dot_ref_rated</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.m_dot_ref_rated" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.condition">
-<span class="sig-name descname"><span class="pre">condition</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#tmhp.reference_state.RatingCondition" title="tmhp.reference_state.RatingCondition"><code class="xref py py-class docutils literal notranslate"><span class="pre">RatingCondition</span></code></a></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.condition" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">condition</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#tmhp.reference_state.RatingCondition" title="tmhp.reference_state.RatingCondition"><span class="pre">RatingCondition</span></a></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.condition" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.hp_capacity">
-<span class="sig-name descname"><span class="pre">hp_capacity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.hp_capacity" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">hp_capacity</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.hp_capacity" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.V_cmp_ref">
-<span class="sig-name descname"><span class="pre">V_cmp_ref</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.V_cmp_ref" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">V_cmp_ref</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.V_cmp_ref" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.T_evap_sat_C">
-<span class="sig-name descname"><span class="pre">T_evap_sat_C</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.T_evap_sat_C" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">T_evap_sat_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.T_evap_sat_C" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.T_cond_sat_C">
-<span class="sig-name descname"><span class="pre">T_cond_sat_C</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.T_cond_sat_C" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">T_cond_sat_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.T_cond_sat_C" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.pressure_ratio">
-<span class="sig-name descname"><span class="pre">pressure_ratio</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.pressure_ratio" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">pressure_ratio</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.pressure_ratio" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.Q_cond">
-<span class="sig-name descname"><span class="pre">Q_cond</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.Q_cond" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">Q_cond</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.Q_cond" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.Q_evap">
-<span class="sig-name descname"><span class="pre">Q_evap</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.Q_evap" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">Q_evap</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.Q_evap" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.E_cmp_ref">
-<span class="sig-name descname"><span class="pre">E_cmp_ref</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.E_cmp_ref" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">E_cmp_ref</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.E_cmp_ref" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.E_cmp">
-<span class="sig-name descname"><span class="pre">E_cmp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.E_cmp" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">E_cmp</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.E_cmp" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.eta_cmp_isen">
-<span class="sig-name descname"><span class="pre">eta_cmp_isen</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.eta_cmp_isen" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">eta_cmp_isen</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.eta_cmp_isen" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.eta_cmp_vol">
-<span class="sig-name descname"><span class="pre">eta_cmp_vol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.eta_cmp_vol" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">eta_cmp_vol</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.eta_cmp_vol" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.eta_cmp">
-<span class="sig-name descname"><span class="pre">eta_cmp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.eta_cmp" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">eta_cmp</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.eta_cmp" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.rps_rated_solved">
-<span class="sig-name descname"><span class="pre">rps_rated_solved</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.rps_rated_solved" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">rps_rated_solved</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.rps_rated_solved" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceState.cop">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cop</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#tmhp.reference_state.ReferenceState.cop" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cop</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceState.cop" title="Link to this definition">¶</a></dt>
 <dd><p>Load-side duty over compressor electrical input at the reference state.</p>
 </dd></dl>
 
@@ -2239,7 +2241,7 @@ glycol holds 8 % less heat per litre than water.)</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">ReferenceStateError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#ReferenceStateError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.ReferenceStateError" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">ReferenceStateError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#ReferenceStateError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.ReferenceStateError" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></p>
 <p>Rated capacity cannot be reached at the rating condition.</p>
 <dl class="field-list simple">
@@ -2249,7 +2251,7 @@ glycol holds 8 % less heat per litre than water.)</p>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateError.reason">
-<span class="sig-name descname"><span class="pre">reason</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'reference_capacity_inconsistent'</span></em><a class="headerlink" href="#tmhp.reference_state.ReferenceStateError.reason" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">reason</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'reference_capacity_inconsistent'</span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateError.reason" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -2266,7 +2268,7 @@ glycol holds 8 % less heat per litre than water.)</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.reference_state.rating_condition">
-<span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">rating_condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">family</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overrides</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#rating_condition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.rating_condition" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">rating_condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">family</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overrides</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#rating_condition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.rating_condition" title="Link to this definition">¶</a></dt>
 <dd><p>Resolve a family’s rating condition, applying caller overrides.</p>
 <p><code class="docutils literal notranslate"><span class="pre">source</span></code> / <code class="docutils literal notranslate"><span class="pre">load</span></code> build the model’s own heat-exchanger side for a mode
 and an inlet temperature (rated UA, reference flow). <code class="docutils literal notranslate"><span class="pre">overrides</span></code> is a
@@ -2280,7 +2282,7 @@ the defaults to that mode’s standard point.</p>
 <li><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'heating'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cooling'</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <a class="reference internal" href="#tmhp.reference_state.HXSide" title="tmhp.reference_state.HXSide"><code class="xref py py-class docutils literal notranslate"><span class="pre">HXSide</span></code></a>]</span>)</p></li>
 <li><p><strong>load</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'heating'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cooling'</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <a class="reference internal" href="#tmhp.reference_state.HXSide" title="tmhp.reference_state.HXSide"><code class="xref py py-class docutils literal notranslate"><span class="pre">HXSide</span></code></a>]</span>)</p></li>
 <li><p><strong>default_mode</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'heating'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cooling'</span></code>]</span>)</p></li>
-<li><p><strong>overrides</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>], <a class="reference internal" href="#tmhp.reference_state.RatingCondition" title="tmhp.reference_state.RatingCondition"><code class="xref py py-class docutils literal notranslate"><span class="pre">RatingCondition</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
+<li><p><strong>overrides</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>] | <a class="reference internal" href="#tmhp.reference_state.RatingCondition" title="tmhp.reference_state.RatingCondition"><code class="xref py py-class docutils literal notranslate"><span class="pre">RatingCondition</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -2291,7 +2293,7 @@ the defaults to that mode’s standard point.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.reference_state.solve_reference_state">
-<span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">solve_reference_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_cmp_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_hx_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#solve_reference_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.solve_reference_state" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.reference_state.</span></span><span class="sig-name descname"><span class="pre">solve_reference_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_cmp_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_hx_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/reference_state.html#solve_reference_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.reference_state.solve_reference_state" title="Link to this definition">¶</a></dt>
 <dd><p>Solve the reference state at <code class="docutils literal notranslate"><span class="pre">condition</span></code>.</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">rps_rated=None</span></code> the speed delivering <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> is solved and
 becomes the rated speed. With an explicit <code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> the same state is
@@ -2314,8 +2316,8 @@ process-wide cache, so identical constructions solve once.</p>
 <li><p><strong>dT_hx_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>rps_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>rps_max</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
-<li><p><strong>rps_rated</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
-<li><p><strong>cache_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>]</span>)</p></li>
+<li><p><strong>rps_rated</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>cache_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -2374,8 +2376,8 @@ process-wide cache, so identical constructions solve once.</p>
   </div>
 </footer>
       <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -2385,9 +2387,8 @@ process-wide cache, so identical constructions solve once.</p>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../../_static/shibuya.js?v=cac61aee"></script>
-      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
       <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>

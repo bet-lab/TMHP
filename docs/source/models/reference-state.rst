@@ -129,8 +129,16 @@ Secondary flows are each model's own reference flows (``dV_*_fan_a_ref``,
 ``ground_flow_ref_lpm``, ``dV_b_f_lpm``) and both heat exchangers use their
 rated UA. The ground-loop points of GSHP (heating) and GSHPB are brine points:
 the liquid enters at 0 °C and leaves below it. The reference state is a sizing
-calculation and is solved there whatever ``source_fluid`` is (with the heat
-capacity of water for the source stream). *Running* the model at such a
+calculation and is solved there whatever ``source_fluid`` is, with the density
+and heat capacity of that liquid for the source stream
+(``HXSide(..., rho_cp=fluid.rho * fluid.cp)``) -- the heat capacity rate the
+model's own cycle uses, so the cycle run at the rating point returns the rated
+speed. The rating temperature is that of the liquid *entering the heat pump*;
+the models' steady solves take the liquid as it leaves the ground and add the
+loop pump's heat (0.085 K at the default sizing) on the way in. With the
+default flow, which is sized for a 3 K loop difference of the liquid in the
+loop, a glycol and a water loop have the same heat capacity rate and the same
+rated speed. *Running* the model at such a
 point needs an antifreeze, which the default loop liquid of both models is
 (25 % ethylene glycol); a loop declared as water is refused there
 (:ref:`source-fluid`). A manufacturer or user rating point replaces the

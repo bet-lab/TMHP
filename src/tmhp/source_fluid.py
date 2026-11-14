@@ -62,6 +62,16 @@ the liquid already reaches the heat pump below the limit, or it leaves below
 the limit even at the compressor's lowest speed -- the compressor does not
 run: the off state with ``failure_reason == "source_fluid_freezing"``.
 
+At the lowest speed the running machine cannot take less heat, but a unit
+that switches on and off can run for less of the time. That warms the liquid
+only where the source answers the mean load: a borehole wall in a dynamic
+step of the ground-source heat pump, which is warmer under shorter runs. The
+duty is then lowered further, into the cycling range, to the largest mean
+duty whose running liquid stays on the limit; the row is an on/off mean with
+``capacity_clamped == "max"``. Against a prescribed source or wall
+temperature, and in a model that does not cycle, a smaller duty leaves the
+running liquid as cold as before (one trial shows it) and the unit is off.
+
 Properties
 ----------
 Water keeps the constants of :mod:`tmhp.constants` (1000 kg/m³, 4186 J/(kg K),
@@ -161,6 +171,10 @@ _MIN_FRACTION = 0.1
 #: A reduction also stops once the duty is bracketed this closely, relative to the request.
 _REL_TOL = 0.01
 _MAX_TRIALS = 12
+#: On the compressor's speed floor a smaller duty is worth trying only if it
+#: left the liquid warmer than the last one by more than this [K] (solver
+#: noise is at the 1e-6 K level; the loop difference of a running unit is 3 K).
+_FLOOR_RESPONSE_K = 1e-4
 #: Result keys: the liquid leaving the heat pump (entering the ground) and entering it.
 LEAVING_KEY = "T_bhe_f_in [°C]"
 ENTERING_KEY = "T_bhe_f_out [°C]"
@@ -487,7 +501,11 @@ def limit_duty_to_source_freeze(
     limit refuses bounds the search from below). The largest duty found is
     returned with
     ``capacity_clamped = "max"``, ``capacity_binding = "source_fluid_freezing"``,
-    ``Q_max [W]`` and ``Q_request [W]``. When no duty runs -- the liquid enters
+    ``Q_max [W]`` and ``Q_request [W]``. On the compressor's speed floor
+    (``capacity_clamped == "min"``) the search goes on only while a smaller
+    duty leaves the liquid warmer -- a unit that cycles against a source
+    answering the mean load; two duties on the floor with the same liquid
+    temperature end it. When no duty runs -- the liquid enters
     below the limit while it gives heat up (:data:`DETAIL_INLET`), it leaves
     below the limit at the compressor's lowest speed, or another limit refuses
     every smaller duty -- ``off(detail)`` is returned and a ``RuntimeWarning``
@@ -502,8 +520,13 @@ def limit_duty_to_source_freeze(
     magnitude = abs(float(request))
     leaving, entering = _number(result, LEAVING_KEY), _number(result, ENTERING_KEY)
     refused_at = _coldest(result)
-    # A compressor on its speed floor (also one meeting a smaller request by
-    # switching on and off) has no smaller running state.
+    # A compressor on its speed floor has no smaller running state. A smaller
+    # duty can still help there, in one case: the unit meets it by switching
+    # on and off, and the source answers the mean load (a borehole wall in a
+    # dynamic step), so the liquid of the shorter runs is warmer. Where the
+    # source does not answer -- a prescribed source or wall temperature, or a
+    # model that does not cycle -- the liquid of a smaller duty is the same,
+    # which one trial shows.
     on_speed_floor = result.get("capacity_clamped") == "min"
 
     def refuse(reason_detail: str) -> dict:
@@ -532,8 +555,6 @@ def limit_duty_to_source_freeze(
     # for the better.
     if not (magnitude > 0 and math.isfinite(magnitude)) or (math.isfinite(leaving) and leaving >= entering):
         return refuse(DETAIL_INLET)
-    if on_speed_floor:
-        return refuse(detail)
 
     def quiet(q: float) -> dict:
         with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
@@ -592,12 +613,17 @@ def limit_duty_to_source_freeze(
             if T_row <= limit + _BAND_K or q_hi - q_row <= _REL_TOL * magnitude:
                 break
         else:
-            # No smaller state exists (speed floor), or the liquid arrives
-            # below the limit whatever the duty: nothing to search for.
-            stuck = row.get("capacity_clamped") == "min" or not q_row < q_hi
+            # Nothing to search for when the duty did not come down, when two
+            # duties on the speed floor leave the liquid equally cold (the
+            # same running machine and a source that does not answer the
+            # mean load), or when the liquid arrives below the limit whatever
+            # the duty.
+            floor_row = row.get("capacity_clamped") == "min"
+            stuck = not q_row < q_hi or (floor_row and on_speed_floor and not T_row > T_hi + _FLOOR_RESPONSE_K)
             hopeless = in_row < limit - FREEZE_TOL_K and not in_row > in_hi + 1e-9
             earlier = (q_hi, T_hi)
             q_hi, T_hi, in_hi = q_row, T_row, in_row
+            on_speed_floor = floor_row
             if stuck or hopeless:
                 break
     if best is None:

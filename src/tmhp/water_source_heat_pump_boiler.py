@@ -579,7 +579,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """Source-water evaporator (source) and tank-immersed condenser (load)."""
         if role == "source":
-            return HXSide("water", T_in_C, self.UA_water, self.dV_b_f_m3s)
+            return HXSide("water", T_in_C, self.UA_water, self.dV_b_f_m3s, self.source_fluid.rho * self.source_fluid.cp)
         return HXSide("tank", T_in_C, self.UA_tank_hx)
 
     @discharge_controlled(reject=False)

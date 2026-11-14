@@ -64,7 +64,7 @@ def boilers() -> dict[str, AirSourceHeatPumpBoiler]:
 
 
 def test_the_option_is_checked():
-    assert LOAD_WEIGHTED.load_weighted is True and LOAD_WEIGHTED.frost_loss == "constant"
+    assert LOAD_WEIGHTED.load_weighted is True
     assert ENERGYPLUS.load_weighted is False and DefrostModel(load_weighted=True) == LOAD_WEIGHTED
     with pytest.raises(ValueError, match="load_weighted must be True or False"):
         DefrostModel(load_weighted=1)
@@ -154,7 +154,7 @@ def test_fixed_loss_and_defrost_time_follow_the_frost_drive():
     w_out = humidity_ratio(T_out, 0.84)
     drive = (w_out - saturation_humidity_ratio(part.T_coil_C)) / (w_out - saturation_humidity_ratio(rated.T_coil_C))
     assert 0.3 < drive < 0.5  # half the temperature difference, less than half the drive
-    assert part.frost_loss_weight == pytest.approx(drive, rel=1e-12)
+    assert part.frost_drive_ratio == pytest.approx(drive, rel=1e-12) and rated.frost_drive_ratio == 1.0
     assert part.humidity_ratio_difference == pytest.approx(drive * rated.humidity_ratio_difference, rel=1e-12)
     t_frac = 1.0 / (1.0 + 0.01446 / part.humidity_ratio_difference)
     assert part.defrost_fraction == pytest.approx(t_frac, rel=1e-12)
@@ -431,3 +431,17 @@ def test_air_to_air_small_request_frosts_as_the_machine_on_the_speed_floor(heat_
     assert weighted["defrost_fraction [-]"] == pytest.approx(running.defrost_fraction, rel=2e-2)
     assert weighted["frost_capacity_factor [-]"] == pytest.approx(running.capacity_multiplier, rel=2e-3)
     assert weighted["cop_sys [-]"] < frost_free["cop_sys [-]"]
+
+
+def test_load_weighting_is_the_only_option():
+    """One switch: on (the default) or the EnergyPlus form. No other form of the correction is offered."""
+    import dataclasses
+
+    assert [f.name for f in dataclasses.fields(DefrostModel)] == [
+        "T_out_max",
+        "RH_out",
+        "transition_K",
+        "load_weighted",
+    ]
+    with pytest.raises(TypeError):
+        DefrostModel(frost_loss="moisture")

@@ -88,7 +88,7 @@ def _load() -> tuple[pd.DataFrame, pd.DataFrame]:
     return d, m
 
 
-def _save(fig, name: str, **margins) -> None:
+def _save(fig, name: str, gutter=None, **margins) -> None:
     """Lay out, verify, and write PNG + SVG.
 
     ``mb`` defaults above the uniform margin because the x-label descender
@@ -96,11 +96,11 @@ def _save(fig, name: str, **margins) -> None:
     (``svg.fonttype="none"``): a viewer without Roboto Light substitutes a
     heavier face with a deeper descender, which clips a flush bottom edge.
     """
-    layout_and_write(fig, name, **margins)
+    layout_and_write(fig, name, gutter=gutter, **margins)
     plt.close(fig)
 
 
-def layout_and_write(fig, name: str, **margins) -> None:
+def layout_and_write(fig, name: str, gutter=None, **margins) -> None:
     """The layout half of :func:`_save`, without closing the figure.
 
     ``mcp_replay`` needs the figure alive after it has been laid out and
@@ -111,7 +111,7 @@ def layout_and_write(fig, name: str, **margins) -> None:
     for extra in (0, 2, 4, 6, 8, 12):
         try:
             kw = {k: f"{float(str(v).rstrip('%')) + extra}%" for k, v in margins.items()}
-            finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", **kw)
+            finalize(fig, OUT_DIR / name, formats=("svg", "png"), margin=f"{2 + extra}%", gutter=gutter, **kw)
             return
         except RuntimeError as exc:
             if extra == 12:
@@ -211,7 +211,7 @@ def _axis(
     if title:
         ax.set_title(title, fontsize=dm.fs(-2), loc="left")
     if legend:
-        ax.legend(loc=legend, frameon=False, fontsize=dm.fs(-3.5), ncol=ncol, handlelength=1.6, columnspacing=1.0)
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3), ncol=ncol, handlelength=1.6, columnspacing=1.0)
     _plr_axis(ax, xlabel)
 
 
@@ -368,7 +368,7 @@ def fig4(d, case: str) -> None:
         cf = ax.contourf(N, P, z, levels=14, cmap="viridis", alpha=0.85)
         cb = fig.colorbar(cf, ax=ax, pad=0.03, fraction=0.05)
         cb.set_ticks(_span_ticks(float(z.min()), float(z.max()), 5))
-        cb.ax.tick_params(labelsize=dm.fs(-4))
+        cb.ax.tick_params(labelsize=dm.fs(-3))
         cb.outline.set_linewidth(HAIRLINE)
         # outside the compressor-map fitting domain the laws extrapolate
         for lo, hi, vertical in (
@@ -441,16 +441,10 @@ def fig4(d, case: str) -> None:
             zorder=6,
             bbox={"facecolor": "white", "alpha": 0.8, "edgecolor": "none", "pad": 1.5},
         )
-        ax.tick_params(labelsize=dm.fs(-3.5))
+        ax.tick_params(labelsize=dm.fs(-3))
     axes[0].set_ylabel("$r_p$ [-]")
-    axes[0].legend(
-        loc="lower right",
-        frameon=False,
-        fontsize=dm.fs(-4),
-        ncol=2,
-        handlelength=1.2,
-        columnspacing=0.8,
-        labelspacing=0.25,
+    dm.place_legend(
+        axes[0], frameon=False, fontsize=dm.fs(-3), ncol=2, handlelength=1.2, columnspacing=0.8, labelspacing=0.25
     )
     fig.suptitle(
         f"{CASE_LABEL[case]} — hatched: outside the compressor-map fitting domain",
@@ -485,12 +479,12 @@ def fig5(d, case: str) -> None:
         ax.set_yticks(ticks(lo, hi, step))
         ax.set_title(ref, fontsize=dm.fs(-2.5), loc="left")
         _plr_axis(ax, xlabel=False, step=25.0)
-        ax.tick_params(labelsize=dm.fs(-3.5))
+        ax.tick_params(labelsize=dm.fs(-3))
         tw = ax.twinx()
         tw.plot(x, 100 * g.fan_fraction, color=COLORS["hot"], lw=dm.lw(-0.5), ls="dashed", label="$E_{fan}/E_{tot}$")
         tw.set_ylim(0, 30)
         tw.set_yticks(ticks(0, 30, 10))
-        tw.tick_params(labelsize=dm.fs(-3.5), colors=COLORS["hot"])
+        tw.tick_params(labelsize=dm.fs(-3), colors=COLORS["hot"])
         if ax in (flat[2], flat[5]):
             tw.set_ylabel("$E_{fan}/E_{tot}$ [%]", fontsize=dm.fs(-3), color=COLORS["hot"])
     for ax in flat[len(refs) :]:
@@ -500,8 +494,7 @@ def fig5(d, case: str) -> None:
             ax.set_xlabel("Requested PLR [%]", fontsize=dm.fs(-3))
     flat[0].set_ylabel("Power [W]", fontsize=dm.fs(-3))
     flat[3].set_ylabel("Power [W]", fontsize=dm.fs(-3))
-    h, lab = flat[0].get_legend_handles_labels()
-    flat[0].legend(h, lab, loc="lower right", frameon=False, fontsize=dm.fs(-4), handlelength=1.2, labelspacing=0.25)
+    dm.place_legend(flat[0], frameon=False, fontsize=dm.fs(-3), handlelength=1.2, labelspacing=0.25)
     fig.suptitle(
         f"{CASE_LABEL[case]} — shaded band: at the compressor speed floor", fontsize=dm.fs(-2), x=0.01, ha="left"
     )
@@ -527,12 +520,12 @@ def figS1(d, m) -> None:
         ax.bar(idx + width / 2, g.R_common_sys, width, color=COLORS["warm"], label="$R_{sys}$")
         ax.axhline(1.0, color=COLORS["ink"], lw=HAIRLINE)
         ax.set_xticks(idx)
-        ax.set_xticklabels(g.index, rotation=45, ha="right", fontsize=dm.fs(-4))
+        ax.set_xticklabels(g.index, rotation=45, ha="right", fontsize=dm.fs(-3))
         lo, hi, step = _fit_step(list(g.R_common_comp) + list(g.R_common_sys) + [1.0], 0.05)
         hi += step  # headroom for the in-axes caption -- a set_title here
         ax.set_ylim(lo, hi)  # would collide with the figure-level caption
         ax.set_yticks(ticks(lo, hi - step, step))  # no tick in the headroom
-        ax.tick_params(axis="y", labelsize=dm.fs(-3.5))
+        ax.tick_params(axis="y", labelsize=dm.fs(-3))
         ax.grid(True, axis="y", alpha=0.25, linewidth=GRIDLINE)
         plr = 100 * float(g.PLR_common.iloc[0])
         ax.text(
@@ -542,11 +535,11 @@ def figS1(d, m) -> None:
             transform=ax.transAxes,
             ha="left",
             va="top",
-            fontsize=dm.fs(-3.5),
+            fontsize=dm.fs(-3),
             linespacing=1.4,
         )
     axes[0].set_ylabel("COP(low PLR) / COP(rated) [-]")
-    axes[0].legend(loc="upper right", frameon=False, fontsize=dm.fs(-4), handlelength=1.2)
+    dm.place_legend(axes[0], frameon=False, fontsize=dm.fs(-3), handlelength=1.2)
     fig.suptitle(
         "Same machine (R32 displacement), every fluid read at the deepest PLR they all modulate at",
         fontsize=dm.fs(-2),
@@ -574,13 +567,13 @@ def figS2(d, m) -> None:
         ax.bar(idx + width / 2, vb, width, color=COLORS["ess"], label=PASS_LABEL["own_disp"])
         ax.axhline(1.0, color=COLORS["ink"], lw=HAIRLINE)
         ax.set_xticks(idx)
-        ax.set_xticklabels(refs, rotation=45, ha="right", fontsize=dm.fs(-4))
+        ax.set_xticklabels(refs, rotation=45, ha="right", fontsize=dm.fs(-3))
         vals = [v for v in list(va) + list(vb) + [1.0] if np.isfinite(v)]
         lo, hi, step = _fit_step(vals, 0.05)
         hi += 1.6 * step  # headroom for the in-axes caption and the legend
         ax.set_ylim(lo, hi)
         ax.set_yticks(ticks(lo, hi - 0.6 * step, step))
-        ax.tick_params(axis="y", labelsize=dm.fs(-3.5))
+        ax.tick_params(axis="y", labelsize=dm.fs(-3))
         ax.grid(True, axis="y", alpha=0.25, linewidth=GRIDLINE)
         keep = [r for r in refs if r != "R407C"]
         sa = float(np.nanmax(va[keep]) - np.nanmin(va[keep]))
@@ -594,18 +587,18 @@ def figS2(d, m) -> None:
             transform=ax.transAxes,
             ha="left",
             va="top",
-            fontsize=dm.fs(-3.5),
+            fontsize=dm.fs(-3),
             linespacing=1.4,
         )
     axes[0].set_ylabel("$R_{comp}$ at common low PLR [-]")
-    axes[0].legend(loc="lower right", frameon=False, fontsize=dm.fs(-4.5), handlelength=1.2, labelspacing=0.25)
+    dm.place_legend(axes[0], frameon=False, fontsize=dm.fs(-3), handlelength=1.2, labelspacing=0.25)
     fig.suptitle(
         "Control: with R32's displacement the fluids separate along rated $n^{*}$;  size each machine and they merge",
         fontsize=dm.fs(-2),
         x=0.01,
         ha="left",
     )
-    _save(fig, "S2_sizing_control")
+    _save(fig, "S2_sizing_control", gutter="12pt")
 
 
 # ---------------------------------------------------------------------------
@@ -644,17 +637,11 @@ def figS3(d) -> None:
         ax.set_yticks(ticks(lo, hi, step))
         ax.axhline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=":", zorder=0)
         ax.set_title(f"{CASE_TAG[case]}  {case.replace('_', ' ')}", fontsize=dm.fs(-3), loc="left")
-        ax.tick_params(axis="y", labelsize=dm.fs(-3.5))
+        ax.tick_params(axis="y", labelsize=dm.fs(-3))
         _plr_axis(ax)
     axes[0].set_ylabel("Value / value at rated [-]")
-    axes[0].legend(
-        loc="lower left",
-        frameon=False,
-        fontsize=dm.fs(-4),
-        ncol=2,
-        handlelength=1.2,
-        columnspacing=0.8,
-        labelspacing=0.25,
+    dm.place_legend(
+        axes[0], frameon=False, fontsize=dm.fs(-3), ncol=2, handlelength=1.2, columnspacing=0.8, labelspacing=0.25
     )
     fig.suptitle(
         "Machine sized per fluid — solid: isentropic-cycle COP $Q/(\\dot m\\,\\Delta h_{is})$;  "

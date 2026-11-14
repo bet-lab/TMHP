@@ -25,7 +25,7 @@ import json
 import shlex
 import sys
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -71,7 +71,7 @@ def record(
         "model_settings": _jsonable(model_settings),
         "outputs": sorted(rel),
         **state,
-        "run_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "run_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
     }
 
 

@@ -344,7 +344,7 @@ def figures(
         ax.set_xlabel(r"Rated heating capacity $Q_{rated}$ [kW]")
         ax.set_ylabel(r"Declared $P_{TO}$ [W]")
         ax.set_title(f"{title} — N = {len(d)}", fontsize=dm.fs(-2.5), loc="left")
-        ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4.5))
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
         grid(ax)
     axes[0].set_ylim(0, 40)
     # A2W has a long upper tail (p99 = 169 W, max 700 W); the axis is clipped to
@@ -383,13 +383,13 @@ def figures(
         transform=ax.transAxes,
         va="top",
         ha="left",
-        fontsize=dm.fs(-4),
+        fontsize=dm.fs(-3),
     )
     ax.set_xlim(*lim)
     ax.set_ylim(*lim)
     ax.set_xlabel(r"Declared $P_{TO}$ [W]")
     ax.set_ylabel(r"Predicted $P_{TO}$ [W]")
-    ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-4.5))
+    dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
     grid(ax)
     save(fig, "02_pto_parity")
 
@@ -405,7 +405,7 @@ def figures(
     ax.set_xlabel(r"Rated heating capacity $Q_{rated}$ [kW]")
     ax.set_ylabel(r"Predicted − declared $P_{TO}$ [W]")
     ax.set_title("Air-to-air 1:1 splits, leave-one-unit-out", fontsize=dm.fs(-2.5), loc="left")
-    ax.legend(loc="best", frameon=False, fontsize=dm.fs(-4.5))
+    dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
     grid(ax)
     save(fig, "03_pto_residual_vs_capacity")
 
@@ -459,7 +459,7 @@ def figures(
         ax.set_xlabel("Requested part-load ratio [%]")
         ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2.5), loc="left")
-        ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4.5))
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
         grid(ax)
     _panels.append((axes[0], "a"))
     _panels.append((axes[1], "b"))

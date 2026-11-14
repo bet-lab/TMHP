@@ -185,7 +185,7 @@ def _axis(ax, values, ylabel: str, step: float, *, title=None, legend=None, ncol
     if title:
         ax.set_title(title, fontsize=dm.fs(-2), loc="left")
     if legend:
-        ax.legend(loc=legend, frameon=False, fontsize=dm.fs(-3.5), ncol=ncol, handlelength=1.6, columnspacing=1.0)
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3), ncol=ncol, handlelength=1.6, columnspacing=1.0)
     _plr_axis(ax)
 
 
@@ -288,7 +288,7 @@ def fig2(d, duty: str) -> None:
         0.06,
         "solid: condensing\ndashed: evaporating",
         transform=axes[0].transAxes,
-        fontsize=dm.fs(-3.5),
+        fontsize=dm.fs(-3),
         color=COLORS["muted"],
         va="bottom",
     )
@@ -389,7 +389,7 @@ def fig5(d, duty: str) -> None:
         0.95,
         r"dashed: $COP_{cmp} = Q/W_{cmp}$" "\n" r"solid: $COP_{sys} = Q/(W_{cmp}+W_{fan})$",
         transform=ax.transAxes,
-        fontsize=dm.fs(-3.5),
+        fontsize=dm.fs(-3),
         color=COLORS["muted"],
         va="top",
     )
@@ -427,15 +427,8 @@ def fig6(d, duty: str) -> None:
         ms=MS,
         label="fan share (right axis)",
     )
-    handles = ax.get_legend_handles_labels()
-    extra = ax2.get_legend_handles_labels()
-    ax.legend(
-        handles[0] + extra[0],
-        handles[1] + extra[1],
-        loc="upper left",
-        frameon=False,
-        fontsize=dm.fs(-3.5),
-    )
+    # Both axes' labelled artists (the fan share is on the twin): place_legend gathers the pair.
+    dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
     if len(floor):
         ax2.plot(
             100 * floor.plr_request,

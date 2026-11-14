@@ -128,7 +128,7 @@ def _panel(ax, d, duty, col, ylabel, ylim, ystep, scale=1.0, title=None, legend=
     if title:
         ax.set_title(title, fontsize=dm.fs(-2), loc="left")
     if legend:
-        ax.legend(loc=legend, frameon=False, fontsize=dm.fs(-3.5))
+        ax.legend(loc=legend, frameon=False, fontsize=dm.fs(-3))
     _plr_axis(ax)
     return lo, hi
 
@@ -314,7 +314,7 @@ def fig06(d) -> None:
             100 * mod.plr_request.min() + 1.5,
             ylim[0] + 0.06 * (ylim[1] - ylim[0]),
             "compressor\nspeed floor",
-            fontsize=dm.fs(-4),
+            fontsize=dm.fs(-3),
             color=COLORS["muted"],
             va="bottom",
         )
@@ -420,7 +420,7 @@ def fig07(d) -> None:
                 loc="left",
             )
             cb = fig.colorbar(im, ax=ax, pad=0.03, fraction=0.05)
-            cb.ax.tick_params(labelsize=dm.fs(-3.5))
+            cb.ax.tick_params(labelsize=dm.fs(-3))
             cb.locator = matplotlib.ticker.MaxNLocator(nbins=4)
             cb.update_ticks()
             cb.set_label(lab, fontsize=dm.fs(-3))

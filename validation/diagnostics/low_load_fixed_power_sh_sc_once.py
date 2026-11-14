@@ -506,7 +506,7 @@ def _figures(df: pd.DataFrame) -> None:
         xaxis(ax)
         ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2), loc="left")
-        ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "01_fixed_power_cop_vs_plr", gutter="8pt")
@@ -529,7 +529,7 @@ def _figures(df: pd.DataFrame) -> None:
         ax.set_yticks(ticks(0, 0.2, 0.05))
         ax.set_ylabel(r"$W_{fixed}\,/\,E_{tot}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2), loc="left")
-        ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4))
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "02_fixed_power_fraction_vs_plr", gutter="8pt")
@@ -565,7 +565,7 @@ def _figures(df: pd.DataFrame) -> None:
     ax.set_xticks(ticks(0, 100, 25))
     ax.set_xlabel(r"$W_{fixed}$ [W]")
     ax.set_ylabel(r"$\mathrm{COP}_{low}\,/\,\mathrm{COP}_{rated}$ [-]")
-    ax.legend(loc="lower left", frameon=False, fontsize=dm.fs(-4))
+    dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
     grid(ax)
     _panels.append((ax, "a"))
     ax = axes[1]
@@ -624,13 +624,13 @@ def _figures(df: pd.DataFrame) -> None:
                 if i == 0:
                     ax.set_title(cond_title[cond], fontsize=dm.fs(-2.5), loc="left")
                 _panels.append((ax, "abcdefghi"[i * 3 + j]))
-        axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-5), ncol=2)
+        dm.place_legend(axes[0][0], frameon=False, fontsize=dm.fs(-3), ncol=2)
         axes[0][2].text(
             0.03,
             0.04,
             "solid: mode A (clipped)\ndashed: mode B (constrained)",
             transform=axes[0][2].transAxes,
-            fontsize=dm.fs(-4.5),
+            fontsize=dm.fs(-3),
             va="bottom",
         )
         dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
@@ -678,7 +678,7 @@ def _figures(df: pd.DataFrame) -> None:
             ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
             ax.set_title(f"{cond_title[cond]}\n{mlab}", fontsize=dm.fs(-3), loc="left")
             _panels.append((ax, "abcdef"[i * 3 + j]))
-    axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-5), ncol=2)
+    dm.place_legend(axes[0][0], frameon=False, fontsize=dm.fs(-3), ncol=2)
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "09_sh_sc_cop_vs_plr", gutter="8pt")
 
@@ -706,7 +706,7 @@ def _figures(df: pd.DataFrame) -> None:
                 ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
                 ax.set_title(f"{cond_title[cond]} — {mlab}, {fixed_txt}", fontsize=dm.fs(-3), loc="left")
                 _panels.append((ax, "abcdef"[i * 3 + j]))
-        axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-4.5))
+        dm.place_legend(axes[0][0], frameon=False, fontsize=dm.fs(-3))
         dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
         save(fig, name)
 
@@ -727,7 +727,7 @@ def _figures(df: pd.DataFrame) -> None:
         xaxis(ax)
         ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2), loc="left")
-        ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
+        dm.place_legend(ax, frameon=False, fontsize=dm.fs(-3))
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "12_combined_effect_cop_vs_plr", gutter="8pt")

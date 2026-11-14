@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from tests._renamed_result_keys import RENAMED_RESULT_KEYS
 from tmhp import (
     AirSourceHeatPump,
     AirSourceHeatPumpBoiler,
@@ -14,8 +15,6 @@ from tmhp import (
     GroundSourceHeatPumpBoiler,
     WaterSourceHeatPumpBoiler,
 )
-
-from tests._renamed_result_keys import RENAMED_RESULT_KEYS
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 

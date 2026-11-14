@@ -25,7 +25,6 @@ from __future__ import annotations
 import csv
 import fnmatch
 import gzip
-import io
 import re
 import subprocess
 from pathlib import Path
@@ -53,7 +52,10 @@ _FAN_HELPER: tuple[tuple[str, str | None], ...] = (
     ("tests/test_fan_part_load_bounds.py", None),
     ("tests/test_fan_single_zone_defaults.py", None),
     ("tests/test_fixed_speed_fan.py", r"\bout\["),
-    ("docs/source/developer/reference-operating-limits.rst", r"^``fan_flow_min_limit`` / ``fan_flow_max_limit``\. A nondefault"),
+    (
+        "docs/source/developer/reference-operating-limits.rst",
+        r"^``fan_flow_min_limit`` / ``fan_flow_max_limit``\. A nondefault",
+    ),
 )
 
 
@@ -133,8 +135,7 @@ def test_no_tracked_file_uses_a_renamed_result_key() -> None:
                 continue
             hits += _hits_in_text(path, text)
     assert not hits, (
-        "renamed result keys are still used (see the 'Renamed keys' table of "
-        f"{RESULT_KEYS_PAGE}):\n" + "\n".join(hits)
+        f"renamed result keys are still used (see the 'Renamed keys' table of {RESULT_KEYS_PAGE}):\n" + "\n".join(hits)
     )
 
 

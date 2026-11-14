@@ -366,12 +366,18 @@ def test_t4_stratified_condenser_never_heats_node_above_condensing_temperature()
         row = df.iloc[i]
         if not (float(row["E_cmp [W]"] or 0.0) > 0.0):
             continue  # no refrigerant cycle this step
-        T_cond = min(float(row["T_ref_cond_sat_v [°C]"]), float(row["T_ref_cond_sat_l [°C]"]))
+        # The highest condensing temperature of the step's run. The row's T_ref_cond_sat_l is the
+        # run's mean, the temperature its power belongs to (R5H): water a run warms by more than
+        # the coil's approach is hotter at the end of the step than that mean (step 3 here: mean
+        # 37.9 °C, run ending on 41.1 °C, hottest heated node 40.7 °C), and never hotter than the
+        # refrigerant got.
+        T_cond = float(row["T_ref_cond_sat_l_peak [°C]"])
+        require(T_cond >= float(row["T_ref_cond_sat_l [°C]"]) - 1e-9, "highest condensing temperature below the mean")
         heated = q > 0.0
         over = T_after[heated] - T_cond
         if over.size and over.max() > 0.5:
             bad.append((i, round(T_cond, 1), round(float(T_after[heated].max()), 1)))
-    expect(not bad, f"(step, T_cond_sat, hottest heated node): {bad}")
+    expect(not bad, f"(step, highest T_cond_sat, hottest heated node): {bad}")
 
 
 def _charge_storage_ratio(tank_cls, dt: float = 600.0, seconds: float = 1800.0) -> float:
@@ -476,6 +482,51 @@ def test_t6_envelope_stop_inside_the_step(case):
     # (cutout + hp_capacity / UA_tank_hx).
     expect(top60 <= cutout + 0.5, f"dt 60: peak {top60:.2f} degC, envelope stop {cutout:.2f}")
     expect(top600 <= cutout + m.hp_capacity / m.UA_tank_hx, f"dt 600: peak {top600:.2f} degC")
+
+
+# T6 extended (R5H): a multi-node tank's step took the condensing temperature its run ended on
+# (the cycle's sink was the coil's level at the end of the step whenever the tank warmed by more
+# than the coil's approach in it), so a long step paid for a hotter condenser than the run had on
+# average. Was, 60 s against 600 s steps, one hour: a coil over the whole tank, no draw, 0.348 vs
+# 0.364 kWh of electricity (+4.7 %; the lumped tank 0.348 vs 0.347); a top coil under a 6 L/min
+# draw 1.911 vs 2.117 kWh (+10.8 %), with 2 starts for 1 and the top node 2.4 K above the
+# envelope stop. Now the cycle is solved at the mean condensing level of the run.
+@pytest.mark.parametrize(
+    "case",
+    [
+        pytest.param(dict(kw=dict(tank_model="stratified"), draw=0.0, heat=0.01, power=0.01), id="whole-coil"),
+        pytest.param(dict(kw=dict(tank_model="stratified"), draw=1e-4, heat=0.02, power=0.02), id="whole-coil-draw"),
+        # The heat of the draining top coil keeps the tank's own time resolution (upwind
+        # advection of the cold front; 0.3 % with the tank sub-stepped twenty times finer).
+        pytest.param(
+            dict(kw=dict(tank_model="stratified", condenser_node=0), draw=1e-4, heat=0.03, power=0.05),
+            id="top-coil-draw",
+        ),
+    ],
+)
+def test_t6_multi_node_tank_time_step_independence(case):
+    from tmhp.compressor_envelope import condensing_tank_cutout
+
+    out = {}
+    for dt in (60, 600):
+        m = tmhp.GroundSourceHeatPumpBoiler(dt_s=float(dt), t_max_s=86400.0, **case["kw"])
+        n = int(3600 // dt)
+        df = m.analyze_dynamic(n * dt, dt, 55.0, np.full(n, case["draw"]), np.full(n, 7.0))
+        failed = int((df["failure_reason"] != "none").sum())
+        expect(failed == 0, f"dt {dt}: {failed} steps failed")
+        out[dt] = (
+            float(df["Q_ref_tank [W]"].sum() * dt),
+            float(df["E_tot [W]"].sum() * dt),
+            int(df["hp_starts [-]"].sum()),
+            float(df["T_tank_w_top [°C]"].max()),
+        )
+        cutout = condensing_tank_cutout(m)
+    (q60, e60, s60, top60), (q600, e600, s600, top600) = out[60], out[600]
+    require(q60 > 0.3 * 3.6e6, f"only {q60 / 3.6e6:.3f} kWh delivered")
+    expect(abs(q600 - q60) < case["heat"] * q60, f"heat {q60 / 3.6e6:.3f} vs {q600 / 3.6e6:.3f} kWh")
+    expect(abs(e600 - e60) < case["power"] * e60, f"electricity {e60 / 3.6e6:.3f} vs {e600 / 3.6e6:.3f} kWh")
+    expect(s60 == s600, f"starts {s60} vs {s600}")
+    expect(max(top60, top600) <= cutout + 0.05, f"top node {top60:.2f} / {top600:.2f} degC, envelope stop {cutout:.2f}")
 
 
 # T6 extended to ASHPB (R5K): its step did not hand the envelope stop to the in-step thermostat,

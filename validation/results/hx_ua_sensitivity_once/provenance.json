@@ -1,0 +1,87 @@
+{
+ "script": "validation/hx_ua_sensitivity/",
+ "command": "python -m validation.hx_ua_sensitivity.simulate && python -m validation.hx_ua_sensitivity.figures",
+ "question": "how the part-load curve of the running cycle moves with the rated coil conductance",
+ "model_settings": {
+  "Cd_cycling": null,
+  "defrost": false,
+  "cases": [
+   [
+    "heating",
+    3500.0,
+    "R32",
+    7.0,
+    20.0
+   ],
+   [
+    "cooling",
+    3500.0,
+    "R32",
+    35.0,
+    27.0
+   ]
+  ],
+  "joint_scales": [
+   0.25,
+   0.5,
+   0.75,
+   1.0,
+   1.5,
+   2.0
+  ],
+  "split_cases": [
+   [
+    0.5,
+    1.0
+   ],
+   [
+    2.0,
+    1.0
+   ],
+   [
+    1.0,
+    0.5
+   ],
+   [
+    1.0,
+    2.0
+   ]
+  ]
+ },
+ "outputs": [
+  "validation/results/hx_ua_sensitivity_once/C1_cop_vs_plr.csv",
+  "validation/results/hx_ua_sensitivity_once/C2_temperatures_vs_plr.csv",
+  "validation/results/hx_ua_sensitivity_once/C3_pressure_ratio_vs_plr.csv",
+  "validation/results/hx_ua_sensitivity_once/C4_compressor_vs_plr.csv",
+  "validation/results/hx_ua_sensitivity_once/C5_cop_definition.csv",
+  "validation/results/hx_ua_sensitivity_once/C6_power_split.csv",
+  "validation/results/hx_ua_sensitivity_once/C7_coil_split.csv",
+  "validation/results/hx_ua_sensitivity_once/H1_cop_vs_plr.csv",
+  "validation/results/hx_ua_sensitivity_once/H2_temperatures_vs_plr.csv",
+  "validation/results/hx_ua_sensitivity_once/H3_pressure_ratio_vs_plr.csv",
+  "validation/results/hx_ua_sensitivity_once/H4_compressor_vs_plr.csv",
+  "validation/results/hx_ua_sensitivity_once/H5_cop_definition.csv",
+  "validation/results/hx_ua_sensitivity_once/H6_power_split.csv",
+  "validation/results/hx_ua_sensitivity_once/H7_coil_split.csv",
+  "validation/results/hx_ua_sensitivity_once/hx_ua_sensitivity_once.csv",
+  "validation/results/hx_ua_sensitivity_once/run_manifest.json",
+  "validation/results/hx_ua_sensitivity_once/shape_metrics.csv"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "29219d23d67fbc3f45ed6b2191c31ea16f8e860e",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "ce7a52b8d30ae2a62dd888f22485830b9b27cc47",
+ "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-14T02:39:45+00:00"
+}

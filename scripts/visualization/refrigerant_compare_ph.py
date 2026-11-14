@@ -23,12 +23,16 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, record_figure, static_path  # noqa: E402
 
 REFRIGERANTS = ("R32", "R290", "R134a")
 T_TANK_W = 55.0
 T0 = 7.0
 Q_COND = 8_000
+
+#: The cycle of each refrigerant at this point: no on-off averaging below the
+#: minimum capacity, no frost or defrost.
+CYCLE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
 
 
 def _envelope(refrigerant: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -74,12 +78,13 @@ def main() -> None:
         sharey=True,
     )
 
+    recorded: dict = {}
     for ax, ref in zip(axes, REFRIGERANTS, strict=True):
         h_liq, h_vap, p_sat = _envelope(ref)
         ax.plot(h_liq, p_sat, color=COLORS["cool"], linewidth=dm.lw(1))
         ax.plot(h_vap, p_sat, color=COLORS["hot"], linewidth=dm.lw(1))
 
-        ashpb = AirSourceHeatPumpBoiler(ref=ref)
+        ashpb = AirSourceHeatPumpBoiler(ref=ref, **CYCLE_SETTINGS)
         res = ashpb.analyze_steady(T_tank_w=T_TANK_W, T0=T0, Q_ref_tank=Q_COND)
         assert isinstance(res, dict)
         pts = _cycle_points(res)
@@ -102,6 +107,17 @@ def main() -> None:
             )
 
         cop = float(res.get("cop_sys [-]", float("nan")))
+        recorded[ref] = {
+            k: res.get(k)
+            for k in [
+                "cop_sys [-]",
+                "E_cmp [W]",
+                "Q_ref_tank [W]",
+                "T_ref_evap_sat [°C]",
+                "T_ref_cond_sat_v [°C]",
+                "T_ref_cmp_out [°C]",
+            ]
+        }
         ax.set_title(f"{ref}\nCOP = {cop:.2f}", fontsize=dm.fs(0))
         ax.set_yscale("log")
         ax.set_xlim(0, 750)
@@ -129,6 +145,13 @@ def main() -> None:
     out = static_path("refrigerant_compare_ph.svg").with_suffix("")
     finalize(fig, out, margin="3%")
     plt.close(fig)
+    record_figure(
+        "refrigerant_compare_ph",
+        "scripts/visualization/refrigerant_compare_ph.py",
+        {"refrigerants": REFRIGERANTS, **CYCLE_SETTINGS},
+        f"the cycle of each refrigerant at T_tank_w {T_TANK_W} °C, T0 {T0} °C, {Q_COND} W",
+        recorded,
+    )
     print(f"wrote {out}.svg")
 
 

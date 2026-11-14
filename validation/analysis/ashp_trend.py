@@ -109,6 +109,20 @@ CONFIGURATIONS = (
 #: Part loads for the fixed-temperature sweep, nameplate as the denominator.
 SWEEP_FRACTIONS = tuple(round(1.0 - 0.04 * i, 2) for i in range(23))  # 1.00 .. 0.12
 
+#: Model settings, chosen for the question rather than left to the defaults.
+#: Both curves are the *running* machine: the declared COP of a part-load
+#: condition belongs to the capacity the unit runs at there, and EN 14825
+#: applies the cycling degradation afterwards, in the bin calculation -- as
+#: ``validation.analysis.en14825_trend`` does for air-to-water. So no on-off
+#: averaging below the minimum capacity (``Cd_cycling=None``). The trajectory
+#: is held against declared values, which are measured with the unit's
+#: defrosts, so it keeps frost and defrost; the fixed-temperature sweep
+#: isolates what the correlations and the heat exchangers do as the load
+#: moves, so it has none.
+TRAJECTORY_SETTINGS: dict = {"Cd_cycling": None, "defrost": True}
+SWEEP_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
+PROVENANCE = DATA / "provenance" / "ashp_trend.json"
+
 
 def _run(model: AirSourceHeatPump, duty: Duty, load_w: float, t_outdoor: float) -> dict | None:
     """One steady-state point, or None when the model declined to converge."""
@@ -141,7 +155,7 @@ def sweep() -> pd.DataFrame:
     rows = []
     for capacity_w, refrigerant in CONFIGURATIONS:
         for duty in DUTIES:
-            model = AirSourceHeatPump(hp_capacity=capacity_w, ref=refrigerant)
+            model = AirSourceHeatPump(hp_capacity=capacity_w, ref=refrigerant, **SWEEP_SETTINGS)
             for t_outdoor in duty.sweep_outdoor_C:
                 for fraction in SWEEP_FRACTIONS:
                     point = _run(model, duty, capacity_w * fraction, t_outdoor)
@@ -168,7 +182,7 @@ def trajectory() -> pd.DataFrame:
         for duty in DUTIES:
             for oversizing in duty.oversizing:
                 design_w = capacity_w * oversizing
-                model = AirSourceHeatPump(hp_capacity=capacity_w, ref=refrigerant)
+                model = AirSourceHeatPump(hp_capacity=capacity_w, ref=refrigerant, **TRAJECTORY_SETTINGS)
                 for label, t_outdoor, plr in duty.points:
                     point = _run(model, duty, design_w * plr, t_outdoor)
                     rows.append(
@@ -328,6 +342,17 @@ def main() -> None:
     print(f"  wrote {OUT_SWEEP.relative_to(REPO_ROOT)}")
     print(f"  wrote {OUT_POINTS.relative_to(REPO_ROOT)}")
     print(f"  wrote {OUT_VERDICT.relative_to(REPO_ROOT)}")
+    if not args.reuse:
+        from validation import study_provenance
+
+        study_provenance.write(
+            PROVENANCE,
+            "validation/analysis/ashp_trend.py",
+            [OUT_SWEEP, OUT_POINTS, OUT_VERDICT],
+            {"sweep": SWEEP_SETTINGS, "trajectory": TRAJECTORY_SETTINGS, "configurations": CONFIGURATIONS},
+            "air-to-air part load of the running machine: fixed-temperature sweep and EN 14825 trajectory",
+            command="python -m validation.analysis.ashp_trend",
+        )
 
 
 if __name__ == "__main__":

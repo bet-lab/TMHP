@@ -1,0 +1,60 @@
+{
+ "script": "scripts/visualization/refrigerant_compare_ph.py",
+ "command": "python scripts/visualization/refrigerant_compare_ph.py",
+ "question": "the cycle of each refrigerant at T_tank_w 55.0 °C, T0 7.0 °C, 8000 W",
+ "model_settings": {
+  "refrigerants": [
+   "R32",
+   "R290",
+   "R134a"
+  ],
+  "Cd_cycling": null,
+  "defrost": false
+ },
+ "outputs": [
+  "docs/source/_static/refrigerant_compare_ph.svg"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "b169f47c35f139347f57fb0a749b04b026de2035",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "cdebb14c06e30874fb26faafa7d7b8fc29b61469",
+ "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-14T02:17:10+00:00",
+ "data": {
+  "R32": {
+   "cop_sys [-]": 2.8888185133235127,
+   "E_cmp [W]": 2687.991908514477,
+   "Q_ref_tank [W]": 7999.999999999998,
+   "T_ref_evap_sat [°C]": 2.3003935365048847,
+   "T_ref_cond_sat_v [°C]": 57.666666666666686,
+   "T_ref_cmp_out [°C]": 136.9474951311538
+  },
+  "R290": {
+   "cop_sys [-]": 3.285026036842546,
+   "E_cmp [W]": 2373.639432767779,
+   "Q_ref_tank [W]": 8000.0,
+   "T_ref_evap_sat [°C]": 1.6175750327623746,
+   "T_ref_cond_sat_v [°C]": 57.666666666666686,
+   "T_ref_cmp_out [°C]": 79.99950256476382
+  },
+  "R134a": {
+   "cop_sys [-]": 3.2972261856167884,
+   "E_cmp [W]": 2338.08679545967,
+   "Q_ref_tank [W]": 8000.000000000022,
+   "T_ref_evap_sat [°C]": 2.104631183977233,
+   "T_ref_cond_sat_v [°C]": 57.666666666666686,
+   "T_ref_cmp_out [°C]": 81.01637502477195
+  }
+ }
+}

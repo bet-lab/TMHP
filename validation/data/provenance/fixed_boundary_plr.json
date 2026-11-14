@@ -1,0 +1,101 @@
+{
+ "script": "validation/fixed_boundary_plr/",
+ "command": "python -m validation.fixed_boundary_plr.sweep && python -m validation.fixed_boundary_plr.decompose && python -m validation.fixed_boundary_plr.shape_metrics && python -m validation.fixed_boundary_plr.speed_sweep && python -m validation.fixed_boundary_plr.legacy_compare",
+ "question": "part-load curve of the running cycle at fixed boundary temperatures",
+ "model_settings": {
+  "Cd_cycling": null,
+  "defrost": false,
+  "ASHPB_CASES": [
+   [
+    9000.0,
+    "R32",
+    7.0,
+    42.5
+   ],
+   [
+    9000.0,
+    "R410A",
+    7.0,
+    42.5
+   ],
+   [
+    9000.0,
+    "R290",
+    7.0,
+    42.5
+   ],
+   [
+    9000.0,
+    "R32",
+    -7.0,
+    32.5
+   ]
+  ],
+  "ASHP_CASES": [
+   [
+    3500.0,
+    "R32",
+    "heating",
+    7.0,
+    20.0
+   ],
+   [
+    3500.0,
+    "R32",
+    "cooling",
+    35.0,
+    27.0
+   ]
+  ],
+  "FRACTIONS": [
+   1.0,
+   0.96,
+   0.92,
+   0.88,
+   0.84,
+   0.8,
+   0.76,
+   0.72,
+   0.68,
+   0.64,
+   0.6,
+   0.56,
+   0.52,
+   0.48,
+   0.44,
+   0.4,
+   0.36,
+   0.32,
+   0.28,
+   0.24,
+   0.2,
+   0.16,
+   0.12
+  ]
+ },
+ "outputs": [
+  "validation/data/fixed_boundary_plr/ashp_sweep.csv",
+  "validation/data/fixed_boundary_plr/ashpb_sweep.csv",
+  "validation/data/fixed_boundary_plr/decomposition.csv",
+  "validation/data/fixed_boundary_plr/legacy_compare.csv",
+  "validation/data/fixed_boundary_plr/shape_metrics.csv",
+  "validation/data/fixed_boundary_plr/speed_sweep.csv"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "b169f47c35f139347f57fb0a749b04b026de2035",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "cdebb14c06e30874fb26faafa7d7b8fc29b61469",
+ "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-14T02:16:34+00:00"
+}

@@ -176,6 +176,74 @@ def static_path(name: str) -> Path:
     return out
 
 
+def cover_data_ylim(ax, lo: float, hi: float, step: float, *, tol: float = 0.01, max_ticks: int = 9):
+    """Widen a fixed y range, in whole steps of ``step``, to cover every point the axes' lines draw.
+
+    A figure that fixes its range to the data it was first drawn with clips
+    the curves once the model moves. This keeps the fixed range whenever the
+    data fit (an overshoot within ``tol`` of the span is ignored, so a ratio
+    of 1.0000001 does not add a step), and otherwise extends it outward to
+    the next multiple of ``step``, coarsening the step (x2, x2.5, x5) while
+    the axis would carry more than ``max_ticks`` ticks. Two-point constant
+    lines (reference rules) are ignored. Sets the limits and ticks and
+    returns ``(lo, hi, step)``.
+    """
+    import math
+
+    ys = []
+    for line in ax.get_lines():
+        x = np.asarray(line.get_xdata(), dtype=float)
+        y = np.asarray(line.get_ydata(), dtype=float)
+        if y.size == 2 and (np.allclose(y, y[0]) or np.allclose(x, x[0])):
+            continue
+        ys.append(y[np.isfinite(y)])
+    data = np.concatenate(ys) if ys else np.array([])
+    margin = tol * (hi - lo)
+    new_lo, new_hi = lo, hi
+    if data.size and data.min() < lo - margin:
+        new_lo = math.floor(data.min() / step) * step
+    if data.size and data.max() > hi + margin:
+        new_hi = math.ceil(data.max() / step) * step
+    if (new_lo, new_hi) != (lo, hi):
+        for factor in (1.0, 2.0, 2.5, 5.0, 10.0):
+            s = step * factor
+            a, b = math.floor(new_lo / s + 1e-9) * s, math.ceil(new_hi / s - 1e-9) * s
+            if round((b - a) / s) + 1 <= max_ticks:
+                break
+        lo, hi, step = a, b, s
+    ax.set_ylim(lo, hi)
+    ax.set_yticks(ticks(lo, hi, step))
+    return lo, hi, step
+
+
+def record_figure(name: str, script: str, model_settings: dict, question: str, data: dict) -> Path:
+    """Write ``docs/source/_static/provenance/<name>.json`` for a figure drawn from the model.
+
+    The record names the script, the commit and source trees it ran on, the
+    model settings the figure chose, and ``data``: the plotted values, so
+    ``tests/test_study_results_current.py`` can recompute a few of them and
+    say when the figure no longer shows what the model does.
+    """
+    import sys
+
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from validation import study_provenance
+
+    path = static_path(f"provenance/{name}.json")
+    study_provenance.write(
+        path,
+        script,
+        [static_path(f"{name}.svg")],
+        model_settings,
+        question,
+        command=f"python {script}",
+        extra={"data": data},
+    )
+    return path
+
+
 # Named tokens used across the docs figures. Keeping them here means every
 # figure shares the same accent, refrigerant phase colours, and dim grey,
 # which makes the gallery read as a single design system instead of seven

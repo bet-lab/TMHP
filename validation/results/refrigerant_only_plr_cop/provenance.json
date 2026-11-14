@@ -1,0 +1,75 @@
+{
+ "script": "validation/refrigerant_only_plr_cop/",
+ "command": "python -m validation.refrigerant_only_plr_cop.simulate && python -m validation.refrigerant_only_plr_cop.figures",
+ "question": "how the part-load curve of the running cycle depends on the refrigerant alone",
+ "model_settings": {
+  "Cd_cycling": null,
+  "defrost": false,
+  "cases": [
+   [
+    "ASHP_heating",
+    "ASHP",
+    3500.0,
+    "heating",
+    7.0,
+    20.0
+   ],
+   [
+    "ASHP_cooling",
+    "ASHP",
+    3500.0,
+    "cooling",
+    35.0,
+    27.0
+   ],
+   [
+    "ASHPB_heating",
+    "ASHPB",
+    9000.0,
+    "heating",
+    7.0,
+    42.5
+   ]
+  ],
+  "refrigerants": [
+   "R32",
+   "R410A",
+   "R290",
+   "R407C",
+   "R134a",
+   "R22"
+  ]
+ },
+ "outputs": [
+  "validation/results/refrigerant_only_plr_cop/B1_cop_vs_plr.csv",
+  "validation/results/refrigerant_only_plr_cop/B3_operating_point.csv",
+  "validation/results/refrigerant_only_plr_cop/B5_power_split.csv",
+  "validation/results/refrigerant_only_plr_cop/C1_cop_vs_plr.csv",
+  "validation/results/refrigerant_only_plr_cop/C3_operating_point.csv",
+  "validation/results/refrigerant_only_plr_cop/C5_power_split.csv",
+  "validation/results/refrigerant_only_plr_cop/H1_cop_vs_plr.csv",
+  "validation/results/refrigerant_only_plr_cop/H3_operating_point.csv",
+  "validation/results/refrigerant_only_plr_cop/H5_power_split.csv",
+  "validation/results/refrigerant_only_plr_cop/S1_shape_summary.csv",
+  "validation/results/refrigerant_only_plr_cop/refrigerant_plr_metrics.csv",
+  "validation/results/refrigerant_only_plr_cop/refrigerant_plr_sensitivity.csv",
+  "validation/results/refrigerant_only_plr_cop/run_manifest.json"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "29219d23d67fbc3f45ed6b2191c31ea16f8e860e",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "ce7a52b8d30ae2a62dd888f22485830b9b27cc47",
+ "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-14T02:39:58+00:00"
+}

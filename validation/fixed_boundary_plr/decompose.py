@@ -13,7 +13,8 @@ For every case of the fixed-boundary sweep the same model is solved four ways:
 
 Effect B (compressor) at a given PLR is ``current - hx_only``; the refit's
 change is ``current - previous``.  Rows at the compressor speed floor are kept
-and flagged as in ``sweep.py``.
+and flagged as in ``sweep.py``, and every model is built with its
+``CYCLE_SETTINGS`` (running cycle: no on-off averaging, no frost).
 
 Output: ``validation/data/fixed_boundary_plr/decomposition.csv`` with a
 ``variant`` column, in the layout of ``sweep.py`` so ``shape_metrics.py``
@@ -34,7 +35,14 @@ import pandas as pd
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
 from tmhp.compressor_efficiency import COEFFICIENT_VERSION
 from tmhp.compressor_speed import RATED_POINT_AIR_TO_AIR, RATED_POINT_AIR_TO_WATER
-from validation.fixed_boundary_plr.sweep import ASHP_CASES, ASHPB_CASES, FRACTIONS, _state
+from validation.fixed_boundary_plr.sweep import (
+    ASHP_CASES,
+    ASHPB_CASES,
+    CYCLE_SETTINGS,
+    FRACTIONS,
+    _state,
+    write_provenance,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "validation" / "data" / "fixed_boundary_plr"
@@ -67,7 +75,7 @@ def _frozen_kwargs(row: dict) -> dict:
 
 
 def _run_ashpb(cap, ref, t_out, t_tank, kwargs: dict, variant: str, version: str) -> list[dict]:
-    model = AirSourceHeatPumpBoiler(hp_capacity=cap, ref=ref, **kwargs)
+    model = AirSourceHeatPumpBoiler(hp_capacity=cap, ref=ref, **CYCLE_SETTINGS, **kwargs)
     rows = []
     for f in FRACTIONS:
         r = model.analyze_steady(T_tank_w=t_tank, T0=t_out, Q_ref_tank=cap * f, return_dict=True)
@@ -97,7 +105,7 @@ def _run_ashpb(cap, ref, t_out, t_tank, kwargs: dict, variant: str, version: str
 
 
 def _run_ashp(cap, ref, duty, t_out, t_room, kwargs: dict, variant: str, version: str) -> list[dict]:
-    model = AirSourceHeatPump(hp_capacity=cap, ref=ref, **kwargs)
+    model = AirSourceHeatPump(hp_capacity=cap, ref=ref, **CYCLE_SETTINGS, **kwargs)
     sign = -1.0 if duty == "heating" else 1.0
     rows = []
     for f in FRACTIONS:
@@ -171,6 +179,7 @@ def main() -> None:
             }
         )
     print(pd.DataFrame(summ).to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+    write_provenance()
     print(f"wrote {OUT_DIR / 'decomposition.csv'}")
 
 

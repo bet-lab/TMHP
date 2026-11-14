@@ -29,7 +29,8 @@ The figure draws the first two; the other two exist so the console summary can
 say how much of the low-load gap is the coefficients and how much is the
 objective.  Held identical across all four: nameplate capacity, refrigerant,
 room temperature, outdoor grid, part-load grid, speed floor (15 rev/s), cycle
-guards and every fan / heat-exchanger input.
+guards and every fan / heat-exchanger input, and the running cycle
+(``sweep.CYCLE_SETTINGS``: no on-off averaging below the floor, no frost).
 
 Run::
 
@@ -50,6 +51,7 @@ import pandas as pd
 
 from tmhp import AirSourceHeatPump
 from tmhp.compressor_efficiency import COEFFICIENT_VERSION
+from validation.fixed_boundary_plr.sweep import CYCLE_SETTINGS, write_provenance
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "validation" / "data" / "fixed_boundary_plr"
@@ -120,7 +122,7 @@ def sweep(label: str, coefficients: str, objective: str) -> pd.DataFrame:
         for duty, t_room, outdoor in DUTIES:
             sign = -1.0 if duty == "heating" else 1.0
             for t_out in outdoor:
-                model = AirSourceHeatPump(hp_capacity=CAPACITY_W, ref=REF, **kwargs)
+                model = AirSourceHeatPump(hp_capacity=CAPACITY_W, ref=REF, **CYCLE_SETTINGS, **kwargs)
                 for f in PLR_GRID:
                     base = {
                         "variant": label,
@@ -315,6 +317,7 @@ def main() -> None:
     df.to_csv(OUT_DIR / "legacy_compare.csv", index=False)
     figure(df, Path(a.out) / COEFFICIENT_VERSION / "figures")
     summary(df)
+    write_provenance()
     print(f"\n-> {OUT_DIR / 'legacy_compare.csv'}")
 
 

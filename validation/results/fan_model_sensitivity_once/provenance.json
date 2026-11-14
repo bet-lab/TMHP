@@ -1,0 +1,14 @@
+{
+ "status": "dated: not regenerated with the current model",
+ "script": "validation/diagnostics/fan_model_sensitivity_once.py",
+ "command": "python -m validation.diagnostics.fan_model_sensitivity_once",
+ "outputs": [
+  "validation/results/fan_model_sensitivity_once/"
+ ],
+ "made_at_commit": "0e01483a49eff1a73f5742fff88f067670f99064",
+ "made_on": "2026-10-01",
+ "coefficient_version": "v2026-09-24",
+ "model_settings": "library defaults of that commit. Defaults that changed after it: on-off averaging below the minimum capacity (Cd_cycling, #134), condensing-temperature cap on and GSHPB/WSHPB default R290 (#136), source fluid MEG-25 % (#137), coil air density at the inlet (#139, #146), ASHP/ASHPB frost and defrost on with load weighting (#154), compressor coefficients BITZER-three-C3-absolute-N-2026-10-06",
+ "why_not_regenerated": "The study replaces the library's coil solver with a copy (_hx_solver, _patched_hx) that was byte-identical to calc_HX_perf_for_target_heat on 2026-09-27. The solver has since moved (inlet air density, fan flow reference/min/max, custom fan curves): the shim no longer accepts the call (TypeError on dV_fan_ref) and its copy would no longer reproduce the shipped baseline. Regenerating needs the copy rewritten against the current solver, which is a new study, not a rerun. validation/diagnostics/fan_floor_plr_map.py imports the same shim.",
+ "checked_against": "635bb437098ad3624db032994c95002a71ce4602"
+}

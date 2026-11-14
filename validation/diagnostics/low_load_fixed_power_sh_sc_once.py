@@ -33,7 +33,9 @@ Boundary conditions follow ``validation/compressor_maps/final_simulate.py``:
 -7/20 degC as a high-lift secondary case. Requested duty 1.00 -> 0.12 of
 nameplate. Rows past the compressor speed floor are kept and flagged
 (``capacity_clamped == "min"``); they are drawn hollow and excluded from every
-verdict.
+verdict. Every model is the running cycle (:data:`CYCLE_SETTINGS`): the speed
+floor is not ranked by the mean input over an on-off period
+(``Cd_cycling=None``) and the -7 degC case carries no frost (``defrost=False``).
 
 Run::
 
@@ -148,6 +150,9 @@ def _mode_b_bounds(sh: float, sc: float) -> list[tuple[float, float]]:
 
 _MODELS: dict = {}
 
+#: Constructor arguments of every model: the running cycle, no frost.
+CYCLE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
+
 
 def _model(sh: float, sc: float, mode: str) -> AirSourceHeatPump:
     key = (sh, sc, mode)
@@ -168,6 +173,7 @@ def _model(sh: float, sc: float, mode: str) -> AirSourceHeatPump:
             dT_subcool=sc,
             dT_hx_min=DT_HX_MIN,
             dT_approach_bounds=approach,
+            **CYCLE_SETTINGS,
         )
     return _MODELS[key]
 
@@ -397,6 +403,7 @@ def _figures(df: pd.DataFrame) -> None:
         GRIDLINE,
         HAIRLINE,
         apply_style,
+        cover_data_ylim,
         finalize,
         panel_letter,
         ticks,
@@ -600,7 +607,10 @@ def _figures(df: pd.DataFrame) -> None:
                         ms=MS * 0.75,
                     )
                 xaxis(ax, label=(i == nq - 1))
-                if ylim is not None:
+                if ylim is not None and ystep:
+                    # Widen the fixed range only where today's curves would leave it.
+                    cover_data_ylim(ax, ylim[0], ylim[1], ystep)
+                elif ylim is not None:
                     ax.set_ylim(*ylim)
                     if ystep:
                         ax.set_yticks(ticks(ylim[0], ylim[1], ystep))
@@ -756,6 +766,16 @@ def main() -> None:
         "outputs": sorted(p.name for p in OUT_DIR.iterdir() if p.is_file()),
     }
     (OUT_DIR / "run_manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    from validation import study_provenance
+
+    study_provenance.write(
+        OUT_DIR / "provenance.json",
+        "validation/diagnostics/low_load_fixed_power_sh_sc_once.py",
+        sorted(p for p in OUT_DIR.iterdir() if p.suffix in (".csv", ".json") and p.name != "provenance.json"),
+        {**CYCLE_SETTINGS, "capacity_W": CAP, "refrigerant": REF},
+        "does fixed power or the superheat/subcooling setting remove the low-load COP rise of the running cycle",
+        command="python -m validation.diagnostics.low_load_fixed_power_sh_sc_once",
+    )
     print("wrote", OUT_DIR)
 
 

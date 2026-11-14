@@ -245,3 +245,107 @@ def test_small_request_frosts_as_the_machine_that_runs_on_the_speed_floor(Cd_cyc
     assert warm["capacity_clamped"] == "min"
     assert warm["defrost_fraction [-]"] == 0.0 and warm["frost_capacity_factor [-]"] == 1.0
     assert warm["cop_sys [-]"] == frost_free.analyze_steady(T_tank_w=35.0, T0=5.5, Q_ref_tank=300.0)["cop_sys [-]"]
+
+
+# ---------------------------------------------------------------------------
+# load weighting alone: the rated load is EnergyPlus unchanged
+# ---------------------------------------------------------------------------
+
+LOAD_ONLY = DefrostModel(load_weighted=True)
+LOADS = np.round(np.arange(1.0, 0.195, -0.01), 2)
+
+
+@pytest.mark.parametrize("RH", [1.0, 0.84, 0.6, 0.3, 0.05])
+def test_load_weighting_alone_is_energyplus_at_the_rated_load(RH):
+    """Bit for bit, at every outdoor state -- also where the deposition is on its floor."""
+    for T_out in (4.9, 4.0, 3.0, 2.0, 0.0, -2.0, -7.0, -15.0, -25.0, -40.0):
+        reference = CONSTANT.frost_state(T_out, RH)
+        for state in (LOAD_ONLY.frost_state(T_out, RH), LOAD_ONLY.frost_state(T_out, RH, load_ratio=1.0)):
+            assert state.active is reference.active
+            assert state.capacity_multiplier == reference.capacity_multiplier
+            assert state.power_multiplier == reference.power_multiplier
+            assert state.defrost_fraction == reference.defrost_fraction
+
+
+@pytest.mark.parametrize(
+    "model", [LOAD_ONLY, DefrostModel(frost_loss="moisture", load_weighted=True)], ids=["constant", "moisture"]
+)
+@pytest.mark.parametrize("RH", [0.84, 0.6])
+@pytest.mark.parametrize("T_out", [4.0, 2.0, -2.0, -7.0, -15.0])
+def test_load_weighted_correction_shrinks_continuously_with_the_load(model, RH, T_out):
+    """From the rated load down: monotone, no step -- also where the coil passes 0 degC in humid air."""
+    states = [model.frost_state(T_out, RH, load_ratio=float(r)) for r in LOADS]
+    capacity = [s.capacity_multiplier for s in states]
+    factor = [_cop_factor(s) for s in states]
+    fraction = [s.defrost_fraction for s in states]
+    assert all(b >= a - 1e-12 for a, b in zip(capacity, capacity[1:], strict=False))
+    assert all(b >= a - 1e-12 for a, b in zip(factor, factor[1:], strict=False))
+    assert all(b <= a + 1e-12 for a, b in zip(fraction, fraction[1:], strict=False))
+    # One hundredth of the load never moves the COP multiplier by more than 1.5 %.
+    assert max(b - a for a, b in zip(factor, factor[1:], strict=False)) < 0.015
+    # At a fifth of the load the coil is within 2 K of the air: (almost) nothing is left.
+    assert capacity[-1] > 0.995 and fraction[-1] < 1e-3
+
+
+def test_load_weighting_alone_follows_the_frost_drive():
+    """Coil temperature and frost drive at -7 degC, 84 %: the fixed loss is the rated one times the drive."""
+    T_out, ratio = -7.0, 0.5
+    rated, part = LOAD_ONLY.frost_state(T_out), LOAD_ONLY.frost_state(T_out, load_ratio=ratio)
+    assert part.T_coil_C == pytest.approx(T_out - ratio * (0.18 * T_out + 8.589), rel=1e-12)
+    w_out = humidity_ratio(T_out, 0.84)
+    drive = (w_out - saturation_humidity_ratio(part.T_coil_C)) / (w_out - saturation_humidity_ratio(rated.T_coil_C))
+    assert 0.3 < drive < 0.5  # half the temperature difference, less than half the drive
+    assert part.frost_loss_weight == pytest.approx(drive, rel=1e-12)
+    assert part.humidity_ratio_difference == pytest.approx(drive * rated.humidity_ratio_difference, rel=1e-12)
+    t_frac = 1.0 / (1.0 + 0.01446 / part.humidity_ratio_difference)
+    assert part.defrost_fraction == pytest.approx(t_frac, rel=1e-12)
+    assert part.capacity_multiplier == pytest.approx((1.0 - drive * 0.125) * (1.0 - t_frac), rel=1e-12)
+    assert part.power_multiplier == pytest.approx((1.0 - drive * (1.0 - 0.954)) * (1.0 - t_frac), rel=1e-12)
+
+
+def test_load_weighting_alone_keeps_the_energyplus_floor_where_the_rated_coil_cannot_frost():
+    """Dry air (-19 degC, 60 %): no deposition even at the rated load, and EnergyPlus still takes 0.875.
+
+    That loss is not tied to a deposition, so there is none for the load to
+    scale: the constant form keeps it at every load. The moisture form takes
+    nothing there at any load.
+    """
+    T_out, RH = -19.0, 0.6
+    reference = CONSTANT.frost_state(T_out, RH)
+    assert reference.humidity_ratio_difference == 1e-6 and reference.capacity_multiplier == pytest.approx(
+        0.875, abs=1e-3
+    )
+    for ratio in (1.0, 0.6, 0.2):
+        assert LOAD_ONLY.frost_state(T_out, RH, load_ratio=ratio).capacity_multiplier == reference.capacity_multiplier
+        assert (
+            not DefrostModel(frost_loss="moisture", load_weighted=True).frost_state(T_out, RH, load_ratio=ratio).active
+        )
+
+
+def test_boiler_with_load_weighting_alone_is_the_default_at_the_nameplate_and_in_a_dynamic_run(boilers):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        load_only = AirSourceHeatPumpBoiler(defrost=LOAD_ONLY)
+    default = boilers["constant"]
+    for T_tank_w, T0 in ((35.0, 2.0), (45.0, -7.0), (55.0, -15.0)):
+        a = load_only.analyze_steady(T_tank_w=T_tank_w, T0=T0, Q_ref_tank=15000.0)
+        b = default.analyze_steady(T_tank_w=T_tank_w, T0=T0, Q_ref_tank=15000.0)
+        assert a == b or all(a[k] == b[k] or (a[k] != a[k] and b[k] != b[k]) for k in b), (T_tank_w, T0)
+    # Part load: less frost than the default, more than none.
+    point = {"T_tank_w": 27.5, "T0": 2.0, "Q_ref_tank": 0.54 * 0.667 * 15000.0}
+    cop = [m.analyze_steady(**point)["cop_sys [-]"] for m in (default, load_only, boilers["off"])]
+    assert cop[0] < cop[1] < cop[2]
+    # The thermostat asks for the nameplate: every step of a dynamic run is at a load ratio of one.
+    n = 12
+    schedule = {
+        "simulation_period_sec": n * 600,
+        "dt_s": 600,
+        "T_tank_w_init_C": 55.0,
+        "dhw_usage_schedule": np.zeros(n),
+        "T0_schedule": np.linspace(-6.0, 4.0, n),
+    }
+    import pandas as pd
+
+    pd.testing.assert_frame_equal(
+        load_only.analyze_dynamic(**schedule), default.analyze_dynamic(**schedule), check_exact=True
+    )

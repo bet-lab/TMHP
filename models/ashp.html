@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-11-14T09:32:19+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T10:47:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -681,13 +681,86 @@ times the delivered-heat factor, and state points are that cycle’s.</p></li>
 </tbody>
 </table>
 </div>
+<p id="ashp-frost-load"><strong>Part load.</strong> The table is the unit running flat out, which is what the
+coil-temperature correlation describes. A unit that delivers less loads its
+coil less: the difference between the air and the coil surface is what drives
+the heat in, so at a load ratio <span class="math notranslate nohighlight">\(r\)</span> it is taken <span class="math notranslate nohighlight">\(r\)</span> times as
+large,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[T_{coil} = T_{out} - r\,(0.18\,T_{out} + 8.589), \qquad
+r = \min\left(1,\ \frac{\text{frost-free duty}}{\text{hp\_capacity}\;(0.18\,T_{out} + 8.589)/(0.18 \cdot 7 + 8.589)}\right)\]</div>
+</div>
+<p>and the correction follows the frost drive that is left: the humidity ratio
+the air can leave on that coil as frost, as a share <span class="math notranslate nohighlight">\(\varphi(r)\)</span> of what
+it leaves on the rated-load coil. <span class="math notranslate nohighlight">\(\Delta\omega\)</span> and the two fixed
+losses (<code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">−</span> <span class="pre">0.875</span></code>, <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">−</span> <span class="pre">0.954</span></code>) are multiplied by <span class="math notranslate nohighlight">\(\varphi\)</span>. At
+<span class="math notranslate nohighlight">\(r = 1\)</span> nothing differs from the table at any outdoor state; a coil
+that rises to the air’s frost point, or to 0 °C, has no frost. The
+denominator of <span class="math notranslate nohighlight">\(r\)</span> is the capacity of the unit the correlation
+describes at that outdoor temperature — the nameplate, declared at 7 °C
+(EN 14511 A7, ISO 5151 H1), reduced as the correlation’s own temperature
+difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
+0.6 of its nameplate at −15 °C because that is its capacity there is at
+<span class="math notranslate nohighlight">\(r = 1\)</span>, not part-loaded. The default 4 kW unit against a 20 °C room:</p>
+<div class="table-wrapper colwidths-given docutils container" id="id3">
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">System COP under frost, by load (84 % relative humidity)</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Request</p></th>
+<th class="head"><p>2 °C</p></th>
+<th class="head"><p>0 °C</p></th>
+<th class="head"><p>−7 °C</p></th>
+<th class="head"><p>−15 °C</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>3 kW (<span class="math notranslate nohighlight">\(r = 1\)</span> at each)</p></td>
+<td><p>3.63</p></td>
+<td><p>3.56</p></td>
+<td><p>3.31</p></td>
+<td><p>2.81</p></td>
+</tr>
+<tr class="row-odd"><td><p>2 kW</p></td>
+<td><p>4.37</p></td>
+<td><p>4.18</p></td>
+<td><p>3.69</p></td>
+<td><p>3.10</p></td>
+</tr>
+<tr class="row-even"><td><p>2 kW, <code class="docutils literal notranslate"><span class="pre">load_weighted=False</span></code></p></td>
+<td><p>3.93</p></td>
+<td><p>3.83</p></td>
+<td><p>3.53</p></td>
+<td><p>3.09</p></td>
+</tr>
+<tr class="row-odd"><td><p>1 kW (cycling at the minimum speed)</p></td>
+<td><p>4.34</p></td>
+<td><p>4.21</p></td>
+<td><p>3.87</p></td>
+<td><p>3.48</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">DefrostModel(load_weighted=False)</span></code> is EnergyPlus at every load. A unit that
+cycles below its minimum capacity is loaded by what the running machine
+delivers. What the load term assumes: the air flow over the coil does not
+follow the load — a unit that slows its outdoor fan with the compressor has a
+colder coil than this, so the part-load frost here is a lower bound.</p>
 <p>The outdoor humidity is an optional input: <code class="docutils literal notranslate"><span class="pre">analyze_steady(...,</span> <span class="pre">RH_out=0.7)</span></code>
 and <code class="docutils literal notranslate"><span class="pre">analyze_dynamic(...,</span> <span class="pre">RH_out_schedule=...)</span></code> take a relative humidity as a
 fraction. Without it the model uses 84 %, the humidity of the EN 14511 rating
 condition A2 (dry bulb 2 °C, wet bulb 1 °C). <code class="docutils literal notranslate"><span class="pre">defrost=None</span></code> switches the
 correction off, and a <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.DefrostModel</span></code> sets the outdoor limit, the
 width of the transition below it and the default humidity.</p>
-<p>Three things differ from EnergyPlus. The transition above replaces a switch:
+<p>Four things differ from EnergyPlus: the load term above, and three more. The transition above replaces a switch:
 in EnergyPlus the correction is in full at 5.0 °C and absent at 5.1 °C, where
 its cost is at its largest, so the COP of the default unit stepped from 3.49 to
 4.64 between 5.0 and 5.5 °C. The 5 °C limit is a setting of the defrost
@@ -701,7 +774,12 @@ evaporating temperature this model solves — the constants were fitted with
 that estimate.</p>
 <p>What it leaves out: dry air is not frost-free in the source model (the
 frosted-coil multipliers 0.875 and 0.954 apply whenever the outdoor air is
-below the limit, whatever its humidity), and that is kept; and the room is not
+below the limit, whatever its humidity), and that is kept at the rated load.
+It shows through the load term in one place: in air too dry to frost even the
+rated-load coil (below −18.3 °C at 60 % relative humidity, below −39 °C at
+84 %) there is no frost drive for the load to scale, and the fixed
+multipliers stay at every load — at half load and 60 % humidity the COP
+multiplier is 0.997 at −15 °C and 0.917 at −18.3 °C. And the room is not
 cooled in time during a defrost — its effect is in the mean.
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code> reports the same mean
 ceiling, with the frost-free one as <code class="docutils literal notranslate"><span class="pre">Q_max_frost_free</span> <span class="pre">[W]</span></code>.</p>

@@ -209,383 +209,687 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="35">
 </span><span data-line="36"><span class="sd">    Q_{defrost} = 0.01\\,t_{frac}\\,(7.222 - T_{out})\\,Q_{rated} / 1.01667 .</span>
 </span><span data-line="37">
-</span><span data-line="38"><span class="sd">Three things differ from EnergyPlus. The first is the onset of frosting:</span>
-</span><span data-line="39">
-</span><span data-line="40"><span class="sd">* **Onset.** In EnergyPlus the correction is a switch at the maximum outdoor</span>
-</span><span data-line="41"><span class="sd">  temperature for defrost operation: at 5.0 degC and the default humidity the</span>
-</span><span data-line="42"><span class="sd">  capacity multiplier is 0.771, at 5.1 degC it is 1, and the system COP of a</span>
-</span><span data-line="43"><span class="sd">  unit steps by a quarter across a tenth of a kelvin. That limit is a setting</span>
-</span><span data-line="44"><span class="sd">  of the defrost controller, not a temperature at which a coil frosts over:</span>
-</span><span data-line="45"><span class="sd">  the coil-temperature correlation is at -4.5 degC there, and it puts a</span>
-</span><span data-line="46"><span class="sd">  0 degC coil at 10.5 degC outdoor. A coil does not frost all at once</span>
-</span><span data-line="47"><span class="sd">  either. Near the onset its surface is close to freezing, so frost forms on</span>
-</span><span data-line="48"><span class="sd">  part of it and for part of the time, and what a rating measures falls off</span>
-</span><span data-line="49"><span class="sd">  gradually. Here the limit keeps its EnergyPlus meaning -- no frost above</span>
-</span><span data-line="50"><span class="sd">  ``T_out_max`` (5 degC) -- and the correction grows from nothing there to</span>
-</span><span data-line="51"><span class="sd">  its full size ``transition_K`` (3 K) below, at 2 degC: the frosting rating</span>
-</span><span data-line="52"><span class="sd">  condition of EN 14511 (A2: 2 degC dry bulb, 1 degC wet bulb), which is</span>
-</span><span data-line="53"><span class="sd">  also where the default humidity comes from. In between it applies to the</span>
-</span><span data-line="54"><span class="sd">  share ``w`` of the runtime that rises linearly from zero to one:</span>
-</span><span data-line="55">
-</span><span data-line="56"><span class="sd">  .. math::</span>
-</span><span data-line="57">
-</span><span data-line="58"><span class="sd">      t_{frac} &amp;\\leftarrow w\\,t_{frac}</span>
-</span><span data-line="59">
-</span><span data-line="60"><span class="sd">      \\text{capacity multiplier} &amp;= 1 - w\\,\\left(1 - 0.875\\,(1 - t_{frac})\\right)</span>
-</span><span data-line="61">
-</span><span data-line="62"><span class="sd">      \\text{power multiplier} &amp;= 1 - w\\,\\left(1 - 0.954\\,(1 - t_{frac})\\right)</span>
-</span><span data-line="63">
-</span><span data-line="64"><span class="sd">  -- the mean of a unit that frosts for the share ``w`` of its runtime and</span>
-</span><span data-line="65"><span class="sd">  runs frost-free for the rest. At and below 2 degC and above 5 degC nothing</span>
-</span><span data-line="66"><span class="sd">  differs from EnergyPlus; ``transition_K=0`` restores the switch.</span>
-</span><span data-line="67">
-</span><span data-line="68"><span class="sd">The other two are there so that no input is added:</span>
-</span><span data-line="69">
-</span><span data-line="70"><span class="sd">* **Defrost power.** EnergyPlus asks for a curve of defrost power per unit of</span>
-</span><span data-line="71"><span class="sd">  rated capacity. Here the compressor is taken to draw, while it defrosts,</span>
-</span><span data-line="72"><span class="sd">  the power it draws while it heats: ``E_defrost = t_frac * E_cmp``.</span>
-</span><span data-line="73"><span class="sd">* **Outdoor humidity.** EnergyPlus reads it from the weather file. Here it is</span>
-</span><span data-line="74"><span class="sd">  an optional input; without it the relative humidity is 84 %, the value of</span>
-</span><span data-line="75"><span class="sd">  the EN 14511 rating condition A2 (dry bulb 2 degC, wet bulb 1 degC).</span>
-</span><span data-line="76">
-</span><span data-line="77"><span class="sd">The coil temperature is the correlation above, not the evaporating temperature</span>
-</span><span data-line="78"><span class="sd">a cycle model solves: the constants 0.01446, 0.875 and 0.954 were fitted with</span>
-</span><span data-line="79"><span class="sd">that estimate, and the solved saturation temperature is a different quantity</span>
-</span><span data-line="80"><span class="sd">(colder than the fin surface, and dependent on load). A caller that wants its</span>
-</span><span data-line="81"><span class="sd">own coil temperature passes ``T_coil_C``; the physical condition that the coil</span>
-</span><span data-line="82"><span class="sd">be below 0 degC is checked either way.</span>
-</span><span data-line="83">
-</span><span data-line="84"><span class="sd">How a result row is averaged</span>
-</span><span data-line="85"><span class="sd">----------------------------</span>
-</span><span data-line="86"><span class="sd">A request ``Q`` has to be met by the mean over frosting and defrost, so the</span>
-</span><span data-line="87"><span class="sd">frost-free cycle is solved at the larger duty</span>
-</span><span data-line="88"><span class="sd">``(Q + Q_defrost) / capacity multiplier``. :func:`apply_defrost` then turns</span>
-</span><span data-line="89"><span class="sd">that frost-free row into the mean:</span>
-</span><span data-line="90">
-</span><span data-line="91"><span class="sd">* heat and flow rates are multiplied by ``heat_factor`` (delivered heat over</span>
-</span><span data-line="92"><span class="sd">  frost-free heat), so the delivered heat is the request and the refrigerant</span>
-</span><span data-line="93"><span class="sd">  cycle stays in balance with it. Power that only moves the delivered heat (an</span>
-</span><span data-line="94"><span class="sd">  indoor fan) is averaged with it;</span>
-</span><span data-line="95"><span class="sd">* compressor power is multiplied by ``power multiplier + t_frac`` (heating,</span>
-</span><span data-line="96"><span class="sd">  then defrosting) and outdoor-fan power by the power multiplier;</span>
-</span><span data-line="97"><span class="sd">* temperatures, pressures, speed and efficiencies keep the frost-free values.</span>
-</span><span data-line="98"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="99">
-</span><span data-line="100"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-</span><span data-line="101">
-</span><span data-line="102"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
-</span><span data-line="103"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
-</span><span data-line="104"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-</span><span data-line="105">
-</span><span data-line="106"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="107">    <span class="s2">&quot;T_OUT_MAX_DEFROST_C&quot;</span><span class="p">,</span>
-</span><span data-line="108">    <span class="s2">&quot;FROST_TRANSITION_K&quot;</span><span class="p">,</span>
-</span><span data-line="109">    <span class="s2">&quot;RH_OUT_DEFAULT&quot;</span><span class="p">,</span>
-</span><span data-line="110">    <span class="s2">&quot;DEFROST_FRACTION_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="111">    <span class="s2">&quot;FROST_CAPACITY_FACTOR_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="112">    <span class="s2">&quot;FROST_POWER_FACTOR_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="113">    <span class="s2">&quot;DEFROST_POWER_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="114">    <span class="s2">&quot;DEFROST_LOAD_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="115">    <span class="s2">&quot;RH_OUT_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="116">    <span class="s2">&quot;DefrostModel&quot;</span><span class="p">,</span>
-</span><span data-line="117">    <span class="s2">&quot;FrostState&quot;</span><span class="p">,</span>
-</span><span data-line="118">    <span class="s2">&quot;NO_FROST&quot;</span><span class="p">,</span>
-</span><span data-line="119">    <span class="s2">&quot;resolve_defrost&quot;</span><span class="p">,</span>
-</span><span data-line="120">    <span class="s2">&quot;frost_free_keys&quot;</span><span class="p">,</span>
-</span><span data-line="121">    <span class="s2">&quot;apply_defrost&quot;</span><span class="p">,</span>
-</span><span data-line="122">    <span class="s2">&quot;saturation_humidity_ratio&quot;</span><span class="p">,</span>
-</span><span data-line="123">    <span class="s2">&quot;humidity_ratio&quot;</span><span class="p">,</span>
-</span><span data-line="124"><span class="p">]</span>
-</span><span data-line="125">
-</span><span data-line="126"><span class="c1">#: Maximum outdoor dry-bulb temperature for defrost operation [degC] (EnergyPlus default).</span>
-</span><span data-line="127"><span class="n">T_OUT_MAX_DEFROST_C</span> <span class="o">=</span> <span class="mf">5.0</span>
-</span><span data-line="128"><span class="c1">#: Width of the outdoor-temperature band below ``T_out_max`` over which the frost</span>
-</span><span data-line="129"><span class="c1">#: correction grows to its full size [K]: from the EnergyPlus limit (5 degC, no</span>
-</span><span data-line="130"><span class="c1">#: frost above) to the frosting rating condition of EN 14511 (A2, 2 degC dry bulb).</span>
-</span><span data-line="131"><span class="n">FROST_TRANSITION_K</span> <span class="o">=</span> <span class="mf">3.0</span>
-</span><span data-line="132"><span class="c1">#: Outdoor relative humidity used when none is given [-]: EN 14511 A2 (2 degC dry bulb, 1 degC wet bulb).</span>
-</span><span data-line="133"><span class="n">RH_OUT_DEFAULT</span> <span class="o">=</span> <span class="mf">0.84</span>
-</span><span data-line="134"><span class="c1">#: Standard atmospheric pressure [Pa].</span>
-</span><span data-line="135"><span class="n">P_ATM</span> <span class="o">=</span> <span class="mf">101325.0</span>
-</span><span data-line="136">
-</span><span data-line="137"><span class="c1">#: Fraction of the compressor&#39;s runtime spent defrosting [-].</span>
-</span><span data-line="138"><span class="n">DEFROST_FRACTION_KEY</span> <span class="o">=</span> <span class="s2">&quot;defrost_fraction [-]&quot;</span>
-</span><span data-line="139"><span class="c1">#: Heating capacity multiplier of the frosted coil, defrost time included [-].</span>
-</span><span data-line="140"><span class="n">FROST_CAPACITY_FACTOR_KEY</span> <span class="o">=</span> <span class="s2">&quot;frost_capacity_factor [-]&quot;</span>
-</span><span data-line="141"><span class="c1">#: Input power multiplier of the frosted coil, defrost time included [-].</span>
-</span><span data-line="142"><span class="n">FROST_POWER_FACTOR_KEY</span> <span class="o">=</span> <span class="s2">&quot;frost_power_factor [-]&quot;</span>
-</span><span data-line="143"><span class="c1">#: Mean compressor power spent defrosting [W].</span>
-</span><span data-line="144"><span class="n">DEFROST_POWER_KEY</span> <span class="o">=</span> <span class="s2">&quot;E_defrost [W]&quot;</span>
-</span><span data-line="145"><span class="c1">#: Mean heat a reverse-cycle defrost takes from the room [W].</span>
-</span><span data-line="146"><span class="n">DEFROST_LOAD_KEY</span> <span class="o">=</span> <span class="s2">&quot;Q_defrost [W]&quot;</span>
-</span><span data-line="147"><span class="c1">#: Outdoor relative humidity the frost correction used [-].</span>
-</span><span data-line="148"><span class="n">RH_OUT_KEY</span> <span class="o">=</span> <span class="s2">&quot;RH_out [-]&quot;</span>
-</span><span data-line="149">
-</span><span data-line="150"><span class="c1"># EnergyPlus Engineering Reference, Coil:Heating:DX:SingleSpeed, on-demand defrost.</span>
-</span><span data-line="151"><span class="n">_COIL_SLOPE</span> <span class="o">=</span> <span class="mf">0.82</span>
-</span><span data-line="152"><span class="n">_COIL_OFFSET_K</span> <span class="o">=</span> <span class="o">-</span><span class="mf">8.589</span>
-</span><span data-line="153"><span class="n">_DW_MIN</span> <span class="o">=</span> <span class="mf">1.0e-6</span>
-</span><span data-line="154"><span class="n">_DW_SCALE</span> <span class="o">=</span> <span class="mf">0.01446</span>
-</span><span data-line="155"><span class="n">_CAPACITY_FROSTED</span> <span class="o">=</span> <span class="mf">0.875</span>
-</span><span data-line="156"><span class="n">_POWER_FROSTED</span> <span class="o">=</span> <span class="mf">0.954</span>
-</span><span data-line="157"><span class="c1"># ... reverse-cycle defrost load.</span>
-</span><span data-line="158"><span class="n">_LOAD_COEFFICIENT</span> <span class="o">=</span> <span class="mf">0.01</span>
-</span><span data-line="159"><span class="n">_LOAD_T_REF_C</span> <span class="o">=</span> <span class="mf">7.222</span>
-</span><span data-line="160"><span class="n">_LOAD_CAPACITY_DIVISOR</span> <span class="o">=</span> <span class="mf">1.01667</span>
-</span><span data-line="161">
-</span><span data-line="162">
+</span><span data-line="38"><span class="sd">Four things differ from EnergyPlus. The first two change the correction --</span>
+</span><span data-line="39"><span class="sd">the onset of frosting, here, and the load on the coil, in the next section:</span>
+</span><span data-line="40">
+</span><span data-line="41"><span class="sd">* **Onset.** In EnergyPlus the correction is a switch at the maximum outdoor</span>
+</span><span data-line="42"><span class="sd">  temperature for defrost operation: at 5.0 degC and the default humidity the</span>
+</span><span data-line="43"><span class="sd">  capacity multiplier is 0.771, at 5.1 degC it is 1, and the system COP of a</span>
+</span><span data-line="44"><span class="sd">  unit steps by a quarter across a tenth of a kelvin. That limit is a setting</span>
+</span><span data-line="45"><span class="sd">  of the defrost controller, not a temperature at which a coil frosts over:</span>
+</span><span data-line="46"><span class="sd">  the coil-temperature correlation is at -4.5 degC there, and it puts a</span>
+</span><span data-line="47"><span class="sd">  0 degC coil at 10.5 degC outdoor. A coil does not frost all at once</span>
+</span><span data-line="48"><span class="sd">  either. Near the onset its surface is close to freezing, so frost forms on</span>
+</span><span data-line="49"><span class="sd">  part of it and for part of the time, and what a rating measures falls off</span>
+</span><span data-line="50"><span class="sd">  gradually. Here the limit keeps its EnergyPlus meaning -- no frost above</span>
+</span><span data-line="51"><span class="sd">  ``T_out_max`` (5 degC) -- and the correction grows from nothing there to</span>
+</span><span data-line="52"><span class="sd">  its full size ``transition_K`` (3 K) below, at 2 degC: the frosting rating</span>
+</span><span data-line="53"><span class="sd">  condition of EN 14511 (A2: 2 degC dry bulb, 1 degC wet bulb), which is</span>
+</span><span data-line="54"><span class="sd">  also where the default humidity comes from. In between it applies to the</span>
+</span><span data-line="55"><span class="sd">  share ``w`` of the runtime that rises linearly from zero to one:</span>
+</span><span data-line="56">
+</span><span data-line="57"><span class="sd">  .. math::</span>
+</span><span data-line="58">
+</span><span data-line="59"><span class="sd">      t_{frac} &amp;\\leftarrow w\\,t_{frac}</span>
+</span><span data-line="60">
+</span><span data-line="61"><span class="sd">      \\text{capacity multiplier} &amp;= 1 - w\\,\\left(1 - 0.875\\,(1 - t_{frac})\\right)</span>
+</span><span data-line="62">
+</span><span data-line="63"><span class="sd">      \\text{power multiplier} &amp;= 1 - w\\,\\left(1 - 0.954\\,(1 - t_{frac})\\right)</span>
+</span><span data-line="64">
+</span><span data-line="65"><span class="sd">  -- the mean of a unit that frosts for the share ``w`` of its runtime and</span>
+</span><span data-line="66"><span class="sd">  runs frost-free for the rest. At and below 2 degC and above 5 degC nothing</span>
+</span><span data-line="67"><span class="sd">  differs from EnergyPlus; ``transition_K=0`` restores the switch.</span>
+</span><span data-line="68">
+</span><span data-line="69"><span class="sd">The other two are there so that no input is added:</span>
+</span><span data-line="70">
+</span><span data-line="71"><span class="sd">* **Defrost power.** EnergyPlus asks for a curve of defrost power per unit of</span>
+</span><span data-line="72"><span class="sd">  rated capacity. Here the compressor is taken to draw, while it defrosts,</span>
+</span><span data-line="73"><span class="sd">  the power it draws while it heats: ``E_defrost = t_frac * E_cmp``.</span>
+</span><span data-line="74"><span class="sd">* **Outdoor humidity.** EnergyPlus reads it from the weather file. Here it is</span>
+</span><span data-line="75"><span class="sd">  an optional input; without it the relative humidity is 84 %, the value of</span>
+</span><span data-line="76"><span class="sd">  the EN 14511 rating condition A2 (dry bulb 2 degC, wet bulb 1 degC).</span>
+</span><span data-line="77">
+</span><span data-line="78"><span class="sd">The coil temperature is the correlation above, not the evaporating temperature</span>
+</span><span data-line="79"><span class="sd">a cycle model solves: the constants 0.01446, 0.875 and 0.954 were fitted with</span>
+</span><span data-line="80"><span class="sd">that estimate, and the solved saturation temperature is a different quantity</span>
+</span><span data-line="81"><span class="sd">(colder than the fin surface, and dependent on load). A caller that wants its</span>
+</span><span data-line="82"><span class="sd">own coil temperature passes ``T_coil_C``; the physical condition that the coil</span>
+</span><span data-line="83"><span class="sd">be below 0 degC is checked either way.</span>
+</span><span data-line="84">
+</span><span data-line="85"><span class="sd">The load on the coil</span>
+</span><span data-line="86"><span class="sd">--------------------</span>
+</span><span data-line="87"><span class="sd">The EnergyPlus correction is a function of the outdoor temperature and</span>
+</span><span data-line="88"><span class="sd">humidity alone: a unit at a third of its load is corrected like one flat out.</span>
+</span><span data-line="89"><span class="sd">Its coil-temperature correlation ``0.82 T_out - 8.589`` is that of a unit</span>
+</span><span data-line="90"><span class="sd">running flat out. The difference between the air and the coil surface is what</span>
+</span><span data-line="91"><span class="sd">drives the heat into the coil, so at a load ratio ``r`` it is taken ``r``</span>
+</span><span data-line="92"><span class="sd">times as large: ``T_coil = T_out - r (0.18 T_out + 8.589)``. A lightly loaded</span>
+</span><span data-line="93"><span class="sd">coil is warmer and takes less water out of the air. This is on by default</span>
+</span><span data-line="94"><span class="sd">(``DefrostModel.load_weighted``); ``load_weighted=False`` is EnergyPlus at</span>
+</span><span data-line="95"><span class="sd">every load. No constant is added.</span>
+</span><span data-line="96">
+</span><span data-line="97"><span class="sd">*The load ratio.* The difference of the correlation itself shrinks with the</span>
+</span><span data-line="98"><span class="sd">outdoor temperature (10.1 K at 8.3 degC, 5.9 K at -15 degC): it carries the</span>
+</span><span data-line="99"><span class="sd">capacity decline of the unit it describes. ``r`` is therefore the frost-free</span>
+</span><span data-line="100"><span class="sd">duty over what that unit delivers at the same outdoor temperature,</span>
+</span><span data-line="101"><span class="sd">``Q_rated (0.18 T_out + 8.589) / (0.18 * 7 + 8.589)`` with the nameplate</span>
+</span><span data-line="102"><span class="sd">``Q_rated`` declared at 7 degC (EN 14511 A7, ISO 5151 H1), and at most 1</span>
+</span><span data-line="103"><span class="sd">(:meth:`DefrostModel.reference_capacity`, :meth:`DefrostModel.load_ratio`). In</span>
+</span><span data-line="104"><span class="sd">other words the coil sits ``(duty / Q_rated) * 9.85 K`` below the air, never</span>
+</span><span data-line="105"><span class="sd">more than the correlation says. Against the nameplate alone, a unit delivering</span>
+</span><span data-line="106"><span class="sd">0.6 of it at -15 degC because that is its capacity there would be read as</span>
+</span><span data-line="107"><span class="sd">part-loaded. The ratio depends on the correction it gives (the duty is the</span>
+</span><span data-line="108"><span class="sd">request over the capacity multiplier), so the two are solved together</span>
+</span><span data-line="109"><span class="sd">(:meth:`DefrostModel.frost_state_at_duty`); a unit cycling on its speed floor</span>
+</span><span data-line="110"><span class="sd">is loaded by what the running machine delivers.</span>
+</span><span data-line="111">
+</span><span data-line="112"><span class="sd">*The frost drive.* The humidity ratio the air can leave on the coil as frost</span>
+</span><span data-line="113"><span class="sd">-- what it holds, up to saturation at 0 degC, less saturation at the coil</span>
+</span><span data-line="114"><span class="sd">temperature (a coil at or above 0 degC counts as 0 degC: it collects water,</span>
+</span><span data-line="115"><span class="sd">not frost) -- is a share ``phi(r)`` of the rated-load drive. The rated-load</span>
+</span><span data-line="116"><span class="sd">:math:`\\Delta\\omega` and the two fixed losses (``1 - 0.875``,</span>
+</span><span data-line="117"><span class="sd">``1 - 0.954``) are multiplied by it:</span>
+</span><span data-line="118">
+</span><span data-line="119"><span class="sd">.. math::</span>
+</span><span data-line="120">
+</span><span data-line="121"><span class="sd">    \\Delta\\omega(r) &amp;= \\varphi(r)\\,\\Delta\\omega(1), \\qquad</span>
+</span><span data-line="122"><span class="sd">    t_{frac} = \\frac{1}{1 + 0.01446 / \\Delta\\omega(r)}</span>
+</span><span data-line="123">
+</span><span data-line="124"><span class="sd">    \\text{capacity multiplier} &amp;= \\left(1 - 0.125\\,\\varphi\\right)(1 - t_{frac}), \\qquad</span>
+</span><span data-line="125"><span class="sd">    \\text{power multiplier} = \\left(1 - 0.046\\,\\varphi\\right)(1 - t_{frac})</span>
+</span><span data-line="126">
+</span><span data-line="127"><span class="sd">At ``r = 1``, ``phi = 1`` and the result is EnergyPlus unchanged at every</span>
+</span><span data-line="128"><span class="sd">outdoor state; it goes to no correction continuously as the load falls and the</span>
+</span><span data-line="129"><span class="sd">coil rises to the air&#39;s frost point.</span>
+</span><span data-line="130">
+</span><span data-line="131"><span class="sd">*What it inherits.* The factors 0.875 and 0.954 are what a coil loses, on</span>
+</span><span data-line="132"><span class="sd">average, between two defrosts, and EnergyPlus applies them wherever the</span>
+</span><span data-line="133"><span class="sd">outdoor temperature is below the limit -- also to air that cannot deposit</span>
+</span><span data-line="134"><span class="sd">even on the rated-load coil, where :math:`\\Delta\\omega` sits on its floor</span>
+</span><span data-line="135"><span class="sd">of 1e-6 (at 60 % relative humidity below -18.3 degC, at 84 % below -39 degC).</span>
+</span><span data-line="136"><span class="sd">There is no drive there for the load to scale, and they stay at every load.</span>
+</span><span data-line="137"><span class="sd">Just above that limit a part-loaded coil has no frost and no correction; just</span>
+</span><span data-line="138"><span class="sd">below it the full fixed loss is back. At half load and 60 % humidity the COP</span>
+</span><span data-line="139"><span class="sd">multiplier falls from 0.997 at -15 degC to 0.917 at -18.3 degC -- more</span>
+</span><span data-line="140"><span class="sd">correction in drier, colder air. At 84 % the same return is spread from about</span>
+</span><span data-line="141"><span class="sd">-29 degC to -39 degC. The cliff is the EnergyPlus floor showing through, not a</span>
+</span><span data-line="142"><span class="sd">property of the load term: it cannot be removed while ``r = 1`` is EnergyPlus</span>
+</span><span data-line="143"><span class="sd">and the correction is continuous in ``r``.</span>
+</span><span data-line="144">
+</span><span data-line="145"><span class="sd">*What it assumes.* The air flow over the coil does not follow the load. A</span>
+</span><span data-line="146"><span class="sd">unit that slows its outdoor fan with the compressor has a colder coil than</span>
+</span><span data-line="147"><span class="sd">this, so the part-load frost here is a lower bound.</span>
+</span><span data-line="148">
+</span><span data-line="149"><span class="sd">How a result row is averaged</span>
+</span><span data-line="150"><span class="sd">----------------------------</span>
+</span><span data-line="151"><span class="sd">A request ``Q`` has to be met by the mean over frosting and defrost, so the</span>
+</span><span data-line="152"><span class="sd">frost-free cycle is solved at the larger duty</span>
+</span><span data-line="153"><span class="sd">``(Q + Q_defrost) / capacity multiplier``. :func:`apply_defrost` then turns</span>
+</span><span data-line="154"><span class="sd">that frost-free row into the mean:</span>
+</span><span data-line="155">
+</span><span data-line="156"><span class="sd">* heat and flow rates are multiplied by ``heat_factor`` (delivered heat over</span>
+</span><span data-line="157"><span class="sd">  frost-free heat), so the delivered heat is the request and the refrigerant</span>
+</span><span data-line="158"><span class="sd">  cycle stays in balance with it. Power that only moves the delivered heat (an</span>
+</span><span data-line="159"><span class="sd">  indoor fan) is averaged with it;</span>
+</span><span data-line="160"><span class="sd">* compressor power is multiplied by ``power multiplier + t_frac`` (heating,</span>
+</span><span data-line="161"><span class="sd">  then defrosting) and outdoor-fan power by the power multiplier;</span>
+</span><span data-line="162"><span class="sd">* temperatures, pressures, speed and efficiencies keep the frost-free values.</span>
+</span><span data-line="163">
+</span><span data-line="164"><span class="sd">The air-to-air model does this inside its ``analyze_steady``; a boiler&#39;s</span>
+</span><span data-line="165"><span class="sd">``analyze_steady`` is decorated with :func:`steady_defrost`, which solves the</span>
+</span><span data-line="166"><span class="sd">frost-free row through the model&#39;s own part-load and envelope handling and</span>
+</span><span data-line="167"><span class="sd">hands it to the model for averaging. For a boiler the heat a reverse-cycle</span>
+</span><span data-line="168"><span class="sd">defrost takes comes out of the water it heats.</span>
+</span><span data-line="169"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="170">
+</span><span data-line="171"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="172">
+</span><span data-line="173"><span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+</span><span data-line="174"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="175"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span>
+</span><span data-line="176"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+</span><span data-line="177"><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+</span><span data-line="178"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">cast</span>
+</span><span data-line="179">
+</span><span data-line="180"><span class="kn">from</span><span class="w"> </span><span class="nn">._validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_steady</span>
+</span><span data-line="181">
+</span><span data-line="182"><span class="n">_F</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;_F&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span>
+</span><span data-line="183">
+</span><span data-line="184"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="185">    <span class="s2">&quot;T_OUT_MAX_DEFROST_C&quot;</span><span class="p">,</span>
+</span><span data-line="186">    <span class="s2">&quot;FROST_TRANSITION_K&quot;</span><span class="p">,</span>
+</span><span data-line="187">    <span class="s2">&quot;RH_OUT_DEFAULT&quot;</span><span class="p">,</span>
+</span><span data-line="188">    <span class="s2">&quot;T_RATING_HEATING_C&quot;</span><span class="p">,</span>
+</span><span data-line="189">    <span class="s2">&quot;DEFROST_FRACTION_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="190">    <span class="s2">&quot;FROST_CAPACITY_FACTOR_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="191">    <span class="s2">&quot;FROST_POWER_FACTOR_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="192">    <span class="s2">&quot;DEFROST_POWER_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="193">    <span class="s2">&quot;DEFROST_LOAD_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="194">    <span class="s2">&quot;RH_OUT_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="195">    <span class="s2">&quot;DefrostModel&quot;</span><span class="p">,</span>
+</span><span data-line="196">    <span class="s2">&quot;FrostState&quot;</span><span class="p">,</span>
+</span><span data-line="197">    <span class="s2">&quot;NO_FROST&quot;</span><span class="p">,</span>
+</span><span data-line="198">    <span class="s2">&quot;resolve_defrost&quot;</span><span class="p">,</span>
+</span><span data-line="199">    <span class="s2">&quot;frost_free_keys&quot;</span><span class="p">,</span>
+</span><span data-line="200">    <span class="s2">&quot;apply_defrost&quot;</span><span class="p">,</span>
+</span><span data-line="201">    <span class="s2">&quot;steady_defrost&quot;</span><span class="p">,</span>
+</span><span data-line="202">    <span class="s2">&quot;saturation_humidity_ratio&quot;</span><span class="p">,</span>
+</span><span data-line="203">    <span class="s2">&quot;humidity_ratio&quot;</span><span class="p">,</span>
+</span><span data-line="204"><span class="p">]</span>
+</span><span data-line="205">
+</span><span data-line="206"><span class="c1">#: Maximum outdoor dry-bulb temperature for defrost operation [degC] (EnergyPlus default).</span>
+</span><span data-line="207"><span class="n">T_OUT_MAX_DEFROST_C</span> <span class="o">=</span> <span class="mf">5.0</span>
+</span><span data-line="208"><span class="c1">#: Width of the outdoor-temperature band below ``T_out_max`` over which the frost</span>
+</span><span data-line="209"><span class="c1">#: correction grows to its full size [K]: from the EnergyPlus limit (5 degC, no</span>
+</span><span data-line="210"><span class="c1">#: frost above) to the frosting rating condition of EN 14511 (A2, 2 degC dry bulb).</span>
+</span><span data-line="211"><span class="n">FROST_TRANSITION_K</span> <span class="o">=</span> <span class="mf">3.0</span>
+</span><span data-line="212"><span class="c1">#: Outdoor relative humidity used when none is given [-]: EN 14511 A2 (2 degC dry bulb, 1 degC wet bulb).</span>
+</span><span data-line="213"><span class="n">RH_OUT_DEFAULT</span> <span class="o">=</span> <span class="mf">0.84</span>
+</span><span data-line="214"><span class="c1">#: Standard atmospheric pressure [Pa].</span>
+</span><span data-line="215"><span class="n">P_ATM</span> <span class="o">=</span> <span class="mf">101325.0</span>
+</span><span data-line="216"><span class="c1">#: Outdoor dry bulb at which a nameplate heating capacity is declared [degC]:</span>
+</span><span data-line="217"><span class="c1">#: the standard rating condition of EN 14511 (A7) and ISO 5151 (H1, 7 degC dry</span>
+</span><span data-line="218"><span class="c1">#: bulb / 6 degC wet bulb). The load ratio of ``load_weighted`` refers the</span>
+</span><span data-line="219"><span class="c1">#: nameplate to it (:meth:`DefrostModel.reference_capacity`).</span>
+</span><span data-line="220"><span class="n">T_RATING_HEATING_C</span> <span class="o">=</span> <span class="mf">7.0</span>
+</span><span data-line="221">
+</span><span data-line="222"><span class="c1">#: Fraction of the compressor&#39;s runtime spent defrosting [-].</span>
+</span><span data-line="223"><span class="n">DEFROST_FRACTION_KEY</span> <span class="o">=</span> <span class="s2">&quot;defrost_fraction [-]&quot;</span>
+</span><span data-line="224"><span class="c1">#: Heating capacity multiplier of the frosted coil, defrost time included [-].</span>
+</span><span data-line="225"><span class="n">FROST_CAPACITY_FACTOR_KEY</span> <span class="o">=</span> <span class="s2">&quot;frost_capacity_factor [-]&quot;</span>
+</span><span data-line="226"><span class="c1">#: Input power multiplier of the frosted coil, defrost time included [-].</span>
+</span><span data-line="227"><span class="n">FROST_POWER_FACTOR_KEY</span> <span class="o">=</span> <span class="s2">&quot;frost_power_factor [-]&quot;</span>
+</span><span data-line="228"><span class="c1">#: Mean compressor power spent defrosting [W].</span>
+</span><span data-line="229"><span class="n">DEFROST_POWER_KEY</span> <span class="o">=</span> <span class="s2">&quot;E_defrost [W]&quot;</span>
+</span><span data-line="230"><span class="c1">#: Mean heat a reverse-cycle defrost takes from the room [W].</span>
+</span><span data-line="231"><span class="n">DEFROST_LOAD_KEY</span> <span class="o">=</span> <span class="s2">&quot;Q_defrost [W]&quot;</span>
+</span><span data-line="232"><span class="c1">#: Outdoor relative humidity the frost correction used [-].</span>
+</span><span data-line="233"><span class="n">RH_OUT_KEY</span> <span class="o">=</span> <span class="s2">&quot;RH_out [-]&quot;</span>
+</span><span data-line="234">
+</span><span data-line="235"><span class="c1"># EnergyPlus Engineering Reference, Coil:Heating:DX:SingleSpeed, on-demand defrost.</span>
+</span><span data-line="236"><span class="n">_COIL_SLOPE</span> <span class="o">=</span> <span class="mf">0.82</span>
+</span><span data-line="237"><span class="n">_COIL_OFFSET_K</span> <span class="o">=</span> <span class="o">-</span><span class="mf">8.589</span>
+</span><span data-line="238"><span class="n">_DW_MIN</span> <span class="o">=</span> <span class="mf">1.0e-6</span>
+</span><span data-line="239"><span class="n">_DW_SCALE</span> <span class="o">=</span> <span class="mf">0.01446</span>
+</span><span data-line="240"><span class="n">_CAPACITY_FROSTED</span> <span class="o">=</span> <span class="mf">0.875</span>
+</span><span data-line="241"><span class="n">_POWER_FROSTED</span> <span class="o">=</span> <span class="mf">0.954</span>
+</span><span data-line="242"><span class="c1"># ... reverse-cycle defrost load.</span>
+</span><span data-line="243"><span class="n">_LOAD_COEFFICIENT</span> <span class="o">=</span> <span class="mf">0.01</span>
+</span><span data-line="244"><span class="n">_LOAD_T_REF_C</span> <span class="o">=</span> <span class="mf">7.222</span>
+</span><span data-line="245"><span class="n">_LOAD_CAPACITY_DIVISOR</span> <span class="o">=</span> <span class="mf">1.01667</span>
+</span><span data-line="246">
+</span><span data-line="247">
 <div class="viewcode-block" id="saturation_humidity_ratio">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.saturation_humidity_ratio">[docs]</a>
-</span><span data-line="163"><span class="k">def</span><span class="w"> </span><span class="nf">saturation_humidity_ratio</span><span class="p">(</span><span class="n">T_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P_ATM</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="164"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Humidity ratio of saturated air at ``T_C`` [kg water / kg dry air] (over ice below 0 degC).&quot;&quot;&quot;</span>
-</span><span data-line="165">    <span class="k">return</span> <span class="n">humidity_ratio</span><span class="p">(</span><span class="n">T_C</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">)</span></div>
+</span><span data-line="248"><span class="k">def</span><span class="w"> </span><span class="nf">saturation_humidity_ratio</span><span class="p">(</span><span class="n">T_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P_ATM</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="249"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Humidity ratio of saturated air at ``T_C`` [kg water / kg dry air] (over ice below 0 degC).&quot;&quot;&quot;</span>
+</span><span data-line="250">    <span class="k">return</span> <span class="n">humidity_ratio</span><span class="p">(</span><span class="n">T_C</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">)</span></div>
 
-</span><span data-line="166">
-</span><span data-line="167">
+</span><span data-line="251">
+</span><span data-line="252">
 <div class="viewcode-block" id="humidity_ratio">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.humidity_ratio">[docs]</a>
-</span><span data-line="168"><span class="k">def</span><span class="w"> </span><span class="nf">humidity_ratio</span><span class="p">(</span><span class="n">T_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">RH</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P_ATM</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="169"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Humidity ratio of moist air at dry bulb ``T_C`` and relative humidity ``RH`` (0-1).&quot;&quot;&quot;</span>
-</span><span data-line="170">    <span class="kn">from</span><span class="w"> </span><span class="nn">CoolProp.HumidAirProp</span><span class="w"> </span><span class="kn">import</span> <span class="n">HAPropsSI</span>
-</span><span data-line="171">
-</span><span data-line="172">    <span class="k">if</span> <span class="n">RH</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span data-line="173">        <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="174">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">HAPropsSI</span><span class="p">(</span><span class="s2">&quot;W&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T_C</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="n">RH</span><span class="p">))</span></div>
+</span><span data-line="253"><span class="k">def</span><span class="w"> </span><span class="nf">humidity_ratio</span><span class="p">(</span><span class="n">T_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">RH</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P_ATM</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="254"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Humidity ratio of moist air at dry bulb ``T_C`` and relative humidity ``RH`` (0-1).&quot;&quot;&quot;</span>
+</span><span data-line="255">    <span class="kn">from</span><span class="w"> </span><span class="nn">CoolProp.HumidAirProp</span><span class="w"> </span><span class="kn">import</span> <span class="n">HAPropsSI</span>
+</span><span data-line="256">
+</span><span data-line="257">    <span class="k">if</span> <span class="n">RH</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="258">        <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="259">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">HAPropsSI</span><span class="p">(</span><span class="s2">&quot;W&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T_C</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="n">RH</span><span class="p">))</span></div>
 
-</span><span data-line="175">
-</span><span data-line="176">
+</span><span data-line="260">
+</span><span data-line="261">
 <div class="viewcode-block" id="FrostState">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.FrostState">[docs]</a>
-</span><span data-line="177"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="178"><span class="k">class</span><span class="w"> </span><span class="nc">FrostState</span><span class="p">:</span>
-</span><span data-line="179"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Frost correction at one outdoor condition.&quot;&quot;&quot;</span>
-</span><span data-line="180">
-</span><span data-line="181">    <span class="c1">#: Whether the outdoor coil frosts here.</span>
-</span><span data-line="182">    <span class="n">active</span><span class="p">:</span> <span class="nb">bool</span>
-</span><span data-line="183">    <span class="c1">#: Fraction of the compressor&#39;s runtime spent defrosting [-].</span>
-</span><span data-line="184">    <span class="n">defrost_fraction</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="185">    <span class="c1">#: Heating capacity multiplier, ``0.875 (1 - t_frac)`` when frosting all the time [-].</span>
-</span><span data-line="186">    <span class="n">capacity_multiplier</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="187">    <span class="c1">#: Input power multiplier, ``0.954 (1 - t_frac)`` when frosting all the time [-].</span>
-</span><span data-line="188">    <span class="n">power_multiplier</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="189">    <span class="c1">#: Outdoor coil temperature the correction used [degC].</span>
-</span><span data-line="190">    <span class="n">T_coil_C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="191">    <span class="c1">#: Humidity ratio of the outdoor air above saturation at the coil [kg/kg].</span>
-</span><span data-line="192">    <span class="n">humidity_ratio_difference</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="193">    <span class="c1">#: Outdoor relative humidity the correction used [-].</span>
-</span><span data-line="194">    <span class="n">RH_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="195">    <span class="c1">#: Share of the runtime the coil frosts [-]: 0 above ``T_out_max``, rising to</span>
-</span><span data-line="196">    <span class="c1">#: 1 across the transition below it. The three figures above are the mean of</span>
-</span><span data-line="197">    <span class="c1">#: frosting for this share and frost-free operation for the rest.</span>
-</span><span data-line="198">    <span class="n">frost_share</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span></div>
+</span><span data-line="262"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="263"><span class="k">class</span><span class="w"> </span><span class="nc">FrostState</span><span class="p">:</span>
+</span><span data-line="264"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Frost correction at one outdoor condition.&quot;&quot;&quot;</span>
+</span><span data-line="265">
+</span><span data-line="266">    <span class="c1">#: Whether the outdoor coil frosts here.</span>
+</span><span data-line="267">    <span class="n">active</span><span class="p">:</span> <span class="nb">bool</span>
+</span><span data-line="268">    <span class="c1">#: Fraction of the compressor&#39;s runtime spent defrosting [-].</span>
+</span><span data-line="269">    <span class="n">defrost_fraction</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="270">    <span class="c1">#: Heating capacity multiplier, ``0.875 (1 - t_frac)`` when frosting all the time [-].</span>
+</span><span data-line="271">    <span class="n">capacity_multiplier</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="272">    <span class="c1">#: Input power multiplier, ``0.954 (1 - t_frac)`` when frosting all the time [-].</span>
+</span><span data-line="273">    <span class="n">power_multiplier</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="274">    <span class="c1">#: Outdoor coil temperature the correction used [degC].</span>
+</span><span data-line="275">    <span class="n">T_coil_C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="276">    <span class="c1">#: Humidity ratio of the outdoor air above saturation at the coil [kg/kg].</span>
+</span><span data-line="277">    <span class="n">humidity_ratio_difference</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="278">    <span class="c1">#: Outdoor relative humidity the correction used [-].</span>
+</span><span data-line="279">    <span class="n">RH_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="280">    <span class="c1">#: Share of the runtime the coil frosts [-]: 0 above ``T_out_max``, rising to</span>
+</span><span data-line="281">    <span class="c1">#: 1 across the transition below it. The three figures above are the mean of</span>
+</span><span data-line="282">    <span class="c1">#: frosting for this share and frost-free operation for the rest.</span>
+</span><span data-line="283">    <span class="n">frost_share</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span data-line="284">    <span class="c1">#: Frost drive of the coil at this load over that of the rated-load coil [-]</span>
+</span><span data-line="285">    <span class="c1">#: (``phi``): the share of the rated-load deposition and of the fixed frosted</span>
+</span><span data-line="286">    <span class="c1">#: losses (1 - 0.875, 1 - 0.954) that applies. 1 at the rated load.</span>
+</span><span data-line="287">    <span class="n">frost_drive_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span data-line="288">    <span class="c1">#: Load ratio the coil temperature was estimated at [-] (1: the rated-load correlation).</span>
+</span><span data-line="289">    <span class="n">load_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span></div>
 
-</span><span data-line="199">
-</span><span data-line="200">
-</span><span data-line="201"><span class="c1">#: No frost: nothing is corrected.</span>
-</span><span data-line="202"><span class="n">NO_FROST</span> <span class="o">=</span> <span class="n">FrostState</span><span class="p">(</span>
-</span><span data-line="203">    <span class="n">active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">defrost_fraction</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">capacity_multiplier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">power_multiplier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">frost_share</span><span class="o">=</span><span class="mf">0.0</span>
-</span><span data-line="204"><span class="p">)</span>
-</span><span data-line="205">
-</span><span data-line="206">
+</span><span data-line="290">
+</span><span data-line="291">
+</span><span data-line="292"><span class="c1">#: No frost: nothing is corrected.</span>
+</span><span data-line="293"><span class="n">NO_FROST</span> <span class="o">=</span> <span class="n">FrostState</span><span class="p">(</span>
+</span><span data-line="294">    <span class="n">active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">defrost_fraction</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">capacity_multiplier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">power_multiplier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">frost_share</span><span class="o">=</span><span class="mf">0.0</span>
+</span><span data-line="295"><span class="p">)</span>
+</span><span data-line="296">
+</span><span data-line="297">
 <div class="viewcode-block" id="DefrostModel">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.DefrostModel">[docs]</a>
-</span><span data-line="207"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="208"><span class="k">class</span><span class="w"> </span><span class="nc">DefrostModel</span><span class="p">:</span>
-</span><span data-line="209"><span class="w">    </span><span class="sd">&quot;&quot;&quot;EnergyPlus / DOE-2.1E frost adjustment with on-demand reverse-cycle defrost.</span>
-</span><span data-line="210">
-</span><span data-line="211"><span class="sd">    Parameters</span>
-</span><span data-line="212"><span class="sd">    ----------</span>
-</span><span data-line="213"><span class="sd">    T_out_max : float</span>
-</span><span data-line="214"><span class="sd">        Outdoor dry-bulb temperature above which the coil does not frost [degC].</span>
-</span><span data-line="215"><span class="sd">    RH_out : float</span>
-</span><span data-line="216"><span class="sd">        Outdoor relative humidity (0-1) used when a call does not give one.</span>
-</span><span data-line="217"><span class="sd">    transition_K : float</span>
-</span><span data-line="218"><span class="sd">        Width of the band below ``T_out_max`` over which the correction grows</span>
-</span><span data-line="219"><span class="sd">        linearly from nothing to its full size [K]; in full at and below</span>
-</span><span data-line="220"><span class="sd">        ``T_out_max - transition_K``. ``0`` is the EnergyPlus switch at</span>
-</span><span data-line="221"><span class="sd">        ``T_out_max``.</span>
-</span><span data-line="222"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="223">
-</span><span data-line="224">    <span class="n">T_out_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_OUT_MAX_DEFROST_C</span>
-</span><span data-line="225">    <span class="n">RH_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">RH_OUT_DEFAULT</span>
-</span><span data-line="226">    <span class="n">transition_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">FROST_TRANSITION_K</span>
-</span><span data-line="227">
-</span><span data-line="228">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="229">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span><span class="p">):</span>
-</span><span data-line="230">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;T_out_max must be a finite temperature [degC], got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="231">        <span class="k">if</span> <span class="p">(</span>
-</span><span data-line="232">            <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
-</span><span data-line="233">            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
-</span><span data-line="234">            <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="p">)</span>
-</span><span data-line="235">            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span> <span class="o">&lt;</span> <span class="mf">0.0</span>
-</span><span data-line="236">        <span class="p">):</span>
-</span><span data-line="237">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;transition_K must be a finite width &gt;= 0 [K], got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="238">        <span class="n">_check_humidity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">RH_out</span><span class="p">)</span>
-</span><span data-line="239">
+</span><span data-line="298"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="299"><span class="k">class</span><span class="w"> </span><span class="nc">DefrostModel</span><span class="p">:</span>
+</span><span data-line="300"><span class="w">    </span><span class="sd">&quot;&quot;&quot;EnergyPlus / DOE-2.1E frost adjustment with on-demand reverse-cycle defrost.</span>
+</span><span data-line="301">
+</span><span data-line="302"><span class="sd">    Parameters</span>
+</span><span data-line="303"><span class="sd">    ----------</span>
+</span><span data-line="304"><span class="sd">    T_out_max : float</span>
+</span><span data-line="305"><span class="sd">        Outdoor dry-bulb temperature above which the coil does not frost [degC].</span>
+</span><span data-line="306"><span class="sd">    RH_out : float</span>
+</span><span data-line="307"><span class="sd">        Outdoor relative humidity (0-1) used when a call does not give one.</span>
+</span><span data-line="308"><span class="sd">    transition_K : float</span>
+</span><span data-line="309"><span class="sd">        Width of the band below ``T_out_max`` over which the correction grows</span>
+</span><span data-line="310"><span class="sd">        linearly from nothing to its full size [K]; in full at and below</span>
+</span><span data-line="311"><span class="sd">        ``T_out_max - transition_K``. ``0`` is the EnergyPlus switch at</span>
+</span><span data-line="312"><span class="sd">        ``T_out_max``.</span>
+</span><span data-line="313"><span class="sd">    load_weighted : bool</span>
+</span><span data-line="314"><span class="sd">        Estimate the coil temperature at the load ratio of the request</span>
+</span><span data-line="315"><span class="sd">        instead of at the rated load, and scale the deposition and the fixed</span>
+</span><span data-line="316"><span class="sd">        frosted losses with the frost drive that is left</span>
+</span><span data-line="317"><span class="sd">        (``frost_state_at_duty``; &quot;The load on the coil&quot; in the module</span>
+</span><span data-line="318"><span class="sd">        docstring). The ratio is the frost-free duty over the capacity the</span>
+</span><span data-line="319"><span class="sd">        correlation&#39;s unit has at that outdoor temperature</span>
+</span><span data-line="320"><span class="sd">        (``reference_capacity``); at a ratio of one the result is EnergyPlus</span>
+</span><span data-line="321"><span class="sd">        unchanged. On by default; ``False`` is EnergyPlus at every load.</span>
+</span><span data-line="322"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="323">
+</span><span data-line="324">    <span class="n">T_out_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_OUT_MAX_DEFROST_C</span>
+</span><span data-line="325">    <span class="n">RH_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">RH_OUT_DEFAULT</span>
+</span><span data-line="326">    <span class="n">transition_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">FROST_TRANSITION_K</span>
+</span><span data-line="327">    <span class="n">load_weighted</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="328">
+</span><span data-line="329">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="330">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span><span class="p">):</span>
+</span><span data-line="331">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;T_out_max must be a finite temperature [degC], got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="332">        <span class="k">if</span> <span class="p">(</span>
+</span><span data-line="333">            <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+</span><span data-line="334">            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
+</span><span data-line="335">            <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="p">)</span>
+</span><span data-line="336">            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span> <span class="o">&lt;</span> <span class="mf">0.0</span>
+</span><span data-line="337">        <span class="p">):</span>
+</span><span data-line="338">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;transition_K must be a finite width &gt;= 0 [K], got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="339">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">load_weighted</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+</span><span data-line="340">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;load_weighted must be True or False, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">load_weighted</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="341">        <span class="n">_check_humidity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">RH_out</span><span class="p">)</span>
+</span><span data-line="342">
 <div class="viewcode-block" id="DefrostModel.frost_share">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.DefrostModel.frost_share">[docs]</a>
-</span><span data-line="240">    <span class="k">def</span><span class="w"> </span><span class="nf">frost_share</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="241"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Share of the runtime the coil frosts at outdoor dry bulb ``T_out_C`` [-].</span>
-</span><span data-line="242">
-</span><span data-line="243"><span class="sd">        0 above ``T_out_max``, 1 at and below ``T_out_max - transition_K``,</span>
-</span><span data-line="244"><span class="sd">        linear in between. With ``transition_K = 0`` it is 1 at and below</span>
-</span><span data-line="245"><span class="sd">        ``T_out_max`` (the EnergyPlus switch).</span>
-</span><span data-line="246"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="247">        <span class="k">if</span> <span class="n">T_out_C</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span><span class="p">:</span>
-</span><span data-line="248">            <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="249">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span data-line="250">            <span class="k">return</span> <span class="mf">1.0</span>
-</span><span data-line="251">        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span> <span class="o">-</span> <span class="n">T_out_C</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="p">)</span></div>
+</span><span data-line="343">    <span class="k">def</span><span class="w"> </span><span class="nf">frost_share</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="344"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Share of the runtime the coil frosts at outdoor dry bulb ``T_out_C`` [-].</span>
+</span><span data-line="345">
+</span><span data-line="346"><span class="sd">        0 above ``T_out_max``, 1 at and below ``T_out_max - transition_K``,</span>
+</span><span data-line="347"><span class="sd">        linear in between. With ``transition_K = 0`` it is 1 at and below</span>
+</span><span data-line="348"><span class="sd">        ``T_out_max`` (the EnergyPlus switch).</span>
+</span><span data-line="349"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="350">        <span class="k">if</span> <span class="n">T_out_C</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span><span class="p">:</span>
+</span><span data-line="351">            <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="352">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="353">            <span class="k">return</span> <span class="mf">1.0</span>
+</span><span data-line="354">        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_out_max</span> <span class="o">-</span> <span class="n">T_out_C</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">transition_K</span><span class="p">)</span></div>
 
-</span><span data-line="252">
+</span><span data-line="355">
 <div class="viewcode-block" id="DefrostModel.frost_state">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.DefrostModel.frost_state">[docs]</a>
-</span><span data-line="253">    <span class="k">def</span><span class="w"> </span><span class="nf">frost_state</span><span class="p">(</span>
-</span><span data-line="254">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="255">        <span class="n">T_out_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="256">        <span class="n">RH_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="257">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="258">        <span class="n">T_coil_C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="259">        <span class="n">P_Pa</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P_ATM</span><span class="p">,</span>
-</span><span data-line="260">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FrostState</span><span class="p">:</span>
-</span><span data-line="261"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Frost correction at outdoor dry bulb ``T_out_C`` and relative humidity ``RH_out`` (0-1).</span>
-</span><span data-line="262">
-</span><span data-line="263"><span class="sd">        ``T_coil_C`` replaces the coil-temperature correlation</span>
-</span><span data-line="264"><span class="sd">        ``0.82 T_out - 8.589``. No frost above ``T_out_max``; below it the</span>
-</span><span data-line="265"><span class="sd">        correction grows to its full size across ``transition_K``</span>
-</span><span data-line="266"><span class="sd">        (:meth:`frost_share`). No frost on a coil at or above 0 degC either.</span>
-</span><span data-line="267"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="268">        <span class="n">rh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RH_out</span> <span class="k">if</span> <span class="n">RH_out</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_check_humidity</span><span class="p">(</span><span class="n">RH_out</span><span class="p">)</span>
-</span><span data-line="269">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">T_out_C</span><span class="p">):</span>
-</span><span data-line="270">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;T_out_C must be finite, got </span><span class="si">{</span><span class="n">T_out_C</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="271">        <span class="n">coil</span> <span class="o">=</span> <span class="n">_COIL_SLOPE</span> <span class="o">*</span> <span class="n">T_out_C</span> <span class="o">+</span> <span class="n">_COIL_OFFSET_K</span> <span class="k">if</span> <span class="n">T_coil_C</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">T_coil_C</span><span class="p">)</span>
-</span><span data-line="272">        <span class="n">share</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frost_share</span><span class="p">(</span><span class="n">T_out_C</span><span class="p">)</span>
-</span><span data-line="273">        <span class="k">if</span> <span class="ow">not</span> <span class="n">share</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">coil</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span data-line="274">            <span class="k">return</span> <span class="n">FrostState</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">T_coil_C</span><span class="o">=</span><span class="n">coil</span><span class="p">,</span> <span class="n">RH_out</span><span class="o">=</span><span class="n">rh</span><span class="p">,</span> <span class="n">frost_share</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="275">        <span class="n">dw</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">_DW_MIN</span><span class="p">,</span> <span class="n">humidity_ratio</span><span class="p">(</span><span class="n">T_out_C</span><span class="p">,</span> <span class="n">rh</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">)</span> <span class="o">-</span> <span class="n">saturation_humidity_ratio</span><span class="p">(</span><span class="n">coil</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">))</span>
-</span><span data-line="276">        <span class="n">t_frac</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">_DW_SCALE</span> <span class="o">/</span> <span class="n">dw</span><span class="p">)</span>
-</span><span data-line="277">        <span class="c1"># Frosting for the share of the runtime, frost-free for the rest. With</span>
-</span><span data-line="278">        <span class="c1"># a share of one these are the EnergyPlus expressions unchanged.</span>
-</span><span data-line="279">        <span class="k">return</span> <span class="n">FrostState</span><span class="p">(</span>
-</span><span data-line="280">            <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span data-line="281">            <span class="n">defrost_fraction</span><span class="o">=</span><span class="n">share</span> <span class="o">*</span> <span class="n">t_frac</span><span class="p">,</span>
-</span><span data-line="282">            <span class="n">capacity_multiplier</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">share</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">_CAPACITY_FROSTED</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">t_frac</span><span class="p">)),</span>
-</span><span data-line="283">            <span class="n">power_multiplier</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">share</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">_POWER_FROSTED</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">t_frac</span><span class="p">)),</span>
-</span><span data-line="284">            <span class="n">T_coil_C</span><span class="o">=</span><span class="n">coil</span><span class="p">,</span>
-</span><span data-line="285">            <span class="n">humidity_ratio_difference</span><span class="o">=</span><span class="n">dw</span><span class="p">,</span>
-</span><span data-line="286">            <span class="n">RH_out</span><span class="o">=</span><span class="n">rh</span><span class="p">,</span>
-</span><span data-line="287">            <span class="n">frost_share</span><span class="o">=</span><span class="n">share</span><span class="p">,</span>
-</span><span data-line="288">        <span class="p">)</span></div>
+</span><span data-line="356">    <span class="k">def</span><span class="w"> </span><span class="nf">frost_state</span><span class="p">(</span>
+</span><span data-line="357">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="358">        <span class="n">T_out_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="359">        <span class="n">RH_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="360">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="361">        <span class="n">T_coil_C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="362">        <span class="n">P_Pa</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P_ATM</span><span class="p">,</span>
+</span><span data-line="363">        <span class="n">load_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="364">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FrostState</span><span class="p">:</span>
+</span><span data-line="365"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Frost correction at outdoor dry bulb ``T_out_C`` and relative humidity ``RH_out`` (0-1).</span>
+</span><span data-line="366">
+</span><span data-line="367"><span class="sd">        ``T_coil_C`` replaces the coil-temperature correlation</span>
+</span><span data-line="368"><span class="sd">        ``0.82 T_out - 8.589``. No frost above ``T_out_max``; below it the</span>
+</span><span data-line="369"><span class="sd">        correction grows to its full size across ``transition_K``</span>
+</span><span data-line="370"><span class="sd">        (:meth:`frost_share`). No frost on a coil at or above 0 degC either.</span>
+</span><span data-line="371"><span class="sd">        ``load_ratio`` (0-1, with ``load_weighted``) scales the difference</span>
+</span><span data-line="372"><span class="sd">        between the air and the coil of that correlation, and with it the</span>
+</span><span data-line="373"><span class="sd">        frost drive of the rated-load state (:meth:`_frost_drive_ratio`);</span>
+</span><span data-line="374"><span class="sd">        ``None``, and a ratio of one or more, are the rated load.</span>
+</span><span data-line="375"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="376">        <span class="n">rh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RH_out</span> <span class="k">if</span> <span class="n">RH_out</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_check_humidity</span><span class="p">(</span><span class="n">RH_out</span><span class="p">)</span>
+</span><span data-line="377">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">T_out_C</span><span class="p">):</span>
+</span><span data-line="378">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;T_out_C must be finite, got </span><span class="si">{</span><span class="n">T_out_C</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="379">        <span class="n">ratio</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span data-line="380">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_weighted</span> <span class="ow">and</span> <span class="n">load_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="381">            <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">load_ratio</span><span class="p">)</span> <span class="ow">or</span> <span class="n">load_ratio</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="382">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;load_ratio must be a finite number &gt;= 0, got </span><span class="si">{</span><span class="n">load_ratio</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="383">            <span class="k">if</span> <span class="n">T_coil_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># a given coil temperature is not rescaled</span>
+</span><span data-line="384">                <span class="n">ratio</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">load_ratio</span><span class="p">))</span>
+</span><span data-line="385">        <span class="c1"># Coil at the rated load, and at this load: the difference to the air times the ratio.</span>
+</span><span data-line="386">        <span class="n">rated_coil</span> <span class="o">=</span> <span class="n">_COIL_SLOPE</span> <span class="o">*</span> <span class="n">T_out_C</span> <span class="o">+</span> <span class="n">_COIL_OFFSET_K</span> <span class="k">if</span> <span class="n">T_coil_C</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">T_coil_C</span><span class="p">)</span>
+</span><span data-line="387">        <span class="n">coil</span> <span class="o">=</span> <span class="n">rated_coil</span> <span class="k">if</span> <span class="n">ratio</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="n">T_out_C</span> <span class="o">-</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_out_C</span> <span class="o">-</span> <span class="n">rated_coil</span><span class="p">)</span>
+</span><span data-line="388">        <span class="n">share</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frost_share</span><span class="p">(</span><span class="n">T_out_C</span><span class="p">)</span>
+</span><span data-line="389">        <span class="k">if</span> <span class="ow">not</span> <span class="n">share</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">rated_coil</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="390">            <span class="k">return</span> <span class="n">FrostState</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">T_coil_C</span><span class="o">=</span><span class="n">coil</span><span class="p">,</span> <span class="n">RH_out</span><span class="o">=</span><span class="n">rh</span><span class="p">,</span> <span class="n">frost_share</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">load_ratio</span><span class="o">=</span><span class="n">ratio</span><span class="p">)</span>
+</span><span data-line="391">        <span class="n">w_out</span> <span class="o">=</span> <span class="n">humidity_ratio</span><span class="p">(</span><span class="n">T_out_C</span><span class="p">,</span> <span class="n">rh</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">)</span>
+</span><span data-line="392">        <span class="n">excess</span> <span class="o">=</span> <span class="n">w_out</span> <span class="o">-</span> <span class="n">saturation_humidity_ratio</span><span class="p">(</span><span class="n">rated_coil</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">)</span>  <span class="c1"># at the rated load</span>
+</span><span data-line="393">        <span class="n">drive</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">ratio</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frost_drive_ratio</span><span class="p">(</span><span class="n">w_out</span><span class="p">,</span> <span class="n">rated_coil</span><span class="p">,</span> <span class="n">coil</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">)</span>
+</span><span data-line="394">        <span class="c1"># EnergyPlus: the floor keeps the expression defined, and the fixed</span>
+</span><span data-line="395">        <span class="c1"># multipliers apply whatever the deposition. At the rated load (drive</span>
+</span><span data-line="396">        <span class="c1"># 1) this is that model unchanged; below it both the deposition and</span>
+</span><span data-line="397">        <span class="c1"># the fixed part follow the drive.</span>
+</span><span data-line="398">        <span class="n">dw</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">_DW_MIN</span><span class="p">,</span> <span class="n">excess</span><span class="p">)</span> <span class="o">*</span> <span class="n">drive</span>
+</span><span data-line="399">        <span class="n">t_frac</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">_DW_SCALE</span> <span class="o">/</span> <span class="n">dw</span><span class="p">)</span>
+</span><span data-line="400">        <span class="n">capacity</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">drive</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">_CAPACITY_FROSTED</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">t_frac</span><span class="p">)</span>
+</span><span data-line="401">        <span class="n">power</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">drive</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">_POWER_FROSTED</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">t_frac</span><span class="p">)</span>
+</span><span data-line="402">        <span class="c1"># Frosting for the share of the runtime, frost-free for the rest. With</span>
+</span><span data-line="403">        <span class="c1"># a share of one and a drive of one these are the EnergyPlus</span>
+</span><span data-line="404">        <span class="c1"># expressions unchanged.</span>
+</span><span data-line="405">        <span class="k">return</span> <span class="n">FrostState</span><span class="p">(</span>
+</span><span data-line="406">            <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span data-line="407">            <span class="n">defrost_fraction</span><span class="o">=</span><span class="n">share</span> <span class="o">*</span> <span class="n">t_frac</span><span class="p">,</span>
+</span><span data-line="408">            <span class="n">capacity_multiplier</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">share</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">capacity</span><span class="p">),</span>
+</span><span data-line="409">            <span class="n">power_multiplier</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">share</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">power</span><span class="p">),</span>
+</span><span data-line="410">            <span class="n">T_coil_C</span><span class="o">=</span><span class="n">coil</span><span class="p">,</span>
+</span><span data-line="411">            <span class="n">humidity_ratio_difference</span><span class="o">=</span><span class="n">dw</span><span class="p">,</span>
+</span><span data-line="412">            <span class="n">RH_out</span><span class="o">=</span><span class="n">rh</span><span class="p">,</span>
+</span><span data-line="413">            <span class="n">frost_share</span><span class="o">=</span><span class="n">share</span><span class="p">,</span>
+</span><span data-line="414">            <span class="n">frost_drive_ratio</span><span class="o">=</span><span class="n">drive</span><span class="p">,</span>
+</span><span data-line="415">            <span class="n">load_ratio</span><span class="o">=</span><span class="n">ratio</span><span class="p">,</span>
+</span><span data-line="416">        <span class="p">)</span></div>
 
-</span><span data-line="289">
+</span><span data-line="417">
+</span><span data-line="418">    <span class="nd">@staticmethod</span>
+</span><span data-line="419">    <span class="k">def</span><span class="w"> </span><span class="nf">_frost_drive_ratio</span><span class="p">(</span><span class="n">w_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rated_coil_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coil_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="420"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Frost drive of a coil at ``coil_C`` over that of the rated-load coil (0-1).</span>
+</span><span data-line="421">
+</span><span data-line="422"><span class="sd">        The drive is the humidity ratio the air can leave on the coil as</span>
+</span><span data-line="423"><span class="sd">        frost: what it holds, up to saturation at 0 degC, less saturation at</span>
+</span><span data-line="424"><span class="sd">        the coil temperature. A coil at or above 0 degC collects water, not</span>
+</span><span data-line="425"><span class="sd">        frost, so its temperature counts as 0 degC and its drive is nothing --</span>
+</span><span data-line="426"><span class="sd">        the ratio falls to that continuously as the load falls, also in air</span>
+</span><span data-line="427"><span class="sd">        whose dew point is above freezing. Both drives are kept at the</span>
+</span><span data-line="428"><span class="sd">        EnergyPlus floor of 1e-6: where the rated-load coil has no drive</span>
+</span><span data-line="429"><span class="sd">        either, the ratio is then one and the fixed multipliers stay at every</span>
+</span><span data-line="430"><span class="sd">        load -- they are not tied to a deposition there, so there is none for</span>
+</span><span data-line="431"><span class="sd">        the load to scale.</span>
+</span><span data-line="432"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="433">        <span class="n">frostable</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">w_out</span><span class="p">,</span> <span class="n">saturation_humidity_ratio</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">P_Pa</span><span class="p">))</span>
+</span><span data-line="434">        <span class="n">at_rated</span> <span class="o">=</span> <span class="n">frostable</span> <span class="o">-</span> <span class="n">saturation_humidity_ratio</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">rated_coil_C</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">P_Pa</span><span class="p">)</span>
+</span><span data-line="435">        <span class="n">at_load</span> <span class="o">=</span> <span class="n">frostable</span> <span class="o">-</span> <span class="n">saturation_humidity_ratio</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">coil_C</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">P_Pa</span><span class="p">)</span>
+</span><span data-line="436">        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">_DW_MIN</span><span class="p">,</span> <span class="n">at_load</span><span class="p">)</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">_DW_MIN</span><span class="p">,</span> <span class="n">at_rated</span><span class="p">))</span>
+</span><span data-line="437">
+<div class="viewcode-block" id="DefrostModel.frost_state_at_duty">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.DefrostModel.frost_state_at_duty">[docs]</a>
+</span><span data-line="438">    <span class="k">def</span><span class="w"> </span><span class="nf">frost_state_at_duty</span><span class="p">(</span>
+</span><span data-line="439">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="440">        <span class="n">T_out_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="441">        <span class="n">RH_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="442">        <span class="n">Q_request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="443">        <span class="n">Q_rated</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="444">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="445">        <span class="n">P_Pa</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P_ATM</span><span class="p">,</span>
+</span><span data-line="446">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FrostState</span><span class="p">:</span>
+</span><span data-line="447"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Frost correction for a request of ``Q_request`` [W] on a unit rated ``Q_rated`` [W].</span>
+</span><span data-line="448">
+</span><span data-line="449"><span class="sd">        Without ``load_weighted`` this is :meth:`frost_state`. With it the</span>
+</span><span data-line="450"><span class="sd">        coil temperature is estimated at the load ratio of the frost-free duty</span>
+</span><span data-line="451"><span class="sd">        the request needs (:meth:`load_ratio`: that duty over what the</span>
+</span><span data-line="452"><span class="sd">        correlation&#39;s unit delivers at this outdoor temperature, at most 1).</span>
+</span><span data-line="453"><span class="sd">        The duty depends on the correction, so the ratio ``r`` is the root of</span>
+</span><span data-line="454"><span class="sd">        ``r = load_ratio(gross_duty(frost_state(r)))``, which lies between the</span>
+</span><span data-line="455"><span class="sd">        request&#39;s own ratio and 1: more load means a colder coil, more frost</span>
+</span><span data-line="456"><span class="sd">        and a larger duty still.</span>
+</span><span data-line="457"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="458">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_weighted</span><span class="p">:</span>
+</span><span data-line="459">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">frost_state</span><span class="p">(</span><span class="n">T_out_C</span><span class="p">,</span> <span class="n">RH_out</span><span class="p">,</span> <span class="n">P_Pa</span><span class="o">=</span><span class="n">P_Pa</span><span class="p">)</span>
+</span><span data-line="460">        <span class="n">request</span><span class="p">,</span> <span class="n">rated</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Q_request</span><span class="p">)),</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Q_rated</span><span class="p">))</span>
+</span><span data-line="461">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">rated</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rated</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">):</span>
+</span><span data-line="462">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Require finite Q_request and Q_rated &gt; 0, got </span><span class="si">{</span><span class="n">Q_request</span><span class="si">!r}</span><span class="s2">, </span><span class="si">{</span><span class="n">Q_rated</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="463">        <span class="n">low</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_ratio</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">rated</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">)</span>
+</span><span data-line="464">
+</span><span data-line="465">        <span class="k">def</span><span class="w"> </span><span class="nf">state</span><span class="p">(</span><span class="n">ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FrostState</span><span class="p">:</span>
+</span><span data-line="466">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">frost_state</span><span class="p">(</span><span class="n">T_out_C</span><span class="p">,</span> <span class="n">RH_out</span><span class="p">,</span> <span class="n">P_Pa</span><span class="o">=</span><span class="n">P_Pa</span><span class="p">,</span> <span class="n">load_ratio</span><span class="o">=</span><span class="n">ratio</span><span class="p">)</span>
+</span><span data-line="467">
+</span><span data-line="468">        <span class="k">def</span><span class="w"> </span><span class="nf">residual</span><span class="p">(</span><span class="n">ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="469">            <span class="n">frost</span> <span class="o">=</span> <span class="n">state</span><span class="p">(</span><span class="n">ratio</span><span class="p">)</span>
+</span><span data-line="470">            <span class="n">gross</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gross_duty</span><span class="p">(</span><span class="n">frost</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">defrost_load</span><span class="p">(</span><span class="n">frost</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">,</span> <span class="n">rated</span><span class="p">))</span>
+</span><span data-line="471">            <span class="k">return</span> <span class="n">ratio</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_ratio</span><span class="p">(</span><span class="n">gross</span><span class="p">,</span> <span class="n">rated</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">)</span>
+</span><span data-line="472">
+</span><span data-line="473">        <span class="k">if</span> <span class="n">low</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="ow">or</span> <span class="n">residual</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="474">            <span class="k">return</span> <span class="n">state</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="475">        <span class="k">if</span> <span class="n">residual</span><span class="p">(</span><span class="n">low</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="476">            <span class="k">return</span> <span class="n">state</span><span class="p">(</span><span class="n">low</span><span class="p">)</span>
+</span><span data-line="477">        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">brentq</span>
+</span><span data-line="478">
+</span><span data-line="479">        <span class="k">return</span> <span class="n">state</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">brentq</span><span class="p">(</span><span class="n">residual</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)))</span></div>
+
+</span><span data-line="480">
+<div class="viewcode-block" id="DefrostModel.reference_capacity">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.DefrostModel.reference_capacity">[docs]</a>
+</span><span data-line="481">    <span class="nd">@staticmethod</span>
+</span><span data-line="482">    <span class="k">def</span><span class="w"> </span><span class="nf">reference_capacity</span><span class="p">(</span><span class="n">Q_rated</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="483"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Capacity at which the coil-temperature correlation holds at ``T_out_C`` [W].</span>
+</span><span data-line="484">
+</span><span data-line="485"><span class="sd">        The correlation ``T_coil = 0.82 T_out - 8.589`` puts the coil</span>
+</span><span data-line="486"><span class="sd">        ``0.18 T_out + 8.589`` below the air: 10.1 K at 8.3 degC, 7.1 K at</span>
+</span><span data-line="487"><span class="sd">        -8.3 degC, 5.9 K at -15 degC. That difference is what drives the heat</span>
+</span><span data-line="488"><span class="sd">        into the coil, so its fall with the outdoor temperature is the fall</span>
+</span><span data-line="489"><span class="sd">        of the capacity of the unit the correlation describes -- one that runs</span>
+</span><span data-line="490"><span class="sd">        flat out and delivers less as it gets colder. Relative to the</span>
+</span><span data-line="491"><span class="sd">        nameplate, declared at :data:`T_RATING_HEATING_C`, that capacity is</span>
+</span><span data-line="492"><span class="sd">        ``Q_rated (0.18 T_out + 8.589) / (0.18 * 7 + 8.589)``. A load ratio</span>
+</span><span data-line="493"><span class="sd">        taken against the nameplate itself would read a unit that delivers</span>
+</span><span data-line="494"><span class="sd">        0.6 of its nameplate at -15 degC because that is all it has as a</span>
+</span><span data-line="495"><span class="sd">        part-loaded one, and count the decline twice.</span>
+</span><span data-line="496"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="497">        <span class="n">difference</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">_COIL_SLOPE</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_out_C</span> <span class="o">-</span> <span class="n">_COIL_OFFSET_K</span>
+</span><span data-line="498">        <span class="n">rating</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">_COIL_SLOPE</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_RATING_HEATING_C</span> <span class="o">-</span> <span class="n">_COIL_OFFSET_K</span>
+</span><span data-line="499">        <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Q_rated</span><span class="p">))</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">difference</span><span class="p">)</span> <span class="o">/</span> <span class="n">rating</span></div>
+
+</span><span data-line="500">
+<div class="viewcode-block" id="DefrostModel.load_ratio">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.DefrostModel.load_ratio">[docs]</a>
+</span><span data-line="501">    <span class="nd">@classmethod</span>
+</span><span data-line="502">    <span class="k">def</span><span class="w"> </span><span class="nf">load_ratio</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Q_rated</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="503"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Load ratio of a frost-free ``duty`` [W] at ``T_out_C``: over :meth:`reference_capacity`, at most 1.</span>
+</span><span data-line="504">
+</span><span data-line="505"><span class="sd">        A unit that delivers the reference capacity or more has the coil of</span>
+</span><span data-line="506"><span class="sd">        the correlation (ratio 1: the rated-load state, EnergyPlus unchanged).</span>
+</span><span data-line="507"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="508">        <span class="n">reference</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">reference_capacity</span><span class="p">(</span><span class="n">Q_rated</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">)</span>
+</span><span data-line="509">        <span class="k">if</span> <span class="ow">not</span> <span class="n">reference</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="510">            <span class="k">return</span> <span class="mf">1.0</span>
+</span><span data-line="511">        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">duty</span><span class="p">))</span> <span class="o">/</span> <span class="n">reference</span><span class="p">)</span></div>
+
+</span><span data-line="512">
 <div class="viewcode-block" id="DefrostModel.defrost_load">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.DefrostModel.defrost_load">[docs]</a>
-</span><span data-line="290">    <span class="nd">@staticmethod</span>
-</span><span data-line="291">    <span class="k">def</span><span class="w"> </span><span class="nf">defrost_load</span><span class="p">(</span><span class="n">frost</span><span class="p">:</span> <span class="n">FrostState</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Q_rated</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="292"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mean heat a reverse-cycle defrost takes from the room [W] (&gt;= 0).&quot;&quot;&quot;</span>
-</span><span data-line="293">        <span class="k">if</span> <span class="ow">not</span> <span class="n">frost</span><span class="o">.</span><span class="n">active</span><span class="p">:</span>
-</span><span data-line="294">            <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="295">        <span class="n">load</span> <span class="o">=</span> <span class="n">_LOAD_COEFFICIENT</span> <span class="o">*</span> <span class="n">frost</span><span class="o">.</span><span class="n">defrost_fraction</span> <span class="o">*</span> <span class="p">(</span><span class="n">_LOAD_T_REF_C</span> <span class="o">-</span> <span class="n">T_out_C</span><span class="p">)</span>
-</span><span data-line="296">        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">load</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Q_rated</span><span class="p">)</span> <span class="o">/</span> <span class="n">_LOAD_CAPACITY_DIVISOR</span><span class="p">)</span></div>
+</span><span data-line="513">    <span class="nd">@staticmethod</span>
+</span><span data-line="514">    <span class="k">def</span><span class="w"> </span><span class="nf">defrost_load</span><span class="p">(</span><span class="n">frost</span><span class="p">:</span> <span class="n">FrostState</span><span class="p">,</span> <span class="n">T_out_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Q_rated</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="515"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mean heat a reverse-cycle defrost takes from the room [W] (&gt;= 0).&quot;&quot;&quot;</span>
+</span><span data-line="516">        <span class="k">if</span> <span class="ow">not</span> <span class="n">frost</span><span class="o">.</span><span class="n">active</span><span class="p">:</span>
+</span><span data-line="517">            <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="518">        <span class="n">load</span> <span class="o">=</span> <span class="n">_LOAD_COEFFICIENT</span> <span class="o">*</span> <span class="n">frost</span><span class="o">.</span><span class="n">defrost_fraction</span> <span class="o">*</span> <span class="p">(</span><span class="n">_LOAD_T_REF_C</span> <span class="o">-</span> <span class="n">T_out_C</span><span class="p">)</span>
+</span><span data-line="519">        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">load</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Q_rated</span><span class="p">)</span> <span class="o">/</span> <span class="n">_LOAD_CAPACITY_DIVISOR</span><span class="p">)</span></div>
 
-</span><span data-line="297">
+</span><span data-line="520">
 <div class="viewcode-block" id="DefrostModel.gross_duty">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.DefrostModel.gross_duty">[docs]</a>
-</span><span data-line="298">    <span class="nd">@staticmethod</span>
-</span><span data-line="299">    <span class="k">def</span><span class="w"> </span><span class="nf">gross_duty</span><span class="p">(</span><span class="n">frost</span><span class="p">:</span> <span class="n">FrostState</span><span class="p">,</span> <span class="n">Q_request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Q_defrost</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="300"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Frost-free duty [W] whose mean over frosting and defrost is ``Q_request``.&quot;&quot;&quot;</span>
-</span><span data-line="301">        <span class="k">return</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">Q_request</span><span class="p">)</span> <span class="o">+</span> <span class="n">Q_defrost</span><span class="p">)</span> <span class="o">/</span> <span class="n">frost</span><span class="o">.</span><span class="n">capacity_multiplier</span></div>
+</span><span data-line="521">    <span class="nd">@staticmethod</span>
+</span><span data-line="522">    <span class="k">def</span><span class="w"> </span><span class="nf">gross_duty</span><span class="p">(</span><span class="n">frost</span><span class="p">:</span> <span class="n">FrostState</span><span class="p">,</span> <span class="n">Q_request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Q_defrost</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="523"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Frost-free duty [W] whose mean over frosting and defrost is ``Q_request``.&quot;&quot;&quot;</span>
+</span><span data-line="524">        <span class="k">return</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">Q_request</span><span class="p">)</span> <span class="o">+</span> <span class="n">Q_defrost</span><span class="p">)</span> <span class="o">/</span> <span class="n">frost</span><span class="o">.</span><span class="n">capacity_multiplier</span></div>
 </div>
 
-</span><span data-line="302">
-</span><span data-line="303">
-</span><span data-line="304"><span class="k">def</span><span class="w"> </span><span class="nf">_check_humidity</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="305">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
-</span><span data-line="306">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Outdoor relative humidity must be a fraction in [0, 1], got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="307">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-</span><span data-line="308">
-</span><span data-line="309">
+</span><span data-line="525">
+</span><span data-line="526">
+</span><span data-line="527"><span class="k">def</span><span class="w"> </span><span class="nf">_check_humidity</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="528">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+</span><span data-line="529">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Outdoor relative humidity must be a fraction in [0, 1], got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="530">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span data-line="531">
+</span><span data-line="532">
 <div class="viewcode-block" id="resolve_defrost">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.resolve_defrost">[docs]</a>
-</span><span data-line="310"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_defrost</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">DefrostModel</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DefrostModel</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="311"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Constructor argument -&gt; frost model: ``None`` / ``False`` off, ``True`` the default model.&quot;&quot;&quot;</span>
-</span><span data-line="312">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-</span><span data-line="313">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="314">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-</span><span data-line="315">        <span class="k">return</span> <span class="n">DefrostModel</span><span class="p">()</span>
-</span><span data-line="316">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">DefrostModel</span><span class="p">):</span>
-</span><span data-line="317">        <span class="k">return</span> <span class="n">value</span>
-</span><span data-line="318">    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;defrost must be a DefrostModel, True, False or None, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+</span><span data-line="533"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_defrost</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">DefrostModel</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DefrostModel</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="534"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Constructor argument -&gt; frost model: ``None`` / ``False`` off, ``True`` the default model.&quot;&quot;&quot;</span>
+</span><span data-line="535">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+</span><span data-line="536">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="537">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+</span><span data-line="538">        <span class="k">return</span> <span class="n">DefrostModel</span><span class="p">()</span>
+</span><span data-line="539">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">DefrostModel</span><span class="p">):</span>
+</span><span data-line="540">        <span class="k">return</span> <span class="n">value</span>
+</span><span data-line="541">    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;defrost must be a DefrostModel, True, False or None, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
-</span><span data-line="319">
-</span><span data-line="320">
+</span><span data-line="542">
+</span><span data-line="543">
 <div class="viewcode-block" id="frost_free_keys">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.frost_free_keys">[docs]</a>
-</span><span data-line="321"><span class="k">def</span><span class="w"> </span><span class="nf">frost_free_keys</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">frost</span><span class="p">:</span> <span class="n">FrostState</span> <span class="o">=</span> <span class="n">NO_FROST</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="322"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Write the frost keys of a row that was not corrected (in place).&quot;&quot;&quot;</span>
-</span><span data-line="323">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_FRACTION_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="324">    <span class="n">result</span><span class="p">[</span><span class="n">FROST_CAPACITY_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-</span><span data-line="325">    <span class="n">result</span><span class="p">[</span><span class="n">FROST_POWER_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-</span><span data-line="326">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_POWER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="327">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_LOAD_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="328">    <span class="n">result</span><span class="p">[</span><span class="n">RH_OUT_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">RH_out</span>
-</span><span data-line="329">    <span class="k">return</span> <span class="n">result</span></div>
+</span><span data-line="544"><span class="k">def</span><span class="w"> </span><span class="nf">frost_free_keys</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">frost</span><span class="p">:</span> <span class="n">FrostState</span> <span class="o">=</span> <span class="n">NO_FROST</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="545"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Write the frost keys of a row that was not corrected (in place).&quot;&quot;&quot;</span>
+</span><span data-line="546">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_FRACTION_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="547">    <span class="n">result</span><span class="p">[</span><span class="n">FROST_CAPACITY_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span data-line="548">    <span class="n">result</span><span class="p">[</span><span class="n">FROST_POWER_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span data-line="549">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_POWER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="550">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_LOAD_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="551">    <span class="n">result</span><span class="p">[</span><span class="n">RH_OUT_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">RH_out</span>
+</span><span data-line="552">    <span class="k">return</span> <span class="n">result</span></div>
 
-</span><span data-line="330">
-</span><span data-line="331">
+</span><span data-line="553">
+</span><span data-line="554">
 <div class="viewcode-block" id="apply_defrost">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.apply_defrost">[docs]</a>
-</span><span data-line="332"><span class="k">def</span><span class="w"> </span><span class="nf">apply_defrost</span><span class="p">(</span>
-</span><span data-line="333">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="334">    <span class="n">frost</span><span class="p">:</span> <span class="n">FrostState</span><span class="p">,</span>
-</span><span data-line="335">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="336">    <span class="n">heat_factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="337">    <span class="n">Q_defrost</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="338">    <span class="n">rate_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-</span><span data-line="339">    <span class="n">compressor_power_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">,</span>
-</span><span data-line="340">    <span class="n">outdoor_power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
-</span><span data-line="341">    <span class="n">delivery_power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
-</span><span data-line="342">    <span class="n">total_power_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">,</span>
-</span><span data-line="343"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="344"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Average a frost-free row over frosting and defrost (in place).</span>
-</span><span data-line="345">
-</span><span data-line="346"><span class="sd">    ``rate_keys`` and ``delivery_power_keys`` (power that runs only while heat</span>
-</span><span data-line="347"><span class="sd">    is delivered, such as an indoor fan) are multiplied by ``heat_factor``; the</span>
-</span><span data-line="348"><span class="sd">    compressor power by ``power multiplier + t_frac``; ``outdoor_power_keys``</span>
-</span><span data-line="349"><span class="sd">    by the power multiplier. ``total_power_key`` is reduced by what those</span>
-</span><span data-line="350"><span class="sd">    powers lost. Adds the frost keys. COP columns are left to the caller.</span>
-</span><span data-line="351"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="352">
-</span><span data-line="353">    <span class="k">def</span><span class="w"> </span><span class="nf">scale</span><span class="p">(</span><span class="n">keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="354"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Scale in place; return how much the finite values lost in total.&quot;&quot;&quot;</span>
-</span><span data-line="355">        <span class="n">lost</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="356">        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-</span><span data-line="357">            <span class="n">value</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-</span><span data-line="358">            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
-</span><span data-line="359">                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="n">factor</span>
-</span><span data-line="360">                <span class="n">lost</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">-</span> <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-</span><span data-line="361">        <span class="k">return</span> <span class="n">lost</span>
-</span><span data-line="362">
-</span><span data-line="363">    <span class="n">t_frac</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">defrost_fraction</span>
-</span><span data-line="364">    <span class="n">compressor</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">compressor_power_key</span><span class="p">)</span>
-</span><span data-line="365">    <span class="n">running</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">compressor</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">compressor</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">compressor</span><span class="p">)</span>
-</span><span data-line="366">    <span class="n">defrost_power</span> <span class="o">=</span> <span class="n">t_frac</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">compressor</span><span class="p">)</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>  <span class="c1"># type: ignore[arg-type]</span>
-</span><span data-line="367">
-</span><span data-line="368">    <span class="n">scale</span><span class="p">(</span><span class="n">rate_keys</span><span class="p">,</span> <span class="n">heat_factor</span><span class="p">)</span>
-</span><span data-line="369">    <span class="n">lost</span> <span class="o">=</span> <span class="n">scale</span><span class="p">(</span><span class="n">delivery_power_keys</span><span class="p">,</span> <span class="n">heat_factor</span><span class="p">)</span>
-</span><span data-line="370">    <span class="n">lost</span> <span class="o">+=</span> <span class="n">scale</span><span class="p">((</span><span class="n">compressor_power_key</span><span class="p">,),</span> <span class="n">frost</span><span class="o">.</span><span class="n">power_multiplier</span> <span class="o">+</span> <span class="n">t_frac</span><span class="p">)</span>
-</span><span data-line="371">    <span class="n">lost</span> <span class="o">+=</span> <span class="n">scale</span><span class="p">(</span><span class="n">outdoor_power_keys</span><span class="p">,</span> <span class="n">frost</span><span class="o">.</span><span class="n">power_multiplier</span><span class="p">)</span>
-</span><span data-line="372">    <span class="n">total</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">total_power_key</span><span class="p">)</span>
-</span><span data-line="373">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">total</span><span class="p">):</span>
-</span><span data-line="374">        <span class="n">result</span><span class="p">[</span><span class="n">total_power_key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span> <span class="o">-</span> <span class="n">lost</span>
-</span><span data-line="375">
-</span><span data-line="376">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_FRACTION_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">t_frac</span>
-</span><span data-line="377">    <span class="n">result</span><span class="p">[</span><span class="n">FROST_CAPACITY_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">capacity_multiplier</span>
-</span><span data-line="378">    <span class="n">result</span><span class="p">[</span><span class="n">FROST_POWER_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">power_multiplier</span>
-</span><span data-line="379">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_POWER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">defrost_power</span>
-</span><span data-line="380">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_LOAD_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">Q_defrost</span><span class="p">)</span>
-</span><span data-line="381">    <span class="n">result</span><span class="p">[</span><span class="n">RH_OUT_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">RH_out</span>
-</span><span data-line="382">    <span class="k">return</span> <span class="n">result</span></div>
+</span><span data-line="555"><span class="k">def</span><span class="w"> </span><span class="nf">apply_defrost</span><span class="p">(</span>
+</span><span data-line="556">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="557">    <span class="n">frost</span><span class="p">:</span> <span class="n">FrostState</span><span class="p">,</span>
+</span><span data-line="558">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="559">    <span class="n">heat_factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="560">    <span class="n">Q_defrost</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="561">    <span class="n">rate_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span data-line="562">    <span class="n">compressor_power_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">,</span>
+</span><span data-line="563">    <span class="n">outdoor_power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+</span><span data-line="564">    <span class="n">delivery_power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+</span><span data-line="565">    <span class="n">total_power_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">,</span>
+</span><span data-line="566"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="567"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Average a frost-free row over frosting and defrost (in place).</span>
+</span><span data-line="568">
+</span><span data-line="569"><span class="sd">    ``rate_keys`` and ``delivery_power_keys`` (power that runs only while heat</span>
+</span><span data-line="570"><span class="sd">    is delivered, such as an indoor fan) are multiplied by ``heat_factor``; the</span>
+</span><span data-line="571"><span class="sd">    compressor power by ``power multiplier + t_frac``; ``outdoor_power_keys``</span>
+</span><span data-line="572"><span class="sd">    by the power multiplier. ``total_power_key`` is reduced by what those</span>
+</span><span data-line="573"><span class="sd">    powers lost. Adds the frost keys. COP columns are left to the caller.</span>
+</span><span data-line="574"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="575">
+</span><span data-line="576">    <span class="k">def</span><span class="w"> </span><span class="nf">scale</span><span class="p">(</span><span class="n">keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="577"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Scale in place; return how much the finite values lost in total.&quot;&quot;&quot;</span>
+</span><span data-line="578">        <span class="n">lost</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="579">        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+</span><span data-line="580">            <span class="n">value</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span data-line="581">            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+</span><span data-line="582">                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="n">factor</span>
+</span><span data-line="583">                <span class="n">lost</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">-</span> <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+</span><span data-line="584">        <span class="k">return</span> <span class="n">lost</span>
+</span><span data-line="585">
+</span><span data-line="586">    <span class="n">t_frac</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">defrost_fraction</span>
+</span><span data-line="587">    <span class="n">compressor</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">compressor_power_key</span><span class="p">)</span>
+</span><span data-line="588">    <span class="n">running</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">compressor</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">compressor</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">compressor</span><span class="p">)</span>
+</span><span data-line="589">    <span class="n">defrost_power</span> <span class="o">=</span> <span class="n">t_frac</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">compressor</span><span class="p">)</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="590">
+</span><span data-line="591">    <span class="n">scale</span><span class="p">(</span><span class="n">rate_keys</span><span class="p">,</span> <span class="n">heat_factor</span><span class="p">)</span>
+</span><span data-line="592">    <span class="n">lost</span> <span class="o">=</span> <span class="n">scale</span><span class="p">(</span><span class="n">delivery_power_keys</span><span class="p">,</span> <span class="n">heat_factor</span><span class="p">)</span>
+</span><span data-line="593">    <span class="n">lost</span> <span class="o">+=</span> <span class="n">scale</span><span class="p">((</span><span class="n">compressor_power_key</span><span class="p">,),</span> <span class="n">frost</span><span class="o">.</span><span class="n">power_multiplier</span> <span class="o">+</span> <span class="n">t_frac</span><span class="p">)</span>
+</span><span data-line="594">    <span class="n">lost</span> <span class="o">+=</span> <span class="n">scale</span><span class="p">(</span><span class="n">outdoor_power_keys</span><span class="p">,</span> <span class="n">frost</span><span class="o">.</span><span class="n">power_multiplier</span><span class="p">)</span>
+</span><span data-line="595">    <span class="n">total</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">total_power_key</span><span class="p">)</span>
+</span><span data-line="596">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">total</span><span class="p">):</span>
+</span><span data-line="597">        <span class="n">result</span><span class="p">[</span><span class="n">total_power_key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span> <span class="o">-</span> <span class="n">lost</span>
+</span><span data-line="598">
+</span><span data-line="599">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_FRACTION_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">t_frac</span>
+</span><span data-line="600">    <span class="n">result</span><span class="p">[</span><span class="n">FROST_CAPACITY_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">capacity_multiplier</span>
+</span><span data-line="601">    <span class="n">result</span><span class="p">[</span><span class="n">FROST_POWER_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">power_multiplier</span>
+</span><span data-line="602">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_POWER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">defrost_power</span>
+</span><span data-line="603">    <span class="n">result</span><span class="p">[</span><span class="n">DEFROST_LOAD_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">Q_defrost</span><span class="p">)</span>
+</span><span data-line="604">    <span class="n">result</span><span class="p">[</span><span class="n">RH_OUT_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">frost</span><span class="o">.</span><span class="n">RH_out</span>
+</span><span data-line="605">    <span class="k">return</span> <span class="n">result</span></div>
+
+</span><span data-line="606">
+</span><span data-line="607">
+<div class="viewcode-block" id="steady_defrost">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.defrost.steady_defrost">[docs]</a>
+</span><span data-line="608"><span class="k">def</span><span class="w"> </span><span class="nf">steady_defrost</span><span class="p">(</span><span class="n">duty_arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">outdoor_arg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;T0&quot;</span><span class="p">,</span> <span class="n">humidity_arg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;RH_out&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">_F</span><span class="p">],</span> <span class="n">_F</span><span class="p">]:</span>
+</span><span data-line="609"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorate a boiler&#39;s ``analyze_steady`` with the frost correction.</span>
+</span><span data-line="610">
+</span><span data-line="611"><span class="sd">    The decorated method is the frost-free solve (with its part-load report</span>
+</span><span data-line="612"><span class="sd">    and its duty reduction). A request with a frosting outdoor coil is handed</span>
+</span><span data-line="613"><span class="sd">    to the model&#39;s ``_steady_over_frost(frost, solve, request, T_out)``, where</span>
+</span><span data-line="614"><span class="sd">    ``solve(duty)`` is that frost-free solve at another duty; every other row</span>
+</span><span data-line="615"><span class="sd">    is solved as before and gets the frost keys of a row that was not</span>
+</span><span data-line="616"><span class="sd">    corrected (``_write_frost_free``). The model supplies</span>
+</span><span data-line="617"><span class="sd">    ``_frost_state(request, T_out, RH_out)``, which is</span>
+</span><span data-line="618"><span class="sd">    :data:`NO_FROST` when its frost model is off, and</span>
+</span><span data-line="619"><span class="sd">    ``_frost_state_of_running(result, frost, T_out)``, the frost state of the</span>
+</span><span data-line="620"><span class="sd">    machine a frost-free row actually runs (the same state unless a</span>
+</span><span data-line="621"><span class="sd">    load-weighted model finds the running machine more loaded than the</span>
+</span><span data-line="622"><span class="sd">    request). It sits outermost: the</span>
+</span><span data-line="623"><span class="sd">    trial solves of the duty reduction and the cycling mean must see</span>
+</span><span data-line="624"><span class="sd">    frost-free rows.</span>
+</span><span data-line="625"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="626">
+</span><span data-line="627">    <span class="k">def</span><span class="w"> </span><span class="nf">decorate</span><span class="p">(</span><span class="n">function</span><span class="p">:</span> <span class="n">_F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_F</span><span class="p">:</span>
+</span><span data-line="628">        <span class="n">signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="629">
+</span><span data-line="630">        <span class="nd">@wraps</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="631">        <span class="k">def</span><span class="w"> </span><span class="nf">wrapped</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="632">            <span class="n">bound</span> <span class="o">=</span> <span class="n">signature</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="633">            <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
+</span><span data-line="634">            <span class="n">want_dict</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;return_dict&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+</span><span data-line="635">            <span class="k">if</span> <span class="s2">&quot;return_dict&quot;</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">:</span>
+</span><span data-line="636">                <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="s2">&quot;return_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="637">            <span class="c1"># The method&#39;s own input checks come first, with their messages</span>
+</span><span data-line="638">            <span class="c1"># (an outdoor temperature out of range would otherwise fail inside</span>
+</span><span data-line="639">            <span class="c1"># the humid-air properties).</span>
+</span><span data-line="640">            <span class="n">validate_steady</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
+</span><span data-line="641">            <span class="n">request</span><span class="p">,</span> <span class="n">T_out</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="n">duty_arg</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="n">outdoor_arg</span><span class="p">])</span>
+</span><span data-line="642">            <span class="n">frost</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frost_state</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">T_out</span><span class="p">,</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">humidity_arg</span><span class="p">))</span>
+</span><span data-line="643">
+</span><span data-line="644">            <span class="k">def</span><span class="w"> </span><span class="nf">solve</span><span class="p">(</span><span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="645">                <span class="n">arguments</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
+</span><span data-line="646">                <span class="n">arguments</span><span class="p">[</span><span class="n">duty_arg</span><span class="p">]</span> <span class="o">=</span> <span class="n">duty</span>
+</span><span data-line="647">                <span class="n">trial</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">BoundArguments</span><span class="p">(</span><span class="n">signature</span><span class="p">,</span> <span class="n">arguments</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="648">                <span class="k">return</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">trial</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">trial</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="649">
+</span><span data-line="650">            <span class="n">result</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="651">            <span class="k">if</span> <span class="ow">not</span> <span class="n">frost</span><span class="o">.</span><span class="n">active</span><span class="p">:</span>
+</span><span data-line="652">                <span class="n">result</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">bound</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">bound</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="653">                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span data-line="654">                    <span class="c1"># A request the model&#39;s frost state finds too small to</span>
+</span><span data-line="655">                    <span class="c1"># frost may still be met by a machine that does: on its</span>
+</span><span data-line="656">                    <span class="c1"># speed floor the unit runs at more than the request</span>
+</span><span data-line="657">                    <span class="c1"># (a load-weighted frost model; otherwise unchanged).</span>
+</span><span data-line="658">                    <span class="n">frost</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frost_state_of_running</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">frost</span><span class="p">,</span> <span class="n">T_out</span><span class="p">)</span>
+</span><span data-line="659">            <span class="k">if</span> <span class="n">frost</span><span class="o">.</span><span class="n">active</span><span class="p">:</span>
+</span><span data-line="660">                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steady_over_frost</span><span class="p">(</span><span class="n">frost</span><span class="p">,</span> <span class="n">solve</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">T_out</span><span class="p">)</span>
+</span><span data-line="661">            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span data-line="662">                <span class="bp">self</span><span class="o">.</span><span class="n">_write_frost_free</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">frost</span><span class="p">)</span>
+</span><span data-line="663">            <span class="k">if</span> <span class="n">want_dict</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span data-line="664">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="665">            <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="666">
+</span><span data-line="667">            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span>
+</span><span data-line="668">
+</span><span data-line="669">        <span class="c1"># ``analyze_steady.__wrapped__`` stays the undecorated solve, as under</span>
+</span><span data-line="670">        <span class="c1"># the cycling and envelope decorators.</span>
+</span><span data-line="671">        <span class="n">wrapped</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="s2">&quot;__wrapped__&quot;</span><span class="p">,</span> <span class="n">function</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+</span><span data-line="672">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">_F</span><span class="p">,</span> <span class="n">wrapped</span><span class="p">)</span>
+</span><span data-line="673">
+</span><span data-line="674">    <span class="k">return</span> <span class="n">decorate</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

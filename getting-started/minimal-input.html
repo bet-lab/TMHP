@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP is meant to run from a nameplate, not from a component datasheet. For every released family three statements describe a machine: which family — the class says what the heat comes from and wher..." />
 
-    <meta property="article:modified_time" content="2026-11-14T08:31:59+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T10:47:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -490,9 +490,11 @@ EN 14825 degradation: <code class="docutils literal notranslate"><span class="pr
 (<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>)</p></td>
 </tr>
 <tr class="row-even"><td><p>Frost and defrost</p></td>
-<td><p>ASHP heating below 5 °C outdoor carries the EnergyPlus frost
-adjustment at 84 % relative humidity</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">defrost=None</span></code>; <code class="docutils literal notranslate"><span class="pre">RH_out</span></code> per call (<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>)</p></td>
+<td><p>ASHP heating and ASHPB below 5 °C outdoor carry the EnergyPlus
+frost adjustment at 84 % relative humidity</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">defrost=None</span></code>; <code class="docutils literal notranslate"><span class="pre">RH_out</span></code> per call, <code class="docutils literal notranslate"><span class="pre">RH_out_schedule</span></code> in a
+dynamic run; <code class="docutils literal notranslate"><span class="pre">DefrostModel(load_weighted=False)</span></code> for the same
+correction at every load (<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <a class="reference internal" href="../models/ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a>)</p></td>
 </tr>
 <tr class="row-odd"><td><p>Dynamic borehole</p></td>
 <td><p>GSHP and GSHPB resolve the heat capacity of fluid, pipe and grout

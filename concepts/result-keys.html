@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="analyze_steady returns a flat dict and analyze_dynamic a pandas.DataFrame whose columns are the same keys, one row per time step. This page lists every key the five released families return with th..." />
 
-    <meta property="article:modified_time" content="2026-11-14T09:40:29+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T10:47:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -154,7 +154,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#request-capacity-and-part-load">Request, capacity and part load</a></li>
 <li><a class="reference internal" href="#heat-rates">Heat rates</a></li>
 <li><a class="reference internal" href="#electrical-power-and-cop">Electrical power and COP</a></li>
-<li><a class="reference internal" href="#frost-and-defrost-ashp">Frost and defrost (ASHP)</a></li>
+<li><a class="reference internal" href="#frost-and-defrost-ashp-ashpb">Frost and defrost (ASHP, ASHPB)</a></li>
 <li><a class="reference internal" href="#compressor-and-cycle">Compressor and cycle</a></li>
 <li><a class="reference internal" href="#air-side">Air side</a></li>
 <li><a class="reference internal" href="#ground-and-source-water-loop">Ground and source-water loop</a></li>
@@ -573,9 +573,9 @@ temperature of the row and can be negative; only their differences are heat rate
 </table>
 </div>
 </section>
-<section id="frost-and-defrost-ashp">
-<h2>Frost and defrost (ASHP)<a class="headerlink" href="#frost-and-defrost-ashp" title="Link to this heading">¶</a></h2>
-<p>Present on every ASHP row; neutral (0 or 1) in cooling and above the frosting limit. See <a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>.</p>
+<section id="frost-and-defrost-ashp-ashpb">
+<h2>Frost and defrost (ASHP, ASHPB)<a class="headerlink" href="#frost-and-defrost-ashp-ashpb" title="Link to this heading">¶</a></h2>
+<p>Present on every ASHP and ASHPB row; neutral (0 or 1) in cooling, above the frosting limit and with <code class="docutils literal notranslate"><span class="pre">defrost=False</span></code>. In an ASHPB dynamic frame <code class="docutils literal notranslate"><span class="pre">E_defrost</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_defrost</span></code> and the two frost-free rates are step averages like the other rates. See <a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a> and <a class="reference internal" href="../models/ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a>.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -591,35 +591,39 @@ temperature of the row and can be negative; only their differences are heat rate
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">defrost_fraction</span> <span class="pre">[-]</span></code></p></td>
-<td><p>ASHP</p></td>
+<td><p>ASHP, ASHPB</p></td>
 <td><p>Fraction of the compressor’s runtime spent defrosting.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frost_capacity_factor</span> <span class="pre">[-]</span></code></p></td>
-<td><p>ASHP</p></td>
+<td><p>ASHP, ASHPB</p></td>
 <td><p>Heating-capacity multiplier of the frosted coil, defrost time included; 1 without frost.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frost_power_factor</span> <span class="pre">[-]</span></code></p></td>
-<td><p>ASHP</p></td>
+<td><p>ASHP, ASHPB</p></td>
 <td><p>Input-power multiplier of the frosted coil; 1 without frost.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">E_defrost</span> <span class="pre">[W]</span></code></p></td>
-<td><p>ASHP</p></td>
+<td><p>ASHP, ASHPB</p></td>
 <td><p>Mean compressor power spent defrosting (part of <code class="docutils literal notranslate"><span class="pre">E_cmp</span></code>).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_defrost</span> <span class="pre">[W]</span></code></p></td>
-<td><p>ASHP</p></td>
-<td><p>Mean heat a reverse-cycle defrost takes from the room.</p></td>
+<td><p>ASHP, ASHPB</p></td>
+<td><p>Mean heat a reverse-cycle defrost takes from the room (ASHP) or from the tank water (ASHPB).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_ref_iu_frost_free</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP</p></td>
 <td><p>Indoor-coil duty of the frost-free cycle the row was solved at.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">E_tot_frost_free</span> <span class="pre">[W]</span></code></p></td>
-<td><p>ASHP</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_ref_tank_frost_free</span> <span class="pre">[W]</span></code></p></td>
+<td><p>ASHPB</p></td>
+<td><p>Condenser duty of the frost-free cycle the row was solved at; equal to <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code> without frost.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">E_tot_frost_free</span> <span class="pre">[W]</span></code></p></td>
+<td><p>ASHP, ASHPB</p></td>
 <td><p>Electrical input of that frost-free cycle.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RH_out</span> <span class="pre">[-]</span></code></p></td>
-<td><p>ASHP</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RH_out</span> <span class="pre">[-]</span></code></p></td>
+<td><p>ASHP, ASHPB</p></td>
 <td><p>Outdoor relative humidity the frost correction used (fraction); NaN where no correction applies.</p></td>
 </tr>
 </tbody>

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP aims at a useful accuracy from a nameplate ( Minimal input), not at reproducing one machine from its drawings. That bargain has a price: some things are outside the models and are refused, and..." />
 
-    <meta property="article:modified_time" content="2026-11-14T08:31:59+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T10:47:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -402,19 +402,20 @@ the sensible one</p></td>
 a low sensible heat ratio (<a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a>, <em>Cooling and
 latent load</em>)</p></td>
 </tr>
-<tr class="row-even"><td><p>Frost as a correlation (ASHP)</p></td>
+<tr class="row-even"><td><p>Frost as a correlation (ASHP, ASHPB)</p></td>
 <td><p>Below 5 °C outdoor the EnergyPlus frost multipliers are applied to a
 frost-free cycle. They depend on outdoor temperature and humidity,
 not on the coil the model solves, and a defrost is in the mean, not
-resolved in time</p></td>
+resolved in time. The multipliers were fitted to air-to-air units;
+the boiler takes them unchanged, with the defrost heat drawn from
+the tank water. Below the capacity of the unit the correlation
+describes, the correction shrinks with the frost drive of a less
+loaded coil (air flow taken as independent of the load); in air too
+dry to frost at all, the EnergyPlus fixed loss stays at every load</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">defrost_fraction</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">frost_capacity_factor</span> <span class="pre">[-]</span></code>,
-<code class="docutils literal notranslate"><span class="pre">E_defrost</span> <span class="pre">[W]</span></code>; <code class="docutils literal notranslate"><span class="pre">Q_ref_iu_frost_free</span> <span class="pre">[W]</span></code> is the cycle that was
-solved (<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>)</p></td>
-</tr>
-<tr class="row-odd"><td><p>No frost correction for the air-source boiler</p></td>
-<td><p>ASHPB solves the frost-free cycle at every outdoor temperature</p></td>
-<td><p>Not flagged. Below about 5 °C outdoor its COP and capacity are those
-of a coil that never frosts</p></td>
+<code class="docutils literal notranslate"><span class="pre">E_defrost</span> <span class="pre">[W]</span></code>; <code class="docutils literal notranslate"><span class="pre">Q_ref_iu_frost_free</span> <span class="pre">[W]</span></code> (ASHP) or
+<code class="docutils literal notranslate"><span class="pre">Q_ref_tank_frost_free</span> <span class="pre">[W]</span></code> (ASHPB) is the cycle that was solved
+(<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <a class="reference internal" href="../models/ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a>)</p></td>
 </tr>
 </tbody>
 </table>

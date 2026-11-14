@@ -104,7 +104,7 @@ def main() -> None:
     band = pd.read_csv(BAND)
     parity = pd.read_csv(PARITY).set_index("variant")
 
-    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("19.2cm", 0.319), gridspec_kw={"wspace": 0.42})
+    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("19.2cm", 0.319))
     _panels: list = []
 
     # --- (a), (b) the certified trajectory ---------------------------------
@@ -215,7 +215,7 @@ def main() -> None:
 
     out = static_path("validation_en14825_verdict.svg").with_suffix("")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, out, mt="7%", formats=("svg", "png"))
+    finalize(fig, out, gutter="16pt", formats=("svg", "png"))
     plt.close(fig)
     print(f"wrote {out}.svg")
     print("\nEN 14825 distance from certified median [%]:")

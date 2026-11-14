@@ -62,7 +62,7 @@ def main() -> None:
     sweep = pd.read_csv(SWEEP)
     matched = pd.read_csv(MATCHED)
 
-    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("19.2cm", 0.372), gridspec_kw={"wspace": 0.42})
+    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("19.2cm", 0.372))
     _panels: list = []
 
     # (a) error by refrigerant, with the rating standard on the label
@@ -169,7 +169,9 @@ def main() -> None:
     _panels.append((ax, "c"))
 
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, static_path("validation_refrigerant_diagnosis.svg").with_suffix(""), mt="6%", formats=("svg", "png"))
+    finalize(
+        fig, static_path("validation_refrigerant_diagnosis.svg").with_suffix(""), gutter="26pt", formats=("svg", "png")
+    )
 
 
 if __name__ == "__main__":

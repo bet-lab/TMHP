@@ -354,7 +354,7 @@ def figures(
     _panels.append((axes[0], "a"))
     _panels.append((axes[1], "b"))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "01_pto_vs_capacity", mt="7%")
+    save(fig, "01_pto_vs_capacity")
 
     # -- 02 parity (air-to-air, leave-one-unit-out) ----------------------
     fig, ax = plt.subplots(figsize=dm.figsize("8cm", 0.85))
@@ -391,7 +391,7 @@ def figures(
     ax.set_ylabel(r"Predicted $P_{TO}$ [W]")
     ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-4.5))
     grid(ax)
-    save(fig, "02_pto_parity", mt="4%")
+    save(fig, "02_pto_parity")
 
     # -- 03 residual vs capacity -----------------------------------------
     fig, ax = plt.subplots(figsize=dm.figsize("9cm", 0.62))
@@ -407,7 +407,7 @@ def figures(
     ax.set_title("Air-to-air 1:1 splits, leave-one-unit-out", fontsize=dm.fs(-2.5), loc="left")
     ax.legend(loc="best", frameon=False, fontsize=dm.fs(-4.5))
     grid(ax)
-    save(fig, "03_pto_residual_vs_capacity", mt="7%")
+    save(fig, "03_pto_residual_vs_capacity")
 
     # -- 04 PLR-COP with the measured proxy against Appendix D ------------
     cond_title = {"heating_7": "Heating 7/20 °C", "cooling_35": "Cooling 35/27 °C"}
@@ -464,7 +464,7 @@ def figures(
     _panels.append((axes[0], "a"))
     _panels.append((axes[1], "b"))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "04_plr_cop_with_pto_proxy", mt="7%")
+    save(fig, "04_plr_cop_with_pto_proxy")
 
 
 def plr_table(plr: pd.DataFrame, w_values) -> pd.DataFrame:

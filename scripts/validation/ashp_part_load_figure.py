@@ -80,7 +80,7 @@ def main() -> None:
     axes[1].set_ylabel("System EER [-]")
 
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, static_path("validation_ashp_part_load.svg").with_suffix(""), mt="6%", formats=("svg", "png"))
+    finalize(fig, static_path("validation_ashp_part_load.svg").with_suffix(""), formats=("svg", "png"))
 
 
 if __name__ == "__main__":

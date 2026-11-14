@@ -255,7 +255,7 @@ def main() -> None:
 
     out = static_path("compressor_displacement.svg").with_suffix("")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, out, mt="4%")
+    finalize(fig, out)
     plt.close(fig)
     print(f"wrote {out}.svg")
     for _model, ref, capacity, disp in PANASONIC:

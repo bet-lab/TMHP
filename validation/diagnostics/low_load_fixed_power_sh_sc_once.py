@@ -509,7 +509,7 @@ def _figures(df: pd.DataFrame) -> None:
         ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "01_fixed_power_cop_vs_plr", mt="8%")
+    save(fig, "01_fixed_power_cop_vs_plr")
 
     # -- 02 fixed-power fraction -----------------------------------------
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.34))
@@ -532,7 +532,7 @@ def _figures(df: pd.DataFrame) -> None:
         ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4))
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "02_fixed_power_fraction_vs_plr", mt="8%")
+    save(fig, "02_fixed_power_fraction_vs_plr")
 
     # -- 03 low-load summary ---------------------------------------------
     rows = []
@@ -581,7 +581,7 @@ def _figures(df: pd.DataFrame) -> None:
     _panels.append((ax, "b"))
     s.to_csv(OUT_DIR / "fig03_fixed_power_lowload_summary.csv", index=False)
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "03_fixed_power_lowload_summary", mt="5%")
+    save(fig, "03_fixed_power_lowload_summary")
 
     # -- 04..08 case comparisons, mode A solid / mode B dashed ------------
     def case_panels(name: str, quantities: list[tuple[str, str, tuple | None, float | None]], margins: dict) -> None:
@@ -639,7 +639,7 @@ def _figures(df: pd.DataFrame) -> None:
     case_panels(
         "04_actual_sh_sc_vs_plr",
         [("SH_actual", r"Actual superheat [K]", (0, 12), 2.0), ("SC_actual", r"Actual subcooling [K]", (0, 10), 2.0)],
-        {"mt": "6%", "ml": "3%"},
+        {},
     )
     case_panels(
         "05_approach_vs_plr",
@@ -647,17 +647,15 @@ def _figures(df: pd.DataFrame) -> None:
             (r"dT_ref_evap", r"$\Delta T_{approach,evap}$ [K]", (0, 20), 4.0),
             ("dT_ref_cond", r"$\Delta T_{approach,cond}$ [K]", (0, 20), 4.0),
         ],
-        {"mt": "6%", "ml": "3%"},
+        {},
     )
     case_panels(
         "06_saturation_temperature_vs_plr",
         [("T_evap", r"$T_{evap}$ [°C]", None, None), ("T_cond", r"$T_{cond}$ [°C]", None, None)],
-        {"mt": "6%", "ml": "3%"},
+        {},
     )
-    case_panels(
-        "07_pressure_ratio_vs_plr", [("r_p", r"Pressure ratio $r_p$ [-]", None, None)], {"mt": "10%", "ml": "3%"}
-    )
-    case_panels("08_nstar_vs_plr", [("n_star", r"Relative speed $n^*$ [-]", (0, 1.6), 0.4)], {"mt": "10%", "ml": "3%"})
+    case_panels("07_pressure_ratio_vs_plr", [("r_p", r"Pressure ratio $r_p$ [-]", None, None)], {})
+    case_panels("08_nstar_vs_plr", [("n_star", r"Relative speed $n^*$ [-]", (0, 1.6), 0.4)], {})
 
     # -- 09 SH/SC COP, one row per mode ----------------------------------
     fig, axes = plt.subplots(
@@ -682,7 +680,7 @@ def _figures(df: pd.DataFrame) -> None:
             _panels.append((ax, "abcdef"[i * 3 + j]))
     axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-5), ncol=2)
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "09_sh_sc_cop_vs_plr", mt="6%", ml="3%")
+    save(fig, "09_sh_sc_cop_vs_plr")
 
     # -- 10 / 11 SH-only and SC-only -------------------------------------
     def split_fig(name: str, pairs: list[tuple[float, float]], fixed_txt: str, label_fn) -> None:
@@ -710,7 +708,7 @@ def _figures(df: pd.DataFrame) -> None:
                 _panels.append((ax, "abcdef"[i * 3 + j]))
         axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-4.5))
         dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-        save(fig, name, mt="6%", ml="3%")
+        save(fig, name)
 
     split_fig("10_sh_only_cop_vs_plr", SH_ONLY, "SC = 5 K", lambda p: f"SH = {p[0]:g} K")
     split_fig("11_sc_only_cop_vs_plr", SC_ONLY, "SH = 5 K", lambda p: f"SC = {p[1]:g} K")
@@ -732,7 +730,7 @@ def _figures(df: pd.DataFrame) -> None:
         ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    save(fig, "12_combined_effect_cop_vs_plr", mt="8%")
+    save(fig, "12_combined_effect_cop_vs_plr")
 
 
 def main() -> None:

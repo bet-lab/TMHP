@@ -161,7 +161,7 @@ def fig01(d) -> None:
         _panels.append((ax, letter))
     _source(sub, ["x_ref", "m_dot_ref", "m_dot_ref_rated", "n_star"], "fig01_mdot_ratio_vs_plr.csv")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, "01_mdot_ratio_vs_plr", mt="6%")
+    _save(fig, "01_mdot_ratio_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +194,7 @@ def fig02(d) -> None:
         sub, ["ua_ratio_ou", "ua_ratio_iu", "UA_ou", "UA_iu", "x_ref", "fan_fraction_ou"], "fig02_ua_ratio_vs_plr.csv"
     )
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, "02_ua_ratio_vs_plr", mt="5%")
+    _save(fig, "02_ua_ratio_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +225,7 @@ def fig03(d) -> None:
         _panels.append((ax, letter))
     _source(sub, ["epsilon_ou", "epsilon_iu", "NTU_ou", "NTU_iu"], "fig03_epsilon_vs_plr.csv")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, "03_epsilon_vs_plr", mt="5%")
+    _save(fig, "03_epsilon_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -256,7 +256,7 @@ def fig04(d) -> None:
         _panels.append((ax, letter))
     _source(sub, ["T_evap_C", "T_cond_C", "T_dis_C", "pr"], "fig04_saturation_temperature_vs_plr.csv")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, "04_saturation_temperature_vs_plr", mt="5%")
+    _save(fig, "04_saturation_temperature_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -283,7 +283,7 @@ def fig05(d) -> None:
         _panels.append((ax, letter))
     _source(sub, ["pr", "T_evap_C", "T_cond_C"], "fig05_pressure_ratio_vs_plr.csv")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, "05_pressure_ratio_vs_plr", mt="6%")
+    _save(fig, "05_pressure_ratio_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -321,7 +321,7 @@ def fig06(d) -> None:
         _panels.append((ax, letter))
     _source(sub, ["cop_sys", "E_tot", "E_cmp", "E_ou_fan", "E_iu_fan", "q_delivered_W"], "fig06_cop_vs_plr.csv")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, "06_cop_vs_plr", mt="6%")
+    _save(fig, "06_cop_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -426,7 +426,7 @@ def fig07(d) -> None:
             cb.set_label(lab, fontsize=dm.fs(-3))
             _panels.append((ax, "abcd"[row * 2 + cidx]))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, "07_parameter_sensitivity_heatmap", mt="8%")
+    _save(fig, "07_parameter_sensitivity_heatmap")
     return met
 
 

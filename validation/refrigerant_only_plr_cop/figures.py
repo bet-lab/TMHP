@@ -249,7 +249,7 @@ def fig1(d, case: str) -> None:
         f"{tag}1_cop_vs_plr.csv",
     )
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, f"{tag}1_cop_vs_plr", mt="6%")
+    _save(fig, f"{tag}1_cop_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -289,7 +289,7 @@ def fig2(d, case: str) -> None:
         ax.axhline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=":", zorder=0)
         _panels.append((ax, letter))
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, f"{tag}2_normalised_cop", mt="6%")
+    _save(fig, f"{tag}2_normalised_cop")
 
 
 # ---------------------------------------------------------------------------
@@ -320,7 +320,7 @@ def fig3(d, case: str) -> None:
         f"{tag}3_operating_point.csv",
     )
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, f"{tag}3_operating_point", mt="6%")
+    _save(fig, f"{tag}3_operating_point")
 
 
 # ---------------------------------------------------------------------------
@@ -458,7 +458,7 @@ def fig4(d, case: str) -> None:
         x=0.01,
         ha="left",
     )
-    _save(fig, f"{tag}4_efficiency_surface", mt="8%")
+    _save(fig, f"{tag}4_efficiency_surface")
 
 
 # ---------------------------------------------------------------------------
@@ -510,7 +510,7 @@ def fig5(d, case: str) -> None:
         ["W_comp", "W_fan", "W_ou_fan", "W_iu_fan", "W_tot", "fan_fraction"],
         f"{tag}5_power_split.csv",
     )
-    _save(fig, f"{tag}5_power_split", mt="8%")
+    _save(fig, f"{tag}5_power_split")
 
 
 # ---------------------------------------------------------------------------
@@ -554,7 +554,7 @@ def figS1(d, m) -> None:
         ha="left",
     )
     sub.to_csv(OUT_DIR / "S1_shape_summary.csv", index=False)
-    _save(fig, "S1_shape_summary", mt="8%")
+    _save(fig, "S1_shape_summary")
 
 
 # ---------------------------------------------------------------------------
@@ -605,7 +605,7 @@ def figS2(d, m) -> None:
         x=0.01,
         ha="left",
     )
-    _save(fig, "S2_sizing_control", mt="8%")
+    _save(fig, "S2_sizing_control")
 
 
 # ---------------------------------------------------------------------------
@@ -663,7 +663,7 @@ def figS3(d) -> None:
         x=0.01,
         ha="left",
     )
-    _save(fig, "S3_decomposition", mt="10%")
+    _save(fig, "S3_decomposition")
 
 
 # ---------------------------------------------------------------------------

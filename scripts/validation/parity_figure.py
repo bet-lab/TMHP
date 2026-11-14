@@ -187,7 +187,7 @@ def main() -> None:
     axes[0].set_ylabel("Predicted COP [-]")
     out = static_path("validation_parity.svg").with_suffix("")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, out, mt="6%", formats=("svg", "png"))
+    finalize(fig, out, formats=("svg", "png"))
     plt.close(fig)
     print(f"wrote {out}.svg")
     overall = panel_statistics(df)

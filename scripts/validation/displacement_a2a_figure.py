@@ -108,7 +108,7 @@ def main() -> None:
     _panels.append((ax, "c"))
 
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, static_path("compressor_displacement_a2a.svg").with_suffix(""), mt="7%", formats=("svg", "png"))
+    finalize(fig, static_path("compressor_displacement_a2a.svg").with_suffix(""), formats=("svg", "png"))
 
 
 if __name__ == "__main__":

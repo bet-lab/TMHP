@@ -283,7 +283,7 @@ def main() -> None:
 
     out = static_path("validation_part_load.svg").with_suffix("")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, out, mt="6%", formats=("svg", "png"))
+    finalize(fig, out, formats=("svg", "png"))
     plt.close(fig)
 
     print(f"wrote {out}.svg")

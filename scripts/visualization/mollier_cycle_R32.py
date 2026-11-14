@@ -169,7 +169,7 @@ def main() -> None:
 
     # Two-panel layout: 17 cm column-pair, 5:2 aspect keeps each panel
     # ~8 cm wide × 6 cm tall.
-    fig, (ax_ph, ax_th) = plt.subplots(1, 2, figsize=dm.figsize("17.4cm", 0.407), gridspec_kw={"wspace": 0.25})
+    fig, (ax_ph, ax_th) = plt.subplots(1, 2, figsize=dm.figsize("17.4cm", 0.407))
     _panels: list = []
 
     # --- Panel (a): P-h --------------------------------------------------
@@ -207,9 +207,9 @@ def main() -> None:
     )
 
     ax_th.axhline(T_TANK_W, color=COLORS["hot"], linewidth=dm.lw(0), linestyle=(0, (3, 3)), alpha=0.9)
-    ax_th.text(15, T_TANK_W + 3, f"Tank water: {T_TANK_W:.1f} °C", color=COLORS["hot"], fontsize=dm.fs(-1))
+    ax_th.text(15, T_TANK_W + 3, f"Tank water: {T_TANK_W:.0f} °C", color=COLORS["hot"], fontsize=dm.fs(-1))
     ax_th.axhline(T0, color=COLORS["warm"], linewidth=dm.lw(0), linestyle=(0, (3, 3)), alpha=0.9)
-    ax_th.text(15, T0 - 10, f"Outdoor air: {T0:.1f} °C", color=COLORS["warm"], fontsize=dm.fs(-1))
+    ax_th.text(15, T0 - 10, f"Outdoor air: {T0:.0f} °C", color=COLORS["warm"], fontsize=dm.fs(-1))
 
     ax_th.set_xlim(0, 700)
     ax_th.set_ylim(-20, 160)
@@ -220,7 +220,7 @@ def main() -> None:
     _panels.append((ax_th, "b"))
 
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, OUTPUT_STEM)
+    finalize(fig, OUTPUT_STEM, gutter="14pt")
     record_figure(
         "mollier_cycle_R32",
         "scripts/visualization/mollier_cycle_R32.py",

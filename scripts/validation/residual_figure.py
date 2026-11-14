@@ -199,7 +199,7 @@ def main() -> None:
 
     out = static_path("validation_residuals.svg").with_suffix("")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    finalize(fig, out, mt="7%", ml="0%")
+    finalize(fig, out)
     plt.close(fig)
     print(f"wrote {out}.svg")
     print(

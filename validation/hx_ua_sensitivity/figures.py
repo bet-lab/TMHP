@@ -260,7 +260,7 @@ def fig1(d, duty: str) -> None:
         _panels.append((ax, letter))
     _source(sub, ["cop_sys", "cop_ref", "E_cmp", "E_tot"], f"{tag}1_cop_vs_plr.csv")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, f"{tag}1_cop_vs_plr", mt="6%")
+    _save(fig, f"{tag}1_cop_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -300,7 +300,7 @@ def fig2(d, duty: str) -> None:
         f"{tag}2_temperatures_vs_plr.csv",
     )
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, f"{tag}2_temperatures_vs_plr", mt="6%")
+    _save(fig, f"{tag}2_temperatures_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +326,7 @@ def fig3(d, duty: str) -> None:
         _panels.append((ax, letter))
     _source(sub, ["pr", "n_star", "rps", "lift_ref_K"], f"{tag}3_pressure_ratio_vs_plr.csv")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, f"{tag}3_pressure_ratio_vs_plr", mt="6%")
+    _save(fig, f"{tag}3_pressure_ratio_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -361,7 +361,7 @@ def fig4(d, duty: str) -> None:
         _panels.append((ax, letter))
     _source(sub, ["eta_isen", "eta_vol", "eta_em", "E_cmp", "pr", "n_star"], f"{tag}4_compressor_vs_plr.csv")
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
-    _save(fig, f"{tag}4_compressor_vs_plr", mt="5%")
+    _save(fig, f"{tag}4_compressor_vs_plr")
 
 
 # ---------------------------------------------------------------------------
@@ -394,7 +394,7 @@ def fig5(d, duty: str) -> None:
         va="top",
     )
     _source(sub, ["cop_ref", "cop_sys", "E_cmp", "E_fan", "E_tot", "fan_share"], f"{tag}5_cop_definition.csv")
-    _save(fig, f"{tag}5_cop_definition", mt="6%")
+    _save(fig, f"{tag}5_cop_definition")
 
 
 # ---------------------------------------------------------------------------
@@ -452,7 +452,7 @@ def fig6(d, duty: str) -> None:
     ax2.set_yticks(ticks(f_lo, f_hi, f_step))
     ax2.set_ylabel(r"Fan share $W_{fan}/(W_{cmp}+W_{fan})$ [%]")
     _source(g, ["E_cmp", "E_ou_fan", "E_iu_fan", "E_fan", "E_tot", "fan_share"], f"{tag}6_power_split.csv")
-    _save(fig, f"{tag}6_power_split", mt="6%", mr="4%")
+    _save(fig, f"{tag}6_power_split")
 
 
 # ---------------------------------------------------------------------------
@@ -473,7 +473,7 @@ def fig7(d, duty: str) -> None:
         vals += list(mod.cop_sys)
     _axis(ax, vals, "System COP [-]", 1.0, title=DUTY_TITLE[duty], legend="lower right")
     _source(sub, ["cop_sys", "approach_evap_K", "approach_cond_K", "pr"], f"{tag}7_coil_split.csv")
-    _save(fig, f"{tag}7_coil_split", mt="6%")
+    _save(fig, f"{tag}7_coil_split")
 
 
 # ---------------------------------------------------------------------------

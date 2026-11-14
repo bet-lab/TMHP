@@ -40,6 +40,7 @@ def finalize(
     mr: str | float | None = None,
     mt: str | float | None = None,
     mb: str | float | None = None,
+    gutter: str | float | None = None,
     formats: tuple[str, ...] = ("svg",),
 ) -> None:
     """Apply the standard layout buffer and save through ``dm.save_formats``.
@@ -57,7 +58,7 @@ def finalize(
     legends, and rather than silently shipping a clipped figure we raise
     so the script fails loudly and the caller picks a margin that fits.
     """
-    dm.simple_layout(fig, margin=margin, ml=ml, mr=mr, mt=mt, mb=mb)
+    dm.simple_layout(fig, margin=margin, ml=ml, mr=mr, mt=mt, mb=mb, gutter=gutter)
     _assert_no_overflow(fig)
     dm.save_formats(fig, str(out_stem), formats=formats)
 

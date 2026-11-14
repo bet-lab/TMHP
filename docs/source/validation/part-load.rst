@@ -204,7 +204,7 @@ and humidity alone — it read 3.19 at A and 3.93 at B, near the 5th percentile:
 the unit at B delivers 3.7 kW frost-free on its minimum speed, 0.45 of what
 the adjustment's coil-temperature correlation is written for, and was
 corrected as if it ran flat out. The adjustment now follows the load on the
-coil (:ref:`ashp-frost-load`): at A the unit is at 0.94 of that load and
+coil (:ref:`frost at part load <ashp-frost-load>`): at A the unit is at 0.94 of that load and
 keeps nearly the whole correction, at B a third of it. No coefficient is
 adjusted to move any of this; the load term has none.
 

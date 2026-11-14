@@ -176,7 +176,7 @@ on by default, in ``analyze_steady`` and in the cycle of every dynamic step:
    # model.step(state, {..., "RH_out": 0.9}, dt_s)
 
 **Part load.** The correction is that of the load the coil carries
-(:ref:`ashp-frost-load`): the coil sits ``r (0.18 T_out + 8.589)`` below the
+(:ref:`frost at part load <ashp-frost-load>`): the coil sits ``r (0.18 T_out + 8.589)`` below the
 air, with ``r`` the frost-free duty over the capacity the correlation's unit
 has at that outdoor temperature (``hp_capacity`` at 7 °C, 0.6 of it at
 −15 °C), at most 1. At ``r = 1`` it is the EnergyPlus correction unchanged;

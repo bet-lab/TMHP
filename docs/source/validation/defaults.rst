@@ -645,7 +645,7 @@ sat at 78 / 5 / 32 / 38 and 18 / 4 / 66 / 52 — point B (+2 °C, 54 % of the
 design load) below the 10th percentile in 24 of the 30 runs, one run passing:
 that adjustment is a function of outdoor temperature and humidity alone and
 corrects a unit at half load like one flat out. With the load on the coil
-taken into account (:ref:`ashp-frost-load`; no constant added) point A keeps
+taken into account (:ref:`frost at part load <ashp-frost-load>`; no constant added) point A keeps
 nearly the whole correction and point B a third of it. At the light points
 the certified COP also carries on/off cycling, which the running-machine
 figures here leave out; points C and D sit below the median anyway. No

@@ -189,7 +189,7 @@ adjustment the same rows ran +21.6 % at +2 °C, +10.1 % at −7 °C and +0.1 %
 below: it removes the excess at the condition at which an outdoor coil frosts
 most, and takes a tenth too much in cold, dry air, where little frost forms
 but the correlation's capacity multiplier (0.875) still applies in full.
-The adjustment follows the load on the coil (:ref:`ashp-frost-load`), but
+The adjustment follows the load on the coil (:ref:`frost at part load <ashp-frost-load>`), but
 these catalogues do not test that: every air-to-water point at or below +2 °C,
 and all but four of the air-to-air ones (at −15 °C, +0.2 to +1.1 % in COP),
 is at or above the capacity the adjustment's correlation is written for, so

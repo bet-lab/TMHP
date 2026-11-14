@@ -462,7 +462,7 @@ Each limit in words, and what to do
 The warnings take their wording from this table
 (``tmhp.operating_limits.LIMITS``). A limit that stops a point is named by
 ``failure_reason``; the same limit on a point that runs at a reduced duty is
-named by ``capacity_binding``.
+named by ``capacity_binding`` (the quoted values marked *binding*).
 
 .. list-table::
     :header-rows: 1
@@ -471,7 +471,7 @@ named by ``capacity_binding``.
     * - ``failure_reason`` / ``capacity_binding``
       - In words
       - What to do
-    * - ``discharge_temp_above_max``, ``discharge_temperature`` (binding)
+    * - ``discharge_temp_above_max``, ``"discharge_temperature"`` (binding)
       - The compressor discharge temperature is above its protection limit
         T_dis_max, even with the suction superheat taken to 0 K and wet
         suction.
@@ -479,19 +479,19 @@ named by ``capacity_binding``.
         warmer source), or use a refrigerant that discharges cooler (R290,
         R134a) or the efficiency map of the actual compressor. T_dis_max=<°C>
         sets the limit of another compressor.
-    * - ``condensing_temp_above_max``, ``condensing_temperature`` (binding)
+    * - ``condensing_temp_above_max``, ``"condensing_temperature"`` (binding)
       - The condensing temperature is above T_cond_max, the top of the
         compressor envelope.
       - Lower the temperature the heat is delivered at (the tank set points of
         a boiler), or use a refrigerant with a higher limit (R290, R134a).
         T_cond_max=<°C> sets the limit of another compressor.
-    * - ``pr_above_max``, ``pressure_ratio`` (binding)
+    * - ``pr_above_max``, ``"pressure_ratio"`` (binding)
       - The compressor pressure ratio is above PR_cycle_max, the single-stage
         limit.
       - Reduce the temperature lift (a lower tank or supply temperature, or a
         warmer source). PR_cycle_max=<ratio> sets the limit of another
         compressor.
-    * - ``eta_isen_below_min``, ``compressor_efficiency`` (binding)
+    * - ``eta_isen_below_min``, ``"compressor_efficiency"`` (binding)
       - The shipped compressor efficiency map, read outside its data, is below
         its floor (isentropic efficiency 0.30).
       - Reduce the temperature lift (a lower tank or supply temperature, or a
@@ -508,22 +508,22 @@ named by ``capacity_binding``.
       - Reduce the request, or enlarge the heat exchanger that is short (its
         UA or its largest flow); failure_detail names the fan limit on the
         air-source boiler.
-    * - ``outdoor_coil`` (binding)
+    * - ``"outdoor_coil"`` (binding)
       - The outdoor coil is short of the evaporator duty at the fan's largest
         airflow.
       - Reduce the request, or give the outdoor coil and fan of the actual
         unit (UA_ou_rated, dV_fan_a_max).
-    * - ``source_heat_exchanger`` (binding)
+    * - ``"source_heat_exchanger"`` (binding)
       - The source heat exchanger cannot absorb the evaporator duty at the
         approach temperatures the search admits.
       - Reduce the request, raise the source temperature or flow, or enlarge
         the source heat exchanger.
-    * - ``cycle`` (binding)
+    * - ``"cycle"`` (binding)
       - A coil is at its largest airflow and the widest approach temperature
         the search admits.
       - Reduce the request, or size the machine for it (hp_capacity scales the
         coils and the compressor).
-    * - ``compressor_max_speed``, ``compressor`` (binding)
+    * - ``compressor_max_speed``, ``"compressor"`` (binding)
       - The compressor is at its maximum speed (rps_max).
       - Size the machine for the load (hp_capacity), or reduce the request.
     * - ``cycle_invalid``

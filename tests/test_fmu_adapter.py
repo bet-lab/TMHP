@@ -28,6 +28,8 @@ from tmhp.equipment_presets import resolve_preset
 from tmhp.integrations._fmi_common import VARIABLE_DESCRIPTIONS
 from tmhp.integrations.fmu import TmhpAshpbSlave, _finite
 
+from ._fmu_build import build_fmu, simulation_obstacle
+
 PERIOD_S = 3 * 86400
 DT = 600
 T_SUR = 20.0
@@ -264,18 +266,21 @@ def test_fmu_slave_reproduces_step_kernel():
             assert slave.cop_sys == 0.0
 
 
-def test_fmu_builds_and_simulates(tmp_path):
-    """Full PythonFMU build + fmpy round-trip: the FMU runs the prescribed
-    schedule to completion, emits no NaN, and matches analyze_dynamic() on
-    the FMI boundary outputs."""
-    fmpy = pytest.importorskip("fmpy")
-    from fmpy.validation import validate_fmu
+@pytest.fixture(scope="module")
+def fmu_file(tmp_path_factory):
+    """The FMI 2.0 archive PythonFMU builds from the adapter (built once per module)."""
+    pytest.importorskip("fmpy")
     from pythonfmu.builder import FmuBuilder
 
     import tmhp.integrations.fmu as fmu_mod
 
-    fmu_file = FmuBuilder.build_FMU(fmu_mod.__file__, dest=str(tmp_path))
-    assert fmu_file is not None
+    return build_fmu(FmuBuilder, fmu_mod.__file__, tmp_path_factory.mktemp("fmu2"))
+
+
+def test_fmu_builds_and_validates(fmu_file):
+    """PythonFMU build: the archive passes fmpy's validation and declares the documented interface."""
+    from fmpy.validation import validate_fmu
+
     assert validate_fmu(str(fmu_file)) == []
     with ZipFile(fmu_file) as archive:
         root = ElementTree.fromstring(archive.read("modelDescription.xml"))
@@ -301,6 +306,19 @@ def test_fmu_builds_and_simulates(tmp_path):
     assert units["cop_sys"] == "1"
     assert units["V_cmp_disp_cc"] == "cm3"
     assert units["dV_fan_a_rated"] == "m3/s"
+
+
+def test_fmu_simulates_like_analyze_dynamic(fmu_file):
+    """fmpy round-trip: the FMU runs the prescribed schedule to completion,
+    emits no NaN, and matches analyze_dynamic() on the FMI boundary outputs.
+
+    Skipped where fmpy cannot run the archive (no export library for the
+    platform, e.g. macOS); Linux and Windows must run it."""
+    import fmpy
+
+    obstacle = simulation_obstacle(fmu_file)
+    if obstacle is not None:
+        pytest.skip(obstacle)
 
     t, T0, dhw = _schedule()
     # Prescribed inputs as (time, value) signals for fmpy.

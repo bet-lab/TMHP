@@ -1,5 +1,5 @@
 {
-  "version": "fan-airflow-v2026-11-14e",
+  "version": "fan-airflow-v2026-11-14f",
   "data_sha256": "435ecd76566e4883dc5044f66cb2846a1021bcda88101184d85a739ac11345b8",
   "law_capacity_unit": "kW",
   "output_unit": "m3/s",
@@ -32,6 +32,8 @@
         "bias_pct": -2.7305061110327764
       },
       "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
       "source_ids": [
         "DAIKIN-ECPEN26-500",
         "FUJITSU-EU-2018",
@@ -65,6 +67,8 @@
         "bias_pct": 3.4465564763778462
       },
       "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
       "source_ids": [
         "DAIKIN-ECPEN24-022",
         "DAIKIN-ECPEN26-500",
@@ -103,6 +107,8 @@
         "bias_pct": 3.374453395794526
       },
       "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
       "source_ids": [
         "CLIMATEMASTER-RP1000-TE",
         "CLIMATEMASTER-RP1002-TS",
@@ -138,6 +144,8 @@
         "bias_pct": -0.204327167180377
       },
       "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
       "source_ids": [
         "FUJITSU-EU-2018",
         "FUJITSU-UK-KM-2018",
@@ -174,6 +182,8 @@
         "bias_pct": 2.6459337272687296
       },
       "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
       "source_ids": [
         "DAIKIN-ECPEN26-500",
         "FUJITSU-EU-2018",
@@ -207,6 +217,8 @@
         "bias_pct": 3.259257534780522
       },
       "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
       "source_ids": [
         "DAIKIN-ECPEN24-022",
         "DAIKIN-ECPEN26-500",
@@ -245,6 +257,8 @@
         "bias_pct": 0.8444103307551536
       },
       "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
       "source_ids": [
         "CLIMATEMASTER-RP1000-TE",
         "CLIMATEMASTER-RP1002-TS",
@@ -278,6 +292,8 @@
         "bias_pct": 6.871047591769887
       },
       "meets_shipping_gate": true,
+      "status": "provisional",
+      "status_reason": "Family hold-out MAPE 19.6 % and manufacturer hold-out 28.9 % (bias +19.9 %): Mitsubishi Ecodan and Samsung EHS differ systematically; every row is a single printed value, so no explicit maximum confirms it; model size is declared at A2/W35, A-7/W35 or as a kW class depending on the maker.",
       "source_ids": [
         "MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0",
         "MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0",
@@ -314,6 +330,8 @@
         "bias_pct": -3.349003456234314
       },
       "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
       "source_ids": [
         "FUJITSU-EU-2018",
         "FUJITSU-UK-KM-2018",

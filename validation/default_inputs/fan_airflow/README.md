@@ -7,6 +7,9 @@ outdoor rows, ASHPB). Ducted and cassette split indoor units are out of scope (u
 
 Air-to-water outdoor units (added 2026-11-14):
 
+- Shipped as **provisional** (`strata_status.json`, decision 2026-11-14): `estimate_max_airflow` returns the value with
+  `status="provisional"` and the reason in `assumptions`. `strata_status.json` is hand-edited; a stratum not listed is
+  `shipped`.
 - `capacity_text` is the **model size**: the heating capacity the manufacturer declares as the unit's size (user decision
   2026-11-14), read exactly as printed. Mitsubishi defines it as the heating reference capacity (Partload1) at A2/W35
   (Ecodan R290/R32 databook Vol.6.0) or at A-7/W35 (PUZ-WZ databook Vol.1.0); Samsung prints the kW class. The printed

@@ -193,7 +193,13 @@ def fit_groups(rows: list[dict]) -> dict:
         if row["eligible"]:
             groups[row["stratum"]].append(row)
     fits = {key: {"stratum": key, **archive.fit_group(group)} for key, group in sorted(groups.items())}
+    statuses = load_json("strata_status.json") if (HERE / "strata_status.json").exists() else {}
+    unknown = set(statuses) - set(fits)
+    if unknown:
+        raise ValueError(f"strata_status.json names strata that do not exist: {sorted(unknown)}")
     for key, fit in fits.items():
+        fit["status"] = statuses.get(key, {}).get("status", "shipped")
+        fit["status_reason"] = statuses.get(key, {}).get("reason")
         fit["airflow_basis_counts"] = dict(sorted(Counter(r["airflow_basis"] for r in groups[key]).items()))
         fit["explicit_max_only"] = explicit_max_sensitivity(groups[key], fit)
         fit["meets_shipping_gate"] = (

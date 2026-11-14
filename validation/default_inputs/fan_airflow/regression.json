@@ -1922,6 +1922,8 @@
         "MEUK-5330",
         "MEUK-5331"
       ],
+      "status": "shipped",
+      "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 26
       },
@@ -26401,6 +26403,8 @@
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT"
       ],
+      "status": "shipped",
+      "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 130
       },
@@ -31684,6 +31688,8 @@
         "WATERFURNACE-SC2500AN",
         "WATERFURNACE-SC2700ANC"
       ],
+      "status": "shipped",
+      "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 52
       },
@@ -51684,6 +51690,8 @@
         "PANASONIC-BIGRAC-GEN26-LT",
         "PANASONIC-EU-WEB-FLOOR"
       ],
+      "status": "shipped",
+      "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 40,
         "rated": 19,
@@ -53622,6 +53630,8 @@
         "MEUK-5330",
         "MEUK-5331"
       ],
+      "status": "shipped",
+      "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 26
       },
@@ -77901,6 +77911,8 @@
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT"
       ],
+      "status": "shipped",
+      "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 131
       },
@@ -83184,6 +83196,8 @@
         "WATERFURNACE-SC2500AN",
         "WATERFURNACE-SC2700ANC"
       ],
+      "status": "shipped",
+      "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 52
       },
@@ -85158,6 +85172,8 @@
         "SAMSUNG_CS_GB_AE120CXYDEK",
         "SAMSUNG_CS_GB_AE160CXYDEK"
       ],
+      "status": "provisional",
+      "status_reason": "Family hold-out MAPE 19.6 % and manufacturer hold-out 28.9 % (bias +19.9 %): Mitsubishi Ecodan and Samsung EHS differ systematically; every row is a single printed value, so no explicit maximum confirms it; model size is declared at A2/W35, A-7/W35 or as a kW class depending on the maker.",
       "airflow_basis_counts": {
         "single_value": 36
       },
@@ -104198,6 +104214,8 @@
         "PANASONIC-BIGRAC-GEN26-LT",
         "PANASONIC-EU-WEB-FLOOR"
       ],
+      "status": "shipped",
+      "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 40,
         "rated": 18,

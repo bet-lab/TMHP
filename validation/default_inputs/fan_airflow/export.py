@@ -41,6 +41,8 @@ def export() -> dict:
             "manufacturers": fit["manufacturers"],
             "nested_family_cv": {k: cv[k] for k in CV_FIELDS} if cv.get("valid") else cv,
             "meets_shipping_gate": fit["meets_shipping_gate"],
+            "status": fit["status"],
+            "status_reason": fit["status_reason"],
             "source_ids": fit["source_ids"],
         }
     TARGET.write_text(json.dumps(output, indent=2, ensure_ascii=False, allow_nan=False) + "\n")

@@ -59,6 +59,9 @@ class DefaultInputEstimate:
     extrapolated: bool
     source_ids: tuple[str, ...]
     assumptions: tuple[str, ...] = field(default_factory=tuple)
+    #: ``"shipped"``, or ``"provisional"`` when the evidence meets the shipping gate but is weak; the reason is
+    #: the last entry of ``assumptions``.
+    status: str = "shipped"
 
 
 @cache
@@ -183,6 +186,8 @@ def estimate_max_airflow(hp_capacity: float, *, side: str, product: str, mode: s
         raise ValueError(f"Airflow law {key!r} gives a non-positive value at {capacity:g} W")
     low, high = entry["capacity_range_W"]
     cv = entry["nested_family_cv"]
+    status = entry.get("status", "shipped")
+    reason = (f"Provisional: {entry['status_reason']}",) if status != "shipped" and entry.get("status_reason") else ()
     return DefaultInputEstimate(
         value=float(value),
         unit="m3/s",
@@ -195,5 +200,7 @@ def estimate_max_airflow(hp_capacity: float, *, side: str, product: str, mode: s
         assumptions=(
             f"{law} with x = capacity in kW; n = {entry['n']} from {', '.join(entry['manufacturers'])}.",
             f"Family hold-out error: MAPE {cv.get('MAPE_pct', float('nan')):.1f} %.",
+            *reason,
         ),
+        status=status,
     )

@@ -87,3 +87,12 @@ def test_new_product_class_strata_are_shipped(side, product, mode, capacity):
     assert 0.2 < estimate.value < 2.0
     assert not estimate.extrapolated
     assert len(estimate.source_ids) >= 2
+
+
+def test_air_to_water_outdoor_airflow_is_provisional_with_reason():
+    """The ASHPB outdoor stratum is shipped as provisional (decision 2026-11-14); others stay shipped."""
+    estimate = estimate_max_airflow(8000.0, side="outdoor", product="air_to_water", mode="heating")
+    assert estimate.status == "provisional"
+    assert estimate.assumptions[-1].startswith("Provisional:")
+    assert estimate_max_airflow(3500.0, side="indoor", product="wall_mounted").status == "shipped"
+    assert estimate_displacement(3500.0, "R32").status == "shipped"

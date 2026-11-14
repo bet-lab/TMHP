@@ -63,7 +63,7 @@ def main() -> None:
     sweep = pd.read_csv(SWEEP)
     matched = pd.read_csv(MATCHED)
 
-    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.42))
+    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("19.2cm", 0.372), gridspec_kw={"wspace": 0.42})
 
     # (a) error by refrigerant, with the rating standard on the label
     ax = axes[0]

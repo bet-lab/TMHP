@@ -104,7 +104,7 @@ def main() -> None:
         )
     label_offsets = {
         "1": (6, 3, "left", "bottom"),
-        "2": (5, 0, "left", "center"),
+        "2": (0, 5, "center", "bottom"),
         "3": (-4, 3, "right", "bottom"),
         "4": (-4, -3, "right", "top"),
     }

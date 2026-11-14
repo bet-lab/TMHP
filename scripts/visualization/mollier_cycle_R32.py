@@ -178,7 +178,7 @@ def main() -> None:
         pts_ph,
         label_offsets={
             "1": (5, -3, "left", "top"),
-            "2": (5, 0, "left", "center"),
+            "2": (0, 5, "center", "bottom"),
             "3": (-4, 3, "right", "bottom"),
             "4": (-4, -3, "right", "top"),
         },
@@ -199,7 +199,7 @@ def main() -> None:
         pts_th,
         label_offsets={
             "1": (5, -3, "left", "top"),
-            "2": (5, 0, "left", "center"),
+            "2": (-5, 0, "right", "center"),
             "3": (3, 6, "right", "bottom"),
             "4": (0, -5, "center", "top"),
         },

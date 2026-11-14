@@ -116,15 +116,21 @@ class ResponseMatrixGFunction:
     requested, like :class:`tmhp.g_function.GFunction`.
 
     The provider is called once per decade of time, never with the whole
-    grid. geolink's groundwater model (``MFLSResponse``) sets its quadrature
-    from the time span of one call (bet-lab/geolink#581): asked for the four
-    to six decades of a table at once, its field response is up to 4e-5
-    m.K/W off for a 2 x 2 field and 2.5e-3 m.K/W (0.7 %) for a 10 x 10 field
-    at a Darcy velocity of 1e-6 m/s; with decade calls 2e-5 and 1.3e-4
-    (150 m boreholes, 6 m spacing, against the same integral on a grid 500
-    times finer). The table then takes five to seven calls instead of one,
-    0.7 s -> 4 s for the 10 x 10 field. Conduction-only responses are the
-    same either way to round-off.
+    grid. Until the fix of bet-lab/geolink#581, geolink's groundwater model
+    (``MFLSResponse``) set its quadrature from the time span of one call:
+    asked for the four to six decades of a table at once, its field response
+    is up to 4e-5 m.K/W off for a 2 x 2 field and 2.5e-3 m.K/W (0.7 %) for a
+    10 x 10 field at a Darcy velocity of 1e-6 m/s; with decade calls 2e-5
+    and 1.3e-4 (150 m boreholes, 6 m spacing, against the same integral on a
+    grid 500 times finer). The table then takes five to seven calls instead
+    of one, 0.7 s -> 4 s for the 10 x 10 field. Conduction-only responses
+    are the same either way to round-off.
+
+    With the fix (bet-lab/geolink#583, checked on its branch at ``69bbbf1d``,
+    2026-11-14) the same fields are within 2e-10 m.K/W of that reference
+    however the times are grouped, a table of the 10 x 10 field takes 0.14 s,
+    and the split changes the values by 2e-11 at most. It is kept for
+    earlier geolink versions and for other providers.
 
     Parameters
     ----------
@@ -174,7 +180,7 @@ class ResponseMatrixGFunction:
         times = np.geomspace(self.t_min, t_end, num)
         # One call per decade of time. A provider may build its quadrature
         # from the time span of a call and lose accuracy when the span is wide
-        # (geolink's MFLSResponse, bet-lab/geolink#581).
+        # (geolink's MFLSResponse before the fix of bet-lab/geolink#581).
         parts: list[np.ndarray] = []
         for chunk in np.array_split(times, max(1, math.ceil(math.log10(t_end / self.t_min)))):
             part = np.asarray(self._response.response_matrix(self._field, self._soil, chunk), dtype=float)

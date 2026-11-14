@@ -279,7 +279,7 @@ def run_point(task: dict) -> list[dict]:
         "iu_fan_flow_min_limit": bool(perf.get("iu_fan_flow_min_limit", False)) if perf else False,
         "iu_fan_flow_max_limit": bool(perf.get("iu_fan_flow_max_limit", False)) if perf else False,
         "capacity_clamped": (perf.get("capacity_clamped") if perf else None),
-        "pr_clamped": bool(pr_event is not None and pr_event[0] == "pr_below_min"),
+        "pr_floor_active": bool(pr_event is not None and pr_event[0] == "pr_below_min"),
         "converged": ok,
         "failure_reason": reason,
         "opt_success": opt_success,
@@ -373,7 +373,7 @@ def check(df: pd.DataFrame) -> dict:
     rep["capacity_clamped_counts"] = {
         str(k): int(v) for k, v in z.capacity_clamped.fillna("none").value_counts().items()
     }
-    rep["pr_clamped_points"] = int(z.pr_clamped.sum())
+    rep["pr_floor_active_points"] = int(z.pr_floor_active.sum())
     okz = z[z.converged]
     rep["fan_flow_floor_hits_ou"] = int((okz.fan_fraction_ou <= 0.0501).sum())
     rep["fan_flow_floor_hits_iu"] = int((okz.fan_fraction_iu <= 0.0501).sum())

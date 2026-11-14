@@ -53,7 +53,7 @@ def test_cooling_search_resolves_pressure_floor_with_ground_hx_duty_equality(hp)
     row = hp.analyze_steady(Q_r_iu=4000, T0=26, T_a_room=26, T_bhe_wall=15, ground_flow_lpm=24)
     assert row["converged"] and row["hx_feasible"]
     assert row["pr_floor_active"]
-    assert row["pressure_ratio"] == pytest.approx(1.5, abs=1e-7)
+    assert row["pr_cmp [-]"] == pytest.approx(1.5, abs=1e-7)
     assert row["Q_HX_available [W]"] == pytest.approx(row["Q_ref_required [W]"], abs=0.05)
     assert row["Q_ref_iu [W]"] == pytest.approx(4000, rel=1e-9)
 

@@ -366,7 +366,6 @@ def ground_result_diagnostics(
         {
             "ground_flow_control": settings["control"],
             "ground_flow_ratio": ratio if active else 0.0,
-            "ground_flow_ref_ratio": ratio if active else 0.0,
             "ground_flow [m3/s]": loop["dV"] if active else 0.0,
             "ground_flow_at_min": bool(
                 active and abs(loop["dV"] - settings["volume_flow_min"]) < 2e-3 * settings["volume_flow_ref"]

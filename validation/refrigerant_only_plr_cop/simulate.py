@@ -145,7 +145,7 @@ def run_point(task: dict) -> dict:
         e_iu_fan = float("nan")
         fan_ou = _num(r, "dV_ou_a [m3/s]") / m.dV_fan_a_rated
         fan_iu = float("nan")
-        fan_floor_ou = bool(r.get("fan_flow_min_limit", False)) or fan_ou <= FAN_FLOOR * 1.01
+        fan_floor_ou = bool(r.get("ou_fan_flow_min_limit", False)) or fan_ou <= FAN_FLOOR * 1.01
         fan_floor_iu = False
     else:
         sign = -1.0 if heating else 1.0

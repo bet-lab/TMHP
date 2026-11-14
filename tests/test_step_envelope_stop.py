@@ -7,7 +7,8 @@ holding heat ``Q_hold`` for a call that stands at it. GSHPB and WSHPB pass their
 tank passes the mean temperature at which the water around the coil gets there. The
 step-size invariants are in ``tests/invariants/test_known_defects.py`` (T6).
 
-(나) ``T_cond [°C]`` is NaN on an off row (was the tank temperature), and an empty
+(나) The condensing temperature (``T_ref_cond_sat_l [°C]``) is NaN on an off row (the removed duplicate
+T_cond key was the tank temperature there), and an empty
 ``hp_on_schedule`` means "never" for GSHPB and WSHPB as for ASHPB (was "always").
 """
 
@@ -256,11 +257,11 @@ def test_condensing_temperature_is_undefined_on_an_off_row(family):
     df = _quiet(m.analyze_dynamic, 2 * 600.0, 600.0, 40.0, np.zeros(2), np.full(2, 10.0))
     off = _quiet(m.analyze_dynamic, 3 * 600.0, 600.0, 62.0, np.zeros(3), np.full(3, 10.0))
     assert df["hp_is_on"].all() and not off["hp_is_on"].any()
-    assert off["T_cond [°C]"].isna().all()
+    assert off["T_ref_cond_sat_l [°C]"].isna().all()
     # Running rows keep the bubble point of the cycle.
-    assert np.allclose(df["T_cond [°C]"], df["T_ref_cond_sat_l [°C]"])
+    assert df["T_ref_cond_sat_l [°C]"].notna().all()
     steady = _quiet(m.analyze_steady, T_tank_w=45.0, T_source=10.0, Q_ref_tank=0.0)
-    assert not steady["hp_is_on"] and math.isnan(steady["T_cond [°C]"])
+    assert not steady["hp_is_on"] and math.isnan(steady["T_ref_cond_sat_l [°C]"])
 
 
 @pytest.mark.parametrize("family", list(SOURCE_BOILERS))

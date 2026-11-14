@@ -114,11 +114,11 @@ def test_boiler_mean_row_keeps_its_books(boiler):
     assert r["cop_sys [-]"] == pytest.approx(r["Q_ref_tank [W]"] / r["E_tot [W]"], rel=1e-12)
     if family == "ASHPB":
         assert r["PLR_delivered [-]"] == pytest.approx(REQUEST / model.hp_capacity, rel=1e-12)
-        assert r["Q_ref_tank_request [W]"] == REQUEST
+        assert r["Q_request [W]"] == REQUEST
         assert r["dV_ou_a [m3/s]"] == pytest.approx(continuous["dV_ou_a [m3/s]"] * cr, rel=1e-9)
     else:
         assert r["Q_bhe [W]"] == pytest.approx(r[source] - r["E_pmp [W]"], rel=1e-12)
-        assert r["Q_tank_load [W]"] == REQUEST
+        assert r["Q_request [W]"] == REQUEST
     # State points are those of the running machine.
     for key in ("cmp_rpm [rpm]", "T_ref_cmp_out [°C]", "T_ref_evap_sat [°C]", "dT_ref_tank [K]"):
         assert r[key] == pytest.approx(continuous[key], rel=1e-9), key

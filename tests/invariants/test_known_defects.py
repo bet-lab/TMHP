@@ -186,8 +186,8 @@ def test_b1_gshpb_failed_cycle_puts_no_heat_in_tank():
     m, df, dt = _gshpb_failing_run()
     off = _off_rows(df)
     require(off.any(), "scenario must contain a step without a running cycle")
-    q_load = np.nan_to_num(df["Q_tank_load [W]"].to_numpy(dtype=float))
-    expect(np.all(q_load[off] == 0.0), f"Q_tank_load on cycle-less rows: {q_load[off].tolist()}")
+    q_load = np.nan_to_num((df["Q_request [W]"] * df["runtime_fraction [-]"]).to_numpy(dtype=float))
+    expect(np.all(q_load[off] == 0.0), f"requested duty on cycle-less rows: {q_load[off].tolist()}")
     bal = _tank_balance(df, m.C_tank, 50.0, dt)
     expect(abs(bal["residual_J"]) < 0.01 * max(bal["heat_J"], 1.0), bal)
 

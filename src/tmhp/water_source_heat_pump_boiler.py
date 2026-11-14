@@ -182,7 +182,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         "Q_bhe [W]",
         "Q_ref_tank [W]",
         "Q_ref_water [W]",
-        "Q_tank_load [W]",
         "m_dot_ref [kg/s]",
     )
     #: The same rates as ``analyze_steady`` averages them when the unit cycles
@@ -561,7 +560,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "T_bhe_f_in [°C]": cu.K2C(getattr(self, "T_bhe_f_in_K", self.Ts_K)),
                 "T_bhe_f_out [°C]": cu.K2C(getattr(self, "T_bhe_f_out_K", self.Ts_K)),
                 # No condensing pressure on a stopped compressor: undefined (result-keys.rst).
-                "T_cond [°C]": np.nan,
                 "dV_mix_w_out [m3/s]": flow_state.get("dV_mix_w_out", 0.0),
                 "dV_tank_w_in [m3/s]": flow_state.get("dV_tank_w_in", 0.0),
                 "dV_tank_w_out [m3/s]": flow_state.get("dV_tank_w_out", 0.0),
@@ -570,7 +568,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_bhe [W]": 0.0,
                 "Q_ref_tank [W]": 0.0,
                 "Q_ref_water [W]": 0.0,
-                "Q_tank_load [W]": 0.0,
                 "E_cmp [W]": 0.0,
                 "E_pmp [W]": 0.0,
                 "E_tot [W]": 0.0,
@@ -810,7 +807,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "converged": converged_rps,
                 "converged_rps": converged_rps,
                 "capacity_clamped": capacity_clamped,
-                "err_Q_water [W]": err,
+                "source_hx_residual [W]": err,
                 "T_ref_evap_sat [°C]": cu.K2C(cycle_states.get("T_ref_evap_sat_K", np.nan)),
                 "T_ref_cond_sat_v [°C]": cu.K2C(cycle_states.get("T_ref_cond_sat_l_K", np.nan)),
                 "T_ref_cond_sat_l [°C]": cu.K2C(cycle_states.get("T_ref_cond_sat_l_K", np.nan)),
@@ -819,7 +816,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "T_ref_cmp_out [°C]": cu.K2C(cycle_states.get("T_ref_cmp_out_K", np.nan)),
                 "T_ref_exp_in [°C]": cu.K2C(cycle_states.get("T_ref_exp_in_K", np.nan)),
                 "T_ref_exp_out [°C]": cu.K2C(cycle_states.get("T_ref_exp_out_K", np.nan)),
-                "T_cond [°C]": cu.K2C(cycle_states.get("T_ref_cond_sat_l_K", np.nan)),
                 "T_tank_w [°C]": T_tank_w,
                 "T_mix_w_out [°C]": self.T_mix_w_out,
                 "T_tank_w_in [°C]": self.T_tank_w_in,
@@ -849,7 +845,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                     "H", "P", cycle_states.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref
                 ),
                 "h_ref_cond_sat_l [J/kg]": h_ref_exp_in,
-                "Q_tank_load [W]": Q_tank_load,
                 # Tank heat-exchanger closure: the approach the cycle ran at and
                 # how far the condenser is from carrying the delivered duty.
                 "dT_ref_tank [K]": dT_ref_tank,
@@ -905,7 +900,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             if perf is None:
                 raise ValueError(f"Cycle impossible at dT_water={dT_water}")
 
-            err = perf.get("err_Q_water [W]", np.nan)
+            err = perf.get("source_hx_residual [W]", np.nan)
             if np.isnan(err):
                 raise ValueError(f"NaN error at dT_water={dT_water}")
 
@@ -938,7 +933,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 raise ValueError("No cycle at the solved approach")
             if not final.get("converged_rps", False):
                 raise ValueError("Reference operating speed did not converge")
-            residual = float(final["err_Q_water [W]"])
+            residual = float(final["source_hx_residual [W]"])
             required = float(final["Q_ref_water [W]"])
             if not (math.isfinite(residual) and math.isfinite(required) and required > 0):
                 reason = "hx_not_converged"
@@ -1216,7 +1211,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         "eta_cmp [-]": math.nan,
         "eta_cmp_isen [-]": math.nan,
         "eta_cmp_vol [-]": math.nan,
-        "err_Q_water [W]": math.nan,
+        "source_hx_residual [W]": math.nan,
         "n_star [-]": math.nan,
         "pr_cmp [-]": math.nan,
         "dT_ref_tank [K]": math.nan,

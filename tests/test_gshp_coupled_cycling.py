@@ -36,7 +36,7 @@ MACHINE_KEYS = (
     "E_tot [W]",
     "cop_ref [-]",
     "cop_sys [-]",
-    "cmp_rps [rev/s]",
+    "cmp_rpm [rpm]",
     "m_dot_ref [kg/s]",
     "dV_iu_a [m3/s]",
     "dV_bhe_f [m3/s]",

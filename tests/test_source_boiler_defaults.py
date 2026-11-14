@@ -190,7 +190,7 @@ def test_min_speed_clamp_closes_tank_hx_on_delivered_heat(machines, family):
         assert r["T_ref_cond_sat_l [°C]"] - 50.0 == pytest.approx(delivered / m.UA_tank_hx, abs=1e-5)
         assert r["dT_ref_tank [K]"] == pytest.approx(delivered / m.UA_tank_hx, abs=1e-5)
         assert abs(r["tank_hx_residual [W]"]) < 1e-2
-        assert r["Q_tank_load [W]"] < delivered
+        assert r["Q_request [W]"] < delivered
     # On the floor the machine no longer knows the request: one operating point.
     for key in ("Q_min [W]", "T_ref_cond_sat_l [°C]", "T_ref_evap_sat [°C]", "cmp_rpm [rpm]"):
         assert results[0][key] == pytest.approx(results[2][key], rel=1e-6)

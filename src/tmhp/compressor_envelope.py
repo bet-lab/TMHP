@@ -625,12 +625,11 @@ def discharge_violation(result: Mapping[str, Any], T_dis_max: float | None) -> s
 
 
 def _eta_isen(result: Mapping[str, Any]) -> float:
-    for key in ("eta_cmp_isen [-]", "eta_is [-]"):
-        if key in result:
-            try:
-                return float(result[key])
-            except (TypeError, ValueError):
-                return math.nan
+    if "eta_cmp_isen [-]" in result:
+        try:
+            return float(result["eta_cmp_isen [-]"])
+        except (TypeError, ValueError):
+            return math.nan
     return math.nan
 
 
@@ -1116,8 +1115,6 @@ def _control_bracketed(
 _REDUCTION_LADDER = (0.8, 0.6, 0.4, 0.25, 0.1)
 #: Bisection stops once the bracket is this narrow relative to the request.
 _REDUCTION_REL_TOL = 0.01
-#: Request keys the boilers report, replaced by the caller's request on a reduced point.
-_REQUEST_KEYS = ("Q_ref_tank_request [W]", "Q_tank_load [W]")
 
 #: Failure reasons of a fixed-duty request that a smaller duty can cure, and
 #: the ``capacity_binding`` each gives the reduced point.
@@ -1545,9 +1542,6 @@ def reduce_duty_within_envelope(
             "Q_request [W]": request,
         }
     )
-    for key in _REQUEST_KEYS:
-        if key in reduced:
-            reduced[key] = request
     if "PLR_request [-]" in reduced and getattr(model, "hp_capacity", 0) > 0:
         reduced["PLR_request [-]"] = request / model.hp_capacity
     return reduced
@@ -1598,8 +1592,7 @@ def steady_envelope(
     smaller duty can cure (:func:`duty_reduction_binding`) is retried at
     smaller duties; the largest one with an operating point is returned with
     ``capacity_clamped='max'``, ``capacity_binding`` naming the limit,
-    ``Q_max [W]`` and ``Q_request [W]`` (the request keys of the family hold
-    the caller's request). If no smaller duty runs, the original off-state
+    ``Q_max [W]`` and ``Q_request [W]`` (the caller's request). If no smaller duty runs, the original off-state
     result stands. The trial solves run silently. ``bindings`` renames a
     ``capacity_binding`` for the family (:func:`duty_reduction_binding`).
     """

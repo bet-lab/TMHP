@@ -273,7 +273,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         "Q_bhe [W]",
         "Q_ref_ground [W]",
         "Q_ref_tank [W]",
-        "Q_tank_load [W]",
         "m_dot_ref [kg/s]",
     )
     #: The same rates as ``analyze_steady`` averages them when the unit cycles
@@ -873,7 +872,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     "converged": True,
                     "converged_rps": True,
                     "capacity_clamped": None,
-                    "err_Q_ground [W]": 0.0,
+                    "source_hx_residual [W]": 0.0,
                     # Temperatures [°C]
                     "T_tank_w [°C]": T_tank_w,
                     "T0 [°C]": T0,
@@ -885,7 +884,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     "T_bhe_f_in [°C]": cu.K2C(getattr(self, "T_bhe_f_in_K", self.Ts_K)),
                     "T_bhe_f_out [°C]": cu.K2C(getattr(self, "T_bhe_f_out_K", self.Ts_K)),
                     # No condensing pressure on a stopped compressor: undefined (result-keys.rst).
-                    "T_cond [°C]": np.nan,
                     # Volume flow rates [m3/s]
                     "dV_mix_w_out [m3/s]": (dV_mix_w_out_val if dV_mix_w_out_val > 0 else np.nan),
                     "dV_tank_w_out [m3/s]": (dV_tank_w_out if dV_tank_w_out > 0 else np.nan),
@@ -898,7 +896,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     "Q_bhe [W]": 0.0,
                     "Q_ref_tank [W]": 0.0,
                     "Q_ref_ground [W]": 0.0,
-                    "Q_tank_load [W]": 0.0,
                     "E_cmp [W]": 0.0,
                     "E_pmp [W]": 0.0,
                     "E_tot [W]": 0.0,
@@ -1108,7 +1105,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 "converged": converged_rps,
                 "converged_rps": converged_rps,
                 "capacity_clamped": capacity_clamped,
-                "err_Q_ground [W]": Q_ref_ground - Q_ground_actual,
+                "source_hx_residual [W]": Q_ref_ground - Q_ground_actual,
                 "T_ref_evap_sat [°C]": cu.K2C(cs.get("T_ref_evap_sat_K", np.nan)),
                 "T_ref_cond_sat_v [°C]": cu.K2C(cs.get("T_ref_cond_sat_l_K", np.nan)),
                 "T_ref_cond_sat_l [°C]": cu.K2C(cs.get("T_ref_cond_sat_l_K", np.nan)),
@@ -1117,7 +1114,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 "T_ref_cmp_out [°C]": cu.K2C(cs.get("T_ref_cmp_out_K", np.nan)),
                 "T_ref_exp_in [°C]": cu.K2C(cs.get("T_ref_exp_in_K", np.nan)),
                 "T_ref_exp_out [°C]": cu.K2C(cs.get("T_ref_exp_out_K", np.nan)),
-                "T_cond [°C]": cu.K2C(cs.get("T_ref_cond_sat_l_K", np.nan)),
                 "T_tank_w [°C]": T_tank_w,
                 "T_mix_w_out [°C]": self.T_mix_w_out,
                 "T_tank_w_in [°C]": self.T_tank_w_in,
@@ -1139,15 +1135,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 "eta_cmp_vol [-]": val_eta_vol,
                 "eta_cmp_isen [-]": val_eta_isen,
                 "eta_cmp [-]": val_eta_electro_mech,
-                "cmp_rps [rev/s]": cmp_rps,
                 "n_star [-]": cmp_rps / self.rps_rated,
-                "eta_is [-]": val_eta_isen,
-                "eta_v [-]": val_eta_vol,
-                "eta_em [-]": val_eta_electro_mech,
                 "h_ref_evap_sat [J/kg]": props_si("H", "P", cs.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref),
                 "h_ref_cond_sat_v [J/kg]": props_si("H", "P", cs.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref),
                 "h_ref_cond_sat_l [J/kg]": h_ref_exp_in,
-                "Q_tank_load [W]": Q_tank_load,
                 # Tank heat-exchanger closure: the approach the cycle ran at and
                 # how far the condenser is from carrying the delivered duty.
                 "dT_ref_tank [K]": dT_ref_tank,
@@ -1291,7 +1282,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             if perf is None:
                 raise ValueError(f"Cycle impossible at dT_ground={dT_ground}")
 
-            err = perf.get("err_Q_ground [W]", np.nan)
+            err = perf.get("source_hx_residual [W]", np.nan)
             if np.isnan(err):
                 raise ValueError(f"NaN error at dT_ground={dT_ground}")
 
@@ -1330,7 +1321,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 raise ValueError("Reference operating speed did not converge")
             # Use the existing ground-HX feasibility tolerance, including for
             # the default constant-flow path.
-            residual = float(final["err_Q_ground [W]"])
+            residual = float(final["source_hx_residual [W]"])
             required = float(final["Q_ref_ground [W]"])
             if not (math.isfinite(residual) and math.isfinite(required) and required > 0):
                 reason = "hx_not_converged"
@@ -1740,9 +1731,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         "eta_cmp [-]": math.nan,
         "eta_cmp_isen [-]": math.nan,
         "eta_cmp_vol [-]": math.nan,
-        "eta_em [-]": math.nan,
-        "eta_is [-]": math.nan,
-        "eta_v [-]": math.nan,
         "n_star [-]": math.nan,
         "pr_cmp [-]": math.nan,
         "dT_ref_tank [K]": math.nan,
@@ -1768,7 +1756,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         :attr:`_DYNAMIC_ROW_DEFAULTS` and the condenser dew point.
         """
         complete_capacity_keys(r, step_request(r, self.hp_capacity), step_average=True)
-        r.setdefault("cmp_rps [rev/s]", float(r.get("cmp_rpm [rpm]", math.nan)) / 60.0)
         fill_missing(r, self._DYNAMIC_ROW_DEFAULTS)
         report_condenser_dew_point(r, self.ref)
         r["time [s]"] = float(ctx.current_time_s)
@@ -1780,10 +1767,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         The capacity keys (``Q_request [W]`` is the requested ``Q_ref_tank``
         on every row), the running-only keys of :attr:`_STEADY_ROW_DEFAULTS` and
-        ``cmp_rps [rev/s]`` (0 on a stopped compressor), and the condenser dew point.
+        the condenser dew point.
         """
         complete_capacity_keys(result, Q_ref_tank)
-        result.setdefault("cmp_rps [rev/s]", float(result.get("cmp_rpm [rpm]", math.nan)) / 60.0)
         fill_missing(result, self._STEADY_ROW_DEFAULTS)
         return report_condenser_dew_point(result, self.ref)
 

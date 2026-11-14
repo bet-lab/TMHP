@@ -128,7 +128,7 @@ def test_gshp_mean_row_keeps_its_books(pair):
     ground = r["Q_ref_ground [W]"] - r["E_pmp [W]"] if heating else -(r["Q_ref_ground [W]"] + r["E_pmp [W]"])
     assert r["Q_bhe [W]"] == pytest.approx(ground, rel=1e-12)
     # State points are those of the running machine.
-    assert r["cmp_rps [rev/s]"] == pytest.approx(15.0)
+    assert r["cmp_rpm [rpm]"] / 60 == pytest.approx(15.0)
     assert r["T_bhe [°C]"] == pytest.approx(point["T_bhe_wall"], abs=1e-4)
 
 

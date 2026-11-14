@@ -98,7 +98,7 @@ def test_duty_below_minimum_capacity_returns_that_minimum(hp):
     assert tiny["converged"] is True
     assert tiny["failure_reason"] == "none"
     assert tiny["capacity_clamped"] == CAPACITY_CLAMPED_MIN
-    assert tiny["Q_ref_tank_request [W]"] == pytest.approx(50.0)
+    assert tiny["Q_request [W]"] == pytest.approx(50.0)
     # The machine's floor is well above the request: it cycles at that floor,
     # and the row is the mean over the cycling period (tmhp.cycling).
     assert tiny["Q_min [W]"] > 1000.0

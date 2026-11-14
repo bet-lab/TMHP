@@ -124,15 +124,15 @@ def e_cmp(r: Result) -> float:
 
 
 def eta_is(r: Result) -> float:
-    return first_num(r, "eta_cmp_isen [-]", "eta_is [-]")
+    return first_num(r, "eta_cmp_isen [-]")
 
 
 def eta_v(r: Result) -> float:
-    return first_num(r, "eta_cmp_vol [-]", "eta_v [-]")
+    return first_num(r, "eta_cmp_vol [-]")
 
 
 def eta_em(r: Result) -> float:
-    return first_num(r, "eta_cmp [-]", "eta_em [-]")
+    return first_num(r, "eta_cmp [-]")
 
 
 def t_evap_sat(r: Result) -> float:

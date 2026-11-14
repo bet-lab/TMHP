@@ -77,7 +77,7 @@ def test_efficiencies_correct_power_speed_and_refrigerant_energy_balance(load):
     ideal = model(V_cmp_ref=1.2e-5, eta_cmp_isen=0.8, eta_cmp_vol=1, eta_cmp=1)._calc_state(10, 10, load, 26, 26)
     real = model(V_cmp_ref=1.2e-5, eta_cmp_isen=0.8, eta_cmp_vol=0.9, eta_cmp=0.8)._calc_state(10, 10, load, 26, 26)
     assert ideal is not None and real is not None
-    assert real["eta_v [-]"] == 0.9 and real["eta_em [-]"] == 0.8
+    assert real["eta_cmp_vol [-]"] == 0.9 and real["eta_cmp [-]"] == 0.8
     assert real["m_dot_ref [kg/s]"] == pytest.approx(ideal["m_dot_ref [kg/s]"])
     assert real["E_cmp [W]"] == pytest.approx(ideal["E_cmp [W]"] / 0.8)
     assert real["cmp_rpm [rpm]"] == pytest.approx(ideal["cmp_rpm [rpm]"] / 0.9)
@@ -120,6 +120,6 @@ def test_efficiency_above_one_reaches_cycle_as_one(name):
     hp = model(rps_min=1, **{name: 1.1})
     row = hp._calc_state(10, 10, 4000, 26, 26)
     assert row is not None
-    key = {"eta_cmp_vol": "eta_v [-]", "eta_cmp_isen": "eta_is [-]", "eta_cmp": "eta_em [-]"}[name]
+    key = {"eta_cmp_vol": "eta_cmp_vol [-]", "eta_cmp_isen": "eta_cmp_isen [-]", "eta_cmp": "eta_cmp [-]"}[name]
     assert row[key] == 1.0
     assert row["Q_ref_iu [W]"] == pytest.approx(4000)

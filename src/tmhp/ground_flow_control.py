@@ -20,7 +20,6 @@ def failed_ground_point(reason: str, diagnostic: dict | None = None) -> dict:
         {
             "candidate_ground_flow_ratio": result.get("ground_flow_ratio", np.nan),
             "ground_flow_ratio": np.nan,
-            "ground_flow_ref_ratio": np.nan,
             "ground_flow_at_min": False,
             "ground_flow_at_max": False,
             "converged": False,

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and a DHW tank sink. Overview: solves the closed refrigerant cycle against a borehole he..." />
 
-    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T13:03:04+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -172,10 +172,13 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#module-tmhp.ground_source_heat_pump_boiler">API reference</a><ul>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_TANK_MODELS"><code class="docutils literal notranslate"><span class="pre">NODAL_TANK_MODELS</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_DRAW_TOL_K"><code class="docutils literal notranslate"><span class="pre">NODAL_DRAW_TOL_K</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_END_CONDUCTANCE"><code class="docutils literal notranslate"><span class="pre">NODAL_END_CONDUCTANCE</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_RUN_INTERVALS"><code class="docutils literal notranslate"><span class="pre">NODAL_RUN_INTERVALS</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_HOLD_INTERVALS"><code class="docutils literal notranslate"><span class="pre">NODAL_HOLD_INTERVALS</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.COIL_PEAK_KEY"><code class="docutils literal notranslate"><span class="pre">COIL_PEAK_KEY</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_MIN_RUN_SHARE"><code class="docutils literal notranslate"><span class="pre">NODAL_MIN_RUN_SHARE</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.ENVELOPE_STOP_TOL_K"><code class="docutils literal notranslate"><span class="pre">ENVELOPE_STOP_TOL_K</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.ENVELOPE_STOP_TIME_TOL_S"><code class="docutils literal notranslate"><span class="pre">ENVELOPE_STOP_TIME_TOL_S</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_SETPOINT_TIE_K"><code class="docutils literal notranslate"><span class="pre">NODAL_SETPOINT_TIE_K</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.cycling"><code class="docutils literal notranslate">cycling</span></code></a></li>
@@ -872,20 +875,45 @@ between drawn and stored water.</p></td>
 <code class="docutils literal notranslate"><span class="pre">condenser_node</span></code> (0 = top). Heat flows only into water colder than the
 refrigerant:</p>
 <ul class="simple">
-<li><p>Node <code class="docutils literal notranslate"><span class="pre">i</span></code> receives <code class="docutils literal notranslate"><span class="pre">k·UA_i·(T_cond</span> <span class="pre">−</span> <span class="pre">T_i)⁺</span></code>, with <code class="docutils literal notranslate"><span class="pre">T_cond</span></code> the
-condensing temperature of the step’s cycle (<code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l</span></code>) and
-<code class="docutils literal notranslate"><span class="pre">T_i</span></code> the node’s end-of-step temperature; <code class="docutils literal notranslate"><span class="pre">k</span></code> is set so that the nodes
-receive the step’s condenser heat <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code>. A node as hot as the
-refrigerant receives nothing and no node is heated past <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>.</p></li>
+<li><p>The coil exchanges while the compressor runs. Over a step node <code class="docutils literal notranslate"><span class="pre">i</span></code>
+receives <code class="docutils literal notranslate"><span class="pre">f·UA_i·(T_end</span> <span class="pre">−</span> <span class="pre">T_i)⁺</span></code>, with <code class="docutils literal notranslate"><span class="pre">f</span></code> the row’s
+<code class="docutils literal notranslate"><span class="pre">runtime_fraction</span></code>, <code class="docutils literal notranslate"><span class="pre">T_i</span></code> the node’s end-of-step temperature and
+<code class="docutils literal notranslate"><span class="pre">T_end</span></code> the exchanger temperature at which the nodes receive the step’s
+condenser heat <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code>, solved by the tank step: the condensing
+temperature the run ends on. A node as hot as the refrigerant receives
+nothing and no node is heated past <code class="docutils literal notranslate"><span class="pre">T_end</span></code>.</p></li>
 <li><p>The cycle condenses at the temperature that coil needs. With cold water
 at the bottom and hot water above the refrigerant temperature, only the
 cold nodes take heat and the cycle condenses near them, below what the
 mean tank temperature would give; in a mixed tank the two agree, and a
 one-node <code class="docutils literal notranslate"><span class="pre">&quot;stratified&quot;</span></code> tank reproduces <code class="docutils literal notranslate"><span class="pre">&quot;lumped&quot;</span></code>.</p></li>
-<li><p>If the water around the coil cannot take the step’s heat below <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>
-(a coil in the top node only), the compressor stops when that water
-reaches <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>: the row’s <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span></code>, heat and power are cut
-to what was delivered and the thermostat call stands.</p></li>
+<li><p>The cycle of a step is solved at the <strong>mean</strong> of the condensing
+temperatures its run passes through, as the lumped tank solves it at the
+mean tank temperature of the run: the power of a step is the power along
+that path, not the power at the temperature the run ends on. The mean is
+the thermostat’s mean tank temperature of the run plus how far the coil’s
+condensing level lies above the tank’s mean, read from trial steps of the
+node model over the run. <code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l</span> <span class="pre">[°C]</span></code> is that mean;
+<code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l_peak</span> <span class="pre">[°C]</span></code> is the highest condensing temperature of
+the step (the level the run ends on when it warms its water), which is
+the one no heated water exceeds. Before, a step took the level it ended
+on whenever the tank warmed by more than the coil’s approach in it, so a
+long step paid for a hotter condenser than its run had: a coil over the
+whole tank, 55 to 65 °C without a draw, 0.348 kWh at 60 s steps against
+0.364 kWh at 600 s (+4.7 %; now 0.348 and 0.347, the lumped tank’s).</p></li>
+<li><p>The condensing temperature a step ends on is not taken above the
+condensing limit. A step whose heat would need more is held instead: the
+heat goes to the coil’s nodes below the envelope stop and none is heated
+past it; if they cannot take all of it the row’s <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span></code>,
+heat and power are what they took
+(<code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span> <span class="pre">==</span> <span class="pre">&quot;condensing_limit&quot;</span></code>) and the thermostat call
+stands. It is the same run in the next step, not a new start.</p></li>
+<li><p>A coil that reaches its envelope stop while the mean the thermostat reads
+is at the upper set point (within 0.5 K) has satisfied the thermostat:
+the call ends and the tank cools to the lower bound before the next
+start, as in the lumped tank. The two coincide whenever the set point is
+the envelope’s own – a requested set point above the envelope stop is
+capped at it (R32: 65 to 60 °C) – and the coil spans the tank.</p></li>
 <li><p>The water around the coil can reach the envelope stop (the tank
 temperature at which the nameplate duty condenses on <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>,
 above) while the mean the thermostat reads is still below the set point.
@@ -895,23 +923,43 @@ trial steps of the node model give for it (not at a mean temperature: with
 a large draw the coil’s water warms while the mean falls). While the call
 stands it then holds the coil’s water there: it runs the share of the rest
 of the step that delivers the heat the water loses (to the draw, the nodes
-below, the wall). The row is a normal
+below, the wall), never more than the nameplate duty at any moment – when
+a cold front reaches the coil inside a long step the hold lasts until it
+would take more, and the compressor then runs flat out while the coil’s
+water cools. The row is a normal
 one (<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;none&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span> <span class="pre">==</span>
 <span class="pre">&quot;condensing_limit&quot;</span></code>), and the condensing temperature never needs to go
 above the limit. Before, each such step was an off row with
 <code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code> and two or three cycle solves, and the
 results depended on the step (a top coil, R290, 6 h: 353 of 360 steps at
 60 s, 30 of 36 at 600 s); the heat delivered now agrees from 60 s to 600 s
-steps (0.2738 kWh in that run).</p></li>
+steps (0.2738 kWh in that run), and so does the electricity (0.0899 and
+0.0897 kWh; 0.0924 and 0.0953 before).</p></li>
 </ul>
+<p>Results of a multi-node tank agree between 60 s and 600 s steps within
+about 2 % of heat and 5 % of electricity, the lumped tank’s own margin
+(a top coil under a 6 L/min draw that empties the tank in an hour, R290:
+5.93 and 6.05 kWh of heat, 1.90 and 1.95 kWh of electricity; 1.91 and
+2.12 kWh of electricity before). What remains is the node model’s time
+resolution: the cold front of a draw smears faster in long steps
+(<code class="docutils literal notranslate"><span class="pre">docs/tank_backends/tank_backends.md</span></code>). The trial steps that read the
+coil’s level draw what the step itself does (the mixing valve takes more
+tank water as the top cools), and the top node ends a step at the envelope
+stop at most.</p>
 <p>The thermostat reads the volume-average temperature <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>, so
 on/off timing and delivered heat follow the lumped tank; with a coil that
 reaches the top, the top node can sit several kelvin above
-<code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code> while staying below <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>. Hot water leaves
+<code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code> while staying below <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>. Its tank balance
+draws the hot water from the top node, not at the mean: the two take the
+same heat while both are above the mixing set point, and a tank a draw has
+left cold under a hot top still gives the scheduled heat (the lumped
+balance would give lukewarm water, and a mean that rises while the tank’s
+falls). Hot water leaves
 from the top: the mixing valve, <code class="docutils literal notranslate"><span class="pre">T_mix_w_out</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_tank_w_out</span></code> and
 <code class="docutils literal notranslate"><span class="pre">X_tank_w_out</span></code> use <code class="docutils literal notranslate"><span class="pre">T_tank_w_out</span> <span class="pre">[°C]</span></code>, the temperature of the water that
 left during the step. The multi-node modes add <code class="docutils literal notranslate"><span class="pre">T_tank_w_out</span></code>,
-<code class="docutils literal notranslate"><span class="pre">T_tank_w_top</span></code> and <code class="docutils literal notranslate"><span class="pre">T_tank_w_bottom</span></code> to the result, and <code class="docutils literal notranslate"><span class="pre">Q_tank_loss</span></code>
+<code class="docutils literal notranslate"><span class="pre">T_tank_w_top</span></code>, <code class="docutils literal notranslate"><span class="pre">T_tank_w_bottom</span></code> and <code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l_peak</span></code> to the
+result, and <code class="docutils literal notranslate"><span class="pre">Q_tank_loss</span></code>
 is the wall loss of the node profile. Each run closes
 <code class="docutils literal notranslate"><span class="pre">Σ</span> <span class="pre">Q_ref_tank·dt</span> <span class="pre">=</span> <span class="pre">C_tank·ΔT_tank_w</span> <span class="pre">+</span> <span class="pre">Σ</span> <span class="pre">ρc·dV_tank_w_out·(T_tank_w_out</span> <span class="pre">−</span>
 <span class="pre">T_tank_w_in)·dt</span> <span class="pre">+</span> <span class="pre">Σ</span> <span class="pre">Q_tank_loss·dt</span></code>. The storage exergy <code class="docutils literal notranslate"><span class="pre">Xst_tank</span></code> is still
@@ -1272,12 +1320,33 @@ by less than this [K], at most <code class="xref py py-data docutils literal not
 </dd></dl>
 
 <dl class="py data">
-<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.NODAL_END_CONDUCTANCE">
-<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">NODAL_END_CONDUCTANCE</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.NODAL_END_CONDUCTANCE" title="Link to this definition">¶</a></dt>
-<dd><p>The condensing temperature of a multi-node tank step is at least the one at
-which the coil, with this multiple of its conductance, passes the step’s
-heat to the nodes as they are at the end of the step. 2: the end-of-step
-approach is at least half the nominal <code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code>.</p>
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.NODAL_RUN_INTERVALS">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">NODAL_RUN_INTERVALS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.NODAL_RUN_INTERVALS" title="Link to this definition">¶</a></dt>
+<dd><p>The condensing level of a multi-node tank’s coil is averaged over the run
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler._coil_run_levels()</span></code>) by Simpson’s rule on
+this many equal intervals of the run (even), each sample a trial tank step.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.NODAL_HOLD_INTERVALS">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">NODAL_HOLD_INTERVALS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.NODAL_HOLD_INTERVALS" title="Link to this definition">¶</a></dt>
+<dd><p>The hold at the envelope stop never delivers more than the nameplate duty
+at any moment: the heat it needs is read on this many equal parts of the
+hold (<code class="xref py py-meth docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler._envelope_stop()</span></code>), and from the
+first part that needs more the compressor runs flat out.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.COIL_PEAK_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">COIL_PEAK_KEY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'T_ref_cond_sat_l_peak</span> <span class="pre">[°C]'</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.COIL_PEAK_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>the highest condensing temperature
+(bubble point) the step’s run reached [°C]. <code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l</span> <span class="pre">[°C]</span></code> is
+the run’s mean, which the step’s power belongs to.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Result key of a multi-node tank’s step</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py data">
@@ -1300,6 +1369,18 @@ condensing level is within this of the limit [K]
 <span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">ENVELOPE_STOP_TIME_TOL_S</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.ENVELOPE_STOP_TIME_TOL_S" title="Link to this definition">¶</a></dt>
 <dd><p>Run time [s] to which the trial tank steps resolve when the water around a
 multi-node tank’s coil reaches the envelope stop (0.1 s at 8 kW is 0.8 kJ).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.NODAL_SETPOINT_TIE_K">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">NODAL_SETPOINT_TIE_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.5</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.NODAL_SETPOINT_TIE_K" title="Link to this definition">¶</a></dt>
+<dd><p>A multi-node tank’s coil that reaches its envelope stop with the mean
+temperature within this of the upper set point [K] has satisfied the
+thermostat: the call ends there and the hysteresis decides the next start
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler._setpoint_at_coil_stop()</span></code>). The two
+coincide whenever the set point is the envelope’s own (a requested set
+point above the envelope stop is capped at it) and the coil spans the
+tank; far below a thermostat’s differential.</p>
 </dd></dl>
 
 <dl class="py class">

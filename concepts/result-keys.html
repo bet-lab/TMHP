@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="analyze_steady returns a flat dict and analyze_dynamic a pandas.DataFrame whose columns are the same keys, one row per time step. This page lists every key the five released families return with th..." />
 
-    <meta property="article:modified_time" content="2026-11-14T11:34:02+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T13:03:04+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1611,7 +1611,16 @@ level.</p></td>
 <td><p>Top-node, bottom-node and draw-off temperatures of the multi-node
 tank.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ground_temperature_residual</span> <span class="pre">[K]</span></code>, <code class="docutils literal notranslate"><span class="pre">candidate_ground_flow_ratio</span></code>,
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l_peak</span> <span class="pre">[°C]</span></code></p></td>
+<td><p>GSHPB with <code class="docutils literal notranslate"><span class="pre">tank_model=&quot;stratified&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;hybrid&quot;</span></code>, dynamic</p></td>
+<td><p>Highest condensing temperature (bubble point) of the step’s run:
+the level the run ends on when it warms the water around the coil,
+the condensing limit on a step held at the envelope stop. No heated
+node ends the step above it. <code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l</span> <span class="pre">[°C]</span></code> on the same
+row is the mean over the run, the temperature the row’s power
+belongs to. <code class="docutils literal notranslate"><span class="pre">NaN</span></code> on a step without a run.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ground_temperature_residual</span> <span class="pre">[K]</span></code>, <code class="docutils literal notranslate"><span class="pre">candidate_ground_flow_ratio</span></code>,
 <code class="docutils literal notranslate"><span class="pre">flow_optimizer_method</span></code></p></td>
 <td><p>GSHP, GSHPB with the hydraulic pump model or
 <code class="docutils literal notranslate"><span class="pre">ground_flow_control=&quot;optimal_power&quot;</span></code></p></td>

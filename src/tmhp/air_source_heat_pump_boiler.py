@@ -1586,9 +1586,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         if model is None or not model.load_weighted or not running or result.get("capacity_clamped") != "min":
             return frost
         q_min = float(result.get(MIN_CAPACITY_KEY, math.nan))
-        if not (math.isfinite(q_min) and q_min > 0.0 and self.hp_capacity > 0.0):
+        if not (math.isfinite(q_min) and q_min > 0.0):
             return frost
-        ratio = min(1.0, q_min / self.hp_capacity)
+        ratio = model.load_ratio(q_min, self.hp_capacity, T0)
         if ratio <= frost.load_ratio:
             return frost
         return model.frost_state(T0, frost.RH_out, load_ratio=ratio)

@@ -49,7 +49,14 @@ from scipy.optimize import OptimizeResult, brentq, minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._boiler_results import complete_capacity_keys, fill_missing, report_condenser_dew_point, step_request
+from ._boiler_results import (
+    complete_capacity_keys,
+    fill_missing,
+    mixed_water_enthalpy_flow,
+    mixed_water_exergy,
+    report_condenser_dew_point,
+    step_request,
+)
 from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, specific_energy_objective
 from ._tank_solve import recover_tank_temperature
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
@@ -774,7 +781,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             Q_tank_w_in: float = calc_energy_flow(G=c_w * rho_w * dV_tank_w_in, T=self.T_tank_w_in_K, T0=T0_K)
             Q_tank_w_out: float = calc_energy_flow(G=c_w * rho_w * dV_tank_w_out, T=T_tank_w_K, T0=T0_K)
             Q_mix_sup_w_in: float = calc_energy_flow(G=c_w * rho_w * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=T0_K)
-            Q_mix_w_out: float = calc_energy_flow(G=c_w * rho_w * dV_mix_w_out_val, T=T_mix_w_out_val_K, T0=T0_K)
+            Q_mix_w_out: float = mixed_water_enthalpy_flow(dV_mix_w_out_val, T_mix_w_out_val_K, T0_K)
 
             cs = calc_ref_state(
                 T_evap_K=T_ou_sat_K,
@@ -1162,7 +1169,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         Q_tank_w_in = calc_energy_flow(G=c_w * rho_w * dV_tank_w_in, T=self.T_tank_w_in_K, T0=T0_K)
         Q_tank_w_out = calc_energy_flow(G=c_w * rho_w * dV_tank_w_out, T=T_tank_w_K, T0=T0_K)
         Q_mix_sup_w_in = calc_energy_flow(G=c_w * rho_w * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=T0_K)
-        Q_mix_w_out = calc_energy_flow(G=c_w * rho_w * dV_mix_w_out_val, T=T_mix_w_out_val_K, T0=T0_K)
+        Q_mix_w_out = mixed_water_enthalpy_flow(dV_mix_w_out_val, T_mix_w_out_val_K, T0_K)
 
         result = reportable_state(cs)
 
@@ -2308,8 +2315,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_mix_sup_w_in = (1 - alp) * dV_mix_w_out
         r.update(
             {
-                # A flow that does not run is 0, as in GSHPB and WSHPB (the
-                # temperature of the water that does not flow stays NaN).
+                # A flow that does not run is 0, and so is the heat it carries
+                # (the temperature of the water that does not flow is NaN), as
+                # in GSHPB and WSHPB.
                 "dV_mix_w_out [m3/s]": max(dV_mix_w_out, 0.0),
                 "dV_tank_w_out [m3/s]": max(dV_tank_w_out, 0.0),
                 "dV_tank_w_in [m3/s]": max(dV_tank_w_in, 0.0),
@@ -2317,7 +2325,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_tank_w_in [W]": calc_energy_flow(G=rc * dV_tank_w_in, T=self.T_tank_w_in_K, T0=ctx.T0_K),
                 "Q_tank_w_out [W]": calc_energy_flow(G=rc * dV_tank_w_out, T=T_solved_K, T0=ctx.T0_K),
                 "Q_mix_sup_w_in [W]": calc_energy_flow(G=rc * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=ctx.T0_K),
-                "Q_mix_w_out [W]": calc_energy_flow(G=rc * dV_mix_w_out, T=T_mix_K, T0=ctx.T0_K),
+                "Q_mix_w_out [W]": mixed_water_enthalpy_flow(dV_mix_w_out, T_mix_K, ctx.T0_K),
             }
         )
         # Hot-water service: the heat the draw schedule asked for at the set
@@ -3083,11 +3091,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             cu.C2K(df["T_tank_w [°C]"]),
             T0_K,
         )
-        df["X_mix_w_out [W]"] = calc_exergy_flow(
-            c_w * rho_w * df["dV_mix_w_out [m3/s]"].fillna(0),
-            cu.C2K(df["T_mix_w_out [°C]"]),
-            T0_K,
-        )
+        # 0 on a step without a draw (its T_mix_w_out is NaN), as the other water streams.
+        df["X_mix_w_out [W]"] = mixed_water_exergy(df, T0_K)
         df["X_mix_sup_w_in [W]"] = calc_exergy_flow(
             c_w * rho_w * df["dV_mix_sup_w_in [m3/s]"].fillna(0),
             cu.C2K(df["T_sup_w [°C]"]),

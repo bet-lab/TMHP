@@ -184,16 +184,73 @@ def test_a_flow_that_does_not_run_is_zero(models, dynamic_runs, family):
     df = dynamic_runs[family]["idle, no call"]
     for key in FLOW_KEYS:
         assert (df[key] == 0.0).all(), key
-    # The exergy of the flows that do not run is 0, as it was (the exergy step
-    # already read a missing flow as 0). ASHPB keeps the NaN temperature of the
-    # mixed water that does not flow.
+    # Water that does not flow carries no heat and no exergy (0) and has no
+    # temperature (NaN), in the three boilers alike. Before, ASHPB reported the
+    # heat and exergy of the mixed water as NaN (0 * NaN), and GSHPB and WSHPB
+    # the valve's set point as its temperature.
+    assert df["T_mix_w_out [°C]"].isna().all()
+    for key in ("X_tank_w_out [W]", "X_tank_w_in [W]", "X_mix_sup_w_in [W]", "X_mix_w_out [W]", "Xc_mix [W]"):
+        assert (df[key] == 0.0).all(), key
+    heat_keys = ["Q_tank_w_out [W]", "Q_dhw_request [W]", "Q_dhw_unmet [W]"]
     if family == "ASHPB":
-        assert df["T_mix_w_out [°C]"].isna().all()
-    for key in ("X_tank_w_out [W]", "X_tank_w_in [W]", "X_mix_sup_w_in [W]"):
+        heat_keys += ["Q_mix_w_out [W]", "Q_mix_sup_w_in [W]", "Q_tank_w_in [W]"]
+    for key in heat_keys:
         assert (df[key] == 0.0).all(), key
     steady = _steady(models[family], family, 45.0, 0.6 * models[family].hp_capacity)
     for key in FLOW_KEYS:
         assert steady[key] == 0.0, key
+    if family == "ASHPB":
+        assert steady["Q_mix_w_out [W]"] == 0.0 and math.isnan(steady["T_mix_w_out [°C]"])
+
+
+@pytest.fixture(scope="module")
+def draw_runs(models):
+    """Six 10 min steps from 58 degC, a draw in the third and fourth only."""
+    draw = np.zeros(6)
+    draw[2:4] = 1e-4
+    return draw, {
+        family: _quiet(models[family].analyze_dynamic, 6 * 600.0, 600.0, 58.0, draw, np.full(6, 7.0))
+        for family in FAMILIES
+    }
+
+
+@pytest.mark.parametrize("family", list(FAMILIES))
+def test_mixed_water_of_a_step_without_a_draw(models, draw_runs, family):
+    """Flow, heat and exergy 0, temperature NaN; the steps with a draw are untouched."""
+    draw, runs = draw_runs
+    df, drawing = runs[family], draw > 0.0
+    rc = tmhp.constants.c_w * tmhp.constants.rho_w
+    T_mix = df["T_mix_w_out [°C]"].to_numpy(float)
+    assert np.isnan(T_mix[~drawing]).all()
+    assert T_mix[drawing] == pytest.approx(models[family].T_mix_w_out, abs=0.02)
+    for key in ("dV_mix_w_out [m3/s]", "X_mix_w_out [W]", "Xc_mix [W]"):
+        values = df[key].to_numpy(float)
+        assert (values[~drawing] == 0.0).all() and np.isfinite(values).all(), key
+    assert (df["X_mix_w_out [W]"].to_numpy(float)[drawing] > 0.0).all()
+    if family == "ASHPB":
+        heat = df["Q_mix_w_out [W]"].to_numpy(float)
+        assert (heat[~drawing] == 0.0).all()
+        expected = rc * draw[drawing] * (T_mix[drawing] - df["T0 [°C]"].to_numpy(float)[drawing])
+        assert heat[drawing] == pytest.approx(expected, rel=1e-12)
+    # No water column is NaN on any step: the frame sums without skipping anything.
+    water = [c for c in df.columns if c.startswith(("Q_tank_w", "Q_mix", "Q_dhw", "X_tank_w", "X_mix", "Xc_mix"))]
+    assert not df[water].isna().any().any(), df[water].isna().any()
+    # The exergy step reads the frame again without a temperature for the idle steps.
+    again = models[family].postprocess_exergy(df.copy())
+    assert again["X_mix_w_out [W]"].to_numpy(float) == pytest.approx(df["X_mix_w_out [W]"].to_numpy(float), rel=1e-12)
+
+
+def test_mixed_water_helpers():
+    from tmhp._boiler_results import mixed_water_enthalpy_flow, mixed_water_exergy
+
+    rc = tmhp.constants.c_w * tmhp.constants.rho_w
+    assert mixed_water_enthalpy_flow(0.0, math.nan, 283.15) == 0.0
+    assert mixed_water_enthalpy_flow(1e-4, 313.15, 283.15) == pytest.approx(rc * 1e-4 * 30.0, rel=1e-12)
+    df = pd.DataFrame({"dV_mix_w_out [m3/s]": [0.0, 1e-4, np.nan], "T_mix_w_out [°C]": [np.nan, 40.0, np.nan]})
+    T0_K = pd.Series([283.15, 283.15, 283.15])
+    X = mixed_water_exergy(df, T0_K).to_numpy(float)
+    assert X[0] == 0.0 and X[2] == 0.0
+    assert X[1] == pytest.approx(rc * 1e-4 * (30.0 - 283.15 * math.log(313.15 / 283.15)), rel=1e-12)
 
 
 def test_ashpb_draw_rows_are_unchanged_by_the_zero_flow_convention(dynamic_runs):

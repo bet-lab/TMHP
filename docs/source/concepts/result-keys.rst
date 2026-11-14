@@ -236,7 +236,7 @@ temperature of the row and can be negative; only their differences are heat rate
       - Enthalpy flow of the mains water entering the mixing valve, from ``T0``.
     * - ``Q_mix_w_out [W]``
       - ASHPB
-      - Enthalpy flow of the mixed water delivered to the tap, from ``T0``.
+      - Enthalpy flow of the mixed water delivered to the tap, from ``T0``; 0 when nothing is drawn.
     * - ``Q_dhw_request [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Hot-water heat the step was asked for: scheduled draw at the set point ``T_mix_w_out``, counted from the mains temperature.
@@ -608,8 +608,11 @@ reuses these names for its source-water coil.
 Tank and hot water
 ==================
 
-Boiler families. Flows are step means in a dynamic row; a flow that is zero is reported as NaN by ASHPB and
-as 0 by GSHPB and WSHPB.
+Boiler families. Flows are step means in a dynamic row. A stream that does not flow reports 0 for its flow, its
+enthalpy flow and its exergy flow, and NaN for its temperature (there is no water to have one), in the three
+boilers alike: on a step without a draw ``dV_mix_w_out``, ``Q_mix_w_out`` and ``X_mix_w_out`` are 0 and
+``T_mix_w_out`` is NaN. (ASHPB used to report that heat and exergy as NaN, GSHPB and WSHPB the valve's set point
+as the temperature.)
 
 .. list-table::
     :header-rows: 1
@@ -629,7 +632,7 @@ as 0 by GSHPB and WSHPB.
       - Mains water temperature.
     * - ``T_mix_w_out [°C]``
       - ASHPB, GSHPB, WSHPB
-      - Temperature of the water delivered by the mixing valve; NaN when nothing is drawn (ASHPB).
+      - Temperature of the water delivered by the mixing valve; NaN when nothing is drawn.
     * - ``dV_mix_w_out [m3/s]``
       - ASHPB, GSHPB, WSHPB
       - Mixed hot water delivered to the tap. This and the three flows below are 0 when the water does not flow.
@@ -882,7 +885,7 @@ without a running cycle carry NaN or 0.
       - Flow exergy of the mains water entering the mixing valve.
     * - ``X_mix_w_out [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
-      - Flow exergy of the mixed water delivered.
+      - Flow exergy of the mixed water delivered; 0 when nothing is drawn.
     * - ``X_ou_fan [W]``
       - ASHP, ASHPB (d)
       - Exergy of ``E_ou_fan [W]`` (electricity is pure exergy: the same number).

@@ -1,6 +1,6 @@
 {
-  "version": "displacement-v2026-11-14",
-  "data_sha256": "a7d446c139f67644139828242b4ac3e290f75ac488de51d9cd47e7e1f2f36756",
+  "version": "displacement-v2026-11-14b",
+  "data_sha256": "83a20ddc8f707f1beb4e3938e4f9aba0205fc38e6dd7c4978454dcd0f7882351",
   "formula": "V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)",
   "units": {
     "Q_nom": "W",
@@ -26,10 +26,10 @@
         "superheat_K": 27.8,
         "subcooling_K": 8.3
       },
-      "eta_vol_rps_per_f": 0.8575625124785291,
+      "eta_vol_rps_per_f": 0.8547779182124379,
       "frequency_Hz": 50,
-      "eta_vol_rps": 42.87812562392646,
-      "n": 109,
+      "eta_vol_rps": 42.73889591062189,
+      "n": 98,
       "n_families": 15,
       "manufacturers": [
         "Highly",
@@ -58,27 +58,27 @@
         }
       },
       "capacity_range_W": [
-        950.0,
+        960.0,
         8300.0
       ],
-      "capacity_trend_log_slope": -0.0027787499139136844,
+      "capacity_trend_log_slope": 0.005657359079862987,
       "nested_family_cv": {
-        "n": 109,
-        "MAPE_pct": 2.372702498053148,
-        "RMSE": 0.5502014638652766,
-        "bias_pct": -0.6537777512848486
+        "n": 98,
+        "MAPE_pct": 2.4031307536306423,
+        "RMSE": 0.578784799818025,
+        "bias_pct": -0.3026141199244029
       },
       "nested_manufacturer_cv": {
-        "n": 109,
-        "MAPE_pct": 2.684956434375654,
-        "RMSE": 0.5749455743828255,
-        "bias_pct": -1.19957912244151
+        "n": 98,
+        "MAPE_pct": 2.742134025963406,
+        "RMSE": 0.5945482180118421,
+        "bias_pct": -0.9079899942091234
       },
       "nested_refrigerant_cv": {
-        "n": 109,
-        "MAPE_pct": 2.2164072331204636,
-        "RMSE": 0.5593374527290099,
-        "bias_pct": -0.16483229753577697
+        "n": 98,
+        "MAPE_pct": 2.2833892525626927,
+        "RMSE": 0.599602723070403,
+        "bias_pct": 0.1642045150530925
       },
       "meets_shipping_gate": true,
       "source_ids": [

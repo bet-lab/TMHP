@@ -412,5 +412,185 @@
         "nested_family_MAPE_pct": 2.6777939093221654
       }
     }
+  },
+  {
+    "version": "displacement-v2026-11-14b",
+    "date": "2026-11-14",
+    "data_sha256": "83a20ddc8f707f1beb4e3938e4f9aba0205fc38e6dd7c4978454dcd0f7882351",
+    "records": 155,
+    "eligible": 139,
+    "errata_applied": 19,
+    "changes": [
+      "ASHRAE_50Hz_fixed_single|R290: n 11 -> 5",
+      "ASHRAE_50Hz_fixed_single|R290: law power -> proportional",
+      "ASHRAE_50Hz_fixed_single|R290: capacity range [950.0, 5475.0] -> [2130.0, 4566.0] W",
+      "ASHRAE_50Hz_fixed_single|R410A: n 58 -> 53",
+      "ASHRAE_50Hz_fixed_single|R410A: coefficients {'kind': 'linear', 'a': 4.0386182163191675, 'b': 0.24810773578009743} -> {'kind': 'linear', 'a': 4.03893794021619, 'b': 0.25242006116286486}",
+      "normalized|rotary_single_fixed_50Hz: n 109 -> 98",
+      "normalized|rotary_single_fixed_50Hz: coefficients {'kind': 'physical_normalized', 'formula': 'V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)', 'eta_vol_rps_per_f': 0.8575625124785291, 'frequency_Hz': 50, 'eta_vol_rps': 42.87812562392646} -> {'kind': 'physical_normalized', 'formula': 'V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)', 'eta_vol_rps_per_f': 0.8547779182124379, 'frequency_Hz': 50, 'eta_vol_rps': 42.73889591062189}",
+      "normalized|rotary_single_fixed_50Hz: capacity range [950.0, 8300.0] -> [960.0, 8300.0] W"
+    ],
+    "note": "Panasonic CGZ: 3 capacity transcription slips corrected (errata), 11 under-development rows excluded, printed BTU/h and locators completed; LG printed pages",
+    "groups": {
+      "ARI_60Hz_variable_twin|R32": {
+        "n": 23,
+        "manufacturers": [
+          "LG",
+          "Mitsubishi Electric SCI"
+        ],
+        "capacity_range_W": [
+          2890.0,
+          14877.0
+        ],
+        "selected_law": {
+          "kind": "proportional",
+          "a": 3.05442719987154
+        },
+        "nested_family_RMSE": 0.7872251168281493,
+        "nested_family_MAPE_pct": 1.8292107689597052
+      },
+      "ARI_60Hz_variable_twin|R410A": {
+        "n": 12,
+        "manufacturers": [
+          "LG"
+        ],
+        "capacity_range_W": [
+          3921.0,
+          13921.0
+        ],
+        "selected_law": {
+          "kind": "linear",
+          "a": 3.088141665228154,
+          "b": 1.1139561387095223
+        },
+        "nested_family_RMSE": 0.4334664120893679,
+        "nested_family_MAPE_pct": 2.065455263993006
+      },
+      "ASHRAE_50Hz_fixed_single|R22": {
+        "n": 35,
+        "manufacturers": [
+          "Highly",
+          "Panasonic"
+        ],
+        "capacity_range_W": [
+          2220.0,
+          8300.0
+        ],
+        "selected_law": {
+          "kind": "proportional",
+          "a": 5.86344385299745
+        },
+        "nested_family_RMSE": 0.6976430116376253,
+        "nested_family_MAPE_pct": 1.4622800225608852
+      },
+      "ASHRAE_50Hz_fixed_single|R290": {
+        "n": 5,
+        "manufacturers": [
+          "Highly"
+        ],
+        "capacity_range_W": [
+          2130.0,
+          4566.0
+        ],
+        "selected_law": {
+          "kind": "proportional",
+          "a": 6.723517769611011
+        },
+        "nested_family_RMSE": 0.5907670054354903,
+        "nested_family_MAPE_pct": 2.595056210712258
+      },
+      "ASHRAE_50Hz_fixed_single|R32": {
+        "n": 5,
+        "manufacturers": [
+          "Highly"
+        ],
+        "capacity_range_W": [
+          2260.0,
+          5896.0
+        ],
+        "selected_law": {
+          "kind": "proportional",
+          "a": 3.925463435459472
+        },
+        "nested_family_RMSE": 0.6977768674646548,
+        "nested_family_MAPE_pct": 3.583093269416498
+      },
+      "ASHRAE_50Hz_fixed_single|R410A": {
+        "n": 53,
+        "manufacturers": [
+          "Highly",
+          "LG",
+          "Panasonic"
+        ],
+        "capacity_range_W": [
+          960.0,
+          8045.0
+        ],
+        "selected_law": {
+          "kind": "linear",
+          "a": 4.03893794021619,
+          "b": 0.25242006116286486
+        },
+        "nested_family_RMSE": 0.5287056549378061,
+        "nested_family_MAPE_pct": 3.311613998768358
+      },
+      "ASHRAE_T_60rps_variable_twin|R410A": {
+        "n": 6,
+        "manufacturers": [
+          "Mitsubishi Electric SCI"
+        ],
+        "capacity_range_W": [
+          3400.0,
+          9880.0
+        ],
+        "selected_law": {
+          "kind": "proportional",
+          "a": 3.164654336951068
+        },
+        "nested_family_RMSE": 0.49663088630309,
+        "nested_family_MAPE_pct": 1.796462340312662
+      },
+      "normalized|rotary_single_fixed_50Hz": {
+        "n": 98,
+        "manufacturers": [
+          "Highly",
+          "LG",
+          "Panasonic"
+        ],
+        "capacity_range_W": [
+          960.0,
+          8300.0
+        ],
+        "selected_law": {
+          "kind": "physical_normalized",
+          "formula": "V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)",
+          "eta_vol_rps_per_f": 0.8547779182124379,
+          "frequency_Hz": 50,
+          "eta_vol_rps": 42.73889591062189
+        },
+        "nested_family_RMSE": 0.578784799818025,
+        "nested_family_MAPE_pct": 2.4031307536306423
+      },
+      "normalized|rotary_twin_inverter_60rps": {
+        "n": 41,
+        "manufacturers": [
+          "LG",
+          "Mitsubishi Electric SCI"
+        ],
+        "capacity_range_W": [
+          2890.0,
+          14877.0
+        ],
+        "selected_law": {
+          "kind": "physical_normalized",
+          "formula": "V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)",
+          "eta_vol_rps_per_f": 0.8870095871327589,
+          "frequency_Hz": 60,
+          "eta_vol_rps": 53.22057522796553
+        },
+        "nested_family_RMSE": 0.7919775636750012,
+        "nested_family_MAPE_pct": 2.6777939093221654
+      }
+    }
   }
 ]

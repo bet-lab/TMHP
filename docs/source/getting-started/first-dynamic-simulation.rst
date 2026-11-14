@@ -222,3 +222,22 @@ compressors are held to a minimum run and rest time (typically 3–5
 minutes); set ``min_on_time_s`` / ``min_off_time_s`` on the boiler to
 apply them. A minimum run holds the compressor past the upper bound, so
 the tank overshoots it by up to ``hp_capacity * min_on_time_s / C_tank``.
+
+GSHPB and WSHPB also stop the compressor inside the step at their
+*envelope stop*: the tank temperature at which the nameplate duty would
+condense above ``T_cond_max`` (``T_cond_max − hp_capacity / UA_tank_hx``
+at the condensing-limit pressure; 69.9 °C for the default R290 machines).
+The set points are already capped there (see :doc:`../models/gshpb`), so
+this matters when a minimum run time would carry the run past it (the
+protection stop outranks the minimum run time: the default R290 machine
+with ``min_on_time_s=1800`` peaked at 73.1, 75.4 and 77.4 °C with 60,
+300 and 600 s steps and now stops at 69.9 °C with all three), and in a
+``"stratified"`` or ``"hybrid"`` tank whose coil water is hotter than the
+tank mean the thermostat reads (a coil in the top node): there the stop is
+the mean temperature at which the water around the coil gets to the
+envelope stop, found on trial steps of the node model. While the
+thermostat still calls at that point, the compressor holds the coil's
+water there (it runs the share of the step that delivers the heat the
+water loses, one start), instead of failing step after step. Such a
+step is a normal stop: ``failure_reason`` stays ``"none"`` and
+``hp_stop_reason`` is ``"condensing_limit"``.

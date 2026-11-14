@@ -173,6 +173,9 @@ What was asked for, what was delivered, and how a request outside the modulation
     * - ``hp_starts [-]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Number of compressor starts inside the step (boiler dynamic steps).
+    * - ``hp_stop_reason``
+      - GSHPB (d), WSHPB (d)
+      - ``"condensing_limit"`` on a step in which the compressor envelope stopped the run, or kept it at the duty that holds the water around the coil at the envelope stop, while the thermostat called (or a minimum run time held it): the tank temperature at which the nameplate duty would condense above ``T_cond_max``. It is a normal end of the run, not a failure (``failure_reason`` stays ``"none"``); the row's heat and power are the step means. ``"boiling_limit"`` when the 100 °C cut-out did so. ``None`` on every other step.
     * - ``E_cycling_loss [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
       - Mean electrical power drawn beyond ``capacity_ratio`` times the continuous power: the cost of on/off operation. 0 on a row that does not cycle.

@@ -19,6 +19,7 @@ import pytest
 pytest.importorskip("pygfunction")
 
 from tmhp import GroundSourceHeatPumpBoiler  # noqa: E402
+from tmhp.compressor_envelope import condensing_tank_cutout  # noqa: E402
 from tmhp.constants import c_w, rho_w  # noqa: E402
 from tmhp.hybrid_tank import HybridStratifiedTank  # noqa: E402
 from tmhp.stratified_tank import StratifiedTank  # noqa: E402
@@ -374,10 +375,17 @@ def test_top_coil_stops_when_its_water_reaches_the_condensing_temperature(top_co
         assert row["E_cmp [W]"] > 0.0 and bool(row["hp_is_on"])
     # Never past the refrigerant, never past boiling.
     assert max(float(T.max()) for _, T, _ in record) <= min(100.0, df["T_ref_cond_sat_l [°C]"].max()) + 1e-6
-    # Water below the coil stays cold; once the top is hot the cycle has no operating point, and says so.
+    # Water below the coil stays cold. Once the top is hot the thermostat (still calling: the
+    # mean is below the set point) holds it at the envelope stop -- a normal stop, named in
+    # hp_stop_reason (R5C; before, each such step was an off row with condensing_temp_above_max).
     assert float(hp._tank.T[-1]) < 20.0
-    assert (df["failure_reason"] != "none").any()
-    assert df.loc[df["failure_reason"] != "none", "Q_ref_tank [W]"].eq(0.0).all()
+    assert (df["failure_reason"] == "none").all()
+    held = df["hp_stop_reason"] == "condensing_limit"
+    assert held.any() and df.loc[held, "hp_is_on"].all()
+    # Never condensing past the limit: the coil's water at most at the limit's bubble point.
+    level_max = condensing_tank_cutout(hp) + hp.hp_capacity / hp.UA_tank_hx
+    assert df["T_ref_cond_sat_l [°C]"].max() <= level_max + 0.05
+    assert max(float(T[0]) for _, T, _ in record) <= level_max + 0.05
 
 
 def test_top_coil_energy_balance_closes(top_coil):

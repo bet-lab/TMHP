@@ -35,10 +35,13 @@ __all__ = [
     "delivered_tank_heat",
     "determine_heat_source_on_off",
     "determine_tank_refill_flow",
+    "in_step_stop_reason",
     "resolve_step_operation",
     "scale_running_rates",
     "simulate_thermostat_step",
     "step_hp_result",
+    "STOP_BOILING_LIMIT",
+    "STOP_CONDENSING_LIMIT",
     "T_WATER_BOIL_C",
     "TANK_LEVEL_MIN",
     "TankStepFlows",
@@ -512,6 +515,11 @@ class InStepRun:
     heat_unavailable : bool
         The compressor was to run but had no heat to give (no cycle could
         be solved), so it did not; the call stands for the next step.
+    limit_stop : bool
+        The cut-out ``T_limit_C`` of :func:`simulate_thermostat_step` stopped
+        the compressor, or kept it from starting, while the thermostat (its
+        call, or a minimum run time) would have had it run: a protection stop,
+        not the thermostat reaching its upper bound.
     """
 
     runtime_fraction: float
@@ -523,6 +531,7 @@ class InStepRun:
     T_on_mean_C: float | None
     heat_unavailable: bool
     T_on_first_C: float | None = None
+    limit_stop: bool = False
 
 
 def tank_free_heat_rate(
@@ -593,6 +602,7 @@ def simulate_thermostat_step(
     min_on_time_s: float = 0.0,
     min_off_time_s: float = 0.0,
     T_limit_C: float = T_WATER_BOIL_C,
+    Q_hold: float | None = None,
 ) -> InStepRun:
     """Resolve the on/off thermostat inside one step at its switching events.
 
@@ -630,23 +640,47 @@ def simulate_thermostat_step(
         compressor past the upper bound (up to ``T_limit_C``); a minimum rest
         delays a start the call asks for.
     T_limit_C : float
-        Absolute cut-out [°C]; the effective upper bound is
-        ``min(T_upper, T_limit_C)``. The constructors refuse bounds above
-        100 °C, so the cut-out acts when a minimum run time holds the
-        compressor past the upper bound.
+        Cut-out [°C]: it stops a running compressor whatever its minimum run
+        time and blocks a start. The call is the thermostat's (``T_lower``,
+        ``T_upper``); the cut-out does not end it. The default is the boiling
+        point (constructors refuse bounds above 100 °C, so it acts when a
+        minimum run time holds the compressor past the upper bound); a boiler
+        passes the tank temperature at which its compressor envelope stops it
+        (the condensing limit, :func:`tmhp.compressor_envelope.condensing_tank_cutout`,
+        or for a multi-node tank the mean temperature at which the water
+        around the coil gets there), so a protection stop happens inside the
+        step instead of at a step boundary. A stop or blocked start it causes
+        while the thermostat would have run sets ``limit_stop``.
+    Q_hold : float or None
+        Heat [W] the compressor gives, while the call stands at the cut-out,
+        by running the fraction ``Q_hold / Q_on`` of the time (cycling on its
+        protection, or a variable-speed unit at the duty the limit allows):
+        the heat that keeps the water around the coil at the cut-out. It
+        then runs so to the end of the step and counts as running (one start
+        at most). ``None`` (the default): the water around the coil is the
+        tank, so the heat that balances the tank's free heat at the cut-out;
+        0: it stays off until the tank falls below the cut-out.
 
     More than 1000 switching events in one step (a band too narrow for the
     step) are closed by the fast-cycling limit: the tank holds the
     temperature it reached and the compressor runs the fraction of the rest
     of the step that balances the tank there.
     """
-    T_hi = min(T_upper, T_limit_C)
+    # The call's upper bound. The cut-out is never below it for a tank
+    # whose coil water is the tank (it is the boiling point or the envelope
+    # stop the set points are capped at); for a multi-node tank it can be.
+    T_hi = T_upper
     # Bound width for this band (never more than a quarter of it).
     tol = bound_tolerance(T_lower, T_hi)
     (T_a, P_a), (T_b, P_b) = free_heat
     slope = (P_b - P_a) / (T_b - T_a) if T_b != T_a else 0.0
     p_const = P_a - slope * T_a
     q_on = float(Q_on) if math.isfinite(Q_on) and Q_on > 0.0 else 0.0
+    if Q_hold is None:
+        # The tank is the coil's water: hold it where the free heat balances.
+        q_hold = max(0.0, -(p_const + slope * min(T_limit_C, T_WATER_BOIL_C)))
+    else:
+        q_hold = float(Q_hold) if math.isfinite(Q_hold) and Q_hold > 0.0 else 0.0
 
     t = 0.0
     tw = T_start_C
@@ -658,6 +692,8 @@ def simulate_thermostat_step(
     starts = 0
     running_start = running
     unavailable = False
+    limit_stop = False
+    holding = False
     tw_on_first: float | None = None
 
     for n_events in range(1_000_001):
@@ -679,21 +715,29 @@ def simulate_thermostat_step(
         if t >= dt:
             break  # a start at the step end belongs to the next step
         want = call and scheduled
+        at_limit = tw >= T_limit_C - TEMPERATURE_TOL_K
+        hold = want and at_limit and q_hold > 0.0 and q_on > 0.0
         if running:
-            if (
-                not scheduled
-                or tw >= T_limit_C - TEMPERATURE_TOL_K
-                or (not want and age >= min_on_time_s - EVENT_TIME_TOL_S)
-            ):
+            if hold:
+                # The call stands at the cut-out: it holds the water there.
+                holding, limit_stop = True, True
+            elif not scheduled or at_limit or (not want and age >= min_on_time_s - EVENT_TIME_TOL_S):
+                if scheduled and at_limit and (want or age < min_on_time_s - EVENT_TIME_TOL_S):
+                    # The cut-out, not the thermostat, stopped it.
+                    limit_stop = True
                 running, age = False, 0.0
             elif q_on <= 0.0:
                 # Running at the end of the previous step but no cycle exists
                 # at this step's conditions: the compressor stops.
                 running, age, unavailable = False, 0.0, True
-        elif (
-            want and age >= min_off_time_s - EVENT_TIME_TOL_S and not unavailable and tw < T_limit_C - TEMPERATURE_TOL_K
-        ):
-            if q_on > 0.0:
+        elif want and age >= min_off_time_s - EVENT_TIME_TOL_S and not unavailable:
+            if hold:
+                running, age, holding, limit_stop = True, 0.0, True, True
+                starts += 1
+            elif at_limit:
+                # Called with the water at the cut-out: the compressor stays off.
+                limit_stop = True
+            elif q_on > 0.0:
                 running, age = True, 0.0
                 starts += 1
             else:
@@ -703,6 +747,18 @@ def simulate_thermostat_step(
 
         # --- next event ---
         rem = dt - t
+        if holding:
+            # Held at the cut-out to the end of the step.
+            duty = min(1.0, q_hold / q_on)
+            T_new = _advance(tw, rem, p_const + duty * q_on, slope, C)
+            if tw_on_first is None:
+                tw_on_first = tw
+            on_time += duty * rem
+            on_T_integral += duty * rem * 0.5 * (tw + T_new)
+            tw = T_new
+            age += rem
+            t = dt
+            continue
         if n_events >= 1000 and q_on > 0.0 and scheduled:
             # Fast-cycling limit: hold the tank where it is.
             duty = min(1.0, max(0.0, -(p_const + slope * tw) / q_on))
@@ -758,6 +814,7 @@ def simulate_thermostat_step(
         T_on_mean_C=on_T_integral / on_time if on_time > 0.0 else None,
         heat_unavailable=unavailable,
         T_on_first_C=tw_on_first,
+        limit_stop=limit_stop,
     )
 
 
@@ -801,6 +858,8 @@ def resolve_step_operation(
     Q_request: float,
     min_on_time_s: float = 0.0,
     min_off_time_s: float = 0.0,
+    T_limit_C: float = T_WATER_BOIL_C,
+    Q_hold: float | None = None,
 ) -> tuple[InStepRun, dict | None]:
     """Compressor operation in one step and the cycle it ran.
 
@@ -833,6 +892,13 @@ def resolve_step_operation(
     step-average load. Each step searches its operating point from scratch:
     starting from the previous step's point would change which candidates
     the search evaluates, and so its optimum.
+
+    ``T_limit_C`` and ``Q_hold`` are the cut-out of
+    :func:`simulate_thermostat_step` [°C] (default the boiling point) and the
+    heat that holds the tank there while the call stands [W] (default
+    ``None``: the heat that balances the tank's free heat there): a
+    boiler passes its envelope stop temperature, so the compressor stops
+    there inside the step whatever its minimum run time.
 
     Returns the :class:`InStepRun` and the cycle result (``None`` if the
     compressor never had to run in this step).
@@ -884,6 +950,8 @@ def resolve_step_operation(
         free_heat=free,
         min_on_time_s=min_on_time_s,
         min_off_time_s=min_off_time_s,
+        T_limit_C=T_limit_C,
+        Q_hold=Q_hold,
     )
     provisional = simulate_thermostat_step(Q_on=Q_request, **kwargs)  # type: ignore[arg-type]
     if provisional.T_on_mean_C is None:
@@ -901,9 +969,15 @@ def resolve_step_operation(
             cycle_result, q = retry, delivered_tank_heat(retry)
     run = simulate_thermostat_step(Q_on=q, **kwargs)  # type: ignore[arg-type]
 
-    T_hi = min(T_upper, T_WATER_BOIL_C)
+    T_hi = min(T_upper, T_limit_C)
     age_through = (phase_age_s if running_prev == run.running_start else 0.0) + dt
-    if run.running_start and not run.running_end and run.starts == (0 if running_prev else 1) and min_on_time_s == 0:
+    if (
+        run.running_start
+        and not run.running_end
+        and run.starts == (0 if running_prev else 1)
+        and min_on_time_s == 0
+        and not run.limit_stop
+    ):
         # Ran from t = 0 and stopped once at the upper bound: confirm with the
         # implicit full-step solve that the tank really gets there.
         T_end = _solve_tank_end(residual_free, q, dt, C_tank)
@@ -958,6 +1032,27 @@ def step_hp_result(run: InStepRun, cycle_result: dict | None, off_row, keys: tup
         result["runtime_fraction [-]"] = 0.0
     result["hp_starts [-]"] = int(run.starts) if result.get("hp_is_on", False) else 0
     return result
+
+
+#: ``hp_stop_reason`` of a step the compressor envelope stopped inside
+#: (:func:`in_step_stop_reason`).
+STOP_CONDENSING_LIMIT: str = "condensing_limit"
+#: ``hp_stop_reason`` of a step the boiling cut-out stopped inside.
+STOP_BOILING_LIMIT: str = "boiling_limit"
+
+
+def in_step_stop_reason(run: InStepRun, T_limit_C: float) -> str | None:
+    """``hp_stop_reason`` of a step: why a cut-out stopped the compressor, ``None`` if none did.
+
+    A cut-out below the boiling point is the envelope stop the boiler passed
+    (:data:`STOP_CONDENSING_LIMIT`); at the boiling point it is
+    :data:`STOP_BOILING_LIMIT`. Such a stop is a normal end of the run (no
+    ``failure_reason``): the heat pump has charged the tank as far as its
+    compressor allows.
+    """
+    if not run.limit_stop:
+        return None
+    return STOP_CONDENSING_LIMIT if T_limit_C < T_WATER_BOIL_C else STOP_BOILING_LIMIT
 
 
 def scale_running_rates(result: dict, fraction: float, keys: tuple[str, ...]) -> dict:

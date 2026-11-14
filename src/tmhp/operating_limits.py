@@ -298,7 +298,7 @@ def _numbers(model: Any, limit: Limit, note: _Note | None, where: str = "at this
     elif key == "compressor_max_speed":
         bound = attribute("rps_max")
         if bound is not None:
-            parts.append(f"rps_max = {bound:g} rev/s")
+            parts.append(f"rps_max = {bound:.1f} rev/s")
     return f" ({'; '.join(parts)})" if parts else ""
 
 
@@ -807,19 +807,15 @@ def dynamic_message(
         if math.isfinite(summary["Q_dhw_unmet [kWh]"]):
             tank += f"; hot water not delivered: {summary['Q_dhw_unmet [kWh]']:.2f} kWh"
         text += tank + ". "
-    limits: list[Limit] = []
-    for reason in summary["off_reasons"]:
-        limits.append(limit_for(reason=reason))
-    for binding in summary["limited_bindings"]:
-        limits.append(limit_for(binding=binding))
-    shown: list[Limit] = []
-    for limit in limits:
-        if limit not in shown:
-            shown.append(limit)
-    remedies = [
-        f"{limit.reason or limit.binding}{_numbers(model, limit, None)}: {limit.remedy}"
-        for limit in shown[:_REMEDIES_SHOWN]
-    ]
+    # Each limit once, under the name the counts above use (a stopped step's
+    # failure_reason comes first, then a reduced step's capacity_binding).
+    named: list[tuple[str, Limit]] = [(reason, limit_for(reason=reason)) for reason in summary["off_reasons"]]
+    named += [(binding, limit_for(binding=binding)) for binding in summary["limited_bindings"]]
+    shown: list[tuple[str, Limit]] = []
+    for name, limit in named:
+        if all(limit is not other for _, other in shown):
+            shown.append((name, limit))
+    remedies = [f"{name}{_numbers(model, limit, None)}: {limit.remedy}" for name, limit in shown[:_REMEDIES_SHOWN]]
     text += "What to do -- " + " ".join(remedies)
     text += (
         " Per step: 'failure_reason', 'capacity_clamped', 'capacity_binding'; totals: "

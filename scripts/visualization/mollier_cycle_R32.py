@@ -110,7 +110,7 @@ def _draw_envelope(ax, h_liq, h_vap, y_sat) -> None:
     ax.plot(h_vap, y_sat, color=COLORS["hot"], linewidth=dm.lw(1), label="Sat. vapor")
 
 
-def _draw_cycle(ax, pts: dict[str, tuple[float, float]], label_offsets: dict[str, tuple[int, int]]) -> None:
+def _draw_cycle(ax, pts: dict[str, tuple[float, float]], label_offsets: dict[str, tuple[int, int, str, str]]) -> None:
     xs = [pts[k][0] for k in CYCLE_PATH]
     ys = [pts[k][1] for k in CYCLE_PATH]
 
@@ -142,9 +142,16 @@ def _draw_cycle(ax, pts: dict[str, tuple[float, float]], label_offsets: dict[str
             linestyle="None",
             zorder=3,
         )
-        dx, dy = label_offsets[k]
+        dx, dy, ha, va = label_offsets[k]
         ax.annotate(
-            NODE_LABEL[k], (x, y), xytext=(dx, dy), textcoords="offset points", fontsize=dm.fs(-1), color=COLORS["ink"]
+            NODE_LABEL[k],
+            (x, y),
+            xytext=(dx, dy),
+            textcoords="offset points",
+            ha=ha,
+            va=va,
+            fontsize=dm.fs(-1),
+            color=COLORS["ink"],
         )
 
 
@@ -170,10 +177,10 @@ def main() -> None:
         ax_ph,
         pts_ph,
         label_offsets={
-            "1": (8, -6),
-            "2": (8, 4),
-            "3": (-22, 8),
-            "4": (-30, -14),
+            "1": (5, -3, "left", "top"),
+            "2": (5, 0, "left", "center"),
+            "3": (-4, 3, "right", "bottom"),
+            "4": (-4, -3, "right", "top"),
         },
     )
     ax_ph.set_yscale("log")
@@ -191,10 +198,10 @@ def main() -> None:
         ax_th,
         pts_th,
         label_offsets={
-            "1": (8, -4),
-            "2": (-50, 4),
-            "3": (-30, 8),
-            "4": (-32, -14),
+            "1": (5, -3, "left", "top"),
+            "2": (5, 0, "left", "center"),
+            "3": (3, 6, "right", "bottom"),
+            "4": (0, -5, "center", "top"),
         },
     )
 

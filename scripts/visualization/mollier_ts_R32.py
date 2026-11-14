@@ -102,7 +102,12 @@ def main() -> None:
             linestyle="None",
             zorder=3,
         )
-    label_offsets = {"1": (8, -6), "2": (8, -12), "3": (-30, 8), "4": (-30, -14)}
+    label_offsets = {
+        "1": (6, 3, "left", "bottom"),
+        "2": (5, 0, "left", "center"),
+        "3": (-4, 3, "right", "bottom"),
+        "4": (-4, -3, "right", "top"),
+    }
     for k in CLOSED:
         x, y = pts[k]
         ax.plot(
@@ -115,9 +120,16 @@ def main() -> None:
             linestyle="None",
             zorder=3,
         )
-        dx, dy = label_offsets[k]
+        dx, dy, ha, va = label_offsets[k]
         ax.annotate(
-            NODE_LABEL[k], (x, y), xytext=(dx, dy), textcoords="offset points", fontsize=dm.fs(-1), color=COLORS["ink"]
+            NODE_LABEL[k],
+            (x, y),
+            xytext=(dx, dy),
+            textcoords="offset points",
+            ha=ha,
+            va=va,
+            fontsize=dm.fs(-1),
+            color=COLORS["ink"],
         )
 
     # Reference temperature lines: tank water + ambient.

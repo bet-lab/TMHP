@@ -1,0 +1,64 @@
+{
+ "script": "validation/refrigerant_ua_sensitivity/",
+ "command": "python -m validation.refrigerant_ua_sensitivity.simulate && python -m validation.refrigerant_ua_sensitivity.figures",
+ "question": "how a refrigerant-side coil resistance would move the part-load curve of the running cycle",
+ "model_settings": {
+  "Cd_cycling": null,
+  "defrost": false,
+  "cases": [
+   [
+    "heating",
+    3500.0,
+    "R32",
+    7.0,
+    20.0
+   ],
+   [
+    "cooling",
+    3500.0,
+    "R32",
+    35.0,
+    27.0
+   ]
+  ],
+  "f_ref": [
+   0.05,
+   0.1,
+   0.2,
+   0.3
+  ],
+  "m": [
+   0.4,
+   0.6,
+   0.8
+  ]
+ },
+ "outputs": [
+  "validation/results/refrigerant_ua_sensitivity_once/fig01_mdot_ratio_vs_plr.csv",
+  "validation/results/refrigerant_ua_sensitivity_once/fig02_ua_ratio_vs_plr.csv",
+  "validation/results/refrigerant_ua_sensitivity_once/fig03_epsilon_vs_plr.csv",
+  "validation/results/refrigerant_ua_sensitivity_once/fig04_saturation_temperature_vs_plr.csv",
+  "validation/results/refrigerant_ua_sensitivity_once/fig05_pressure_ratio_vs_plr.csv",
+  "validation/results/refrigerant_ua_sensitivity_once/fig06_cop_vs_plr.csv",
+  "validation/results/refrigerant_ua_sensitivity_once/fig07_parameter_sensitivity_heatmap.csv",
+  "validation/results/refrigerant_ua_sensitivity_once/refrigerant_ua_sensitivity_once.csv",
+  "validation/results/refrigerant_ua_sensitivity_once/run_manifest.json"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "b169f47c35f139347f57fb0a749b04b026de2035",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "cdebb14c06e30874fb26faafa7d7b8fc29b61469",
+ "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-14T02:17:10+00:00"
+}

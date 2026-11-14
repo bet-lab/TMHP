@@ -1,25 +1,25 @@
 {
- "coefficient_version": "v2026-09-24",
- "rated_within_10pct": 17,
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "rated_within_10pct": 15,
  "rated_total": 19,
- "rated_worst_abs_pct": 13.384049017333178,
+ "rated_worst_abs_pct": 20.27965382200307,
  "headline": [
   {
    "model_class": "ASHP",
    "rating_standard": "EN 14511",
    "units": 5,
-   "points": 358,
-   "cop_MAPE_pct": 9.204701449785736,
-   "cop_bias_pct": -0.013755625336924805,
+   "points": 359,
+   "cop_MAPE_pct": 8.675271222167641,
+   "cop_bias_pct": -5.919541571472837,
    "meets_target": true
   },
   {
    "model_class": "ASHPB",
    "rating_standard": "unknown",
    "units": 10,
-   "points": 153,
-   "cop_MAPE_pct": 8.237862542126207,
-   "cop_bias_pct": 1.5222670349383554,
+   "points": 132,
+   "cop_MAPE_pct": 8.434868953814707,
+   "cop_bias_pct": -4.386812037033815,
    "meets_target": true
   }
  ]

@@ -1,0 +1,36 @@
+{
+ "script": "scripts/visualization/dynamic_24h_timeseries.py",
+ "command": "python scripts/visualization/dynamic_24h_timeseries.py",
+ "question": "a 24 h run of the documented ASHPB call with two DHW draws",
+ "model_settings": {
+  "ref": "R32",
+  "settings": "library defaults (the documented call)"
+ },
+ "outputs": [
+  "docs/source/_static/dynamic_24h_timeseries.svg"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "b169f47c35f139347f57fb0a749b04b026de2035",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "cdebb14c06e30874fb26faafa7d7b8fc29b61469",
+ "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-14T02:17:14+00:00",
+ "data": {
+  "Q_ref_tank_kWh": 39.805185314162784,
+  "E_cmp_kWh": 14.114113222156075,
+  "E_tot_kWh": 14.652036338418938,
+  "T_tank_w_end_C": 56.75993862155059,
+  "hp_on_steps": 170
+ }
+}

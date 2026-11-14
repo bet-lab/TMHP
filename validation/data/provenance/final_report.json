@@ -1,0 +1,14 @@
+{
+ "status": "dated: not regenerated with the current model",
+ "script": "validation/compressor_maps/final_simulate.py (+ final_figures.py)",
+ "command": "python -m validation.compressor_maps.final_simulate",
+ "outputs": [
+  "validation/data/final_report/"
+ ],
+ "made_at_commit": "b398ae7900fdc96952223648768c35f9b6b6b6fb",
+ "made_on": "2026-10-01",
+ "coefficient_version": "v2026-09-24",
+ "model_settings": "library defaults of that commit. Defaults that changed after it: on-off averaging below the minimum capacity (Cd_cycling, #134), condensing-temperature cap on and GSHPB/WSHPB default R290 (#136), source fluid MEG-25 % (#137), coil air density at the inlet (#139, #146), ASHP/ASHPB frost and defrost on with load weighting (#154), compressor coefficients BITZER-three-C3-absolute-N-2026-10-06",
+ "why_not_regenerated": "Compressor-map / coefficient work (co-author area). A rerun on 635bb43 runs (10 s) and changes every CSV: displacement, rated speed, coil UA/NTU, the speed-floor rows (capacity_clamped) and the COP map.",
+ "checked_against": "635bb437098ad3624db032994c95002a71ce4602"
+}

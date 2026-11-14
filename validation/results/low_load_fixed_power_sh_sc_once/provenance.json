@@ -1,0 +1,33 @@
+{
+ "script": "validation/diagnostics/low_load_fixed_power_sh_sc_once.py",
+ "command": "python -m validation.diagnostics.low_load_fixed_power_sh_sc_once",
+ "question": "does fixed power or the superheat/subcooling setting remove the low-load COP rise of the running cycle",
+ "model_settings": {
+  "Cd_cycling": null,
+  "defrost": false,
+  "capacity_W": 3500.0,
+  "refrigerant": "R32"
+ },
+ "outputs": [
+  "validation/results/low_load_fixed_power_sh_sc_once/fig03_fixed_power_lowload_summary.csv",
+  "validation/results/low_load_fixed_power_sh_sc_once/low_load_fixed_power_sh_sc_once.csv",
+  "validation/results/low_load_fixed_power_sh_sc_once/run_manifest.json"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "b169f47c35f139347f57fb0a749b04b026de2035",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "cdebb14c06e30874fb26faafa7d7b8fc29b61469",
+ "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-14T02:17:25+00:00"
+}

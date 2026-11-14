@@ -102,11 +102,12 @@ load and the speed floor (reached at 44 % load) at 7 °C air / 35 °C water,
 75 % load down to the floor at 33 %). Two effects set those shapes: the heat
 exchangers grow large relative to the duty, which raises COP, and the
 compressor loses efficiency at low speed, which takes it back. Their balance
-was measured with the earlier ``v2026-09-24`` correlations
-(``validation/fixed_boundary_plr/decompose``): with the three efficiencies
-frozen at their rated values the same model gains about 11 % between full load
-and the speed floor, and the air-to-air model at pressure ratios near 2 kept
-+20 to +24 %. None of these shapes is prescribed.
+is measured by ``validation/fixed_boundary_plr/decompose`` on the running
+cycle (no on-off averaging below the floor): with the three efficiencies
+frozen at their rated values the same model gains about 12 % between full load
+and the speed floor (R32, 7 °C air / 42.5 °C tank), and the air-to-air model at
+pressure ratios near 2 keeps +17 to +23 % with the shipped efficiencies. None
+of these shapes is prescribed.
 
 Below that the curve turns over, and the efficiency correlations are not the
 cause: a test gates the claim that wherever the modelled COP falls materially

@@ -6,6 +6,9 @@ holding heat ``Q_hold`` for a call that stands at it. GSHPB and WSHPB pass their
 (the tank temperature at which the nameplate duty condenses on ``T_cond_max``); a multi-node
 tank passes the mean temperature at which the water around the coil gets there. The
 step-size invariants are in ``tests/invariants/test_known_defects.py`` (T6).
+
+(나) ``T_cond [°C]`` is NaN on an off row (was the tank temperature), and an empty
+``hp_on_schedule`` means "never" for GSHPB and WSHPB as for ASHPB (was "always").
 """
 
 from __future__ import annotations
@@ -143,3 +146,47 @@ def test_lumped_default_run_has_no_stop_reason():
     m = _quiet(tmhp.GroundSourceHeatPumpBoiler, dt_s=600.0, t_max_s=86400.0)
     df = _quiet(m.analyze_dynamic, 6 * 600.0, 600.0, 50.0, np.zeros(6), np.full(6, 7.0))
     assert df["hp_is_on"].any() and df["hp_stop_reason"].isna().all()
+
+
+# ---------------------------------------------------------------------------
+# (나) GSHPB / WSHPB result rows
+# ---------------------------------------------------------------------------
+
+SOURCE_BOILERS = {
+    "GSHPB": (tmhp.GroundSourceHeatPumpBoiler, dict(dt_s=600.0, t_max_s=86400.0)),
+    "WSHPB": (tmhp.WaterSourceHeatPumpBoiler, {}),
+}
+
+
+@pytest.mark.parametrize("family", list(SOURCE_BOILERS))
+def test_condensing_temperature_is_undefined_on_an_off_row(family):
+    """Was the tank temperature on an off row; NaN as every quantity of a stopped compressor."""
+    cls, kw = SOURCE_BOILERS[family]
+    m = _quiet(cls, **kw)
+    df = _quiet(m.analyze_dynamic, 2 * 600.0, 600.0, 40.0, np.zeros(2), np.full(2, 10.0))
+    off = _quiet(m.analyze_dynamic, 3 * 600.0, 600.0, 62.0, np.zeros(3), np.full(3, 10.0))
+    assert df["hp_is_on"].all() and not off["hp_is_on"].any()
+    assert off["T_cond [°C]"].isna().all()
+    # Running rows keep the bubble point of the cycle.
+    assert np.allclose(df["T_cond [°C]"], df["T_ref_cond_sat_l [°C]"])
+    steady = _quiet(m.analyze_steady, T_tank_w=45.0, T_source=10.0, Q_ref_tank=0.0)
+    assert not steady["hp_is_on"] and math.isnan(steady["T_cond [°C]"])
+
+
+@pytest.mark.parametrize("family", list(SOURCE_BOILERS))
+def test_empty_schedule_never_runs(family):
+    """``hp_on_schedule=[]`` has no window: never scheduled, as ASHPB reads it (was "always")."""
+    cls, kw = SOURCE_BOILERS[family]
+    never = _quiet(cls, hp_on_schedule=[], **kw)
+    default = _quiet(cls, hp_on_schedule=None, **kw)
+    assert never.hp_on_schedule == [] and default.hp_on_schedule == [(0.0, 24.0)]
+    df = _quiet(never.analyze_dynamic, 3 * 600.0, 600.0, 40.0, np.zeros(3), np.full(3, 10.0))
+    assert not df["hp_is_on"].any() and (df["E_tot [W]"] == 0.0).all()
+    on = _quiet(default.analyze_dynamic, 3 * 600.0, 600.0, 40.0, np.zeros(3), np.full(3, 10.0))
+    assert on["hp_is_on"].all()
+
+
+def test_empty_schedule_reads_the_same_for_every_boiler():
+    ashpb = _quiet(tmhp.AirSourceHeatPumpBoiler, hp_on_schedule=[])
+    df = _quiet(ashpb.analyze_dynamic, 2 * 600.0, 600.0, 40.0, np.zeros(2), np.full(2, 7.0))
+    assert not df["hp_is_on"].any()

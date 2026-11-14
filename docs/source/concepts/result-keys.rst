@@ -383,7 +383,7 @@ Values of the running machine. On an off row speeds and flows are 0 and efficien
       - Suction vapour quality: 1 for dry suction, below 1 (down to ``x_suction_min``) when the discharge control uses wet suction.
     * - ``T_cond [°C]``
       - GSHPB, WSHPB
-      - Condensing temperature (bubble point); on an off row the tank temperature.
+      - Condensing temperature (bubble point). NaN on an off row (no condensing pressure).
 
 Air side
 ========

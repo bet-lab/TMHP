@@ -508,7 +508,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.T_bhe_f_in_K = self.Ts_K
 
         self.hp_capacity = hp_capacity
-        self.hp_on_schedule = hp_on_schedule or [(0.0, 24.0)]
+        # None: always scheduled. An empty list has no window, so the heat pump is
+        # never scheduled (as ASHPB reads it; it used to mean "always" here).
+        self.hp_on_schedule = [(0.0, 24.0)] if hp_on_schedule is None else list(hp_on_schedule)
         # Validated by validate_ctor (finite, >= 0).
         self.min_on_time_s: float = float(min_on_time_s)
         self.min_off_time_s: float = float(min_off_time_s)
@@ -880,7 +882,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     "T_bhe_f [°C]": getattr(self, "T_bhe_f", self.Ts),
                     "T_bhe_f_in [°C]": cu.K2C(getattr(self, "T_bhe_f_in_K", self.Ts_K)),
                     "T_bhe_f_out [°C]": cu.K2C(getattr(self, "T_bhe_f_out_K", self.Ts_K)),
-                    "T_cond [°C]": T_tank_w,
+                    # No condensing pressure on a stopped compressor: undefined (result-keys.rst).
+                    "T_cond [°C]": np.nan,
                     # Volume flow rates [m3/s]
                     "dV_mix_w_out [m3/s]": (dV_mix_w_out_val if dV_mix_w_out_val > 0 else np.nan),
                     "dV_tank_w_out [m3/s]": (dV_tank_w_out if dV_tank_w_out > 0 else np.nan),

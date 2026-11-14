@@ -241,3 +241,9 @@ water there (it runs the share of the step that delivers the heat the
 water loses, one start), instead of failing step after step. Such a
 step is a normal stop: ``failure_reason`` stays ``"none"`` and
 ``hp_stop_reason`` is ``"condensing_limit"``.
+
+``hp_on_schedule`` limits when the heat pump may run, as windows
+``[(start_h, end_h), ...]`` of the hour of day (``start_h <= hour <
+end_h``). ``None`` (the default) is always; an empty list has no window,
+so the heat pump never runs, as ``[(0, 0)]`` (GSHPB and WSHPB used to read
+``[]`` as always).

@@ -403,6 +403,7 @@ def _figures(df: pd.DataFrame) -> None:
         GRIDLINE,
         HAIRLINE,
         apply_style,
+        cover_data_ylim,
         finalize,
         panel_letter,
         ticks,
@@ -606,7 +607,10 @@ def _figures(df: pd.DataFrame) -> None:
                         ms=MS * 0.75,
                     )
                 xaxis(ax, label=(i == nq - 1))
-                if ylim is not None:
+                if ylim is not None and ystep:
+                    # Widen the fixed range only where today's curves would leave it.
+                    cover_data_ylim(ax, ylim[0], ylim[1], ystep)
+                elif ylim is not None:
                     ax.set_ylim(*ylim)
                     if ystep:
                         ax.set_yticks(ticks(ylim[0], ylim[1], ystep))

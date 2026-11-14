@@ -414,6 +414,68 @@ be met by the mean, so the cycle is solved frost-free at
      - 0.859
      - 0.936
 
+.. _ashp-frost-load:
+
+**Part load.** The table is the unit running flat out, which is what the
+coil-temperature correlation describes. A unit that delivers less loads its
+coil less: the difference between the air and the coil surface is what drives
+the heat in, so at a load ratio :math:`r` it is taken :math:`r` times as
+large,
+
+.. math::
+
+   T_{coil} = T_{out} - r\,(0.18\,T_{out} + 8.589), \qquad
+   r = \min\left(1,\ \frac{\text{frost-free duty}}{\text{hp\_capacity}\;(0.18\,T_{out} + 8.589)/(0.18 \cdot 7 + 8.589)}\right)
+
+and the correction follows the frost drive that is left: the humidity ratio
+the air can leave on that coil as frost, as a share :math:`\varphi(r)` of what
+it leaves on the rated-load coil. :math:`\Delta\omega` and the two fixed
+losses (``1 − 0.875``, ``1 − 0.954``) are multiplied by :math:`\varphi`. At
+:math:`r = 1` nothing differs from the table at any outdoor state; a coil
+that rises to the air's frost point, or to 0 °C, has no frost. The
+denominator of :math:`r` is the capacity of the unit the correlation
+describes at that outdoor temperature — the nameplate, declared at 7 °C
+(EN 14511 A7, ISO 5151 H1), reduced as the correlation's own temperature
+difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
+0.6 of its nameplate at −15 °C because that is its capacity there is at
+:math:`r = 1`, not part-loaded. The default 4 kW unit against a 20 °C room:
+
+.. list-table:: System COP under frost, by load (84 % relative humidity)
+   :header-rows: 1
+   :widths: 28 18 18 18 18
+
+   * - Request
+     - 2 °C
+     - 0 °C
+     - −7 °C
+     - −15 °C
+   * - 3 kW (:math:`r = 1` at each)
+     - 3.63
+     - 3.56
+     - 3.31
+     - 2.81
+   * - 2 kW
+     - 4.37
+     - 4.18
+     - 3.69
+     - 3.10
+   * - 2 kW, ``load_weighted=False``
+     - 3.93
+     - 3.83
+     - 3.53
+     - 3.09
+   * - 1 kW (cycling at the minimum speed)
+     - 4.34
+     - 4.21
+     - 3.87
+     - 3.48
+
+``DefrostModel(load_weighted=False)`` is EnergyPlus at every load. A unit that
+cycles below its minimum capacity is loaded by what the running machine
+delivers. What the load term assumes: the air flow over the coil does not
+follow the load — a unit that slows its outdoor fan with the compressor has a
+colder coil than this, so the part-load frost here is a lower bound.
+
 The outdoor humidity is an optional input: ``analyze_steady(..., RH_out=0.7)``
 and ``analyze_dynamic(..., RH_out_schedule=...)`` take a relative humidity as a
 fraction. Without it the model uses 84 %, the humidity of the EN 14511 rating
@@ -421,7 +483,7 @@ condition A2 (dry bulb 2 °C, wet bulb 1 °C). ``defrost=None`` switches the
 correction off, and a :class:`tmhp.DefrostModel` sets the outdoor limit, the
 width of the transition below it and the default humidity.
 
-Three things differ from EnergyPlus. The transition above replaces a switch:
+Four things differ from EnergyPlus: the load term above, and three more. The transition above replaces a switch:
 in EnergyPlus the correction is in full at 5.0 °C and absent at 5.1 °C, where
 its cost is at its largest, so the COP of the default unit stepped from 3.49 to
 4.64 between 5.0 and 5.5 °C. The 5 °C limit is a setting of the defrost
@@ -436,7 +498,12 @@ that estimate.
 
 What it leaves out: dry air is not frost-free in the source model (the
 frosted-coil multipliers 0.875 and 0.954 apply whenever the outdoor air is
-below the limit, whatever its humidity), and that is kept; and the room is not
+below the limit, whatever its humidity), and that is kept at the rated load.
+It shows through the load term in one place: in air too dry to frost even the
+rated-load coil (below −18.3 °C at 60 % relative humidity, below −39 °C at
+84 %) there is no frost drive for the load to scale, and the fixed
+multipliers stay at every load — at half load and 60 % humidity the COP
+multiplier is 0.997 at −15 °C and 0.917 at −18.3 °C. And the room is not
 cooled in time during a defrost — its effect is in the mean.
 :meth:`~tmhp.AirSourceHeatPump.max_capacity` reports the same mean
 ceiling, with the frost-free one as ``Q_max_frost_free [W]``.

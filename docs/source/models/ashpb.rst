@@ -175,13 +175,22 @@ on by default, in ``analyze_steady`` and in the cycle of every dynamic step:
    # model.analyze_dynamic(..., RH_out_schedule=rh)      # one value per step
    # model.step(state, {..., "RH_out": 0.9}, dt_s)
 
-The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP with and
-without the adjustment (``defrost=False`` is what every version before
-returned):
+**Part load.** The correction is that of the load the coil carries
+(:ref:`ashp-frost-load`): the coil sits ``r (0.18 T_out + 8.589)`` below the
+air, with ``r`` the frost-free duty over the capacity the correlation's unit
+has at that outdoor temperature (``hp_capacity`` at 7 °C, 0.6 of it at
+−15 °C), at most 1. At ``r = 1`` it is the EnergyPlus correction unchanged;
+below, the deposition and the fixed losses shrink with the frost drive that is
+left, to nothing once the coil is at the air's frost point.
+``DefrostModel(load_weighted=False)`` applies the full correction at every
+load.
+
+The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP
+(``defrost=False`` is what every version before returned):
 
 .. list-table::
     :header-rows: 1
-    :widths: 22 13 13 13 13 13 13
+    :widths: 28 12 12 12 12 12 12
 
     * - Outdoor air
       - 7 °C
@@ -199,30 +208,48 @@ returned):
       - 2.08
     * - With frost and defrost
       - 4.22
+      - 3.85
+      - 3.22
+      - 3.01
+      - 2.27
+      - 1.84
+    * - Load ratio ``r``
+      - —
+      - 0.58
+      - 0.69
+      - 0.72
+      - 0.84
+      - 1.00
+    * - ``defrost_fraction [-]``
+      - 0
+      - 0.012
+      - 0.065
+      - 0.061
+      - 0.036
+      - 0.018
+    * - ``load_weighted=False``
+      - 4.22
       - 3.67
       - 2.91
       - 2.76
       - 2.18
       - 1.84
-    * - ``defrost_fraction [-]``
-      - 0
-      - 0.037
-      - 0.098
-      - 0.086
-      - 0.044
-      - 0.018
 
-Frost also lowers what the unit can deliver: at A2 against a 35 °C tank the
-default unit reaches its speed ceiling at a frost-free 18.6 kW, a mean of
-14.6 kW for a 15 kW request.
+At 4 kW the same unit hardly frosts (``r`` 0.3: 3.57 at 2 °C against 3.61
+frost-free). Frost also lowers what the unit can deliver: at A2 against a
+35 °C tank the default unit reaches its speed ceiling at a frost-free 18.6 kW,
+a mean of 14.6 kW for a 15 kW request. In a dynamic run the thermostat asks
+for ``hp_capacity``, so every running step is at ``r = 1``.
 
 .. note::
 
    The multipliers come from air-to-air DX coils and depend on the outdoor
-   temperature and humidity only, not on the coil the model solves; the
-   condenser approach, the discharge temperature and the envelope checks are
-   those of the frost-free cycle at the larger duty, not of a coil with
-   frost on it. See :doc:`/concepts/scope-and-limits`.
+   temperature, the humidity and the load ratio, not on the coil the model
+   solves; the condenser approach, the discharge temperature and the envelope
+   checks are those of the frost-free cycle at the larger duty, not of a coil
+   with frost on it. The load term takes the air flow as independent of the
+   load, and it inherits the EnergyPlus fixed loss in air too dry to frost
+   (:doc:`ashp`, *Frost and defrost*). See :doc:`/concepts/scope-and-limits`.
 
 Default compressor efficiencies
 ===============================

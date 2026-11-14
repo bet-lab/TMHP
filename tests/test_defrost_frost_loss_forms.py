@@ -24,8 +24,10 @@ from scipy.optimize import brentq
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
 from tmhp.defrost import FROST_LOSS_FORMS, DefrostModel, humidity_ratio, saturation_humidity_ratio
 
-CONSTANT = DefrostModel()
-WEIGHTED = {form: DefrostModel(frost_loss=form) for form in FROST_LOSS_FORMS if form != "constant"}
+# The forms are compared at the rated load, where the load weighting (on by default) does nothing;
+# it is switched off here so that the boiler and heat-pump rows below are at that state at any request.
+CONSTANT = DefrostModel(load_weighted=False)
+WEIGHTED = {form: DefrostModel(frost_loss=form, load_weighted=False) for form in FROST_LOSS_FORMS if form != "constant"}
 
 
 @pytest.fixture(autouse=True)
@@ -40,7 +42,7 @@ def _cop_factor(frost) -> float:
 
 
 def test_default_is_the_energyplus_form_and_the_options_are_checked():
-    assert CONSTANT.frost_loss == "constant" and CONSTANT.load_weighted is False
+    assert DefrostModel().frost_loss == "constant" and CONSTANT.frost_loss == "constant"
     assert FROST_LOSS_FORMS == ("constant", "moisture", "accumulation")
     with pytest.raises(ValueError, match="frost_loss must be one of"):
         DefrostModel(frost_loss="humidity")
@@ -107,9 +109,9 @@ def boilers() -> dict[str, AirSourceHeatPumpBoiler]:
         warnings.simplefilter("ignore")
         return {
             "off": AirSourceHeatPumpBoiler(defrost=False),
-            "constant": AirSourceHeatPumpBoiler(),
-            "moisture": AirSourceHeatPumpBoiler(defrost=DefrostModel(frost_loss="moisture")),
-            "accumulation": AirSourceHeatPumpBoiler(defrost=DefrostModel(frost_loss="accumulation")),
+            "constant": AirSourceHeatPumpBoiler(defrost=CONSTANT),
+            "moisture": AirSourceHeatPumpBoiler(defrost=WEIGHTED["moisture"]),
+            "accumulation": AirSourceHeatPumpBoiler(defrost=WEIGHTED["accumulation"]),
         }
 
 
@@ -140,8 +142,8 @@ def test_air_to_air_model_takes_the_same_forms():
     """The forms live in ``tmhp.defrost``: the air-to-air model gets them through its ``defrost`` argument."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        constant = AirSourceHeatPump()
-        moisture = AirSourceHeatPump(defrost=DefrostModel(frost_loss="moisture"))
+        constant = AirSourceHeatPump(defrost=CONSTANT)
+        moisture = AirSourceHeatPump(defrost=WEIGHTED["moisture"])
     at_a2 = [m.analyze_steady(Q_r_iu=-2000.0, T0=2.0, verbose=False)["cop_sys [-]"] for m in (constant, moisture)]
     assert at_a2[1] == pytest.approx(at_a2[0], rel=1e-12)
     cold = [m.analyze_steady(Q_r_iu=-2000.0, T0=-15.0, verbose=False)["cop_sys [-]"] for m in (constant, moisture)]

@@ -119,7 +119,7 @@ which only kept the EnergyPlus expression defined).
     than a timed one would have accumulated. At A2 the slopes give 0.160 and
     0.054, above the constants, so the point is unchanged; the two cross at
     ``dw`` = 0.00116 and 0.00126.
-``load_weighted=True``
+``load_weighted=True`` (default)
     The coil-temperature correlation ``0.82 T_out - 8.589`` is that of a unit
     running flat out. The difference between the air and the coil surface is
     what drives the heat into the coil, so at a load ratio ``r`` it is taken
@@ -348,14 +348,14 @@ class DefrostModel:
         capacity the correlation's unit has at that outdoor temperature
         (``reference_capacity``). With ``frost_loss="constant"`` only the
         load dependence is added: at a ratio of one the result is EnergyPlus
-        unchanged.
+        unchanged. On by default; ``False`` is EnergyPlus at every load.
     """
 
     T_out_max: float = T_OUT_MAX_DEFROST_C
     RH_out: float = RH_OUT_DEFAULT
     transition_K: float = FROST_TRANSITION_K
     frost_loss: str = "constant"
-    load_weighted: bool = False
+    load_weighted: bool = True
 
     def __post_init__(self) -> None:
         if isinstance(self.T_out_max, bool) or not math.isfinite(self.T_out_max):

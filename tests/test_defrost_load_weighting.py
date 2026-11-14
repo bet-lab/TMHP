@@ -32,8 +32,8 @@ import pytest
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.defrost import T_RATING_HEATING_C, DefrostModel, humidity_ratio, saturation_humidity_ratio
 
-ENERGYPLUS = DefrostModel()
-LOAD_WEIGHTED = DefrostModel(load_weighted=True)
+ENERGYPLUS = DefrostModel(load_weighted=False)
+LOAD_WEIGHTED = DefrostModel()  # the default
 LOADS = np.round(np.arange(1.0, 0.195, -0.01), 2)
 
 
@@ -64,7 +64,8 @@ def boilers() -> dict[str, AirSourceHeatPumpBoiler]:
 
 
 def test_the_option_is_checked():
-    assert ENERGYPLUS.load_weighted is False and LOAD_WEIGHTED.frost_loss == "constant"
+    assert LOAD_WEIGHTED.load_weighted is True and LOAD_WEIGHTED.frost_loss == "constant"
+    assert ENERGYPLUS.load_weighted is False and DefrostModel(load_weighted=True) == LOAD_WEIGHTED
     with pytest.raises(ValueError, match="load_weighted must be True or False"):
         DefrostModel(load_weighted=1)
     with pytest.raises(ValueError, match="load_ratio"):

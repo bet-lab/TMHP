@@ -255,7 +255,8 @@ Each can be switched off to see the bare cycle.
       - ASHP heating and ASHPB below 5 °C outdoor carry the EnergyPlus
         frost adjustment at 84 % relative humidity
       - ``defrost=None``; ``RH_out`` per call, ``RH_out_schedule`` in a
-        dynamic run (:doc:`/models/ashp`, :doc:`/models/ashpb`)
+        dynamic run; ``DefrostModel(load_weighted=False)`` for the same
+        correction at every load (:doc:`/models/ashp`, :doc:`/models/ashpb`)
     * - Dynamic borehole
       - GSHP and GSHPB resolve the heat capacity of fluid, pipe and grout
         and the fluid transit

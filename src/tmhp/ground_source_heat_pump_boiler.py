@@ -50,7 +50,13 @@ import pandas as pd
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._boiler_results import complete_capacity_keys, fill_missing, report_condenser_dew_point, step_request
+from ._boiler_results import (
+    complete_capacity_keys,
+    fill_missing,
+    mixed_water_exergy,
+    report_condenser_dew_point,
+    step_request,
+)
 from ._source_boiler import (
     BOREHOLE_DEPTH_DEFAULT_M,
     approach_bracket,
@@ -1725,6 +1731,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # point and the part not delivered (water below the set point, or a
         # draw the tank could not supply).
         r.update(dhw_service_columns(ctx.dV_mix_w_out, dV_mix_w_out, T_mix_K, self.T_mix_w_out_K, ctx.T_sup_w_K))
+        if not dV_mix_w_out > 0.0:
+            # Nothing is drawn: there is no mixed water, so it has no temperature (as ASHPB).
+            r["T_mix_w_out [°C]"] = math.nan
 
         # A diagnostic of the steady solve, not a time-series quantity: keep it
         # on the analyze_steady dict and out of the dynamic frame.
@@ -2826,11 +2835,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             c_w * rho_w * df["dV_tank_w_out [m3/s]"].fillna(0), T_tank_out_K, T0_K
         )
 
-        df["X_mix_w_out [W]"] = calc_exergy_flow(
-            c_w * rho_w * df["dV_mix_w_out [m3/s]"].fillna(0),
-            cu.C2K(df["T_mix_w_out [°C]"]),
-            T0_K,
-        )
+        df["X_mix_w_out [W]"] = mixed_water_exergy(df, T0_K)
         df["X_mix_sup_w_in [W]"] = calc_exergy_flow(
             c_w * rho_w * df["dV_mix_sup_w_in [m3/s]"].fillna(0),
             cu.C2K(df["T_tank_w_in [°C]"]),

@@ -75,6 +75,22 @@ cap. ``analyze_steady`` against a hotter tank returns a reduced duty
 (``capacity_binding == "condensing_temperature"``) or the off state with
 ``failure_reason == "condensing_temp_above_max"``.
 
+That cap is the *envelope stop* (``T_cond_max − hp_capacity / UA_tank_hx`` at
+the condensing-limit pressure), and the in-step thermostat stops the
+compressor there whatever ``min_on_time_s`` says, as in :doc:`gshpb` and
+:doc:`wshpb`: a protection stop outranks the minimum run time. The step is a
+normal one (``failure_reason == "none"``) with ``hp_stop_reason ==
+"condensing_limit"``; ``hp_stop_reason`` is on every dynamic row and ``None``
+elsewhere. Before, a minimum run time carried the tank past the stop by an
+amount that depended on the step, and the run ended in a
+``condensing_temp_above_max`` step: R32 with ``min_on_time_s=1800`` peaked at
+62.6 °C with 60 s steps and at 65.1 °C with 600 s steps (1.51 against
+1.95 kWh of heat in 2 h); it now stops at 60.0 °C with both (1.055 kWh).
+Runs without a minimum run time are unchanged. ``ASHPB_PV_ESS``,
+``ASHPB_STC_preheat`` and ``ASHPB_STC_tank`` inherit the step and behave the
+same (a collector may still heat the tank beyond the stop, up to its own
+storage limit).
+
 Steady state below the minimum capacity
 =======================================
 
@@ -105,6 +121,24 @@ power instead, which at the floor is nearly flat in the outdoor approach and
 returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
 outdoor approach with the fan at its lowest flow, a running-machine COP of
 4.27 where the floor offers 5.29.
+
+The minimum speed is not always the lower end of continuous operation. At a
+large lift the shipped isentropic-efficiency fit, read below its data, falls
+under the envelope's floor (``ETA_ISEN_MIN`` = 0.30,
+:doc:`../developer/reference-operating-limits`) before ``rps_min`` is reached:
+the default 15 kW R290 unit at −7 °C outdoors against a 65 °C tank runs down
+to about 3.8 kW (frost-free) and no further, R134a at −15 °C against 40 °C to
+2.5 kW. A request below that duty was answered with the unit switched off
+(``failure_reason == "eta_isen_below_min"``) while a larger one ran. It is now
+met the same way as one below the minimum speed, and as :doc:`ashp` does: the
+unit cycles at the smallest duty the envelope admits. The row has
+``capacity_clamped == "min"``, ``Q_min [W]`` is that duty (found by bisection
+on the duty, to 0.5 %; the same for every request below it), and the
+compressor speed of the row is above ``rps_min``. With ``Cd_cycling=None`` the
+row is that continuous point, which delivers more than the request.
+``eta_isen_below_min`` remains the reason where no larger duty runs either, or
+another limit refuses a larger duty first. A dynamic step is not affected: its
+thermostat runs the compressor at the nameplate duty.
 
 ``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
 for an untested unit), ``1 − P_off / P_on`` for a unit with a measured standby

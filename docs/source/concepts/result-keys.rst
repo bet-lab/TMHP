@@ -287,10 +287,10 @@ All ``E_*`` are electrical input, ≥ 0, and 0 on an off row. COPs are NaN on an
       - all
       - System COP. Boilers: ``Q_ref_tank / E_tot``. ASHP, GSHP: heat the room air receives or gives up, ``|Q_a_iu_out − Q_a_iu_in|``, over ``E_tot`` (indoor-fan heat counted once, on the air).
 
-Frost and defrost (ASHP)
-========================
+Frost and defrost (ASHP, ASHPB)
+===============================
 
-Present on every ASHP row; neutral (0 or 1) in cooling and above the frosting limit. See :doc:`/models/ashp`.
+Present on every ASHP and ASHPB row; neutral (0 or 1) in cooling, above the frosting limit and with ``defrost=False``. In an ASHPB dynamic frame ``E_defrost``, ``Q_defrost`` and the two frost-free rates are step averages like the other rates. See :doc:`/models/ashp` and :doc:`/models/ashpb`.
 
 .. list-table::
     :header-rows: 1
@@ -300,28 +300,31 @@ Present on every ASHP row; neutral (0 or 1) in cooling and above the frosting li
       - Where
       - Meaning
     * - ``defrost_fraction [-]``
-      - ASHP
+      - ASHP, ASHPB
       - Fraction of the compressor's runtime spent defrosting.
     * - ``frost_capacity_factor [-]``
-      - ASHP
+      - ASHP, ASHPB
       - Heating-capacity multiplier of the frosted coil, defrost time included; 1 without frost.
     * - ``frost_power_factor [-]``
-      - ASHP
+      - ASHP, ASHPB
       - Input-power multiplier of the frosted coil; 1 without frost.
     * - ``E_defrost [W]``
-      - ASHP
+      - ASHP, ASHPB
       - Mean compressor power spent defrosting (part of ``E_cmp``).
     * - ``Q_defrost [W]``
-      - ASHP
-      - Mean heat a reverse-cycle defrost takes from the room.
+      - ASHP, ASHPB
+      - Mean heat a reverse-cycle defrost takes from the room (ASHP) or from the tank water (ASHPB).
     * - ``Q_ref_iu_frost_free [W]``
       - ASHP
       - Indoor-coil duty of the frost-free cycle the row was solved at.
+    * - ``Q_ref_tank_frost_free [W]``
+      - ASHPB
+      - Condenser duty of the frost-free cycle the row was solved at; equal to ``Q_ref_tank [W]`` without frost.
     * - ``E_tot_frost_free [W]``
-      - ASHP
+      - ASHP, ASHPB
       - Electrical input of that frost-free cycle.
     * - ``RH_out [-]``
-      - ASHP
+      - ASHP, ASHPB
       - Outdoor relative humidity the frost correction used (fraction); NaN where no correction applies.
 
 Compressor and cycle

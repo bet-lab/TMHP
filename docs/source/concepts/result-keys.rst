@@ -1056,6 +1056,14 @@ only (below).
       - GSHPB with ``tank_model="stratified"`` or ``"hybrid"``, dynamic
       - Top-node, bottom-node and draw-off temperatures of the multi-node
         tank.
+    * - ``T_ref_cond_sat_l_peak [°C]``
+      - GSHPB with ``tank_model="stratified"`` or ``"hybrid"``, dynamic
+      - Highest condensing temperature (bubble point) of the step's run:
+        the level the run ends on when it warms the water around the coil,
+        the condensing limit on a step held at the envelope stop. No heated
+        node ends the step above it. ``T_ref_cond_sat_l [°C]`` on the same
+        row is the mean over the run, the temperature the row's power
+        belongs to. ``NaN`` on a step without a run.
     * - ``ground_temperature_residual [K]``, ``candidate_ground_flow_ratio``,
         ``flow_optimizer_method``
       - GSHP, GSHPB with the hydraulic pump model or

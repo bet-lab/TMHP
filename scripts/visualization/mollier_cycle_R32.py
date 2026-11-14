@@ -169,7 +169,7 @@ def main() -> None:
 
     # Two-panel layout: 17 cm column-pair, 5:2 aspect keeps each panel
     # ~8 cm wide × 6 cm tall.
-    fig, (ax_ph, ax_th) = plt.subplots(1, 2, figsize=dm.figsize("17cm", 5 / 12))
+    fig, (ax_ph, ax_th) = plt.subplots(1, 2, figsize=dm.figsize("17.4cm", 0.407), gridspec_kw={"wspace": 0.25})
 
     # --- Panel (a): P-h --------------------------------------------------
     _draw_envelope(ax_ph, h_liq_ph, h_vap_ph, p_sat)

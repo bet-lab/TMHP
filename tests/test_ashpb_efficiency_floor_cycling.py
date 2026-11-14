@@ -21,6 +21,7 @@ import pytest
 
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.compressor_envelope import (
+    _REQUEST_KEYS,
     ETA_ISEN_BELOW_MIN,
     ETA_ISEN_MIN,
     raise_duty_within_envelope,
@@ -52,7 +53,7 @@ def test_small_request_is_met_by_cycling_at_the_smallest_duty_inside_the_envelop
     assert row["converged"] and row["hp_is_on"] and row["failure_reason"] == "none"
     assert row["capacity_clamped"] == "min" and row["capacity_binding"] is None
     assert row["Q_ref_tank [W]"] == pytest.approx(750.0, rel=1e-12)
-    assert row["Q_request [W]"] == 750.0 and row["Q_ref_tank_request [W]"] == 750.0
+    assert row["Q_request [W]"] == 750.0
     assert row["PLR_request [-]"] == pytest.approx(750.0 / unit.hp_capacity, rel=1e-12)
     floor = row[MIN_CAPACITY_KEY]
     assert 2300.0 < floor < 2600.0
@@ -143,7 +144,8 @@ class _Machine:
 
     def solve(self, q):
         self.solved.append(q)
-        row = {"Q_ref_tank_request [W]": q, "PLR_request [-]": q / self.hp_capacity}
+        # A family's own request key (whatever its name is): the search restores the caller's request in it.
+        row = {_REQUEST_KEYS[0]: q, "PLR_request [-]": q / self.hp_capacity}
         if q < self.floor:
             return {**row, "hp_is_on": False, "failure_reason": ETA_ISEN_BELOW_MIN, "Q_ref_tank [W]": 0.0}
         if q > self.other_limit_above:
@@ -164,7 +166,7 @@ def test_search_returns_the_smallest_running_duty_as_a_min_row():
     found = raise_duty_within_envelope(machine, refused, machine.solve, 300.0)
     assert found["failure_reason"] == "none" and found["capacity_clamped"] == "min"
     assert 2345.0 <= found["Q_ref_tank [W]"] <= 2345.0 * 1.005 + 1e-9
-    assert found["Q_request [W]"] == 300.0 and found["Q_ref_tank_request [W]"] == 300.0
+    assert found["Q_request [W]"] == 300.0 and found[_REQUEST_KEYS[0]] == 300.0
     assert found["PLR_request [-]"] == pytest.approx(0.03)
     # No trial at or below the request, and every request below the floor finds the same row.
     assert min(machine.solved[1:]) > 300.0

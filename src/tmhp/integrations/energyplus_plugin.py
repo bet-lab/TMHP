@@ -23,10 +23,16 @@ Two situations make ``q_loop`` smaller than the heat ``Q_cycle`` of the solved
 (continuously running) cycle:
 
 * **Minimum-speed clamp.** Below its minimum compressor speed the machine cannot
-  deliver the requested part load; it would deliver ``Q_cycle`` > request. The
-  plugin treats that as on/off cycling: the time-averaged heat equals the load
-  request and the electricity is scaled by the same duty fraction (no
-  cycling-degradation penalty). ``PlantComponent:UserDefined`` documents the
+  deliver the requested part load continuously. With the model's default
+  ``Cd_cycling`` the cycle result is already the on/off mean of the
+  minimum-speed machine (``capacity_clamped == "min"``, ``runtime_fraction [-]``
+  below 1): ``Q_cycle`` equals the request and ``E_tot`` includes the cycling
+  loss (``E_cycling_loss [W]``), so the duty fraction below is 1 and the loss is
+  metered. Only a model built with ``Cd_cycling=None`` returns the continuous
+  minimum-speed point (``Q_cycle`` > request); the plugin then treats it as
+  on/off cycling itself: the time-averaged heat equals the load request and the
+  electricity is scaled by the same duty fraction, with no cycling-degradation
+  penalty. ``PlantComponent:UserDefined`` documents the
   ``Load Request for Plant Connection N`` as the *desired operating capacity* for
   a connection in a load-meeting mode, and the loop outlet temperature is
   ``T_in + q / (m_dot cp)``: supplying the clamped ``Q_cycle`` instead would

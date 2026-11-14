@@ -75,6 +75,22 @@ cap. ``analyze_steady`` against a hotter tank returns a reduced duty
 (``capacity_binding == "condensing_temperature"``) or the off state with
 ``failure_reason == "condensing_temp_above_max"``.
 
+That cap is the *envelope stop* (``T_cond_max − hp_capacity / UA_tank_hx`` at
+the condensing-limit pressure), and the in-step thermostat stops the
+compressor there whatever ``min_on_time_s`` says, as in :doc:`gshpb` and
+:doc:`wshpb`: a protection stop outranks the minimum run time. The step is a
+normal one (``failure_reason == "none"``) with ``hp_stop_reason ==
+"condensing_limit"``; ``hp_stop_reason`` is on every dynamic row and ``None``
+elsewhere. Before, a minimum run time carried the tank past the stop by an
+amount that depended on the step, and the run ended in a
+``condensing_temp_above_max`` step: R32 with ``min_on_time_s=1800`` peaked at
+62.6 °C with 60 s steps and at 65.1 °C with 600 s steps (1.51 against
+1.95 kWh of heat in 2 h); it now stops at 60.0 °C with both (1.055 kWh).
+Runs without a minimum run time are unchanged. ``ASHPB_PV_ESS``,
+``ASHPB_STC_preheat`` and ``ASHPB_STC_tank`` inherit the step and behave the
+same (a collector may still heat the tank beyond the stop, up to its own
+storage limit).
+
 Steady state below the minimum capacity
 =======================================
 

@@ -106,20 +106,18 @@ def dynamic_runs(models):
     for family, (cls, _) in FAMILIES.items():
         model = models[family]
         # R410A against a 65 degC set point from just below 55 degC: the nameplate
-        # duty, then (ASHPB) steps reduced onto the condensing limit, or (GSHPB,
-        # WSHPB) the in-step stop at the envelope cut-out (test_condensing_limit).
+        # duty, then the in-step stop at the envelope cut-out (test_condensing_limit).
         limited = _quiet(cls, ref="R410A", hp_capacity=8000.0)
         limited.T_tank_w_upper_bound = 65.0
+        # A compressor whose speed ceiling is below the rated speed: steps at the ceiling.
+        slow = _quiet(cls)
+        slow.rps_max = 0.7 * slow.rps_rated
         runs[family] = {
             "charging": _dynamic(model, 40.0, 3, 600.0, draw=1e-4),
             "idle, no call": _dynamic(model, 62.0, 3, 600.0),
             "reduced": _dynamic(limited, 54.9, 8, 60.0),
+            "speed ceiling": _dynamic(slow, 50.0, 2, 600.0),
         }
-        if family != "ASHPB":
-            # A compressor whose speed ceiling is below the rated speed: steps at the ceiling.
-            slow = _quiet(cls)
-            slow.rps_max = 0.7 * slow.rps_rated
-            runs[family]["speed ceiling"] = _dynamic(slow, 50.0, 2, 600.0)
     return runs
 
 
@@ -128,11 +126,9 @@ def test_dynamic_frames_have_the_same_columns_whatever_the_run(dynamic_runs, fam
     runs = dynamic_runs[family]
     assert runs["charging"]["hp_is_on"].all()
     assert not runs["idle, no call"]["hp_is_on"].any()
-    if family == "ASHPB":
-        assert (runs["reduced"]["capacity_binding"] == "condensing_temperature").any()
-    else:
-        assert (runs["reduced"]["hp_stop_reason"] == "condensing_limit").any()
-        assert (runs["speed ceiling"]["capacity_binding"] == "compressor").any()
+    assert (runs["reduced"]["hp_stop_reason"] == "condensing_limit").any()
+    assert (runs["reduced"]["failure_reason"] == "none").all()
+    assert (runs["speed ceiling"]["capacity_binding"] == "compressor").any()
     reference = set(runs["charging"].columns)
     for name, df in runs.items():
         assert set(df.columns) == reference, (name, sorted(set(df.columns) ^ reference))
@@ -149,20 +145,16 @@ def test_dynamic_capacity_keys(dynamic_runs, family):
     assert (idle["Q_request [W]"] == 0.0).all()
     assert idle["capacity_clamped"].isna().all() and idle["capacity_binding"].isna().all()
     assert idle["Q_max [W]"].isna().all()
-    request = 8000.0  # the R410A machine
-    if family != "ASHPB":
-        # The envelope stops these inside the step, so the duty is reduced at the speed ceiling.
-        reduced, request = runs["speed ceiling"], cap
-    binding = "condensing_temperature" if family == "ASHPB" else "compressor"
-    cut = reduced["capacity_binding"] == binding
+    # The envelope stops the R410A run inside the step, so the duty is reduced at the speed ceiling.
+    reduced, request = runs["speed ceiling"], cap
+    cut = reduced["capacity_binding"] == "compressor"
     assert cut.any()
     assert (reduced.loc[cut, "capacity_clamped"] == "max").all()
     assert (reduced.loc[cut, "Q_request [W]"] == request).all()
     assert (reduced.loc[cut, "Q_max [W]"] < request).all()
     # Q_max is the running machine's ceiling, Q_ref_tank the step average.
     ran = reduced.loc[cut]
-    if family != "ASHPB":
-        assert (ran["runtime_fraction [-]"] < 1.0).any()  # a step-average row
+    assert (ran["runtime_fraction [-]"] < 1.0).any()  # a step-average row
     assert np.allclose(ran["Q_max [W]"] * ran["runtime_fraction [-]"], ran["Q_ref_tank [W]"], rtol=1e-9)
 
 

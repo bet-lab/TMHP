@@ -239,6 +239,87 @@ def test_lumped_default_run_has_no_stop_reason():
 
 
 # ---------------------------------------------------------------------------
+# ASHPB (single-node tank): the same connection (R5K)
+# ---------------------------------------------------------------------------
+
+
+def _ashpb_run(model, T_init, n=12, dt=600.0, **schedules):
+    return _quiet(model.analyze_dynamic, n * dt, dt, T_init, np.zeros(n), np.full(n, 7.0), **schedules)
+
+
+@pytest.fixture(scope="module")
+def ashpb_min_run():
+    """R32 ASHPB (envelope stop 60 degC), 53-58 degC band, 30 min minimum run, 2 h from 52 degC."""
+    m = _quiet(
+        tmhp.AirSourceHeatPumpBoiler,
+        ref="R32",
+        min_on_time_s=1800.0,
+        T_tank_w_lower_bound=53.0,
+        T_tank_w_upper_bound=58.0,
+    )
+    return m, _ashpb_run(m, 52.0)
+
+
+def test_ashpb_minimum_run_time_stops_at_the_envelope_stop(ashpb_min_run):
+    """Was: the run went on to 66.2 degC and ended in a ``condensing_temp_above_max`` step."""
+    from tmhp.compressor_envelope import condensing_tank_cutout
+
+    m, df = ashpb_min_run
+    cutout = condensing_tank_cutout(m)
+    assert cutout == pytest.approx(60.0, abs=1e-6) and m.T_tank_w_upper_bound == 58.0
+    assert (df["failure_reason"] == "none").all()
+    # The minimum run time carries the run past the 58 degC bound; the stop ends it.
+    assert df["T_tank_w [°C]"].max() == pytest.approx(cutout, abs=0.05)
+    stopped = df["hp_stop_reason"] == STOP_CONDENSING_LIMIT
+    assert stopped.sum() == 1 and df.loc[stopped, "hp_is_on"].all()
+    step = int(np.flatnonzero(stopped.to_numpy())[0])
+    assert 0.0 < df["runtime_fraction [-]"].iloc[step] < 1.0  # stopped inside the step
+    # A normal end of the run: the compressor rests afterwards, nothing is reported as failed.
+    assert not df["hp_is_on"].iloc[step + 1 :].any()
+    assert df["hp_stop_reason"].iloc[step + 1 :].isna().all()
+
+
+def test_ashpb_stop_does_not_depend_on_the_step(ashpb_min_run):
+    m, coarse = ashpb_min_run
+    fine = _ashpb_run(m, 52.0, n=120, dt=60.0)
+    heat = [float(df["Q_ref_tank [W]"].sum() * dt) for df, dt in ((fine, 60.0), (coarse, 600.0))]
+    assert heat[1] == pytest.approx(heat[0], rel=0.02)
+    assert fine["T_tank_w [°C]"].max() == pytest.approx(coarse["T_tank_w [°C]"].max(), abs=0.05)
+    assert (fine["hp_stop_reason"] == STOP_CONDENSING_LIMIT).sum() == 1
+
+
+def test_ashpb_default_run_has_no_stop_reason_and_the_column_is_on_every_row():
+    """Without a minimum run time the thermostat's own bound ends the run: values as before."""
+    m = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32")
+    df = _ashpb_run(m, 50.0, n=6)
+    assert df["hp_is_on"].any() and not df["hp_is_on"].all()
+    assert "hp_stop_reason" in df.columns and df["hp_stop_reason"].isna().all()
+    assert df["T_tank_w [°C]"].max() <= m.T_tank_w_upper_bound + 0.05
+    # No condensing limit: no envelope stop either (the boiling point is the cut-out).
+    free = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", min_on_time_s=1800.0, T_cond_max=None)
+    df = _ashpb_run(free, 59.0, n=2)
+    assert df["hp_stop_reason"].isna().all() and df["T_tank_w [°C]"].max() > 66.0
+
+
+def test_ashpb_scenario_classes_take_the_same_path():
+    """The PV/ESS and collector variants inherit ``step``: the stop and its column are theirs too."""
+    from tmhp.subsystems import PhotovoltaicSystem, SolarThermalCollector
+
+    variants = {
+        "ASHPB_PV_ESS": dict(pv=PhotovoltaicSystem()),
+        "ASHPB_STC_preheat": dict(stc=SolarThermalCollector()),
+        "ASHPB_STC_tank": dict(stc=SolarThermalCollector()),
+    }
+    for name, extra in variants.items():
+        m = _quiet(getattr(tmhp, name), ref="R32", min_on_time_s=1800.0, **extra)
+        # At night: no collector heat, so the tank's peak is the heat pump's.
+        df = _ashpb_run(m, 54.0, n=6, I_DN_schedule=np.zeros(6), I_dH_schedule=np.zeros(6))
+        assert (df["failure_reason"] == "none").all(), name
+        assert (df["hp_stop_reason"] == STOP_CONDENSING_LIMIT).sum() == 1, name
+        assert df["T_tank_w [°C]"].max() <= m.T_tank_w_upper_bound + 0.05, name
+
+
+# ---------------------------------------------------------------------------
 # (나) GSHPB / WSHPB result rows
 # ---------------------------------------------------------------------------
 

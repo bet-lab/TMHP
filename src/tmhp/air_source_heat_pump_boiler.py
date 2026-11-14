@@ -61,6 +61,7 @@ from .compressor_envelope import (
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
+    condensing_tank_cutout,
     discharge_controlled,
     envelope_excess,
     envelope_violation,
@@ -93,6 +94,7 @@ from .defrost import (
 )
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    T_WATER_BOIL_C,
     TANK_LEVEL_MIN,
     ControlState,
     DynamicState,
@@ -103,6 +105,7 @@ from .dynamic_context import (
     delivered_tank_heat,
     determine_heat_source_on_off,
     determine_tank_refill_flow,
+    in_step_stop_reason,
     resolve_step_operation,
     step_hp_result,
     tank_mass_energy_residual,
@@ -2601,7 +2604,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         The tank thermostat is followed inside the step
         (:func:`tmhp.dynamic_context.resolve_step_operation`): the compressor
         stops when the tank reaches the upper bound and starts when it falls
-        to the lower bound, at any point of the step. The heat, power and
+        to the lower bound, at any point of the step. It also stops at the
+        envelope stop (:func:`tmhp.compressor_envelope.condensing_tank_cutout`:
+        the tank temperature at which the nameplate duty condenses on
+        ``T_cond_max``) whatever ``min_on_time_s`` says; such a step is a
+        normal one with ``hp_stop_reason == "condensing_limit"``
+        (``hp_stop_reason`` is on every row, ``None`` otherwise). The heat, power and
         refrigerant-flow rates in ``result_row`` are averages over ``dt_s``
         (the running cycle times ``runtime_fraction [-]``), so
         ``rate * dt_s`` is the step's energy; ``hp_is_on`` says the
@@ -2717,7 +2725,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # Bounds are reached part-way through a step: the compressor runs
         # only until the tank reaches the upper bound, and starts when it
         # reaches the lower bound, instead of holding its start-of-step state
-        # for the whole step (#96 T6).
+        # for the whole step (#96 T6). It stops at the envelope stop
+        # temperature whatever its minimum run time (the tank is one mixed
+        # node: the water around the coil is the tank).
+        cutout = condensing_tank_cutout(self)
+        T_limit_C = T_WATER_BOIL_C if cutout is None else min(T_WATER_BOIL_C, cutout)
         run, cycle_result = resolve_step_operation(
             T_start_K=ctx.T_tank_w_K,
             call_start=call_start,
@@ -2737,6 +2749,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             Q_request=self.hp_capacity,
             min_on_time_s=self.min_on_time_s,
             min_off_time_s=self.min_off_time_s,
+            T_limit_C=T_limit_C,
         )
         hp_result = step_hp_result(
             run,
@@ -2744,6 +2757,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             lambda: self._off_cycle_result(ctx, T_start_C),
             self._RUNTIME_SCALED_KEYS,
         )
+        hp_result["hp_stop_reason"] = in_step_stop_reason(run, T_limit_C)
         hp_is_on = bool(hp_result.get("hp_is_on", False))
         Q_ref_cond = delivered_tank_heat(hp_result)
 

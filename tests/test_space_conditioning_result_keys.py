@@ -18,6 +18,7 @@ import warnings
 
 import CoolProp.CoolProp as CP
 import numpy as np
+import pandas as pd
 import pytest
 
 from tmhp import AirSourceHeatPump, GroundSourceHeatPump
@@ -203,3 +204,16 @@ def test_evaporating_key_is_the_dew_point_of_the_evaporating_pressure():
     assert row["T_ref_evap_sat [°C]"] == pytest.approx(dew, abs=1e-6)
     # The refrigerant enters the evaporator colder than that, by part of the glide.
     assert row["T_ref_exp_out [°C]"] < row["T_ref_evap_sat [°C]"] - 2.0
+
+
+@pytest.mark.parametrize("cooling", [False, True], ids=["heating", "cooling"])
+def test_ashp_one_row_and_frame_exergy_agree_for_a_zeotrope(cooling):
+    """The steady point's scalar post-processing and the frame's read the same condensing temperature."""
+    model = _quiet(AirSourceHeatPump, ref="R407C")
+    point = dict(Q_r_iu=2500.0, T0=35.0, T_a_room=27.0) if cooling else dict(Q_r_iu=-2500.0, T0=7.0, T_a_room=20.0)
+    plain = model.analyze_steady(**point, verbose=False, postprocess=False)
+    one_row = model.analyze_steady(**point, verbose=False, postprocess=True)
+    frame = model.postprocess_exergy(pd.DataFrame([plain])).iloc[0]
+    assert plain["T_ref_cond_sat_v [°C]"] > plain["T_ref_cond_sat_l [°C]"] + 3.5
+    for key in ("X_ref_iu [W]", "X_ref_ou [W]", "X_eff_sys [-]", "Xc_iu_hx [W]", "Xc_ou_hx [W]"):
+        assert one_row[key] == frame[key], key

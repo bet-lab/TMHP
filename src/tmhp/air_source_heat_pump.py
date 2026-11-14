@@ -409,9 +409,10 @@ def _exergy_row(result: dict, ref: str) -> dict:
         mode = row.get("mode")
         if mode is not None and type(mode) is not str:
             raise _NotARow("mode")
-        if "T_ref_cond_sat_v [°C]" in row and "T_ref_evap_sat [°C]" in row and "mode" in row:
+        # The bubble point, as in ``postprocess_exergy`` (``T_ref_cond_sat_v`` is a zeotrope's dew point).
+        if "T_ref_cond_sat_l [°C]" in row and "T_ref_evap_sat [°C]" in row and "mode" in row:
             heating = mode == "heating"
-            cond, evap = num("T_ref_cond_sat_v [°C]"), num("T_ref_evap_sat [°C]")
+            cond, evap = num("T_ref_cond_sat_l [°C]"), num("T_ref_evap_sat [°C]")
             T_iu_sat_K = cu.C2K(cond if heating else evap)
             T_ou_sat_K = cu.C2K(evap if heating else cond)
             row["X_ref_iu [W]"] = num("Q_ref_iu [W]") * (1 - T0_K / T_iu_sat_K)

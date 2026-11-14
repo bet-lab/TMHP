@@ -18,6 +18,8 @@ from tmhp.equipment_presets import resolve_preset
 from tmhp.integrations._fmi_common import VARIABLE_DESCRIPTIONS
 from tmhp.integrations.fmu3 import TmhpAshpbFmi3Slave, _finite
 
+from ._fmu_build import build_fmu, simulation_obstacle
+
 PERIOD_S = 3 * 86400
 DT = 600
 T_SUR = 20.0
@@ -265,16 +267,22 @@ def test_fmu3_slave_reproduces_step_kernel() -> None:
             assert slave.cop_sys == 0.0
 
 
-def test_fmu3_builds_and_simulates(tmp_path) -> None:
-    """PythonFMU3 build + FMPy round-trip validates the FMI 3.0 artifact."""
-    fmpy = pytest.importorskip("fmpy")
-    from fmpy.validation import validate_fmu
+@pytest.fixture(scope="module")
+def fmu3_file(tmp_path_factory):
+    """The FMI 3.0 archive PythonFMU3 builds from the adapter (built once per module)."""
+    pytest.importorskip("fmpy")
     from pythonfmu3.builder import FmuBuilder
 
     import tmhp.integrations.fmu3 as fmu3_mod
 
-    fmu_file = FmuBuilder.build_FMU(fmu3_mod.__file__, dest=str(tmp_path))
-    assert fmu_file is not None
+    return build_fmu(FmuBuilder, fmu3_mod.__file__, tmp_path_factory.mktemp("fmu3"))
+
+
+def test_fmu3_builds_and_validates(fmu3_file) -> None:
+    """PythonFMU3 build: the FMI 3.0 archive passes fmpy's validation and declares the documented interface."""
+    from fmpy.validation import validate_fmu
+
+    fmu_file = fmu3_file
     assert validate_fmu(str(fmu_file)) == []
     with ZipFile(fmu_file) as archive:
         root = ElementTree.fromstring(archive.read("modelDescription.xml"))
@@ -300,6 +308,19 @@ def test_fmu3_builds_and_simulates(tmp_path) -> None:
     assert units["cop_sys"] == "1"
     assert units["V_cmp_disp_cc"] == "cm3"
     assert units["dV_fan_a_rated"] == "m3/s"
+
+
+def test_fmu3_simulates_like_analyze_dynamic(fmu3_file) -> None:
+    """FMPy round-trip of the FMI 3.0 artifact against analyze_dynamic().
+
+    Skipped where fmpy cannot run the archive (no export library for the
+    platform, e.g. macOS); Linux and Windows must run it."""
+    import fmpy
+
+    fmu_file = fmu3_file
+    obstacle = simulation_obstacle(fmu_file)
+    if obstacle is not None:
+        pytest.skip(obstacle)
 
     t, T0, dhw = _schedule()
     input_dtype = np.dtype([("time", "f8"), ("T0", "f8"), ("dhw_draw", "f8"), ("T_sup_w", "f8")])

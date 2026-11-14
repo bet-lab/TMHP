@@ -143,6 +143,20 @@ def test_local_ci_script_enforces_the_same_coverage_floor() -> None:
     assert options.cov_fail_under == covered[0].cov_fail_under
 
 
+def test_local_ci_script_never_drops_the_integrations_extra() -> None:
+    """Every ``uv sync`` of scripts/ci-local.sh keeps the extra the FMU adapter tests need.
+
+    The docs step used to sync without it, which uninstalled fmpy and
+    pythonfmu: the next ``--no-sync`` run then skipped those tests silently.
+    """
+    script = _read("scripts/ci-local.sh").replace("\\\n", " ")
+    syncs = [shlex.split(line) for line in script.splitlines() if "run_step" in line and "uv sync" in line]
+
+    assert len(syncs) == 2
+    for command in syncs:
+        assert command[command.index("--extra") + 1] == "integrations", command
+
+
 def test_pytest_matrix_is_gated_by_the_scope_job() -> None:
     workflow = _workflow()
     scope, test = workflow["jobs"]["test-scope"], workflow["jobs"]["test"]

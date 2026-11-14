@@ -73,9 +73,12 @@ run_step "mypy" uv run mypy src/tmhp
 run_step "pytest" uv run pytest -q -n auto --dist loadgroup \
     --cov=tmhp --cov-report=term --cov-report=xml --cov-fail-under=70
 if [[ $do_docs -eq 1 ]]; then
-    # Mirrors the CI `docs` job (--all-groups installs the docs group).
+    # Mirrors the CI `docs` job (--all-groups installs the docs group). The
+    # `integrations` extra stays installed: without it this step would remove
+    # fmpy/pythonfmu from the environment, and a later `--no-sync` run would
+    # skip the FMU adapter tests instead of running them.
     if [[ $do_sync -eq 1 ]]; then
-        run_step "sync-docs" uv sync --all-groups --locked
+        run_step "sync-docs" uv sync --all-groups --extra integrations --locked
     fi
     run_step "docs" make -C docs html SPHINXOPTS="-W --keep-going" DOCS_DATA_PROFILE="ci"
 fi

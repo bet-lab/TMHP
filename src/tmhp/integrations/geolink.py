@@ -89,6 +89,9 @@ from __future__ import annotations
 
 import importlib
 import math
+import os
+import sys
+from types import ModuleType
 from typing import Any
 
 import numpy as np
@@ -206,6 +209,42 @@ class ResponseMatrixGFunction:
         return np.asarray(((self._cum[k_b] - self._cum[k_a]) + (loc_b - loc_a)) / dt)
 
 
+def _import_geolink(*names: str) -> list[ModuleType]:
+    """Import modules of the ``geolink`` package, never this file.
+
+    This module is ``tmhp/integrations/geolink.py``. When its folder is on
+    ``sys.path``, a plain ``import geolink`` finds this file instead of the
+    package, and ``geolink.response`` does not exist. PythonFMU puts the
+    folder there when it builds or loads the FMU adapters next to this
+    module (``FmuBuilder.build_FMU`` inserts the script's folder at the front
+    and leaves it), so a process that built an FMU would be told geolink is
+    not installed. The folder is left out of the search for the duration of
+    the import, and a copy of this file already imported under the name
+    ``geolink`` is dropped.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+
+    def is_here(entry: str) -> bool:
+        try:
+            return os.path.samefile(entry or os.curdir, here)
+        except (OSError, TypeError, ValueError):
+            return False
+
+    shadow = sys.modules.get("geolink")
+    if shadow is not None and not hasattr(shadow, "__path__"):
+        origin = getattr(shadow, "__file__", None)
+        if origin is not None and is_here(os.path.dirname(os.path.abspath(origin))):
+            del sys.modules["geolink"]
+    hidden = [(index, entry) for index, entry in enumerate(sys.path) if isinstance(entry, str) and is_here(entry)]
+    for index, _ in reversed(hidden):
+        del sys.path[index]
+    try:
+        return [importlib.import_module(name) for name in names]
+    finally:
+        for index, entry in hidden:
+            sys.path.insert(min(index, len(sys.path)), entry)
+
+
 def geolink_gfunction(
     x: Any,
     y: Any,
@@ -262,10 +301,8 @@ def geolink_gfunction(
         If ``geolink`` is not installed.
     """
     try:
-        base = importlib.import_module("geolink.response.base")
-        fls = importlib.import_module("geolink.response.fls")
-        mfls = importlib.import_module("geolink.response.mfls")
-    except ImportError as exc:  # pragma: no cover - exercised only without geolink
+        base, fls, mfls = _import_geolink("geolink.response.base", "geolink.response.fls", "geolink.response.mfls")
+    except ImportError as exc:
         raise ImportError(
             "geolink is not installed. It is an optional, separately distributed package "
             "(bet-lab/geolink); the default ground response of tmhp does not need it."

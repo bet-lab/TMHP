@@ -2812,9 +2812,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # than the request (a load-weighted frost model; otherwise unchanged).
             running_frost = self._frost_state_of_running(result, frost, T0)
             if running_frost.active and not frost.active:
-                return self._analyze_steady_frosted(
-                    running_frost, Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose
-                )
+                with self._remembering_floors():
+                    return self._analyze_steady_frosted(
+                        running_frost, Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose
+                    )
 
         if result:
             self._write_frost_free(result, frost)

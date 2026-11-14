@@ -415,6 +415,69 @@ def test_t6_ashpb_time_step_independence():
     expect(max(tmax60, tmax600) <= upper + 2.0, f"peak {tmax60:.1f} / {tmax600:.1f} °C, upper bound {upper}")
 
 
+def _gshpb_two_hours(dt: int, draw_peak_lpm: float, **kw):
+    """Default R290 GSHPB, 2 h from 55 degC, a draw peaking at 1 h; counts the cycle solves."""
+    m = tmhp.GroundSourceHeatPumpBoiler(dt_s=float(dt), t_max_s=86400.0, **kw)
+    n = int(2 * 3600 // dt)
+    t_h = (np.arange(n) + 0.5) * dt / 3600.0
+    dhw = draw_peak_lpm / 60000.0 * np.exp(-0.5 * ((t_h - 1.0) / 0.25) ** 2)
+    solves = [0]
+    solve = m._solve_cycle_at_duty
+
+    def counted(*args, **kwargs):
+        solves[0] += 1
+        return solve(*args, **kwargs)
+
+    m._solve_cycle_at_duty = counted
+    df = m.analyze_dynamic(n * dt, dt, 55.0, dhw, np.full(n, 7.0))
+    ran = int((df["runtime_fraction [-]"] > 0.0).sum())
+    return m, df, solves[0], ran
+
+
+# T6 extended (R5C): a minimum run time, or a multi-node tank whose coil water is hotter than the
+# mean the thermostat reads, took steps past the envelope stop (the tank temperature at which the
+# nameplate duty condenses on T_cond_max). Was: min on-time 30 min, 2 h: 2.13 vs 2.64 kWh and a
+# 73.1 / 77.4 degC peak at 60 / 600 s; top coil, 2 h, no draw: 116 of 120 / 10 of 12 steps
+# condensing_temp_above_max, 2-4 cycle solves per step. Now the thermostat stops (or holds) there
+# inside the step.
+@pytest.mark.parametrize(
+    "case",
+    [
+        pytest.param(dict(min_on_time_s=1800.0, draw=0.0), id="min-on-time"),
+        pytest.param(dict(tank_model="stratified", condenser_node=0, draw=0.0), id="top-coil"),
+        pytest.param(dict(tank_model="stratified", condenser_node=0, draw=8.0), id="top-coil-draw"),
+    ],
+)
+def test_t6_envelope_stop_inside_the_step(case):
+    from tmhp.compressor_envelope import condensing_tank_cutout
+
+    kw = dict(case)
+    draw = kw.pop("draw")
+    out = {}
+    for dt in (60, 600):
+        m, df, solves, ran = _gshpb_two_hours(dt, draw, **kw)
+        failed = int((df["failure_reason"] != "none").sum())
+        expect(failed == 0, f"dt {dt}: {failed} steps failed ({df['failure_reason'].value_counts().to_dict()})")
+        expect(solves == ran, f"dt {dt}: {solves} cycle solves on {ran} running steps")
+        expect((df["hp_stop_reason"] == "condensing_limit").any(), f"dt {dt}: no envelope stop reported")
+        top = df.get("T_tank_w_top [°C]", df["T_tank_w [°C]"])
+        out[dt] = (
+            float(df["Q_ref_tank [W]"].sum() * dt),
+            float(df["E_tot [W]"].sum() * dt),
+            float(top.max()),
+        )
+        cutout = condensing_tank_cutout(m)
+    (q60, e60, top60), (q600, e600, top600) = out[60], out[600]
+    expect(abs(q600 - q60) < 0.02 * q60, f"heat {q60 / 3.6e6:.3f} vs {q600 / 3.6e6:.3f} kWh")
+    expect(abs(e600 - e60) < 0.05 * e60, f"electricity {e60 / 3.6e6:.3f} vs {e600 / 3.6e6:.3f} kWh")
+    # The coil's water at the envelope stop: the node step spreads the step's heat over the step
+    # under the cycle's condensing temperature, so it may pass the stop a little (0.25 K at 60 s
+    # with the draw, a few kelvin at 600 s), never the condensing limit itself
+    # (cutout + hp_capacity / UA_tank_hx).
+    expect(top60 <= cutout + 0.5, f"dt 60: peak {top60:.2f} degC, envelope stop {cutout:.2f}")
+    expect(top600 <= cutout + m.hp_capacity / m.UA_tank_hx, f"dt 600: peak {top600:.2f} degC")
+
+
 # T8 fixed: the collector runs at the tank's make-up flow (mains -> collector -> tank; the
 # mixing valve's cold side takes mains water), solved with the tank temperature, and the
 # preheated inflow is the reported tank inlet; was 1.74 kWh reported vs 0.99 kWh delivered.

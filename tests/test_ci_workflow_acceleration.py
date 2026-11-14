@@ -58,6 +58,22 @@ def _as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else [value]
 
 
+def test_every_workflow_job_runs_on_github_hosted_runners() -> None:
+    """TMHP is public: its CI/CD runs on GitHub-hosted runners only, never self-hosted.
+
+    Hosted runners are free for public repositories and isolated per job. Main pushes
+    pinned to the lab's ``ml-main`` runner queued for about four hours on 2026-11-14
+    while the same checks on PRs (hosted) were green.
+    """
+    workflows = sorted((REPO_ROOT / ".github" / "workflows").glob("*.y*ml"))
+
+    assert {path.name for path in workflows} >= {"tests.yml", "docs.yml"}
+    for path in workflows:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for name, job in loaded["jobs"].items():
+            assert job["runs-on"] == "ubuntu-24.04", f"{path.name}:{name}"
+
+
 def test_static_analysis_runs_once_outside_python_test_matrix() -> None:
     lint, test = _job("lint-type"), _job("test")
 
@@ -208,6 +224,8 @@ SCOPE_CASES = (
     ("pyproject.toml", "pull_request", "true"),
     ("uv.lock", "pull_request", "true"),
     (".github/workflows/tests.yml", "pull_request", "true"),
+    # test_ci_workflow_acceleration.py reads every workflow (hosted-runner guard).
+    (".github/workflows/docs.yml", "pull_request", "true"),
     # tests/test_docs_alignment.py, test_docs_examples.py read docs/;
     # test_validation_docs_alignment.py reads validation/results/.
     ("docs/source/index.rst", "pull_request", "true"),
@@ -215,7 +233,6 @@ SCOPE_CASES = (
     ("validation/results/summary.csv", "pull_request", "true"),
     ("validation/parity/run.py", "pull_request", "true"),
     # Files no test reads still skip the matrix on a PR.
-    (".github/workflows/docs.yml", "pull_request", "false"),
     ("LICENSE", "pull_request", "false"),
     # Trusted pushes always run it.
     ("LICENSE", "push", "true"),

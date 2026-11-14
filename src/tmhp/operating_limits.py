@@ -25,11 +25,9 @@ for the person who made the call:
   documentation page *failure_reason semantics* both take their wording from
   it.
 
-Repetition
-----------
-A sweep of thousands of points must not print thousands of lines, so a steady
-warning is issued **once per model and limit**: the first point a model is
-stopped by ``discharge_temp_above_max`` is reported in full, later ones are
+**Repetition.** A sweep of thousands of points must not print thousands of
+lines, so a steady warning is issued **once per model and limit**: the first
+point a model is stopped by ``discharge_temp_above_max`` is reported in full, later ones are
 not (:func:`reset_notices` starts over). Nothing is lost -- every row carries
 ``failure_reason``, ``capacity_clamped`` and ``capacity_binding`` -- and a
 caller who wants every point reported says so with the standard filter::

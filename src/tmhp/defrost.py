@@ -572,7 +572,11 @@ def steady_defrost(duty_arg: str, outdoor_arg: str = "T0", humidity_arg: str = "
     is solved as before and gets the frost keys of a row that was not
     corrected (``_write_frost_free``). The model supplies
     ``_frost_state(request, T_out, RH_out)``, which is
-    :data:`NO_FROST` when its frost model is off. It sits outermost: the
+    :data:`NO_FROST` when its frost model is off, and
+    ``_frost_state_of_running(result, frost, T_out)``, the frost state of the
+    machine a frost-free row actually runs (the same state unless a
+    load-weighted model finds the running machine more loaded than the
+    request). It sits outermost: the
     trial solves of the duty reduction and the cycling mean must see
     frost-free rows.
     """
@@ -593,19 +597,26 @@ def steady_defrost(duty_arg: str, outdoor_arg: str = "T0", humidity_arg: str = "
             validate_steady(bound.arguments)
             request, T_out = float(bound.arguments[duty_arg]), float(bound.arguments[outdoor_arg])
             frost = self._frost_state(request, T_out, bound.arguments.get(humidity_arg))
-            if frost.active:
 
-                def solve(duty: float) -> Any:
-                    arguments = dict(bound.arguments)
-                    arguments[duty_arg] = duty
-                    trial = inspect.BoundArguments(signature, arguments)  # type: ignore[arg-type]
-                    return function(*trial.args, **trial.kwargs)
+            def solve(duty: float) -> Any:
+                arguments = dict(bound.arguments)
+                arguments[duty_arg] = duty
+                trial = inspect.BoundArguments(signature, arguments)  # type: ignore[arg-type]
+                return function(*trial.args, **trial.kwargs)
 
-                result = self._steady_over_frost(frost, solve, request, T_out)
-            else:
+            result: Any = None
+            if not frost.active:
                 result = function(*bound.args, **bound.kwargs)
                 if isinstance(result, dict):
-                    self._write_frost_free(result, frost)
+                    # A request the model's frost state finds too small to
+                    # frost may still be met by a machine that does: on its
+                    # speed floor the unit runs at more than the request
+                    # (a load-weighted frost model; otherwise unchanged).
+                    frost = self._frost_state_of_running(result, frost, T_out)
+            if frost.active:
+                result = self._steady_over_frost(frost, solve, request, T_out)
+            elif isinstance(result, dict):
+                self._write_frost_free(result, frost)
             if want_dict or not isinstance(result, dict):
                 return result
             import pandas as pd

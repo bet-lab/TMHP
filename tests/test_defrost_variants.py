@@ -203,3 +203,45 @@ def test_air_to_air_model_takes_the_same_forms():
     assert at_a2[1] == pytest.approx(at_a2[0], rel=1e-12)
     cold = [m.analyze_steady(Q_r_iu=-2000.0, T0=-15.0, verbose=False)["cop_sys [-]"] for m in (constant, moisture)]
     assert cold[1] > 1.05 * cold[0]
+
+
+@pytest.mark.parametrize("Cd_cycling", [0.9, None], ids=["cycling", "continuous"])
+@pytest.mark.parametrize("T0", [2.0, -7.0])
+def test_small_request_frosts_as_the_machine_that_runs_on_the_speed_floor(Cd_cycling, T0):
+    """A request too small to frost by its own load ratio is met by a machine at ``Q_min`` that does.
+
+    With a high speed floor the unit runs at 36-47 % of its nameplate for a
+    request of 10 %. The load ratio of the request alone puts the coil above
+    the air's frost point, and the row used to come back uncorrected.
+    """
+    model = DefrostModel(frost_loss="moisture", load_weighted=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        boiler = AirSourceHeatPumpBoiler(defrost=model, rps_min=45.0, Cd_cycling=Cd_cycling)
+        frost_free = AirSourceHeatPumpBoiler(defrost=False, rps_min=45.0, Cd_cycling=Cd_cycling)
+    request = 1500.0
+    assert not model.frost_state_at_duty(T0, None, request, boiler.hp_capacity).active
+    result = boiler.analyze_steady(T_tank_w=35.0, T0=T0, Q_ref_tank=request)
+    reference = frost_free.analyze_steady(T_tank_w=35.0, T0=T0, Q_ref_tank=request)
+    assert result["failure_reason"] == "none" and result["capacity_clamped"] == "min"
+    q_min = result["Q_min [W]"]
+    assert q_min == pytest.approx(reference["Q_min [W]"], rel=1e-9) and q_min > 2.0 * request
+    running = model.frost_state(T0, load_ratio=q_min / boiler.hp_capacity)
+    assert running.active
+    # (Q_min is that of the row; the state was taken from the solve before it, equal to 1e-9.)
+    assert result["defrost_fraction [-]"] == pytest.approx(running.defrost_fraction, rel=1e-6)
+    assert result["frost_capacity_factor [-]"] == pytest.approx(running.capacity_multiplier, rel=1e-6)
+    assert result["cop_sys [-]"] < reference["cop_sys [-]"]
+    if Cd_cycling is None:  # the continuous floor machine: its frosted mean
+        assert result["Q_ref_tank [W]"] == pytest.approx(
+            result["frost_capacity_factor [-]"] * q_min - result["Q_defrost [W]"], rel=1e-9
+        )
+    else:  # the request, met by cycling; the defrost loss follows the run time
+        assert result["Q_ref_tank [W]"] == pytest.approx(request, rel=1e-9)
+        continuous = DefrostModel.defrost_load(running, T0, boiler.hp_capacity)
+        assert result["Q_defrost [W]"] == pytest.approx(result["runtime_fraction [-]"] * continuous, rel=1e-6)
+    # Where the floor machine does not frost either, the row is left alone.
+    warm = boiler.analyze_steady(T_tank_w=35.0, T0=5.5, Q_ref_tank=300.0)
+    assert warm["capacity_clamped"] == "min"
+    assert warm["defrost_fraction [-]"] == 0.0 and warm["frost_capacity_factor [-]"] == 1.0
+    assert warm["cop_sys [-]"] == frost_free.analyze_steady(T_tank_w=35.0, T0=5.5, Q_ref_tank=300.0)["cop_sys [-]"]

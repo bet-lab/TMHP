@@ -51,6 +51,7 @@ from .compressor_envelope import (
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
+    condensing_tank_cutout,
     discharge_controlled,
     envelope_violation,
     limit_tank_setpoints_to_envelope,
@@ -65,6 +66,7 @@ from .constants import c_w, rho_w
 from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    T_WATER_BOIL_C,
     TANK_LEVEL_MIN,
     ControlState,
     CycleSolveOutcome,
@@ -73,6 +75,7 @@ from .dynamic_context import (
     delivered_tank_heat,
     determine_heat_source_on_off,
     determine_tank_refill_flow,
+    in_step_stop_reason,
     resolve_step_operation,
     step_hp_result,
     tank_mass_energy_residual,
@@ -370,7 +373,9 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.T_bhe_f_in_K = self.Ts_K
 
         self.hp_capacity = hp_capacity
-        self.hp_on_schedule = hp_on_schedule or [(0.0, 24.0)]
+        # None: always scheduled. An empty list has no window, so the heat pump is
+        # never scheduled (as ASHPB reads it; it used to mean "always" here).
+        self.hp_on_schedule = [(0.0, 24.0)] if hp_on_schedule is None else list(hp_on_schedule)
         # Validated by validate_ctor (finite, >= 0).
         self.min_on_time_s: float = float(min_on_time_s)
         self.min_off_time_s: float = float(min_off_time_s)
@@ -555,7 +560,8 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "T_bhe_f [°C]": getattr(self, "T_bhe_f", self.Ts),
                 "T_bhe_f_in [°C]": cu.K2C(getattr(self, "T_bhe_f_in_K", self.Ts_K)),
                 "T_bhe_f_out [°C]": cu.K2C(getattr(self, "T_bhe_f_out_K", self.Ts_K)),
-                "T_cond [°C]": T_tank_w,
+                # No condensing pressure on a stopped compressor: undefined (result-keys.rst).
+                "T_cond [°C]": np.nan,
                 "dV_mix_w_out [m3/s]": flow_state.get("dV_mix_w_out", 0.0),
                 "dV_tank_w_in [m3/s]": flow_state.get("dV_tank_w_in", 0.0),
                 "dV_tank_w_out [m3/s]": flow_state.get("dV_tank_w_out", 0.0),
@@ -1333,6 +1339,11 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             raise ValueError(f"dhw_usage_schedule length ({len(dhw_flow_m3s)}) != tN ({tN})")
 
         _use_solar = self._needs_solar_input()
+        # The in-step thermostat stops the compressor at the envelope stop
+        # temperature (the tank is one mixed node: the water around the coil
+        # is the tank).
+        cutout = condensing_tank_cutout(self)
+        T_limit_C = T_WATER_BOIL_C if cutout is None else min(T_WATER_BOIL_C, cutout)
 
         for n in tqdm(range(tN), desc="WSHPB Simulating"):
             t_s = time[n]
@@ -1440,7 +1451,8 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             )
             # Thermostat events inside the step (#96 T6): the compressor runs
             # until the tank reaches the upper bound and starts when it
-            # reaches the lower bound, not for whole steps.
+            # reaches the lower bound, not for whole steps. It stops at the
+            # envelope stop temperature whatever its minimum run time.
             run, cycle_result = resolve_step_operation(
                 T_start_K=ctx.T_tank_w_K,
                 call_start=call_start,
@@ -1458,6 +1470,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 Q_request=self.hp_capacity,
                 min_on_time_s=self.min_on_time_s,
                 min_off_time_s=self.min_off_time_s,
+                T_limit_C=T_limit_C,
             )
             hp_result = step_hp_result(
                 run,
@@ -1465,6 +1478,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 lambda ctx=ctx, T_start_C=T_start_C: self._off_cycle_result(ctx, T_start_C),
                 self._RUNTIME_SCALED_KEYS,
             )
+            hp_result["hp_stop_reason"] = in_step_stop_reason(run, T_limit_C)
             is_on_prev = run.call_end
             running_prev = run.running_end
             phase_age_s = run.phase_age_end_s

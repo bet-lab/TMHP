@@ -362,31 +362,70 @@ def test_dynamic_run_stops_at_the_cut_out_whatever_the_step(family):
     assert out[600.0] == pytest.approx(out[60.0], rel=0.01)
 
 
-def test_dynamic_steps_past_the_cut_out_reduce_the_duty_then_stop():
-    """The envelope's own guard, with the thermostat's cap lifted (as a tank model or a minimum
-    run time takes a step past the cut-out): R410A, called from just below 55 degC (12 x 60 s)."""
+@pytest.mark.parametrize("lift", ["set point above the cut-out", "minimum run time"], ids=["cap lifted", "min on-time"])
+def test_dynamic_steps_stop_inside_the_step_at_the_cut_out(lift):
+    """A run the thermostat would carry past the cut-out stops there inside the step (R5C).
+
+    R410A from just below 55 degC (12 x 60 s), with the thermostat's cap lifted (an upper set
+    point of 65 degC set on the built machine), or with a 30 min minimum run time. Before, those
+    steps ran past the cut-out: reduced onto the condensing limit, then off rows with
+    ``condensing_temp_above_max`` (the tank below the set point), a peak and an energy that
+    depended on the step (min on-time, R290 6 h: 73.1 / 75.4 / 77.4 degC at 60 / 300 / 600 s).
+    Now the envelope stop outranks the minimum run time: a normal stop, named in
+    ``hp_stop_reason``, with no ``failure_reason`` and no duty reduction. With the cap lifted
+    the call stands at the cut-out (the tank is below the set point), so the compressor holds
+    the tank there against its losses, as one run (one start).
+    """
     dt, n = 60.0, 12
-    model = _quiet(tmhp.WaterSourceHeatPumpBoiler, ref="R410A", hp_capacity=CAPACITY)
-    model.T_tank_w_upper_bound = 65.0
+    if lift == "minimum run time":
+        model = _quiet(tmhp.WaterSourceHeatPumpBoiler, ref="R410A", hp_capacity=CAPACITY, min_on_time_s=1800.0)
+    else:
+        model = _quiet(tmhp.WaterSourceHeatPumpBoiler, ref="R410A", hp_capacity=CAPACITY)
+        model.T_tank_w_upper_bound = 65.0
     df = _quiet(model.analyze_dynamic, n * dt, dt, 54.9, np.zeros(n), np.full(n, 10.0))
     ran = df["hp_is_on"].astype(bool)
-    assert ran.any() and (~ran).any()
-    # Every step that ran is inside the limit ...
+    assert ran.any()
     assert not any(condensing_temp_exceeded(p, model.T_cond_max, model.ref) for p in df.loc[ran, "P_ref_cmp_out [Pa]"])
-    # ... at the nameplate duty while the tank is cold, then at the duty on the limit, which the row names.
-    assert df.loc[ran, "Q_ref_tank [W]"].iloc[0] == pytest.approx(CAPACITY, rel=1e-6)
-    reduced = ran & (df["capacity_binding"] == BINDING_CONDENSING)
-    assert reduced.any()
-    assert (df.loc[reduced, "Q_request [W]"] == CAPACITY).all()
-    assert (df.loc[reduced, "Q_max [W]"] < CAPACITY).all()
-    assert (df.loc[reduced, "T_tank_w [°C]"] > 60.0).all()
-    # The steps it could not run are off rows with the reason: the tank is below the set point.
-    stopped = df["failure_reason"] != "none"
-    assert stopped.any() and (df.loc[stopped, "failure_reason"] == CONDENSING_TEMP_ABOVE_MAX).all()
-    assert not df.loc[stopped, "hp_is_on"].any()
-    assert (df.loc[stopped, "Q_ref_tank [W]"] == 0.0).all() and (df.loc[stopped, "E_cmp [W]"] == 0.0).all()
-    assert (df.loc[stopped, "runtime_fraction [-]"] == 0.0).all()
-    assert df["T_tank_w [°C]"].max() < T_LIMIT_R410A < model.T_tank_w_upper_bound
+    assert (df["failure_reason"] == "none").all()
+    assert df["capacity_binding"].isna().all()  # the nameplate duty to the end
+    stop = df["hp_stop_reason"] == "condensing_limit"
+    first = int(stop.idxmax())
+    assert stop.any() and df.loc[: first - 1, "hp_stop_reason"].isna().all()
+    row = df.loc[first]
+    assert 0.0 < row["runtime_fraction [-]"] < 1.0 and bool(row["hp_is_on"])
+    assert df["T_tank_w [°C]"].max() == pytest.approx(T_CUTOUT_R410A, abs=0.05)
+    assert df["hp_starts [-]"].sum() == 1
+    after = df.loc[first + 1 :]
+    if lift == "minimum run time":
+        # The call ended at the upper bound: stopped until the lower bound.
+        assert stop.sum() == 1 and not after["hp_is_on"].any()
+    else:
+        # Held at the cut-out: a small run time that balances the tank's loss.
+        assert stop.loc[first:].all() and after["hp_is_on"].all()
+        assert (after["runtime_fraction [-]"] < 0.01).all()
+        assert np.allclose(after["T_tank_w [°C]"], T_CUTOUT_R410A, atol=0.05)
+
+
+def test_min_on_time_run_does_not_depend_on_the_step():
+    """R290 (cut-out 69.9 degC) with a 30 min minimum run time, 2 h from 55 degC: the run stops at the
+    cut-out at 60 s and 600 s alike (was 73.1 / 77.4 degC peaks and 2.4 % more energy at 600 s)."""
+    out = {}
+    for dt in (60.0, 600.0):
+        n = int(2 * 3600 / dt)
+        model = _quiet(tmhp.WaterSourceHeatPumpBoiler, hp_capacity=CAPACITY, min_on_time_s=1800.0)
+        df = _quiet(model.analyze_dynamic, n * dt, dt, 55.0, np.zeros(n), np.full(n, 10.0))
+        assert (df["failure_reason"] == "none").all() and df["capacity_binding"].isna().all()
+        assert (df["hp_stop_reason"] == "condensing_limit").sum() == 1
+        out[dt] = (
+            float(df["T_tank_w [°C]"].max()),
+            float(df["E_tot [W]"].sum() * dt),
+            float(df["Q_ref_tank [W]"].sum() * dt),
+        )
+    cutout = condensing_tank_cutout(model)
+    for dt, (peak, _, _) in out.items():
+        assert peak == pytest.approx(cutout, abs=0.05), dt
+    assert out[600.0][1] == pytest.approx(out[60.0][1], rel=0.01)
+    assert out[600.0][2] == pytest.approx(out[60.0][2], rel=0.01)
 
 
 # ---------------------------------------------------------------------------

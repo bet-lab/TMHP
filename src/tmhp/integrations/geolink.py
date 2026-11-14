@@ -89,6 +89,9 @@ from __future__ import annotations
 
 import importlib
 import math
+import os
+import sys
+from types import ModuleType
 from typing import Any
 
 import numpy as np
@@ -113,15 +116,21 @@ class ResponseMatrixGFunction:
     requested, like :class:`tmhp.g_function.GFunction`.
 
     The provider is called once per decade of time, never with the whole
-    grid. geolink's groundwater model (``MFLSResponse``) sets its quadrature
-    from the time span of one call (bet-lab/geolink#581): asked for the four
-    to six decades of a table at once, its field response is up to 4e-5
-    m.K/W off for a 2 x 2 field and 2.5e-3 m.K/W (0.7 %) for a 10 x 10 field
-    at a Darcy velocity of 1e-6 m/s; with decade calls 2e-5 and 1.3e-4
-    (150 m boreholes, 6 m spacing, against the same integral on a grid 500
-    times finer). The table then takes five to seven calls instead of one,
-    0.7 s -> 4 s for the 10 x 10 field. Conduction-only responses are the
-    same either way to round-off.
+    grid. Until the fix of bet-lab/geolink#581, geolink's groundwater model
+    (``MFLSResponse``) set its quadrature from the time span of one call:
+    asked for the four to six decades of a table at once, its field response
+    is up to 4e-5 m.K/W off for a 2 x 2 field and 2.5e-3 m.K/W (0.7 %) for a
+    10 x 10 field at a Darcy velocity of 1e-6 m/s; with decade calls 2e-5
+    and 1.3e-4 (150 m boreholes, 6 m spacing, against the same integral on a
+    grid 500 times finer). The table then takes five to seven calls instead
+    of one, 0.7 s -> 4 s for the 10 x 10 field. Conduction-only responses
+    are the same either way to round-off.
+
+    With the fix (bet-lab/geolink#583, checked on its branch at ``69bbbf1d``,
+    2026-11-14) the same fields are within 2e-10 m.K/W of that reference
+    however the times are grouped, a table of the 10 x 10 field takes 0.14 s,
+    and the split changes the values by 2e-11 at most. It is kept for
+    earlier geolink versions and for other providers.
 
     Parameters
     ----------
@@ -171,7 +180,7 @@ class ResponseMatrixGFunction:
         times = np.geomspace(self.t_min, t_end, num)
         # One call per decade of time. A provider may build its quadrature
         # from the time span of a call and lose accuracy when the span is wide
-        # (geolink's MFLSResponse, bet-lab/geolink#581).
+        # (geolink's MFLSResponse before the fix of bet-lab/geolink#581).
         parts: list[np.ndarray] = []
         for chunk in np.array_split(times, max(1, math.ceil(math.log10(t_end / self.t_min)))):
             part = np.asarray(self._response.response_matrix(self._field, self._soil, chunk), dtype=float)
@@ -226,6 +235,42 @@ class ResponseMatrixGFunction:
         k_a, loc_a = self._integral(tau_arr)
         k_b, loc_b = self._integral(tau_arr + dt)
         return np.asarray(((self._cum[k_b] - self._cum[k_a]) + (loc_b - loc_a)) / dt)
+
+
+def _import_geolink(*names: str) -> list[ModuleType]:
+    """Import modules of the ``geolink`` package, never this file.
+
+    This module is ``tmhp/integrations/geolink.py``. When its folder is on
+    ``sys.path``, a plain ``import geolink`` finds this file instead of the
+    package, and ``geolink.response`` does not exist. PythonFMU puts the
+    folder there when it builds or loads the FMU adapters next to this
+    module (``FmuBuilder.build_FMU`` inserts the script's folder at the front
+    and leaves it), so a process that built an FMU would be told geolink is
+    not installed. The folder is left out of the search for the duration of
+    the import, and a copy of this file already imported under the name
+    ``geolink`` is dropped.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+
+    def is_here(entry: str) -> bool:
+        try:
+            return os.path.samefile(entry or os.curdir, here)
+        except (OSError, TypeError, ValueError):
+            return False
+
+    shadow = sys.modules.get("geolink")
+    if shadow is not None and not hasattr(shadow, "__path__"):
+        origin = getattr(shadow, "__file__", None)
+        if origin is not None and is_here(os.path.dirname(os.path.abspath(origin))):
+            del sys.modules["geolink"]
+    hidden = [(index, entry) for index, entry in enumerate(sys.path) if isinstance(entry, str) and is_here(entry)]
+    for index, _ in reversed(hidden):
+        del sys.path[index]
+    try:
+        return [importlib.import_module(name) for name in names]
+    finally:
+        for index, entry in hidden:
+            sys.path.insert(min(index, len(sys.path)), entry)
 
 
 def geolink_gfunction(
@@ -284,10 +329,8 @@ def geolink_gfunction(
         If ``geolink`` is not installed.
     """
     try:
-        base = importlib.import_module("geolink.response.base")
-        fls = importlib.import_module("geolink.response.fls")
-        mfls = importlib.import_module("geolink.response.mfls")
-    except ImportError as exc:  # pragma: no cover - exercised only without geolink
+        base, fls, mfls = _import_geolink("geolink.response.base", "geolink.response.fls", "geolink.response.mfls")
+    except ImportError as exc:
         raise ImportError(
             "geolink is not installed. It is an optional, separately distributed package "
             "(bet-lab/geolink); the default ground response of tmhp does not need it."

@@ -1972,25 +1972,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 if invalid_detail is not None or envelope_reason is not None:
                     refused_state, result = result, None
 
-            # Pressure-ratio envelope hint for the final operating point
-            # (one message per call; per-probe events are silent). Floor ->
-            # clamp (cycle still solved); ceiling -> reject (HP-off fallback).
+            # Pressure-ratio envelope event of the final operating point.
+            # Floor -> the ratio is held on it and the cycle is solved (the
+            # row says so: ``pr_floor_active``); ceiling -> rejected, the off
+            # state with ``pr_above_max`` below. Nothing is printed.
             pr_event = self._last_pr_event
             cycle_failure_reason = self._last_cycle_failure_reason
-            if pr_event is not None:
-                kind, pr_val, bound = pr_event
-                if kind == "pr_below_min":
-                    print(
-                        f"[PR guard] clamp 하한(below PR_cycle_min): "
-                        f"PR={pr_val:.3f} -> {bound:.2f} "
-                        f"(T_tank_w={T_tank_w:.1f}°C, T0={T0:.1f}°C, Q_ref_tank={Q_ref_tank:.0f}W)"
-                    )
-                else:  # pr_above_max
-                    print(
-                        f"[PR guard] reject 상한(above PR_cycle_max): "
-                        f"PR={pr_val:.3f} > {bound:.2f} "
-                        f"(T_tank_w={T_tank_w:.1f}°C, T0={T0:.1f}°C, Q_ref_tank={Q_ref_tank:.0f}W)"
-                    )
 
             # Diagnose what (if anything) went wrong. failure_reason is a
             # *report*; the fallback trigger condition is preserved as

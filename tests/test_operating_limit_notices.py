@@ -276,6 +276,28 @@ def test_the_undecorated_solve_does_not_warn(machines):
     assert notices == [] and row["failure_reason"] == "discharge_temp_above_max"
 
 
+def test_solve_paths_print_nothing_to_standard_output(machines, capsys):
+    """A library does not print: what a point ran into is in its row and in the warning.
+
+    The pressure-ratio guard used to print a ``[PR guard]`` line per call
+    (with the duty of an inner solve, not the request), which no warning
+    filter could switch off.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for family, call, *_ in OFF_CASES + LIMITED_CASES:
+            machines[family].analyze_steady(**call)
+        # A ratio below the floor is held on it: a running row, flagged in its own key.
+        floor = machines["ASHPB"].analyze_steady(T_tank_w=20.0, T0=30.0, Q_ref_tank=8000.0)
+        dt, n = 300.0, 2
+        machines["WSHPB"].analyze_dynamic(
+            n * dt, dt, 30.0, np.zeros(n), np.full(n, 5.0), T_source_w_schedule=np.full(n, 1.0)
+        )
+        machines["ASHP"].analyze_dynamic(2 * 600.0, 600.0, np.array([-2000.0, -6000.0]), np.array([7.0, -25.0]))
+    assert floor["hp_is_on"] and floor["pr_floor_active"]
+    assert capsys.readouterr().out == ""
+
+
 # ---------------------------------------------------------------------------
 # 5. a sweep does not flood
 # ---------------------------------------------------------------------------

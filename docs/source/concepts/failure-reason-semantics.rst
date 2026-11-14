@@ -340,9 +340,10 @@ dicts; it is not a dynamic-frame column (an ``analyze_dynamic`` row that could
 not be solved carries ``failure_reason`` alone).
 
 ``pr_below_min`` is *not* a ``failure_reason`` value. A pressure ratio
-below ``PR_cycle_min`` is clamped to the floor and the cycle is still
-solved; it only prints a ``[PR guard]`` message and sets
-``pr_floor_active`` on GSHP results.
+below ``PR_cycle_min`` is held on the floor and the cycle is still
+solved: a control action of a running machine, not a limit, so nothing is
+warned or printed. GSHP and ASHPB rows say so with ``pr_floor_active``; on
+every family ``pr_cmp [-]`` then equals ``PR_cycle_min``.
 
 How to branch on it
 ===================
@@ -645,8 +646,9 @@ the recommended lever to pull when you hit each one.
     The final operating point needs a compressor pressure ratio
     above ``PR_cycle_max`` (checked by
     :func:`tmhp.compressor_envelope.check_pr_envelope`). The model
-    falls back to off-mode placeholders, and a ``[PR guard]`` message is
-    printed.
+    falls back to off-mode placeholders and says so in its
+    ``OperatingLimitWarning`` (the ratio it reached, where the solve left
+    one, next to ``PR_cycle_max``). Nothing is printed to standard output.
 
     **What to do.** Reduce the lift (lower ``T_tank_w`` or raise the
     source temperature), or raise ``PR_cycle_max`` if a higher

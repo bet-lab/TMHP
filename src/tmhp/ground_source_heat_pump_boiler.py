@@ -3083,25 +3083,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                         flow_state=flow_state,
                     )
 
-            # Pressure-ratio envelope hint for the final operating point
-            # (one message per call; per-probe events are silent). Floor ->
-            # clamp (cycle still solved); ceiling -> reject (HP-off fallback).
-            pr_event = self._last_pr_event
-            if pr_event is not None:
-                kind, pr_val, bound = pr_event
-                if kind == "pr_below_min":
-                    print(
-                        f"[PR guard] clamp 하한(below PR_cycle_min): "
-                        f"PR={pr_val:.3f} -> {bound:.2f} "
-                        f"(T_tank_w={T_tank_w:.1f}°C, T_source={T_source:.1f}°C, Q_ref_tank={Q_ref_tank:.0f}W)"
-                    )
-                else:  # pr_above_max
-                    print(
-                        f"[PR guard] reject 상한(above PR_cycle_max): "
-                        f"PR={pr_val:.3f} > {bound:.2f} "
-                        f"(T_tank_w={T_tank_w:.1f}°C, T_source={T_source:.1f}°C, Q_ref_tank={Q_ref_tank:.0f}W)"
-                    )
-
             # A successful search has already checked that the cycle closes
             # both heat exchangers and is an operating point; anything else is
             # reported with the search's own reason and an off-mode state.

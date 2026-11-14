@@ -2579,9 +2579,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         postprocess : bool
             If True, apply postprocess_exergy to the output.
         verbose : bool
-            If False, the ``[PR guard]`` line and the
-            :class:`~tmhp.OperatingLimitWarning` of this call are not issued
-            (the row is the same).
+            If False, the :class:`~tmhp.OperatingLimitWarning` of this call
+            is not issued (the row is the same).
         RH_out : float | None
             Outdoor relative humidity as a fraction (0-1), used by the frost
             correction in heating. None: the frost model's default (0.84).
@@ -2696,25 +2695,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     T_a_room=T_a_room,
                 )
 
-            # Pressure-ratio envelope hint for the final operating point
-            # (one message per call; the per-probe events inside the optimiser
-            # loop are silent). Floor -> clamp (cycle still solved); ceiling ->
-            # reject (falls back to HP-off below).
+            # Pressure-ratio envelope event of the final operating point.
+            # Floor -> the ratio is held on it and the cycle is solved;
+            # ceiling -> rejected (the off state below). Nothing is printed.
             pr_event = self._last_pr_event
-            if verbose and pr_event is not None:
-                kind, pr_val, bound = pr_event
-                if kind == "pr_below_min":
-                    print(
-                        f"[PR guard] clamp 하한(below PR_cycle_min): "
-                        f"PR={pr_val:.3f} -> {bound:.2f} "
-                        f"(Q_r_iu={Q_r_iu:.0f}W, T0={T0:.1f}°C, T_a_room={T_a_room:.1f}°C)"
-                    )
-                elif kind == "pr_above_max":
-                    print(
-                        f"[PR guard] reject 상한(above PR_cycle_max): "
-                        f"PR={pr_val:.3f} > {bound:.2f} "
-                        f"(Q_r_iu={Q_r_iu:.0f}W, T0={T0:.1f}°C, T_a_room={T_a_room:.1f}°C)"
-                    )
 
             # opt_success=True at the infeasible sentinel is a false success:
             # the optimiser converged but never escaped the penalty region. A

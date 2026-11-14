@@ -117,7 +117,8 @@ Common to all families
         low-speed continuation), is below ``ETA_ISEN_MIN`` = 0.30 at the
         solved point (ASHP, GSHP: at every candidate). The fit never goes
         below 0.336 inside its data. Not checked for scalar or user
-        efficiencies. ASHP does not report it for a request that is only too
+        efficiencies. ASHP and the boilers (ASHPB, GSHPB, WSHPB:
+        ``analyze_steady``) do not report it for a request that is only too
         *small* (the fit falls below the floor towards low speed while a
         larger duty runs): that request is met by on/off cycling at the
         smallest duty the envelope admits (``capacity_clamped == "min"``).

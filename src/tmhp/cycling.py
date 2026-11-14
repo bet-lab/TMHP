@@ -319,7 +319,8 @@ def report_cycling(
     """Write the cycling keys of a solved row; average it if the unit cycles (in place).
 
     The row cycles when it is a running operating point on the compressor's
-    speed floor (``capacity_clamped == "min"``) that delivers more than the
+    speed floor, or at the smallest duty the envelope admits
+    (``capacity_clamped == "min"``), that delivers more than the
     ``request`` and a degradation model is given: it is then averaged with
     :func:`apply_cycling`. Every other row -- continuous operation, the off
     state, a failed solve, cycling switched off (``cycling=None``) -- is left

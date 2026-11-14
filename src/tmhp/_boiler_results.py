@@ -12,6 +12,11 @@ every row of a family the same keys: what does not apply to a row is ``None``
 They only add keys a row does not have and fill in the zeotropic dew point;
 no cycle, control or tank quantity changes.
 
+A stream that does not flow follows the same rule: its flow, enthalpy flow and
+exergy flow are ``0.0`` and its temperature is NaN (there is no water to have
+one). :func:`mixed_water_enthalpy_flow` and :func:`mixed_water_exergy` write
+the mixed hot water of a step without a draw that way.
+
 The two family-independent helpers, :func:`fill_missing` and
 :func:`report_condenser_dew_point`, also finish the rows of the
 space-conditioning models (ASHP, GSHP: their ``_complete_row``).
@@ -23,12 +28,17 @@ import contextlib
 import math
 from collections.abc import Mapping
 from functools import lru_cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import CoolProp.CoolProp as CP
 
 from . import calc_util as cu
+from .constants import c_w, rho_w
 from .refrigerant import props_si
+from .thermodynamics import calc_energy_flow, calc_exergy_flow
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 #: Capacity keys on every boiler row, steady and dynamic.
 CAPACITY_KEYS: tuple[str, ...] = ("capacity_clamped", "capacity_binding", "Q_max [W]", "Q_request [W]")
@@ -134,3 +144,26 @@ def report_condenser_dew_point(result: dict, ref: str) -> dict:
     with contextlib.suppress(ValueError):
         result["T_ref_cond_sat_v [°C]"] = cu.K2C(props_si("T", "P", P, "Q", 1, ref))
     return result
+
+
+def mixed_water_enthalpy_flow(dV_mix_w_out: float, T_mix_K: float, T0_K: float) -> float:
+    """``Q_mix_w_out [W]``: enthalpy flow of the mixed water delivered, from ``T0``; 0 without a draw.
+
+    The temperature of water that is not drawn is NaN, and ``0 * NaN`` is NaN:
+    a step without a draw delivers no heat, so it reports 0.0.
+    """
+    if not dV_mix_w_out > 0.0:
+        return 0.0
+    return float(calc_energy_flow(G=c_w * rho_w * dV_mix_w_out, T=T_mix_K, T0=T0_K))
+
+
+def mixed_water_exergy(df: pd.DataFrame, T0_K: Any) -> pd.Series:
+    """``X_mix_w_out [W]`` of a dynamic frame: flow exergy of the mixed water delivered; 0 without a draw.
+
+    Reads ``dV_mix_w_out [m3/s]`` and ``T_mix_w_out [°C]``. Steps with a draw
+    are evaluated as before; on a step without one the temperature (NaN) is
+    not used.
+    """
+    flow = df["dV_mix_w_out [m3/s]"].fillna(0)
+    T_K = cu.C2K(df["T_mix_w_out [°C]"]).where(flow > 0, T0_K)
+    return calc_exergy_flow(c_w * rho_w * flow, T_K, T0_K)

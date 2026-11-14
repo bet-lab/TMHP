@@ -15,6 +15,8 @@ from tmhp import (
     WaterSourceHeatPumpBoiler,
 )
 
+from tests._renamed_result_keys import RENAMED_RESULT_KEYS
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -66,7 +68,9 @@ RESULT_KEYS_PAGE = "docs/source/concepts/result-keys.rst"
 
 
 def _documented_result_keys() -> set[str]:
-    return set(re.findall(r"``([^`]+)``", _read(RESULT_KEYS_PAGE)))
+    """Keys the page names, leaving out its "Renamed keys" table (old names a result no longer has)."""
+    page = re.sub(r"^Renamed keys\n=+\n.*?(?=^[^\n]+\n=+\n)", "", _read(RESULT_KEYS_PAGE), flags=re.M | re.S)
+    return set(re.findall(r"``([^`]+)``", page))
 
 
 def _space_results(model) -> tuple[set[str], set[str]]:
@@ -122,6 +126,9 @@ def test_every_result_key_is_in_the_result_key_dictionary(family: str) -> None:
         f"{family} returns result keys that {RESULT_KEYS_PAGE} does not name: {missing}. "
         "Add them to the page (meaning, unit, sign, families)."
     )
+    # Renamed keys are gone, not aliased (#96, round 5; tests/test_result_key_names.py).
+    old = sorted((steady | dynamic) & set(RENAMED_RESULT_KEYS))
+    assert not old, f"{family} still returns renamed result keys: {old}"
 
 
 def test_result_key_dictionary_names_the_keys_callers_branch_on() -> None:

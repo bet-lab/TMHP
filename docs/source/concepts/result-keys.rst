@@ -96,27 +96,18 @@ are an operating point, a reduced one, a time average, or placeholders.
     * - ``discharge_control``
       - all
       - The discharge-temperature control acted: suction superheat reduced, then wet suction, to hold ``T_dis_max``. See ``dT_ref_superheat [K]`` and ``x_ref_cmp_in [-]``.
-    * - ``pr_clamped``
-      - ASHPB
-      - The pressure ratio was raised to the floor ``PR_cycle_min`` and the cycle solved there.
     * - ``pr_floor_active``
-      - GSHP
-      - Same condition as ``pr_clamped``, GSHP's name for it.
+      - GSHP, ASHPB
+      - The pressure ratio was raised to the floor ``PR_cycle_min`` and the cycle solved there.
     * - ``indoor_heat_direction_valid``
       - ASHP, GSHP
       - The indoor air receives heat in heating and gives it up in cooling. ``False`` makes ``cop_sys [-]`` NaN.
-    * - ``fan_flow_min_limit``
-      - ASHPB
-      - The outdoor fan runs at its smallest airflow (``dV_fan_a_min``).
-    * - ``fan_flow_max_limit``
-      - ASHPB
-      - The outdoor fan runs at its largest airflow (``dV_fan_a_max``).
     * - ``ou_fan_flow_min_limit``
-      - ASHP
-      - The outdoor fan runs at its smallest airflow.
+      - ASHP, ASHPB
+      - The outdoor fan runs at its smallest airflow (ASHPB: ``dV_fan_a_min``).
     * - ``ou_fan_flow_max_limit``
-      - ASHP
-      - The outdoor fan runs at its largest airflow.
+      - ASHP, ASHPB
+      - The outdoor fan runs at its largest airflow (ASHPB: ``dV_fan_a_max``).
     * - ``iu_fan_flow_min_limit``
       - ASHP, GSHP
       - The indoor fan runs at its smallest airflow.
@@ -139,7 +130,7 @@ What was asked for, what was delivered, and how a request outside the modulation
       - Meaning
     * - ``Q_request [W]``
       - all
-      - The duty asked for, with the sign it was given (``Q_r_iu``: negative heating, positive cooling; boilers: positive), on every row. A boiler's ``analyze_steady``: the ``Q_ref_tank`` argument. A boiler's dynamic step: ``hp_capacity`` when the thermostat called the compressor during the step (whether it ran or failed), 0 when it did not.
+      - The duty asked for, with the sign it was given (``Q_r_iu``: negative heating, positive cooling; boilers: positive), on every row. A boiler's ``analyze_steady``: the ``Q_ref_tank`` argument. A boiler's dynamic step: ``hp_capacity`` when the thermostat called the compressor during the step (whether it ran or failed), 0 when it did not; the duty asked for over the whole step is ``Q_request [W]`` times ``runtime_fraction [-]``. On a ``"max"`` row compare it with the heat delivered (``Q_ref_iu [W]``, ``Q_ref_tank [W]``) for the shortfall.
     * - ``Q_unmet [W]``
       - ASHP, GSHP
       - Part of the request not delivered, ≥ 0. Sum it times the time step for a schedule's unmet energy.
@@ -149,12 +140,6 @@ What was asked for, what was delivered, and how a request outside the modulation
     * - ``Q_min [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
       - On a ``"min"`` row, the duty of continuous operation at the minimum speed. NaN otherwise.
-    * - ``Q_ref_tank_request [W]``
-      - ASHPB
-      - ASHPB: the ``Q_ref_tank`` argument, on every row (dynamic: as ``Q_request [W]``). Compare with ``Q_ref_tank [W]`` on a ``"max"`` row.
-    * - ``Q_tank_load [W]``
-      - GSHPB, WSHPB
-      - GSHPB, WSHPB: the tank heat the cycle was asked for (the ``Q_ref_tank`` argument).
     * - ``PLR_request [-]``
       - ASHPB (s)
       - Requested duty over ``hp_capacity``, on every row.
@@ -209,7 +194,7 @@ temperature of the row and can be negative; only their differences are heat rate
       - Duty of the heat exchanger between refrigerant and ground-loop fluid: absorbed in heating, rejected in cooling.
     * - ``Q_ref_water [W]``
       - WSHPB
-      - Duty of the evaporator on the source-water loop.
+      - Duty of the evaporator on the source-water loop: WSHPB's counterpart of ``Q_ref_ground [W]``, named by location like every heat duty.
     * - ``Q_bhe [W]``
       - GSHP, GSHPB, WSHPB
       - Heat taken from the ground (or source water) by the loop: positive when extracted, negative when rejected in cooling. Differs from ``Q_ref_ground``/``Q_ref_water`` by the pump heat ``E_pmp``.
@@ -338,37 +323,22 @@ Values of the running machine. On an off row speeds and flows are 0 and efficien
       - Meaning
     * - ``cmp_rpm [rpm]``
       - all
-      - Compressor speed.
-    * - ``cmp_rps [rev/s]``
-      - GSHP, GSHPB
-      - Compressor speed in revolutions per second.
+      - Compressor speed (``cmp_rpm [rpm] / 60`` in revolutions per second, the unit of ``rps_min`` and ``rps_max``).
     * - ``n_star [-]``
       - all
       - Compressor speed over the rated speed ``rps_rated``.
     * - ``pr_cmp [-]``
-      - ASHP, ASHPB, GSHPB, WSHPB
+      - all
       - Compressor pressure ratio, discharge over suction pressure.
-    * - ``pressure_ratio``
-      - GSHP
-      - The same ratio under GSHP's name (dimensionless, no bracket).
     * - ``eta_cmp_isen [-]``
-      - ASHP, ASHPB, GSHPB, WSHPB
+      - all
       - Isentropic efficiency at this point.
     * - ``eta_cmp_vol [-]``
-      - ASHP, ASHPB, GSHPB, WSHPB
+      - all
       - Volumetric efficiency at this point.
     * - ``eta_cmp [-]``
-      - ASHP, ASHPB, GSHPB, WSHPB
+      - all
       - Electro-mechanical efficiency at this point.
-    * - ``eta_is [-]``
-      - GSHP, GSHPB
-      - Isentropic efficiency, ground-source name (same value as ``eta_cmp_isen`` where both exist).
-    * - ``eta_v [-]``
-      - GSHP, GSHPB
-      - Volumetric efficiency, ground-source name.
-    * - ``eta_em [-]``
-      - GSHP, GSHPB
-      - Electro-mechanical efficiency, ground-source name.
     * - ``m_dot_ref [kg/s]``
       - all
       - Refrigerant mass flow (a mean on a cycling row).
@@ -381,9 +351,6 @@ Values of the running machine. On an off row speeds and flows are 0 and efficien
     * - ``x_ref_cmp_in [-]``
       - all
       - Suction vapour quality: 1 for dry suction, below 1 (down to ``x_suction_min``) when the discharge control uses wet suction.
-    * - ``T_cond [°C]``
-      - GSHPB, WSHPB
-      - Condensing temperature (bubble point). NaN on an off row (no condensing pressure).
 
 Air side
 ========
@@ -453,7 +420,7 @@ Air side
       - Heat the indoor coil transfers at the solved approach (running machine).
     * - ``Q_iu_ref_required [W]``
       - GSHP
-      - Refrigerant duty the indoor coil has to carry (running machine).
+      - Refrigerant duty the indoor coil has to carry (running machine). A requirement of the solved cycle, not the caller's request (that is ``Q_request [W]``).
     * - ``iu_hx_capacity_margin [W]``
       - GSHP
       - Available minus required indoor-coil heat at the solved airflow; 0 when balanced.
@@ -514,9 +481,6 @@ reuses these names for its source-water coil.
     * - ``ground_flow_ratio``
       - GSHP, GSHPB
       - Loop flow over the reference flow ``ground_flow_ref_lpm`` (0 when off).
-    * - ``ground_flow_ref_ratio``
-      - GSHP, GSHPB
-      - The same ratio (kept under both names).
     * - ``ground_flow_control``
       - GSHP, GSHPB
       - ``"constant"`` or ``"optimal_power"``: how the loop flow was chosen.
@@ -549,7 +513,7 @@ reuses these names for its source-water coil.
       - Heat the ground-side heat exchanger transfers at the solved approach (running machine).
     * - ``Q_ref_required [W]``
       - GSHP, GSHPB
-      - Refrigerant duty it has to carry (running machine).
+      - Refrigerant duty it has to carry (running machine): the source-side heat the solved cycle needs, not the caller's request (that is ``Q_request [W]``).
     * - ``hx_capacity_margin [W]``
       - GSHP, GSHPB
       - ``Q_HX_available − Q_ref_required``; 0 when balanced.
@@ -559,15 +523,9 @@ reuses these names for its source-water coil.
     * - ``hx_feasible``
       - GSHP, GSHPB
       - The ground-side heat exchanger balance closed (margin within tolerance).
-    * - ``err_Q_evap [W]``
-      - GSHP
-      - Residual of the evaporator balance (GSHP).
-    * - ``err_Q_ground [W]``
-      - GSHPB
-      - Residual of the ground heat-exchanger balance (GSHPB).
-    * - ``err_Q_water [W]``
-      - WSHPB
-      - Residual of the source-water heat-exchanger balance (WSHPB).
+    * - ``source_hx_residual [W]``
+      - GSHP, GSHPB, WSHPB
+      - Closure residual of the source-side heat exchanger (ground loop, source water): the refrigerant duty minus the heat the exchanger carries at the solved approach, ≈ 0 on a solved point (GSHP in cooling: the ground-side condenser). The pair of ``tank_hx_residual [W]``.
     * - ``pump_speed_ratio``
       - GSHP, GSHPB
       - Pump speed over its reference speed; NaN unless the hydraulic pump model is on.
@@ -620,10 +578,10 @@ as 0 by GSHPB and WSHPB.
       - Tank water temperature: the argument in ``analyze_steady``, the end-of-step temperature in a dynamic row.
     * - ``T_tank_w_in [°C]``
       - ASHPB, GSHPB, WSHPB
-      - Temperature of the make-up water entering the tank.
+      - Temperature of the make-up water entering the tank: the mains water, or the preheated water of a variant that preheats it (solar thermal).
     * - ``T_sup_w [°C]``
       - ASHPB
-      - Mains water temperature.
+      - Mains water temperature, before any preheating; the same as ``T_tank_w_in [°C]`` without one.
     * - ``T_mix_w_out [°C]``
       - ASHPB, GSHPB, WSHPB
       - Temperature of the water delivered by the mixing valve; NaN when nothing is drawn (ASHPB).
@@ -1057,6 +1015,55 @@ only (below).
       - Diagnostics of the coupled ground-flow solve (:doc:`/models/ground-flow`).
         On every GSHP row of that solver (NaN or ``None`` where one does not
         apply).
+
+Renamed keys
+============
+
+Nine names that differed between the families for the same quantity were
+replaced by one name each (#96, round 5). The results carry only the new
+names: there is no alias, no old key next to the new one and no deprecation
+warning, so code that reads an old name gets a ``KeyError`` (a ``dict``) or a
+missing column (a frame). Validation results (``validation/results/``) and
+the step goldens use the new column names; their values are unchanged.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 32 28 40
+
+    * - Old key (families)
+      - New key
+      - Note
+    * - ``eta_is [-]``, ``eta_v [-]``, ``eta_em [-]`` (GSHP, GSHPB)
+      - ``eta_cmp_isen [-]``, ``eta_cmp_vol [-]``, ``eta_cmp [-]``
+      - GSHPB already carried both names with the same value.
+    * - ``pressure_ratio`` (GSHP)
+      - ``pr_cmp [-]``
+      - The *value* ``"pressure_ratio"`` of ``capacity_binding`` is unchanged.
+    * - ``pr_clamped`` (ASHPB)
+      - ``pr_floor_active``
+      - GSHP's name for the same condition.
+    * - ``Q_ref_tank_request [W]`` (ASHPB), ``Q_tank_load [W]`` (GSHPB, WSHPB)
+      - ``Q_request [W]``
+      - Already on every row. The dynamic ``Q_tank_load [W]`` was a step mean:
+        ``Q_request [W]`` times ``runtime_fraction [-]``. A steady row that
+        failed reported 0 there; ``Q_request [W]`` is the duty asked for.
+    * - ``ground_flow_ref_ratio`` (GSHP, GSHPB)
+      - ``ground_flow_ratio``
+      - Always the same value.
+    * - ``fan_flow_min_limit``, ``fan_flow_max_limit`` (ASHPB)
+      - ``ou_fan_flow_min_limit``, ``ou_fan_flow_max_limit``
+      - As ASHP. :func:`tmhp.hx_fan.calc_fan_operating_point` keeps its own
+        ``fan_flow_min_limit`` / ``fan_flow_max_limit``.
+    * - ``cmp_rps [rev/s]`` (GSHP, GSHPB)
+      - removed
+      - ``cmp_rpm [rpm] / 60``.
+    * - ``T_cond [°C]`` (GSHPB, WSHPB)
+      - ``T_ref_cond_sat_l [°C]``
+      - Always the same value.
+    * - ``err_Q_evap [W]`` (GSHP), ``err_Q_ground [W]`` (GSHPB),
+        ``err_Q_water [W]`` (WSHPB)
+      - ``source_hx_residual [W]``
+      - The pair of ``tank_hx_residual [W]``.
 
 Checking a result in code
 =========================

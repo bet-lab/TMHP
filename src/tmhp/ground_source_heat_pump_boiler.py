@@ -91,6 +91,8 @@ from .constants import c_w, rho_w
 from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    STOP_BOILING_LIMIT,
+    STOP_CONDENSING_LIMIT,
     T_WATER_BOIL_C,
     TANK_LEVEL_MIN,
     ControlState,
@@ -167,11 +169,21 @@ NODAL_TANK_MODELS: tuple[str, ...] = ("stratified", "hybrid")
 NODAL_DRAW_TOL_K: float = 1.0e-3
 NODAL_DRAW_ITERATIONS: int = 6
 
-#: The condensing temperature of a multi-node tank step is at least the one at
-#: which the coil, with this multiple of its conductance, passes the step's
-#: heat to the nodes as they are at the end of the step. 2: the end-of-step
-#: approach is at least half the nominal ``Q / UA_tank_hx``.
-NODAL_END_CONDUCTANCE: float = 2.0
+#: The condensing level of a multi-node tank's coil is averaged over the run
+#: (:meth:`GroundSourceHeatPumpBoiler._coil_run_levels`) by Simpson's rule on
+#: this many equal intervals of the run (even), each sample a trial tank step.
+NODAL_RUN_INTERVALS: int = 2
+
+#: The hold at the envelope stop never delivers more than the nameplate duty
+#: at any moment: the heat it needs is read on this many equal parts of the
+#: hold (:meth:`GroundSourceHeatPumpBoiler._envelope_stop`), and from the
+#: first part that needs more the compressor runs flat out.
+NODAL_HOLD_INTERVALS: int = 8
+
+#: Result key of a multi-node tank's step: the highest condensing temperature
+#: (bubble point) the step's run reached [°C]. ``T_ref_cond_sat_l [°C]`` is
+#: the run's mean, which the step's power belongs to.
+COIL_PEAK_KEY: str = "T_ref_cond_sat_l_peak [°C]"
 
 #: Share of the step's condenser heat below which a multi-node tank that could
 #: not take it counts as having taken none (the compressor did not run).
@@ -185,6 +197,15 @@ ENVELOPE_STOP_TOL_K: float = 1.0e-3
 #: Run time [s] to which the trial tank steps resolve when the water around a
 #: multi-node tank's coil reaches the envelope stop (0.1 s at 8 kW is 0.8 kJ).
 ENVELOPE_STOP_TIME_TOL_S: float = 0.1
+
+#: A multi-node tank's coil that reaches its envelope stop with the mean
+#: temperature within this of the upper set point [K] has satisfied the
+#: thermostat: the call ends there and the hysteresis decides the next start
+#: (:meth:`GroundSourceHeatPumpBoiler._setpoint_at_coil_stop`). The two
+#: coincide whenever the set point is the envelope's own (a requested set
+#: point above the envelope stop is capped at it) and the coil spans the
+#: tank; far below a thermostat's differential.
+NODAL_SETPOINT_TIE_K: float = 0.5
 
 
 class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
@@ -713,6 +734,26 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self._tank: StratifiedTank | HybridStratifiedTank | None = None
         #: Result of the multi-node tank's last step (None for the lumped tank).
         self._tank_step: dict | None = None
+        # Of the step in progress (set by analyze_dynamic): the envelope stop
+        # of the water around the coil (None: no condensing limit), the run
+        # time to it (_envelope_stop), and the condensing temperature of a
+        # cycle that only starts the run (_solve_cycle_for_tank; None: the
+        # cycle of the run's mean).
+        self._envelope_cutout: float | None = None
+        self._coil_run_limit_s: float = math.inf
+        self._coil_cap_C: float | None = None
+        # Tank draw of the step's trial tank steps (_trial_draw_flow; None: not
+        # found yet) and the tank steps already worked out from the step's
+        # start state (_coil_step: the trial at the nameplate duty is the
+        # row's own step when the compressor runs through at that duty).
+        self._trial_flow: float | None = None
+        self._coil_step_memo: dict[tuple[float, float, float, float], tuple[dict, dict, bool]] = {}
+        # End of the step's hold the compressor cannot keep up with
+        # (_envelope_stop): its length [s] and the condensing level it ends on.
+        self._hold_tail: tuple[float, float] = (0.0, math.inf)
+        # Mean tank temperature at which the step's coil reaches its envelope
+        # stop (_envelope_stop; NaN: not in this step).
+        self._coil_stop_mean_C: float = math.nan
         if tank_model in NODAL_TANK_MODELS:
             if self._subsystems:
                 raise NotImplementedError(f"{tank_model} tank_model does not yet support subsystems (stc/pv/uv)")
@@ -1720,6 +1761,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             r["T_tank_w_out [°C]"] = tank["T_draw_out"]
             r["T_tank_w_top [°C]"] = tank["T_top"]
             r["T_tank_w_bottom [°C]"] = tank["T_outlet"]
+            # Highest condensing temperature of the step's run (the row's
+            # T_ref_cond_sat_l is its mean); NaN on a step without a run.
+            r[COIL_PEAK_KEY] = float(r.get(COIL_PEAK_KEY, math.nan)) if r.get("hp_is_on") else math.nan
 
         # Hot-water service: the heat the draw schedule asked for at the set
         # point and the part not delivered (water below the set point, or a
@@ -1992,6 +2036,79 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 return float(level[j])
         return float(level[-1])
 
+    def _coil_run_levels(
+        self, T_mean_C: float, q: float, run_s: float, draw_flow: float, T_makeup_C: float
+    ) -> tuple[float, float]:
+        """Mean and highest condensing level [°C] of the step's run: ``run_s`` seconds at duty ``q`` [W].
+
+        A compressor that runs through a step condenses against water that
+        warms (or, with a draw bringing cold water to the coil, cools) while it
+        runs, and its condensing temperature follows: at each moment it is the
+        level of the node profile then (:meth:`_condensing_level`). The power
+        of a step is the mean of the power along that path, which is, to first
+        order, the power at the path's mean condensing temperature -- not at
+        the temperature the run ends on. That is what the lumped tank does: it
+        solves the cycle at the mean tank temperature of the run
+        (``T_on_mean_C`` of :func:`tmhp.dynamic_context.resolve_step_operation`),
+        here ``T_mean_C``.
+
+        The level is that mean tank temperature plus how far the coil's level
+        lies above the tank's mean, and that distance is what the node
+        profile adds: ``q / UA_tank_hx`` in a mixed tank, less with cold water
+        around the coil, more with a coil in hot water (a top coil). It is
+        read from trial tank steps (:meth:`StratifiedTank.preview`) that run
+        the coil at ``q`` from the tank as it stands, with the step's draw:
+        after each of :data:`NODAL_RUN_INTERVALS` equal parts of the run,
+        averaged by Simpson's rule. (The thermostat's mean, not the trial's,
+        carries the tank: the run may start late in the step or in several
+        parts, which the thermostat's events resolve and one trial run does
+        not.) The run time past the envelope stop (:meth:`_envelope_stop`) is
+        not such a run: the compressor then holds the coil's water at the
+        cut-out, where duty ``q`` condenses at ``cutout + q / UA_tank_hx``.
+
+        No level is taken above the condensing limit
+        (``cutout + hp_capacity / UA_tank_hx``): the in-step thermostat stops
+        the run, or holds it, when the water around the coil gets there. The
+        highest level is the mean raised by the trial run's own rise above its
+        mean; it is the envelope's concern, the mean is the power's.
+        """
+        tank = self._tank
+        assert tank is not None
+        ua = self._condenser_ua()
+        cutout = self._envelope_cutout
+        level_max = math.inf if cutout is None else cutout + self.hp_capacity / self.UA_tank_hx
+        trial = dict(draw_flow=draw_flow, T_makeup=T_makeup_C, T_amb=cu.K2C(self.T_sur_K))
+        start = self._condensing_level(tank.T, ua, q)
+        above = start - float(np.mean(tank.T))  # the level above the tank's mean temperature
+        if run_s <= 0.0:
+            level = min(T_mean_C + above, level_max)
+            return level, level
+        full_s = min(run_s, self._coil_run_limit_s)
+        mean = peak = min(T_mean_C + above, level_max)
+        if full_s > 0.0:
+            levels, aboves = [start], [above]
+            for j in range(1, NODAL_RUN_INTERVALS + 1):
+                profile = tank.preview(full_s * j / NODAL_RUN_INTERVALS, hx_ua=ua, q_hx=q, **trial)["T"]
+                levels.append(self._condensing_level(profile, ua, q))
+                aboves.append(levels[-1] - float(np.mean(profile)))
+            weights = [1.0] + [4.0 if j % 2 else 2.0 for j in range(1, NODAL_RUN_INTERVALS)] + [1.0]
+
+            def simpson(values: list[float]) -> float:
+                return sum(w * v for w, v in zip(weights, values, strict=True)) / sum(weights)
+
+            mean = min(T_mean_C + simpson(aboves), level_max)
+            peak = min(mean + max(levels) - simpson(levels), level_max)
+        if full_s < run_s and cutout is not None:
+            hold = min(cutout + q / self.UA_tank_hx, level_max)
+            # The end of a hold the compressor could not keep up with: it runs
+            # flat out while the coil's water cools from the cut-out.
+            tail_s, tail_end = self._hold_tail
+            tail_s = min(tail_s, run_s - full_s)
+            tail = 0.5 * (hold + min(hold, tail_end))
+            mean = (full_s * mean + (run_s - full_s - tail_s) * hold + tail_s * tail) / run_s
+            peak = max(peak, hold)
+        return mean, peak
+
     def _nodal_sink_temperature(
         self,
         T_mean_C: float,
@@ -2007,51 +2124,19 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         ``T + q / UA_tank_hx``. For a multi-node tank the condensing
         temperature the coil needs is its level ``L``
         (:meth:`_condensing_level`), so the cycle is given ``L − q / UA_tank_hx``
-        and condenses exactly at ``L``. Two requirements set ``L``:
-
-        - the run's mean: ``L`` of the node profile half-way through the run
-          (a trial tank step of half the run time), expressed relative to that
-          profile's mean so that the cycle follows ``T_mean_C``, the mean
-          temperature the thermostat model gives for the run (the midpoint
-          rule the lumped tank uses);
-        - the end of the step: the coil must still pass the step's heat to the
-          nodes as they are at the end of the step. ``L`` is not taken below
-          the temperature that does so with the coil's conductance times
-          :data:`NODAL_END_CONDUCTANCE` (a trial step that solves the exchanger
-          temperature). This binds when the tank warms by more than about the
-          coil's approach within one step (a large ``UA_tank_hx``, or a long
-          step at full run time); the condensing temperature the row reports
-          is then the end-of-step one, a first-order (conservative) estimate.
-
-        Neither takes ``L`` above the condensing limit
-        (``cutout + hp_capacity / UA_tank_hx``, :meth:`_envelope_stop`): the
-        in-step thermostat stops the run, or holds it, when the water around
-        the coil reaches the envelope stop.
+        and condenses exactly at ``L``: the mean level of the step's run
+        (:meth:`_coil_run_levels`), so that the step's power is that of the
+        condensing temperatures the run passes through, whatever the step
+        length. ``T_mean_C`` is the mean tank temperature the thermostat model
+        gives for the run. With no run time ``L`` is the level of the profile
+        as it stands, carried to ``T_mean_C``.
 
         With one fully mixed node the result is ``T_mean_C``: the lumped tank.
         """
-        tank = self._tank
-        assert tank is not None
         if self._tank_is_one_mixed_node():
             return T_mean_C
-        ua = self._condenser_ua()
         fraction = min(1.0, max(0.0, runtime_fraction))
-        trial = dict(draw_flow=draw_flow, T_makeup=T_makeup_C, T_amb=cu.K2C(self.T_sur_K))
-        profile = tank.T
-        if fraction > 0.0:
-            T_start_level = self._condensing_level(profile, ua, q)
-            profile = tank.preview(0.5 * fraction * dt_s, hx_ua=ua, T_hx=T_start_level, q_hx=q, **trial)["T"]
-        level = T_mean_C + (self._condensing_level(profile, ua, q) - float(np.mean(profile)))
-        if fraction > 0.0:
-            end = tank.preview(dt_s, hx_ua=NODAL_END_CONDUCTANCE * fraction * ua, q_hx=fraction * q, **trial)
-            level = max(level, float(end["T_hx"]))
-        cutout = getattr(self, "_envelope_cutout", None)
-        if cutout is not None:
-            # The in-step thermostat stops the run, or holds it, when the
-            # coil's water reaches the envelope stop (_envelope_stop): the
-            # coil never needs to condense above the limit.
-            level = min(level, cutout + self.hp_capacity / self.UA_tank_hx)
-        return level - q / self.UA_tank_hx
+        return self._coil_run_levels(T_mean_C, q, fraction * dt_s, draw_flow, T_makeup_C)[0] - q / self.UA_tank_hx
 
     def _envelope_stop(self, ctx: StepContext, cutout: float | None, dt_s: float) -> tuple[float, float, float]:
         """Envelope stop of this step: ``(T_limit_C, run_limit_s, Q_hold)`` of the in-step thermostat.
@@ -2077,9 +2162,24 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         coil's water is already there, ``inf`` if it does not get there within
         the step. While the thermostat still calls, the compressor then holds
         the coil's water at the cut-out: ``Q_hold`` is what a step run at the
-        nameplate duty with the coil's water capped at ``cutout`` delivers
-        after the stop, per second of the rest of the step. The tank cut-out is
-        then the boiling point. Without a condensing limit: no stop but boiling.
+        nameplate duty with the coil's water capped at ``cutout``
+        (:meth:`_coil_water_max`) delivers after the stop, per second of the
+        rest of the step. The tank cut-out is then the boiling point. Without
+        a condensing limit: no stop but boiling.
+
+        The hold never delivers more than the nameplate duty at any moment.
+        A step's mean alone does not say so: while a cold front reaches the
+        coil, holding its water takes more than the compressor has, after a
+        stretch that took little. The hold's heat is therefore read on
+        :data:`NODAL_HOLD_INTERVALS` equal parts of the hold (trial steps of
+        growing length); from the first part that needs more than the
+        nameplate duty the compressor runs flat out to the end of the step
+        and the coil's water cools from the cut-out. ``_hold_tail`` keeps
+        that stretch's length and the condensing level it ends on, for the
+        run's mean level (:meth:`_coil_run_levels`).
+
+        The trial steps draw what the step itself will
+        (:meth:`_trial_draw_flow`).
         """
         if cutout is None:
             return T_WATER_BOIL_C, math.inf, 0.0
@@ -2091,23 +2191,75 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         ua = self._condenser_ua()
         q = float(self.hp_capacity)
         level_max = cutout + q / self.UA_tank_hx
-        draw_flow = self._nodal_draw_flow(ctx, float(tank.T[0]), ctx.T_sup_w_K)["dV_tank_w_out"]
+        draw_flow = self._trial_draw_flow(ctx, dt_s)
         trial = dict(draw_flow=draw_flow, T_makeup=cu.K2C(ctx.T_sup_w_K), T_amb=cu.K2C(self.T_sur_K))
 
         def excess(tau: float) -> float:
             profile = tank.preview(tau, hx_ua=ua, q_hx=q, **trial)["T"] if tau > 0.0 else tank.T
             return self._condensing_level(profile, ua, q) - level_max
 
-        def capped_heat() -> float:
-            return float(tank.preview(dt_s, hx_ua=ua, T_hx=cutout, q_hx=q, **trial)["Q_hx"]) * dt_s
+        def capped_heat(t: float) -> float:
+            """Heat [J] of ``t`` seconds at the nameplate duty, the coil's water held at the stop once it is there."""
+            if excess(t) <= ENVELOPE_STOP_TOL_K:
+                return q * t
+            return float(tank.preview(t, hx_ua=ua, T_hx=cutout, q_hx=q, **trial)["Q_hx"]) * t
 
+        def hold_heat(tau: float) -> float:
+            """Heat [J] of the hold from ``tau`` to the end of the step, never above ``q`` at any moment."""
+            total = max(0.0, capped_heat(dt_s) - q * tau)
+            span = dt_s - tau
+            if total < q * span / NODAL_HOLD_INTERVALS:
+                return total  # no part of the hold can be above the nameplate duty
+            done, heat = q * tau, 0.0
+            for j in range(1, NODAL_HOLD_INTERVALS + 1):
+                t = tau + span * j / NODAL_HOLD_INTERVALS
+                upto = capped_heat(t) if j < NODAL_HOLD_INTERVALS else total + q * tau
+                part = upto - done
+                if part > q * span / NODAL_HOLD_INTERVALS * (1.0 + 1e-9):
+                    # From here the hold asks for more than the compressor
+                    # has: it runs flat out and the coil's water cools.
+                    tail = dt_s - (t - span / NODAL_HOLD_INTERVALS)
+                    heat += q * tail
+                    share = (q * tau + heat) / (q * dt_s)
+                    end = tank.preview(dt_s, hx_ua=share * ua, q_hx=share * q, **trial)["T"]
+                    self._hold_tail = (tail, min(self._condensing_level(end, ua, q), level_max))
+                    return heat
+                heat += max(0.0, part)
+                done = upto
+            return heat
+
+        self._hold_tail = (0.0, level_max)
+        self._coil_stop_mean_C = math.nan
         if excess(0.0) >= -ENVELOPE_STOP_TOL_K:
-            return T_WATER_BOIL_C, 0.0, capped_heat() / dt_s
+            self._coil_stop_mean_C = float(np.mean(tank.T))
+            return T_WATER_BOIL_C, 0.0, hold_heat(0.0) / dt_s
         if excess(dt_s) < 0.0:
             return T_WATER_BOIL_C, math.inf, 0.0
         tau = float(brentq(excess, 0.0, dt_s, xtol=ENVELOPE_STOP_TIME_TOL_S))
-        hold = max(0.0, capped_heat() - q * tau) / max(dt_s - tau, ENVELOPE_STOP_TIME_TOL_S)
+        at_stop = tank.preview(tau, hx_ua=ua, q_hx=q, **trial)["T"] if tau > 0.0 else tank.T
+        self._coil_stop_mean_C = float(np.mean(at_stop))
+        hold = hold_heat(tau) / max(dt_s - tau, ENVELOPE_STOP_TIME_TOL_S)
         return T_WATER_BOIL_C, tau, hold
+
+    def _setpoint_at_coil_stop(self, run_limit_s: float, Q_hold: float) -> tuple[float, float, float]:
+        """``(T_upper, run_limit_s, Q_hold)`` of the step's thermostat, the coil's stop and the set point told apart.
+
+        A coil that reaches its envelope stop while the mean the thermostat
+        reads is at its upper set point (within :data:`NODAL_SETPOINT_TIE_K`)
+        has satisfied the thermostat: the call ends at that mean temperature
+        and the next start waits for the lower bound, as in the lumped tank.
+        Holding the coil's water at the stop instead would keep the mean
+        just below a set point it cannot reach (no node is heated past the
+        stop, which is the set point), at the condensing limit, for as long
+        as a draw lasts -- and for how long depended on the step. Below the
+        set point by more than that, the stop is the coil's (a top coil over
+        cold water): the run time and the holding heat stand.
+        """
+        T_upper = float(self.T_tank_w_upper_bound)
+        at_stop = self._coil_stop_mean_C
+        if math.isfinite(run_limit_s) and math.isfinite(at_stop) and at_stop >= T_upper - NODAL_SETPOINT_TIE_K:
+            return min(T_upper, at_stop), math.inf, 0.0
+        return T_upper, run_limit_s, Q_hold
 
     def _nodal_draw_flow(self, ctx: StepContext, T_out_C: float, T_sup_w_K_n: float) -> dict:
         """Mixing-valve flows for hot water leaving the tank at ``T_out_C`` [°C]."""
@@ -2118,78 +2270,263 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             T_mix_w_out_K=self.T_mix_w_out_K,
         )
 
+    def _settle_draw(self, ctx: StepContext, T_sup_w_K_n: float, dt_s: float, tank_args: dict) -> dict:
+        """Mixing-valve flows of a tank step, set on the water that leaves the top during it.
+
+        ``tank_args`` are the step's other arguments (make-up, ambient, heat).
+        The valve is set on a temperature ``T`` and the trial step then gives
+        the temperature that left; ``T`` is moved until the two agree within
+        :data:`NODAL_DRAW_TOL_K` (a secant iteration from the top node's
+        temperature, at most :data:`NODAL_DRAW_ITERATIONS` trial steps; a
+        plain repetition closes only half the gap per trial step when a long
+        step draws most of the tank).
+        """
+        tank = self._tank
+        assert tank is not None
+        T_out_C = float(tank.T[0])
+        if ctx.dV_mix_w_out > 0.0:
+
+            def miss(T_C: float) -> float:
+                flow = self._nodal_draw_flow(ctx, T_C, T_sup_w_K_n)["dV_tank_w_out"]
+                return float(tank.preview(dt_s, draw_flow=flow, **tank_args)["T_draw_out"]) - T_C
+
+            T_prev, gap_prev = T_out_C, miss(T_out_C)
+            T_out_C = T_prev + gap_prev
+            for _ in range(NODAL_DRAW_ITERATIONS - 1):
+                if abs(T_out_C - T_prev) < NODAL_DRAW_TOL_K:
+                    break
+                gap = miss(T_out_C)
+                slope = (gap - gap_prev) / (T_out_C - T_prev)
+                T_prev, gap_prev = T_out_C, gap
+                # The gap falls as T rises (slope -1 when the valve is fully
+                # open); anything else is round-off: repeat plainly.
+                T_out_C += -gap / slope if slope < -1.0e-6 else gap
+        return self._nodal_draw_flow(ctx, T_out_C, T_sup_w_K_n)
+
+    def _nodal_free_residual(self, ctx: StepContext, lumped: Callable[[float], float], dt_s: float):
+        """Tank residual without the heat pump for the in-step thermostat of a multi-node tank.
+
+        The thermostat follows the mean temperature with the boiler's
+        implicit residual (:func:`tmhp.dynamic_context.resolve_step_operation`).
+        The lumped residual ``lumped`` draws hot water at that mean; a
+        multi-node tank gives it from the top. The two take the same heat
+        while both temperatures are above the mixing set point (the valve
+        then delivers the scheduled heat either way) and part once a draw has
+        left the mean below it under a top that is still hot: the lumped
+        residual would give the lukewarm water of a mixed tank, and the
+        thermostat a mean that rises while the tank's falls. So the draw is
+        evaluated at the mean plus what the top node is above it at the start
+        of the step: with ``D(T) = ρc·V̇_mix·(min(T, T_mix) − T_makeup)⁺`` the
+        valve's heat for water leaving at ``T``, the residual is the lumped
+        one with ``D(T)`` replaced by ``D(T + T_top − T_mean)``. One mixed
+        node is the lumped tank.
+        """
+        tank = self._tank
+        if tank is None or self._tank_is_one_mixed_node() or ctx.dV_mix_w_out <= 0.0:
+            return lumped
+        above = max(0.0, float(tank.T[0]) - float(np.mean(tank.T)))
+        rate = c_w * rho_w * float(ctx.dV_mix_w_out)
+        T_mix_K, T_sup_K, C = self.T_mix_w_out_K, ctx.T_sup_w_K, self.C_tank
+
+        def drawn(T_K: float) -> float:
+            return float(rate * max(0.0, min(T_K, T_mix_K) - T_sup_K))
+
+        def residual(T_K: float) -> float:
+            return float(lumped(T_K)) + dt_s * (drawn(T_K + above) - drawn(T_K)) / C
+
+        return residual
+
+    def _coil_level_max(self) -> float:
+        """Highest condensing level the coil may reach [°C].
+
+        The envelope's (``cutout + hp_capacity / UA_tank_hx``: the nameplate
+        duty on ``T_cond_max``), and never above the tank's boiling limit:
+        the coil heats no liquid water past it.
+        """
+        tank = self._tank
+        assert tank is not None
+        cutout = self._envelope_cutout
+        return tank.T_boil if cutout is None else min(tank.T_boil, cutout + self.hp_capacity / self.UA_tank_hx)
+
+    def _coil_water_max(self) -> float:
+        """Hottest the compressor may leave the water around the coil [°C].
+
+        The envelope stop (``cutout``: there the nameplate duty condenses on
+        ``T_cond_max``); without one the tank's boiling limit. A compressor on
+        its limit holds the coil's water there: it heats the coil's nodes
+        that are colder, and none past it. For a coil in one node that is the
+        condensing level on its limit; a coil over several nodes can reach
+        the limit level with some of them hotter than the stop (they are then
+        left alone) and others colder, which the hold goes on heating -- so a
+        mean the thermostat reads keeps rising to its upper set point, which
+        is never above the stop, and the call ends there.
+        """
+        tank = self._tank
+        assert tank is not None
+        cutout = self._envelope_cutout
+        return tank.T_boil if cutout is None else min(tank.T_boil, cutout)
+
+    def _coil_step(
+        self, ctx: StepContext, T_sup_w_K_n: float, dt_s: float, q_run: float, fraction: float
+    ) -> tuple[dict, dict, bool]:
+        """Tank step of a compressor that runs ``fraction`` of the step at duty ``q_run`` [W].
+
+        Returns the tank-step arguments, the mixing-valve flows
+        (:meth:`_settle_draw`) and whether the coil was held on its limit.
+
+        The coil exchanges while the compressor runs: over the step its
+        conductance is ``fraction·UA_i`` and the tank solves the exchanger
+        temperature at which the nodes, as they end the step, receive the
+        step's heat ``fraction·q_run`` -- the condensing level the run ends
+        on. If that is above :meth:`_coil_level_max` the compressor holds the
+        coil's water at the envelope stop instead (:meth:`_coil_water_max`):
+        the step's heat goes to the coil's nodes below it, none of them
+        heated past it, and what they cannot take is not delivered (the draw
+        is settled again on the top that then leaves).
+        """
+        tank = self._tank
+        assert tank is not None
+        key = (float(q_run), float(fraction), float(T_sup_w_K_n), float(dt_s))
+        if key in self._coil_step_memo:
+            return self._coil_step_memo[key]
+        ua = self._condenser_ua()
+        level_max = self._coil_level_max()
+        free = dict(T_makeup=cu.K2C(T_sup_w_K_n), T_amb=cu.K2C(self.T_sur_K))
+        delivered = dict(free, hx_ua=fraction * ua, q_hx=fraction * q_run)
+        args, held = delivered, False
+        flow_state = self._settle_draw(ctx, T_sup_w_K_n, dt_s, args)
+        end = tank.preview(dt_s, draw_flow=flow_state["dV_tank_w_out"], **args)
+        # Neither the exchanger temperature the step's heat goes in at nor the
+        # level the nodes end on (they differ when the tank sub-steps a draw).
+        if max(float(end["T_hx"]), self._condensing_level(end["T"], ua, q_run)) > level_max + ENVELOPE_STOP_TOL_K:
+            args = dict(free, hx_ua=ua, T_hx=self._coil_water_max(), q_hx=fraction * q_run)
+            flow_state = self._settle_draw(ctx, T_sup_w_K_n, dt_s, args)
+            held = bool(tank.preview(dt_s, draw_flow=flow_state["dV_tank_w_out"], **args)["hx_limited"])
+        self._coil_step_memo[key] = (args, flow_state, held)
+        return args, flow_state, held
+
+    def _trial_draw_flow(self, ctx: StepContext, dt_s: float) -> float:
+        """Tank draw [m³/s] of the step's trial tank steps (found once per step).
+
+        The trial steps that read the coil's condensing level
+        (:meth:`_envelope_stop`, :meth:`_coil_run_levels`) draw what the step
+        itself will: the mixing valve takes less tank water the hotter the top
+        is, so a draw set on the top temperature at the start of the step is
+        too small while a cold front reaches the top (the trial then keeps the
+        coil's water, and the condensing level, too hot) and too large while
+        the coil heats it. It is the draw of the step run through at the
+        nameplate duty (:meth:`_coil_step`: held on the limit if it gets
+        there), the tank step the row itself will take when it does.
+        """
+        if self._trial_flow is None:
+            self._trial_flow = 0.0
+            if ctx.dV_mix_w_out > 0.0:
+                flows = self._coil_step(ctx, ctx.T_sup_w_K, dt_s, float(self.hp_capacity), 1.0)[1]
+                self._trial_flow = float(flows["dV_tank_w_out"])
+        return self._trial_flow
+
     def _solve_cycle_for_tank(self, ctx: StepContext, T_C: float, runtime_fraction: float, dt_s: float) -> dict:
         """Cycle of the step for the tank backend in use (``T_C``: run-mean tank temperature [°C]).
 
         Lumped tank: :meth:`_solve_cycle_at`. Multi-node tank: the same solve
         against the coil's tank-side temperature for each duty tried
-        (:meth:`_nodal_sink_temperature`). If the cycle has no operating point
-        against the mid-run profile (the water around the coil gets too hot
-        within the run), the cycle that starts the run is used; the tank step
-        then stops the compressor when that water reaches the condensing
-        temperature.
+        (:meth:`_nodal_sink_temperature`: the run's mean condensing level). The
+        result carries :data:`COIL_PEAK_KEY`, the highest condensing
+        temperature of the run: the cycle's, raised by how far the highest
+        level of the run lies above its mean (:meth:`_coil_run_levels`). If the
+        cycle has no operating point against the run's mean, the cycle that
+        starts the run is used; the tank step then stops the compressor when
+        the water around the coil reaches that cycle's condensing temperature
+        (``_coil_cap_C``, see :meth:`_solve_nodal_tank`).
         """
         tank = self._tank
         if tank is None:
             return self._solve_cycle_at(ctx, T_C, runtime_fraction)
         T_makeup_C = cu.K2C(ctx.T_sup_w_K)
-        draw_flow = self._nodal_draw_flow(ctx, float(tank.T[0]), ctx.T_sup_w_K)["dV_tank_w_out"]
+        one_node = self._tank_is_one_mixed_node()
+        # The draw of the step the row is expected to take: the nameplate duty
+        # for the run time the thermostat's first pass gives.
+        draw_flow = 0.0
+        if ctx.dV_mix_w_out > 0.0:
+            share = min(1.0, max(0.0, runtime_fraction))
+            if share > 0.0 and not one_node:
+                flows = self._coil_step(ctx, ctx.T_sup_w_K, dt_s, float(self.hp_capacity), share)[1]
+            else:
+                free = dict(T_makeup=T_makeup_C, T_amb=cu.K2C(self.T_sur_K))
+                flows = self._settle_draw(ctx, ctx.T_sup_w_K, dt_s, free)
+            draw_flow = float(flows["dV_tank_w_out"])
 
         def solve(fraction_seen: float) -> dict:
             def at_duty(q: float) -> dict:
-                T_sink = self._nodal_sink_temperature(T_C, q, fraction_seen, dt_s, draw_flow, T_makeup_C)
-                return self._solve_cycle_at_duty(ctx, T_sink, q, runtime_fraction)
+                mean, peak = self._coil_run_levels(T_C, q, fraction_seen * dt_s, draw_flow, T_makeup_C)
+                T_sink = T_C if one_node else mean - q / self.UA_tank_hx
+                result = self._solve_cycle_at_duty(ctx, T_sink, q, runtime_fraction)
+                if delivered_tank_heat(result) > 0.0:
+                    T_cond = min(float(result["T_ref_cond_sat_v [°C]"]), float(result["T_ref_cond_sat_l [°C]"]))
+                    result[COIL_PEAK_KEY] = T_cond + (peak - mean)
+                return result
 
             return self._duty_within_limits(ctx, T_C, at_duty)
 
+        self._coil_cap_C = None
         result = solve(runtime_fraction)
-        if delivered_tank_heat(result) <= 0.0 and not self._tank_is_one_mixed_node() and runtime_fraction > 0.0:
+        if delivered_tank_heat(result) <= 0.0 and not one_node and runtime_fraction > 0.0:
             at_start = solve(0.0)
             if delivered_tank_heat(at_start) > 0.0:
                 result = at_start
+                self._coil_cap_C = float(result[COIL_PEAK_KEY])
         return result
 
     def _solve_nodal_tank(self, ctx, ctrl, dt_s, T_sup_w_K_n, hp_result):
         """Advance the multi-node tank one step; returns the (possibly cut) heat-pump row too.
 
-        Condenser heat: node ``i`` receives ``k·UA_i·(T_cond − T_i)⁺`` with
-        ``T_cond`` the condensing temperature of the step's cycle and ``T_i``
-        the node's end-of-step temperature, ``k`` set so that the nodes receive
-        the step's condenser heat. A node as hot as the refrigerant receives
-        nothing, and no node is heated past ``T_cond`` (nor past the tank's
-        boiling limit). If the coil's nodes
-        cannot take the heat below ``T_cond`` the compressor is taken to have
-        stopped when they reached it: the row's run time, heat and power are
-        cut to what was delivered, and the thermostat call stands. (A single
-        fully mixed node has nothing to split: the heat goes in as in the
-        lumped tank.)
+        Condenser heat: the coil exchanges while the compressor runs, so over
+        the step node ``i`` receives ``f·UA_i·(T_end − T_i)⁺`` with ``f`` the
+        row's run-time fraction, ``T_i`` the node's end-of-step temperature
+        and ``T_end`` the exchanger temperature at which the nodes receive the
+        step's condenser heat, solved by the tank step: the condensing
+        temperature the run ends on. That is not the temperature the cycle
+        (and the row's ``T_ref_cond_sat_l``) is solved at, the mean of the
+        run's path (:meth:`_coil_run_levels`): water a run has warmed by more
+        than the coil's approach ends the step hotter than the run's mean
+        condensing temperature. A node as hot as the refrigerant receives
+        nothing and no node is heated past ``T_end``. The row's
+        :data:`COIL_PEAK_KEY` is the highest of ``T_end`` and the run's
+        highest level.
+
+        ``T_end`` is not taken above the condensing limit
+        (``cutout + hp_capacity / UA_tank_hx``, :meth:`_envelope_stop`; without
+        one, the tank's boiling limit). A step whose heat would need more is
+        held instead (:meth:`_coil_step`): the heat goes to the coil's nodes
+        below the envelope stop, none heated past it; if they cannot take all
+        of it the row's run time, heat and power are cut to what they took,
+        its ``hp_stop_reason`` names the limit, and the thermostat call stands.
+        With the cycle that starts the run (:meth:`_solve_cycle_for_tank`)
+        the limit is that cycle's condensing temperature, the whole coil
+        acting until the water reaches it. (A single fully mixed node has
+        nothing to split: the heat goes in as in the lumped tank.)
 
         Draw-off: the mixing valve is set on the water that actually leaves
         the top during the step (iterated, :data:`NODAL_DRAW_TOL_K`).
         """
         tank = self._tank
         assert tank is not None
-        T_makeup_C = cu.K2C(T_sup_w_K_n)
-        common = dict(T_makeup=T_makeup_C, T_amb=cu.K2C(self.T_sur_K))
+        common = dict(T_makeup=cu.K2C(T_sup_w_K_n), T_amb=cu.K2C(self.T_sur_K))
         q_step = float(ctrl.Q_heat_source)
         one_node = self._tank_is_one_mixed_node()
-        if q_step > 0.0 and one_node:
-            common.update(q_source=np.array([q_step]))
-        elif q_step > 0.0:
-            T_cond = min(float(hp_result["T_ref_cond_sat_v [°C]"]), float(hp_result["T_ref_cond_sat_l [°C]"]))
-            # Liquid water: the coil heats nothing past the tank's boiling limit either.
-            common.update(hx_ua=self._condenser_ua(), T_hx=min(T_cond, tank.T_boil), q_hx=q_step)
-
-        T_out_C = float(tank.T[0])
-        flow_state = self._nodal_draw_flow(ctx, T_out_C, T_sup_w_K_n)
-        if ctx.dV_mix_w_out > 0.0:
-            for _ in range(NODAL_DRAW_ITERATIONS):
-                T_new = tank.preview(dt_s, draw_flow=flow_state["dV_tank_w_out"], **common)["T_draw_out"]
-                moved = abs(T_new - T_out_C)
-                T_out_C = T_new
-                flow_state = self._nodal_draw_flow(ctx, T_out_C, T_sup_w_K_n)
-                if moved < NODAL_DRAW_TOL_K:
-                    break
+        coil = q_step > 0.0 and not one_node
+        fraction = float(hp_result.get("runtime_fraction [-]", 1.0))
+        cutout = self._envelope_cutout
+        held = False
+        if coil and self._coil_cap_C is None:
+            common, flow_state, held = self._coil_step(ctx, T_sup_w_K_n, dt_s, q_step / fraction, fraction)
+        else:
+            if coil:
+                # The cycle that starts the run: the whole coil, up to its condensing temperature.
+                common.update(hx_ua=self._condenser_ua(), T_hx=min(self._coil_cap_C, tank.T_boil), q_hx=q_step)
+            elif q_step > 0.0:
+                common.update(q_source=np.array([q_step]))
+            flow_state = self._settle_draw(ctx, T_sup_w_K_n, dt_s, common)
 
         out = tank.step(dt_s, draw_flow=flow_state["dV_tank_w_out"], **common)
         out["T_makeup_K"] = T_sup_w_K_n
@@ -2197,23 +2534,37 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         if q_step > 0.0 and one_node:
             out["q_hx"], out["Q_hx"] = np.array([q_step]), q_step  # the node's heat, as the coil's
-        limited = bool(q_step > 0.0 and out["hx_limited"])
+        if coil and hp_result.get(COIL_PEAK_KEY) is not None:
+            hp_result[COIL_PEAK_KEY] = max(float(hp_result[COIL_PEAK_KEY]), float(out["T_hx"]))
+        limited = bool(q_step > 0.0 and (held or out["hx_limited"]))
+        stop_reason = hp_result.get("hp_stop_reason")
+        if held:
+            stop_reason = STOP_CONDENSING_LIMIT if cutout is not None else STOP_BOILING_LIMIT
         if limited:
             share = out["Q_hx"] / q_step
             if share < NODAL_MIN_RUN_SHARE:
-                # Nothing could be delivered: the compressor did not run.
-                hp_result = self._failed_cycle_result(
-                    cu.K2C(ctx.T_tank_w_K),
-                    cu.K2C(ctx.T0_K),
-                    self._step_flow_state(ctx, cu.K2C(ctx.T_tank_w_K)),
-                    "hx_not_converged",
-                )
+                # Nothing could be delivered: the compressor did not run. On
+                # its limit that is a normal stop; with the cycle that starts
+                # the run, a cycle that could not be closed on the coil.
+                T_start_C = cu.K2C(ctx.T_tank_w_K)
+                if held:
+                    hp_result = self._off_cycle_result(ctx, T_start_C)
+                else:
+                    hp_result = self._failed_cycle_result(
+                        T_start_C, cu.K2C(ctx.T0_K), self._step_flow_state(ctx, T_start_C), "hx_not_converged"
+                    )
                 hp_result["runtime_fraction [-]"] = 0.0
                 hp_result["hp_starts [-]"] = 0
             else:
-                fraction = float(hp_result.get("runtime_fraction [-]", 1.0))
                 scale_running_rates(hp_result, share, self._RUNTIME_SCALED_KEYS)
                 hp_result["runtime_fraction [-]"] = fraction * share
+        elif coil and out["Q_hx"] != q_step:
+            # The tank's solve gives the step's heat to its tolerance (1e-9
+            # of it): the row reports what went in, so the run's balance
+            # closes to round-off.
+            scale_running_rates(hp_result, out["Q_hx"] / q_step, self._RUNTIME_SCALED_KEYS)
+            hp_result["runtime_fraction [-]"] = fraction
+        hp_result["hp_stop_reason"] = stop_reason
 
         T_solved_K = cu.C2K(float(np.mean(out["T"])))
         return T_solved_K, flow_state, 1.0, hp_result, limited
@@ -2403,9 +2754,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             # envelope stop temperature whatever its minimum run time, and in
             # a multi-node tank when the water around the coil gets there.
             scheduled = check_hp_schedule_active(ctx.hour_of_day, self.hp_on_schedule)
+            self._trial_flow = None
+            self._coil_step_memo.clear()
+            self._coil_stop_mean_C = math.nan
             T_limit_C, run_limit_s, Q_hold = (
                 self._envelope_stop(ctx, cutout, dt_s) if scheduled else (T_WATER_BOIL_C, math.inf, 0.0)
             )
+            T_upper_step, run_limit_s, Q_hold = self._setpoint_at_coil_stop(run_limit_s, Q_hold)
+            self._coil_run_limit_s, self._coil_cap_C = run_limit_s, None
             run, cycle_result = resolve_step_operation(
                 T_start_K=ctx.T_tank_w_K,
                 call_start=call_start,
@@ -2413,19 +2769,23 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 phase_age_s=phase_age_s,
                 scheduled=scheduled,
                 T_lower=self.T_tank_w_lower_bound,
-                T_upper=self.T_tank_w_upper_bound,
+                T_upper=T_upper_step,
                 dt=dt_s,
                 C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
                 C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level_solve),
                 C_tank=self.C_tank,
-                residual_free=self._build_residual_fn(
-                    ctx=ctx,
-                    ctrl=ctrl_free,
-                    dt_s=dt_s,
-                    T_tank_w_in_K_n=T_sup_w_K_n,
-                    T_sup_w_K_n=T_sup_w_K_n,
-                    tank_level=tank_level_solve,
-                    sub_states=sub_states,
+                residual_free=self._nodal_free_residual(
+                    ctx,
+                    self._build_residual_fn(
+                        ctx=ctx,
+                        ctrl=ctrl_free,
+                        dt_s=dt_s,
+                        T_tank_w_in_K_n=T_sup_w_K_n,
+                        T_sup_w_K_n=T_sup_w_K_n,
+                        tank_level=tank_level_solve,
+                        sub_states=sub_states,
+                    ),
+                    dt_s,
                 ),
                 solve_cycle=lambda T_C, fraction, ctx=ctx: self._solve_cycle_for_tank(ctx, T_C, fraction, dt_s),
                 Q_request=self.hp_capacity,
@@ -2470,17 +2830,24 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 T_solved_K, flow_state_final, level_next, hp_result, cut_out = self._solve_nodal_tank(
                     ctx, ctrl, dt_s, T_sup_w_K_n, hp_result
                 )
+                # The row is what the tank took.
+                hp_is_on = bool(hp_result.get("hp_is_on", False))
+                ctrl = ControlState(
+                    is_on=hp_is_on,
+                    Q_heat_source=delivered_tank_heat(hp_result),
+                    dV_tank_w_in_ctrl=dV_tank_w_in_ctrl,
+                )
                 if cut_out:
                     # The coil's water reached the condensing temperature before
-                    # the thermostat was satisfied: the compressor has stopped,
-                    # the call for heat stands.
-                    is_on_prev, running_prev, phase_age_s = True, False, 0.0
-                    hp_is_on = bool(hp_result.get("hp_is_on", False))
-                    ctrl = ControlState(
-                        is_on=hp_is_on,
-                        Q_heat_source=delivered_tank_heat(hp_result),
-                        dV_tank_w_in_ctrl=dV_tank_w_in_ctrl,
-                    )
+                    # the thermostat was satisfied: the call for heat stands.
+                    # A compressor that delivered part of the step's heat held
+                    # that water there (the hold of the in-step thermostat,
+                    # found late), so it is the same run in the next step: not
+                    # a new start, and no minimum rest before it. One that
+                    # delivered nothing did not run.
+                    is_on_prev = True
+                    if not hp_is_on:
+                        running_prev, phase_age_s = False, 0.0
             warn_if_tank_boiling(T_solved_K)
 
             # --- Phase C: BHE Temporal Superposition ---

@@ -621,30 +621,35 @@ capacity, refrigerant and sizing ratio the modelled COP rises at every step
 A → D in all fifteen runs of each application (96.9 % of the 9,062 certified
 low-temperature records and 98.7 % of the 9,044 medium-temperature ones do the
 same), and the A-to-D gradient lands inside the certified p10–p90 in all thirty
-runs: median 2.38 modelled against 2.63 certified for the low-temperature
-application and 3.12 against 2.86 for the medium-temperature one. Frost lowers
+runs: median 2.35 modelled against 2.63 certified for the low-temperature
+application and 3.09 against 2.86 for the medium-temperature one. Frost lowers
 point A and so steepens both; without it the two medians were 2.07 — near the
 p10 of 2.02 — and 2.71.
 
-**The level misses at the frosting point.** Read as percentiles of the
-certified population, the R32 low-temperature trajectory sits at the
-78 / 5 / 32 / 38th percentile at points A / B / C / D, and the
-medium-temperature one at 18 / 4 / 66 / 52. Point B (+2 °C) lies below the
-10th percentile in 24 of the 30 configurations — all but the R290 ones — so
-one run passes the level criterion (R290, 9 kW, low temperature, sizing ratio
-0.75). Certified COP is measured with defrost; the model now carries the
-EnergyPlus frost adjustment, and at B it takes more than the certified
-machines lose. Without it the same trajectories sat at 94 / 80 / 32 / 38 and
-70 / 91 / 66 / 52: above the 90th percentile at point A of the low-temperature
-application in every configuration, with three medium-temperature runs (the
-R410A ones) passing. The certified population
-lies between the two at A and B: the adjustment is a function of outdoor
-temperature and humidity alone, and these points are part-load ones (88 % and
-54 % of the design load), where a real coil frosts less than at the full load
-the correlation was built for. At the light points the certified COP also
-carries on/off cycling, which the running-machine figures here leave out;
-points C and D sit below the median anyway. Neither result moves a
-coefficient; both are recorded (:doc:`index`).
+**The level passes for R32 and R410A, and misses high for R290.** Read as
+percentiles of the certified population, the R32 low-temperature trajectory
+sits at the 82 / 53 / 32 / 38th percentile at points A / B / C / D, and the
+medium-temperature one at 20 / 70 / 66 / 52. Twenty-five of the thirty runs
+have all four points inside the certified p10–p90: every R32 and R410A run of
+both applications, and one R290 run. The other five R290 runs sit above the
+90th percentile at one or more points (B in four of them): the default
+efficiency maps make R290 the most efficient of the three refrigerants at
+these conditions, more so than the certified R290 machines are.
+
+Certified COP is measured with defrost, and what the model does about frost
+decides this criterion. Without any adjustment the same R32 trajectories sat
+at 94 / 80 / 32 / 38 and 70 / 91 / 66 / 52 — above the 90th percentile at
+point A of the low-temperature application in every configuration, three runs
+passing. With the EnergyPlus adjustment applied in full at every load they
+sat at 78 / 5 / 32 / 38 and 18 / 4 / 66 / 52 — point B (+2 °C, 54 % of the
+design load) below the 10th percentile in 24 of the 30 runs, one run passing:
+that adjustment is a function of outdoor temperature and humidity alone and
+corrects a unit at half load like one flat out. With the load on the coil
+taken into account (:ref:`ashp-frost-load`; no constant added) point A keeps
+nearly the whole correction and point B a third of it. At the light points
+the certified COP also carries on/off cycling, which the running-machine
+figures here leave out; points C and D sit below the median anyway. No
+result here moves a coefficient; all three are recorded (:doc:`index`).
 
 .. admonition:: What changed on the medium-temperature trajectory
     :class: note

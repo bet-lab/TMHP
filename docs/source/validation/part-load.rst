@@ -156,8 +156,9 @@ Panel (b) — the certification trajectory
 ----------------------------------------
 
 This is the curve that has to match: the modelled trajectory rises
-monotonically A → D and sits inside the certified band at A, C and D. Points A
-and B carry the frost and defrost adjustment (:ref:`ashpb-frost`).
+monotonically A → D and sits inside the certified band at all four points.
+Points A and B carry the frost and defrost adjustment at the load the coil
+carries there (:ref:`ashpb-frost`).
 
 .. list-table::
     :header-rows: 1
@@ -173,13 +174,13 @@ and B carry the frost and defrost adjustment (:ref:`ashpb-frost`).
       - −7 °C / 34 °C
       - 5.28 kW
       - 5.28 kW
-      - 3.19
+      - 3.22
       - 2.99 (2.61–3.35)
     * - B
       - +2 °C / 30 °C
       - 3.24 kW
-      - 3.24 kW
-      - 3.93
+      - 3.45 kW
+      - 4.56
       - 4.53 (4.13–5.01)
     * - C
       - +7 °C / 27 °C
@@ -194,26 +195,27 @@ and B carry the frost and defrost adjustment (:ref:`ashpb-frost`).
       - 7.55
       - 7.88 (6.40–8.97)
 
-The model sits between the 75th and 90th percentiles at A and between the
-25th percentile and the median at C and D, and falls below the band at B, near
-the 5th percentile. Without the frost and defrost adjustment the same
-trajectory read 3.65 at A (above the 90th percentile) and 4.84 at B (between
-the 75th and 90th): the adjustment brings the coldest point into the band and
-takes the frosting point out of it on the other side. It is the EnergyPlus
-correlation with its constants unchanged, a function of outdoor temperature
-and humidity alone, applied here at 54 % of the design load; the catalogue
-tables of :doc:`index`, published at full load, sit 6 % above the adjusted
-model at the same +2 °C. That is reported as it stands; no coefficient is
-adjusted to move it.
+The model sits between the 75th and 90th percentiles at A, at the median at B
+and between the 25th percentile and the median at C and D. Without the frost
+and defrost adjustment the same trajectory read 3.65 at A (above the 90th
+percentile) and 4.84 at B (between the 75th and 90th). With the EnergyPlus
+adjustment applied in full at every load — a function of outdoor temperature
+and humidity alone — it read 3.19 at A and 3.93 at B, near the 5th percentile:
+the unit at B delivers 3.7 kW frost-free on its minimum speed, 0.45 of what
+the adjustment's coil-temperature correlation is written for, and was
+corrected as if it ran flat out. The adjustment now follows the load on the
+coil (:ref:`ashp-frost-load`): at A the unit is at 0.94 of that load and
+keeps nearly the whole correction, at B a third of it. No coefficient is
+adjusted to move any of this; the load term has none.
 
 .. admonition:: One result nobody put in by hand
     :class: note
 
-    Look at the *delivered* column. At points C and D the modelled machine
+    Look at the *delivered* column. At points B, C and D the modelled machine
     cannot modulate down to the required load and delivers more than the test
-    point asks for — 4.84 kW where 0.90 kW is required. (At B the frost-free
-    machine does too, 3.72 kW; under frost its mean at the minimum speed is
-    below the 3.24 kW required, so it runs a little above that speed.)
+    point asks for — 4.84 kW where 0.90 kW is required. (At B the 3.45 kW is
+    the mean over frosting and defrost of a machine that delivers 3.72 kW
+    frost-free.)
 
     Certified machines do the same thing. 55 % of Keymark records declare a
     *higher* heat output at point D than at point C, which is the signature of

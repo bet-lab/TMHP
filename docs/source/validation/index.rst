@@ -158,8 +158,8 @@ point is the smallest unit at 0 °C.
       - 179 / 180
       - Centred; frost and defrost adjusted at and below 0 °C
     * - Daikin heating at or below −7 °C
-      - 7.1 %
-      - +6.3 %
+      - 7.2 %
+      - +6.4 %
       - 60 / 60
       - Centred at −10 °C, optimistic at −15 °C
     * - Air-to-air, Fujitsu, 2 units
@@ -179,7 +179,7 @@ the highest nameplate EER, sit 18 to 20 % low (①). **Air-to-air heating is
 centred once frost is accounted for.** With the frost and defrost adjustment
 (the EnergyPlus DX heating-coil model, its constants unchanged;
 :doc:`/models/ashp`) the bias is −7.8 % at 0 °C, −5.1 % at −5 °C, +0.3 % at
-−10 °C and +12.3 % at −15 °C outdoor, against 0 to −3 % at 6 and 10 °C, where
+−10 °C and +12.4 % at −15 °C outdoor, against 0 to −3 % at 6 and 10 °C, where
 the coil does not frost. Without the adjustment the same rows ran +17 % from 0
 to −10 °C and +28 % at −15 °C. **Air-to-water carries the same adjustment
 and runs low where it applies** (:ref:`ashpb-frost`): the bias is +0.4 % over
@@ -189,6 +189,12 @@ adjustment the same rows ran +21.6 % at +2 °C, +10.1 % at −7 °C and +0.1 %
 below: it removes the excess at the condition at which an outdoor coil frosts
 most, and takes a tenth too much in cold, dry air, where little frost forms
 but the correlation's capacity multiplier (0.875) still applies in full.
+The adjustment follows the load on the coil (:ref:`ashp-frost-load`), but
+these catalogues do not test that: every air-to-water point at or below +2 °C,
+and all but four of the air-to-air ones (at −15 °C, +0.2 to +1.1 % in COP),
+is at or above the capacity the adjustment's correlation is written for, so
+the figures on this page are those of the full correction. What the load term
+changes is the part-load trajectory of :doc:`part-load` and :doc:`defaults`.
 
 A bias equal to the error is the signature of a systematic cause, so the
 Fujitsu result was checked before being published rather than after.

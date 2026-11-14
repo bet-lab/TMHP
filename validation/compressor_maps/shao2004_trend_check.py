@@ -55,7 +55,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -165,6 +164,7 @@ def _dev(ax, df: pd.DataFrame, col: str) -> None:
 
 def figure(df: pd.DataFrame, out: Path) -> None:
     fig, axes = plt.subplots(2, 3, figsize=dm.figsize("17cm", 0.62), gridspec_kw={"wspace": 0.42, "hspace": 0.45})
+    _panels: list = []
     top = (
         ("Q_paper_W", "Q_model_W", 1e-3, "Cooling capacity [kW]", 0.0, 14.0, 2.0, "a", "Fig. 1"),
         ("m_paper_kgh", "m_model_kgh", 1.0, "Refrigerant mass flow [kg/h]", 0.0, 280.0, 40.0, "b", "Fig. 2"),
@@ -180,7 +180,7 @@ def figure(df: pd.DataFrame, out: Path) -> None:
         ax.set_xticks(ticks(-10, 15, 5))
         ax.set_xlabel("Evaporation temperature [°C]")
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
-        panel_letter(ax, letter, x=-0.26)
+        _panels.append((ax, letter))
 
     # each deviation sits under the quantity it belongs to: (d)|(a), (e)|(b), (f)|(c)
     dev = (
@@ -210,7 +210,7 @@ def figure(df: pd.DataFrame, out: Path) -> None:
         ax.set_xticks(ticks(-10, 15, 5))
         ax.set_xlabel("Evaporation temperature [°C]")
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
-        panel_letter(ax, letter, x=-0.26)
+        _panels.append((ax, letter))
 
     # one legend for the whole figure: the encoding is shared by all six panels,
     # so it sits above them rather than eating plot area in one of them. ncol=3
@@ -242,6 +242,7 @@ def figure(df: pd.DataFrame, out: Path) -> None:
         title_fontsize=dm.fs(-3.5),
     )
     out.mkdir(parents=True, exist_ok=True)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out / "F12_shao2004_map_trend", formats=("svg", "png"), mt="10%")
     plt.close(fig)
 

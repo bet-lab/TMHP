@@ -25,7 +25,7 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, record_figure, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, record_figure, static_path  # noqa: E402
 
 SIM_HOURS = 24
 DT_S = 60  # 1-minute step
@@ -107,6 +107,7 @@ def main() -> None:
         figsize=dm.figsize("15cm", 0.85),
         sharex=True,
     )
+    _panels: list = []
 
     # --- (a) tank temperature ------------------------------------------
     ax_t.plot(t_h, t_tank, color=COLORS["hot"], linewidth=dm.lw(1), label="$T_{\\mathrm{tank,w}}$")
@@ -135,7 +136,7 @@ def main() -> None:
         ha="left",
     )
     ax_t.set_ylabel("Tank water temp [°C]")
-    panel_letter(ax_t, "a", x=-0.06)
+    _panels.append((ax_t, "a"))
 
     # --- (b) heat + power ---------------------------------------------
     ax_p.plot(t_h, q_cond_kw, color=COLORS["hot"], linewidth=dm.lw(0), label="$\\dot Q_{\\mathrm{cond}}$")
@@ -148,7 +149,7 @@ def main() -> None:
     ax_p.set_ylim(top=18)
     ax_p.set_yticks(np.arange(0, 17, 4))
     ax_p.legend(loc="upper right", frameon=False, ncol=2, fontsize=dm.fs(-1))
-    panel_letter(ax_p, "b", x=-0.06)
+    _panels.append((ax_p, "b"))
 
     # --- (c) COP -------------------------------------------------------
     # ``cop_sys`` is NaN whenever the HP is off (~89% of the day), so a
@@ -171,12 +172,13 @@ def main() -> None:
     ax_c.set_xlim(0, SIM_HOURS)
     ax_c.set_xticks(np.arange(0, SIM_HOURS + 1, 3))
     ax_c.legend(loc="upper right", frameon=False, ncol=2, fontsize=dm.fs(-1))
-    panel_letter(ax_c, "c", x=-0.06)
+    _panels.append((ax_c, "c"))
 
     for ax in (ax_t, ax_p, ax_c):
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
 
     out = static_path("dynamic_24h_timeseries.svg").with_suffix("")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out, margin="3%")
     plt.close(fig)
     record_figure(

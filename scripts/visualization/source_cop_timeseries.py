@@ -41,7 +41,6 @@ from _dmpl_common import (  # noqa: E402
     GRIDLINE,
     apply_style,
     finalize,
-    panel_letter,
     record_figure,
     static_path,
     ticks,
@@ -155,6 +154,7 @@ def main() -> None:
     c_air, c_gnd = COLORS["warm"], COLORS["accent"]
     lw = dm.lw(1)
     fig, (ax_t, ax_c) = plt.subplots(2, 1, sharex=True, figsize=dm.figsize("15cm", 0.72), height_ratios=[1.0, 1.25])
+    _panels: list = []
 
     ax_t.plot(t_h, data["T0_C"], color=c_air, linewidth=lw, label="Outdoor air (ASHP source)")
     ax_t.plot(t_h, data["T_loop_C"], color=c_gnd, linewidth=lw, label="Ground-loop fluid (GSHP source)")
@@ -164,7 +164,7 @@ def main() -> None:
     ax_t.set_yticks(ticks(-10.0, 20.0, 10.0))
     ax_t.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax_t.legend(loc="upper left", frameon=False, ncol=2, fontsize=dm.fs(-1))
-    panel_letter(ax_t, "a")
+    _panels.append((ax_t, "a"))
 
     ax_c.plot(hours, data["cop_ashp"], color=c_air, linewidth=lw, label=f"ASHP, mean {mean_a:.2f}")
     ax_c.plot(hours, data["cop_gshp"], color=c_gnd, linewidth=lw, label=f"GSHP, mean {mean_g:.2f}")
@@ -186,9 +186,10 @@ def main() -> None:
         fontsize=dm.fs(-2),
         color=COLORS["ink"],
     )
-    panel_letter(ax_c, "b")
+    _panels.append((ax_c, "b"))
 
     out = static_path("source_cop_timeseries.svg").with_suffix("")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out)
     plt.close(fig)
     record_figure(

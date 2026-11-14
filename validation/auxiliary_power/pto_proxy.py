@@ -267,7 +267,6 @@ def figures(
         HAIRLINE,
         apply_style,
         finalize,
-        panel_letter,
         ticks,
     )
 
@@ -292,6 +291,7 @@ def figures(
 
     # -- 01 P_TO vs capacity ---------------------------------------------
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42))
+    _panels: list = []
     for ax, d, res, title, xmax in (
         (axes[0], da, res_a, "Air-to-air (no circulation pump)", 9.0),
         (axes[1], dw, res_w, "Air-to-water (includes pump)", 30.0),
@@ -351,8 +351,9 @@ def figures(
     # keep the bulk readable and the caption says so rather than the figure
     # implying the tail does not exist.
     axes[1].set_ylim(0, 120)
-    panel_letter(axes[0], "a")
-    panel_letter(axes[1], "b")
+    _panels.append((axes[0], "a"))
+    _panels.append((axes[1], "b"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "01_pto_vs_capacity", mt="7%")
 
     # -- 02 parity (air-to-air, leave-one-unit-out) ----------------------
@@ -411,6 +412,7 @@ def figures(
     # -- 04 PLR-COP with the measured proxy against Appendix D ------------
     cond_title = {"heating_7": "Heating 7/20 °C", "cooling_35": "Cooling 35/27 °C"}
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.44))
+    _panels: list = []
     series = [
         (0.0, COLORS["ink"], "solid", "current TMHP"),
         (w_fit, COLORS["ess"], (0, (5, 1.6)), rf"+ measured $P_{{TO}}$ proxy ({w_fit:.0f} W)"),
@@ -459,8 +461,9 @@ def figures(
         ax.set_title(cond_title[cond], fontsize=dm.fs(-2.5), loc="left")
         ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4.5))
         grid(ax)
-    panel_letter(axes[0], "a")
-    panel_letter(axes[1], "b")
+    _panels.append((axes[0], "a"))
+    _panels.append((axes[1], "b"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     save(fig, "04_plr_cop_with_pto_proxy", mt="7%")
 
 

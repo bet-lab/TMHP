@@ -32,7 +32,7 @@ from tmhp import ASHPB_PV_ESS
 from tmhp.subsystems import EnergyStorageSystem, PhotovoltaicSystem
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, record_figure, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, record_figure, static_path  # noqa: E402
 
 SIM_HOURS = 24
 DT_S = 60
@@ -159,6 +159,7 @@ def main() -> None:
         figsize=dm.figsize("17cm", 6 / 12),
         gridspec_kw={"width_ratios": [3, 2]},
     )
+    _panels: list = []
 
     # --- (a) timeseries ------------------------------------------------
     ax_t.plot(t_h, e_pv, color=COLORS["pv"], linewidth=dm.lw(1), label="PV generation")
@@ -173,7 +174,7 @@ def main() -> None:
     ax_t.set_xticks(np.arange(0, SIM_HOURS + 1, 3))
     ax_t.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax_t.legend(loc="upper left", bbox_to_anchor=(0.06, 1.0), frameon=False, fontsize=dm.fs(-1), ncol=2)
-    panel_letter(ax_t, "a")
+    _panels.append((ax_t, "a"))
 
     # --- (b) stacked ledger -------------------------------------------
     # Two bars: PV destinations vs. HP-load sources.
@@ -225,7 +226,7 @@ def main() -> None:
     ax_b.set_ylabel("Daily energy [kWh]")
     ax_b.grid(True, alpha=0.25, linewidth=GRIDLINE, axis="y")
     ax_b.legend(loc="upper left", bbox_to_anchor=(0.06, 1.0), frameon=False, fontsize=dm.fs(-2))
-    panel_letter(ax_b, "b")
+    _panels.append((ax_b, "b"))
 
     # Totals sit above each bar — unit elided to match segment labels.
     top_pv = bottom_pv + kwh_dump
@@ -250,6 +251,7 @@ def main() -> None:
     )
 
     out = static_path("pv_ess_energy_balance.svg").with_suffix("")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out, margin="3%")
     plt.close(fig)
     record_figure(

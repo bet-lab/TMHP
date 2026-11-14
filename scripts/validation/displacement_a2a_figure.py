@@ -33,7 +33,6 @@ from _dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     static_path,
     ticks,
 )
@@ -52,6 +51,7 @@ def main() -> None:
     x = np.arange(len(REFRIGERANTS))
 
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.34))
+    _panels: list = []
 
     # (a) what the fluid contributes -- volumetric refrigerating capacity
     ax = axes[0]
@@ -63,7 +63,7 @@ def main() -> None:
     ax.set_ylim(0.0, 1.2)
     ax.set_yticks(ticks(0.0, 1.2, 0.3))
     ax.set_title("The fluid does the work", loc="left", fontsize=dm.fs(-1))
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
 
     # (b) the displacement that follows, per kW of nameplate cooling capacity
     ax = axes[1]
@@ -74,7 +74,7 @@ def main() -> None:
     ax.set_ylim(0.0, top)
     ax.set_yticks(ticks(0.0, top, 2.0))
     ax.set_title(f"At ISO 5151 T1, {point.rps:.0f} rev/s", loc="left", fontsize=dm.fs(-1))
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
 
     for ax in axes[:2]:
         ax.set_xticks(x)
@@ -105,8 +105,9 @@ def main() -> None:
     ax.set_axisbelow(True)
     ax.legend(frameon=False, fontsize=dm.fs(-1.5), loc="upper right")
     ax.set_title("What the chosen speed decides", loc="left", fontsize=dm.fs(-1))
-    panel_letter(ax, "c")
+    _panels.append((ax, "c"))
 
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, static_path("compressor_displacement_a2a.svg").with_suffix(""), mt="7%", formats=("svg", "png"))
 
 

@@ -39,7 +39,6 @@ from _dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     static_path,
     ticks,
 )
@@ -106,6 +105,7 @@ def main() -> None:
     parity = pd.read_csv(PARITY).set_index("variant")
 
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("19.2cm", 0.319), gridspec_kw={"wspace": 0.42})
+    _panels: list = []
 
     # --- (a), (b) the certified trajectory ---------------------------------
     for ax, (application, letter, title) in zip(axes[:2], APPLICATIONS, strict=True):
@@ -166,7 +166,7 @@ def main() -> None:
         # The two panels share every series, so the full key is drawn once.
         if application == "low":
             ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-2.5), handletextpad=0.5, labelspacing=0.25)
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     axes[0].set_ylabel("Declared COP [-]")
 
     # --- (c) both requirements at once -------------------------------------
@@ -211,9 +211,10 @@ def main() -> None:
     ax.set_ylim(-top_y * 0.10, top_y)
     ax.set_xticks(ticks(0.0, top_x, 20.0))
     ax.set_yticks(ticks(0.0, top_y, 20.0))
-    panel_letter(ax, "c")
+    _panels.append((ax, "c"))
 
     out = static_path("validation_en14825_verdict.svg").with_suffix("")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out, mt="7%", formats=("svg", "png"))
     plt.close(fig)
     print(f"wrote {out}.svg")

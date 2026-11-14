@@ -31,7 +31,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     apply_style,
     cover_data_ylim,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -145,6 +144,7 @@ def _source(d, cols, name) -> None:
 def fig01(d) -> None:
     sub = d[d.variant.isin(MAIN_VARIANTS)]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.40), gridspec_kw={"wspace": 0.30})
+    _panels: list = []
     for ax, duty, letter in zip(axes, ("heating", "cooling"), "ab", strict=True):
         _panel(
             ax,
@@ -158,8 +158,9 @@ def fig01(d) -> None:
             legend="upper left" if duty == "heating" else None,
         )
         ax.plot([0, 100], [0, 1.0], color=COLORS["muted"], lw=HAIRLINE, ls=":", zorder=0)
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["x_ref", "m_dot_ref", "m_dot_ref_rated", "n_star"], "fig01_mdot_ratio_vs_plr.csv")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "01_mdot_ratio_vs_plr", mt="6%")
 
 
@@ -169,6 +170,7 @@ def fig01(d) -> None:
 def fig02(d) -> None:
     sub = d[d.variant.isin(MAIN_VARIANTS)]
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("17cm", 0.68), gridspec_kw={"wspace": 0.30, "hspace": 0.45})
+    _panels: list = []
     spec = [
         ("heating", "ua_ratio_ou", "Outdoor coil (evaporator)"),
         ("heating", "ua_ratio_iu", "Indoor coil (condenser)"),
@@ -187,10 +189,11 @@ def fig02(d) -> None:
             title=f"{DUTY_TITLE[duty].split(',')[0]} — {coil}",
             legend="upper left" if letter == "a" else None,
         )
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(
         sub, ["ua_ratio_ou", "ua_ratio_iu", "UA_ou", "UA_iu", "x_ref", "fan_fraction_ou"], "fig02_ua_ratio_vs_plr.csv"
     )
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "02_ua_ratio_vs_plr", mt="5%")
 
 
@@ -200,6 +203,7 @@ def fig02(d) -> None:
 def fig03(d) -> None:
     sub = d[d.variant.isin(MAIN_VARIANTS)]
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("17cm", 0.68), gridspec_kw={"wspace": 0.30, "hspace": 0.45})
+    _panels: list = []
     spec = [
         ("heating", "epsilon_ou", "Outdoor coil (evaporator)"),
         ("heating", "epsilon_iu", "Indoor coil (condenser)"),
@@ -218,8 +222,9 @@ def fig03(d) -> None:
             title=f"{DUTY_TITLE[duty].split(',')[0]} — {coil}",
             legend="lower left" if letter == "a" else None,
         )
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["epsilon_ou", "epsilon_iu", "NTU_ou", "NTU_iu"], "fig03_epsilon_vs_plr.csv")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "03_epsilon_vs_plr", mt="5%")
 
 
@@ -229,6 +234,7 @@ def fig03(d) -> None:
 def fig04(d) -> None:
     sub = d[d.variant.isin(MAIN_VARIANTS)]
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("17cm", 0.68), gridspec_kw={"wspace": 0.32, "hspace": 0.45})
+    _panels: list = []
     spec = [
         ("heating", "T_evap_C", r"$T_{evap}$ [°C]", (-1, 3), 1),
         ("heating", "T_cond_C", r"$T_{cond}$ [°C]", (24, 30), 2),
@@ -247,8 +253,9 @@ def fig04(d) -> None:
             title=DUTY_TITLE[duty].split(",")[0],
             legend="lower left" if letter == "a" else None,
         )
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["T_evap_C", "T_cond_C", "T_dis_C", "pr"], "fig04_saturation_temperature_vs_plr.csv")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "04_saturation_temperature_vs_plr", mt="5%")
 
 
@@ -258,6 +265,7 @@ def fig04(d) -> None:
 def fig05(d) -> None:
     sub = d[d.variant.isin(MAIN_VARIANTS)]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.40), gridspec_kw={"wspace": 0.30})
+    _panels: list = []
     lims = {"heating": ((1.8, 2.4), 0.1), "cooling": ((1.6, 2.0), 0.1)}
     for ax, duty, letter in zip(axes, ("heating", "cooling"), "ab", strict=True):
         ylim, ystep = lims[duty]
@@ -272,8 +280,9 @@ def fig05(d) -> None:
             title=DUTY_TITLE[duty],
             legend="lower right" if duty == "heating" else None,
         )
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["pr", "T_evap_C", "T_cond_C"], "fig05_pressure_ratio_vs_plr.csv")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "05_pressure_ratio_vs_plr", mt="6%")
 
 
@@ -283,6 +292,7 @@ def fig05(d) -> None:
 def fig06(d) -> None:
     sub = d[d.variant.isin(MAIN_VARIANTS)]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.42), gridspec_kw={"wspace": 0.30})
+    _panels: list = []
     lims = {"heating": ((5.0, 6.5), 0.25), "cooling": ((4.75, 6.5), 0.25)}
     for ax, duty, letter in zip(axes, ("heating", "cooling"), "ab", strict=True):
         ylim, ystep = lims[duty]
@@ -308,8 +318,9 @@ def fig06(d) -> None:
             color=COLORS["muted"],
             va="bottom",
         )
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["cop_sys", "E_tot", "E_cmp", "E_ou_fan", "E_iu_fan", "q_delivered_W"], "fig06_cop_vs_plr.csv")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "06_cop_vs_plr", mt="6%")
 
 
@@ -354,6 +365,7 @@ def fig07(d) -> None:
     base = {r.duty: r for r in met[met.f_ref == 0].itertuples()}
 
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("16cm", 0.76), gridspec_kw={"wspace": 0.45, "hspace": 0.60})
+    _panels: list = []
     specs = [
         ("dCOP_low_pct", r"$\Delta\mathrm{COP}_{low}$ [%]", "magma_r", (0.0, 1.0)),
         ("lowload_rise_pct", "Low-load COP rise [%]", "viridis", None),
@@ -412,7 +424,8 @@ def fig07(d) -> None:
             cb.locator = matplotlib.ticker.MaxNLocator(nbins=4)
             cb.update_ticks()
             cb.set_label(lab, fontsize=dm.fs(-3))
-            panel_letter(ax, "abcd"[row * 2 + cidx], x=-0.22)
+            _panels.append((ax, "abcd"[row * 2 + cidx]))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "07_parameter_sensitivity_heatmap", mt="8%")
     return met
 

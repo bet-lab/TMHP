@@ -28,7 +28,6 @@ from _dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     static_path,
 )
 from validation.analysis.residual_decomposition import (  # noqa: E402
@@ -81,6 +80,7 @@ def main() -> None:
     # gutter has to hold those *and* the panel letter. At wspace=0.42 both were
     # landing inside (b).
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.46), gridspec_kw={"wspace": 0.62})
+    _panels: list = []
 
     # --- (a) the back-out itself ------------------------------------------
     ax = axes[0]
@@ -107,7 +107,7 @@ def main() -> None:
     for maker, colour in MAKER_COLOR.items():
         ax.plot([], [], color=colour, linewidth=dm.lw(0), label=maker)
     ax.legend(frameon=False, fontsize=dm.fs(-2), loc="lower left")
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
 
     # --- (b) against the measured band ------------------------------------
     ax = axes[1]
@@ -157,7 +157,7 @@ def main() -> None:
         labelspacing=0.3,
     )
     ax.set_title("Against 1,414 measured coils", loc="left", fontsize=dm.fs(-1))
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
 
     # --- (c) bias at the clean rating point -------------------------------
     ax = axes[2]
@@ -195,9 +195,10 @@ def main() -> None:
     # sit on top of them; the top rows are the short ones.
     ax.legend(frameon=False, fontsize=dm.fs(-2), loc="upper right")
     ax.grid(True, axis="x", alpha=0.25, linewidth=GRIDLINE)
-    panel_letter(ax, "c", x=-0.30)
+    _panels.append((ax, "c"))
 
     out = static_path("validation_residuals.svg").with_suffix("")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out, mt="7%", ml="0%")
     plt.close(fig)
     print(f"wrote {out}.svg")

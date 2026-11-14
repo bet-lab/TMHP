@@ -26,7 +26,6 @@ from _dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     static_path,
     ticks,
 )
@@ -64,6 +63,7 @@ def main() -> None:
     matched = pd.read_csv(MATCHED)
 
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("19.2cm", 0.372), gridspec_kw={"wspace": 0.42})
+    _panels: list = []
 
     # (a) error by refrigerant, with the rating standard on the label
     ax = axes[0]
@@ -93,7 +93,7 @@ def main() -> None:
     ax.set_axisbelow(True)
     ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-1.6))
     ax.set_title("Bar = MAPE, ring = bias", loc="left", fontsize=dm.fs(-1))
-    panel_letter(ax, "a", x=-0.13)
+    _panels.append((ax, "a"))
 
     # (b) one matched operating point, both machines
     ax = axes[1]
@@ -131,7 +131,7 @@ def main() -> None:
     ax.set_axisbelow(True)
     ax.legend(loc="upper center", frameon=False, fontsize=dm.fs(-1.6), ncol=2, columnspacing=0.9)
     ax.set_title("Matched point, 35 °C outdoor", loc="left", fontsize=dm.fs(-1))
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
 
     # (c) nameplate multiplier sweep
     ax = axes[2]
@@ -166,8 +166,9 @@ def main() -> None:
     ax.set_axisbelow(True)
     ax.legend(loc="lower left", frameon=False, fontsize=dm.fs(-1.6))
     ax.set_title("Only the nameplate moves", loc="left", fontsize=dm.fs(-1))
-    panel_letter(ax, "c")
+    _panels.append((ax, "c"))
 
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, static_path("validation_refrigerant_diagnosis.svg").with_suffix(""), mt="6%", formats=("svg", "png"))
 
 

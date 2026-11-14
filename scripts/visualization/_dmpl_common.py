@@ -113,30 +113,6 @@ def ticks(vmin: float, vmax: float, step: float) -> np.ndarray:
     return np.arange(vmin, vmax + step * 0.5, step)
 
 
-def panel_letter(ax, letter: str, *, x: float = -0.10, y: float = 1.03) -> None:
-    """Place a bold subplot index (e.g. ``"a"``) above ``ax``'s upper-left.
-
-    The canonical typography for subplot indexing across the docs gallery —
-    ``dm.fs(3)`` / ``dm.fw(2)`` anchored at axes-fraction ``(-0.10, 1.03)``
-    with ``va="bottom"`` so the letter sits clear of the top y-tick label
-    and the y-axis gutter (journal-style). Pass ``x``/``y`` to nudge the
-    anchor when a particular layout needs a different gutter (e.g. shorter
-    y-tick labels can take a smaller ``|x|``). The overflow guard in
-    :func:`finalize` will catch any layout that doesn't leave enough
-    headroom; bump ``mt``/``ml`` if it fires.
-    """
-    ax.text(
-        x,
-        y,
-        letter,
-        transform=ax.transAxes,
-        fontsize=dm.fs(3),
-        fontweight=dm.fw(2),
-        va="bottom",
-        ha="left",
-    )
-
-
 def apply_style(
     preset: str = "report",
     *,

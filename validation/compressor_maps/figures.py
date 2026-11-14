@@ -25,7 +25,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -95,6 +94,7 @@ def fig_coverage(df: pd.DataFrame, out: Path) -> None:
 def fig_eta_vol(df: pd.DataFrame, out: Path) -> None:
     d = df[~df.vdisp_suspect]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.42), gridspec_kw={"wspace": 0.5})
+    _panels: list = []
     ax = axes[0]
     sc = ax.scatter(
         d.PR, d.eta_vol, c=d.n_star, cmap="viridis", s=dm.fs(2), alpha=0.5, edgecolors="none", vmin=0.25, vmax=1.5
@@ -112,7 +112,7 @@ def fig_eta_vol(df: pd.DataFrame, out: Path) -> None:
     cb = fig.colorbar(sc, ax=ax, pad=0.02, fraction=0.05)
     cb.set_label("n* [-]")
     cb.set_ticks(ticks(0.25, 1.5, 0.25))
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
 
     ax = axes[1]
     mid = d[d.PR.between(2.5, 3.5)]
@@ -131,12 +131,14 @@ def fig_eta_vol(df: pd.DataFrame, out: Path) -> None:
     ax.set_ylabel("η_vol at PR 2.5–3.5 [-]")
     ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-2.5))
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, out, "F2_eta_vol", mt="4%")
 
 
 def fig_eta_oi(df: pd.DataFrame, out: Path) -> None:
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.42), gridspec_kw={"wspace": 0.5})
+    _panels: list = []
     ax = axes[0]
     sc = ax.scatter(
         df.PR, df.eta_oi, c=df.n_star, cmap="viridis", s=dm.fs(2), alpha=0.5, edgecolors="none", vmin=0.25, vmax=1.5
@@ -155,7 +157,7 @@ def fig_eta_oi(df: pd.DataFrame, out: Path) -> None:
     cb = fig.colorbar(sc, ax=ax, pad=0.02, fraction=0.05)
     cb.set_label("n* [-]")
     cb.set_ticks(ticks(0.25, 1.5, 0.25))
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
 
     ax = axes[1]
     ns = np.linspace(0.2, 2.1, 100)
@@ -189,7 +191,8 @@ def fig_eta_oi(df: pd.DataFrame, out: Path) -> None:
     ax.set_ylabel("Speed factor η_oi / g(PR) [-]")
     ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-3), ncol=2, handletextpad=0.3, columnspacing=0.8)
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, out, "F3_eta_oi_split", mt="4%")
 
 
@@ -227,6 +230,7 @@ def fig_loco(out: Path) -> None:
     pooled = pd.read_csv(DATA_DIR / "loco_pooled.csv")
     sel = json.loads((DATA_DIR / "selected.json").read_text())
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.45))
+    _panels: list = []
     for ax, kind, title, letter in zip(
         axes, ("eta_vol", "eta_oi"), ("η_vol", "η_isen · η_em"), ("a", "b"), strict=True
     ):
@@ -246,7 +250,8 @@ def fig_loco(out: Path) -> None:
         ax.set_title(f"{title}: candidate forms (blue = adopted, red = {LEGACY_LABEL})", loc="left", fontsize=dm.fs(-1))
         ax.grid(True, axis="x", alpha=0.25, linewidth=GRIDLINE)
         ax.tick_params(axis="y", labelsize=dm.fs(-2))
-        panel_letter(ax, letter, x=-0.22)
+        _panels.append((ax, letter))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, out, "F5_loco_families", mt="6%")
 
 
@@ -254,6 +259,7 @@ def fig_strata(out: Path) -> None:
     strata = pd.read_csv(DATA_DIR / "loco_strata.csv")
     sel = json.loads((DATA_DIR / "selected.json").read_text())
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.5))
+    _panels: list = []
     for ax, kind, title, letter in zip(
         axes, ("eta_vol", "eta_oi"), ("η_vol", "η_isen · η_em"), ("a", "b"), strict=True
     ):
@@ -289,7 +295,8 @@ def fig_strata(out: Path) -> None:
         ax.set_title(title, loc="left", fontsize=dm.fs(-1))
         ax.grid(True, axis="x", alpha=0.25, linewidth=GRIDLINE)
         ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-2.5))
-        panel_letter(ax, letter, x=-0.30)
+        _panels.append((ax, letter))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, out, "F6_loco_strata", mt="4%")
 
 
@@ -303,6 +310,7 @@ def fig_eta_overview(df: pd.DataFrame, out: Path) -> None:
     colour scale.
     """
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.44), gridspec_kw={"wspace": 0.42})
+    _panels: list = []
     pr = np.linspace(1.0, 8.0, 100)
     f_vol = make_eta_vol(1.0)
     panels = (
@@ -342,10 +350,11 @@ def fig_eta_overview(df: pd.DataFrame, out: Path) -> None:
         ax.set_ylabel(label)
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         ax.legend(loc=loc, frameon=False, fontsize=dm.fs(-2.5))
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     cb = fig.colorbar(sc, ax=axes[1], pad=0.03, fraction=0.05)
     cb.set_label("Relative speed n* [-]")
     cb.set_ticks(ticks(0.25, 1.5, 0.25))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, out, "F13_eta_overview", mt="4%")
 
 

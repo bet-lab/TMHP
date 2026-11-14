@@ -37,7 +37,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -131,6 +130,7 @@ def f1_efficiency(rated: float = 50.0) -> None:
     ev, ei, ee = ce.make_eta_vol(rated), ce.make_eta_isen(rated), ce.make_eta_em(rated)
     rows = []
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36))
+    _panels: list = []
     labels = (r"$\eta_v$ [-]", r"$\eta_{is}$ [-]", r"$\eta_{em}$ [-]")
     fns = (lambda pr, n: ev(pr, n * rated), lambda pr, n: ei(pr, n * rated), lambda pr, n: ee(pr, n * rated))
     for ax, lab, fn, letter in zip(axes, labels, fns, "abc", strict=True):
@@ -144,12 +144,13 @@ def f1_efficiency(rated: float = 50.0) -> None:
         ax.set_xlabel(r"Relative speed $n^*$ = $N/N_{rated}$ [-]")
         ax.set_ylabel(lab)
         _grid(ax)
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     axes[0].set_ylim(0.6, 1.0)
     axes[1].set_ylim(0.3, 0.9)
     axes[2].set_ylim(0.6, 1.0)
     axes[1].legend(loc="lower right", frameon=False, fontsize=dm.fs(-2.5))
     pd.DataFrame(rows).to_csv(SIM / "fig1_efficiency_curves.csv", index=False)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "F1_efficiency_vs_speed", mt="4%")
 
 
@@ -221,6 +222,7 @@ def f2_displacement() -> None:
     cmp_ = _compressor_level()
     pd.concat([hp, cmp_], ignore_index=True).to_csv(SIM / "fig2_displacement_parity.csv", index=False)
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.46))
+    _panels: list = []
     ax = axes[0]
     _parity_axes(ax, 0, 100, 20, "Published displacement [cm³/rev]", "TMHP default displacement [cm³/rev]")
     ax.fill_between([0, 100], [0, 80], [0, 120], color=COLORS["band20"], alpha=0.25, lw=0, label="±20 %")
@@ -254,7 +256,7 @@ def f2_displacement() -> None:
     )
     ax.legend(loc="lower right", bbox_to_anchor=(1.0, 0.2), frameon=False, fontsize=dm.fs(-3))
     ax.set_title("Heat-pump level: nameplate and default rated speed", fontsize=dm.fs(-1.5), loc="left")
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
 
     ax = axes[1]
     lo, hi = 0, 160
@@ -290,7 +292,8 @@ def f2_displacement() -> None:
     )
     ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-3.5))
     ax.set_title("Compressor level (rated speed known)", fontsize=dm.fs(-1.5), loc="left")
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "F2_displacement_parity", mt="8%", ml="4%")
 
 
@@ -316,6 +319,7 @@ def f3_sensitivity() -> None:
         case_colors[c] = palette[i % len(palette)]
 
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36))
+    _panels: list = []
     ax = axes[0]
     for c, g in fl.groupby("case"):
         g = g.sort_values("disp_mult")
@@ -356,8 +360,9 @@ def f3_sensitivity() -> None:
         ax.set_title(f"{mc}, displacement ×0.8 (dotted) / ×1.0 / ×1.2 (dashed)", fontsize=dm.fs(-2.5), loc="left")
         ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4.5), ncol=1)
         _grid(ax)
-        panel_letter(ax, letter, y=1.12)
-    panel_letter(axes[0], "a", y=1.12)
+        _panels.append((ax, letter))
+    _panels.append((axes[0], "a"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "F3_displacement_sensitivity", mt="10%")
 
 
@@ -398,6 +403,7 @@ def f4_parity() -> None:
     ].to_csv(SIM / "fig4_cop_parity.csv", index=False)
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.46))
+    _panels: list = []
     ax = axes[0]
     g = d[d.model_class == "ASHP"]
     _parity_axes(ax, 1, 9, 2, "Catalogue COP [-]", "TMHP COP [-]")
@@ -419,7 +425,7 @@ def f4_parity() -> None:
     )
     ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-3))
     ax.set_title("Air-to-air (ASHP)", fontsize=dm.fs(-1.5), loc="left")
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
 
     ax = axes[1]
     g = d[d.model_class == "ASHPB"]
@@ -457,7 +463,8 @@ def f4_parity() -> None:
     )
     ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-3))
     ax.set_title("Air-to-water (ASHPB)", fontsize=dm.fs(-1.5), loc="left")
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "F4_cop_parity", mt="8%")
 
 
@@ -492,12 +499,14 @@ def _map_panel(
 def f5_ashp_map() -> None:
     d = pd.read_csv(SIM / "plr_map_ashp.csv")
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.42))
+    _panels: list = []
     h = d[d.duty == "heating"]
     c = d[d.duty == "cooling"]
     _map_panel(axes[0], h, "viridis", "Heating, room 20 °C, 3.5 kW R32", (1, 11), 2)
     _map_panel(axes[1], c, "plasma", "Cooling, room 27 °C, 3.5 kW R32", (1, 11), 2, legend_loc="lower left")
-    panel_letter(axes[0], "a")
-    panel_letter(axes[1], "b")
+    _panels.append((axes[0], "a"))
+    _panels.append((axes[1], "b"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "F5_ashp_plr_cop_map", mt="8%")
 
 
@@ -527,6 +536,7 @@ def f7_min_speed() -> None:
     cols = {keep[0]: COLORS["hot"], keep[1]: COLORS["cool"], keep[2]: COLORS["accent"], keep[3]: COLORS["accent2"]}
     d.to_csv(SIM / "fig7_min_speed_diagnostic.csv", index=False)
     fig, axes = plt.subplots(2, 3, figsize=dm.figsize("17cm", 0.62), gridspec_kw={"wspace": 0.5, "hspace": 0.45})
+    _panels: list = []
     axes = axes.ravel()
 
     def series(ax, col, scale=1.0, y2=None):
@@ -592,7 +602,8 @@ def f7_min_speed() -> None:
         if i >= 3:
             ax.set_xlabel("Requested PLR [%]")
         _grid(ax)
-        panel_letter(ax, "abcdef"[i], x=-0.30, y=1.06)
+        _panels.append((ax, "abcdef"[i]))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "F7_min_speed_diagnostic", mt="5%", ml="3%")
 
 
@@ -606,6 +617,7 @@ def f9_decomposition() -> None:
     base = base[(base.model_class == "ASHP") & (base.failure_reason == "none")]
     rows = []
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36))
+    _panels: list = []
     duty_col = {"heating": COLORS["hot"], "cooling": COLORS["cool"]}
     for ax, duty, letter in ((axes[0], "heating", "a"), (axes[1], "cooling", "b")):
         g = dec[dec.duty == duty]
@@ -637,7 +649,7 @@ def f9_decomposition() -> None:
         )
         ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
         _grid(ax)
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
         # relative contributions
         cur = g[(g.variant == "current") & g.capacity_clamped.isna()].set_index("plr_request")
         hx = g[(g.variant == "hx_only") & g.capacity_clamped.isna()].set_index("plr_request")
@@ -699,7 +711,8 @@ def f9_decomposition() -> None:
     ax.set_ylabel(r"$\Delta\mathrm{COP}$ [%]")
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4.5))
     _grid(ax)
-    panel_letter(ax, "c")
+    _panels.append((ax, "c"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "F9_ashp_lowload_decomposition", mt="6%")
 
 
@@ -783,6 +796,7 @@ def f8_speed_floor_closure() -> None:
     }
 
     fig, axes = plt.subplots(2, 4, figsize=dm.figsize("17cm", 0.50), gridspec_kw={"wspace": 0.55, "hspace": 0.50})
+    _panels: list = []
     axes = axes.ravel()
 
     # (a) requested vs delivered part-load ratio
@@ -937,7 +951,8 @@ def f8_speed_floor_closure() -> None:
         if i >= 4:
             ax.set_xlabel("Requested PLR [%]")
         _grid(ax)
-        panel_letter(ax, "abcdefgh"[i], x=-0.34, y=1.06)
+        _panels.append((ax, "abcdefgh"[i]))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "F8_speed_floor_closure", mt="5%", ml="3%")
 
 
@@ -963,6 +978,7 @@ def a1_speed_transfer() -> None:
     }
     mk = {"copeland_opi": "o", "cuevas_lebrun_2009": "s", "guth_atakan_2023": "^", "shao_2004": "D"}
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36))
+    _panels: list = []
     ax = axes[0]
     for src, g in d.groupby("source_id"):
         g = g.assign(pb=pd.cut(g.pred_oi * 100, np.arange(-40, 5, 2.5)))
@@ -989,7 +1005,7 @@ def a1_speed_transfer() -> None:
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4))
     ax.set_title("Product, all records below rated speed", fontsize=dm.fs(-2), loc="left")
     _grid(ax)
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
 
     ax = axes[1]
     cp = d[d.source_id == "copeland_opi"].copy()
@@ -1016,7 +1032,7 @@ def a1_speed_transfer() -> None:
     ax.set_title("Copeland: bin medians (points), model (lines)", fontsize=dm.fs(-2), loc="left")
     ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-4))
     _grid(ax)
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
 
     ax = axes[2]
     for src, g in d[d.d_ln_eta_vol.notna()].groupby("source_id"):
@@ -1046,7 +1062,8 @@ def a1_speed_transfer() -> None:
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4))
     ax.set_title("Volumetric efficiency", fontsize=dm.fs(-2), loc="left")
     _grid(ax)
-    panel_letter(ax, "c")
+    _panels.append((ax, "c"))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, "FA1_speed_transfer", mt="8%")
 
 

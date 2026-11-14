@@ -47,7 +47,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     apply_style,
     cover_data_ylim,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -231,6 +230,7 @@ def _refs_present(d, pass_name: str, case: str) -> list[str]:
 def fig1(d, case: str) -> None:
     tag = CASE_TAG[case]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.30})
+    _panels: list = []
     comp, sysv = [], []
     for ref in _refs_present(d, "fixed_disp", case):
         g = _rows(d, "fixed_disp", case, ref)
@@ -242,12 +242,13 @@ def fig1(d, case: str) -> None:
     _axis(axes[0], comp, "Compressor COP  $Q/E_{comp}$ [-]", 0.5, title=CASE_LABEL[case], legend="lower left", ncol=2)
     _axis(axes[1], sysv, "System COP  $Q/(E_{comp}+E_{fan})$ [-]", 0.5, title="Same rows, fan power included")
     for ax, letter in zip(axes, "ab", strict=True):
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(
         d[(d["pass"] == "fixed_disp") & (d.case == case)],
         ["COP_comp", "COP_sys", "W_comp", "W_fan", "W_tot"],
         f"{tag}1_cop_vs_plr.csv",
     )
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, f"{tag}1_cop_vs_plr", mt="6%")
 
 
@@ -257,6 +258,7 @@ def fig1(d, case: str) -> None:
 def fig2(d, case: str) -> None:
     tag = CASE_TAG[case]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.30})
+    _panels: list = []
     vals = [[], []]
     for ref in _refs_present(d, "fixed_disp", case):
         g = _rows(d, "fixed_disp", case, ref)
@@ -285,7 +287,8 @@ def fig2(d, case: str) -> None:
     )
     for ax, letter in zip(axes, "ab", strict=True):
         ax.axhline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=":", zorder=0)
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, f"{tag}2_normalised_cop", mt="6%")
 
 
@@ -295,6 +298,7 @@ def fig2(d, case: str) -> None:
 def fig3(d, case: str) -> None:
     tag = CASE_TAG[case]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.30})
+    _panels: list = []
     n, p = [], []
     for ref in _refs_present(d, "fixed_disp", case):
         g = _rows(d, "fixed_disp", case, ref)
@@ -309,12 +313,13 @@ def fig3(d, case: str) -> None:
     _axis(axes[1], p, "Pressure ratio  $r_p=p_{dis}/p_{suc}$ [-]", 0.25, title="Same rows, compressor lift")
     axes[0].axhline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=":", zorder=0)
     for ax, letter in zip(axes, "ab", strict=True):
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(
         d[(d["pass"] == "fixed_disp") & (d.case == case)],
         ["n_star", "N", "r_p", "p_suc", "p_dis", "T_evap_sat", "T_cond_sat", "m_ref"],
         f"{tag}3_operating_point.csv",
     )
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, f"{tag}3_operating_point", mt="6%")
 
 

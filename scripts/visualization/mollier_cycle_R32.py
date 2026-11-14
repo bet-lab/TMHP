@@ -17,7 +17,7 @@ import CoolProp.CoolProp as CP
 import dartwork_mpl as dm
 import matplotlib.pyplot as plt
 import numpy as np
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, record_figure, static_path
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, record_figure, static_path
 
 from tmhp import AirSourceHeatPumpBoiler
 
@@ -170,6 +170,7 @@ def main() -> None:
     # Two-panel layout: 17 cm column-pair, 5:2 aspect keeps each panel
     # ~8 cm wide × 6 cm tall.
     fig, (ax_ph, ax_th) = plt.subplots(1, 2, figsize=dm.figsize("17.4cm", 0.407), gridspec_kw={"wspace": 0.25})
+    _panels: list = []
 
     # --- Panel (a): P-h --------------------------------------------------
     _draw_envelope(ax_ph, h_liq_ph, h_vap_ph, p_sat)
@@ -190,7 +191,7 @@ def main() -> None:
     ax_ph.set_ylabel("Pressure [kPa]")
     ax_ph.legend(loc="upper left", frameon=False, ncol=3, bbox_to_anchor=(0.06, 1.0), fontsize=dm.fs(-1))
     ax_ph.grid(True, which="both", alpha=0.25, linewidth=GRIDLINE)
-    panel_letter(ax_ph, "a")
+    _panels.append((ax_ph, "a"))
 
     # --- Panel (b): T-h --------------------------------------------------
     _draw_envelope(ax_th, h_liq_th, h_vap_th, T_sat)
@@ -216,8 +217,9 @@ def main() -> None:
     ax_th.set_ylabel("Temperature [°C]")
     ax_th.legend(loc="upper left", frameon=False, ncol=3, bbox_to_anchor=(0.06, 1.0), fontsize=dm.fs(-1))
     ax_th.grid(True, which="both", alpha=0.25, linewidth=GRIDLINE)
-    panel_letter(ax_th, "b")
+    _panels.append((ax_th, "b"))
 
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, OUTPUT_STEM)
     record_figure(
         "mollier_cycle_R32",

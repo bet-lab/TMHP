@@ -48,7 +48,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -205,6 +204,7 @@ def _panel(ax, df: pd.DataFrame, hots: tuple, colds: tuple, hot_fmt: str, cold_f
 
 def figure(cmp_df: pd.DataFrame, a2w: pd.DataFrame, a2a: pd.DataFrame, out: Path) -> None:
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.40), gridspec_kw={"wspace": 0.34})
+    _panels: list = []
 
     ax = axes[0]
     _panel(ax, cmp_df, CMP_TC, CMP_TE, "T_cond {:g} °C", "T_evap {:g} °C")
@@ -212,7 +212,7 @@ def figure(cmp_df: pd.DataFrame, a2w: pd.DataFrame, a2a: pd.DataFrame, out: Path
     ax.set_yticks(ticks(0, 6, 1.5))
     ax.set_ylabel("Compressor COP [-]")
     ax.set_title(f"compressor block only, {CMP_REF}", loc="left", fontsize=dm.fs(-1.5))
-    panel_letter(ax, "a", x=-0.28)
+    _panels.append((ax, "a"))
 
     ax = axes[1]
     _panel(ax, _modulating(a2w), A2W_TANK, A2W_OUTDOOR, "tank {:g} °C", "outdoor {:g} °C")
@@ -220,7 +220,7 @@ def figure(cmp_df: pd.DataFrame, a2w: pd.DataFrame, a2a: pd.DataFrame, out: Path
     ax.set_yticks(ticks(0, 6, 1.5))
     ax.set_ylabel("System COP [-]")
     ax.set_title(f"air-to-water {A2W_CAPACITY / 1000:g} kW {A2W_REF}, heating", loc="left", fontsize=dm.fs(-1.5))
-    panel_letter(ax, "b", x=-0.28)
+    _panels.append((ax, "b"))
 
     ax = axes[2]
     _panel(ax, _modulating(a2a), A2A_OUTDOOR, A2A_ROOM, "outdoor {:g} °C", "room {:g} °C")
@@ -228,7 +228,7 @@ def figure(cmp_df: pd.DataFrame, a2w: pd.DataFrame, a2a: pd.DataFrame, out: Path
     ax.set_yticks(ticks(0, 9, 3))
     ax.set_ylabel("System EER [-]")
     ax.set_title(f"air-to-air {A2A_CAPACITY / 1000:g} kW {A2A_REF}, cooling", loc="left", fontsize=dm.fs(-1.5))
-    panel_letter(ax, "c", x=-0.28)
+    _panels.append((ax, "c"))
 
     for ax in axes:
         ax.axvline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=(0, (1.0, 2.0)))
@@ -238,6 +238,7 @@ def figure(cmp_df: pd.DataFrame, a2w: pd.DataFrame, a2a: pd.DataFrame, out: Path
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
 
     out.mkdir(parents=True, exist_ok=True)
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out / "F9_cop_vs_speed", formats=("svg", "png"), mt="6%")
     plt.close(fig)
 

@@ -35,7 +35,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     apply_style,
     cover_data_ylim,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -234,6 +233,7 @@ def fig1(d, duty: str) -> None:
     tag = DUTY_TAG[duty]
     sub = _joint(d, duty)
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.32})
+    _panels: list = []
     # The starved coils cannot reach nameplate duty, so the shape panel is
     # normalised at the highest PLR *every* case still modulates through --
     # normalising each case at its own top point would compare curves anchored
@@ -257,8 +257,9 @@ def fig1(d, duty: str) -> None:
     )
     axes[1].axhline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=":", zorder=0)
     for ax, letter in zip(axes, "ab", strict=True):
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["cop_sys", "cop_ref", "E_cmp", "E_tot"], f"{tag}1_cop_vs_plr.csv")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, f"{tag}1_cop_vs_plr", mt="6%")
 
 
@@ -270,6 +271,7 @@ def fig2(d, duty: str) -> None:
     sub = _joint(d, duty)
     evap_role, cond_role = COIL_ROLE[duty]
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.32})
+    _panels: list = []
     temps, apps = [], []
     for s, g in _by_scale(d, duty):
         _series(axes[0], g, "T_cond_C", SCALE_COLOR[s], label=_label(s))
@@ -291,12 +293,13 @@ def fig2(d, duty: str) -> None:
         va="bottom",
     )
     for ax, letter in zip(axes, "ab", strict=True):
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(
         sub,
         ["T_evap_C", "T_cond_C", "approach_evap_K", "approach_cond_K", "lift_ref_K", "UA_evap", "UA_cond"],
         f"{tag}2_temperatures_vs_plr.csv",
     )
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, f"{tag}2_temperatures_vs_plr", mt="6%")
 
 
@@ -307,6 +310,7 @@ def fig3(d, duty: str) -> None:
     tag = DUTY_TAG[duty]
     sub = _joint(d, duty)
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.32})
+    _panels: list = []
     prs, ns = [], []
     for s, g in _by_scale(d, duty):
         _series(axes[0], g, "pr", SCALE_COLOR[s], label=_label(s))
@@ -319,8 +323,9 @@ def fig3(d, duty: str) -> None:
     )
     _axis(axes[1], ns, "Relative speed $n^*$ = rps / rps$_{rated}$ [-]", 0.2, title="Compressor speed")
     for ax, letter in zip(axes, "ab", strict=True):
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["pr", "n_star", "rps", "lift_ref_K"], f"{tag}3_pressure_ratio_vs_plr.csv")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, f"{tag}3_pressure_ratio_vs_plr", mt="6%")
 
 
@@ -331,6 +336,7 @@ def fig4(d, duty: str) -> None:
     tag = DUTY_TAG[duty]
     sub = _joint(d, duty)
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("15cm", 0.80), gridspec_kw={"wspace": 0.34, "hspace": 0.50})
+    _panels: list = []
     spec = [
         ("eta_isen", r"Isentropic efficiency $\eta_{is}$ [-]", 0.02),
         ("eta_vol", r"Volumetric efficiency $\eta_{v}$ [-]", 0.02),
@@ -352,8 +358,9 @@ def fig4(d, duty: str) -> None:
             legend="lower right" if col == "eta_isen" else None,
             ncol=2,
         )
-        panel_letter(ax, letter)
+        _panels.append((ax, letter))
     _source(sub, ["eta_isen", "eta_vol", "eta_em", "E_cmp", "pr", "n_star"], f"{tag}4_compressor_vs_plr.csv")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, f"{tag}4_compressor_vs_plr", mt="5%")
 
 

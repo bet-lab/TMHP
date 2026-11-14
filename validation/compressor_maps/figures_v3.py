@@ -32,7 +32,6 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     ticks,
 )
 
@@ -72,6 +71,7 @@ def g1_contrasts(out: Path) -> None:
     )
     srcs = [s for s in SOURCE_LABEL if s in set(lo.source_id)]
     fig, axes = plt.subplots(1, len(srcs), figsize=dm.figsize("17cm", 0.36), sharey=True)
+    _panels: list = []
     cmap = plt.get_cmap("viridis")
     for ax, src in zip(np.atleast_1d(axes), srcs, strict=True):
         g = lo[lo.source_id == src]
@@ -90,10 +90,11 @@ def g1_contrasts(out: Path) -> None:
         ax.set_title(f"{SOURCE_LABEL[src]} ({g.compressor_key.nunique()})", fontsize=dm.fs(-1.5), loc="left")
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         ax.legend(loc="lower left", frameon=False, fontsize=dm.fs(-3), title="record", title_fontsize=dm.fs(-3))
-        panel_letter(ax, "abcd"[srcs.index(src)])
+        _panels.append((ax, "abcd"[srcs.index(src)]))
     axes[0].set_ylim(-60, 25)
     axes[0].set_yticks(ticks(-60, 20, 20))
     axes[0].set_ylabel("Δ ln(η_is·η_em) vs rated record [%]")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, out, "G1_within_machine_lowspeed", mt="6%")
 
 
@@ -102,6 +103,7 @@ def g2_shapes(out: Path) -> None:
     rated = 50.0
     ns = np.linspace(0.2, 2.0, 120)
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36))
+    _panels: list = []
     prs = (2.0, 3.0, 4.5)
     styles = [(0, (1, 1.2)), "solid", (0, (4, 1.6))]
     ev_c, ei_c, ee_c = cur.make_eta_vol(rated), cur.make_eta_isen(rated), cur.make_eta_em(rated)
@@ -123,7 +125,7 @@ def g2_shapes(out: Path) -> None:
         ax.set_xlabel("Relative speed n* [-]")
         ax.set_ylabel(f"{name} [-]")
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
-        panel_letter(ax, "abc"[list(axes).index(ax)])
+        _panels.append((ax, "abc"[list(axes).index(ax)]))
     axes[0].set_ylim(0.6, 1.0)
     axes[1].set_ylim(0.3, 0.9)
     axes[2].set_ylim(0.6, 1.0)
@@ -134,6 +136,7 @@ def g2_shapes(out: Path) -> None:
         title="current (grey: v2026-09-15b)",
         title_fontsize=dm.fs(-3),
     )
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, out, "G2_efficiency_shapes", mt="4%")
 
 
@@ -144,6 +147,7 @@ def g3_plr(out: Path) -> None:
     ncol = 3
     nrow = int(np.ceil(n / ncol))
     fig, axes = plt.subplots(nrow, ncol, figsize=dm.figsize("17cm", 0.30 * nrow), sharex=True)
+    _panels: list = []
     axes = np.atleast_1d(axes).ravel()
     style = {
         "current": (COLORS["ink"], "solid", "current"),
@@ -171,7 +175,7 @@ def g3_plr(out: Path) -> None:
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         ax.set_xlim(0.1, 1.0)
         ax.set_xticks(ticks(0.2, 1.0, 0.2))
-        panel_letter(ax, "abcdefgh"[list(axes).index(ax)])
+        _panels.append((ax, "abcdefgh"[list(axes).index(ax)]))
     for ax in axes[n:]:
         ax.axis("off")
     for ax in axes[-ncol:]:
@@ -179,6 +183,7 @@ def g3_plr(out: Path) -> None:
     for ax in axes[::ncol]:
         ax.set_ylabel("COP [-]")
     axes[0].legend(loc="lower right", frameon=False, fontsize=dm.fs(-2.5))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, out, "G3_plr_cop_decomposition", mt="4%")
 
 
@@ -187,6 +192,7 @@ def g4_gate_a(out: Path) -> None:
     r = r[r.status == "adopted"]
     b = pd.read_csv(RESULTS / "residual_bins.csv")
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36))
+    _panels: list = []
     ax = axes[0]
     lbl = r.unit.str.replace(" / ", "/") + "\n" + r.rating.str.split(" ").str[0]
     colors = [COLORS["ink"] if ok else "tab:red" for ok in r.within_10pct]
@@ -200,7 +206,7 @@ def g4_gate_a(out: Path) -> None:
     ax.set_xticks(ticks(-20, 20, 10))
     ax.set_xlabel("Rated-point COP error [%]")
     ax.invert_yaxis()
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
     for ax, axis, xl in zip(axes[1:], ("n_star", "pressure_ratio"), ("n* bin", "pressure-ratio bin"), strict=True):
         bb = b[b.axis == axis]
         for cls, mk in (("ASHPB", "s"), ("ASHP", "o")):
@@ -226,7 +232,8 @@ def g4_gate_a(out: Path) -> None:
         ax.set_xlabel(xl)
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-3))
-        panel_letter(ax, "bc"[list(axes[1:]).index(ax)])
+        _panels.append((ax, "bc"[list(axes[1:]).index(ax)]))
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     _save(fig, out, "G4_gate_a", ml="6%", mt="4%", mb="10%")
 
 

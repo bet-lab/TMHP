@@ -56,7 +56,6 @@ from _dmpl_common import (  # noqa: E402
     HAIRLINE,
     apply_style,
     finalize,
-    panel_letter,
     static_path,
     ticks,
 )
@@ -156,6 +155,7 @@ def main() -> None:
     trajectory = pd.DataFrame(trajectory_en14825())
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.46))
+    _panels: list = []
 
     # --- (a) fixed temperatures -------------------------------------------
     ax = axes[0]
@@ -196,7 +196,7 @@ def main() -> None:
     ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-2))
     ax.set_title("Load falls, temperatures held", loc="left", fontsize=dm.fs(0))
-    panel_letter(ax, "a")
+    _panels.append((ax, "a"))
 
     # --- (b) EN 14825 trajectory against the certified band ---------------
     ax = axes[1]
@@ -279,9 +279,10 @@ def main() -> None:
     ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-2))
     ax.set_title("Load and flow temperature fall together (EN 14825)", loc="left", fontsize=dm.fs(0))
-    panel_letter(ax, "b")
+    _panels.append((ax, "b"))
 
     out = static_path("validation_part_load.svg").with_suffix("")
+    dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])
     finalize(fig, out, mt="6%", formats=("svg", "png"))
     plt.close(fig)
 

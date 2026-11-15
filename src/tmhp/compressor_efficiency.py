@@ -21,7 +21,9 @@ from __future__ import annotations
 
 import inspect
 import math
+import weakref
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from functools import wraps
 from typing import TypeVar, cast
@@ -254,23 +256,51 @@ def reject_invalid_efficiency(function: _F) -> _F:
     return cast(_F, wrapped)
 
 
+# Whether a model is ``model(PR, rps)`` or ``model(PR)`` belongs to the model,
+# not to the call, and ``inspect.signature`` costs about ten times the
+# polynomial it guards; a cycle evaluation asks for some twenty efficiencies.
+# The answer is decided once per model and kept in a weak-key dictionary: an
+# entry goes when its model is collected (so a new object at a reused address
+# is inspected afresh), and reassigning ``eta_cmp_*`` brings a new key. A model
+# that cannot be a weak key (a ``__slots__`` instance without ``__weakref__``,
+# an unhashable one) is inspected on every call, as before.
+
+#: model -> whether it is called as ``model(PR, rps)`` (else ``model(PR)``).
+_TAKES_SPEED: weakref.WeakKeyDictionary[Callable, bool] = weakref.WeakKeyDictionary()
+
+
+def _takes_speed(model: Callable) -> bool:
+    """Whether ``model`` binds ``(PR, rps)``; else it must bind ``(PR)`` (TypeError otherwise)."""
+    try:
+        return _TAKES_SPEED[model]
+    except (KeyError, TypeError):  # TypeError: a model that is not hashable or weakly referenceable
+        pass
+    signature = inspect.signature(model)
+    try:
+        signature.bind(1.0, 1.0)
+    except TypeError:
+        signature.bind(1.0)
+        takes_speed = False
+    else:
+        takes_speed = True
+    with suppress(TypeError):
+        _TAKES_SPEED[model] = takes_speed
+    return takes_speed
+
+
 def _eval_eff(model: float | Callable, PR: float, rps: float) -> float:
     """Evaluate a scalar or PR / PR-speed callable and enforce 0 < eta <= 1.
 
     Constructors resolve None to the corresponding baseline factory. Inspect
-    argument binding rather than catching a TypeError raised inside a model.
+    argument binding rather than catching a TypeError raised inside a model;
+    the answer is kept per model (:func:`_takes_speed`).
     """
-    if callable(model):
-        signature = inspect.signature(model)
-        try:
-            signature.bind(PR, rps)
-        except TypeError:
-            signature.bind(PR)
-            value = float(model(PR))
-        else:
-            value = float(model(PR, rps))
-    else:
+    if not callable(model):
         value = float(model)
+    elif _takes_speed(model):
+        value = float(model(PR, rps))
+    else:
+        value = float(model(PR))
     if not math.isfinite(value) or value <= 0:
         # No compressor delivers flow or a discharge state with eta <= 0: the
         # point is infeasible, not a lossless or reversed machine.

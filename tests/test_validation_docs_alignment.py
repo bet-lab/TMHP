@@ -293,7 +293,7 @@ def test_defaults_displacement_table_matches_the_decision_module() -> None:
 
 def test_defaults_airflow_table_matches_the_constructors() -> None:
     """Every "before → after" cell of the airflow table is what the constructors gave and give."""
-    from tmhp import AirSourceHeatPump, GroundSourceHeatPump
+    from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler, GroundSourceHeatPump
 
     text = _read("docs/source/validation/defaults.rst")
     start = text.index(".. list-table:: Default rated (= maximum) airflow [m³/s], before → after")
@@ -302,6 +302,7 @@ def test_defaults_airflow_table_matches_the_constructors() -> None:
         "``AirSourceHeatPump`` ``dV_ou_fan_a_rated``": (AirSourceHeatPump, "dV_ou_fan_a_rated", 0.0002),
         "``AirSourceHeatPump`` ``dV_iu_fan_a_rated``": (AirSourceHeatPump, "dV_iu_fan_a_rated", 5.37e-5),
         "``GroundSourceHeatPump`` ``dV_iu_fan_a_rated``": (GroundSourceHeatPump, "dV_iu_fan_a_rated", 5.37e-5),
+        "``AirSourceHeatPumpBoiler`` ``dV_fan_a_rated``": (AirSourceHeatPumpBoiler, "dV_fan_a_rated", 0.00015),
     }
     for label, (cls, name, before_per_W) in rows.items():
         row = re.sub(r"\s+", " ", _list_table_row(table, label))
@@ -311,6 +312,82 @@ def test_defaults_airflow_table_matches_the_constructors() -> None:
             for capacity in (3500.0, 8000.0, 15000.0)
         ]
         assert cells == expected, f"{label}: {cells}"
+
+
+def test_scope_page_states_the_high_lift_gate_as_the_results_have_it() -> None:
+    """The deficit table and the reported injection points are the committed results, row for row."""
+    from validation.gate.evaluate import catalogue_point, load_gate
+
+    from tmhp.compressor_efficiency import PR_FIT_MAX, _eval_eff, make_eta_isen
+
+    text = _read("docs/source/concepts/scope-and-limits.rst")
+    start = text.index("Known deficit: hot water in cold weather")
+    section = text[start : text.index("A short checklist for any result", start)]
+    flat = re.sub(r"\s+", " ", section)
+    gate = load_gate()
+
+    def stored(entry):
+        catalog, point = catalogue_point(entry)
+        row = pd.read_csv(RESULTS / f"{catalog.slug}.csv").set_index("point_id").loc[point.id]
+        return catalog, row
+
+    for entry in gate["gate"]["catalogue_points"]:
+        catalog, row = stored(entry)
+        label = f"{catalog.name} ({catalog.refrigerant}, {catalog.nominal_capacity_kW:g} kW)"
+        cells = [c.strip() for c in re.sub(r"\s+", " ", _list_table_row(section, label)).split(" - ")[1:]]
+        assert cells == [
+            f"{row.cop_target:.2f}",
+            f"{row.cop_pred:.3f}",
+            f"{100 * (row.cop_pred / row.cop_target - 1):+.1f} %".replace("-", "−"),
+            f"pressure ratio {row.pr_cmp:.1f}, isentropic efficiency {row.eta_cmp_isen:.3f}",
+        ], (catalog.name, cells)
+
+    injection = gate["reported"]["vapour_injection"]["catalogue_points"]
+    by_unit: dict[str, list[str]] = {}
+    for entry in injection:
+        catalog, row = stored(entry)
+        by_unit.setdefault(f"{catalog.nominal_capacity_kW:g} kW", []).append(
+            f"{100 * (row.cop_pred / row.cop_target - 1):+.1f}".replace("-", "−")
+        )
+    for size, (w55, w65) in by_unit.items():
+        assert f"{w55} and {w65} % at {size}" in flat, (size, w55, w65)
+
+    fit = make_eta_isen(45.0)
+    assert f"the fitted range ends at {PR_FIT_MAX:.2f}" in flat
+    for pr, words in ((4.3, "at a pressure ratio of 4.3"), (6.0, "at 6.0"), (PR_FIT_MAX, f"at {PR_FIT_MAX:.2f}")):
+        assert f"{float(_eval_eff(fit, pr, 45.0)):.3f} {words}" in flat, pr
+    assert float(_eval_eff(fit, 9.0, 45.0)) == pytest.approx(float(_eval_eff(fit, PR_FIT_MAX, 45.0)))
+
+
+def test_defaults_air_to_water_airflow_law_matches_the_packaged_stratum() -> None:
+    """The law, the size of its data and its hold-out error, as the table and the Summary state them."""
+    from tmhp.default_inputs import _artifact
+
+    entry = _artifact("fan_airflow_regression.json")["strata"]["airflow|heating|outdoor|air_to_water"]
+    law = entry["selected_law"]
+    formula = {
+        "power": f"``{law['a']:.4f}·Q^{law.get('b', 0):.3f}``",
+        "linear": f"``{law['a']:.4f}·Q + {law.get('b', 0):.4f}``",
+        "proportional": f"``{law['a']:.4f}·Q``",
+    }[law["kind"]]
+    low, high = (value / 1000.0 for value in entry["capacity_range_W"])
+    text = _read("docs/source/validation/defaults.rst")
+    start = text.index(".. list-table:: Catalogue airflow laws the constructors use")
+    table = text[start : text.index("The duty is the one the nameplate names", start)]
+    row = re.sub(r"\s+", " ", _list_table_row(table, "``AirSourceHeatPumpBoiler`` outdoor, heating-rated"))
+    cells = [cell.strip() for cell in row.split(" - ")[1:]]
+    assert cells == [
+        formula,
+        f"{entry['n']} / {entry['n_families']} / {len(entry['manufacturers'])}",
+        f"{low:.1f}–{high:.1f}",
+        f"{entry['nested_family_cv']['MAPE_pct']:.1f} %",
+    ], cells
+    summary = re.sub(r"\s+", " ", _list_table_row(_summary_table(text), "Rated outdoor air flow"))
+    assert f"Air-to-water: {formula} m³/s (heating-rated)" in summary
+    assert f"{entry['n']} air-to-water outdoor units" in summary
+    assert f"({entry['n_families']} families, {len(entry['manufacturers'])} manufacturers" in summary
+    # The text calls the stratum provisional exactly while the package does.
+    assert (entry.get("status", "shipped") == "provisional") == ("a provisional stratum" in summary)
 
 
 def test_defaults_ablation_table_matches_the_study() -> None:

@@ -281,6 +281,88 @@ parameter fitted to them; the ground- and water-source families share the
 same cycle core but have not been compared with unit data. The numbers, the
 units held back and the reasons are in :doc:`/validation/index`.
 
+.. _high-lift-deficit:
+
+Known deficit: hot water in cold weather
+----------------------------------------
+
+At a large lift the air-to-water model is below the catalogues, and by more
+than its average error. The acceptance gate of the sixth round of work
+(``validation/gate/high_lift_gate.yaml``; ``uv run python -m
+validation.gate.evaluate`` prints where it stands) is the catalogue COP within
+10 % at A−7/W55 on the three Panasonic WH-UQ units, which publish their
+displacement and airflow. It is not met:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 26 16 16 16 26
+
+    * - Unit, A−7/W55
+      - Catalogue COP
+      - Model
+      - Difference
+      - At the solved point
+    * - WH-UQ09HE8 (R410A, 9 kW)
+      - 2.02
+      - 1.619
+      - −19.9 %
+      - pressure ratio 7.4, isentropic efficiency 0.415
+    * - WH-UQ12HE8 (R410A, 12 kW)
+      - 1.92
+      - 1.620
+      - −15.6 %
+      - pressure ratio 7.3, isentropic efficiency 0.415
+    * - WH-UQ16HE8 (R410A, 16 kW)
+      - 1.86
+      - 1.620
+      - −12.9 %
+      - pressure ratio 7.6, isentropic efficiency 0.421
+
+The default inputs are not the cause — these units run on their published
+ones, and the changes of that round (catalogue displacement and airflow, R290
+as the default refrigerant of the air-source boiler) leave the three numbers
+where they were. Nor are the heat-exchanger conductances: ten times the
+outdoor or the tank conductance does not bring the points inside 10 %, and
+twice both pushes the 63 frost-free points of the same catalogues from +0.4 %
+to +9.4 %. What the measurements of that round point at is this, in the order
+of its share:
+
+1. **The shipped isentropic-efficiency fit above a pressure ratio of 6.** At
+   45 rev/s it gives 0.720 at a pressure ratio of 4.3, 0.568 at 6.0, 0.371 at
+   7.15, and is held at 0.371 beyond (the fitted range ends at 7.15). The
+   three points are solved exactly there. The fit is one quadratic in the
+   pressure ratio and falls faster at that edge than the calculation data it
+   was fitted to: at a pressure ratio of 7.15 those data average 0.57 where
+   the fit gives 0.40. Between two catalogue points at the same outdoor
+   temperature and different water temperatures -- a ratio in which the frost
+   correction cancels -- the model loses 11 % more than the catalogue when the
+   hotter point lies between pressure ratios of 6 and 7.15, and within −2 to
+   +4 % elsewhere.
+2. **The size of the frost and defrost adjustment.** Below 5 °C outdoors the
+   running cycle is averaged over frosting and defrost
+   (:doc:`/models/ashpb`); at −7 °C that takes 8 to 17 % off the COP of
+   these points, of which 8 % is a fixed factor that does not depend on the
+   humidity. Set against the same catalogues the adjustment looks about twice
+   as large as they support at −7 °C (17 % applied, about 9 % supported, the
+   latter an estimate with a standard error of 2 to 4 points that differs
+   from unit to unit). The two act together: with the fit corrected alone the
+   air-to-water bias is already near zero, so the adjustment is to be judged
+   on what is left after that, not before.
+3. **Vapour injection, which the model does not have.** The Panasonic T-CAP M
+   units (WH-WXG09/12/16, R290) are sold with an injection scroll; a
+   single-stage cycle (`Refused: outside the models`_) cannot hold their
+   efficiency or their discharge temperature at these pressure ratios. Their
+   A−7/W55 and A−7/W65 points (−21.5 and −23.1 % at 9 kW, −15.7 and −15.7 %
+   at 12 kW, −8.2 and −10.7 % at 16 kW) are therefore reported beside the
+   gate, not part of it. They stay in the parity results of
+   :doc:`/validation/index`.
+
+The fit belongs to the compressor-efficiency model, which is being reworked
+separately (by compressor type, with the source data above a pressure ratio of
+6); the gate is that work's to close. Until then: at outdoor temperatures
+below about 2 °C and leaving water at 55 °C or more, read an air-to-water COP
+from this model as 10 to 20 % conservative.
+
 A short checklist for any result
 ================================
 

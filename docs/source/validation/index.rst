@@ -585,11 +585,14 @@ Scope
     data. The conductance rule derived here is for air coils and does not
     transfer to a water- or brine-coupled face, which is different physics.
 
-    Every family's default compressor displacement is the fixed
-    42 cm³ per 9 kW of nameplate (:func:`tmhp.compressor_speed.default_displacement`);
-    the refrigerant-aware rule of :doc:`defaults` is available as
-    :func:`tmhp.compressor_speed.refrigerant_aware_displacement` but is not
-    the default.
+    The default compressor displacement of ``AirSourceHeatPump``,
+    ``GroundSourceHeatPump`` and ``AirSourceHeatPumpBoiler`` is the one a
+    compressor catalogue gives for the capacity and the refrigerant
+    (:func:`tmhp.default_inputs.estimate_displacement`, :doc:`defaults`). The
+    ground- and water-source boilers still use the fixed 42 cm³ per 9 kW of
+    nameplate (:func:`tmhp.compressor_speed.default_displacement`): the
+    catalogue rule has not been carried over to them, and no unit data exist
+    to judge it there.
 
 
 Reproduce

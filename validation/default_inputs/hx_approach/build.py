@@ -1,0 +1,538 @@
+"""Build the heat-exchanger approach archive: observations -> measurements -> transfer laws -> release record.
+
+One observation row is one refrigerant heat exchanger of a real machine at a declared operating point:
+entering fluid temperature, fluid flow, heat duty and the refrigerant saturation temperature (from the printed
+pressure where its basis is stated). From those the build computes, with no free parameter,
+
+    ITD   = |T_fluid_in - T_sat|          dT    = Q / C            eps = dT / ITD
+    leave = ITD - dT   (leaving-end approach)                      UA  = -C ln(1 - eps)
+
+for the model's exchanger (isothermal refrigerant, single-phase fluid, eps = 1 - exp(-UA/C)). ``T_sat`` is the
+saturation temperature at the pressure the document prints (service port, compressor port), so the conductance
+is the *effective* one that reproduces the pressure the compressor sees: line and coil pressure drop and the
+desuperheating and subcooling zones are inside it.
+
+What transfers to a machine of another size is decided by the data (issues #115-#118, owner decision
+2026-11-16): per stratum, each candidate law is fitted with one product line held out and scored by the error
+of the predicted saturation temperature of the held-out units at their own flow and duty; the simplest law
+within 10 % of the lowest RMSE is selected.
+
+Hand-edited inputs: sources.json, observations/<source_id>.csv, errata.csv, holdout_groups.json.
+
+  uv run python -m validation.default_inputs.hx_approach.build
+  uv run python -m validation.default_inputs.hx_approach.build --release VERSION --note "what changed"
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import math
+import re
+from collections import Counter, defaultdict
+from pathlib import Path
+
+import CoolProp.CoolProp as CP
+
+from validation.default_inputs import archive
+
+HERE = Path(__file__).parent
+ROOT = HERE.parents[2]
+OBSERVATION_COLUMNS = [
+    "record_id", "source_pdf_page", "printed_page", "locator", "manufacturer", "family_id", "model",
+    "product_class", "exchanger", "hx_type", "role", "mode", "refrigerant", "point_label", "fluid",
+    "fluid_in_text", "fluid_in_unit", "fluid_in_wb_text", "fluid_out_text", "fluid_out_unit", "flow_text",
+    "flow_unit", "flow_basis", "pressure_text", "pressure_unit", "pressure_location", "sat_temp_text",
+    "sat_temp_unit", "sat_temp_kind", "duty_text", "duty_unit", "duty_kind", "input_power_text",
+    "input_power_unit", "nameplate_capacity_text", "nameplate_capacity_unit", "nameplate_mode",
+    "compressor_speed_text", "compressor_speed_unit", "value_kind", "surface_state", "note",
+]  # fmt: skip
+ERRATA_FIELDS = set(OBSERVATION_COLUMNS) - {"record_id", "note"}
+
+PRODUCT_CLASSES = ("split_wall", "split_ducted", "split_other", "air_to_water", "water_to_air", "water_to_water",
+                   "hpwh_integrated", "test_rig")  # fmt: skip
+EXCHANGERS = ("outdoor_coil", "indoor_coil", "liquid_source_hx", "water_condenser", "tank_coil", "load_water_hx")
+ROLES = ("condensing", "evaporating")
+#: Kinds of value a default may rest on. Design-sheet and model output are recorded, never fitted.
+FITTED_VALUE_KINDS = ("manufacturer_standard_data", "manufacturer_operating_table", "measured_lab")
+#: Surface states under which the sensible effectiveness is that of the model's dry exchanger.
+DRY_STATES = ("dry", "possibly_wet", "n/a")
+CLASS_GROUP = {"split_wall": "split", "split_other": "split"}
+
+POWER_TO_W = {"W": 1.0, "kW": 1000.0, "Btu/h": 0.29307107, "MBtu/h": 293.07107, "MBH": 293.07107, "ton": 3516.8525}
+AIRFLOW_TO_M3_S = {"m3/s": 1.0, "m3/min": 1 / 60, "m3/h": 1 / 3600, "l/s": 1e-3, "L/s": 1e-3, "CFM": 0.0283168466 / 60}
+LIQUID_TO_M3_S = {"m3/s": 1.0, "m3/h": 1 / 3600, "l/s": 1e-3, "L/s": 1e-3, "l/min": 1e-3 / 60, "L/min": 1e-3 / 60,
+                  "gpm": 3.785411784e-3 / 60}  # fmt: skip
+MASSFLOW_TO_KG_S = {"kg/s": 1.0, "kg/h": 1 / 3600}
+ATM = 101325.0
+#: printed unit -> (factor to Pa, offset added in Pa); a unit whose basis is not stated is not converted.
+PRESSURE_TO_PA_ABS = {
+    "psig": (6894.757293, ATM), "psia": (6894.757293, 0.0), "MPa(G)": (1e6, ATM), "MPa(abs)": (1e6, 0.0),
+    "kPa(G)": (1e3, ATM), "kPa(abs)": (1e3, 0.0), "bar(g)": (1e5, ATM), "bar(a)": (1e5, 0.0),
+    "kgf/cm2G": (98066.5, ATM),
+}  # fmt: skip
+C_AIR = 1006.0  # J/(kg K), dry air
+R_AIR = 287.05
+ANTIFREEZE = {"methanol": "MMA", "propylene glycol": "MPG", "ethylene glycol": "MEG", "ethanol": "MEA"}
+REFRIGERANT_FLUIDS = {"R410A": "R410A", "R32": "R32", "R290": "R290", "R22": "R22", "R134a": "R134a",
+                      "R407C": "R407C", "R454B": "R454B.mix", "R1234yf": "R1234yf", "R744": "CO2"}  # fmt: skip
+
+#: Candidate transfer laws in order of preference when their hold-out errors are within the tolerance:
+#: one parameter and always solvable first, the fixed inlet difference (not always solvable) after them,
+#: the two-parameter law last.
+LAWS = ("leaving_approach", "ua_per_duty", "ua_per_nameplate", "itd", "ua_linear")
+SELECTION_TOLERANCE = 1.10
+SHIPPING_GATE = {"holdout_groups": 3, "manufacturers": 2}
+SELECTION = (
+    "Per stratum, every candidate law is fitted with one hold-out group (product lines sharing hardware) left "
+    "out, family-balanced, and scored by the RMSE of the predicted inlet temperature difference [K] of the "
+    "held-out units at their own flow and duty. Selected: the first law in the order "
+    f"{', '.join(LAWS)} whose RMSE is within {SELECTION_TOLERANCE:.2f} of the lowest."
+)
+_NUMBER = r"-?\d+(?:\.\d+)?"
+_RANGE = re.compile(rf"^({_NUMBER})\s*(?:-|–|~|to)\s*({_NUMBER})$")
+_CHANGE = re.compile(r"^(rise|drop)\s+(.+)$", re.IGNORECASE)
+
+
+def number(text: str) -> tuple[float, float, float] | None:
+    """Printed number or range -> (central, low, high); empty -> None."""
+    text = text.strip().replace(",", "")
+    if not text:
+        return None
+    m = _RANGE.match(text)
+    if m:
+        low, high = sorted((float(m.group(1)), float(m.group(2))))
+        return (low + high) / 2, low, high
+    value = float(text)
+    return value, value, value
+
+
+def to_celsius(value: float, unit: str) -> float:
+    unit = unit.replace("°", "").replace("deg", "").strip().upper()
+    if unit == "C":
+        return value
+    if unit == "F":
+        return (value - 32.0) / 1.8
+    if unit == "K":
+        return value - 273.15
+    raise ValueError(f"unknown temperature unit {unit!r}")
+
+
+def kelvin_per_unit(unit: str) -> float:
+    return 1 / 1.8 if unit.replace("°", "").replace("deg", "").strip().upper() == "F" else 1.0
+
+
+def saturation_C(p_abs: float, refrigerant: str) -> tuple[float, float]:
+    """Mean of bubble and dew temperature [degC] at ``p_abs`` [Pa], and the glide [K]."""
+    fluid = REFRIGERANT_FLUIDS[archive.normalize_refrigerant(refrigerant)]
+    bubble, dew = (CP.PropsSI("T", "P", p_abs, "Q", q, fluid) for q in (0.0, 1.0))
+    return (bubble + dew) / 2 - 273.15, dew - bubble
+
+
+def capacity_rate(row: dict, T_in: float) -> tuple[float | None, str]:
+    """Fluid heat capacity rate C [W/K] at the entering state and how it was obtained."""
+    flow = number(row["flow_text"])
+    if flow is None:
+        return None, "no_flow"
+    unit, fluid = row["flow_unit"], row["fluid"].strip().lower()
+    if fluid == "air":
+        return flow[0] * AIRFLOW_TO_M3_S[unit] * ATM / (R_AIR * (T_in + 273.15)) * C_AIR, "dry air at inlet, 1 atm"
+    if fluid == "water":
+        name = "Water"
+    else:
+        m = re.match(r"^(\d+(?:\.\d+)?)\s*%\s*(.+)$", fluid)
+        if not m or m.group(2).strip() not in ANTIFREEZE:
+            raise ValueError(f"{row['record_id']}: unknown fluid {row['fluid']!r}")
+        name = f"INCOMP::{ANTIFREEZE[m.group(2).strip()]}[{float(m.group(1)) / 100:.4f}]"
+    T, p = T_in + 273.15, 2e5
+    cp = CP.PropsSI("C", "T", T, "P", p, name)
+    if unit in MASSFLOW_TO_KG_S:
+        return flow[0] * MASSFLOW_TO_KG_S[unit] * cp, f"{name} at inlet"
+    return flow[0] * LIQUID_TO_M3_S[unit] * CP.PropsSI("D", "T", T, "P", p, name) * cp, f"{name} at inlet"
+
+
+def exchanger_duty(row: dict) -> tuple[float | None, str]:
+    """Heat duty of this exchanger [W]: printed directly, or the unit capacity with the input power on the
+    side that carries the compressor work."""
+    duty, kind = number(row["duty_text"]), row["duty_kind"]
+    if duty is None or kind in ("", "none"):
+        return None, "no_duty"
+    Q = duty[0] * POWER_TO_W[row["duty_unit"]]
+    if kind == "coil_duty":
+        return Q, "printed coil duty"
+    if kind != "unit_capacity_at_point":
+        raise ValueError(f"{row['record_id']}: unknown duty_kind {kind!r}")
+    # The exchanger the capacity is stated on: the load side of the mode.
+    load_side = {"cooling": "evaporating", "heating": "condensing", "dhw": "condensing"}[row["mode"]]
+    if row["role"] == load_side:
+        return Q, "unit capacity (load side)"
+    power = number(row["input_power_text"])
+    if power is None:
+        return None, "no_input_power"
+    P = power[0] * POWER_TO_W[row["input_power_unit"]]
+    return (
+        (Q + P, "unit capacity + total input")
+        if row["role"] == "condensing"
+        else (Q - P, "unit capacity - total input")
+    )
+
+
+def measure(row: dict, validation_sources: set[str]) -> dict:
+    """SI values and the exchanger quantities of one observation row."""
+    for field, allowed in (("product_class", PRODUCT_CLASSES), ("exchanger", EXCHANGERS), ("role", ROLES)):
+        if row[field] not in allowed:
+            raise ValueError(f"{row['record_id']}: {field} {row[field]!r} not in {allowed}")
+    out = {k: row[k] for k in ("record_id", "source_id", "manufacturer", "family_id", "model", "product_class",
+                               "exchanger", "hx_type", "role", "mode", "refrigerant", "point_label", "fluid",
+                               "value_kind", "surface_state", "flow_basis", "source_pdf_page")}  # fmt: skip
+    out["source_pdf_page"] = int(row["source_pdf_page"])
+    out["errata_applied"] = row.get("errata_applied", [])
+    reasons: list[str] = [row["exclusion_reason"]] if row.get("exclusion_reason") else []
+    T_in = number(row["fluid_in_text"])
+    out["T_in_C"] = to_celsius(T_in[0], row["fluid_in_unit"]) if T_in else None
+
+    # Saturation temperature: the printed pressure where its basis is stated, else what the document prints.
+    out["T_sat_C"], out["sat_basis"], out["T_sat_low_C"], out["T_sat_high_C"] = None, "none", None, None
+    pressure = number(row["pressure_text"])
+    printed = number(row["sat_temp_text"])
+    if printed:
+        out["T_sat_printed_C"] = to_celsius(printed[0], row["sat_temp_unit"])
+        out["sat_temp_kind"] = row["sat_temp_kind"]
+    if pressure and row["pressure_unit"] in PRESSURE_TO_PA_ABS:
+        factor, offset = PRESSURE_TO_PA_ABS[row["pressure_unit"]]
+        (out["T_sat_C"], out["glide_K"]) = saturation_C(pressure[0] * factor + offset, row["refrigerant"])
+        out["T_sat_low_C"] = saturation_C(pressure[1] * factor + offset, row["refrigerant"])[0]
+        out["T_sat_high_C"] = saturation_C(pressure[2] * factor + offset, row["refrigerant"])[0]
+        out["sat_basis"] = "printed pressure"
+    elif printed:
+        out["T_sat_C"] = out["T_sat_printed_C"]
+        out["T_sat_low_C"] = to_celsius(printed[1], row["sat_temp_unit"])
+        out["T_sat_high_C"] = to_celsius(printed[2], row["sat_temp_unit"])
+        out["sat_basis"] = row["sat_temp_kind"]
+    if pressure and row["pressure_unit"] not in PRESSURE_TO_PA_ABS:
+        out["pressure_basis_not_stated"] = f"{row['pressure_text']} {row['pressure_unit']}"
+
+    nameplate = number(row["nameplate_capacity_text"])
+    out["nameplate_W"] = nameplate[0] * POWER_TO_W[row["nameplate_capacity_unit"]] if nameplate else None
+    out["nameplate_mode"] = row["nameplate_mode"]
+    out["Q_hx_W"], out["duty_basis"] = exchanger_duty(row)
+    out["C_W_K"], out["C_basis"] = (None, "no_inlet") if out["T_in_C"] is None else capacity_rate(row, out["T_in_C"])
+
+    # Fluid-side heat from a printed leaving temperature (or rise/drop), a check on the declared duty.
+    out["Q_fluid_W"] = None
+    leaving = row["fluid_out_text"].strip()
+    if leaving and out["C_W_K"] is not None:
+        change = _CHANGE.match(leaving)
+        if change:
+            dT_fluid = number(change.group(2))[0] * kelvin_per_unit(row["fluid_out_unit"])
+        else:
+            dT_fluid = abs(to_celsius(number(leaving)[0], row["fluid_out_unit"]) - out["T_in_C"])
+        out["dT_fluid_printed_K"] = dT_fluid
+        out["Q_fluid_W"] = out["C_W_K"] * dT_fluid
+        if out["Q_hx_W"] is None and row["fluid"].strip().lower() != "air":
+            # A liquid exchanger with printed flow and temperature change carries its own duty.
+            out["Q_hx_W"], out["duty_basis"] = out["Q_fluid_W"], "liquid flow x printed temperature change"
+
+    for key in ("ITD_K", "dT_K", "eps", "leave_K", "LMTD_K", "UA_W_K"):
+        out[key] = None
+    if out["T_sat_C"] is not None and out["T_in_C"] is not None:
+        out["ITD_K"] = abs(out["T_in_C"] - out["T_sat_C"])
+        sign = 1 if row["role"] == "condensing" else -1
+        if sign * (out["T_sat_C"] - out["T_in_C"]) <= 0:
+            reasons.append("saturation_on_wrong_side_of_inlet")
+    else:
+        reasons.append("no_saturation_or_inlet")
+    if out["ITD_K"] and out["Q_hx_W"] and out["C_W_K"]:
+        out["dT_K"] = out["Q_hx_W"] / out["C_W_K"]
+        out["eps"] = out["dT_K"] / out["ITD_K"]
+        if 0 < out["eps"] < 1:
+            out["leave_K"] = out["ITD_K"] - out["dT_K"]
+            out["LMTD_K"] = out["dT_K"] / math.log(out["ITD_K"] / out["leave_K"])
+            out["UA_W_K"] = out["Q_hx_W"] / out["LMTD_K"]
+        else:
+            reasons.append("effectiveness_outside_0_1")
+    elif not reasons:
+        reasons.append("no_flow_or_duty")
+    if out["Q_fluid_W"] and out["Q_hx_W"] and out["duty_basis"] != "liquid flow x printed temperature change":
+        out["Q_fluid_over_Q_hx"] = out["Q_fluid_W"] / out["Q_hx_W"]
+
+    if row["source_id"] in validation_sources:
+        reasons.append("validation_unit")
+    if row["value_kind"] not in FITTED_VALUE_KINDS:
+        reasons.append(f"value_kind_{row['value_kind']}")
+    if row["surface_state"] not in DRY_STATES:
+        reasons.append(f"surface_{row['surface_state']}")
+    if out["sat_basis"] == "pipe_surface_temp":
+        reasons.append("saturation_from_pipe_surface")
+    out["eligible"] = not reasons
+    out["exclusion_reason"] = "; ".join(reasons)
+    out["stratum"] = "|".join(
+        (CLASS_GROUP.get(row["product_class"], row["product_class"]), row["exchanger"], row["hx_type"], row["role"])
+    )
+    return out
+
+
+def weighted_quantile(values: list[float], weights: list[float], q: float) -> float:
+    order = sorted(range(len(values)), key=values.__getitem__)
+    total, cumulative = sum(weights), 0.0
+    for i in order:
+        cumulative += weights[i]
+        if cumulative >= q * total - 1e-12:
+            return values[i]
+    return values[order[-1]]
+
+
+def balanced_weights(rows: list[dict]) -> list[float]:
+    """Every hold-out group counts once, however many units it lists."""
+    count = Counter(r["holdout_group"] for r in rows)
+    return [1.0 / count[r["holdout_group"]] for r in rows]
+
+
+def fit_law(rows: list[dict], kind: str) -> dict | None:
+    w = balanced_weights(rows)
+
+    def median(values: list[float]) -> float:
+        return weighted_quantile(values, w, 0.5)
+
+    if kind == "leaving_approach":
+        return {"kind": kind, "dT_out_K": median([r["leave_K"] for r in rows])}
+    if kind == "itd":
+        return {"kind": kind, "ITD_K": median([r["ITD_K"] for r in rows])}
+    if kind == "ua_per_duty":
+        return {"kind": kind, "k_per_K": median([r["UA_W_K"] / r["Q_hx_W"] for r in rows])}
+    if any(r["nameplate_W"] is None for r in rows):
+        return None
+    if kind == "ua_per_nameplate":
+        return {"kind": kind, "k_per_K": median([r["UA_W_K"] / r["nameplate_W"] for r in rows])}
+    x = [r["nameplate_W"] / 1000 for r in rows]
+    y = [r["UA_W_K"] for r in rows]
+    sw, sx, sy = sum(w), sum(a * b for a, b in zip(w, x, strict=True)), sum(a * b for a, b in zip(w, y, strict=True))
+    sxx = sum(a * b * b for a, b in zip(w, x, strict=True))
+    sxy = sum(a * b * c for a, b, c in zip(w, x, y, strict=True))
+    det = sw * sxx - sx * sx
+    if len({r["holdout_group"] for r in rows}) < 2 or abs(det) < 1e-12:
+        return None
+    a = (sw * sxy - sx * sy) / det
+    return {"kind": kind, "a_W_K_per_kW": a, "b_W_K": (sy - a * sx) / sw}
+
+
+def predict_itd(law: dict, row: dict) -> float:
+    """Inlet temperature difference [K] the law gives for ``row`` at its own flow and duty."""
+    dT = row["Q_hx_W"] / row["C_W_K"]
+    if law["kind"] == "leaving_approach":
+        return law["dT_out_K"] + dT
+    if law["kind"] == "itd":
+        return law["ITD_K"]
+    if law["kind"] == "ua_per_duty":
+        UA = law["k_per_K"] * row["Q_hx_W"]
+    elif law["kind"] == "ua_per_nameplate":
+        UA = law["k_per_K"] * row["nameplate_W"]
+    else:
+        UA = max(law["a_W_K_per_kW"] * row["nameplate_W"] / 1000 + law["b_W_K"], 1e-6)
+    return dT / (1 - math.exp(-UA / row["C_W_K"]))
+
+
+def holdout(rows: list[dict], kind: str, by: str) -> dict:
+    errors, per_fold = [], {}
+    for fold in sorted({r[by] for r in rows}):
+        train = [r for r in rows if r[by] != fold]
+        law = fit_law(train, kind) if train else None
+        if law is None:
+            return {"valid": False, "reason": f"law not defined without {fold}"}
+        fold_errors = [predict_itd(law, r) - r["ITD_K"] for r in rows if r[by] == fold]
+        per_fold[fold] = {"n": len(fold_errors), "bias_K": sum(fold_errors) / len(fold_errors)}
+        errors += fold_errors
+    return {
+        "valid": True,
+        "n": len(errors),
+        "RMSE_K": math.sqrt(sum(e * e for e in errors) / len(errors)),
+        "bias_K": sum(errors) / len(errors),
+        "MAE_K": sum(abs(e) for e in errors) / len(errors),
+        "folds": per_fold,
+    }
+
+
+def fit_stratum(rows: list[dict]) -> dict:
+    groups = sorted({r["holdout_group"] for r in rows})
+    makers = sorted({r["manufacturer"] for r in rows})
+    w = balanced_weights(rows)
+    band = {
+        name: [weighted_quantile(values, w, q) for q in (0.1, 0.5, 0.9)]
+        for name, values in (
+            ("ITD_K", [r["ITD_K"] for r in rows]),
+            ("leave_K", [r["leave_K"] for r in rows]),
+            ("LMTD_K", [r["LMTD_K"] for r in rows]),
+            ("eps", [r["eps"] for r in rows]),
+            ("UA_per_Q_hx", [r["UA_W_K"] / r["Q_hx_W"] for r in rows]),
+        )
+    }
+    named = [r for r in rows if r["nameplate_W"]]
+    if named:
+        wn = balanced_weights(named)
+        band["Q_hx_per_nameplate"] = [
+            weighted_quantile([r["Q_hx_W"] / r["nameplate_W"] for r in named], wn, q) for q in (0.1, 0.5, 0.9)
+        ]
+        band["UA_per_nameplate"] = [
+            weighted_quantile([r["UA_W_K"] / r["nameplate_W"] for r in named], wn, q) for q in (0.1, 0.5, 0.9)
+        ]
+    candidates, selected = {}, None
+    if len(groups) >= 2:
+        for kind in LAWS:
+            law = fit_law(rows, kind)
+            cv = holdout(rows, kind, "holdout_group") if law else {"valid": False, "reason": "nameplate missing"}
+            maker_cv = (
+                holdout(rows, kind, "manufacturer")
+                if law and len(makers) > 1
+                else {"valid": False, "reason": "single manufacturer"}
+            )
+            candidates[kind] = {"law": law, "group_holdout": cv, "manufacturer_holdout": maker_cv}
+        valid = {k: c["group_holdout"]["RMSE_K"] for k, c in candidates.items() if c["group_holdout"].get("valid")}
+        if valid:
+            best = min(valid.values())
+            selected = next(k for k in LAWS if k in valid and valid[k] <= SELECTION_TOLERANCE * best + 1e-12)
+    meets = len(groups) >= SHIPPING_GATE["holdout_groups"] and len(makers) >= SHIPPING_GATE["manufacturers"]
+    return {
+        "n": len(rows),
+        "holdout_groups": groups,
+        "families": sorted({r["family_id"] for r in rows}),
+        "manufacturers": makers,
+        "value_kinds": dict(Counter(r["value_kind"] for r in rows)),
+        "band_p10_p50_p90": band,
+        "selected_law": candidates[selected]["law"] if selected else None,
+        "candidates": candidates,
+        "nameplate_range_W": [min(r["nameplate_W"] for r in named), max(r["nameplate_W"] for r in named)]
+        if named
+        else None,
+        "duty_range_W": [min(r["Q_hx_W"] for r in rows), max(r["Q_hx_W"] for r in rows)],
+        "meets_shipping_gate": meets,
+        "source_ids": sorted({r["source_id"] for r in rows}),
+    }
+
+
+def role_ratios(rows: list[dict]) -> dict:
+    """Effective UA of the same exchanger of the same unit as evaporator over that as condenser."""
+    pairs = defaultdict(dict)
+    for r in rows:
+        if r["UA_W_K"] and r["value_kind"] in FITTED_VALUE_KINDS and r["surface_state"] in DRY_STATES:
+            pairs[(r["source_id"], r["model"], r["product_class"], r["exchanger"], r["hx_type"])][r["role"]] = r
+    out: dict[str, list[dict]] = defaultdict(list)
+    for (_, model, product, exchanger, hx_type), pair in pairs.items():
+        if len(pair) == 2:
+            cond, evap = pair["condensing"], pair["evaporating"]
+            out["|".join((CLASS_GROUP.get(product, product), exchanger, hx_type))].append(
+                {"model": model, "manufacturer": cond["manufacturer"], "holdout_group": cond["holdout_group"],
+                 "ratio": evap["UA_W_K"] / cond["UA_W_K"], "records": [evap["record_id"], cond["record_id"]]}
+            )  # fmt: skip
+    report = {}
+    for key, items in out.items():
+        count = Counter(i["holdout_group"] for i in items)
+        w = [1.0 / count[i["holdout_group"]] for i in items]
+        values = [i["ratio"] for i in items]
+        makers = sorted({i["manufacturer"] for i in items})
+        report[key] = {
+            "n_pairs": len(items),
+            "manufacturers": makers,
+            "holdout_groups": sorted(count),
+            "UA_evaporating_over_condensing_p10_p50_p90": [weighted_quantile(values, w, q) for q in (0.1, 0.5, 0.9)],
+            "by_manufacturer_median": {
+                m: weighted_quantile(
+                    [i["ratio"] for i in items if i["manufacturer"] == m],
+                    [1.0] * sum(i["manufacturer"] == m for i in items),
+                    0.5,
+                )
+                for m in makers
+            },
+            "meets_shipping_gate": len(count) >= SHIPPING_GATE["holdout_groups"]
+            and len(makers) >= SHIPPING_GATE["manufacturers"],
+            "pairs": items,
+        }
+    return report
+
+
+def build(release: str | None = None, note: str = "") -> dict:
+    sources = archive.load_json(HERE, "sources.json")
+    registry = {s["source_id"]: s for s in sources}
+    if len(registry) != len(sources):
+        raise ValueError("source_id must be unique")
+    validation_sources = {s["source_id"] for s in sources if s.get("validation_unit")}
+    groups = archive.load_json(HERE, "holdout_groups.json")
+    observations = archive.read_observations(HERE, registry, OBSERVATION_COLUMNS)
+    archive.apply_errata(HERE, observations, ERRATA_FIELDS)
+    rows = []
+    for o in observations:
+        r = measure(o, validation_sources)
+        r["holdout_group"] = groups.get(r["family_id"], r["family_id"])
+        r["source_sha256"] = registry[o["source_id"]]["sha256"]
+        rows.append(r)
+    data_sha256 = archive.write_measurements(HERE, rows)
+    eligible = defaultdict(list)
+    for r in rows:
+        if r["eligible"]:
+            eligible[r["stratum"]].append(r)
+    # Rows that give only the temperature difference (no flow or duty, or a pipe-surface temperature) do not
+    # enter a fit; they are reported per stratum as corroboration of the inlet difference.
+    corroboration = defaultdict(list)
+    for r in rows:
+        if (
+            not r["eligible"]
+            and r["ITD_K"]
+            and "validation_unit" not in r["exclusion_reason"]
+            and r["value_kind"] in FITTED_VALUE_KINDS
+        ):
+            corroboration[r["stratum"]].append(r)
+    report = {
+        "dataset": {"records": len(rows), "eligible": sum(r["eligible"] for r in rows), "sources": len(sources)},
+        "data_sha256": data_sha256,
+        "selection": SELECTION,
+        "shipping_gate": SHIPPING_GATE,
+        "fits": {k: fit_stratum(v) for k, v in sorted(eligible.items())},
+        "itd_only_rows": {
+            k: {
+                "n": len(v),
+                "manufacturers": sorted({r["manufacturer"] for r in v}),
+                "ITD_K_min_median_max": [min(x := sorted(r["ITD_K"] for r in v)), x[len(x) // 2], max(x)],
+                "reasons": dict(Counter(r["exclusion_reason"] for r in v)),
+            }
+            for k, v in sorted(corroboration.items())
+        },
+        "role_ratios": role_ratios([dict(r) for r in rows if "validation_unit" not in r["exclusion_reason"]]),
+        "excluded": dict(Counter(r["exclusion_reason"] for r in rows if not r["eligible"])),
+    }
+    (HERE / "regression.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+    record_release(report, release, note)
+    return report
+
+
+def record_release(report: dict, release: str | None, note: str) -> None:
+    path = HERE / "releases.json"
+    releases = json.loads(path.read_text()) if path.exists() else []
+    current = {
+        k: {"n": f["n"], "selected_law": f["selected_law"], "meets_shipping_gate": f["meets_shipping_gate"]}
+        for k, f in report["fits"].items()
+    }
+    previous = releases[-1]["strata"] if releases else {}
+    changes = [
+        f"{k}: {previous.get(k)} -> {current.get(k)}"
+        for k in sorted(set(previous) | set(current))
+        if previous.get(k) != current.get(k)
+    ]
+    if release:
+        if any(r["version"] == release for r in releases):
+            raise ValueError(f"release {release} already recorded")
+        releases.append({"version": release, "date": dt.date.today().isoformat(), "data_sha256": report["data_sha256"],
+                         **report["dataset"], "changes": changes or ["none"], "note": note, "strata": current})  # fmt: skip
+        path.write_text(json.dumps(releases, ensure_ascii=False, indent=2) + "\n")
+    print(json.dumps({**report["dataset"], "changes_since_latest_release": changes}, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--release", help="record this build in releases.json under the given version")
+    parser.add_argument("--note", default="", help="what changed, for the release record")
+    args = parser.parse_args()
+    result = build(args.release, args.note)
+    for key, fit in result["fits"].items():
+        law = fit["selected_law"]
+        print(f"{key}: n={fit['n']} groups={len(fit['holdout_groups'])} makers={len(fit['manufacturers'])} "
+              f"gate={'yes' if fit['meets_shipping_gate'] else 'no'} law={law}")  # fmt: skip

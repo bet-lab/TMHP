@@ -129,6 +129,49 @@ def calc_phase_change_hx_capacity(UA: float, m_dot: float, cp: float, T_fluid_in
     return calc_phase_change_hx_effectiveness(UA, m_dot, cp) * m_dot * cp * abs(T_fluid_in - T_ref_sat)
 
 
+def calc_UA_from_leaving_approach(Q_hx: float, C: float, dT_out: float) -> float:
+    """UA [W/K] of a phase-change exchanger from its leaving-end approach.
+
+    ``dT_out`` [K] is the difference between the refrigerant saturation
+    temperature and the fluid *leaving* the exchanger at duty ``Q_hx`` [W] and
+    fluid heat capacity rate ``C`` [W/K]. With an isothermal refrigerant the
+    fluid changes by ``Q_hx / C``, the inlet difference is
+    ``dT_out + Q_hx / C`` and
+
+    .. math::
+
+        UA = C \\ln\\!\\left(1 + \\frac{Q_{hx}}{C\\,\\Delta T_{out}}\\right)
+
+    A solution exists for every positive duty, flow and approach, and the
+    conductance stays finite when the flow is small: the effectiveness
+    ``1 - exp(-UA / C)`` this implies is ``1 / (1 + C dT_out / Q_hx)``, below
+    one by construction.
+    """
+    if not all(math.isfinite(v) and v > 0 for v in (Q_hx, C, dT_out)):
+        raise ValueError("Duty, heat capacity rate and leaving approach must be positive and finite")
+    return C * math.log1p(Q_hx / (C * dT_out))
+
+
+def calc_UA_from_inlet_difference(Q_hx: float, C: float, ITD: float) -> float:
+    """UA [W/K] of a phase-change exchanger from its inlet temperature difference.
+
+    ``ITD`` [K] is the difference between the refrigerant saturation
+    temperature and the fluid *entering* the exchanger. The effectiveness is
+    ``Q_hx / (C * ITD)`` and ``UA = -C ln(1 - effectiveness)``. There is no
+    solution when the fluid would have to change by the whole inlet difference
+    or more (``Q_hx >= C * ITD``); that raises ``ValueError``.
+    """
+    if not all(math.isfinite(v) and v > 0 for v in (Q_hx, C, ITD)):
+        raise ValueError("Duty, heat capacity rate and inlet temperature difference must be positive and finite")
+    effectiveness = Q_hx / (C * ITD)
+    if effectiveness >= 1.0:
+        raise ValueError(
+            f"No conductance gives {Q_hx:.0f} W at an inlet difference of {ITD:.2f} K with a heat capacity rate "
+            f"of {C:.0f} W/K: the fluid would change by {Q_hx / C:.2f} K"
+        )
+    return -C * math.log1p(-effectiveness)
+
+
 def resolve_fan_flow_limits(
     reference: float, minimum: float | None = None, maximum: float | None = None, *, custom_curve: bool = False
 ) -> tuple[float, float]:

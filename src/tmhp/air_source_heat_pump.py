@@ -2113,35 +2113,59 @@ class AirSourceHeatPump(ReferenceStateMixin):
         if perf is None:
             return None, None, first_reason
 
-        # A duty above what the compressor delivers flat out has no fixed
-        # point to converge on quickly: the delivered heat, and with it each
-        # coil's approach, moves with the approaches themselves. A flat-out
-        # state met on the way is kept, so that running out of iterations there
-        # is answered as the speed range and not as a cycle that does not exist.
-        flat_out: tuple[tuple[float, float], dict] | None = None
-        for _ in range(self._LEAST_LIFT_MAX_ITER):
-            if perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX and perf.get("converged", False):
-                flat_out = (x, perf)
-            target = self._largest_airflow_approaches(x[0], x[1], perf)
-            if target is None:
-                return None, None, "cycle_invalid"
-            if all(abs(t - v) <= rtol * v for t, v in zip(target, x, strict=True)):
-                break
-            step = 1.0
+        def step_towards(
+            x: tuple[float, float], target: tuple[float, float], step: float
+        ) -> tuple[tuple[float, float], dict] | str:
+            """The state a step from ``x`` towards ``target`` reaches, halved until a cycle exists; else why not."""
             while True:
                 trial = (x[0] + step * (target[0] - x[0]), x[1] + step * (target[1] - x[1]))
                 trial_perf = evaluate(trial)
                 if trial_perf is not None:
-                    break
+                    return trial, trial_perf
                 reason = missing()
                 step *= 0.5
                 if step < self._LEAST_LIFT_MIN_STEP:
-                    return None, None, reason
-            x, perf = trial, trial_perf
+                    return reason
+
+        def at_fixed_point(x: tuple[float, float], target: tuple[float, float]) -> bool:
+            return all(abs(t - v) <= rtol * v for t, v in zip(target, x, strict=True))
+
+        flat_out = False
+        for _ in range(self._LEAST_LIFT_MAX_ITER):
+            flat_out = flat_out or perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX
+            target = self._largest_airflow_approaches(x[0], x[1], perf)
+            if target is None:
+                return None, None, "cycle_invalid"
+            if at_fixed_point(x, target):
+                break
+            moved = step_towards(x, target, 1.0)
+            if isinstance(moved, str):
+                return None, None, moved
+            x, perf = moved
         else:
-            if flat_out is not None:
-                return approaches(flat_out[0]), flat_out[1], None
-            return None, None, "cycle_invalid"
+            # Out of iterations. A duty above what the compressor delivers flat
+            # out is one way to get here: the delivered heat, and with it each
+            # coil's approach, then moves with the approaches themselves, and
+            # the full step overshoots from one side of the fixed point to the
+            # other (cooling at 40/24 degC closes a fifth of the gap per pair
+            # of steps). Half steps contract there, so the same fixed point is
+            # iterated on with them. Only a state that meets the same
+            # criterion is a result; anything else stays what it was, a point
+            # the solve could not find.
+            if not flat_out:
+                return None, None, "cycle_invalid"
+            for _ in range(self._LEAST_LIFT_MAX_ITER):
+                target = self._largest_airflow_approaches(x[0], x[1], perf)
+                if target is None:
+                    return None, None, "cycle_invalid"
+                if at_fixed_point(x, target):
+                    break
+                moved = step_towards(x, target, 0.5)
+                if isinstance(moved, str):
+                    return None, None, moved
+                x, perf = moved
+            else:
+                return None, None, "cycle_invalid"
 
         # The fixed point puts each coil exactly on its largest airflow, where
         # the coil solve closes or not by the sign of a rounding error (a fan

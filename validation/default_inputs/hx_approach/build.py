@@ -293,7 +293,12 @@ def infer_pressure_basis(observations: list[dict]) -> dict[str, dict]:
     return out
 
 
-def measure(row: dict, validation_sources: set[str], pressure_basis: dict[str, dict] | None = None) -> dict:
+def measure(
+    row: dict,
+    validation_sources: set[str],
+    pressure_basis: dict[str, dict] | None = None,
+    unaccepted_sources: frozenset[str] | set[str] = frozenset(),
+) -> dict:
     """SI values and the exchanger quantities of one observation row."""
     for field, allowed in (("product_class", PRODUCT_CLASSES), ("exchanger", EXCHANGERS), ("role", ROLES)):
         if row[field] not in allowed:
@@ -400,6 +405,8 @@ def measure(row: dict, validation_sources: set[str], pressure_basis: dict[str, d
 
     if row["source_id"] in validation_sources:
         reasons.append("validation_unit")
+    if row["source_id"] in unaccepted_sources:
+        reasons.append("third_party_copy_not_accepted")
     if row["value_kind"] not in FITTED_VALUE_KINDS:
         reasons.append(f"value_kind_{row['value_kind']}")
     if row["surface_state"] not in DRY_STATES:
@@ -649,6 +656,14 @@ def build(release: str | None = None, note: str = "") -> dict:
     if len(registry) != len(sources):
         raise ValueError("source_id must be unique")
     validation_sources = {s["source_id"] for s in sources if s.get("validation_unit")}
+    # A manufacturer document found only on a third-party host is recorded, and fitted only once its source carries
+    # "owner_accepted": true with an "owner_acceptance" note naming the manufacturer-domain document that prints
+    # the same values (the rule of ../README.md, owner decision 2026-11-15).
+    unaccepted = {
+        s["source_id"]
+        for s in sources
+        if s["evidence_type"].endswith("third_party_host") and not s.get("owner_accepted")
+    }
     groups = archive.load_json(HERE, "holdout_groups.json")
     observations = archive.read_observations(HERE, registry, OBSERVATION_COLUMNS)
     archive.apply_errata(HERE, observations, ERRATA_FIELDS)
@@ -657,7 +672,7 @@ def build(release: str | None = None, note: str = "") -> dict:
                 for s in sources if s.get("pressure_basis")}  # fmt: skip
     pressure_basis = {**infer_pressure_basis(observations), **declared}
     for o in observations:
-        r = measure(o, validation_sources, pressure_basis)
+        r = measure(o, validation_sources, pressure_basis, unaccepted)
         r["holdout_group"] = groups.get(r["family_id"], r["family_id"])
         r["source_sha256"] = registry[o["source_id"]]["sha256"]
         rows.append(r)
@@ -688,6 +703,7 @@ def build(release: str | None = None, note: str = "") -> dict:
             corroboration[r["stratum"]].append(r)
     report = {
         "dataset": {"records": len(rows), "eligible": sum(r["eligible"] for r in rows), "sources": len(sources)},
+        "third_party_sources_not_accepted": sorted(unaccepted),
         "data_sha256": data_sha256,
         "selection": SELECTION,
         "pressure_basis": pressure_basis,

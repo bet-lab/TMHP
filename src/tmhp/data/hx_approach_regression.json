@@ -1,6 +1,6 @@
 {
-  "version": "hx-approach-2026-11-16",
-  "data_sha256": "19ff6b9297fa090055a320bc9cf888b60e143af40af72fdb2a38bbeb53b67a5c",
+  "version": "hx-approach-2026-11-16.1",
+  "data_sha256": "855fdbe2c09a7cc59f28193cc63b81d1fa948d9255a874d442819fb9f75d2b58",
   "meaning": "effective conductance of an isothermal-refrigerant exchanger that reproduces the saturation temperature at the pressure real machines print or were measured at (service or compressor port)",
   "selection": "Per stratum, every candidate law is fitted with one hold-out group (product lines sharing hardware) left out, family-balanced, and scored by the RMSE of the predicted inlet temperature difference [K] of the held-out units at their own flow and duty. Selected: the first law in the order leaving_approach, ua_per_duty, ua_per_nameplate, itd, ua_linear whose RMSE is within 1.10 of the lowest.",
   "shipping_gate": {
@@ -223,40 +223,40 @@
     "indoor_coil|wall_mounted|fin_tube|condensing": {
       "law": {
         "kind": "leaving_approach",
-        "dT_out_K": 6.2833397330013145
+        "dT_out_K": 6.84857636349583
       },
-      "n": 87,
-      "n_holdout_groups": 8,
+      "n": 78,
+      "n_holdout_groups": 6,
       "manufacturers": [
         "Mitsubishi Electric"
       ],
       "band_p10_p50_p90": {
         "ITD_K": [
-          16.53882491871568,
-          22.159659685202744,
-          28.875240317655685
+          14.02974168892931,
+          21.68427190176155,
+          30.09428546880017
         ],
         "leave_K": [
-          3.944663692756164,
-          6.2833397330013145,
-          9.941479679330442
+          3.785190037977898,
+          6.84857636349583,
+          10.116571845600296
         ],
         "eps": [
-          0.6431247092774744,
-          0.7075546260037177,
-          0.803185748957571
+          0.6273265509795695,
+          0.7064730995167622,
+          0.7564478952546214
         ],
         "UA_per_Q_hx": [
-          0.05862147643570891,
-          0.07703356459526599,
-          0.11567685123474795
+          0.056084506963678865,
+          0.07713955175867264,
+          0.1278809882003871
         ]
       },
       "duty_per_nameplate_p10_p50_p90": {
         "cooling": [
           1.0166666666666666,
-          1.1333333333333333,
-          1.3333333333333333
+          1.1555555555555554,
+          1.45
         ],
         "heating": [
           1.0,
@@ -270,10 +270,10 @@
       ],
       "group_holdout": {
         "valid": true,
-        "n": 87,
-        "RMSE_K": 2.49211104099935,
-        "bias_K": -1.132307096225631,
-        "MAE_K": 2.044042073322101
+        "n": 78,
+        "RMSE_K": 2.6197587481195828,
+        "bias_K": -0.9634445653442103,
+        "MAE_K": 2.1750114266288914
       },
       "manufacturer_holdout": {
         "valid": false,
@@ -281,15 +281,11 @@
       },
       "meets_shipping_gate": false,
       "source_ids": [
-        "MITSUBISHI-OBH498",
-        "MITSUBISHI-OBH502-REVE",
-        "MITSUBISHI-OBH543-REVG",
         "MITSUBISHI-OBH549-REVH",
         "MITSUBISHI-OBH684-REVE",
         "MITSUBISHI-OBH733-REVJ",
         "MITSUBISHI-OBH747-REVH",
         "MITSUBISHI-OBH819-REVB",
-        "MITSUBISHI-OBH821-REVA",
         "MITSUBISHI-OBH873-REVB",
         "MITSUBISHI-OBH875-REVB",
         "MITSUBISHI-OBH936-REVA",
@@ -303,56 +299,54 @@
     "indoor_coil|water_to_air|fin_tube|condensing": {
       "law": {
         "kind": "leaving_approach",
-        "dT_out_K": 2.445992719009647
+        "dT_out_K": 2.794940913043863
       },
-      "n": 121,
-      "n_holdout_groups": 6,
+      "n": 113,
+      "n_holdout_groups": 5,
       "manufacturers": [
-        "Carrier",
         "ClimateMaster",
         "WaterFurnace"
       ],
       "band_p10_p50_p90": {
         "ITD_K": [
-          12.794940913043863,
-          15.674046071175926,
+          13.772177317257249,
+          15.922559581683775,
           20.43797447390583
         ],
         "leave_K": [
-          0.6740460711759262,
-          2.445992719009647,
-          6.157620145550961
+          1.4712169025260273,
+          2.794940913043863,
+          6.595847043121845
         ],
         "eps": [
-          0.7010138024979736,
-          0.8356959365726744,
-          0.9569960386670373
+          0.6585742407463112,
+          0.819286104990326,
+          0.9132335604945153
         ],
         "UA_per_Q_hx": [
           0.08410108849366588,
-          0.14130584608784827,
-          0.20976420290062284
+          0.13975862168091,
+          0.18986813905746347
         ]
       },
       "duty_per_nameplate_p10_p50_p90": {},
       "duty_range_W": null,
       "group_holdout": {
         "valid": true,
-        "n": 121,
-        "RMSE_K": 2.8085653124403365,
-        "bias_K": -1.4275288596446536,
-        "MAE_K": 2.1490946412188734
+        "n": 113,
+        "RMSE_K": 2.723849393407222,
+        "bias_K": -1.3712671850351061,
+        "MAE_K": 2.10107763441587
       },
       "manufacturer_holdout": {
         "valid": true,
-        "n": 121,
-        "RMSE_K": 2.7821865596427497,
-        "bias_K": -1.6056848189456152,
-        "MAE_K": 2.1080697643748083
+        "n": 113,
+        "RMSE_K": 2.8240340043760814,
+        "bias_K": -1.7278108068771598,
+        "MAE_K": 2.14619700659328
       },
       "meets_shipping_gate": true,
       "source_ids": [
-        "CARRIER-50PS-6SI",
         "CLIMATEMASTER-97B0075N05",
         "CLIMATEMASTER-97B0075N08",
         "WATERFURNACE-IM2500AN",
@@ -363,34 +357,33 @@
     "liquid_source_hx|water_to_air|coaxial|condensing": {
       "law": {
         "kind": "leaving_approach",
-        "dT_out_K": 3.9153383151351724
+        "dT_out_K": 4.0638341393696855
       },
-      "n": 135,
-      "n_holdout_groups": 6,
+      "n": 117,
+      "n_holdout_groups": 5,
       "manufacturers": [
-        "Carrier",
         "ClimateMaster",
         "WaterFurnace"
       ],
       "band_p10_p50_p90": {
         "ITD_K": [
           6.9550242143995185,
-          9.893884542177666,
-          15.047637322844967
+          10.165305018097317,
+          15.365326936423294
         ],
         "leave_K": [
           1.5660954434679493,
-          3.9153383151351724,
-          6.163074892112194
+          4.0638341393696855,
+          6.486183432254456
         ],
         "eps": [
-          0.4372170275788074,
-          0.6041229783363546,
+          0.4651734493995367,
+          0.5989688759695095,
           0.8577639734826044
         ],
         "UA_per_Q_hx": [
-          0.10264712997329757,
-          0.15186363829645516,
+          0.10019738769711607,
+          0.1469984862062549,
           0.22926388419765922
         ]
       },
@@ -412,21 +405,20 @@
       ],
       "group_holdout": {
         "valid": true,
-        "n": 135,
-        "RMSE_K": 2.7562140309550927,
-        "bias_K": -1.2144703824519232,
-        "MAE_K": 2.1016917725915003
+        "n": 117,
+        "RMSE_K": 2.8659910878594412,
+        "bias_K": -1.467287189764621,
+        "MAE_K": 2.1806207235923547
       },
       "manufacturer_holdout": {
         "valid": true,
-        "n": 135,
-        "RMSE_K": 3.0259228006794987,
-        "bias_K": -1.4287931022845846,
-        "MAE_K": 2.343013036129803
+        "n": 117,
+        "RMSE_K": 3.2330042370514964,
+        "bias_K": -1.7003134228764225,
+        "MAE_K": 2.5624626073031926
       },
       "meets_shipping_gate": true,
       "source_ids": [
-        "CARRIER-50PS-6SI",
         "CLIMATEMASTER-97B0075N05",
         "CLIMATEMASTER-97B0075N08",
         "WATERFURNACE-IM2500AN",
@@ -439,32 +431,31 @@
         "kind": "leaving_approach",
         "dT_out_K": 3.4718808000475985
       },
-      "n": 130,
-      "n_holdout_groups": 6,
+      "n": 118,
+      "n_holdout_groups": 5,
       "manufacturers": [
-        "Carrier",
         "ClimateMaster",
         "WaterFurnace"
       ],
       "band_p10_p50_p90": {
         "ITD_K": [
           4.769917153275262,
-          8.030135063289865,
-          10.338525783737396
+          7.696387975822688,
+          10.20237088971328
         ],
         "leave_K": [
-          1.4419225424244617,
+          0.9561054523041879,
           3.4718808000475985,
           6.610271979131086
         ],
         "eps": [
-          0.279955629520816,
-          0.5104961662986588,
-          0.822837780415795
+          0.2758606738312594,
+          0.49174154050727464,
+          0.7831369424914276
         ],
         "UA_per_Q_hx": [
-          0.12697576888664028,
-          0.19262324188500762,
+          0.12118300830782466,
+          0.19280149174078123,
           0.34154185965198197
         ]
       },
@@ -486,21 +477,20 @@
       ],
       "group_holdout": {
         "valid": true,
-        "n": 130,
-        "RMSE_K": 1.5647354237323616,
-        "bias_K": -0.2259896241930584,
-        "MAE_K": 1.195258084481786
+        "n": 118,
+        "RMSE_K": 1.5798120711175598,
+        "bias_K": -0.24634675309853288,
+        "MAE_K": 1.197751664462712
       },
       "manufacturer_holdout": {
         "valid": true,
-        "n": 130,
-        "RMSE_K": 1.5322922630136795,
-        "bias_K": -0.24908891296421204,
-        "MAE_K": 1.166555294961917
+        "n": 118,
+        "RMSE_K": 1.5146576700484924,
+        "bias_K": -0.28041791631449775,
+        "MAE_K": 1.1479996264150538
       },
       "meets_shipping_gate": true,
       "source_ids": [
-        "CARRIER-50PS-6SI",
         "CLIMATEMASTER-97B0075N05",
         "CLIMATEMASTER-97B0075N08",
         "WATERFURNACE-IM2500AN",
@@ -723,10 +713,10 @@
     "outdoor_coil|fin_tube|condensing": {
       "law": {
         "kind": "leaving_approach",
-        "dT_out_K": 2.7610923175820945
+        "dT_out_K": 2.7292276469352394
       },
-      "n": 129,
-      "n_holdout_groups": 13,
+      "n": 120,
+      "n_holdout_groups": 11,
       "manufacturers": [
         "Carrier (United Technologies)",
         "Goodman/Amana (tested by Univ. of Maryland CEEE)",
@@ -736,35 +726,35 @@
       "band_p10_p50_p90": {
         "ITD_K": [
           6.694036075370796,
-          9.929311559852025,
-          15.376304054411207
+          9.441764330107958,
+          12.74625155396808
         ],
         "leave_K": [
-          1.0780282922395386,
-          2.7610923175820945,
-          5.411736523089775
+          0.9075646945557354,
+          2.7292276469352394,
+          3.9445842582387005
         ],
         "eps": [
-          0.6092911733878121,
-          0.7017228023865063,
-          0.8196223308777943
+          0.6468604940594456,
+          0.7145758544877437,
+          0.8409643103808486
         ],
         "UA_per_Q_hx": [
-          0.10872389535379891,
-          0.17313585390135444,
+          0.13770615040052517,
+          0.17929682846494488,
           0.4033184012142365
         ]
       },
       "duty_per_nameplate_p10_p50_p90": {
         "cooling": [
           1.15923327630621,
-          1.2559106226349805,
-          1.3756690139006449
+          1.2437244025095053,
+          1.309206375384158
         ],
         "heating": [
           0.8893291167679339,
           1.1335714285714287,
-          1.3446854385049796
+          1.28614448554116
         ]
       },
       "duty_range_W": [
@@ -773,33 +763,29 @@
       ],
       "group_holdout": {
         "valid": true,
-        "n": 129,
-        "RMSE_K": 1.6996046134153362,
-        "bias_K": -0.567892333726459,
-        "MAE_K": 1.1811083490065712
+        "n": 120,
+        "RMSE_K": 1.6312666157929872,
+        "bias_K": -0.5271090984274129,
+        "MAE_K": 1.0949741531827244
       },
       "manufacturer_holdout": {
         "valid": true,
-        "n": 129,
-        "RMSE_K": 1.9336952458052326,
-        "bias_K": -1.0382136343103618,
-        "MAE_K": 1.3933753072141761
+        "n": 120,
+        "RMSE_K": 1.8370300078277038,
+        "bias_K": -0.942805488861601,
+        "MAE_K": 1.294177842852215
       },
       "meets_shipping_gate": true,
       "source_ids": [
         "AHRI-AREP-004",
         "AHRI-AREP-032",
         "AHRI-AREP-052",
-        "MITSUBISHI-OBH498",
-        "MITSUBISHI-OBH502-REVE",
-        "MITSUBISHI-OBH543-REVG",
         "MITSUBISHI-OBH549-REVH",
         "MITSUBISHI-OBH684-REVE",
         "MITSUBISHI-OBH733-REVJ",
         "MITSUBISHI-OBH747-REVH",
         "MITSUBISHI-OBH753-REVB",
         "MITSUBISHI-OBH819-REVB",
-        "MITSUBISHI-OBH821-REVA",
         "MITSUBISHI-OBH873-REVB",
         "MITSUBISHI-OBH875-REVB",
         "MITSUBISHI-OBH936-REVA",
@@ -817,45 +803,45 @@
     "outdoor_coil|fin_tube|evaporating": {
       "law": {
         "kind": "leaving_approach",
-        "dT_out_K": 3.1834872073143816
+        "dT_out_K": 2.8247237633434805
       },
-      "n": 96,
-      "n_holdout_groups": 10,
+      "n": 87,
+      "n_holdout_groups": 8,
       "manufacturers": [
         "Lennox",
         "Mitsubishi Electric"
       ],
       "band_p10_p50_p90": {
         "ITD_K": [
-          5.017557560177087,
-          6.841974026652183,
-          9.777561155591874
+          4.7985708969076395,
+          6.805035757477148,
+          9.001438563086216
         ],
         "leave_K": [
-          2.176296103751959,
-          3.1834872073143816,
-          4.737873391825541
+          2.0374059447247763,
+          2.8247237633434805,
+          4.51629435990565
         ],
         "eps": [
           0.4584862298916195,
-          0.5608205850829227,
-          0.6379121128592671
+          0.5662638489641661,
+          0.6388404708621914
         ],
         "UA_per_Q_hx": [
-          0.14619578051212886,
-          0.20809182118862246,
-          0.2939957795117646
+          0.1555412733027364,
+          0.21754064328346548,
+          0.31395616003199683
         ]
       },
       "duty_per_nameplate_p10_p50_p90": {
         "cooling": [
-          0.6884431304870642,
+          0.6906660240604408,
           0.8384024746397974,
           1.0641532710061685
         ],
         "heating": [
-          0.6483191443543824,
-          0.7541250880565872,
+          0.6966985213215044,
+          0.7593542215221937,
           0.7952715018920155
         ]
       },
@@ -865,30 +851,26 @@
       ],
       "group_holdout": {
         "valid": true,
-        "n": 96,
-        "RMSE_K": 1.196977919451956,
-        "bias_K": -0.2867603305666297,
-        "MAE_K": 0.9584939247149132
+        "n": 87,
+        "RMSE_K": 1.3720182002807482,
+        "bias_K": -0.5917126444979915,
+        "MAE_K": 1.0871449648226499
       },
       "manufacturer_holdout": {
         "valid": true,
-        "n": 96,
-        "RMSE_K": 1.5893276262599503,
-        "bias_K": -1.1021061490545458,
-        "MAE_K": 1.2239928405417249
+        "n": 87,
+        "RMSE_K": 1.5599192453754658,
+        "bias_K": -1.0605049792438876,
+        "MAE_K": 1.1867532033223631
       },
       "meets_shipping_gate": true,
       "source_ids": [
         "AHRI-AREP-004",
-        "MITSUBISHI-OBH498",
-        "MITSUBISHI-OBH502-REVE",
-        "MITSUBISHI-OBH543-REVG",
         "MITSUBISHI-OBH549-REVH",
         "MITSUBISHI-OBH684-REVE",
         "MITSUBISHI-OBH733-REVJ",
         "MITSUBISHI-OBH747-REVH",
         "MITSUBISHI-OBH819-REVB",
-        "MITSUBISHI-OBH821-REVA",
         "MITSUBISHI-OBH873-REVB",
         "MITSUBISHI-OBH875-REVB",
         "MITSUBISHI-OBH936-REVA",

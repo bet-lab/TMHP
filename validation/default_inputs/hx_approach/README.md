@@ -52,8 +52,12 @@ Rows a model cannot use are kept and excluded with a reason (`exclusion_reason` 
 | saturation on the wrong side of the inlet (6 of them from a pipe-surface temperature) | 7 |
 | no saturation temperature or no inlet temperature | 6 |
 | design-selection printout (recorded, never fitted) | 2 |
+| manufacturer document on a third-party host, not yet accepted, and no other reason (`third_party_copy_not_accepted`) | 65 |
 
-Of 2,287 rows from 59 sources, 1,641 enter a fit. Rows that give only the inlet difference (a pipe-surface
+A row is counted under its reasons other than `third_party_copy_not_accepted`. 243 rows carry that reason
+(third-party copies, see below); for 65 of them it is the only one (last line).
+
+Of 2,287 rows from 59 sources, 1,576 enter a fit. Rows that give only the inlet difference (a pipe-surface
 temperature, no duty) are reported per stratum in `regression.json` → `itd_only_rows` as corroboration.
 
 ## Strata
@@ -76,15 +80,15 @@ Leaving-approach median [K] (inlet-difference median [K]) by product class, hold
 
 | Outdoor coil | Wall-mounted split | Ducted split | Other split indoor | Air-to-water |
 |---|---|---|---|---|
-| condensing | 2.91 (9.4), 106 rows / 8 groups | 2.27 (8.4), 10 / 3 | 3.94 (10.1), 4 / 1 | 3.74 (12.0), 9 / 2 |
-| evaporating | 3.03 (6.8), 86 / 8 | 2.31 (4.3), 2 / 1 | — | 3.47 (7.7), 8 / 1 |
+| condensing | 2.54 (9.2), 97 rows / 6 groups | 2.27 (8.4), 10 / 3 | 3.94 (10.1), 4 / 1 | 3.74 (12.0), 9 / 2 |
+| evaporating | 2.58 (6.5), 77 / 6 | 2.31 (4.3), 2 / 1 | — | 3.47 (7.7), 8 / 1 |
 
 | Indoor coil, condensing | Leaving approach median [K] | Inlet difference median [K] | Manufacturers |
 |---|---|---|---|
-| wall-mounted | 6.28 | 22.2 | 1 |
+| wall-mounted | 6.85 | 21.7 | 1 |
 | ducted | 2.58 | 18.4 | 5 |
 | other split indoor units (floor, cassette) | 6.95 | 27.3 | 1 |
-| water-to-air | 2.45 | 15.7 | 3 |
+| water-to-air | 2.79 | 15.9 | 2 |
 
 ## Selection rule and outcome
 
@@ -99,15 +103,15 @@ stratum ships when it has at least 3 hold-out groups and 2 manufacturers (`SHIPP
 
 | Stratum | Rows / hold-out groups / manufacturers | Leaving approach [K] median (p10–p90) | Inlet difference [K] median (p10–p90) | Hold-out RMSE [K]: leaving approach / UA ∝ duty / UA ∝ nameplate / fixed ITD / linear | Selected | Meets gate |
 |---|---|---|---|---|---|---|
-| `outdoor_coil\|fin_tube\|condensing` | 129 / 13 / 4 | 2.76 (1.1–5.4) | 9.9 (6.7–15.4) | 1.70 / 1.91 / — / 3.19 / — | leaving approach 2.76 K | yes |
-| `outdoor_coil\|fin_tube\|evaporating` | 96 / 10 / 2 | 3.18 (2.2–4.7) | 6.8 (5.0–9.8) | 1.20 / 1.36 / 1.53 / 1.81 / 1.46 | leaving approach 3.18 K | yes |
+| `outdoor_coil\|fin_tube\|condensing` | 120 / 11 / 4 | 2.73 (0.9–3.9) | 9.4 (6.7–12.7) | 1.63 / 1.96 / — / 3.13 / — | leaving approach 2.73 K | yes |
+| `outdoor_coil\|fin_tube\|evaporating` | 87 / 8 / 2 | 2.82 (2.0–4.5) | 6.8 (4.8–9.0) | 1.37 / 1.49 / 1.55 / 1.84 / 1.52 | leaving approach 2.82 K | yes |
 | `water_condenser\|bphe\|condensing` | 20 / 3 / 2 | 2.01 (0.7–3.3) | 7.0 (5.8–10.3) | 1.17 / 1.53 / 2.27 / 2.22 / — | leaving approach 2.01 K | yes |
-| `liquid_source_hx\|water_to_air\|coaxial\|evaporating` | 130 / 6 / 3 | 3.47 (1.4–6.6) | 8.0 (4.8–10.3) | 1.56 / 1.56 / — / 1.99 / — | leaving approach 3.47 K | yes |
-| `liquid_source_hx\|water_to_air\|coaxial\|condensing` | 135 / 6 / 3 | 3.92 (1.6–6.2) | 9.9 (7.0–15.0) | 2.76 / 3.08 / — / 4.43 / — | leaving approach 3.92 K | yes |
-| `indoor_coil\|water_to_air\|fin_tube\|condensing` | 121 / 6 / 3 | 2.45 (0.7–6.2) | 15.7 (12.8–20.4) | 2.81 / 2.88 / — / 3.63 / — | leaving approach 2.45 K | yes |
+| `liquid_source_hx\|water_to_air\|coaxial\|evaporating` | 118 / 5 / 2 | 3.47 (1.0–6.6) | 7.7 (4.8–10.2) | 1.58 / 1.61 / — / 1.99 / — | leaving approach 3.47 K | yes |
+| `liquid_source_hx\|water_to_air\|coaxial\|condensing` | 117 / 5 / 2 | 4.06 (1.6–6.5) | 10.2 (7.0–15.4) | 2.87 / 3.14 / — / 4.73 / — | leaving approach 4.06 K | yes |
+| `indoor_coil\|water_to_air\|fin_tube\|condensing` | 113 / 5 / 2 | 2.79 (1.5–6.6) | 15.9 (13.8–20.4) | 2.72 / 2.83 / — / 3.73 / — | leaving approach 2.79 K | yes |
 | `indoor_coil\|ducted\|fin_tube\|condensing` | 32 / 5 / 5 | 2.58 (0.3–8.9) | 18.4 (7.2–25.3) | 5.46 / 5.93 / — / 8.11 / — | leaving approach 2.58 K | yes (no model uses it) |
 | `indoor_coil\|ducted\|fin_tube\|evaporating` | 8 / 4 / 4 | 4.06 (1.0–6.2) | 17.0 (13.6–18.0) | 1.53 / 1.34 / 1.81 / 1.55 / — | UA ∝ duty, 0.1096 /K | yes (no model uses it) |
-| `indoor_coil\|wall_mounted\|fin_tube\|condensing` | 87 / 8 / 1 | 6.28 (3.9–9.9) | 22.2 (16.5–28.9) | 2.49 / 2.92 / 2.92 / 5.34 / 2.69 | leaving approach 6.28 K | **no** — one manufacturer |
+| `indoor_coil\|wall_mounted\|fin_tube\|condensing` | 78 / 6 / 1 | 6.85 (3.8–10.1) | 21.7 (14.0–30.1) | 2.62 / 3.41 / 3.41 / 5.94 / 2.47 | leaving approach 6.85 K | **no** — one manufacturer |
 | `indoor_coil\|other_indoor_unit\|fin_tube\|condensing` | 15 / 2 / 1 | 6.95 (4.7–11.5) | 27.3 (18.2–33.1) | 5.03 / 4.14 / — / 7.83 / — | UA ∝ duty, 0.0647 /K | no |
 | `liquid_source_hx\|water_to_water\|coaxial\|condensing` | 240 / 2 / 1 | 6.08 (3.8–11.8) | 14.1 (10.1–18.9) | 5.49 / 4.30 / — / 3.74 / — | fixed ITD 14.15 K | no |
 | `liquid_source_hx\|water_to_water\|coaxial\|evaporating` | 192 / 2 / 1 | 13.68 (7.0–18.7) | 16.4 (10.4–22.6) | 7.80 / 7.04 / — / 6.42 / — | UA ∝ duty, 0.0677 /K | no |
@@ -123,38 +127,38 @@ stratum does not have them. In every stratum that meets the gate and is used by 
 approach is selected and the fixed inlet difference scores worst; in the one stratum where another law wins
 (ducted indoor coils as evaporators, 8 rows, no model uses it) the leaving approach misses by 1.53 against
 1.34 K. Manufacturer hold-out RMSE (each manufacturer predicted from the others) is in `regression.json`
-→ `candidates.<law>.manufacturer_holdout`; for the outdoor condenser it is 1.93 K for the leaving approach
-against 3.72 K for the fixed inlet difference.
+→ `candidates.<law>.manufacturer_holdout`; for the outdoor condenser it is 1.84 K for the leaving approach
+against 3.57 K for the fixed inlet difference.
 
 The leaving approach closes as `UA = C ln(1 + Q / (C·dT_out))`, which has a solution for every positive duty
 and flow (no runaway as `eps → 1`, no failure when the reference flow is 15 % lower than assumed).
 
 **Duty per nameplate.** A default is written against a unit's nameplate, but the exchanger's own duty differs
 from it. The build carries the median duty of each exchanger per watt of its unit's cooling and heating
-nameplate (`band_p10_p50_p90.Q_hx_per_<mode>_nameplate`): the outdoor coil rejects 1.256 W per watt of
-cooling nameplate as a condenser and absorbs 0.754 W per watt of heating nameplate as an evaporator. These
+nameplate (`band_p10_p50_p90.Q_hx_per_<mode>_nameplate`): the outdoor coil rejects 1.244 W per watt of
+cooling nameplate as a condenser and absorbs 0.759 W per watt of heating nameplate as an evaporator. These
 replace the fixed 0.8 and 0.7 duty ratios of the earlier rules.
 
 **Role ratio.** The same coil of the same unit has a smaller effective conductance as an evaporator than as a
-condenser (`role_ratios`): outdoor coils median 0.78 over 88 units (Mitsubishi Electric 0.76, one Lennox unit
+condenser (`role_ratios`): outdoor coils median 0.72 over 80 units (Mitsubishi Electric 0.76, one Lennox unit
 0.21), ducted indoor coils 0.42–0.88 (three manufacturers), coaxial exchangers 0.49 (WaterFurnace), 0.36 and
 0.54 (Bosch). The ratio is not used: each role takes the law of its own stratum, and both outdoor strata meet
 the gate.
 
 ## What is not shipped, and why
 
-**Wall-mounted indoor coils.** The stratum has 87 rows of 8 product lines but all from Mitsubishi Electric: the
+**Wall-mounted indoor coils.** The stratum has 78 rows of 6 product lines but all from Mitsubishi Electric: the
 only manufacturer whose tables give duty, airflow and pressure at one point. Toshiba and Gree print pipe-surface
 temperatures and no duty at the point. The evidence also disagrees on the quantity the law uses:
 
-- 6.28 K leaving approach on declared duty and airflow (what the stratum fits);
-- 3.45 K on the printed discharge-air temperature of the same tables (median of `ITD − dT_fluid_printed`,
+- 6.85 K leaving approach on declared duty and airflow (what the stratum fits);
+- 3.60 K on the printed discharge-air temperature of the same tables (median of `ITD − dT_fluid_printed`,
   product lines weighted equally) — the air-side heat, airflow × printed temperature rise, exceeds the declared
-  capacity (median ratio 1.14, range 0.72–1.65);
+  capacity (median ratio 1.18, range 0.72–1.65);
 - 3.3 K from Toshiba's pipe-surface temperatures at an assumed duty equal to the rated heating capacity
   (median of 32 rows).
 
-The inlet difference itself agrees: 22.2 K for Mitsubishi, 22.0 K for Toshiba. So the inlet difference is
+The inlet difference itself agrees: 21.7 K for Mitsubishi, 22.0 K for Toshiba. So the inlet difference is
 settled and the effectiveness is not, and `AirSourceHeatPump` keeps its earlier indoor rule (`UA_iu_rated =
 0.16 W/K per W of nameplate`, recorded as provisional) instead of a value the evidence does not fix.
 
@@ -213,7 +217,8 @@ Product lines that share hardware count as one group in the hold-out and in the 
 North-American series whose tables repeat the same pressures, airflows and temperatures:
 
 - MUZ-FH, MUZ-FS and MUFZ-KJ (shared outdoor and indoor hardware);
-- MUZ-FE and MUZ-FD (FD is the predecessor of FE; same pressures and airflows);
+- MUZ-FE and MUZ-FD (FD is the predecessor of FE; same pressures and airflows; both are third-party copies
+  not yet accepted, so the group is in no fit);
 - MUZ-GE, GL, HM, WR and JP (identical data across series);
 - MUZ-GX, JX, HX and WX (shared outdoor units);
 - SUZ-KA in three manual generations (one outdoor line).
@@ -232,11 +237,15 @@ Revision A of the MUZ-FH manual (OBH684) is transcribed beside revision E to rec
 59 sources: 30 manufacturer PDFs from a manufacturer domain, 22 manufacturer PDFs from a third-party host, 7
 public reports. The rule of the parent README applies to third-party copies: a third-party copy is recorded as
 `manufacturer_pdf_third_party_host` and enters a fit only once the owner has accepted the source against
-manufacturer-domain documents that print the same values (`owner_accepted`, `owner_acceptance`). **In this first
-release no source carries `owner_accepted` and the build does not yet filter on it**, so the third-party rows
-marked *fitted* below are in the fits pending that acceptance.
+manufacturer-domain documents that print the same values (`owner_accepted`, `owner_acceptance`). Since release
+`hx-approach-2026-11-16.1` the build enforces it: rows of a third-party source without `owner_accepted: true` carry
+`third_party_copy_not_accepted` in `exclusion_reason`, and `regression.json` → `third_party_sources_not_accepted`
+lists those sources. No source carries `owner_accepted` yet, so all 22 are recorded and none is fitted. For five of
+them (`MITSUBISHI-OBH498`, `MITSUBISHI-OBH502-REVE`, `MITSUBISHI-OBH543-REVG`, `MITSUBISHI-OBH821-REVA`,
+`CARRIER-50PS-6SI`) this is the only reason their rows are out of the fits; they were fitted in the first release
+and would return once accepted. The other third-party rows would stay excluded for their own reasons.
 
-| Source | Host | Identical official copy | Rows in fits |
+| Source | Host | Identical official copy | Rows that would enter the fits once accepted |
 |---|---|---|---|
 | `MITSUBISHI-OBH543-REVG` (MUZ-FE) | distributor CDN | none found on a manufacturer domain | 3 per outdoor stratum, 3 wall-mounted indoor |
 | `MITSUBISHI-OBH498` (MUZ-FD, first edition) | Internet Archive copy of a ManualsOnline upload | none found; a later revision C seen behind a bot challenge, not obtained | 2 per outdoor stratum, 2 wall-mounted indoor |
@@ -315,4 +324,9 @@ is printed in the source (14,303 on the cited page, 1,070 elsewhere in the same 
 - `hx-approach-2026-11-16` (first release): 59 sources, 2,287 observation rows, 1,641 fitted; data SHA-256
   `19ff6b9297fa090055a320bc9cf888b60e143af40af72fdb2a38bbeb53b67a5c`. Shipped strata: the two outdoor-coil roles, the air-to-water plate condenser, the
   water-to-air coaxial exchanger in both roles, the water-to-air indoor coil, and the two ducted indoor-coil
-  roles (archived, not used by a model).
+  roles (archived, not used by a model). The five third-party copies of the next release were fitted pending acceptance.
+- `hx-approach-2026-11-16.1`: third-party copies are fitted only once accepted (`third_party_copy_not_accepted`); five
+  sources leave the fits (Mitsubishi Electric OBH498, OBH502-REVE, OBH543-REVG, OBH821-REVA; Carrier 50PS-6SI).
+  59 sources, 2,287 observation rows, 1,576 fitted; data SHA-256
+  `855fdbe2c09a7cc59f28193cc63b81d1fa948d9255a874d442819fb9f75d2b58`. Leaving approaches moved: outdoor coil evaporating 3.18 → 2.82 K; water-to-air indoor coil 2.45 → 2.79 K; coaxial condensing 3.92 → 4.06 K; outdoor coil condensing 2.76 → 2.73 K; wall-mounted indoor coil (not shipped) 6.28 → 6.85 K.
+  The same strata ship; each still meets the gate.

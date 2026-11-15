@@ -3065,7 +3065,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         The model has no argument for the brine entering it: a condition is
         solved on a shallow copy whose borefield-outlet fluid
-        (``T_bhe_f_out``) is at the condition's brine temperature.
+        (``T_bhe_f_out``) is at the condition's brine temperature. With
+        ground-flow control the source is solved from the borehole wall and
+        no brine temperature can be imposed, so the call raises
+        ``ValueError``.
 
         Parameters
         ----------

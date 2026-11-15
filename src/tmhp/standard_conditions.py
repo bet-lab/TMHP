@@ -41,9 +41,12 @@ Which model input a standard temperature is
   gives one, becomes ``RH_out`` (the frost correction of a heating point).
 - **Brine or source water entering the heat pump** is ``T_source`` (GSHPB,
   WSHPB). GSHP has no such argument: its source is the fluid leaving the
-  borefield, the model state ``T_bhe_f_out``. ``operating_range()`` solves
-  GSHP on a shallow copy of the model whose ``T_bhe_f_out`` is the condition's
-  brine temperature, so the model itself is not changed.
+  borefield, the model state ``T_bhe_f_out``, which the table sets to the
+  condition's brine temperature on its copy of the model (below). A GSHP with
+  ground-flow control (``ground_flow_control`` other than constant flow)
+  solves its source from the borehole wall instead, so a brine temperature
+  cannot be imposed: ``operating_range()`` refuses it (``ValueError``) rather
+  than report a condition it did not solve.
 - **Leaving water** (the ``W35`` of ``A7/W35``) is not an input of the boiler
   models: their sink is the tank temperature ``T_tank_w``. The table solves
   ``T_tank_w = leaving water - sink_offset_K`` with ``sink_offset_K = 2.5 K``
@@ -62,8 +65,10 @@ Silence and state
 The solves make no :class:`~tmhp.OperatingLimitWarning`: what a warning would
 say is the ``limit`` column, worded by the same generator
 (:func:`tmhp.operating_limits.steady_message`). They do not count as the
-"reported once per model and limit" of a later ``analyze_steady`` call, and
-they do not touch the model's dynamic state.
+"reported once per model and limit" of a later ``analyze_steady`` call. Each
+condition is solved on a shallow copy of the model, so what a solve writes
+on the model (GSHPB's ``analyze_steady`` sets ``T_bhe_f_out_K`` to its
+``T_source``, for one) stays on the copy.
 """
 
 from __future__ import annotations
@@ -282,7 +287,7 @@ class _Family:
     delivered_key: str
     boiler: bool
     arguments: Callable[[StandardCondition, float, float | None, float], dict[str, Any]]
-    on_copy: bool = False
+    brine_from_borefield: bool = False
 
 
 def _air_to_water(c: StandardCondition, duty: float, humidity: float | None, offset: float) -> dict[str, Any]:
@@ -316,16 +321,28 @@ _FAMILIES: dict[str, _Family] = {
     "brine_to_water": _Family(BRINE_TO_WATER, "Q_ref_tank [W]", True, _source_to_water),
     "water_to_water": _Family(WATER_TO_WATER, "Q_ref_tank [W]", True, _source_to_water),
     "air_to_air": _Family(AIR_TO_AIR, "Q_ref_iu [W]", False, _air_to_air),
-    "brine_to_air": _Family(BRINE_TO_AIR, "Q_ref_iu [W]", False, _brine_to_air, on_copy=True),
+    "brine_to_air": _Family(BRINE_TO_AIR, "Q_ref_iu [W]", False, _brine_to_air, brine_from_borefield=True),
 }
 
 
-def _with_borefield_outlet(model: Any, T_C: float) -> Any:
-    """A shallow copy of a GSHP whose borefield-outlet fluid (the source it is given) is at ``T_C``."""
+def _target(model: Any, family: _Family, condition: StandardCondition) -> Any:
+    """The shallow copy a condition is solved on (GSHP: with its borefield-outlet fluid at the brine temperature)."""
     target = copy.copy(model)
-    target.T_bhe_f_out = T_C
-    target.T_bhe_f_out_K = T_C + 273.15
+    if family.brine_from_borefield:
+        target.T_bhe_f_out = condition.source_side_C
+        target.T_bhe_f_out_K = condition.source_side_C + 273.15
     return target
+
+
+def _check_brine_is_settable(model: Any) -> None:
+    """Refuse a GSHP whose coupled ground-flow solve takes its source from the borehole wall."""
+    settings = getattr(model, "_ground_settings", None)
+    if isinstance(settings, Mapping) and settings.get("active"):
+        raise ValueError(
+            f"{type(model).__name__}.operating_range: with ground-flow control the source is solved from the "
+            "borehole wall, so the brine temperature of a standard condition cannot be imposed. Build the model "
+            "with constant ground flow (the default ground_flow_control) to check the standard conditions."
+        )
 
 
 def _number(row: Mapping[str, Any], key: str) -> float:
@@ -347,7 +364,7 @@ def _solve(model: Any, family: _Family, condition: StandardCondition, sink_offse
     duty = condition.part_load * float(model.hp_capacity)
     humidity = condition.outdoor_humidity
     kwargs = family.arguments(condition, duty, humidity, sink_offset_K)
-    target = _with_borefield_outlet(model, condition.source_side_C) if family.on_copy else model
+    target = _target(model, family, condition)
     # A scope of our own: the analyze_steady call issues nothing and leaves
     # what its refusals knew (the refused discharge temperature, ...) for the
     # limit text below, worded by the generator of the warnings.
@@ -439,7 +456,8 @@ def operating_range(
           (``T_load_side - sink_offset_K``; NaN for a space heat pump).
         - ``RH_out [-]``: the outdoor humidity passed (NaN: the model default).
         - ``inputs``: the keyword arguments given to ``analyze_steady``
-          (GSHP: on a copy whose ``T_bhe_f_out`` is ``T_source_side``).
+          (on a shallow copy of the model; GSHP: with ``T_bhe_f_out`` at
+          ``T_source_side``).
         - ``runs``: the compressor runs (``hp_is_on`` and ``failure_reason ==
           "none"``).
         - ``meets_request``: it runs and delivers the request (within 0.1 %).
@@ -463,6 +481,8 @@ def operating_range(
         raise ValueError(f"unknown family {family!r}; one of {sorted(_FAMILIES)}") from None
     if not (isinstance(sink_offset_K, (int, float)) and math.isfinite(sink_offset_K) and sink_offset_K >= 0.0):
         raise ValueError(f"sink_offset_K must be a finite number >= 0 [K], got {sink_offset_K!r}")
+    if spec.brine_from_borefield:
+        _check_brine_is_settable(model)
     chosen = spec.conditions if conditions is None else tuple(conditions)
     for condition in chosen:
         if not isinstance(condition, StandardCondition):

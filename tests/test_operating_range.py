@@ -340,3 +340,37 @@ def test_the_documentation_examples_run():
     assert len(blocks) == 3
     for block in blocks:
         _quiet(exec, compile(block, str(page), "exec"), {})
+
+
+def _plain_attributes(model: Any) -> dict:
+    return {k: v for k, v in vars(model).items() if isinstance(v, (bool, int, float, str, type(None)))}
+
+
+@pytest.mark.parametrize("family", list(FAMILIES))
+def test_the_table_writes_nothing_on_the_model(family):
+    # Some solves write on the model they run on (GSHPB's analyze_steady sets
+    # T_bhe_f_out_K to its T_source): the table runs them on a copy.
+    build, _, _ = FAMILIES[family]
+    model = _quiet(build)
+    before = _plain_attributes(model)
+    _quiet(model.operating_range)
+    after = _plain_attributes(model)
+    assert after.keys() == before.keys()
+    assert all(_same(before[key], after[key]) for key in before), [k for k in before if not _same(before[k], after[k])]
+
+
+def test_a_gshp_with_ground_flow_control_is_refused_not_misreported():
+    # Its coupled solve takes the source from the borehole wall: the brine
+    # temperature of a standard condition would not be what was solved.
+    model = _quiet(tmhp.GroundSourceHeatPump, ground_flow_control="optimal_power")
+    with pytest.raises(ValueError, match="ground-flow control"):
+        model.operating_range()
+
+
+def test_a_gshpb_with_ground_flow_control_solves_the_source_it_reports():
+    model = _quiet(tmhp.GroundSourceHeatPumpBoiler, ground_flow_control="optimal_power")
+    table = model.operating_range([BRINE_TO_WATER[0]])
+    row = table.iloc[0]
+    direct = _direct(model, row)
+    assert direct["T_bhe_f_out [°C]"] == row["T_source_side [°C]"]
+    assert _same(row["cop_sys [-]"], float(direct["cop_sys [-]"]))

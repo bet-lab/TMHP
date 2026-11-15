@@ -634,8 +634,11 @@ and its standard wet bulb, where one is given, the outdoor humidity
 ``RH_out`` (the frost correction). The brine or source water entering the heat
 pump is ``T_source`` of GSHPB and WSHPB; GSHP has no such argument (its source
 is the fluid leaving the borefield, the state ``T_bhe_f_out``), so its
-conditions are solved on a shallow copy with ``T_bhe_f_out`` at the brine
-temperature. The indoor air is ``T_a_room``.
+conditions are solved with ``T_bhe_f_out`` at the brine temperature. A GSHP
+with ground-flow control solves its source from the borehole wall instead, so
+no brine temperature can be imposed and ``operating_range()`` refuses it
+(``ValueError``) rather than report a condition it did not solve. The indoor
+air is ``T_a_room``.
 
 The ``W55`` of a boiler condition is the water *leaving* the heat pump, which
 is not an input of the boiler models: their sink is the tank temperature
@@ -675,8 +678,9 @@ reproduced with ``hp.analyze_steady(**row["inputs"])``.
 
 **Quiet, and the model is unchanged.** The solves issue no
 ``OperatingLimitWarning`` (the ``limit`` column is the text a warning would
-carry), they do not use up the once-per-model notice of a later
-``analyze_steady`` call, and they leave the model's state as it was.
+carry) and they do not use up the once-per-model notice of a later
+``analyze_steady`` call. Each condition is solved on a shallow copy of the
+model, so what a solve writes on the model stays on the copy.
 
 **Why it is a method and not part of construction.** It solves the cycle at
 every condition, which costs far more than building an air-source model.

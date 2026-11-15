@@ -12,8 +12,16 @@ once in the outlet. `results/<slug>.csv`, `results/provenance/<slug>.json`,
 uncommitted edits, `src/tmhp` and `validation/parity` tree hashes, coefficient
 version, Python/CoolProp/platform, time); the summary refuses units whose
 records disagree and the manifest carries what they share.
-`tests/test_validation_results_current.py` fails when the code no longer
-reproduces the committed numbers. Other result folders under `results/`
+`tests/test_validation_results_current.py` reruns every point of every catalogue
+(757 points, about 21 s) and fails when the code no longer reproduces the
+committed numbers. `manifest.json`'s `src_tmhp_tree` is the tree the results came
+from; it may lag `src/tmhp` as long as that rerun still matches, and
+`scripts/regen-validation.sh --parity-only` (about 12 s) moves it forward.
+The certified A→D gradient the part-load tests compare with is committed as
+`data/keymark_en14825_gradient.csv` (quantiles of COP(D)/COP(A) over the Heat
+Pump Keymark population, from hplib `125c2ef6`) with its provenance in
+`data/provenance/keymark_en14825_gradient.json`; rebuild both with
+`python -m validation.extraction.keymark_gradient`. Other result folders under `results/`
 and `data/` are one-off studies. Each carries a provenance record
 (`results/<study>/provenance.json`, `data/provenance/<study>.json`, written by
 `validation/study_provenance.py`): the script and command, the commit and source

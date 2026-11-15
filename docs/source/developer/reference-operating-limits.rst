@@ -292,9 +292,10 @@ of it.
         catalogues need at most 1.66 × the rated speed; the former fixed
         150 rev/s let the compressor alone deliver 2.5–5.9 × nameplate.
         120 rev/s is the top of variable-speed scroll and rotary ranges; a
-        machine rated above 80 rev/s (R134a with the default displacement,
-        #86) keeps 1.5 × its rated speed, the catalogue maximum-to-rated
-        capacity ratio. A user value is kept.
+        machine rated above 80 rev/s keeps 1.5 × its rated speed, the
+        catalogue maximum-to-rated capacity ratio (an R134a boiler was rated
+        there until the default displacement followed the refrigerant, #86).
+        A user value is kept.
     * - ``rps_min``
       - 15 rev/s
       - Unchanged.

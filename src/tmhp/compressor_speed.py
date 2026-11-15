@@ -54,13 +54,14 @@ CAPACITY_CLAMPED_MIN = "min"
 #: Clamp code: request above the duty deliverable at ``rps_max``.
 CAPACITY_CLAMPED_MAX = "max"
 
-#: Legacy fixed displacement per watt of nominal capacity [m^3/rev per W].
+#: Fixed displacement per watt of nominal capacity [m^3/rev per W].
 #:
-#: Retained only so that code pinning the previous behaviour can reproduce it.
-#: It takes no account of the working fluid, and the volumetric refrigerating
-#: capacity of the fluids in common use spans a factor of 2.7 -- so a single
-#: constant is roughly 50 % too large for R32 and 40 % too small for R134a.
-#: :func:`refrigerant_aware_displacement` is the optional physical alternative.
+#: The default of the ground- and water-source boilers. It takes no account of
+#: the working fluid, and the volumetric refrigerating capacity of the fluids
+#: in common use spans a factor of 2.7 -- so a single constant is roughly 50 %
+#: too large for R32 and 40 % too small for R134a. The other families take
+#: their default from compressor catalogues
+#: (:func:`tmhp.default_inputs.estimate_displacement`).
 DISPLACEMENT_PER_W = 42.0e-6 / 9000.0
 
 

@@ -63,7 +63,7 @@ from .compressor_envelope import (
     resolve_x_suction_min,
     steady_envelope,
 )
-from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
+from .compressor_speed import CAPACITY_CLAMPED_MAX, solve_compressor_speed
 from .cycling import (
     CAPACITY_RATIO_KEY,
     CD_AIR_DEFAULT,
@@ -627,7 +627,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.indoor_approach_max_K = indoor_approach_max_K
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
+            # No displacement given: the one a compressor catalogue gives for this capacity
+            # and refrigerant (tmhp.default_inputs), recorded in default_input_estimates.
+            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else self._default_displacement(hp_capacity, ref)
         if UA_cond is None:
             UA_cond = UA_cond_design
         if UA_evap is None:

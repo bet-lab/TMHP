@@ -107,8 +107,9 @@ always be read back.
       - Families
       - Where it comes from
     * - Compressor displacement ``V_cmp_ref``
-      - 42 cm³/rev per 9 kW of nameplate (4.67 cm³/rev per kW), any
-        refrigerant
+      - ``hp_capacity / (ρ₁ · Δh · 53.2 rev/s)`` at the compressor catalogues'
+        rating point: 3.01 cm³/rev per kW for R32, 5.62 for R290, 7.31 for
+        R134a. GSHPB, WSHPB: 4.67 cm³/rev per kW, any refrigerant
       - all
       - :doc:`/validation/defaults`, *Compressor displacement*
     * - Compressor speed range
@@ -203,9 +204,11 @@ What follows the refrigerant
       - Where it comes from
     * - Rated compressor speed
       - Solved for the fluid at the rating point, so the nameplate capacity
-        is kept when the refrigerant is swapped. A fluid of low volumetric
-        capacity (R134a, R1234yf, R600a) then runs fast and may need a larger
-        ``V_cmp_ref``
+        is kept when the refrigerant is swapped. Where the displacement
+        follows the refrigerant (ASHP, GSHP, ASHPB) the rated speed stays
+        near 45 to 60 rev/s; with the fixed constant of GSHPB and WSHPB a
+        fluid of low volumetric capacity (R134a, R1234yf, R600a) runs fast and
+        may need a larger ``V_cmp_ref``
       - :doc:`/concepts/refrigerant-and-coolprop`
     * - Discharge-temperature limit ``T_dis_max``
       - 150 °C for R32, 135 °C for every other refrigerant

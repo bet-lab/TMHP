@@ -16,6 +16,7 @@ from tmhp import (
 from tmhp.ashpb_stc_preheat import ASHPB_STC_preheat
 from tmhp.compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
 from tmhp.compressor_speed import default_displacement
+from tmhp.default_inputs import estimate_displacement
 from tmhp.gshpb_stc_ground import GSHPB_STC_ground
 from tmhp.reference_state import REFERENCE_CAPACITY_INCONSISTENT, ReferenceStateError
 from tmhp.subsystems import SolarThermalCollector
@@ -52,7 +53,10 @@ def test_capacity_only_construction_solves_reference_state(cls):
     hp = build(cls) if cls in FAMILIES else cls(stc=SolarThermalCollector(A_stc=4.0), **DERIVED[cls])
     state = hp.reference_state
     assert state is not None and state.rps_rated_solved
-    assert hp.V_cmp_ref == pytest.approx(default_displacement(hp.hp_capacity))
+    if isinstance(hp, (GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler)):
+        assert hp.V_cmp_ref == pytest.approx(default_displacement(hp.hp_capacity))
+    else:
+        assert hp.V_cmp_ref == estimate_displacement(hp.hp_capacity, hp.ref).value
     assert hp.rps_min < hp.rps_rated < hp.rps_max
     assert hp.rps_rated == state.rps_rated
     assert hp.m_dot_ref_rated == state.m_dot_ref_rated > 0

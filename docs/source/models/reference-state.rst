@@ -40,8 +40,10 @@ Capacity-only initialization constructs a representative compressor; it does
 not identify the exact manufacturer compressor.
 
 When manufacturer compressor data are unavailable, ``V_cmp_ref`` is estimated
-from nominal heat-pump capacity
-(:func:`tmhp.compressor_speed.default_displacement`). The rated compressor
+from the nominal heat-pump capacity and the refrigerant
+(:func:`tmhp.default_inputs.estimate_displacement`; the ground- and
+water-source boilers use :func:`tmhp.compressor_speed.default_displacement`),
+and the estimate is kept in ``default_input_estimates``. The rated compressor
 speed and reference refrigerant mass flow are then solved self-consistently at
 the model's standard/reference rating condition.
 

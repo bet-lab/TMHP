@@ -211,6 +211,7 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
         RPS_FIT_MIN,
     )
     from tmhp.compressor_speed import DISPLACEMENT_PER_W, default_displacement
+    from tmhp.default_inputs import DEFAULT_DISPLACEMENT_BASIS, _artifact
 
     table = _summary_table(_read("docs/source/validation/defaults.rst"))
     a2a = AirSourceHeatPump(hp_capacity=5000.0, ref="R32")
@@ -226,6 +227,12 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
     assert f"UA_tank_hx = hp_capacity / {a2w.hp_capacity / a2w.UA_tank_hx:g}" in tank
 
     displacement = re.sub(r"\s+", " ", _list_table_row(table, "Compressor displacement"))
+    basis = _artifact("compressor_displacement_regression.json")["bases"][DEFAULT_DISPLACEMENT_BASIS]
+    assert f"``η_vol·n`` = {basis['eta_vol_rps']:.1f} rev/s" in displacement
+    assert f"{basis['n']} catalogue rows" in displacement and f"{basis['n_families']} families" in displacement
+    condition = basis["reference_condition"]
+    assert f"({condition['T_evap_C']:g} / {condition['T_cond_C']:g} °C)" in displacement
+    # The ground- and water-source boilers keep the fixed constant.
     assert default_displacement(9000.0) == pytest.approx(DISPLACEMENT_PER_W * 9000.0)
     assert f"{DISPLACEMENT_PER_W * 9000.0 * 1e6:g} cm³/rev per 9 kW" in displacement
 
@@ -240,6 +247,23 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
 
     limit = re.sub(r"\s+", " ", _list_table_row(table, "Pressure-ratio limit"))
     assert f"``PR_cycle_max`` {a2a.PR_cycle_max:g} (air-to-air), {a2w.PR_cycle_max:g} (air-to-water)" in limit
+
+
+def test_defaults_displacement_table_matches_the_decision_module() -> None:
+    """Every cell of the default-displacement table is what the constructors use."""
+    from tmhp.compressor_speed import default_displacement
+    from tmhp.default_inputs import estimate_displacement
+
+    text = _read("docs/source/validation/defaults.rst")
+    start = text.index(".. list-table:: Default displacement [cm³/rev]")
+    table = text[start : text.index("The earlier default, 42 cm³/rev per 9 kW", start)]
+    for capacity_kW in (3.5, 8.0, 15.0):
+        row = re.sub(r"\s+", " ", _list_table_row(table, f"{capacity_kW:g} kW"))
+        cells = [cell.strip() for cell in row.split(" - ")[1:]]
+        expected = [default_displacement(capacity_kW * 1000.0) * 1e6] + [
+            estimate_displacement(capacity_kW * 1000.0, ref).value * 1e6 for ref in ("R32", "R410A", "R290", "R134a")
+        ]
+        assert cells == [f"{value:.2f}" for value in expected], f"{capacity_kW:g} kW: {cells}"
 
 
 def test_defaults_ablation_table_matches_the_study() -> None:

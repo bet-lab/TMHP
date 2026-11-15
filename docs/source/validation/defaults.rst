@@ -63,13 +63,14 @@ Summary
         sides are close enough for the transfer to hold
       - ``en328_inversion``
     * - Compressor displacement
-      - Fixed 42 cm³/rev per 9 kW of nameplate, any refrigerant
-        (``default_displacement``)
-      - The constant TMHP has always carried. The refrigerant-aware rule
-        ``V = Q̇ / (Δh · ρ · η_vol · n_rated)`` derived below is available as
-        ``refrigerant_aware_displacement`` but is not the default; which of the
-        two ships is under review
-      - ``compressor_speed``
+      - ``V = Q̇ / (ρ₁ · Δh · η_vol·n)`` with ``η_vol·n`` = 53.2 rev/s, so it
+        follows the refrigerant (``estimate_displacement``). The ground- and
+        water-source boilers keep 42 cm³/rev per 9 kW
+      - 41 catalogue rows of inverter twin-rotary compressors (LG, Mitsubishi
+        Electric SCI; 14 families), pooled by dividing out ``ρ₁ · Δh`` at each
+        row's own rating point, then evaluated at that rating point
+        (7.2 / 54.4 °C)
+      - ``default_inputs.compressor_displacement``
     * - Compressor efficiencies (volumetric, isentropic, electro-mechanical)
       - Coefficients ``BITZER-three-C3-absolute-N-2026-10-06``: each
         ``b0 + b1·PR + b2·N + b3·PR² + b4·N² + b5·PR·N`` with ``N`` the shaft
@@ -104,11 +105,12 @@ Summary
         figure, so this default does not enter the parity results
       - —
 
-Every ``Reproduce`` entry is a module under ``validation/extraction/`` or
-``validation/compressor_maps/``::
+Every ``Reproduce`` entry is a module under ``validation/extraction/``,
+``validation/compressor_maps/`` or ``validation/default_inputs/``::
 
     uv run python -m validation.extraction.<name>
     uv run python -m validation.compressor_maps.<name>
+    uv run python -m validation.default_inputs.<name>.build
 
 The shipped compressor coefficients are version
 ``BITZER-three-C3-absolute-N-2026-10-06``
@@ -301,16 +303,77 @@ nameplate condition:
 Both :math:`\Delta h` and :math:`\rho_1` come from CoolProp at a declared
 rating point, so the dependence on the working fluid is pure fluid property
 rather than a tabulated coefficient. That dependence is not small: per kilowatt
-of nameplate the displacement runs from about 3.9 cm³/rev for R32 to 10.4 for
-R1234yf. The default constant (42 cm³/rev per 9 kW) takes no account of the
-fluid at all; this rule is available as
-:func:`tmhp.compressor_speed.refrigerant_aware_displacement` and is not yet the
-default.
+of nameplate the displacement runs from about 3.0 cm³/rev for R32 to 7.3 for
+R134a.
 
-The rating point is declared per equipment class — EN 14511 A7/W35 for
-air-to-water, ISO 5151 T1 for air-to-air — and the rated speed is the one
-quantity that carries real uncertainty, since the result is exactly inversely
-proportional to it.
+What is left, :math:`\eta_{\mathrm{vol}}\, n`, belongs to the compressor, and
+compressor catalogues print it. Each row gives a displacement and a capacity at
+a declared rating point, so
+:math:`\eta_{\mathrm{vol}}\, n = \dot Q / (V \rho_1 \Delta h)` row by row.
+Across 41 rows of inverter twin-rotary compressors from two manufacturers (LG
+and Mitsubishi Electric SCI; 14 families, R32 and R410A, 2.9 to 14.9 kW) it is
+53.2 rev/s — 0.887 of the 60 rev/s the rows are published at. Predicting a
+family, a manufacturer or a refrigerant from the others misses the printed
+displacement by 2.7, 2.6 and 3.8 %.
+
+The default displacement is that relation at the catalogues' own rating point
+(evaporating 7.2 °C, condensing 54.4 °C, suction 18.3 °C, liquid 46.1 °C), with
+the nameplate capacity standing in for the compressor's catalogue capacity
+(:func:`tmhp.default_inputs.estimate_displacement`). ``AirSourceHeatPump``,
+``GroundSourceHeatPump`` and ``AirSourceHeatPumpBoiler`` use it when
+``V_cmp_ref`` is left out, and say so: ``model.default_input_estimates["V_cmp_ref"]``
+holds the value, the data release, the capacity range of the catalogue rows,
+whether the capacity lies outside that range (``extrapolated``) and the source
+documents. A ``V_cmp_ref`` you pass is used as given and has no entry there.
+
+.. list-table:: Default displacement [cm³/rev]
+    :header-rows: 1
+    :widths: 16 24 15 15 15 15
+
+    * - Nameplate
+      - Until November 2026 (any refrigerant)
+      - R32
+      - R410A
+      - R290
+      - R134a
+    * - 3.5 kW
+      - 16.33
+      - 10.55
+      - 11.64
+      - 19.68
+      - 25.60
+    * - 8 kW
+      - 37.33
+      - 24.10
+      - 26.61
+      - 44.98
+      - 58.51
+    * - 15 kW
+      - 70.00
+      - 45.20
+      - 49.90
+      - 84.34
+      - 109.70
+
+The earlier default, 42 cm³/rev per 9 kW for every refrigerant, was 55 % above
+the catalogue value for R32 and 17 % and 36 % below it for R290 and R134a. The
+speed solver absorbed the difference: an R134a boiler was rated at 89.8 rev/s,
+above the 72.5 rev/s the efficiency fits reach, and an R32 split at 31.2 rev/s,
+below the 33.8 rev/s they start at. With the catalogue displacement the rated
+speed of every default machine lies inside the fitted range.
+``GroundSourceHeatPumpBoiler`` and ``WaterSourceHeatPumpBoiler`` still use the
+earlier constant (:func:`tmhp.compressor_speed.default_displacement`).
+
+The class rating points
+-----------------------
+
+:func:`tmhp.compressor_speed.refrigerant_aware_displacement` evaluates the same
+relation at any declared rating point and rated speed. Two are declared per
+equipment class — EN 14511 A7/W35 for air-to-water, ISO 5151 T1 for
+air-to-air — and their rated speed is the one quantity that carries real
+uncertainty, since the result is exactly inversely proportional to it. They are
+not what the default uses; they are the record of how the rated speed of each
+class was bounded before compressor catalogues were collected.
 
 For air-to-water it is not a guess. Inverting the relation against the nine
 Panasonic Aquarea units whose compressor displacement is published by the

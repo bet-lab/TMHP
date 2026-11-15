@@ -57,7 +57,6 @@ from .compressor_envelope import (
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
     CAPACITY_CLAMPED_MIN,
-    default_displacement,
     solve_compressor_speed,
 )
 from .cycling import (
@@ -639,7 +638,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             dV_iu_fan_a_rated = dV_iu_fan_a_ref
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
+            # No displacement given: the one a compressor catalogue gives for this capacity
+            # and refrigerant (tmhp.default_inputs), recorded in default_input_estimates.
+            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else self._default_displacement(hp_capacity, ref)
         if eta_cmp is None:
             eta_cmp = eta_cmp_mech
         # UA_cond/evap_design → UA_cond/evap_rated (oldest names, two hops)

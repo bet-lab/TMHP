@@ -11,9 +11,12 @@ same inputs every model already requires:
     hp_capacity -> V_cmp_ref -> rating condition -> rps_rated -> m_dot_ref_rated
 
 ``V_cmp_ref``
-    Swept displacement. When the caller gives none, the models use
-    :func:`tmhp.compressor_speed.default_displacement`, a capacity-scaled
-    reduced-order default, not an identification of a real compressor.
+    Swept displacement. When the caller gives none, the air-source and
+    ground-source space-conditioning models and the air-source boiler use
+    :func:`tmhp.default_inputs.estimate_displacement` -- the displacement an
+    inverter twin-rotary compressor catalogue gives for that capacity and
+    refrigerant -- and record it in ``default_input_estimates``. It is a
+    representative compressor, not an identification of a real one.
 ``rating condition``
     A standard (or manufacturer/user) rating point for the model family:
     mode, source- and load-side inlet temperatures, the model's reference
@@ -59,6 +62,7 @@ import math
 import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, Literal
 
 import CoolProp.CoolProp as CP
@@ -68,6 +72,7 @@ from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, make_
 from .compressor_envelope import RATED_SPEED_SEARCH_MAX, check_rated_condensing, default_rps_max
 from .compressor_speed import solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
+from .default_inputs import DefaultInputEstimate, estimate_displacement
 from .refrigerant import calc_ref_state
 
 __all__ = [
@@ -668,6 +673,29 @@ class ReferenceStateMixin:
     #: replaces it with ``default_rps_max(rps_rated)`` (when ``_rps_max_derived``).
     rps_max: float
     _rps_max_derived: bool
+
+    @property
+    def default_input_estimates(self) -> Mapping[str, DefaultInputEstimate]:
+        """Catalogue estimates behind the inputs the caller left out, by constructor argument name.
+
+        An input the caller supplied has no entry; a model built entirely from
+        supplied inputs gives an empty mapping. Each
+        :class:`~tmhp.default_inputs.DefaultInputEstimate` carries the value,
+        the release and stratum it came from, the capacity range the
+        catalogues cover, ``extrapolated`` (the capacity lies outside that
+        range), the source documents, the assumptions, and ``status``
+        (``"provisional"``, with its reason, where the evidence is weak).
+        """
+        return MappingProxyType(vars(self).get("_default_input_estimates", {}))
+
+    def _use_default_input(self, name: str, estimate: DefaultInputEstimate) -> float:
+        """Record the catalogue estimate that stands in for the omitted input ``name``; return its value."""
+        vars(self).setdefault("_default_input_estimates", {})[name] = estimate
+        return estimate.value
+
+    def _default_displacement(self, hp_capacity: float, ref: str) -> float:
+        """Displacement of a machine given only its capacity and refrigerant [m³/rev] (recorded)."""
+        return self._use_default_input("V_cmp_ref", estimate_displacement(hp_capacity, ref))
 
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """The model's own heat exchanger on ``role`` at its rated UA and reference flow."""

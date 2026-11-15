@@ -291,13 +291,21 @@ def test_low_speed_high_pressure_ratio_corner_is_outside_the_envelope():
 
     With the discharge-temperature control the discharge can be held, so the
     corner is refused by the isentropic-efficiency floor (0.30, below the
-    fit's 0.336 minimum inside its data) instead.
+    fit's 0.336 minimum inside its data) instead. The unit does not run there:
+    the request is met by on/off cycling at the smallest duty inside the
+    envelope, well above the speed floor.
     """
     case = dict(T_tank_w=65.0, T_source=0.0, Q_ref_tank=1600.0, T0=10.0)
     hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R134a", hp_capacity=8000.0)
+    refused = _quiet(hp.analyze_steady.__wrapped__, hp, **case)  # the request's own solve
+    assert refused["failure_reason"] in (ETA_ISEN_BELOW_MIN, DISCHARGE_TEMP_ABOVE_MAX)
+    assert not refused["hp_is_on"]
     r = _quiet(hp.analyze_steady, **case)
-    assert r["failure_reason"] in (ETA_ISEN_BELOW_MIN, DISCHARGE_TEMP_ABOVE_MAX)
-    assert not r["hp_is_on"]
+    assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
+    assert r["Q_ref_tank [W]"] == pytest.approx(1600.0) and r["Q_min [W]"] > 1600.0
+    assert r["runtime_fraction [-]"] < 1.0
+    assert r["eta_cmp_isen [-]"] >= ETA_ISEN_MIN and r["cmp_rpm [rpm]"] / 60.0 > hp.rps_min + 1.0
+    assert r["T_ref_cmp_out [°C]"] <= hp.T_dis_max + 0.01
     # A scalar efficiency is the caller's statement: no floor.
     scalar = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R134a", hp_capacity=8000.0, eta_cmp_isen=0.25, T_dis_max=None)
     assert _quiet(scalar.analyze_steady, **case)["failure_reason"] != ETA_ISEN_BELOW_MIN

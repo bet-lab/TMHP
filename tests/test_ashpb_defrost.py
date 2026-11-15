@@ -445,7 +445,9 @@ def test_every_steady_row_has_the_same_keys_with_and_without_frost(frosting):
         "speed ceiling": frosting.analyze_steady(T_tank_w=35.0, T0=2.0, Q_ref_tank=15000.0),
         "reduced": frosting.analyze_steady(T_tank_w=55.0, T0=-15.0, Q_ref_tank=15000.0),
         "off": frosting.analyze_steady(T_tank_w=45.0, T0=0.0, Q_ref_tank=0.0),
-        "refused": frosting.analyze_steady(T_tank_w=55.0, T0=-7.0, Q_ref_tank=1500.0),
+        # No duty runs against a 75 degC tank at -7 degC. (A small request at 55 degC, refused
+        # for the discharge temperature at low speed, is met by cycling at a larger duty.)
+        "refused": frosting.analyze_steady(T_tank_w=75.0, T0=-7.0, Q_ref_tank=1500.0),
     }
     assert rows["refused"]["hp_is_on"] is False and rows["refused"]["failure_reason"] != "none"
     keys = set(rows["frost-free"])

@@ -75,12 +75,16 @@ Discharge temperature (``T_dis_max``)
     answer every limit a smaller duty cures this way -- the pressure-ratio
     ceiling, the source heat exchanger's range and the efficiency floor as
     well (:func:`duty_reduction_binding`); ``capacity_binding`` names the
-    limit. The efficiency floor also has a lower side: towards low speed the
-    shipped fit falls below it while larger duties run. A boiler's
+    limit. The envelope also has a lower side: at a large lift the shipped
+    isentropic fit falls towards low speed, so the discharge runs hotter there
+    (past the limit even with the control used up) and, further down, the fit
+    drops below its floor -- while larger duties run. A boiler's
     ``analyze_steady`` answers a request refused there with the smallest duty
     that runs (:func:`raise_duty_within_envelope`, ``capacity_clamped='min'``),
     which is then reported as the mean of on/off cycling like a request below
-    the minimum speed.
+    the minimum speed; :class:`~tmhp.AirSourceHeatPump` does the same in its
+    own search. ``failure_reason='discharge_temp_above_max'`` is left for a
+    condition at which no duty runs.
 
 Condensing pressure (``T_cond_max``)
     The top of every published envelope is a maximum condensing temperature,
@@ -259,7 +263,7 @@ PR_ABOVE_MAX = "pr_above_max"
 #: Default ``PR_cycle_max`` of every family: the single-stage scroll hardware limit.
 PR_CYCLE_MAX_SINGLE_STAGE = 11.0
 
-#: ``failure_reason``: even the smallest duty tried exceeds ``T_dis_max``.
+#: ``failure_reason``: every duty tried, smaller and larger, exceeds ``T_dis_max``.
 DISCHARGE_TEMP_ABOVE_MAX = "discharge_temp_above_max"
 #: ``failure_reason``: even the smallest duty tried condenses above ``T_cond_max``.
 CONDENSING_TEMP_ABOVE_MAX = "condensing_temp_above_max"
@@ -1180,9 +1184,14 @@ _RAISE_LADDER = (0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0)
 #: Relative width at which the bisection for the smallest continuous duty stops.
 _RAISE_REL_TOL = 5e-3
 #: Refusals of a request that :func:`raise_duty_within_envelope` answers with
-#: the smallest duty that runs. Only the efficiency floor: it is a statement
-#: about the shipped fit towards low speed, which a larger duty leaves behind.
-_RAISED_OVER = frozenset({ETA_ISEN_BELOW_MIN})
+#: the smallest duty that runs: the two limits the compressor meets towards
+#: *low* speed at a large lift. The shipped isentropic fit falls there, so the
+#: discharge runs hotter (:data:`DISCHARGE_TEMP_ABOVE_MAX`, once the
+#: discharge-temperature control is used up) and, further down, the fit drops
+#: below its floor (:data:`ETA_ISEN_BELOW_MIN`). A larger duty leaves both
+#: behind. The discharge limit also refuses duties from above (the lift grows
+#: with the duty); that side is :func:`reduce_duty_within_envelope`'s.
+_RAISED_OVER = frozenset({ETA_ISEN_BELOW_MIN, DISCHARGE_TEMP_ABOVE_MAX})
 #: Model attribute holding the smallest continuous rows found while
 #: :func:`remembering_smallest_duties` is active (``None`` outside it).
 _SMALLEST_DUTY_MEMO = "_smallest_duty_memo"
@@ -1396,9 +1405,12 @@ def _between_reasons(
     one by a limit a larger duty cures; duties that run, if any, lie where
     the two reasons meet. Bisect by reason: a trial refused like the upper
     duty moves the upper end down, one refused like the lower duty moves the
-    lower end up. Returns ``(duty, result, refused duty above, its result)``
-    for the first trial that runs, or ``None`` when the reasons meet without
-    one (or a third reason appears, which this cannot order).
+    lower end up -- as does one refused for the efficiency floor, which only
+    a larger duty cures (towards low speed the discharge limit is met first
+    and the fit's floor below it, so both can lie under the duties that run).
+    Returns ``(duty, result, refused duty above, its result)`` for the first
+    trial that runs, or ``None`` when the reasons meet without one (or
+    another third reason appears, which this cannot order).
     """
     reason_above, reason_below = r_above.get("failure_reason"), r_below.get("failure_reason")
     low_side = reason_below in _CURED_BY_MORE_DUTY or r_below.get("failure_detail") in _NOT_REDUCIBLE_DETAIL
@@ -1413,7 +1425,7 @@ def _between_reasons(
         reason = r.get("failure_reason")
         if reason == reason_above:
             q_above, upper = mid, r
-        elif reason == reason_below:
+        elif reason in (reason_below, ETA_ISEN_BELOW_MIN):
             q_below = mid
         else:
             return None
@@ -1679,30 +1691,48 @@ def raise_duty_within_envelope(
     delivered_key: str = "Q_ref_tank [W]",
     condition: object = None,
 ) -> dict:
-    """The smallest duty with an operating point when the efficiency floor refuses the request from below.
+    """The smallest duty with an operating point when the envelope refuses the request from below.
 
     The counterpart of :func:`reduce_duty_within_envelope`. The compressor's
-    speed floor is not the only lower end of continuous operation: where the
-    shipped isentropic fit, extrapolated towards low speed, falls below
-    :data:`ETA_ISEN_MIN` before ``rps_min`` is reached (a large lift), the
-    envelope refuses every duty below the one at which the fit crosses the
-    floor, while larger duties run. A unit does not stay off there: it runs
-    at the smallest duty the envelope admits and switches off when the tank
-    has had enough, exactly as it does below its minimum speed.
+    speed floor is not the only lower end of continuous operation. At a large
+    lift the shipped isentropic fit falls towards low speed, and before
+    ``rps_min`` is reached the envelope refuses the point: first for the
+    discharge temperature, which the falling efficiency drives above
+    ``T_dis_max`` even with the discharge-temperature control used up, then
+    for the fit's own floor (:data:`ETA_ISEN_MIN`). Every duty below the one
+    at which the last of the two lets go is refused, while larger duties run.
+    A unit does not stay off there: it runs at the smallest duty the envelope
+    admits and switches off when the tank has had enough, exactly as it does
+    below its minimum speed. (Variable-speed compressors are sold with that
+    restriction: the published envelope of the lowest speeds does not reach
+    the pressure ratios of the higher ones, and the controller holds the
+    frequency above it.)
 
-    ``result`` is the solve at ``request``, refused with
-    :data:`ETA_ISEN_BELOW_MIN` after no smaller duty ran; ``solve(q)`` solves
-    the same point at duty ``q``. A ladder of duties above the request
-    (:data:`_RAISE_LADDER`, fractions of ``model.hp_capacity``) finds one that
-    runs and a bisection closes on the smallest (to :data:`_RAISE_REL_TOL`).
-    That continuous row is returned with ``capacity_clamped='min'`` and the
-    caller's request in its request keys: it delivers more than the request,
-    and :func:`tmhp.cycling.steady_cycling` averages it over the on/off period
-    like a minimum-speed row (``Q_min [W]`` is its duty). ``result`` is
-    returned unchanged when a duty above the request is refused for another
-    reason before one runs, or none runs. A trial at the compressor's speed
-    ceiling (it delivers less than its duty) bounds the search from above but
-    is not returned. The trial solves run silently.
+    Why the smallest duty and not the most efficient one above it: the request
+    just above that duty is met in continuous operation at it, so cycling at
+    any other duty would make the result jump at the boundary -- and a
+    controller that cycles runs as long as it can, at the lowest frequency its
+    protections allow.
+
+    ``result`` is the solve at ``request``, refused for one of
+    :data:`_RAISED_OVER` after no smaller duty ran; ``solve(q)`` solves the
+    same point at duty ``q``. A ladder of duties above the request
+    (:data:`_RAISE_LADDER`, fractions of ``model.hp_capacity``) is climbed
+    past the rungs refused the same way to the first that is not; a bisection
+    then closes on the smallest duty that runs (to :data:`_RAISE_REL_TOL`).
+    The rung that ends the climb may itself be refused -- by a limit of the
+    other side (the pressure ratio, the source heat exchanger, the condensing
+    temperature): the duties that run, if any, then lie between it and the
+    rung below, and the bisection goes by which side refuses the trial.
+    The continuous row found is returned with ``capacity_clamped='min'`` and
+    the caller's request in its request keys: it delivers more than the
+    request, and :func:`tmhp.cycling.steady_cycling` averages it over the
+    on/off period like a minimum-speed row (``Q_min [W]`` is its duty).
+    ``result`` is returned unchanged when no duty runs: the limits of the two
+    sides then meet, or the discharge limit refuses every duty (it also binds
+    from above, where the lift grows with the duty). A trial at the
+    compressor's speed ceiling (it delivers less than its duty) bounds the
+    search from above but is not returned. The trial solves run silently.
 
     ``condition`` identifies the operating condition (everything but the
     duty); with it and inside :func:`remembering_smallest_duties` the row
@@ -1717,7 +1747,6 @@ def raise_duty_within_envelope(
         and result.get("failure_reason") in _RAISED_OVER
     ):
         return result
-    refusal = result.get("failure_reason")
     remembered = _remembered_smallest_duty(model, result, request, delivered_key, condition)
     if remembered is not None:
         return remembered
@@ -1732,7 +1761,10 @@ def raise_duty_within_envelope(
 
     # The bracket is made of ladder rungs and their midpoints, never of the
     # request: every request below the duty found gets the same row. A duty at
-    # or below the request needs no solve (the floor refuses it as well).
+    # or below the request needs no solve (it is refused from below as well).
+    # ``q_lo`` is refused from below; ``q_hi`` runs (``running`` is its row),
+    # or it is the upper end of where a running duty can be: a duty refused
+    # from above, or what the compressor delivers at its speed ceiling.
     q_lo, q_hi, running = 0.0, math.nan, None
     for fraction in _RAISE_LADDER:
         q = fraction * capacity
@@ -1740,26 +1772,31 @@ def raise_duty_within_envelope(
             q_lo = q
             continue
         state, out = trial(q)
-        if state is not None:
-            if state.get("capacity_clamped") is None:
-                q_hi, running = q, state
-            elif state.get("capacity_clamped") == "max" and _delivered(state, delivered_key) > q_lo:
-                # The compressor's ceiling lies below this rung: the smallest
-                # continuous duty, if there is one, is below what it delivers.
-                q_hi = _delivered(state, delivered_key)
-            break
-        if out.get("failure_reason") != refusal:
-            return result  # another limit is in the way: not a lower end of continuous operation
-        q_lo = q
+        if state is None and out.get("failure_reason") in _RAISED_OVER:
+            q_lo = q
+            continue
+        if state is None:
+            q_hi = q
+        elif state.get("capacity_clamped") is None:
+            q_hi, running = q, state
+        elif state.get("capacity_clamped") == "max" and _delivered(state, delivered_key) > q_lo:
+            # The compressor's ceiling lies below this rung: the smallest
+            # continuous duty, if there is one, is below what it delivers.
+            q_hi = _delivered(state, delivered_key)
+        break
     if not math.isfinite(q_hi):
         return result
     while q_hi - q_lo > _RAISE_REL_TOL * q_hi:
         mid = 0.5 * (q_lo + q_hi)
-        state = None if mid <= request else trial(mid)[0]
+        state, out = (None, result) if mid <= request else trial(mid)
         if state is not None and state.get("capacity_clamped") is None:
             q_hi, running = mid, state
-        else:
+        elif running is not None or (state is None and out.get("failure_reason") in _RAISED_OVER):
             q_lo = mid
+        elif state is not None and state.get("capacity_clamped") == "max" and _delivered(state, delivered_key) > q_lo:
+            q_hi = min(mid, _delivered(state, delivered_key))
+        else:
+            q_hi = mid  # refused from above: the duties that run, if any, are below
     if running is None:
         return result
     if memo is not None and condition is not None:
@@ -1813,8 +1850,8 @@ def steady_envelope(
     smaller duties; the largest one with an operating point is returned with
     ``capacity_clamped='max'``, ``capacity_binding`` naming the limit,
     ``Q_max [W]`` and ``Q_request [W]`` (the caller's request). If no smaller duty runs, the original off-state
-    result stands -- unless the efficiency floor refused the request and a
-    larger duty runs: the smallest such duty is then returned with
+    result stands -- unless the discharge limit or the efficiency floor refused
+    the request and a larger duty runs: the smallest such duty is then returned with
     ``capacity_clamped='min'`` (:func:`raise_duty_within_envelope`), for the
     cycling decorator outside this one to average. The trial solves run
     silently. ``bindings`` renames a

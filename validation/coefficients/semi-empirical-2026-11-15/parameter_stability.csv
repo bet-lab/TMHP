@@ -1,0 +1,106 @@
+candidate,parameter,folds,n_folds,full_fit,min,median,max,max_abs_dev_from_full,family
+selected-abs (scroll:q2+cL+zv:abs),rv,loco,92,2.97509,2.95575,2.97478,3.0018,0.0267066,scroll
+selected-abs (scroll:q2+cL+zv:abs),rv,loso,4,2.97509,2.66148,2.97649,2.9917,0.313614,scroll
+selected-abs (scroll:q2+cL+zv:abs),rv,edge,3,2.97509,2.64719,2.88365,3.1293,0.327903,scroll
+selected-abs (scroll:q2+cL+zv:abs),q2,loco,92,1.05418,1.03714,1.05356,1.13529,0.0811109,scroll
+selected-abs (scroll:q2+cL+zv:abs),q2,loso,4,1.05418,0.831998,1.05383,1.05935,0.22218,scroll
+selected-abs (scroll:q2+cL+zv:abs),q2,edge,3,1.05418,0.979236,1.00816,1.04897,0.0749422,scroll
+selected-abs (scroll:q2+cL+zv:abs),cL,loco,92,0.0584434,0.057627,0.0583942,0.0619772,0.00353381,scroll
+selected-abs (scroll:q2+cL+zv:abs),cL,loso,4,0.0584434,0.0358291,0.0585152,0.0587253,0.0226143,scroll
+selected-abs (scroll:q2+cL+zv:abs),cL,edge,3,0.0584434,0.0349203,0.0570594,0.0573094,0.0235231,scroll
+selected-abs (scroll:q2+cL+zv:abs),zv,loco,92,0.64542,0.63466,0.645541,0.657333,0.0119127,scroll
+selected-abs (scroll:q2+cL+zv:abs),zv,loso,4,0.64542,3.80527e-14,0.644815,0.701564,0.64542,scroll
+selected-abs (scroll:q2+cL+zv:abs),zv,edge,3,0.64542,0.453258,0.538464,0.669576,0.192162,scroll
+selected-rel (scroll:q2+cL+zv:rel),rv,loco,92,2.85336,2.83796,2.85323,2.87218,0.0188156,scroll
+selected-rel (scroll:q2+cL+zv:rel),rv,loso,4,2.85336,2.62271,2.86611,2.8717,0.230654,scroll
+selected-rel (scroll:q2+cL+zv:rel),rv,edge,3,2.85336,2.53197,2.7747,2.98737,0.321389,scroll
+selected-rel (scroll:q2+cL+zv:rel),q2,loco,92,1.4202,1.39394,1.41919,1.54535,0.125142,scroll
+selected-rel (scroll:q2+cL+zv:rel),q2,loso,4,1.4202,0.838475,1.42555,1.44794,0.581728,scroll
+selected-rel (scroll:q2+cL+zv:rel),q2,edge,3,1.4202,1.30545,1.36619,1.49096,0.114756,scroll
+selected-rel (scroll:q2+cL+zv:rel),cL,loco,92,0.0383765,0.0377202,0.0383323,0.0409402,0.00256375,scroll
+selected-rel (scroll:q2+cL+zv:rel),cL,loso,4,0.0383765,0.0298567,0.0380101,0.0388125,0.00851976,scroll
+selected-rel (scroll:q2+cL+zv:rel),cL,edge,3,0.0383765,0.0177865,0.0375274,0.0375552,0.0205899,scroll
+selected-rel (scroll:q2+cL+zv:rel),zv,loco,92,0.616937,0.606386,0.617041,0.629838,0.0129001,scroll
+selected-rel (scroll:q2+cL+zv:rel),zv,loso,4,0.616937,2.29512e-13,0.617716,0.684177,0.616937,scroll
+selected-rel (scroll:q2+cL+zv:rel),zv,edge,3,0.616937,0.376738,0.462244,0.645163,0.2402,scroll
+other level form (scroll:q2+cL+zv:abs:scaled),rv,loco,92,3.23448,3.20802,3.23394,3.27185,0.037362,scroll
+other level form (scroll:q2+cL+zv:abs:scaled),rv,loso,4,3.23448,3.18694,3.22858,3.68719,0.452705,scroll
+other level form (scroll:q2+cL+zv:abs:scaled),rv,edge,3,3.23448,3.08055,3.08769,3.86004,0.625558,scroll
+other level form (scroll:q2+cL+zv:abs:scaled),cL,loco,92,0.0559559,0.0553887,0.0559464,0.0569334,0.000977495,scroll
+other level form (scroll:q2+cL+zv:abs:scaled),cL,loso,4,0.0559559,0.0553483,0.0563064,0.0768732,0.0209173,scroll
+other level form (scroll:q2+cL+zv:abs:scaled),cL,edge,3,0.0559559,0.0536761,0.0562604,0.0583311,0.00237516,scroll
+other level form (scroll:q2+cL+zv:abs:scaled),zv,loco,92,0.64429,0.632772,0.6442,0.655291,0.0115185,scroll
+other level form (scroll:q2+cL+zv:abs:scaled),zv,loso,4,0.64429,0.352989,0.641608,0.674349,0.291301,scroll
+other level form (scroll:q2+cL+zv:abs:scaled),zv,edge,3,0.64429,0.438171,0.569064,0.744725,0.20612,scroll
+start form (scroll:q0+q2+cL:abs),rv,loco,92,2.5688,2.56111,2.56871,2.57904,0.0102462,scroll
+start form (scroll:q0+q2+cL:abs),rv,loso,4,2.5688,2.52436,2.57711,2.66147,0.0926776,scroll
+start form (scroll:q0+q2+cL:abs),rv,edge,3,2.5688,2.38307,2.5593,2.72355,0.185728,scroll
+start form (scroll:q0+q2+cL:abs),q0,loco,92,1.02526e-10,3.65012e-29,1.74107e-19,1.38766e-13,1.02526e-10,scroll
+start form (scroll:q0+q2+cL:abs),q0,loso,4,1.02526e-10,1.51452e-28,1.0809e-24,1.86103e-19,1.02526e-10,scroll
+start form (scroll:q0+q2+cL:abs),q0,edge,3,1.02526e-10,3.00797e-27,0.0943646,0.198934,0.198934,scroll
+start form (scroll:q0+q2+cL:abs),q2,loco,92,0.969527,0.953465,0.968819,1.03583,0.0663057,scroll
+start form (scroll:q0+q2+cL:abs),q2,loso,4,0.969527,0.831998,0.967951,0.969038,0.137529,scroll
+start form (scroll:q0+q2+cL:abs),q2,edge,3,0.969527,0.929056,0.968615,0.971002,0.0404706,scroll
+start form (scroll:q0+q2+cL:abs),cL,loco,92,0.0542847,0.0534017,0.0542674,0.0571837,0.00289899,scroll
+start form (scroll:q0+q2+cL:abs),cL,loso,4,0.0542847,0.0358291,0.0545805,0.0546492,0.0184556,scroll
+start form (scroll:q0+q2+cL:abs),cL,edge,3,0.0542847,0.0137317,0.0511754,0.0553006,0.040553,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR,loco,92,0.0510015,0.0490166,0.0508575,0.0569957,0.00599422,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR,loso,4,0.0510015,0.0225044,0.0486559,0.0587244,0.0284971,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR,edge,3,0.0510015,0.0128636,0.0948825,0.11971,0.0687085,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N,loco,92,0.00104207,0.000884113,0.00103946,0.00131611,0.000274046,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N,loso,4,0.00104207,0.000911591,0.000966978,0.00599402,0.00495195,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N,edge,3,0.00104207,5.71325e-05,0.00289852,0.00544017,0.0043981,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR2,loco,92,-0.0164807,-0.0174971,-0.016484,-0.0161973,0.00101634,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR2,loso,4,-0.0164807,-0.017639,-0.0164416,-0.00976796,0.00671277,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR2,edge,3,-0.0164807,-0.0305408,-0.018944,-0.0102809,0.01406,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N2,loco,92,-3.21391e-05,-3.52569e-05,-3.21255e-05,-3.03316e-05,3.11779e-06,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N2,loso,4,-3.21391e-05,-7.59187e-05,-3.20696e-05,-3.04015e-05,4.37796e-05,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N2,edge,3,-3.21391e-05,-6.29156e-05,-3.72644e-05,-3.22988e-05,3.07765e-05,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PRN,loco,92,0.000801391,0.000770924,0.00080085,0.000822917,3.04663e-05,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PRN,loso,4,0.000801391,0.000616752,0.000805961,0.000839899,0.000184638,scroll
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PRN,edge,3,0.000801391,0.000414521,0.00048101,0.001183,0.000386869,scroll
+selected-abs (rotary:q2+cL+cu:abs:scaled),cL,loco,5,0.0543135,0.0466076,0.0531287,0.0631374,0.00882384,rotary
+selected-abs (rotary:q2+cL+cu:abs:scaled),cL,loso,3,0.0543135,0.0415784,0.0531287,0.0631374,0.0127351,rotary
+selected-abs (rotary:q2+cL+cu:abs:scaled),cL,edge,3,0.0543135,0.0408902,0.059127,0.0598448,0.0134234,rotary
+selected-abs (rotary:q2+cL+cu:abs:scaled),cu,loco,5,0.200283,0.1833,0.203082,0.214423,0.0169829,rotary
+selected-abs (rotary:q2+cL+cu:abs:scaled),cu,loso,3,0.200283,0.0925284,0.212413,0.214423,0.107755,rotary
+selected-abs (rotary:q2+cL+cu:abs:scaled),cu,edge,3,0.200283,0.123047,0.142568,0.272123,0.0772358,rotary
+selected-rel (rotary:q2+cL+cu:rel:scaled),cL,loco,5,0.0340102,0.0319703,0.0331689,0.0378055,0.00379527,rotary
+selected-rel (rotary:q2+cL+cu:rel:scaled),cL,loso,3,0.0340102,0.0296793,0.0331689,0.0378055,0.00433095,rotary
+selected-rel (rotary:q2+cL+cu:rel:scaled),cL,edge,3,0.0340102,0.0271269,0.0369393,0.0371204,0.00688334,rotary
+selected-rel (rotary:q2+cL+cu:rel:scaled),cu,loco,5,0.118791,0.101669,0.124976,0.14219,0.023399,rotary
+selected-rel (rotary:q2+cL+cu:rel:scaled),cu,loso,3,0.118791,0.0693063,0.124976,0.125183,0.0494843,rotary
+selected-rel (rotary:q2+cL+cu:rel:scaled),cu,edge,3,0.118791,0.0688541,0.0830225,0.16024,0.0499366,rotary
+other level form (rotary:q2+cL+cu:abs),q2,loco,5,1.20018,1.15201,1.21737,1.27209,0.0719084,rotary
+other level form (rotary:q2+cL+cu:abs),q2,loso,3,1.20018,1.15201,1.18831,1.263,0.0628193,rotary
+other level form (rotary:q2+cL+cu:abs),q2,edge,3,1.20018,1.21371,1.23601,1.32405,0.123866,rotary
+other level form (rotary:q2+cL+cu:abs),cL,loco,5,0.0839575,0.0731287,0.0800204,0.112755,0.0287976,rotary
+other level form (rotary:q2+cL+cu:abs),cL,loso,3,0.0839575,0.060902,0.0800204,0.112755,0.0287976,rotary
+other level form (rotary:q2+cL+cu:abs),cL,edge,3,0.0839575,0.0623747,0.0934855,0.101412,0.0215828,rotary
+other level form (rotary:q2+cL+cu:abs),cu,loco,5,0.179612,0.129919,0.168189,0.217657,0.0496928,rotary
+other level form (rotary:q2+cL+cu:abs),cu,loso,3,0.179612,0.0759794,0.157949,0.217657,0.103633,rotary
+other level form (rotary:q2+cL+cu:abs),cu,edge,3,0.179612,3.49165e-14,0.12201,0.263355,0.179612,rotary
+start form (rotary:q0+q2+cL:abs),q0,loco,5,0.30956,1.99324e-14,0.261388,1.18305,0.873494,rotary
+start form (rotary:q0+q2+cL:abs),q0,loso,3,0.30956,2.50952e-13,0.204497,1.18305,0.873494,rotary
+start form (rotary:q0+q2+cL:abs),q0,edge,3,0.30956,5.13549e-16,2.08442e-13,0.918809,0.609249,rotary
+start form (rotary:q0+q2+cL:abs),q2,loco,5,1.15218,1.14466,1.20808,1.23937,0.0871904,rotary
+start form (rotary:q0+q2+cL:abs),q2,loso,3,1.15218,1.15026,1.17217,1.23937,0.0871904,rotary
+start form (rotary:q0+q2+cL:abs),q2,edge,3,1.15218,1.1109,1.20251,1.32405,0.171875,rotary
+start form (rotary:q0+q2+cL:abs),cL,loco,5,0.103995,0.0956718,0.105369,0.123659,0.0196639,rotary
+start form (rotary:q0+q2+cL:abs),cL,loso,3,0.103995,0.0675707,0.109885,0.123659,0.0364244,rotary
+start form (rotary:q0+q2+cL:abs),cL,edge,3,0.103995,0.0792003,0.101412,0.113688,0.0247948,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR,loco,5,0.0161801,0.00907169,0.0189631,0.0214019,0.00710841,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR,loso,3,0.0161801,-0.158008,0.0114735,0.0214019,0.174188,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR,edge,3,0.0161801,-0.0256923,0.00918057,0.10787,0.0916898,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N,loco,5,0.00716387,0.00521072,0.00723175,0.00797978,0.00195315,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N,loso,3,0.00716387,-0.0118369,0.00723175,0.00792662,0.0190008,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N,edge,3,0.00716387,0.00443598,0.00705068,0.00780407,0.00272789,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR2,loco,5,-0.00411202,-0.00448122,-0.0043432,-0.0031217,0.000990322,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR2,loso,3,-0.00411202,-0.00448122,-0.00415385,-0.00241682,0.0016952,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PR2,edge,3,-0.00411202,-0.0162446,-0.00425922,5.16396e-06,0.0121325,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N2,loco,5,-4.33933e-05,-4.91542e-05,-4.33682e-05,-2.92691e-05,1.41242e-05,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N2,loso,3,-4.33933e-05,-4.91065e-05,-4.33682e-05,-1.4022e-05,2.93713e-05,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",N2,edge,3,-4.33933e-05,-4.39425e-05,-4.30007e-05,-3.06318e-05,1.27616e-05,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PRN,loco,5,-8.17007e-05,-0.000132706,-8.21981e-05,-1.1628e-05,7.00727e-05,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PRN,loso,3,-8.17007e-05,-9.99287e-05,-1.1628e-05,0.00299888,0.00308058,rotary
+"shipped-form baseline (quadratic in PR and N, unit intercepts)",PRN,edge,3,-8.17007e-05,-0.000249044,-6.46065e-05,1.88656e-05,0.000167343,rotary

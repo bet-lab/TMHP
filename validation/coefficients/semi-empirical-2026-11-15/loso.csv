@@ -1,0 +1,39 @@
+held_out,rows,machines,rmse_shape,bias_shape,bias_level,rmse_total,family,candidate
+BITZER,3744,9,0.0481897,0.00657109,0.0428452,0.0665254,scroll,selected-abs (scroll:q2+cL+zv:abs)
+Copeland,7347,78,0.0533024,-0.00110463,-0.0359645,0.0957931,scroll,selected-abs (scroll:q2+cL+zv:abs)
+AREP,772,3,0.0347243,0.00088504,0.071142,0.0938433,scroll,selected-abs (scroll:q2+cL+zv:abs)
+literature,94,2,0.0300721,0.000738428,0.0721438,0.087378,scroll,selected-abs (scroll:q2+cL+zv:abs)
+BITZER,3744,9,0.0446288,0.0055027,0.0353395,0.0590226,scroll,selected-rel (scroll:q2+cL+zv:rel)
+Copeland,7347,78,0.0536063,-0.000849493,-0.0319644,0.0937178,scroll,selected-rel (scroll:q2+cL+zv:rel)
+AREP,772,3,0.0354977,0.000807723,0.0659214,0.0915458,scroll,selected-rel (scroll:q2+cL+zv:rel)
+literature,94,2,0.0350428,0.000819312,0.0678779,0.0827019,scroll,selected-rel (scroll:q2+cL+zv:rel)
+BITZER,3744,9,0.0509468,0.0100992,0.0482356,0.0698171,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+Copeland,7347,78,0.0569836,-0.007122,-0.0323371,0.0991352,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+AREP,772,3,0.0281313,-0.000324832,0.0747573,0.0987743,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+literature,94,2,0.0359899,-0.000883548,0.0726987,0.0936471,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+BITZER,3744,9,0.0430335,0.00284573,0.0426731,0.063897,scroll,start form (scroll:q0+q2+cL:abs)
+Copeland,7347,78,0.0533024,-0.00110461,-0.0359645,0.095793,scroll,start form (scroll:q0+q2+cL:abs)
+AREP,772,3,0.03547,-0.000860233,0.0701399,0.0972135,scroll,start form (scroll:q0+q2+cL:abs)
+literature,94,2,0.0281455,0.000116872,0.0764,0.0886453,scroll,start form (scroll:q0+q2+cL:abs)
+BITZER,3744,9,0.0650831,0.00895344,0.0238095,0.0715275,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+Copeland,7347,78,0.0596035,0.00314516,-0.0414629,0.103332,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+AREP,772,3,0.0698995,-0.0104199,0.0615925,0.102372,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+literature,94,2,0.0348846,-0.000165105,0.0829772,0.0922039,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+shao_2004,324,3,0.0494101,0.00188348,0.102651,0.124272,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+ossorio_2019_cnit,18,1,0.0249305,-0.000632481,-0.107845,0.110828,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+arep_rpt26_hitachi2013,48,1,0.0160555,0.000267615,-0.106096,0.107581,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+shao_2004,324,3,0.0433896,0.0010483,0.0932346,0.114924,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+ossorio_2019_cnit,18,1,0.0181214,-8.05107e-05,-0.111598,0.113134,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+arep_rpt26_hitachi2013,48,1,0.0123893,3.95682e-05,-0.074623,0.0758,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+shao_2004,324,3,0.0505971,0.00523957,0.109017,0.129408,rotary,other level form (rotary:q2+cL+cu:abs)
+ossorio_2019_cnit,18,1,0.0417256,-0.0242015,-0.106483,0.110198,rotary,other level form (rotary:q2+cL+cu:abs)
+arep_rpt26_hitachi2013,48,1,0.0156644,-0.000782671,-0.100937,0.101806,rotary,other level form (rotary:q2+cL+cu:abs)
+shao_2004,324,3,0.051993,0.00580767,0.0994532,0.1223,rotary,start form (rotary:q0+q2+cL:abs)
+ossorio_2019_cnit,18,1,0.0793461,-0.0669303,-0.117924,0.123705,rotary,start form (rotary:q0+q2+cL:abs)
+arep_rpt26_hitachi2013,48,1,0.014748,-0.000772765,-0.0663549,0.0677673,rotary,start form (rotary:q0+q2+cL:abs)
+shao_2004,324,3,0.182133,-0.0141198,0.0721365,0.201228,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+ossorio_2019_cnit,18,1,0.035441,-0.00342181,-0.0910744,0.0976673,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+arep_rpt26_hitachi2013,48,1,0.0123941,3.90313e-18,-0.0933293,0.094221,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+shao_2004,324,3,0.0407793,0.000963634,0.062668,0.0927391,rotary,sensitivity: Shao read as inverter-input
+ossorio_2019_cnit,18,1,0.0131613,8.9797e-05,-0.0816846,0.0827996,rotary,sensitivity: Shao read as inverter-input
+arep_rpt26_hitachi2013,48,1,0.0113278,1.37902e-05,-0.0309301,0.033271,rotary,sensitivity: Shao read as inverter-input

@@ -1,0 +1,36 @@
+source_id,pairs,slope_data,slope_model,ratio_model_data,same_sign_pct,within_30pct_pct,family,candidate
+all,366,-0.0412197,-0.0350207,0.849612,95.9016,50,scroll,selected-abs (scroll:q2+cL+zv:abs)
+arep_rpt21_ornl2013,19,-0.0292607,-0.0367267,1.25516,100,47.3684,scroll,selected-abs (scroll:q2+cL+zv:abs)
+bitzer,197,-0.0561473,-0.0397364,0.707718,100,63.4518,scroll,selected-abs (scroll:q2+cL+zv:abs)
+copeland_opi,150,-0.0231295,-0.0286113,1.237,90,32.6667,scroll,selected-abs (scroll:q2+cL+zv:abs)
+all,366,-0.0412197,-0.0324582,0.787445,95.9016,34.6995,scroll,selected-rel (scroll:q2+cL+zv:rel)
+arep_rpt21_ornl2013,19,-0.0292607,-0.0344485,1.1773,100,63.1579,scroll,selected-rel (scroll:q2+cL+zv:rel)
+bitzer,197,-0.0561473,-0.0339372,0.604431,100,30.9645,scroll,selected-rel (scroll:q2+cL+zv:rel)
+copeland_opi,150,-0.0231295,-0.0302638,1.30845,90,36,scroll,selected-rel (scroll:q2+cL+zv:rel)
+all,366,-0.0412197,-0.0339074,0.822602,95.9016,51.9126,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+arep_rpt21_ornl2013,19,-0.0292607,-0.0350993,1.19954,100,63.1579,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+bitzer,197,-0.0561473,-0.0402802,0.717402,100,65.4822,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+copeland_opi,150,-0.0231295,-0.0253867,1.09759,90,32.6667,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+all,366,-0.0412197,-0.0398582,0.966971,95.9016,56.8306,scroll,start form (scroll:q0+q2+cL:abs)
+arep_rpt21_ornl2013,19,-0.0292607,-0.0404999,1.38411,100,42.1053,scroll,start form (scroll:q0+q2+cL:abs)
+bitzer,197,-0.0561473,-0.0443803,0.790426,100,76.6497,scroll,start form (scroll:q0+q2+cL:abs)
+copeland_opi,150,-0.0231295,-0.033838,1.46298,90,32.6667,scroll,start form (scroll:q0+q2+cL:abs)
+all,366,-0.0412197,-0.0983255,2.3854,95.9016,9.83607,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+arep_rpt21_ornl2013,19,-0.0292607,-0.117052,4.00032,100,0,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+bitzer,197,-0.0561473,-0.0968093,1.7242,100,14.7208,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+copeland_opi,150,-0.0231295,-0.0979447,4.23462,90,4.66667,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+all,19,-0.0318888,-0.0144219,0.452257,84.2105,15.7895,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+arep_rpt26_hitachi2013,1,-0.0454047,-0.0315129,0.694045,100,0,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+shao_2004,18,-0.0311379,-0.0134724,0.432669,83.3333,16.6667,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+all,19,-0.0318888,-0.0151683,0.475663,89.4737,21.0526,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+arep_rpt26_hitachi2013,1,-0.0454047,-0.0265444,0.584619,100,0,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+shao_2004,18,-0.0311379,-0.0145363,0.466837,88.8889,22.2222,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+all,19,-0.0318888,-0.0117876,0.369648,100,15.7895,rotary,other level form (rotary:q2+cL+cu:abs)
+arep_rpt26_hitachi2013,1,-0.0454047,-0.0333069,0.733557,100,100,rotary,other level form (rotary:q2+cL+cu:abs)
+shao_2004,18,-0.0311379,-0.0105921,0.340168,100,11.1111,rotary,other level form (rotary:q2+cL+cu:abs)
+all,19,-0.0318888,-0.0118838,0.372663,100,10.5263,rotary,start form (rotary:q0+q2+cL:abs)
+arep_rpt26_hitachi2013,1,-0.0454047,-0.0299881,0.660463,100,0,rotary,start form (rotary:q0+q2+cL:abs)
+shao_2004,18,-0.0311379,-0.010878,0.349348,100,11.1111,rotary,start form (rotary:q0+q2+cL:abs)
+all,19,-0.0318888,-0.0401435,1.25886,100,42.1053,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+arep_rpt26_hitachi2013,1,-0.0454047,-0.0319551,0.703786,100,100,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+shao_2004,18,-0.0311379,-0.0405984,1.30383,100,38.8889,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"

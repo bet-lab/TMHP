@@ -1,0 +1,160 @@
+family,speed,level,step,candidate,loco_shape,decision
+scroll,abs,add,0,scroll:q0+q1+q2+cL+qf+cu+cH+zv:abs,0.0448084,start
+scroll,abs,add,1,scroll:q1+q2+cL+qf+cu+cH+zv:abs,0.0448084,drop q0: not taken
+scroll,abs,add,1,scroll:q0+q2+cL+qf+cu+cH+zv:abs,0.0448084,drop q1: not taken
+scroll,abs,add,1,scroll:q0+q1+cL+qf+cu+cH+zv:abs,0.0468265,drop q2: not taken
+scroll,abs,add,1,scroll:q0+q1+q2+qf+cu+cH+zv:abs,0.0479763,drop cL: not taken
+scroll,abs,add,1,scroll:q0+q1+q2+cL+cu+cH+zv:abs,0.044797,drop qf: accepted
+scroll,abs,add,1,scroll:q0+q1+q2+cL+qf+cH+zv:abs,0.0448725,drop cu: not taken
+scroll,abs,add,1,scroll:q0+q1+q2+cL+qf+cu+zv:abs,0.0448084,drop cH: not taken
+scroll,abs,add,1,scroll:q0+q1+q2+cL+qf+cu+cH:abs,0.0469427,drop zv: not taken
+scroll,abs,add,2,scroll:q1+q2+cL+cu+cH+zv:abs,0.044797,drop q0: accepted
+scroll,abs,add,2,scroll:q0+q2+cL+cu+cH+zv:abs,0.044797,drop q1: not taken
+scroll,abs,add,2,scroll:q0+q1+cL+cu+cH+zv:abs,0.0495568,drop q2: not taken
+scroll,abs,add,2,scroll:q0+q1+q2+cu+cH+zv:abs,0.0479763,drop cL: not taken
+scroll,abs,add,2,scroll:q0+q1+q2+cL+cH+zv:abs,0.0448237,drop cu: not taken
+scroll,abs,add,2,scroll:q0+q1+q2+cL+cu+zv:abs,0.044797,drop cH: not taken
+scroll,abs,add,2,scroll:q0+q1+q2+cL+cu+cH:abs,0.0469427,drop zv: not taken
+scroll,abs,add,3,scroll:q2+cL+cu+cH+zv:abs,0.044797,drop q1: accepted
+scroll,abs,add,3,scroll:q1+cL+cu+cH+zv:abs,0.0495568,drop q2: not taken
+scroll,abs,add,3,scroll:q1+q2+cu+cH+zv:abs,0.0479764,drop cL: not taken
+scroll,abs,add,3,scroll:q1+q2+cL+cH+zv:abs,0.0448237,drop cu: not taken
+scroll,abs,add,3,scroll:q1+q2+cL+cu+zv:abs,0.044797,drop cH: not taken
+scroll,abs,add,3,scroll:q1+q2+cL+cu+cH:abs,0.0469427,drop zv: not taken
+scroll,abs,add,4,scroll:cL+cu+cH+zv:abs,0.0521574,drop q2: not taken
+scroll,abs,add,4,scroll:q2+cu+cH+zv:abs,0.0480172,drop cL: not taken
+scroll,abs,add,4,scroll:q2+cL+cH+zv:abs,0.0448238,drop cu: not taken
+scroll,abs,add,4,scroll:q2+cL+cu+zv:abs,0.0447971,drop cH: accepted
+scroll,abs,add,4,scroll:q2+cL+cu+cH:abs,0.0469427,drop zv: not taken
+scroll,abs,add,5,scroll:cL+cu+zv:abs,0.0552478,drop q2: not taken
+scroll,abs,add,5,scroll:q2+cu+zv:abs,0.0482724,drop cL: not taken
+scroll,abs,add,5,scroll:q2+cL+zv:abs,0.0448237,drop cu: accepted
+scroll,abs,add,5,scroll:q2+cL+cu:abs,0.0469427,drop zv: not taken
+scroll,abs,add,6,scroll:cL+zv:abs,0.0552478,drop q2: not taken
+scroll,abs,add,6,scroll:q2+zv:abs,0.0529069,drop cL: not taken
+scroll,abs,add,6,scroll:q2+cL:abs,0.0475458,drop zv: not taken
+scroll,rel,add,0,scroll:q0+q1+q2+cL+qf+cu+cH+zv:rel,0.0463917,start
+scroll,rel,add,1,scroll:q1+q2+cL+qf+cu+cH+zv:rel,0.0463917,drop q0: not taken
+scroll,rel,add,1,scroll:q0+q2+cL+qf+cu+cH+zv:rel,0.0463917,drop q1: not taken
+scroll,rel,add,1,scroll:q0+q1+cL+qf+cu+cH+zv:rel,0.0480569,drop q2: not taken
+scroll,rel,add,1,scroll:q0+q1+q2+qf+cu+cH+zv:rel,0.0487439,drop cL: not taken
+scroll,rel,add,1,scroll:q0+q1+q2+cL+cu+cH+zv:rel,0.0463917,drop qf: not taken
+scroll,rel,add,1,scroll:q0+q1+q2+cL+qf+cH+zv:rel,0.0463197,drop cu: accepted
+scroll,rel,add,1,scroll:q0+q1+q2+cL+qf+cu+zv:rel,0.0463917,drop cH: not taken
+scroll,rel,add,1,scroll:q0+q1+q2+cL+qf+cu+cH:rel,0.0482833,drop zv: not taken
+scroll,rel,add,2,scroll:q1+q2+cL+qf+cH+zv:rel,0.0463197,drop q0: not taken
+scroll,rel,add,2,scroll:q0+q2+cL+qf+cH+zv:rel,0.0463197,drop q1: not taken
+scroll,rel,add,2,scroll:q0+q1+cL+qf+cH+zv:rel,0.0480569,drop q2: not taken
+scroll,rel,add,2,scroll:q0+q1+q2+qf+cH+zv:rel,0.0511757,drop cL: not taken
+scroll,rel,add,2,scroll:q0+q1+q2+cL+cH+zv:rel,0.0463197,drop qf: accepted
+scroll,rel,add,2,scroll:q0+q1+q2+cL+qf+zv:rel,0.0463197,drop cH: not taken
+scroll,rel,add,2,scroll:q0+q1+q2+cL+qf+cH:rel,0.0487328,drop zv: not taken
+scroll,rel,add,3,scroll:q1+q2+cL+cH+zv:rel,0.0463197,drop q0: not taken
+scroll,rel,add,3,scroll:q0+q2+cL+cH+zv:rel,0.0463197,drop q1: not taken
+scroll,rel,add,3,scroll:q0+q1+cL+cH+zv:rel,0.0499049,drop q2: not taken
+scroll,rel,add,3,scroll:q0+q1+q2+cH+zv:rel,0.0511946,drop cL: not taken
+scroll,rel,add,3,scroll:q0+q1+q2+cL+zv:rel,0.0463197,drop cH: accepted
+scroll,rel,add,3,scroll:q0+q1+q2+cL+cH:rel,0.0487328,drop zv: not taken
+scroll,rel,add,4,scroll:q1+q2+cL+zv:rel,0.0463197,drop q0: accepted
+scroll,rel,add,4,scroll:q0+q2+cL+zv:rel,0.0463197,drop q1: not taken
+scroll,rel,add,4,scroll:q0+q1+cL+zv:rel,0.0499049,drop q2: not taken
+scroll,rel,add,4,scroll:q0+q1+q2+zv:rel,0.0511879,drop cL: not taken
+scroll,rel,add,4,scroll:q0+q1+q2+cL:rel,0.0487328,drop zv: not taken
+scroll,rel,add,5,scroll:q2+cL+zv:rel,0.0463197,drop q1: accepted
+scroll,rel,add,5,scroll:q1+cL+zv:rel,0.0499049,drop q2: not taken
+scroll,rel,add,5,scroll:q1+q2+zv:rel,0.0511058,drop cL: not taken
+scroll,rel,add,5,scroll:q1+q2+cL:rel,0.0487328,drop zv: not taken
+scroll,rel,add,6,scroll:cL+zv:rel,0.0555742,drop q2: not taken
+scroll,rel,add,6,scroll:q2+zv:rel,0.0529811,drop cL: not taken
+scroll,rel,add,6,scroll:q2+cL:rel,0.0487328,drop zv: not taken
+rotary,abs,add,0,rotary:q0+q1+q2+cL+qf+cu+cH:abs,0.078725,start
+rotary,abs,add,1,rotary:q1+q2+cL+qf+cu+cH:abs,0.0791164,drop q0: not taken
+rotary,abs,add,1,rotary:q0+q2+cL+qf+cu+cH:abs,0.0787246,drop q1: not taken
+rotary,abs,add,1,rotary:q0+q1+cL+qf+cu+cH:abs,0.0798882,drop q2: not taken
+rotary,abs,add,1,rotary:q0+q1+q2+qf+cu+cH:abs,0.0764383,drop cL: not taken
+rotary,abs,add,1,rotary:q0+q1+q2+cL+cu+cH:abs,0.0664174,drop qf: not taken
+rotary,abs,add,1,rotary:q0+q1+q2+cL+qf+cH:abs,0.0490268,drop cu: not taken
+rotary,abs,add,1,rotary:q0+q1+q2+cL+qf+cu:abs,0.0456625,drop cH: accepted
+rotary,abs,add,2,rotary:q1+q2+cL+qf+cu:abs,0.0420011,drop q0: accepted
+rotary,abs,add,2,rotary:q0+q2+cL+qf+cu:abs,0.0456625,drop q1: not taken
+rotary,abs,add,2,rotary:q0+q1+cL+qf+cu:abs,0.0523478,drop q2: not taken
+rotary,abs,add,2,rotary:q0+q1+q2+qf+cu:abs,0.0571163,drop cL: not taken
+rotary,abs,add,2,rotary:q0+q1+q2+cL+cu:abs,0.0454945,drop qf: not taken
+rotary,abs,add,2,rotary:q0+q1+q2+cL+qf:abs,0.0484137,drop cu: not taken
+rotary,abs,add,3,rotary:q2+cL+qf+cu:abs,0.0398325,drop q1: not taken
+rotary,abs,add,3,rotary:q1+cL+qf+cu:abs,0.0476813,drop q2: not taken
+rotary,abs,add,3,rotary:q1+q2+qf+cu:abs,0.0570662,drop cL: not taken
+rotary,abs,add,3,rotary:q1+q2+cL+cu:abs,0.0393959,drop qf: accepted
+rotary,abs,add,3,rotary:q1+q2+cL+qf:abs,0.0457567,drop cu: not taken
+rotary,abs,add,4,rotary:q2+cL+cu:abs,0.0390612,drop q1: accepted
+rotary,abs,add,4,rotary:q1+cL+cu:abs,0.0466646,drop q2: not taken
+rotary,abs,add,4,rotary:q1+q2+cu:abs,0.0570661,drop cL: not taken
+rotary,abs,add,4,rotary:q1+q2+cL:abs,0.040343,drop cu: not taken
+rotary,abs,add,5,rotary:cL+cu:abs,0.0458482,drop q2: not taken
+rotary,abs,add,5,rotary:q2+cu:abs,0.0568512,drop cL: not taken
+rotary,abs,add,5,rotary:q2+cL:abs,0.0401335,drop cu: not taken
+rotary,rel,add,0,rotary:q0+q1+q2+cL+qf+cu+cH:rel,0.0711151,start
+rotary,rel,add,1,rotary:q1+q2+cL+qf+cu+cH:rel,0.0708967,drop q0: not taken
+rotary,rel,add,1,rotary:q0+q2+cL+qf+cu+cH:rel,0.0711151,drop q1: not taken
+rotary,rel,add,1,rotary:q0+q1+cL+qf+cu+cH:rel,0.0722561,drop q2: not taken
+rotary,rel,add,1,rotary:q0+q1+q2+qf+cu+cH:rel,0.0687267,drop cL: not taken
+rotary,rel,add,1,rotary:q0+q1+q2+cL+cu+cH:rel,0.0562329,drop qf: not taken
+rotary,rel,add,1,rotary:q0+q1+q2+cL+qf+cH:rel,0.0474123,drop cu: not taken
+rotary,rel,add,1,rotary:q0+q1+q2+cL+qf+cu:rel,0.0458632,drop cH: accepted
+rotary,rel,add,2,rotary:q1+q2+cL+qf+cu:rel,0.0412451,drop q0: accepted
+rotary,rel,add,2,rotary:q0+q2+cL+qf+cu:rel,0.0458632,drop q1: not taken
+rotary,rel,add,2,rotary:q0+q1+cL+qf+cu:rel,0.050207,drop q2: not taken
+rotary,rel,add,2,rotary:q0+q1+q2+qf+cu:rel,0.045342,drop cL: not taken
+rotary,rel,add,2,rotary:q0+q1+q2+cL+cu:rel,0.0484453,drop qf: not taken
+rotary,rel,add,2,rotary:q0+q1+q2+cL+qf:rel,0.0467476,drop cu: not taken
+rotary,rel,add,3,rotary:q2+cL+qf+cu:rel,0.0395281,drop q1: accepted
+rotary,rel,add,3,rotary:q1+cL+qf+cu:rel,0.0465204,drop q2: not taken
+rotary,rel,add,3,rotary:q1+q2+qf+cu:rel,0.0468591,drop cL: not taken
+rotary,rel,add,3,rotary:q1+q2+cL+cu:rel,0.0412357,drop qf: not taken
+rotary,rel,add,3,rotary:q1+q2+cL+qf:rel,0.0446315,drop cu: not taken
+rotary,rel,add,4,rotary:cL+qf+cu:rel,0.0457744,drop q2: not taken
+rotary,rel,add,4,rotary:q2+qf+cu:rel,0.0467213,drop cL: not taken
+rotary,rel,add,4,rotary:q2+cL+cu:rel,0.0412357,drop qf: not taken
+rotary,rel,add,4,rotary:q2+cL+qf:rel,0.0425378,drop cu: not taken
+rotary,abs,scaled,0,rotary:q0+q1+q2+cL+qf+cu+cH:abs:scaled,0.0403899,start
+rotary,abs,scaled,1,rotary:q1+q2+cL+qf+cu+cH:abs:scaled,0.0377771,drop q0: not taken
+rotary,abs,scaled,1,rotary:q0+q2+cL+qf+cu+cH:abs:scaled,0.0403899,drop q1: not taken
+rotary,abs,scaled,1,rotary:q0+q1+q2+qf+cu+cH:abs:scaled,0.0383406,drop cL: not taken
+rotary,abs,scaled,1,rotary:q0+q1+q2+cL+cu+cH:abs:scaled,0.032581,drop qf: accepted
+rotary,abs,scaled,1,rotary:q0+q1+q2+cL+qf+cH:abs:scaled,0.0438358,drop cu: not taken
+rotary,abs,scaled,1,rotary:q0+q1+q2+cL+qf+cu:abs:scaled,0.0345631,drop cH: not taken
+rotary,abs,scaled,2,rotary:q1+q2+cL+cu+cH:abs:scaled,0.0328888,drop q0: not taken
+rotary,abs,scaled,2,rotary:q0+q2+cL+cu+cH:abs:scaled,0.032581,drop q1: not taken
+rotary,abs,scaled,2,rotary:q0+q1+q2+cu+cH:abs:scaled,0.0326129,drop cL: not taken
+rotary,abs,scaled,2,rotary:q0+q1+q2+cL+cH:abs:scaled,0.0360451,drop cu: not taken
+rotary,abs,scaled,2,rotary:q0+q1+q2+cL+cu:abs:scaled,0.0324485,drop cH: accepted
+rotary,abs,scaled,3,rotary:q1+q2+cL+cu:abs:scaled,0.0324308,drop q0: accepted
+rotary,abs,scaled,3,rotary:q0+q2+cL+cu:abs:scaled,0.0324485,drop q1: not taken
+rotary,abs,scaled,3,rotary:q0+q1+q2+cu:abs:scaled,0.0391806,drop cL: not taken
+rotary,abs,scaled,3,rotary:q0+q1+q2+cL:abs:scaled,0.0356012,drop cu: not taken
+rotary,abs,scaled,4,rotary:q2+cL+cu:abs:scaled,0.0321304,drop q1: accepted
+rotary,abs,scaled,4,rotary:q1+q2+cu:abs:scaled,0.0393333,drop cL: not taken
+rotary,abs,scaled,4,rotary:q1+q2+cL:abs:scaled,0.0386322,drop cu: not taken
+rotary,abs,scaled,5,rotary:q2+cu:abs:scaled,0.0388476,drop cL: not taken
+rotary,abs,scaled,5,rotary:q2+cL:abs:scaled,0.0416675,drop cu: not taken
+rotary,rel,scaled,0,rotary:q0+q1+q2+cL+qf+cu+cH:rel:scaled,0.0388544,start
+rotary,rel,scaled,1,rotary:q1+q2+cL+qf+cu+cH:rel:scaled,0.0369614,drop q0: not taken
+rotary,rel,scaled,1,rotary:q0+q2+cL+qf+cu+cH:rel:scaled,0.0388545,drop q1: not taken
+rotary,rel,scaled,1,rotary:q0+q1+q2+qf+cu+cH:rel:scaled,0.0370815,drop cL: not taken
+rotary,rel,scaled,1,rotary:q0+q1+q2+cL+cu+cH:rel:scaled,0.031895,drop qf: accepted
+rotary,rel,scaled,1,rotary:q0+q1+q2+cL+qf+cH:rel:scaled,0.0419315,drop cu: not taken
+rotary,rel,scaled,1,rotary:q0+q1+q2+cL+qf+cu:rel:scaled,0.0333928,drop cH: not taken
+rotary,rel,scaled,2,rotary:q1+q2+cL+cu+cH:rel:scaled,0.0325108,drop q0: not taken
+rotary,rel,scaled,2,rotary:q0+q2+cL+cu+cH:rel:scaled,0.031895,drop q1: not taken
+rotary,rel,scaled,2,rotary:q0+q1+q2+cu+cH:rel:scaled,0.0319276,drop cL: not taken
+rotary,rel,scaled,2,rotary:q0+q1+q2+cL+cH:rel:scaled,0.0347282,drop cu: not taken
+rotary,rel,scaled,2,rotary:q0+q1+q2+cL+cu:rel:scaled,0.031807,drop cH: accepted
+rotary,rel,scaled,3,rotary:q1+q2+cL+cu:rel:scaled,0.0320314,drop q0: not taken
+rotary,rel,scaled,3,rotary:q0+q2+cL+cu:rel:scaled,0.031807,drop q1: accepted
+rotary,rel,scaled,3,rotary:q0+q1+q2+cu:rel:scaled,0.0391042,drop cL: not taken
+rotary,rel,scaled,3,rotary:q0+q1+q2+cL:rel:scaled,0.0344277,drop cu: not taken
+rotary,rel,scaled,4,rotary:q2+cL+cu:rel:scaled,0.0317842,drop q0: accepted
+rotary,rel,scaled,4,rotary:q0+q2+cu:rel:scaled,0.0391042,drop cL: not taken
+rotary,rel,scaled,4,rotary:q0+q2+cL:rel:scaled,0.0344277,drop cu: not taken
+rotary,rel,scaled,5,rotary:q2+cu:rel:scaled,0.0390675,drop cL: not taken
+rotary,rel,scaled,5,rotary:q2+cL:rel:scaled,0.0403907,drop cu: not taken

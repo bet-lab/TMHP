@@ -153,6 +153,39 @@ documents:
     pages: 88
     sha256: "0b3acdaf9cb0e22dd6abab1f93bcf0a7bdf69ffdd5ba26674f2a43b071ea7f93"
 
+  - path: compressor_maps/arep/AHRI_AREP_Rpt011_ORNL_Pub44928.pdf
+    title: "AHRI Low-GWP AREP Test Report #11: Compressor calorimeter test of R-410A alternatives (R32, DR-5, L-41A)"
+    publisher: "Oak Ridge National Laboratory (Shrestha et al., 2013), public"
+    document_id: "ORNL Pub44928"
+    rating_condition: "Copeland ZP21K5E-PFV scroll 1.24 in3/rev, 60 Hz, calorimeter per ASHRAE 23-2010; appendix A: 12 tables, 15 degF subcooling, 20/40 degF superheat or 65 degF suction temperature"
+    used_by: "compressor_maps.parse.arep -> points_arep.csv (Tables A1-A12)"
+    obtain_from: "ORNL publications, Pub44928 (info.ornl.gov/sites/publications)"
+    bytes: 1281010
+    pages: 35
+    sha256: "7da8c43e3c3f8ba3905a016f56a6205db2049ed7c5e7403db70fbe4ddbafc291"
+
+  - path: compressor_maps/arep/Pub42278.pdf
+    title: "AHRI Low-GWP AREP Test Report #21: Compressor calorimeter test of R-404A alternatives ARM-31a, D2Y-65, L-40 and R-32/R-134a (50/50)"
+    publisher: "Oak Ridge National Laboratory (Shrestha, Sharma, Abdelaziz, 2013), public"
+    document_id: "ORNL Pub42278"
+    rating_condition: "Copeland scroll 3.11 in3/rev (not the 1.24 in3/rev unit), 60 Hz, 0 degF subcooling; appendix A: 15 tables"
+    used_by: "compressor_maps.parse.arep -> points_arep.csv (Tables A1-A15)"
+    obtain_from: "ORNL publications, Pub42278 (info.ornl.gov/sites/publications)"
+    bytes: 1016811
+    pages: 42
+    sha256: "e2b1f34299e427a3927df6ddc6660253f1387e12e385c9fbab66a42a6743012f"
+
+  - path: compressor_maps/arep/Pub46026.pdf
+    title: "ORNL/TM-2013/414: Compressor calorimeter test of R-410A alternative R-32/R-134a (94.07/5.93)"
+    publisher: "Oak Ridge National Laboratory (2013), public"
+    document_id: "ORNL/TM-2013/414 (Pub46026)"
+    rating_condition: "Copeland ZP21K5E-PFV scroll 1.24 in3/rev, 60 Hz, 15 degF subcooling; appendix A: 6 tables"
+    used_by: "compressor_maps.parse.arep -> points_arep.csv (Tables A1-A6)"
+    obtain_from: "ORNL publications, Pub46026 (info.ornl.gov/sites/publications)"
+    bytes: 604831
+    pages: 23
+    sha256: "28be8505e40d364ab2d4f89e03ced2311e92def5fb66301d3d0e123bb62287bd"
+
   - path: compressor_maps/copeland/ae1414_zpv066_zpv096.pdf
     title: "AE-1414: ZPV066 & ZPV096 Copeland Scroll Variable Speed Compressors"
     publisher: "Copeland LP"

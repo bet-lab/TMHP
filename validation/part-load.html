@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This page exists because the assumption it started from turned out to be wrong, and the correction changed what the library does. The assumption was the familiar one: a real inverter heat pump peak..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T09:18:09+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -291,9 +291,13 @@ same question and they do not have the same answer.</span><a class="headerlink" 
 <h3>Panel (a) — fixed temperatures<a class="headerlink" href="#panel-a-fixed-temperatures" title="Link to this heading">¶</a></h3>
 <p>Hold the source and sink where they are and take load away. With the shipped
 compressor efficiencies the 9 kW air-to-water model gains 3.3 % between full
-load and the speed floor (reached at 44 % load) at 7 °C air / 35 °C water,
-1.2 % at 7/45 °C, and stays flat at −7/45 °C (COP 2.73 at full load, 2.77 from
-75 % load down to the floor at 33 %). Two effects set those shapes: the heat
+load and the speed floor (reached at 44 % load) at 7 °C air / 35 °C water, and
+1.2 % at 7/45 °C. At −7/45 °C it gains 16.8 % (COP 2.28 at full load, 2.41 at
+75 % load, 2.66 at the floor, reached at 30 % load). That curve carries the
+frost and defrost adjustment, which is on by default (<a class="reference internal" href="../models/ashpb.html#ashpb-frost"><span class="std std-ref">Frost and defrost</span></a>) and
+follows the load on the outdoor coil (<a class="reference internal" href="../models/ashp.html#ashp-frost-load"><span class="std std-ref">frost at part load</span></a>): it costs the most at full load and eases as the load
+falls, and that easing is the rise. Without it (<code class="docutils literal notranslate"><span class="pre">defrost=False</span></code>) the same
+curve is close to flat. Two effects set the frost-free shapes: the heat
 exchangers grow large relative to the duty, which raises COP, and the
 compressor loses efficiency at low speed, which takes it back. Their balance
 is measured by <code class="docutils literal notranslate"><span class="pre">validation/fixed_boundary_plr/decompose</span></code> on the running
@@ -335,7 +339,7 @@ cycling (see below), so their sub-floor rows are a continuous-operation
 figure at the minimum capacity, not a part-load COP.
 They are drawn hollow in the figures and excluded from every trend verdict.</p>
 <p>At −7 °C air and 45 °C water the requests below the floor resolve to the
-minimum-capacity point as well (COP 2.77 at the floor, reached at 33 %
+minimum-capacity point as well (COP 2.66 at the floor, reached at 30 %
 load). They used to fail with <code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code>: the outdoor-approach
 search probed only the ends of its range and missed the narrow band of
 approaches the fan can serve, which is now solved from the coil’s capacity
@@ -385,15 +389,15 @@ carries there (<a class="reference internal" href="../models/ashpb.html#ashpb-fr
 <tr class="row-even"><td><p>C</p></td>
 <td><p>+7 °C / 27 °C</p></td>
 <td><p>2.10 kW</p></td>
-<td><p>4.25 kW</p></td>
-<td><p>5.88</p></td>
+<td><p>4.26 kW</p></td>
+<td><p>5.89</p></td>
 <td><p>6.16 (5.37–6.82)</p></td>
 </tr>
 <tr class="row-odd"><td><p>D</p></td>
 <td><p>+12 °C / 24 °C</p></td>
 <td><p>0.90 kW</p></td>
-<td><p>4.84 kW</p></td>
-<td><p>7.55</p></td>
+<td><p>4.85 kW</p></td>
+<td><p>7.56</p></td>
 <td><p>7.88 (6.40–8.97)</p></td>
 </tr>
 </tbody>
@@ -415,7 +419,7 @@ adjusted to move any of this; the load term has none.</p>
 <p class="admonition-title">One result nobody put in by hand</p>
 <p>Look at the <em>delivered</em> column. At points B, C and D the modelled machine
 cannot modulate down to the required load and delivers more than the test
-point asks for — 4.84 kW where 0.90 kW is required. (At B the 3.45 kW is
+point asks for — 4.85 kW where 0.90 kW is required. (At B the 3.45 kW is
 the mean over frosting and defrost of a machine that delivers 3.72 kW
 frost-free.)</p>
 <p>Certified machines do the same thing. 55 % of Keymark records declare a
@@ -470,7 +474,7 @@ different denominators for exactly this reason, and are labelled accordingly.</p
 <section id="reproduce">
 <h2>Reproduce<a class="headerlink" href="#reproduce" title="Link to this heading">¶</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.extraction.keymark_declared<span class="w">     </span><span class="c1"># the certified band</span>
-</span><span data-line="2">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>scripts.validation.part_load_figure<span class="w">        </span><span class="c1"># both panels</span>
+</span><span data-line="2">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>scripts.validation.part_load_figure<span class="w">        </span><span class="c1"># both panels, and validation/data/part_load_figure/</span>
 </span><span data-line="3">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.fixed_boundary_plr.sweep<span class="w">        </span><span class="c1"># internal-state sweep, both models</span>
 </span><span data-line="4">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.fixed_boundary_plr.figure
 </span></pre></div>

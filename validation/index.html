@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it is meant to describe. This page is that check. The harder question is whether it keeps landin..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T09:18:09+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -258,7 +258,7 @@ hollow grey rings and not scored.</span><a class="headerlink" href="#id1" title=
 <td><p>Heating and cooling</p></td>
 </tr>
 <tr class="row-even"><td><p>Source temperature</p></td>
-<td><p>−20 to +40 °C</p></td>
+<td><p>−15 to +46.1 °C (adopted units −15 to +40 °C)</p></td>
 </tr>
 <tr class="row-odd"><td><p>Sink temperature</p></td>
 <td><p>15 to 65 °C leaving water / indoor dry bulb</p></td>
@@ -804,11 +804,14 @@ against manufacturer catalogues here. The ground-source and water-source
 families (<a class="reference internal" href="../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a>,
 <a class="reference internal" href="../models/wshpb.html#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler" title="tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">WaterSourceHeatPumpBoiler</span></code></a>,
 <a class="reference internal" href="../models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump" title="tmhp.ground_source_heat_pump.GroundSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code></a>, and the
-subsystem-augmented variants) share the same refrigerant-cycle core and
-pass smoke tests on representative operating points, but have not been
-compared against unit-specific data. The conductance rule derived here is
-for air coils and does not transfer to a water- or brine-coupled face,
-which is different physics.</p>
+subsystem-augmented variants) share the same refrigerant-cycle core. The
+test suite only checks that the three base models solve a representative
+operating point (<code class="docutils literal notranslate"><span class="pre">tests/test_models_smoke.py</span></code>: one tank-heating point for
+each boiler, a heating and a cooling point for the ground-source unit; each
+must converge and deliver the requested duty). That shows they run, not that
+their numbers are right: none has been compared against unit-specific
+data. The conductance rule derived here is for air coils and does not
+transfer to a water- or brine-coupled face, which is different physics.</p>
 <p>Every family’s default compressor displacement is the fixed
 42 cm³ per 9 kW of nameplate (<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_speed.default_displacement()</span></code>);
 the refrigerant-aware rule of <a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a> is available as
@@ -828,8 +831,8 @@ the default.</p>
 edits, the <code class="docutils literal notranslate"><span class="pre">src/tmhp</span></code> and harness tree hashes, the coefficient version, the
 Python, CoolProp and platform. The summary refuses units whose records
 disagree, and <code class="docutils literal notranslate"><span class="pre">validation/results/manifest.json</span></code> carries what they share.
-<code class="docutils literal notranslate"><span class="pre">tests/test_validation_results_current.py</span></code> reruns a fixed sample of points
-and fails when the model no longer reproduces them.</p>
+<code class="docutils literal notranslate"><span class="pre">tests/test_validation_results_current.py</span></code> reruns every committed point and
+fails when the model no longer reproduces it.</p>
 <p>Adding a machine is a transcription and nothing else — see
 <a class="reference internal" href="adding-a-catalogue.html"><span class="doc">Adding a catalogue</span></a>.</p>
 </section>

@@ -26,14 +26,18 @@ Hand-edited inputs: sources.json, observations/<source_id>.csv, errata.csv, hold
 from __future__ import annotations
 
 import argparse
+import csv
 import datetime as dt
 import json
 import math
 import re
 from collections import Counter, defaultdict
+from functools import cache
 from pathlib import Path
 
 import CoolProp.CoolProp as CP
+import numpy as np
+from scipy.optimize import brentq
 
 from validation.default_inputs import archive
 
@@ -66,12 +70,28 @@ LIQUID_TO_M3_S = {"m3/s": 1.0, "m3/h": 1 / 3600, "l/s": 1e-3, "L/s": 1e-3, "l/mi
                   "gpm": 3.785411784e-3 / 60}  # fmt: skip
 MASSFLOW_TO_KG_S = {"kg/s": 1.0, "kg/h": 1 / 3600}
 ATM = 101325.0
-#: printed unit -> (factor to Pa, offset added in Pa); a unit whose basis is not stated is not converted.
-PRESSURE_TO_PA_ABS = {
-    "psig": (6894.757293, ATM), "psia": (6894.757293, 0.0), "MPa(G)": (1e6, ATM), "MPa(abs)": (1e6, 0.0),
-    "kPa(G)": (1e3, ATM), "kPa(abs)": (1e3, 0.0), "bar(g)": (1e5, ATM), "bar(a)": (1e5, 0.0),
-    "kgf/cm2G": (98066.5, ATM),
-}  # fmt: skip
+#: Pressure units to Pa. The basis (gauge or absolute) is read from the printed unit; a unit that does not
+#: state it is converted only when the basis can be inferred from the same table (see ``infer_pressure_basis``)
+#: or is declared for the source in sources.json (``pressure_basis`` with ``pressure_basis_evidence``).
+PRESSURE_FACTOR = {"psi": 6894.757293, "mpa": 1e6, "kpa": 1e3, "bar": 1e5, "kgf/cm2": 98066.5}
+_GAUGE_MARKS = ("(g)", "(gauge)")
+_ABSOLUTE_MARKS = ("(a)", "(abs)", "(absolute)")
+
+
+def pressure_unit(unit: str) -> tuple[float, str | None]:
+    """Printed pressure unit -> (factor to Pa, "gauge" | "absolute" | None when the basis is not stated)."""
+    u = unit.replace(" ", "").lower()
+    for marks, basis in ((_GAUGE_MARKS, "gauge"), (_ABSOLUTE_MARKS, "absolute")):
+        for mark in marks:
+            if u.endswith(mark):
+                return PRESSURE_FACTOR[u[: -len(mark)]], basis
+    if u in ("psig", "kgf/cm2g", "barg", "mpag", "kpag"):
+        return PRESSURE_FACTOR[u[:-1]], "gauge"
+    if u in ("psia", "bara"):
+        return PRESSURE_FACTOR[u[:-1]], "absolute"
+    return PRESSURE_FACTOR[u], None
+
+
 C_AIR = 1006.0  # J/(kg K), dry air
 R_AIR = 287.05
 ANTIFREEZE = {"methanol": "MMA", "propylene glycol": "MPG", "ethylene glycol": "MEG", "ethanol": "MEA"}
@@ -92,19 +112,35 @@ SELECTION = (
 )
 _NUMBER = r"-?\d+(?:\.\d+)?"
 _RANGE = re.compile(rf"^({_NUMBER})\s*(?:-|–|~|to)\s*({_NUMBER})$")
+_RANGE_OR_NUMBER = re.compile(rf"^{_NUMBER}(\s*(?:-|–|~|to)\s*{_NUMBER})?$")
 _CHANGE = re.compile(r"^(rise|drop)\s+(.+)$", re.IGNORECASE)
 
 
+def refrigerant_fluid(label: str) -> str:
+    """CoolProp fluid of a printed refrigerant label ('R-410A', 'Propane (R290)')."""
+    m = re.search(r"R-?\s?(\d{2,4}[A-Za-z]{0,2})", label)
+    if not m:
+        raise ValueError(f"unknown refrigerant label {label!r}")
+    return REFRIGERANT_FLUIDS[archive.normalize_refrigerant("R" + m.group(1))]
+
+
 def number(text: str) -> tuple[float, float, float] | None:
-    """Printed number or range -> (central, low, high); empty -> None."""
-    text = text.strip().replace(",", "")
+    """Printed number or range -> (central, low, high); empty or not a number -> None."""
+    text = text.strip()
+    # '10,187' is a thousands separator; '26,7' and '8024,3' are decimal commas (AHRI report forms). A decimal
+    # comma followed by exactly three digits cannot be told apart and is corrected through errata.csv.
+    text = re.sub(r"(?<=\d),(?=\d{3}(?!\d))", "", text)
+    text = re.sub(r"(?<=\d),(?=\d)", ".", text)
     if not text:
         return None
     m = _RANGE.match(text)
     if m:
         low, high = sorted((float(m.group(1)), float(m.group(2))))
         return (low + high) / 2, low, high
-    value = float(text)
+    try:
+        value = float(text)
+    except ValueError:
+        return None  # a statement in words ('incoming brine', 'not measured'): kept in the observation only
     return value, value, value
 
 
@@ -123,33 +159,62 @@ def kelvin_per_unit(unit: str) -> float:
     return 1 / 1.8 if unit.replace("°", "").replace("deg", "").strip().upper() == "F" else 1.0
 
 
+@cache
+def _mixture_saturation_curve(fluid: str, q: float) -> tuple[float, ...]:
+    """Coefficients of ``ln p = a + b/T + c ln T + d T`` for a CoolProp predefined mixture at quality ``q``.
+
+    CoolProp's mixture flash fails above about 330 K for R454B, where the condensing pressures of cooling
+    duty lie. The curve is fitted to its temperature-quality flashes between 240 and 322 K (residual below
+    0.01 K there; fitted to 307 K it predicts 322 K within 0.04 K) and carries the last fifteen kelvin.
+    """
+    T = np.linspace(240.0, 322.0, 40)
+    lnp = np.log([CP.PropsSI("P", "T", float(t), "Q", q, fluid) for t in T])
+    coefficients, *_ = np.linalg.lstsq(np.column_stack([np.ones_like(T), 1 / T, np.log(T), T]), lnp, rcond=None)
+    return tuple(float(c) for c in coefficients)
+
+
+def _mixture_saturation_K(p_abs: float, fluid: str, q: float) -> float:
+    a, b, c, d = _mixture_saturation_curve(fluid, q)
+    return float(brentq(lambda t: a + b / t + c * math.log(t) + d * t - math.log(p_abs), 200.0, 400.0))
+
+
 def saturation_C(p_abs: float, refrigerant: str) -> tuple[float, float]:
     """Mean of bubble and dew temperature [degC] at ``p_abs`` [Pa], and the glide [K]."""
-    fluid = REFRIGERANT_FLUIDS[archive.normalize_refrigerant(refrigerant)]
-    bubble, dew = (CP.PropsSI("T", "P", p_abs, "Q", q, fluid) for q in (0.0, 1.0))
+    fluid = refrigerant_fluid(refrigerant)
+    if fluid.endswith(".mix"):
+        bubble, dew = (_mixture_saturation_K(p_abs, fluid, q) for q in (0.0, 1.0))
+    else:
+        bubble, dew = (CP.PropsSI("T", "P", p_abs, "Q", q, fluid) for q in (0.0, 1.0))
     return (bubble + dew) / 2 - 273.15, dew - bubble
 
 
 def capacity_rate(row: dict, T_in: float) -> tuple[float | None, str]:
-    """Fluid heat capacity rate C [W/K] at the entering state and how it was obtained."""
+    """Fluid heat capacity rate C [W/K] at the entering state and how it was obtained.
+
+    A liquid the document does not name is taken as water (the heat capacity per litre of the antifreeze
+    mixtures ground loops use is within about 5 % of it); a flow printed per ton of nominal capacity is not
+    converted, because the nominal tonnage would have to be decoded from the model number.
+    """
     flow = number(row["flow_text"])
     if flow is None:
         return None, "no_flow"
     unit, fluid = row["flow_unit"], row["fluid"].strip().lower()
     if fluid == "air":
         return flow[0] * AIRFLOW_TO_M3_S[unit] * ATM / (R_AIR * (T_in + 273.15)) * C_AIR, "dry air at inlet, 1 atm"
-    if fluid == "water":
-        name = "Water"
-    else:
-        m = re.match(r"^(\d+(?:\.\d+)?)\s*%\s*(.+)$", fluid)
-        if not m or m.group(2).strip() not in ANTIFREEZE:
-            raise ValueError(f"{row['record_id']}: unknown fluid {row['fluid']!r}")
+    if unit not in LIQUID_TO_M3_S and unit not in MASSFLOW_TO_KG_S:
+        return None, f"flow unit {unit!r} not converted"
+    m = re.match(r"^(\d+(?:\.\d+)?)\s*%\s*(.+)$", fluid)
+    if m and m.group(2).strip() in ANTIFREEZE:
         name = f"INCOMP::{ANTIFREEZE[m.group(2).strip()]}[{float(m.group(1)) / 100:.4f}]"
-    T, p = T_in + 273.15, 2e5
+        basis = f"{name} at inlet"
+    else:
+        name = "Water"
+        basis = "water at inlet" if fluid.startswith("water") else f"liquid {row['fluid']!r} taken as water"
+    T, p = max(T_in, 0.5) + 273.15, 2e5
     cp = CP.PropsSI("C", "T", T, "P", p, name)
     if unit in MASSFLOW_TO_KG_S:
-        return flow[0] * MASSFLOW_TO_KG_S[unit] * cp, f"{name} at inlet"
-    return flow[0] * LIQUID_TO_M3_S[unit] * CP.PropsSI("D", "T", T, "P", p, name) * cp, f"{name} at inlet"
+        return flow[0] * MASSFLOW_TO_KG_S[unit] * cp, basis
+    return flow[0] * LIQUID_TO_M3_S[unit] * CP.PropsSI("D", "T", T, "P", p, name) * cp, basis
 
 
 def exchanger_duty(row: dict) -> tuple[float | None, str]:
@@ -178,7 +243,40 @@ def exchanger_duty(row: dict) -> tuple[float | None, str]:
     )
 
 
-def measure(row: dict, validation_sources: set[str]) -> dict:
+def infer_pressure_basis(observations: list[dict]) -> dict[str, dict]:
+    """Basis of the pressures of sources whose unit does not state it, from the table itself.
+
+    Where a table prints a condensing (or evaporating) temperature next to the pressure, only one basis
+    reproduces it: the basis is accepted when its median mismatch is below 1 K and the other's above 2 K.
+    """
+    by_source = defaultdict(list)
+    for o in observations:
+        p, t = number(o["pressure_text"].split("/")[0]), number(o["sat_temp_text"])
+        if (
+            p
+            and t
+            and o["sat_temp_kind"] in ("printed_condensing_temp", "printed_evaporating_temp", "computed_by_source")
+        ):
+            factor, basis = pressure_unit(o["pressure_unit"])
+            if basis is None:
+                printed = to_celsius(t[0], o["sat_temp_unit"])
+                by_source[o["source_id"]].append(
+                    {
+                        b: abs(saturation_C(p[0] * factor + off, o["refrigerant"])[0] - printed)
+                        for b, off in (("gauge", ATM), ("absolute", 0.0))
+                    }
+                )
+    out = {}
+    for source, pairs in by_source.items():
+        med = {b: sorted(x[b] for x in pairs)[len(pairs) // 2] for b in ("gauge", "absolute")}
+        best, other = sorted(med, key=med.get)
+        if med[best] < 1.0 and med[other] > 2.0:
+            out[source] = {"basis": best, "n": len(pairs), "median_mismatch_K": med,
+                           "evidence": "the printed saturation temperatures of the same table"}  # fmt: skip
+    return out
+
+
+def measure(row: dict, validation_sources: set[str], pressure_basis: dict[str, dict] | None = None) -> dict:
     """SI values and the exchanger quantities of one observation row."""
     for field, allowed in (("product_class", PRODUCT_CLASSES), ("exchanger", EXCHANGERS), ("role", ROLES)):
         if row[field] not in allowed:
@@ -194,13 +292,17 @@ def measure(row: dict, validation_sources: set[str]) -> dict:
 
     # Saturation temperature: the printed pressure where its basis is stated, else what the document prints.
     out["T_sat_C"], out["sat_basis"], out["T_sat_low_C"], out["T_sat_high_C"] = None, "none", None, None
-    pressure = number(row["pressure_text"])
+    pressure = number(row["pressure_text"].split("/")[0])
     printed = number(row["sat_temp_text"])
     if printed:
         out["T_sat_printed_C"] = to_celsius(printed[0], row["sat_temp_unit"])
         out["sat_temp_kind"] = row["sat_temp_kind"]
-    if pressure and row["pressure_unit"] in PRESSURE_TO_PA_ABS:
-        factor, offset = PRESSURE_TO_PA_ABS[row["pressure_unit"]]
+    factor, basis = pressure_unit(row["pressure_unit"]) if pressure else (None, None)
+    if pressure and basis is None and row["source_id"] in (pressure_basis or {}):
+        basis = pressure_basis[row["source_id"]]["basis"]
+        out["pressure_basis_from"] = pressure_basis[row["source_id"]]["evidence"]
+    if pressure and basis:
+        offset = ATM if basis == "gauge" else 0.0
         (out["T_sat_C"], out["glide_K"]) = saturation_C(pressure[0] * factor + offset, row["refrigerant"])
         out["T_sat_low_C"] = saturation_C(pressure[1] * factor + offset, row["refrigerant"])[0]
         out["T_sat_high_C"] = saturation_C(pressure[2] * factor + offset, row["refrigerant"])[0]
@@ -210,32 +312,47 @@ def measure(row: dict, validation_sources: set[str]) -> dict:
         out["T_sat_low_C"] = to_celsius(printed[1], row["sat_temp_unit"])
         out["T_sat_high_C"] = to_celsius(printed[2], row["sat_temp_unit"])
         out["sat_basis"] = row["sat_temp_kind"]
-    if pressure and row["pressure_unit"] not in PRESSURE_TO_PA_ABS:
+    if pressure and basis is None:
         out["pressure_basis_not_stated"] = f"{row['pressure_text']} {row['pressure_unit']}"
 
     nameplate = number(row["nameplate_capacity_text"])
     out["nameplate_W"] = nameplate[0] * POWER_TO_W[row["nameplate_capacity_unit"]] if nameplate else None
     out["nameplate_mode"] = row["nameplate_mode"]
     out["Q_hx_W"], out["duty_basis"] = exchanger_duty(row)
+    leaving_only = number(row["fluid_out_text"]) if re.fullmatch(_NUMBER, row["fluid_out_text"].strip()) else None
+    if out["T_in_C"] is None and leaving_only and out["Q_hx_W"] and row["fluid"].strip().lower() != "air":
+        # A table that prints only the leaving liquid temperature with flow and duty: the entering temperature
+        # follows from the energy balance (liquid properties at the leaving temperature, one iteration).
+        T_out = to_celsius(leaving_only[0], row["fluid_out_unit"])
+        C_out = capacity_rate(row, T_out)[0]
+        if C_out:
+            sign = -1 if row["role"] == "condensing" else 1
+            out["T_in_C"] = T_out + sign * out["Q_hx_W"] / C_out
+            out["T_in_basis"] = "leaving temperature, flow and duty"
     out["C_W_K"], out["C_basis"] = (None, "no_inlet") if out["T_in_C"] is None else capacity_rate(row, out["T_in_C"])
 
-    # Fluid-side heat from a printed leaving temperature (or rise/drop), a check on the declared duty.
-    out["Q_fluid_W"] = None
+    # Fluid temperature change printed by the document (leaving temperature, or a rise/drop).
+    out["Q_fluid_W"], out["dT_fluid_printed_K"] = None, None
     leaving = row["fluid_out_text"].strip()
-    if leaving and out["C_W_K"] is not None:
-        change = _CHANGE.match(leaving)
-        if change:
-            dT_fluid = number(change.group(2))[0] * kelvin_per_unit(row["fluid_out_unit"])
-        else:
-            dT_fluid = abs(to_celsius(number(leaving)[0], row["fluid_out_unit"]) - out["T_in_C"])
-        out["dT_fluid_printed_K"] = dT_fluid
-        out["Q_fluid_W"] = out["C_W_K"] * dT_fluid
+    change = _CHANGE.match(leaving)
+    if change and not _RANGE_OR_NUMBER.match(change.group(2).strip()):
+        change = None
+    if leaving and not change and not re.fullmatch(_NUMBER, leaving.replace(",", "")):
+        # Two sensors, 'not measured', a statement in words: kept in the observation, not used.
+        out["fluid_out_not_used"], leaving = leaving, ""
+    if leaving and change:
+        out["dT_fluid_printed_K"] = number(change.group(2))[0] * kelvin_per_unit(row["fluid_out_unit"])
+    elif leaving and out["T_in_C"] is not None:
+        out["dT_fluid_printed_K"] = abs(to_celsius(number(leaving)[0], row["fluid_out_unit"]) - out["T_in_C"])
+    if out["dT_fluid_printed_K"] and out["C_W_K"]:
+        out["Q_fluid_W"] = out["C_W_K"] * out["dT_fluid_printed_K"]
         if out["Q_hx_W"] is None and row["fluid"].strip().lower() != "air":
             # A liquid exchanger with printed flow and temperature change carries its own duty.
             out["Q_hx_W"], out["duty_basis"] = out["Q_fluid_W"], "liquid flow x printed temperature change"
 
-    for key in ("ITD_K", "dT_K", "eps", "leave_K", "LMTD_K", "UA_W_K"):
+    for key in ("ITD_K", "dT_K", "eps", "leave_K", "LMTD_K", "UA_W_K", "UA_per_Q_hx"):
         out[key] = None
+    out["dT_basis"] = "none"
     if out["T_sat_C"] is not None and out["T_in_C"] is not None:
         out["ITD_K"] = abs(out["T_in_C"] - out["T_sat_C"])
         sign = 1 if row["role"] == "condensing" else -1
@@ -243,17 +360,24 @@ def measure(row: dict, validation_sources: set[str]) -> dict:
             reasons.append("saturation_on_wrong_side_of_inlet")
     else:
         reasons.append("no_saturation_or_inlet")
-    if out["ITD_K"] and out["Q_hx_W"] and out["C_W_K"]:
-        out["dT_K"] = out["Q_hx_W"] / out["C_W_K"]
+    # The fluid temperature change the exchanger works against: the declared duty over the heat capacity rate
+    # where both are printed (what the model is given), else the change the document prints.
+    if out["Q_hx_W"] and out["C_W_K"]:
+        out["dT_K"], out["dT_basis"] = out["Q_hx_W"] / out["C_W_K"], "duty / heat capacity rate"
+    elif out["dT_fluid_printed_K"]:
+        out["dT_K"], out["dT_basis"] = out["dT_fluid_printed_K"], "printed fluid temperature change"
+    if out["ITD_K"] and out["dT_K"]:
         out["eps"] = out["dT_K"] / out["ITD_K"]
         if 0 < out["eps"] < 1:
             out["leave_K"] = out["ITD_K"] - out["dT_K"]
             out["LMTD_K"] = out["dT_K"] / math.log(out["ITD_K"] / out["leave_K"])
-            out["UA_W_K"] = out["Q_hx_W"] / out["LMTD_K"]
+            out["UA_per_Q_hx"] = 1.0 / out["LMTD_K"]
+            if out["C_W_K"]:
+                out["UA_W_K"] = -out["C_W_K"] * math.log(1 - out["eps"])
         else:
             reasons.append("effectiveness_outside_0_1")
     elif not reasons:
-        reasons.append("no_flow_or_duty")
+        reasons.append("no_fluid_temperature_change")
     if out["Q_fluid_W"] and out["Q_hx_W"] and out["duty_basis"] != "liquid flow x printed temperature change":
         out["Q_fluid_over_Q_hx"] = out["Q_fluid_W"] / out["Q_hx_W"]
 
@@ -289,6 +413,11 @@ def balanced_weights(rows: list[dict]) -> list[float]:
     return [1.0 / count[r["holdout_group"]] for r in rows]
 
 
+def _full(rows: list[dict]) -> bool:
+    """Whether every row carries a conductance and a nameplate (the laws written on the nameplate need both)."""
+    return all(r["UA_W_K"] and r["nameplate_W"] for r in rows)
+
+
 def fit_law(rows: list[dict], kind: str) -> dict | None:
     w = balanced_weights(rows)
 
@@ -300,36 +429,44 @@ def fit_law(rows: list[dict], kind: str) -> dict | None:
     if kind == "itd":
         return {"kind": kind, "ITD_K": median([r["ITD_K"] for r in rows])}
     if kind == "ua_per_duty":
-        return {"kind": kind, "k_per_K": median([r["UA_W_K"] / r["Q_hx_W"] for r in rows])}
-    if any(r["nameplate_W"] is None for r in rows):
+        return {"kind": kind, "k_per_K": median([r["UA_per_Q_hx"] for r in rows])}
+    if not _full(rows):
         return None
     if kind == "ua_per_nameplate":
         return {"kind": kind, "k_per_K": median([r["UA_W_K"] / r["nameplate_W"] for r in rows])}
+    # Two parameters: at least four hold-out groups, and a positive conductance over the fitted range.
+    if len({r["holdout_group"] for r in rows}) < 4:
+        return None
     x = [r["nameplate_W"] / 1000 for r in rows]
     y = [r["UA_W_K"] for r in rows]
     sw, sx, sy = sum(w), sum(a * b for a, b in zip(w, x, strict=True)), sum(a * b for a, b in zip(w, y, strict=True))
     sxx = sum(a * b * b for a, b in zip(w, x, strict=True))
     sxy = sum(a * b * c for a, b, c in zip(w, x, y, strict=True))
     det = sw * sxx - sx * sx
-    if len({r["holdout_group"] for r in rows}) < 2 or abs(det) < 1e-12:
+    if abs(det) < 1e-12:
         return None
     a = (sw * sxy - sx * sy) / det
-    return {"kind": kind, "a_W_K_per_kW": a, "b_W_K": (sy - a * sx) / sw}
+    b = (sy - a * sx) / sw
+    if min(a * min(x) + b, a * max(x) + b) <= 0:
+        return None
+    return {"kind": kind, "a_W_K_per_kW": a, "b_W_K": b}
 
 
-def predict_itd(law: dict, row: dict) -> float:
-    """Inlet temperature difference [K] the law gives for ``row`` at its own flow and duty."""
-    dT = row["Q_hx_W"] / row["C_W_K"]
+def predict_itd(law: dict, row: dict) -> float | None:
+    """Inlet temperature difference [K] the law gives for ``row`` at its own fluid temperature change."""
+    dT = row["dT_K"]
     if law["kind"] == "leaving_approach":
         return law["dT_out_K"] + dT
     if law["kind"] == "itd":
         return law["ITD_K"]
     if law["kind"] == "ua_per_duty":
-        UA = law["k_per_K"] * row["Q_hx_W"]
-    elif law["kind"] == "ua_per_nameplate":
+        return dT / (1 - math.exp(-law["k_per_K"] * dT))  # NTU = UA / C = k Q / C = k dT
+    if law["kind"] == "ua_per_nameplate":
         UA = law["k_per_K"] * row["nameplate_W"]
     else:
-        UA = max(law["a_W_K_per_kW"] * row["nameplate_W"] / 1000 + law["b_W_K"], 1e-6)
+        UA = law["a_W_K_per_kW"] * row["nameplate_W"] / 1000 + law["b_W_K"]
+        if UA <= 0:
+            return None
     return dT / (1 - math.exp(-UA / row["C_W_K"]))
 
 
@@ -340,7 +477,10 @@ def holdout(rows: list[dict], kind: str, by: str) -> dict:
         law = fit_law(train, kind) if train else None
         if law is None:
             return {"valid": False, "reason": f"law not defined without {fold}"}
-        fold_errors = [predict_itd(law, r) - r["ITD_K"] for r in rows if r[by] == fold]
+        predictions = [(predict_itd(law, r), r["ITD_K"]) for r in rows if r[by] == fold]
+        if any(a is None for a, _ in predictions):
+            return {"valid": False, "reason": f"no positive conductance for {fold}"}
+        fold_errors = [a - b for a, b in predictions]
         per_fold[fold] = {"n": len(fold_errors), "bias_K": sum(fold_errors) / len(fold_errors)}
         errors += fold_errors
     return {
@@ -364,10 +504,10 @@ def fit_stratum(rows: list[dict]) -> dict:
             ("leave_K", [r["leave_K"] for r in rows]),
             ("LMTD_K", [r["LMTD_K"] for r in rows]),
             ("eps", [r["eps"] for r in rows]),
-            ("UA_per_Q_hx", [r["UA_W_K"] / r["Q_hx_W"] for r in rows]),
+            ("UA_per_Q_hx", [r["UA_per_Q_hx"] for r in rows]),
         )
     }
-    named = [r for r in rows if r["nameplate_W"]]
+    named = [r for r in rows if r["nameplate_W"] and r["UA_W_K"] and r["Q_hx_W"]]
     if named:
         wn = balanced_weights(named)
         band["Q_hx_per_nameplate"] = [
@@ -404,25 +544,31 @@ def fit_stratum(rows: list[dict]) -> dict:
         "nameplate_range_W": [min(r["nameplate_W"] for r in named), max(r["nameplate_W"] for r in named)]
         if named
         else None,
-        "duty_range_W": [min(r["Q_hx_W"] for r in rows), max(r["Q_hx_W"] for r in rows)],
+        "duty_range_W": [min(d), max(d)] if (d := [r["Q_hx_W"] for r in rows if r["Q_hx_W"]]) else None,
+        "n_with_conductance": sum(bool(r["UA_W_K"]) for r in rows),
         "meets_shipping_gate": meets,
         "source_ids": sorted({r["source_id"] for r in rows}),
     }
 
 
 def role_ratios(rows: list[dict]) -> dict:
-    """Effective UA of the same exchanger of the same unit as evaporator over that as condenser."""
-    pairs = defaultdict(dict)
+    """Effective UA of the same exchanger of the same unit as evaporator over that as condenser.
+
+    A unit listed at several operating points contributes the ratio of its median conductances.
+    """
+    units: dict[tuple, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
     for r in rows:
-        if r["UA_W_K"] and r["value_kind"] in FITTED_VALUE_KINDS and r["surface_state"] in DRY_STATES:
-            pairs[(r["source_id"], r["model"], r["product_class"], r["exchanger"], r["hx_type"])][r["role"]] = r
+        if r["UA_W_K"] and r["value_kind"] in FITTED_VALUE_KINDS and r["surface_state"] in DRY_STATES and r["eligible"]:
+            units[(r["source_id"], r["model"], r["product_class"], r["exchanger"], r["hx_type"])][r["role"]].append(r)
     out: dict[str, list[dict]] = defaultdict(list)
-    for (_, model, product, exchanger, hx_type), pair in pairs.items():
-        if len(pair) == 2:
-            cond, evap = pair["condensing"], pair["evaporating"]
+    for (_, model, product, exchanger, hx_type), by_role in units.items():
+        if len(by_role) == 2:
+            med = {role: sorted(x["UA_W_K"] for x in v)[len(v) // 2] for role, v in by_role.items()}
+            first = by_role["condensing"][0]
             out["|".join((CLASS_GROUP.get(product, product), exchanger, hx_type))].append(
-                {"model": model, "manufacturer": cond["manufacturer"], "holdout_group": cond["holdout_group"],
-                 "ratio": evap["UA_W_K"] / cond["UA_W_K"], "records": [evap["record_id"], cond["record_id"]]}
+                {"model": model, "manufacturer": first["manufacturer"], "holdout_group": first["holdout_group"],
+                 "ratio": med["evaporating"] / med["condensing"],
+                 "n_rows": {role: len(v) for role, v in by_role.items()}}
             )  # fmt: skip
     report = {}
     for key, items in out.items():
@@ -431,23 +577,36 @@ def role_ratios(rows: list[dict]) -> dict:
         values = [i["ratio"] for i in items]
         makers = sorted({i["manufacturer"] for i in items})
         report[key] = {
-            "n_pairs": len(items),
+            "n_units": len(items),
             "manufacturers": makers,
             "holdout_groups": sorted(count),
             "UA_evaporating_over_condensing_p10_p50_p90": [weighted_quantile(values, w, q) for q in (0.1, 0.5, 0.9)],
             "by_manufacturer_median": {
-                m: weighted_quantile(
-                    [i["ratio"] for i in items if i["manufacturer"] == m],
-                    [1.0] * sum(i["manufacturer"] == m for i in items),
-                    0.5,
-                )
-                for m in makers
+                m: sorted(v := [i["ratio"] for i in items if i["manufacturer"] == m])[len(v) // 2] for m in makers
             },
             "meets_shipping_gate": len(count) >= SHIPPING_GATE["holdout_groups"]
             and len(makers) >= SHIPPING_GATE["manufacturers"],
-            "pairs": items,
+            "units": items,
         }
     return report
+
+
+def write_measurements(rows: list[dict]) -> str:
+    """measurements.csv (one line per observation, values to six significant digits) and its SHA-256."""
+    columns = sorted({k for r in rows for k in r})
+
+    def cell(value):
+        if isinstance(value, float):
+            return f"{value:.6g}"
+        if isinstance(value, list | dict):
+            return json.dumps(value, ensure_ascii=False, sort_keys=True) if value else ""
+        return "" if value is None else value
+
+    with (HERE / "measurements.csv").open("w", newline="") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        writer.writerow(columns)
+        writer.writerows([cell(r.get(c)) for c in columns] for r in rows)
+    return archive.sha(HERE / "measurements.csv")
 
 
 def build(release: str | None = None, note: str = "") -> dict:
@@ -460,12 +619,15 @@ def build(release: str | None = None, note: str = "") -> dict:
     observations = archive.read_observations(HERE, registry, OBSERVATION_COLUMNS)
     archive.apply_errata(HERE, observations, ERRATA_FIELDS)
     rows = []
+    declared = {s["source_id"]: {"basis": s["pressure_basis"], "evidence": s["pressure_basis_evidence"]}
+                for s in sources if s.get("pressure_basis")}  # fmt: skip
+    pressure_basis = {**infer_pressure_basis(observations), **declared}
     for o in observations:
-        r = measure(o, validation_sources)
+        r = measure(o, validation_sources, pressure_basis)
         r["holdout_group"] = groups.get(r["family_id"], r["family_id"])
         r["source_sha256"] = registry[o["source_id"]]["sha256"]
         rows.append(r)
-    data_sha256 = archive.write_measurements(HERE, rows)
+    data_sha256 = write_measurements(rows)
     eligible = defaultdict(list)
     for r in rows:
         if r["eligible"]:
@@ -485,6 +647,7 @@ def build(release: str | None = None, note: str = "") -> dict:
         "dataset": {"records": len(rows), "eligible": sum(r["eligible"] for r in rows), "sources": len(sources)},
         "data_sha256": data_sha256,
         "selection": SELECTION,
+        "pressure_basis": pressure_basis,
         "shipping_gate": SHIPPING_GATE,
         "fits": {k: fit_stratum(v) for k, v in sorted(eligible.items())},
         "itd_only_rows": {
@@ -496,7 +659,7 @@ def build(release: str | None = None, note: str = "") -> dict:
             }
             for k, v in sorted(corroboration.items())
         },
-        "role_ratios": role_ratios([dict(r) for r in rows if "validation_unit" not in r["exclusion_reason"]]),
+        "role_ratios": role_ratios(rows),
         "excluded": dict(Counter(r["exclusion_reason"] for r in rows if not r["eligible"])),
     }
     (HERE / "regression.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")

@@ -1,0 +1,45 @@
+{
+  "records": 1737,
+  "eligible": 1322,
+  "excluded": {
+    "surface_wet": 138,
+    "effectiveness_outside_0_1; surface_wet": 3,
+    "no_fluid_temperature_change": 86,
+    "saturation_on_wrong_side_of_inlet": 1,
+    "no_fluid_temperature_change; surface_frosting": 5,
+    "effectiveness_outside_0_1": 15,
+    "no_fluid_temperature_change; surface_wet": 6,
+    "no_fluid_temperature_change; surface_wet; saturation_from_pipe_surface": 39,
+    "no_saturation_or_inlet": 6,
+    "no_fluid_temperature_change; saturation_from_pipe_surface": 108,
+    "saturation_on_wrong_side_of_inlet; saturation_from_pipe_surface": 6,
+    "value_kind_design_selection": 2
+  },
+  "strata": {
+    "air_to_water|outdoor_coil|fin_tube|condensing": 9,
+    "air_to_water|outdoor_coil|fin_tube|evaporating": 8,
+    "air_to_water|water_condenser|bphe|condensing": 20,
+    "air_to_water|water_condenser|bphe|evaporating": 8,
+    "split_ducted|indoor_coil|unknown|condensing": 11,
+    "split_ducted|indoor_coil|unknown|evaporating": 8,
+    "split_ducted|outdoor_coil|unknown|condensing": 10,
+    "split_ducted|outdoor_coil|unknown|evaporating": 2,
+    "water_to_air|indoor_coil|fin_tube|condensing": 121,
+    "water_to_air|liquid_source_hx|coaxial|condensing": 135,
+    "water_to_air|liquid_source_hx|coaxial|evaporating": 130,
+    "water_to_water|liquid_source_hx|coaxial|condensing": 240,
+    "water_to_water|liquid_source_hx|coaxial|evaporating": 192,
+    "water_to_water|load_water_hx|coaxial|condensing": 188,
+    "water_to_water|load_water_hx|coaxial|evaporating": 240
+  },
+  "source_count": 37,
+  "transcribed_numbers": {
+    "on_cited_page": 9718,
+    "elsewhere_in_document": 1070,
+    "source_not_pdf": 2,
+    "listed_unverifiable": 7
+  },
+  "data_sha256": "2d9e4608ffcf0505edaa28b4e8e43ae6ceea0b9cf9304fa3e3339ef02831c170",
+  "is_latest_release": false,
+  "all_checks_passed": true
+}

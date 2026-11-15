@@ -9,7 +9,7 @@ Three checks:
    the row takes from another table of the same document (rated capacity, airflow), elsewhere in it. Numbers
    found nowhere are listed (values read from a figure, scanned pages); they do not fail the audit, an
    unlisted one does;
-3. measurements.json is the build of the current observations and regression.json rests on it.
+3. measurements.csv is the build of the current observations and regression.json rests on it.
 """
 
 from __future__ import annotations
@@ -83,11 +83,13 @@ def run() -> dict:
                         else:
                             missing.append({"record_id": row["record_id"], "field": field, "value": row[field]})
     assert not missing, f"{len(missing)} transcribed numbers are not printed in their source: {missing[:10]}"
-    rows = json.loads((HERE / "measurements.json").read_text())
+    with (HERE / "measurements.csv").open(newline="") as f:
+        rows = list(csv.DictReader(f))
     regression = json.loads((HERE / "regression.json").read_text())
-    assert sha(HERE / "measurements.json") == regression["data_sha256"]
+    assert sha(HERE / "measurements.csv") == regression["data_sha256"]
     for r in rows:
         assert r["source_sha256"] == sources[r["source_id"]]["sha256"], r["record_id"]
+        r["eligible"] = r["eligible"] == "True"
     releases = json.loads((HERE / "releases.json").read_text()) if (HERE / "releases.json").exists() else []
     report = {
         "records": len(rows),

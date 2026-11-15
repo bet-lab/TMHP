@@ -283,7 +283,7 @@ Reproduce
 .. code-block:: bash
 
     uv run python -m validation.extraction.keymark_declared     # the certified band
-    uv run python -m scripts.validation.part_load_figure        # both panels
+    uv run python -m scripts.validation.part_load_figure        # both panels, and validation/data/part_load_figure/
     uv run python -m validation.fixed_boundary_plr.sweep        # internal-state sweep, both models
     uv run python -m validation.fixed_boundary_plr.figure
 

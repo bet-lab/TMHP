@@ -1,7 +1,7 @@
 {
   "airflow|heating|outdoor|air_to_water": {
     "status": "provisional",
-    "decided": "2026-11-14",
-    "reason": "Family hold-out MAPE 19.6 % and manufacturer hold-out 28.9 % (bias +19.9 %): Mitsubishi Ecodan and Samsung EHS differ systematically; every row is a single printed value, so no explicit maximum confirms it; model size is declared at A2/W35, A-7/W35 or as a kW class depending on the maker."
+    "decided": "2026-11-15",
+    "reason": "Six manufacturers and 13 families (2026-11-15 widening), but makers differ systematically by up to +/-25 % at equal model size: manufacturer hold-out MAPE 22.5 % (bias +9.6 %) and family hold-out MAPE 20.05 % miss the pre-set 20 % limits. The label question is settled (explicit-max-only fit within 0.99-1.08 of the all-row fit; Daikin and NIBE print ErP rated outdoor airflow equal to, or 0-7 % below, their maximum for all but one model), and out-of-sample Panasonic bias is -8.0 %. Model size is declared differently by each maker (A7/W35 nominal, A2/W35 or A-7/W35 reference, kW class), which is a likely share of the spread."
   }
 }

@@ -1,6 +1,6 @@
 {
-  "version": "fan-airflow-v2026-11-14f",
-  "data_sha256": "435ecd76566e4883dc5044f66cb2846a1021bcda88101184d85a739ac11345b8",
+  "version": "fan-airflow-v2026-11-15a",
+  "data_sha256": "d29727865647b3437995ae2ad09ffd1b6d6426dbb354950b47557eb9febb8b60",
   "law_capacity_unit": "kW",
   "output_unit": "m3/s",
   "meaning": "largest published fan airflow (High/Max step, or the single printed outdoor value)",
@@ -28,8 +28,8 @@
       "nested_family_cv": {
         "n": 26,
         "MAPE_pct": 12.797696581080947,
-        "RMSE": 0.04893051973120702,
-        "bias_pct": -2.7305061110327764
+        "RMSE": 0.04893051973120701,
+        "bias_pct": -2.7305061110327835
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -45,7 +45,7 @@
       "selected_law": {
         "kind": "linear",
         "a": 0.03204107373864972,
-        "b": 0.10350835349541901
+        "b": 0.10350835349541902
       },
       "capacity_range_W": [
         1500.0,
@@ -62,9 +62,9 @@
       ],
       "nested_family_cv": {
         "n": 130,
-        "MAPE_pct": 12.901282363517646,
-        "RMSE": 0.040506294403945084,
-        "bias_pct": 3.4465564763778462
+        "MAPE_pct": 12.90128236351765,
+        "RMSE": 0.04050629440394509,
+        "bias_pct": 3.4465564763778476
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -86,7 +86,7 @@
       "selected_law": {
         "kind": "linear",
         "a": 0.049109066490394496,
-        "b": 0.13045183734755236
+        "b": 0.1304518373475524
       },
       "capacity_range_W": [
         4689.137119999999,
@@ -102,9 +102,9 @@
       ],
       "nested_family_cv": {
         "n": 52,
-        "MAPE_pct": 9.591309644382786,
-        "RMSE": 0.0753329349843951,
-        "bias_pct": 3.374453395794526
+        "MAPE_pct": 9.591309644382795,
+        "RMSE": 0.07533293498439503,
+        "bias_pct": 3.3744533957945118
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -122,7 +122,7 @@
     "airflow|cooling|outdoor|single_split": {
       "selected_law": {
         "kind": "linear",
-        "a": 0.10840271695646415,
+        "a": 0.10840271695646414,
         "b": 0.1776229204750964
       },
       "capacity_range_W": [
@@ -141,7 +141,7 @@
         "n": 128,
         "MAPE_pct": 14.494412451803178,
         "RMSE": 0.15812348964371759,
-        "bias_pct": -0.204327167180377
+        "bias_pct": -0.2043271671803749
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -162,7 +162,7 @@
       "selected_law": {
         "kind": "linear",
         "a": 0.03302115963628598,
-        "b": 0.04015705134678007
+        "b": 0.04015705134678002
       },
       "capacity_range_W": [
         3200.0,
@@ -177,9 +177,9 @@
       ],
       "nested_family_cv": {
         "n": 26,
-        "MAPE_pct": 10.938090573020515,
-        "RMSE": 0.048109648729562006,
-        "bias_pct": 2.6459337272687296
+        "MAPE_pct": 10.93809057302051,
+        "RMSE": 0.048109648729562,
+        "bias_pct": 2.6459337272687216
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -194,8 +194,8 @@
     "airflow|heating|indoor|wall_mounted": {
       "selected_law": {
         "kind": "linear",
-        "a": 0.031187542939473758,
-        "b": 0.0949850203569232
+        "a": 0.031187542939473772,
+        "b": 0.09498502035692326
       },
       "capacity_range_W": [
         2000.0,
@@ -213,8 +213,8 @@
       "nested_family_cv": {
         "n": 131,
         "MAPE_pct": 12.389414689710938,
-        "RMSE": 0.04506949650302232,
-        "bias_pct": 3.259257534780522
+        "RMSE": 0.04506949650302235,
+        "bias_pct": 3.2592575347805206
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -236,7 +236,7 @@
       "selected_law": {
         "kind": "power",
         "a": 0.11584561389687512,
-        "b": 0.823991127374524
+        "b": 0.8239911273745242
       },
       "capacity_range_W": [
         3370.317305,
@@ -252,9 +252,9 @@
       ],
       "nested_family_cv": {
         "n": 52,
-        "MAPE_pct": 8.247025937869811,
-        "RMSE": 0.07138615748690551,
-        "bias_pct": 0.8444103307551536
+        "MAPE_pct": 8.247025937869827,
+        "RMSE": 0.07138615748690554,
+        "bias_pct": 0.8444103307551534
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -271,30 +271,36 @@
     },
     "airflow|heating|outdoor|air_to_water": {
       "selected_law": {
-        "kind": "power",
-        "a": 0.22015398808245054,
-        "b": 0.6726159912971565
+        "kind": "linear",
+        "a": 0.0865064326911039,
+        "b": 0.21872622296134417
       },
       "capacity_range_W": [
         3000.0,
         16000.0
       ],
-      "n": 36,
-      "n_families": 9,
+      "n": 59,
+      "n_families": 13,
       "manufacturers": [
+        "Daikin",
+        "LG",
         "Mitsubishi Electric",
-        "Samsung"
+        "Samsung",
+        "Toshiba",
+        "Vaillant"
       ],
       "nested_family_cv": {
-        "n": 36,
-        "MAPE_pct": 19.587079685443765,
-        "RMSE": 0.21629530098174818,
-        "bias_pct": 6.871047591769887
+        "n": 59,
+        "MAPE_pct": 20.048631826256326,
+        "RMSE": 0.2616082083945687,
+        "bias_pct": 5.888799825566691
       },
       "meets_shipping_gate": true,
       "status": "provisional",
-      "status_reason": "Family hold-out MAPE 19.6 % and manufacturer hold-out 28.9 % (bias +19.9 %): Mitsubishi Ecodan and Samsung EHS differ systematically; every row is a single printed value, so no explicit maximum confirms it; model size is declared at A2/W35, A-7/W35 or as a kW class depending on the maker.",
+      "status_reason": "Six manufacturers and 13 families (2026-11-15 widening), but makers differ systematically by up to +/-25 % at equal model size: manufacturer hold-out MAPE 22.5 % (bias +9.6 %) and family hold-out MAPE 20.05 % miss the pre-set 20 % limits. The label question is settled (explicit-max-only fit within 0.99-1.08 of the all-row fit; Daikin and NIBE print ErP rated outdoor airflow equal or within 2-7 % of their maximum for all but one model), and out-of-sample Panasonic bias is -8.0 %. Model size is declared differently by each maker (A7/W35 nominal, A2/W35 or A-7/W35 reference, kW class), which is a likely share of the spread.",
       "source_ids": [
+        "DAIKIN_EEDEN22_EBLA09-16D",
+        "LG_THERMAV_R32_MONOBLOC_PDB_5BPM5-01D",
         "MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0",
         "MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0",
         "SAMSUNG_CS_GB_AE040RXEDEG",
@@ -303,7 +309,10 @@
         "SAMSUNG_CS_GB_AE080CXYDEK",
         "SAMSUNG_CS_GB_AE090RXEDEG",
         "SAMSUNG_CS_GB_AE120CXYDEK",
-        "SAMSUNG_CS_GB_AE160CXYDEK"
+        "SAMSUNG_CS_GB_AE160CXYDEK",
+        "TOSHIBA_UK_DB_E23-103_00",
+        "VAILLANT_DE_0020326635_03",
+        "VAILLANT_UK_0020330791_03"
       ]
     },
     "airflow|heating|outdoor|single_split": {

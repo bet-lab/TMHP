@@ -77,7 +77,8 @@ def airflow_basis(fan_step: str) -> str:
     label = fan_step.strip()
     if not label:
         return "single_value"
-    if label.lower() in RATED_STEP_LABELS or label.lower().startswith("rated"):
+    # A label naming a rated/nominal/standard airflow anywhere ('Standard air capacity') is not a maximum.
+    if set(re.findall(r"[a-z]+", label.lower())) & set(RATED_STEP_LABELS):
         return "rated"
     if "/" in label:
         return "single_value"

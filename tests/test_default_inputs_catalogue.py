@@ -96,3 +96,24 @@ def test_air_to_water_outdoor_airflow_is_provisional_with_reason():
     assert estimate.assumptions[-1].startswith("Provisional:")
     assert estimate_max_airflow(3500.0, side="indoor", product="wall_mounted").status == "shipped"
     assert estimate_displacement(3500.0, "R32").status == "shipped"
+
+
+def test_airflow_basis_reads_rated_words_anywhere_in_the_label():
+    """'Standard air capacity' (Toshiba) and 'Air Flow Rate Rated' are rated labels, not maxima (2026-11-15)."""
+    from validation.default_inputs.fan_airflow.build import airflow_basis
+
+    assert airflow_basis("Standard air capacity") == "rated"
+    assert airflow_basis("Rated") == "rated"
+    assert airflow_basis("Heating High") == "explicit_max"
+    assert airflow_basis("Fan, air flow, maximum") == "explicit_max"
+    assert airflow_basis("High / Mid / Low") == "single_value"
+    assert airflow_basis("") == "single_value"
+
+
+def test_air_to_water_outdoor_stratum_has_six_manufacturers_and_no_panasonic():
+    """Panasonic air-to-water units stay out of the fit: they are the out-of-sample check (validation/catalogs)."""
+    regression = json.loads((AIRFLOW_ARCHIVE / "regression.json").read_text())
+    fit = regression["fits"]["airflow|heating|outdoor|air_to_water"]
+    assert len(fit["manufacturers"]) >= 6
+    assert "Panasonic" not in fit["manufacturers"]
+    assert fit["explicit_max_only"]["manufacturers"] == ["Daikin", "Vaillant"]

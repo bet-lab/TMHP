@@ -510,10 +510,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
     14825 degradation (``Cd_cycling``), and ``runtime_fraction [-]`` is the
     share of the time the compressor runs (:mod:`tmhp.cycling`). The same
     holds where the envelope ends continuous operation above the minimum
-    speed: at a large lift the shipped isentropic fit falls below its floor
-    (``eta_isen_below_min``) towards low speed, and a request below the
-    smallest duty that stays inside is met by cycling at that duty
-    (``Q_min [W]``), not answered with the unit switched off.
+    speed: at a large lift the shipped isentropic fit falls towards low
+    speed, the discharge runs above its limit there
+    (``discharge_temp_above_max``) or the fit drops below its floor
+    (``eta_isen_below_min``), and a request below the smallest duty that
+    stays inside is met by cycling at that duty (``Q_min [W]``), not answered
+    with the unit switched off.
     """
 
     #: Heat and flow rates averaged with the capacity ratio while cycling.
@@ -2542,34 +2544,45 @@ class AirSourceHeatPump(ReferenceStateMixin):
         return state
 
     #: Duties tried, as fractions of the nameplate and from the bottom, to find
-    #: one that runs above a request the efficiency floor refuses.
+    #: one that runs above a request the envelope refuses from below.
     _FLOOR_LADDER: tuple[float, ...] = (0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0)
     #: Relative width at which the bisection for the smallest continuous duty stops.
     _FLOOR_REL_TOL = 5e-3
+    #: Refusals a larger duty leaves behind: the two limits the compressor
+    #: meets towards low speed at a large lift, where the shipped isentropic
+    #: fit falls (:func:`~tmhp.compressor_envelope.raise_duty_within_envelope`
+    #: is the boilers' counterpart).
+    _REFUSED_FROM_BELOW = frozenset({ETA_ISEN_BELOW_MIN, DISCHARGE_TEMP_ABOVE_MAX})
 
     def _smallest_continuous_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
-        """The smallest duty above a request the efficiency floor refuses, as a continuous state.
+        """The smallest duty above a request the envelope refuses from below, as a continuous state.
 
         The compressor's speed floor is not the only lower end of continuous
-        operation. Where the shipped isentropic fit, extrapolated towards low
-        speed, falls below :data:`~tmhp.compressor_envelope.ETA_ISEN_MIN`
-        before ``rps_min`` is reached (a large lift: a low-pressure refrigerant
-        in severe cold), the envelope refuses every duty below the one at
-        which the fit crosses the floor -- while larger duties run. A unit
-        does not stay off there: it runs at the smallest duty the envelope
-        admits and switches off when the room has had enough, exactly as it
-        does below its minimum speed.
+        operation. At a large lift (a low-pressure refrigerant in severe cold)
+        the shipped isentropic fit falls towards low speed, and before
+        ``rps_min`` is reached the envelope refuses the point: first for the
+        discharge temperature, which the falling efficiency drives above
+        ``T_dis_max`` even with the discharge-temperature control used up,
+        then for the fit's own floor
+        (:data:`~tmhp.compressor_envelope.ETA_ISEN_MIN`). Every duty below the
+        one at which the last of the two lets go is refused -- while larger
+        duties run. A unit does not stay off there: it runs at the smallest
+        duty the envelope admits and switches off when the room has had
+        enough, exactly as it does below its minimum speed.
 
-        A ladder of duties above the request finds one with an operating
-        point and a bisection closes on the smallest (to
-        :attr:`_FLOOR_REL_TOL`); every trial is the ordinary search
+        A ladder of duties above the request is climbed past the rungs
+        refused the same way to the first that is not, and a bisection closes
+        on the smallest duty that runs (to :attr:`_FLOOR_REL_TOL`). The rung
+        that ends the climb may itself be refused by a limit of the other
+        side (the pressure ratio, a coil): the duties that run, if any, then
+        lie between it and the rung below, and the bisection goes by which
+        side refuses the trial. Every trial is the ordinary search
         (:meth:`_optimize_operation`), so a request at or above the duty
         returned is one :meth:`analyze_steady` solves in continuous
         operation. The state is returned with ``capacity_clamped == "min"``:
         it delivers more than the request and is averaged over the cycling
         period like a minimum-speed row (:meth:`_report_part_load`). ``None``
-        when a duty above the request is refused for another reason first, or
-        none runs.
+        when no duty runs: the limits of the two sides meet.
         """
         sign, request = math.copysign(1.0, Q_r_iu), abs(float(Q_r_iu))
         # The floor belongs to the condition, not to the request: inside one
@@ -2590,27 +2603,32 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 return None, None
             return state, None
 
+        # ``q_lo`` is refused from below; ``q_hi`` runs (``running`` is its
+        # state) or is refused from above.
         q_lo, q_hi, running = request, math.nan, None
         for fraction in self._FLOOR_LADDER:
             q = fraction * self.hp_capacity
             if not q > request * (1.0 + self._FLOOR_REL_TOL):
                 continue
             state, reason = trial(q)
-            if state is not None:
-                q_hi, running = q, state
-                break
-            if reason != ETA_ISEN_BELOW_MIN:
-                return None  # another limit is in the way: not a lower end of continuous operation
-            q_lo = q
-        if running is None:
+            if state is None and reason in self._REFUSED_FROM_BELOW:
+                q_lo = q
+                continue
+            q_hi, running = q, state
+            break
+        if not math.isfinite(q_hi):
             return None
         while q_hi - q_lo > self._FLOOR_REL_TOL * q_hi:
             mid = 0.5 * (q_lo + q_hi)
-            state, _ = trial(mid)
+            state, reason = trial(mid)
             if state is not None:
                 q_hi, running = mid, state
-            else:
+            elif running is not None or reason in self._REFUSED_FROM_BELOW:
                 q_lo = mid
+            else:
+                q_hi = mid  # refused from above: the duties that run, if any, are below
+        if running is None:
+            return None
         floor = dict(running)
         floor["capacity_clamped"] = CAPACITY_CLAMPED_MIN
         if memo is not None:
@@ -2836,10 +2854,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         result = ceiling_state
                         failure_reason = "none"
 
-            if failure_reason == ETA_ISEN_BELOW_MIN:
-                # Refused for the efficiency floor at low speed while larger
-                # duties run: the unit's smallest continuous duty lies above
-                # the request, and the request is met by cycling at it.
+            if failure_reason in self._REFUSED_FROM_BELOW:
+                # Refused at low speed -- the discharge temperature or the
+                # efficiency floor -- while larger duties run: the unit's
+                # smallest continuous duty lies above the request, and the
+                # request is met by cycling at it.
                 with contextlib.suppress(Exception):
                     floor_state = self._smallest_continuous_operating_point(Q_r_iu, T0, T_a_room)
                     if floor_state is not None:
@@ -2984,7 +3003,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         results_data: list[dict] = []
 
         # The model does not change during a run: the smallest continuous
-        # duty of a condition (the efficiency floor) is searched once.
+        # duty of a condition (where the envelope refuses lower speeds) is searched once.
         with self._remembering_floors():
             for n in tqdm(range(tN), desc="ASHP Simulating"):
                 t_s: float = time[n]

@@ -246,18 +246,21 @@ the degradation, so the minimum-speed point may sit a few watts from the one
 found with ``Cd_cycling=None``.
 
 The minimum speed is not always the lower end of continuous operation. At a
-large lift the shipped isentropic-efficiency fit, read below its data, falls
-under the envelope's floor (``ETA_ISEN_MIN`` = 0.30,
-:doc:`../developer/reference-operating-limits`) before ``rps_min`` is reached:
-the default R134a unit at -25 °C outdoors and 24 °C indoors runs down to
-about 0.65 kW (frost-free) and no further. A request below that duty was
-answered with the unit switched off (``failure_reason ==
-"eta_isen_below_min"``) while a larger one ran. It is now met the same way as
-one below the minimum speed: the unit cycles at the smallest duty the
-envelope admits. The row has ``capacity_clamped == "min"``, ``Q_min [W]`` is
-that duty (found by bisection on the duty, to 0.5 %), and the compressor
-speed of the row is above ``rps_min``. ``eta_isen_below_min`` remains the
-reason where no larger duty runs either.
+large lift the shipped isentropic-efficiency fit falls towards low speed, and
+the compressor envelope (:doc:`../developer/reference-operating-limits`)
+refuses the point before ``rps_min`` is reached: for the discharge
+temperature, which the falling efficiency drives above ``T_dis_max`` even
+with the discharge-temperature control used up, or for the fit's own floor
+(``ETA_ISEN_MIN`` = 0.30). The default R134a unit at -25 °C outdoors and
+24 °C indoors runs down to about 0.65 kW (frost-free) and no further, the
+R407C unit at -25 °C and 21 °C to about 1.27 kW (39 rev/s). A request below
+that duty was answered with the unit switched off (``failure_reason ==
+"eta_isen_below_min"`` or ``"discharge_temp_above_max"``) while a larger one
+ran. It is met the same way as one below the minimum speed: the unit cycles
+at the smallest duty the envelope admits. The row has ``capacity_clamped ==
+"min"``, ``Q_min [W]`` is that duty (found by bisection on the duty, to
+0.5 %), and the compressor speed of the row is above ``rps_min``. The two
+reasons remain where no duty runs at all.
 
 **Above the maximum capacity** the unit runs flat out
 (``capacity_clamped == "max"``): ``Q_ref_iu [W]`` is the ceiling,

@@ -290,7 +290,7 @@ to every quantity it had to declare rather than read.
     mini-split exclusion matters in practice: TMHP's rated air-flow default is
     the catalogue maximum of single-split units (573 m³/h per kW at 3.5 kW,
     470 at 8 kW; `Maximum fan airflow`_), while the geometric evidence comes
-    from packaged units at 240 to 360. The two defaults still point at
+    from packaged units at roughly 360. The two defaults still point at
     different product classes, and that is an open item rather than a
     resolved one.
 
@@ -538,8 +538,10 @@ the water-to-air indoor figure 0.62 to 0.93 of it.
     (``dT_approach_bounds``, 20 K by default) then binds at the rating point
     itself: a default ``AirSourceHeatPump`` reaches its nameplate at 35/27 °C
     up to 8 kW, delivers 98 % of it at 9 kW and 89 % at 15 kW, and a
-    floor-standing unit 96 % at any capacity. Such a point is reported with
-    ``capacity_clamped == "max"`` and ``capacity_binding == "cycle"``.
+    floor-standing unit 96 % at any capacity; in heating at −7 °C outdoors
+    the shortfall begins at 6 kW (92 %; 86 % at 8 kW). Such a point is
+    reported with ``capacity_clamped == "max"`` and
+    ``capacity_binding == "cycle"``.
     ``dT_approach_bounds=(1.0, 30.0)`` — what the catalogue parity runs use —
     lets the unit reach its nameplate, at a wider approach and a lower COP.
     Which of the two should give way (the bound, or the indoor conductance at

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and a DHW tank sink. Overview: solves the closed refrigerant cycle against a borehole he..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T08:32:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1825,7 +1825,7 @@ the design liquid temperature (heating rating inlet, 0 °C; see
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.step">
 <span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ground_source_heat_pump_boiler.html#GroundSourceHeatPumpBoiler.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.step" title="Link to this definition">¶</a></dt>
-<dd><p>Reject point-state stepping — GSHPB is history-dependent (#165 P0b).</p>
+<dd><p>Reject point-state stepping — GSHPB is history-dependent.</p>
 <p><code class="docutils literal notranslate"><span class="pre">_compute_bhe_superposition</span></code> reads the <em>entire</em> past borehole
 load-pulse history each timestep, so a point-state <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel
 (as defined for ASHP/ASHPB) would silently corrupt the ground

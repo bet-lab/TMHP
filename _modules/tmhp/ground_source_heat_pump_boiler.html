@@ -2747,7 +2747,7 @@ data-aria-dark="Switch to auto color mode">
 <div class="viewcode-block" id="GroundSourceHeatPumpBoiler.step">
 <a class="viewcode-back" href="../../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.step">[docs]</a>
 </span><span data-line="2568">    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-</span><span data-line="2569"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Reject point-state stepping — GSHPB is history-dependent (#165 P0b).</span>
+</span><span data-line="2569"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Reject point-state stepping — GSHPB is history-dependent.</span>
 </span><span data-line="2570">
 </span><span data-line="2571"><span class="sd">        ``_compute_bhe_superposition`` reads the *entire* past borehole</span>
 </span><span data-line="2572"><span class="sd">        load-pulse history each timestep, so a point-state ``step()`` kernel</span>

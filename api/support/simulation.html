@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T08:32:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -511,7 +511,7 @@ cycle that closes both heat exchangers and passes
 <dt class="sig sig-object py">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DynamicState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_running_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_phase_age_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsystem_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DynamicState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Carried state threaded across <code class="docutils literal notranslate"><span class="pre">step()</span></code> calls (#165 P0).</p>
+<p>Carried state threaded across <code class="docutils literal notranslate"><span class="pre">step()</span></code> calls.</p>
 <p>This is exactly the state that <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> used to hold in
 loop-locals (<code class="docutils literal notranslate"><span class="pre">T_tank_w_K</span></code>, <code class="docutils literal notranslate"><span class="pre">tank_level</span></code>, <code class="docutils literal notranslate"><span class="pre">is_refilling</span></code>,
 <code class="docutils literal notranslate"><span class="pre">hp_is_on_prev</span></code>) plus the one cross-step coupling that previously lived

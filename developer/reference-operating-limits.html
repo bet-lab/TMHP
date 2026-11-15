@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T08:32:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -807,7 +807,10 @@ range, the efficiency floor
 (<a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.duty_reduction_binding()</span></code></a>) – is retried at
 80/60/40/25/10 % and the boundary is bisected to 1 % of the request; the
 largest duty that runs is returned with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit (see
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit active at that point – the
+pressure-ratio ceiling, then the speed ceiling <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code>,
+when the returned point already runs at it), then the limit the next larger
+duty ran into (<code class="docutils literal notranslate"><span class="pre">compressor_envelope._reduced_binding</span></code>; see
 <a class="reference internal" href="../concepts/failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>), <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>. If none runs the off state carries the request’s own
 reason – except a request the efficiency floor refuses, which is then tried

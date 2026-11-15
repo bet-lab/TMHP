@@ -825,7 +825,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="647">            <span class="n">UA_cond_rated</span> <span class="o">=</span> <span class="n">UA_cond_design</span>
 </span><span data-line="648">        <span class="k">if</span> <span class="n">UA_evap_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 </span><span data-line="649">            <span class="n">UA_evap_rated</span> <span class="o">=</span> <span class="n">UA_evap_design</span>
-</span><span data-line="650">        <span class="c1"># UA_cond/evap_rated → UA_ou/iu_rated (physical-unit rename, issue #183)</span>
+</span><span data-line="650">        <span class="c1"># UA_cond/evap_rated → UA_ou/iu_rated (rename from cycle role to physical unit)</span>
 </span><span data-line="651">        <span class="k">if</span> <span class="n">UA_cond_rated</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">UA_evap_rated</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 </span><span data-line="652">            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
 </span><span data-line="653">                <span class="s2">&quot;UA_cond_rated/UA_evap_rated are deprecated and will be removed in a future&quot;</span>

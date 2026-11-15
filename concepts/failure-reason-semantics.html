@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T08:32:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -520,12 +520,26 @@ smaller duty makes that worse.</p></td>
 </div>
 <p>The result is a running point with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> (the duty delivered) and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (the duty asked for);
-<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names the limit the next larger duty tried ran into, or
-<code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code> when the point returned sits on <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> (the
-source heat exchanger then asks for a larger approach than the ceiling leaves
-it). <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> remains the value for the speed ceiling <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>.
-When no smaller duty runs, the result is the off state with the request’s own
-<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names the limit that is active <em>at the point returned</em> –
+what bounds its delivered duty, not where the duty search stopped – so every
+request that lands on the same operating point reports the same limit. When
+more than one is active, the first of these names it:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code> – the point sits on <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> (the source heat
+exchanger then asks for a larger approach than the ceiling leaves it);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> – the point’s own solve already runs at the speed ceiling
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>. Every larger duty asked for delivers this same point, so a
+refusal further up the search belongs to the request, not to the point
+(an 8 kW R290 ASHPB at W55/A-12 delivers 8,998 W at <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> for a
+request of 12, 20 or 40 kW alike, and reports <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> for all
+three, although the 40 kW search was refused by the outdoor coil above
+about 33 kW of gross duty);</p></li>
+<li><p>the limit the next larger duty tried ran into – the search closed on that
+limit’s boundary.</p></li>
+</ol>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> is also the value for a request met at the speed ceiling
+without any reduction. When no smaller duty runs, the result is the off state
+with the request’s own <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>.</p>
 <p>Not reduced: <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> for any other cause, <code class="docutils literal notranslate"><span class="pre">t_cond_below_t_in</span></code> and
 <code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code>. A request with no cycle at all is, with the boilers, a
 condensing temperature – the tank temperature plus the condenser approach

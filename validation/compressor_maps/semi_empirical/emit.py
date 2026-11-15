@@ -28,9 +28,9 @@ from validation.compressor_maps.semi_empirical.run import ARCHIVE, VERSION
 MODULE = REPO_ROOT / "src" / "tmhp" / "compressor_efficiency.py"
 BEGIN = "# --- BEGIN GENERATED semi-empirical coefficients ---"
 END = "# --- END GENERATED semi-empirical coefficients ---"
-#: Package names of the rotary speed-shape variants (``variants.py``: ``b`` Ossorio-anchored, the default; ``a``
-#: Shao-informed, the first archive's arrangement). The default is listed first.
-VARIANT_NAMES = {"b": "ossorio_anchored", "a": "shao_informed"}
+#: Package names of the rotary speed-shape variants (``variants.py``: ``a`` Shao-informed, the first archive's
+#: arrangement and the default; ``b`` Ossorio-anchored). The default is listed first.
+VARIANT_NAMES = {"a": "shao_informed", "b": "ossorio_anchored"}
 ROTARY_TYPES = ("rotary_twin_inverter", "rotary_single_fixed")
 
 

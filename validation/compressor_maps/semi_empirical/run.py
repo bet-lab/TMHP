@@ -24,7 +24,10 @@ VERSION = "semi-empirical-2026-11-15"
 REVISION = (
     "2026-11-16: eta_v form bounded by construction (exp clearance x competing-outflow leakage), rotary eta_v level "
     "from the displacement-regression rating points; eta_is/eta_em split as a fixed loss share reaching the gas; "
-    "default rotary speed shape = the Ossorio-anchored variant b (variant a kept in rotary_speed_variants*)"
+    "default rotary speed shape = the Ossorio-anchored variant b (variant a kept in rotary_speed_variants*); "
+    "second pass: per-refrigerant rotary levels, eta_v uncertainty above the data; then the default rotary speed shape "
+    "= the Shao-informed variant a, chosen by the EN 14825 trajectory-shape rule written before the measurement "
+    "(DESIGN 14: D/A of 30 cases inside the certified p10-p90, a 30 / b 24; b kept in rotary_speed_variants*)"
 )
 ARCHIVE = REPO_ROOT / "validation" / "coefficients" / VERSION
 TYPES = {
@@ -175,19 +178,19 @@ def main(argv: list[str] | None = None) -> int:
             ct = P.copeland_speed_test(ev.df["scroll"], best[(lev, "abs")].terms, lev)
             speed_tables[fam]["copeland_rated_speed_test"] = ct.to_dict(orient="records")
 
-    # ---- default rotary shape: the Ossorio-anchored variant (owner-delegated decision, DESIGN 12) --------------
+    # ---- default rotary shape: ``variants.DEFAULT`` (variant a, Shao-informed, since the DESIGN 14 rule) ----------
     # The level form and speed coordinate above were selected on the first arrangement (Shao, Ossorio and AREP #26
-    # in one shared shape). The default shape is variant b of ``variants``: the same selection rule (backward
-    # elimination, then the explicit high-speed-term rule) on the arrangement where every Shao speed record has its
-    # own level, with the level form and speed coordinate kept. Its fit object is used as it is, so
-    # coefficients.json and rotary_speed_variants.json carry the same numbers by construction.
+    # in one shared shape). The default shape is ``variants.DEFAULT``: the same selection rule (backward
+    # elimination, then the explicit high-speed-term rule) on that variant's data arrangement, with the level form
+    # and speed coordinate kept. Its fit object is used as it is, so coefficients.json and
+    # rotary_speed_variants.json carry the same numbers by construction.
     from validation.compressor_maps.semi_empirical import variants as V  # noqa: PLC0415  (imports this module)
 
     var_result, var_cv, var_backward, var_fits = V.run_variants(d)
     vb = var_fits[V.DEFAULT]
     res_b = {**P.finalist_metrics(vb["evaluator"], vb["form"], "rotary"), "rows": vb["rows"]}
-    name_b = f"default: Ossorio-anchored variant b ({vb['form'].name})"
-    sel_rows.append(P.selection_row(name_b, "rotary", res_b, "default (variant b)"))
+    name_b = f"default: variant {V.DEFAULT} ({vb['form'].name})"
+    sel_rows.append(P.selection_row(name_b, "rotary", res_b, f"default (variant {V.DEFAULT})"))
     loco_rows.append(res_b["loco"].assign(family="rotary", candidate=name_b))
     loso_rows.append(res_b["loso"].assign(family="rotary", candidate=name_b))
     edge_rows.append(res_b["edges"].assign(family="rotary", candidate=name_b))
@@ -202,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
         "candidate": vb["form"].name,
         "first_archive_selection_on_arrangement_a": first_rotary,
         "note": "level form and speed coordinate as selected on arrangement a (see the archive README for what the "
-        "same rules give on arrangement b); kept, because the decision was made on variant b as measured",
+        "same rules give on arrangement b); kept for both variants",
     }
 
     # ---- sensitivity: Shao read as inverter-input ---------------------------------------------------------
@@ -284,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
         "model_median": float(np.median(sp)) if len(p290) else None,
         "ratio_data_model_median": float(np.median(p290.eta_oi.to_numpy() / sp)) if len(p290) else None,
     }
-    lvl_test, lvl_test_table = P.refrigerant_level_test(rot_form, st_r, d, vb["rows"], var_backward)
+    lvl_test, lvl_test_table = P.refrigerant_level_test(rot_form, st_r, d, vb["rows"], var_backward, V.DEFAULT)
     repro, pv = verify.reproduce(d), verify.pipeline_variant(d)
     pr_max = {
         "scroll": float(ev.df["scroll"].PR.max()),

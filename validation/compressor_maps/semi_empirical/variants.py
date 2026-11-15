@@ -1,8 +1,10 @@
 """Rotary speed-shape variants (DESIGN 11.3 item 2): which sources inform the rotary speed terms.
 
-Variant ``b`` (Ossorio-anchored) is the archive's default rotary shape since the 2026-11-16 revision (owner-delegated
-decision, DESIGN 12); variant ``a`` is the documented alternative. The first archive's rotary shape (variant ``a``,
-"Shao-informed") is fitted on Shao 2004, Ossorio 2019 and AREP #26 together; its
+Variant ``a`` (Shao-informed) is the archive's default rotary shape since the second 2026-11-16 revision: the
+compressor data cannot separate the two variants, so the rule written down before the device measurement (DESIGN 14:
+the EN 14825 trajectory shape of the certified population, D/A inside p10-p90 over 30 cases) chose it; variant ``b``
+(Ossorio-anchored, the default of the first revision) is the documented alternative. The first archive's rotary
+shape (variant ``a``, "Shao-informed") is fitted on Shao 2004, Ossorio 2019 and AREP #26 together; its
 low-speed fall is a compromise between Shao (-23 % at 30 rev/s, power basis not stated) and Ossorio (-2 %, measured
 with the drive separated). Variant ``b`` ("Ossorio-anchored") keeps Shao out of the *speed* shape: every Shao speed
 record becomes its own unit with its own level, so Shao's level-versus-speed variation is absorbed by the record
@@ -49,9 +51,11 @@ VARIANTS = {
     "a": "Shao-informed (the first archive's data arrangement): Shao, Ossorio and AREP #26 inform the shared shape",
     "b": "Ossorio-anchored: each Shao speed record carries its own level (Shao informs the PR shape only)",
 }
-#: The default rotary speed shape (owner-delegated decision, DESIGN 12: the measured modern source with the drive
-#: measured separately, and the variant whose high-speed term the cross-validation supports).
-DEFAULT = "b"
+#: The default rotary speed shape. Variant ``b`` was the default from DESIGN 12 (the measured modern source with the
+#: drive measured separately); the selection rule of DESIGN 14, written before the measurement (EN 14825 trajectory
+#: shape: D/A of 30 cases inside the certified p10-p90; a difference of 3 or more decides) gave a 30 / b 24 and
+#: chose ``a``. See the archive README, "Rotary speed-shape variants".
+DEFAULT = "a"
 
 
 def arrange(rot: pd.DataFrame, variant: str) -> pd.DataFrame:
@@ -180,9 +184,9 @@ def run_variants(d: pd.DataFrame) -> tuple[dict, pd.DataFrame, pd.DataFrame, dic
     }
     result["note"] = (
         "Level form scaled, relative speed coordinate n = N/N_rated (the archive's selections on the original data "
-        "arrangement). Variant b is the default rotary shape of the archive (coefficients.json types.rotary_*); "
-        "variant a, the original arrangement, is kept as the documented alternative. Levels are refitted on the "
-        "same rating points with each variant's shape."
+        "arrangement). Variant a (the original arrangement) is the default rotary shape of the archive "
+        "(coefficients.json types.rotary_*), chosen by the EN 14825 trajectory-shape rule of DESIGN 14; variant b is "
+        "kept as the documented alternative. Levels are refitted on the same rating points with each variant's shape."
     )
     return result, pd.DataFrame(cv_rows), pd.DataFrame(backward_rows), fits
 

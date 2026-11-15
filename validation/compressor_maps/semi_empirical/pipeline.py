@@ -430,7 +430,12 @@ def _term_columns(d: Data) -> dict[str, np.ndarray]:
 
 
 def refrigerant_level_test(
-    form: SemiEmpirical, st: State, d: pd.DataFrame, shape_rows_b: pd.DataFrame, backward: pd.DataFrame
+    form: SemiEmpirical,
+    st: State,
+    d: pd.DataFrame,
+    shape_rows_default: pd.DataFrame,
+    backward: pd.DataFrame,
+    variant: str,
 ) -> tuple[dict, pd.DataFrame]:
     """Can one pooled level carry R32, R410A and R290 (twin rating points) once the loss terms are right?
 
@@ -487,18 +492,18 @@ def refrigerant_level_test(
         }
     )
     seen = set()
-    for _, h in backward[backward.variant == "b"].iterrows():
+    for _, h in backward[backward.variant == variant].iterrows():
         terms = tuple(h.candidate.split(":")[1].split("+"))
         if terms in seen:
             continue
         seen.add(terms)
         f = SemiEmpirical("rotary", terms, form.speed, form.level)
-        s = f.fit(Data.of(shape_rows_b, f.speed))
+        s = f.fit(Data.of(shape_rows_default, f.speed))
         lvc = f.fit_levels(s, D)
         med = {r: float(np.median([lvc[k] for k in rat[ref == r].unit.unique()])) for r in refs}
         rows.append(
             {
-                "test": "backward candidate of variant b",
+                "test": f"backward candidate of variant {variant}",
                 "candidate": f.name,
                 "loco_shape": float(h.loco_shape),
                 **{f"a_{r}": med[r] for r in refs},
@@ -514,8 +519,21 @@ def refrigerant_level_test(
         "pooled_only_rmse": loro.loc["pooled level only", cols].to_dict(),
         "best_one_term": best,
         "best_one_term_rmse": loro.loc[best, cols].to_dict(),
-        "verdict": "per-refrigerant levels: no single loss term predicts a held-out refrigerant within the scatter "
-        "around its own level, and the shapes whose levels agree across refrigerants are rejected by the shape "
-        "cross-validation",
     }
+    # The verdict is worded from this run's numbers (it used to be a fixed sentence written for variant b).
+    cand = t[t.test == f"backward candidate of variant {variant}"]
+    uniform = cand.loc[cand.level_spread_max_over_min.idxmin()] if len(cand) else None
+    pooled = ", ".join(f"{r} {loro.loc['pooled level only', f'rmse_{r}']:.3f}" for r in refs)
+    scatter = ", ".join(f"{r} {own[r]:.3f}" for r in refs)
+    summary["verdict"] = (
+        f"levels per refrigerant by the archive's rule (>= 3 rating points of the refrigerant). Variant {variant}: "
+        f"a pooled level alone predicts the held-out refrigerant with RMSE {pooled} against the scatter around each "
+        f"refrigerant's own level {scatter}"
+        + (
+            f"; the backward candidate with the most uniform levels ({uniform.candidate}, spread "
+            f"{uniform.level_spread_max_over_min:.2f}) has LOCO shape {uniform.loco_shape:.4f}"
+            if uniform is not None
+            else ""
+        )
+    )
     return summary, t

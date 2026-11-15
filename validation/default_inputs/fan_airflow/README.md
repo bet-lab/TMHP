@@ -5,13 +5,15 @@ floor-standing indoor units of 1:1 single splits and their outdoor units (ASHP);
 pumps (`indoor_type=water_to_air`, GSHP indoor side); air-to-water outdoor units (`indoor_type=air_to_water`,
 outdoor rows, ASHPB). Ducted and cassette split indoor units are out of scope (user decision 2026-10-26).
 
-Air-to-water outdoor units (added 2026-11-14, widened and **shipped** 2026-11-15):
+Air-to-water outdoor units (added 2026-11-14, widened 2026-11-15, **provisional — awaiting owner reconfirmation**):
 
-- Status: **shipped by owner decision (2026-11-15)** as a central value with the spread between manufacturers stated
-  (`strata_status.json`, hand-edited; a stratum not listed is `shipped`). `estimate_max_airflow` returns, in
-  `assumptions`, the manufacturer hold-out MAPE and bias and the range of per-manufacturer biases ('Spread between
-  manufacturers ...'), and the recorded reason as the last line ('Note: ...'). An airflow given for the actual unit takes
-  precedence over the default.
+- Status: **provisional, awaiting owner reconfirmation** (`strata_status.json`, hand-edited). The owner approved
+  (2026-11-15) shipping the *6-manufacturer* stratum as a central value with the spread between manufacturers stated,
+  subject to the third-party copies matching the manufacturers' own domains. LG did not match, so the current fit is a
+  5-manufacturer stratum, which the owner has not approved; it stays provisional until the owner decides on it.
+  `estimate_max_airflow` already returns, in `assumptions`, the manufacturer hold-out MAPE and bias and the range of
+  per-manufacturer biases ('Spread between manufacturers ...') and the reason as the last line ('Provisional: ...'). An
+  airflow given for the actual unit takes precedence over the default.
 - Pre-set criteria (round-6 brief, written before the fit, kept in the worker's evidence folder as `criteria.md`):
   manufacturers >= 5, families >= 8; manufacturer hold-out |bias| <= 10 % and MAPE <= 20 %; family hold-out MAPE <= 20 %;
   out-of-sample Panasonic (nine `validation/catalogs` units, never fitted) |bias| <= 10 % and MAPE <= 20 %; the
@@ -19,8 +21,9 @@ Air-to-water outdoor units (added 2026-11-14, widened and **shipped** 2026-11-15
   manufacturer hold-out MAPE 19.6 %, bias +8.9 %; family hold-out MAPE 17.4 %; explicit-max-only ratio 0.98-1.01 — met.
   **Panasonic bias -15.1 % (MAPE 17.8 %) — missed**: 8 of the 9 Panasonic units are larger than the default. The owner
   saw the criteria table (including the 6-manufacturer variant, which missed manufacturer and family hold-out MAPE at
-  22.5 % and 20.05 % but had a Panasonic bias of -8.0 %) and chose to ship the central value with the spread stated.
-  After that decision the LG rows failed the official-domain check (below), so the shipped fit is the 5-manufacturer one.
+  22.5 % and 20.05 % but had a Panasonic bias of -8.0 %) and chose to ship that stratum with the spread stated.
+  After that decision the LG rows failed the official-domain check (below), so the fit is the 5-manufacturer one,
+  whose criteria outcome differs (hold-out criteria met, Panasonic missed); it awaits the owner's reconfirmation.
 - Per-manufacturer hold-out bias (law fitted to the others, minus the maker's own rows): Mitsubishi +19.5 %, Daikin
   +11.1 %, Toshiba +2.5 %, Vaillant -7.1 %, Samsung -17.5 %.
 - `capacity_text` is the **model size**: the heating capacity the manufacturer declares as the unit's size (user decision

@@ -89,14 +89,14 @@ def test_new_product_class_strata_are_shipped(side, product, mode, capacity):
     assert len(estimate.source_ids) >= 2
 
 
-def test_air_to_water_outdoor_airflow_is_shipped_with_spread_and_missed_criterion():
-    """Owner decision 2026-11-15: shipped as a central value with the manufacturer spread stated; the missed pre-set
-    criterion stays in the reason."""
+def test_air_to_water_outdoor_airflow_awaits_owner_reconfirmation_with_spread():
+    """The owner approved the 6-manufacturer stratum; LG failed the official check, so the 5-manufacturer fit stays
+    provisional until reconfirmed (2026-11-15). The spread and the missed criterion are stated."""
     estimate = estimate_max_airflow(8000.0, side="outdoor", product="air_to_water", mode="heating")
     package = json.loads(AIRFLOW_PACKAGE.read_text())
     entry = package["strata"]["airflow|heating|outdoor|air_to_water"]
-    assert estimate.status == "shipped"
-    assert estimate.assumptions[-1].startswith("Note: Shipped by owner decision")
+    assert estimate.status == "provisional"
+    assert estimate.assumptions[-1].startswith("Provisional: Awaiting owner reconfirmation")
     assert "Panasonic bias" in estimate.assumptions[-1]
     spread = estimate.assumptions[-2]
     assert spread.startswith("Spread between manufacturers")
@@ -104,6 +104,7 @@ def test_air_to_water_outdoor_airflow_is_shipped_with_spread_and_missed_criterio
     biases = entry["manufacturer_holdout_bias_pct"].values()
     assert f"{min(biases):+.0f} to {max(biases):+.0f} %" in spread
     assert "takes precedence" in spread
+    assert estimate_max_airflow(3500.0, side="indoor", product="wall_mounted").status == "shipped"
     assert estimate_displacement(3500.0, "R32").status == "shipped"
 
 

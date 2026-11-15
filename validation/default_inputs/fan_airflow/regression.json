@@ -86571,8 +86571,8 @@
         "VAILLANT_UK_0020330791_03",
         "VAILLANT_UK_0020330792_03"
       ],
-      "status": "shipped",
-      "status_reason": "Shipped by owner decision (2026-11-15) as a central value with the manufacturer spread stated, although one pre-set criterion is missed: out-of-sample Panasonic bias -15.1 % (limit 10 %; 8 of 9 units are larger than the default). Fitted on 5 manufacturers, 12 families, 53 rows (LG rows recorded but not fitted: no LG-domain document confirms their airflow). Met: manufacturer hold-out MAPE 19.6 % and bias +8.9 % (limits 20 % / 10 %), family hold-out MAPE 17.4 %, explicit-max-only fit within 0.98-1.01 of the all-row fit. Model size is declared differently by each maker.",
+      "status": "provisional",
+      "status_reason": "Awaiting owner reconfirmation. The owner approved (2026-11-15) shipping the 6-manufacturer stratum as a central value with the manufacturer spread stated, on condition that the third-party copies match the manufacturers' own domains. LG's airflow did not match (no LG-domain document prints it; LG's ErP fiche for HM091M U43 prints 3690/2388 m3/h, not 3600), so this fit has 5 manufacturers, 12 families, 53 rows - not the approved stratum. Against the pre-set criteria it meets manufacturer hold-out MAPE 19.6 % / bias +8.9 %, family hold-out MAPE 17.4 % and the explicit-max test, but misses out-of-sample Panasonic bias: -15.1 % (limit 10 %; 8 of 9 units are larger than the default). Model size is declared differently by each maker.",
       "airflow_basis_counts": {
         "explicit_max": 9,
         "rated": 8,

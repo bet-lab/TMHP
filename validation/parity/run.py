@@ -154,6 +154,24 @@ def _capacity_short(catalog: Catalog, point: OperatingPoint, result: dict) -> bo
     return math.isfinite(delivered) and delivered < requested * (1.0 - CAPACITY_SHORT_TOL)
 
 
+#: Scoring reason: the model meets the published duty only as the mean of on/off cycling.
+CYCLING_MEAN = "cycling_mean"
+
+
+def _cycling_mean(result: dict) -> bool:
+    """Whether the row is the mean over an on/off cycling period, not a running machine.
+
+    A catalogue row is a unit running continuously at the published duty. Where
+    the model's smallest continuous duty lies above that duty -- the minimum
+    speed, or the duty below which the compressor envelope refuses lower
+    speeds -- ``analyze_steady`` reports the request as met by cycling at that
+    smallest duty (``capacity_clamped == "min"``): the delivered heat equals
+    the published duty, but the COP carries the cycling degradation and
+    belongs to the larger duty the machine runs at.
+    """
+    return result.get("capacity_clamped") == "min"
+
+
 def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame:
     models = {"cooling": _build_model(catalog, overrides, "cooling")}
     if catalog.published_inputs.get("rated_indoor_air_flow_heating_m3_s"):
@@ -168,6 +186,11 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
             # capacity ceiling): its COP belongs to a different operating
             # point than the catalogue's, so the point is not scored.
             failure = CAPACITY_SHORT
+        elif failure == "none" and _cycling_mean(result):
+            # The model cannot run continuously at a duty this small: what it
+            # reports is an on/off mean, a different quantity than the
+            # catalogue's, so the point is not scored either.
+            failure = CYCLING_MEAN
         cop_pred = float(result.get("cop_sys [-]", float("nan")))
         cop_target = point.target_cop()
         usable = failure == "none" and math.isfinite(cop_pred) and cop_pred > 0.0

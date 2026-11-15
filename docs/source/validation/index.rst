@@ -26,7 +26,12 @@ different size, and a different equipment architecture.
     interactive table shows each unevaluated point with its reason. A point at
     which the model runs but delivers more than 1 % less than the published
     duty (a capacity ceiling) is not scored either, with the reason
-    ``capacity_short``: its COP belongs to a different operating point.
+    ``capacity_short``: its COP belongs to a different operating point. The
+    same holds at the other end: a published duty below the smallest one the
+    model runs continuously is reported as the mean of on/off cycling
+    (``capacity_clamped == "min"``), which is not what a catalogue row is, and
+    is left out with the reason ``cycling_mean``. No point of the present
+    catalogues is in that case.
 
 .. toctree::
     :hidden:

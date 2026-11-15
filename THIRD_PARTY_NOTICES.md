@@ -46,6 +46,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Heat Pump Keymark records, via hplib
+
+- Source: [hplib](https://github.com/FZJ-IEK3-VSA/hplib) (Forschungszentrum
+  Juelich), `input/csv` at commit `125c2ef6c3fc38043368daac1352557fd2a90106`,
+  doi:10.5281/zenodo.5521597. The CSV files republish the declared values of the
+  Heat Pump Keymark certificates published by the European Heat Pump Association.
+- License of the software and bundled documents: MIT. Copyright line (verbatim
+  from the license):
+
+  > Copyright (c) 2021 Tjarko Tjaden, Hauke Hoops, RE-Lab-Projects
+
+  hplib's README places the database CSV files it builds from these records under
+  CC BY 4.0.
+
+TMHP contains no hplib code. It contains aggregate statistics computed from those
+records (quantiles and ranges per test point, per-model ratios of declared COP):
+
+| Path | Relation |
+| --- | --- |
+| `validation/data/keymark_en14825_summary.csv`, `validation/data/keymark_en14825_gradient.csv` | Quantiles of the declared COP of the air-to-water population, and of its COP(D)/COP(A) ratio. |
+| `validation/data/keymark_a2a_declared.csv`, `validation/data/keymark_a2a_summary.csv` | Declared EN 14825 heating and cooling values of the air-to-air certificates. |
+| `validation/data/auxiliary_power/keymark_pto_*.csv` | Values read from the same certificates for the auxiliary-power study. |
+
+`validation/data/provenance/keymark_en14825_gradient.json` records the commit,
+the archive checksum and the input checksum of the gradient file; the extraction
+code is `validation/extraction/keymark_declared.py` and
+`validation/extraction/keymark_gradient.py`. Whether the table rows of the
+air-to-air files need more than this attribution is the maintainers' call.
+
 ## Methods implemented from the literature (no code included)
 
 - **Equivalent-radius mapping** of the borehole section, `r_eq = sqrt(n) r_po`,

@@ -175,11 +175,41 @@ def test_the_air_to_water_outdoor_airflow_is_not_wired():
     assert all(estimate.status == "shipped" for estimate in boiler.default_input_estimates.values())
 
 
-@pytest.mark.parametrize("capacity", [2000.0, 4000.0, 8000.0])
-def test_a_default_split_unit_delivers_its_nameplate_at_both_rating_points(capacity):
-    """Up to 8 kW the catalogue airflows leave the rating points inside the approach-temperature bound."""
-    model = AirSourceHeatPump(hp_capacity=capacity)
-    for load, outdoor, room in ((capacity, 35.0, 27.0), (-capacity, 7.0, 20.0)):
-        out = model.analyze_steady(Q_r_iu=load, T0=outdoor, T_a_room=room, verbose=False, postprocess=False)
-        assert out["converged"] and out["capacity_clamped"] is None
-        assert out["Q_ref_iu [W]"] == pytest.approx(abs(load), rel=1e-6)
+RATING_POINTS = {"cooling": (1.0, 35.0, 27.0), "heating": (-1.0, 7.0, 20.0)}  # ISO 5151 T1 / H1
+
+
+@pytest.mark.parametrize("capacity", [1500.0, 4000.0, 9000.0, 15000.0, 30000.0])
+@pytest.mark.parametrize("indoor_unit_type", ["wall_mounted", "floor_standing"])
+@pytest.mark.parametrize("rated_mode", ["cooling", "heating"])
+def test_a_default_split_unit_delivers_its_nameplate_at_both_rating_points(capacity, indoor_unit_type, rated_mode):
+    """No default airflow cuts the rated capacity (issue #86, completion criterion 1).
+
+    The catalogue indoor airflow is 150 to 160 m3/h per kW from 9 kW up, and a
+    dry coil carrying the nameplate at that airflow needs about 20 K of
+    approach. With the earlier search bound of 20 K a default 15 kW unit
+    delivered 89 % of its nameplate at 35/27 degC and 91 % at 7/20 degC.
+    """
+    model = AirSourceHeatPump(
+        hp_capacity=capacity, indoor_unit_type=indoor_unit_type, rated_condition={"mode": rated_mode}
+    )
+    for sign, outdoor, room in RATING_POINTS.values():
+        out = model.analyze_steady(Q_r_iu=sign * capacity, T0=outdoor, T_a_room=room, verbose=False, postprocess=False)
+        assert out["converged"] and out["failure_reason"] == "none" and out["capacity_clamped"] is None
+        assert out["Q_ref_iu [W]"] == pytest.approx(capacity, rel=1e-6)
+
+
+def test_the_earlier_search_bound_cut_the_rated_capacity_of_a_large_default_unit():
+    """What the 30 K default guards against: at 20 K the bound itself is the limit at the rating point."""
+    boxed = AirSourceHeatPump(hp_capacity=15000.0, dT_approach_bounds=(1.0, 20.0))
+    out = boxed.analyze_steady(Q_r_iu=15000.0, T0=35.0, T_a_room=27.0, verbose=False, postprocess=False)
+    assert out["capacity_clamped"] == "max" and out["capacity_binding"] == "cycle"
+    assert out["Q_ref_iu [W]"] == pytest.approx(0.892 * 15000.0, rel=5e-3)
+
+
+@pytest.mark.parametrize("capacity", [3500.0, 8000.0, 15000.0])
+def test_a_default_ground_source_unit_delivers_its_nameplate_in_cooling(capacity):
+    model = GroundSourceHeatPump(hp_capacity=capacity)
+    out = model.analyze_steady(Q_r_iu=capacity, T0=27.0, T_a_room=27.0, T_bhe_wall=25.0)
+    row = out if isinstance(out, dict) else out.iloc[0]
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] is None
+    assert row["Q_ref_iu [W]"] == pytest.approx(capacity, rel=1e-6)

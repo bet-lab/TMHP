@@ -157,12 +157,16 @@ A unit that slows its fan for comfort is described with ``dV_iu_fan_a_max``.
 
 .. note::
 
-   The approach-temperature search domain (``dT_approach_bounds``, 1–20 K) is
-   close to the 17 K the indoor coil runs at nameplate capacity, so in mild
-   weather it caps the delivered heat near 120 % of the nameplate
-   (``capacity_clamped == "max"``, ``capacity_binding == "cycle"``). That cap
-   is the search box, not the machine: widen the bounds — the validation
-   harness uses ``(1, 30)`` — when larger duties are to be explored.
+   The approach-temperature search domain (``dT_approach_bounds``) is 1 to
+   30 K. A default unit runs its indoor coil 16 to 25 K from the room air at
+   nameplate capacity, depending on its size, so the box is not what limits
+   it: in mild weather the delivered heat is capped by the compressor's speed
+   range, at about 160 % of the nameplate at 7/20 °C
+   (``capacity_clamped == "max"``, ``capacity_binding == "compressor"``).
+   A narrower box becomes the ceiling itself
+   (``capacity_binding == "cycle"``); until November 2026 the default was
+   1 to 20 K, which capped the default 4 kW unit near 125 % of its nameplate
+   and cut the rated capacity of units above 8 kW.
 
 Part load: cycling and unmet load
 =================================

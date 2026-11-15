@@ -529,23 +529,26 @@ the catalogue maxima the outdoor figure was 1.26 to 1.66 times too large, and
 the water-to-air indoor figure 0.62 to 0.93 of it.
 
 .. admonition:: Where the catalogue airflow meets the dry-coil model
-    :class: warning
+    :class: note
 
     The indoor laws give 150 to 160 m³/h per kW for wall-mounted units of
     9 kW and above and for floor-standing units of any size. TMHP's coils are
     dry, so the whole nameplate is sensible heat, and at that airflow the room
-    air has to change by about 20 K. The approach-temperature search bound
-    (``dT_approach_bounds``, 20 K by default) then binds at the rating point
-    itself: a default ``AirSourceHeatPump`` reaches its nameplate at 35/27 °C
-    up to 8 kW, delivers 98 % of it at 9 kW and 89 % at 15 kW, and a
-    floor-standing unit 96 % at any capacity; in heating at −7 °C outdoors
-    the shortfall begins at 6 kW (92 %; 86 % at 8 kW). Such a point is
-    reported with ``capacity_clamped == "max"`` and
-    ``capacity_binding == "cycle"``.
-    ``dT_approach_bounds=(1.0, 30.0)`` — what the catalogue parity runs use —
-    lets the unit reach its nameplate, at a wider approach and a lower COP.
-    Which of the two should give way (the bound, or the indoor conductance at
-    maximum airflow) is an open item.
+    air has to change by about 20 K: the refrigerant then stands 20 to 25 K
+    from the room air at nameplate capacity (a 15 kW unit condenses at 42 °C
+    in a 20 °C room and evaporates at 4.6 °C in a 27 °C one).
+
+    That is why the approach-temperature search box of ``AirSourceHeatPump``
+    (``dT_approach_bounds``) is 1 to 30 K — the box the catalogue parity runs
+    have always used. With the earlier upper bound of 20 K the box itself was
+    the limit at the rating point: a default unit reached its nameplate at
+    35/27 °C only up to 8 kW (98 % at 9 kW, 89 % at 15 kW; a floor-standing
+    unit 96 % at any capacity), and in heating at −7 °C outdoors fell short
+    from 6 kW (86 % at 8 kW). At 30 K every default unit from 1.5 to 50 kW,
+    of either indoor class and either rated duty, delivers its nameplate at
+    both rating points. In mild weather the ceiling of the default 4 kW unit
+    is then its compressor (164 % of the nameplate at 7/20 °C, 145 % at
+    35/27 °C) rather than the box (126 % and 124 % at 20 K).
 
 The air-to-water outdoor stratum (36 rows, 9 families, Mitsubishi Electric and
 Samsung) is packaged as **provisional**: predicting one manufacturer from the

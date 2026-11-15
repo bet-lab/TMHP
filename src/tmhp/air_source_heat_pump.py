@@ -593,10 +593,21 @@ class AirSourceHeatPump(ReferenceStateMixin):
         rps_max: float | None = None,
         # Approach-temperature search bounds [K]: how far the refrigerant
         # saturation temperature may stand from the inlet air on either side.
-        # The upper bound is a modelling limit, not a component limit, and it
-        # becomes the binding constraint on :meth:`max_capacity` at mild
-        # conditions -- widen it there rather than reading a bound as a ceiling.
-        dT_approach_bounds: tuple[float, float] = (1.0, 20.0),
+        # The upper bound is a modelling limit, not a component limit: a coil
+        # at its largest airflow and the widest approach is reported as the
+        # ceiling (``capacity_binding == "cycle"``).
+        #
+        # 30 K is the box the catalogue parity runs have always used, and the
+        # one a default machine needs. The coils are dry, so the nameplate is
+        # all sensible heat, and at the largest airflow indoor units publish
+        # (150-160 m3/h per kW from 9 kW up, tmhp.default_inputs) the room air
+        # changes by about 20 K at nameplate capacity. With an upper bound of
+        # 20 K the bound itself was the limit at the rating point: a default
+        # 15 kW unit delivered 89 % of its nameplate at 35/27 degC and 76 % at
+        # -7/20 degC. At 30 K every default unit from 1.5 to 50 kW, of either
+        # indoor class and either rated duty, delivers its nameplate at both
+        # rating points (ISO 5151 T1 and H1).
+        dT_approach_bounds: tuple[float, float] = (1.0, 30.0),
         # ASHRAE 90.1-2022 VSD coefficients
         vsd_coeffs_ou: dict | None = None,
         vsd_coeffs_iu: dict | None = None,

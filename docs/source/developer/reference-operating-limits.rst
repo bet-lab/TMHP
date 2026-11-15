@@ -131,7 +131,7 @@ seed the ordinary one whenever the coarse pre-scan finds no operating point.
 .. note::
 
    With a constant-speed fan the approach-temperature search domain
-   (``dT_approach_bounds``, 1--20 K by default) is the only freedom the coil
+   (``dT_approach_bounds``, 1--30 K by default) is the only freedom the coil
    has, so it can become the capacity limit: the largest duty is then what the
    coil carries at the upper bound, reported with ``capacity_clamped == "max"``
    and ``capacity_binding == "cycle"``. The ceiling is one least-lift solve

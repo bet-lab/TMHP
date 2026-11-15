@@ -195,7 +195,8 @@ LIMITED_CASES = [
     ("ASHPB", dict(T_tank_w=55.0, T0=-5.0, Q_ref_tank=15000.0), "discharge_temperature", "Q_ref_tank [W]"),
     ("GSHPB", dict(T_tank_w=35.0, T_source=5.0, Q_ref_tank=8000.0), "source_fluid_freezing", "Q_ref_tank [W]"),
     ("WSHPB", dict(T_tank_w=35.0, T_source=5.0, Q_ref_tank=8000.0), "source_fluid_freezing", "Q_ref_tank [W]"),
-    ("ASHP", dict(Q_r_iu=20000.0, T0=48.0), "cycle", "Q_ref_iu [W]"),
+    # Flat out: the 1-30 K approach box no longer binds before the compressor does (#86).
+    ("ASHP", dict(Q_r_iu=20000.0, T0=48.0), "compressor", "Q_ref_iu [W]"),
     ("GSHP", dict(Q_r_iu=-30000.0, T0=0.0), "cycle", "Q_ref_iu [W]"),
 ]
 

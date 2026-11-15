@@ -174,7 +174,9 @@ def test_the_binding_names_the_envelope_limit():
     assert out["pr_cmp [-]"] == pytest.approx(5.0, rel=2e-3) and out["pr_cmp [-]"] <= 5.0
     assert out["cmp_rpm [rpm]"] < lifted.rps_max * 60.0
 
-    mild = _solve(AirSourceHeatPump(defrost=None), -6000.0, T0=7.0, T_a_room=20.0)
+    # The search box as the limit: one the indoor coil reaches before the compressor does.
+    boxed = AirSourceHeatPump(defrost=None, dT_approach_bounds=(1.0, 20.0))
+    mild = _solve(boxed, -6000.0, T0=7.0, T_a_room=20.0)
     assert mild["capacity_clamped"] == "max" and mild["capacity_binding"] == "cycle"
 
 

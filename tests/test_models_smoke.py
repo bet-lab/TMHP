@@ -168,9 +168,10 @@ def test_ashp_off_mode_failure_reason_is_diagnostic():
     # The threshold is not arbitrary and should not be chased downward again
     # (2000 -> 200 previously). A coil needs an approach of about Q/UA to move
     # the heat, and the search offsets the saturation temperatures by at most
-    # ``dT_approach_bounds[1]`` = 20 K. So the case is genuinely unsolvable only
-    # once Q/UA exceeds that bound: measured, 200 W/K (15 K) converges and
-    # 120 W/K (25 K) does not. 50 W/K asks for 60 K, well clear of the boundary.
+    # ``dT_approach_bounds[1]`` (20 K when this was measured, 30 K since #86). So
+    # the case is genuinely unsolvable only once Q/UA exceeds that bound:
+    # measured at 20 K, 200 W/K (15 K) converges and 120 W/K (25 K) does not.
+    # 50 W/K asks for 60 K, well clear of the boundary at either bound.
     with pytest.warns(RuntimeWarning, match="m_dot_ref_rated not derived"):
         ashp = AirSourceHeatPump(
             ref="R32",

@@ -77,8 +77,10 @@ def test_the_earlier_default_gave_a_supply_temperature_near_the_room(hp):
     assert old["cop_sys [-]"] > new["cop_sys [-]"]
 
 
-def test_the_mild_weather_ceiling_is_the_indoor_coil_and_is_solved_not_swept(hp, monkeypatch):
+def test_the_mild_weather_ceiling_is_the_indoor_coil_and_is_solved_not_swept(monkeypatch):
     """The ceiling is one least-lift solve at the indoor coil's limit, not a ladder of grid sweeps."""
+    # A search box the indoor coil reaches before the compressor does (the default 30 K is past it).
+    hp = AirSourceHeatPump(dT_approach_bounds=(1.0, 20.0))
     calls = {"n": 0}
     original = hp._calc_state
 

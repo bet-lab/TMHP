@@ -1,0 +1,28 @@
+{
+ "script": "validation/extraction/keymark_gradient.py",
+ "command": "python -m validation.extraction.keymark_gradient",
+ "question": "per-model COP(D)/COP(A) of the Heat Pump Keymark air-to-water population, by application",
+ "source": {
+  "name": "Heat Pump Keymark declared values, republished by hplib (input/csv)",
+  "publisher": "Forschungszentrum Juelich, FZJ-IEK3-VSA/hplib",
+  "url": "https://github.com/FZJ-IEK3-VSA/hplib",
+  "commit": "125c2ef6c3fc38043368daac1352557fd2a90106",
+  "archive_sha256": "3a8f0cd4b6afbe681cb98a21df4f641284bdf7bfb87bf335bc041ae4d8399791",
+  "doi": "10.5281/zenodo.5521597",
+  "licence": "MIT (software and bundled documents); the CSV data are CC BY 4.0 in the hplib release"
+ },
+ "csv_input": {
+  "files": 2634,
+  "bytes": 78663865,
+  "name_sha256_digest": "508f818b7cca2155469bc002a5674983d24d9a444ebec6fb6611fcc5c83c652e"
+ },
+ "selection": "EN 14825 average climate; low (temperature 4/6) and medium (5/7) application; points A-D complete, COP in (1, 15), heat output > 0",
+ "declared_records": 18106,
+ "declared_models": 9162,
+ "declared_table_sha256": "d8578b9ae2ab3159984fe751f14c9e0df35eb5470a9aa3c2627df696837877db",
+ "outputs": [
+  "validation/data/keymark_en14825_gradient.csv"
+ ],
+ "output_sha256": "8fc84803f7d9f9128dd8c0b6628a9a222528b8ed1b74cb09bd0984e9b97fa13f",
+ "run_at": "2026-11-15T07:57:18+00:00"
+}

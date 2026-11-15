@@ -332,27 +332,59 @@ def test_en14825_trajectory_cop_rises_monotonically() -> None:
         assert hi_cop > lo_cop, f"COP fell from point {lo_label} ({lo_cop:.2f}) to {hi_label} ({hi_cop:.2f})"
 
 
-#: Keymark declared values, extracted by the validation harness and kept out of
-#: the repository (see `.gitignore`). The band below is read from them rather
-#: than pinned, so the test states the certified population instead of a number
-#: that would drift from it silently.
+#: p10-p90 of the per-model COP(D)/COP(A) of the Heat Pump Keymark population,
+#: committed with its provenance (hplib commit, input checksum, extraction
+#: rules) by ``validation.extraction.keymark_gradient``. The band is read from
+#: this file rather than pinned in the test, so the test states the certified
+#: population instead of a number that would drift from it silently. The
+#: 18,106-row per-model table it comes from stays untracked (3.5 MB).
+KEYMARK_GRADIENT = REPO / "validation" / "data" / "keymark_en14825_gradient.csv"
+KEYMARK_GRADIENT_PROVENANCE = REPO / "validation" / "data" / "provenance" / "keymark_en14825_gradient.json"
 KEYMARK_DECLARED = REPO / "validation" / "data" / "keymark_en14825_declared.csv"
 
 
 def _certified_gradient_band() -> tuple[float, float]:
-    """p10-p90 of COP(D)/COP(A) over the Keymark low-temperature records, read from the data file."""
+    """p10-p90 of COP(D)/COP(A) over the Keymark low-temperature records, read from the committed file."""
     import pandas as pd
 
-    df = pd.read_csv(KEYMARK_DECLARED)
-    low = df[df.application == "low"].dropna(subset=["cop_A", "cop_D"])
-    ratio = low.cop_D / low.cop_A
-    return float(ratio.quantile(0.10)), float(ratio.quantile(0.90))
+    low = pd.read_csv(KEYMARK_GRADIENT).set_index("application").loc["low"]
+    return float(low.ratio_p10), float(low.ratio_p90)
 
 
-@pytest.mark.skipif(
-    not KEYMARK_DECLARED.exists(),
-    reason="Keymark declared values have not been extracted in this checkout",
-)
+def test_committed_gradient_band_is_the_one_its_provenance_describes() -> None:
+    """The quantile file is a derived artefact: it must carry its source and match the record of it."""
+    import hashlib
+    import json
+
+    import pandas as pd
+
+    record = json.loads(KEYMARK_GRADIENT_PROVENANCE.read_text(encoding="utf-8"))
+    assert record["output_sha256"] == hashlib.sha256(KEYMARK_GRADIENT.read_bytes()).hexdigest(), (
+        "keymark_en14825_gradient.csv was edited without rerunning validation.extraction.keymark_gradient"
+    )
+    assert len(record["source"]["commit"]) == 40
+    assert (record["csv_input"]["files"], record["csv_input"]["bytes"]) == (2634, 78663865)
+
+    gradient = pd.read_csv(KEYMARK_GRADIENT).set_index("application")
+    summary = pd.read_csv(REPO / "validation" / "data" / "keymark_en14825_summary.csv")
+    for application in ("low", "medium"):
+        # The same records feed the per-point summary the documentation cites.
+        n = summary[(summary.application == application) & (summary.point.isin(["A", "D"]))].n
+        assert set(n) == {gradient.loc[application, "n_models"]}, application
+        row = gradient.loc[application]
+        assert row.ratio_min <= row.ratio_p10 < row.ratio_median < row.ratio_p90 <= row.ratio_max
+
+
+@pytest.mark.skipif(not KEYMARK_DECLARED.exists(), reason="the per-model Keymark table has not been extracted here")
+def test_committed_gradient_band_matches_the_per_model_table_when_it_is_present() -> None:
+    import pandas as pd
+    from validation.extraction.keymark_gradient import gradient_quantiles
+
+    fresh = gradient_quantiles(pd.read_csv(KEYMARK_DECLARED)).set_index("application")
+    committed = pd.read_csv(KEYMARK_GRADIENT).set_index("application")
+    pd.testing.assert_frame_equal(fresh, committed, rtol=1e-9)
+
+
 def test_en14825_gradient_matches_the_certified_population() -> None:
     """A→D gain must land inside what certified machines declare (p10-p90, read from the data)."""
     points = [("A", -7.0, 34.0, 0.88), ("D", 12.0, 24.0, 0.15)]

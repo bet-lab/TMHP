@@ -1,9 +1,18 @@
 # Compressor efficiency coefficient archive
 
-`v2026-09-24/` is the fit behind the coefficients shipped in
-`src/tmhp/compressor_efficiency.py` (`COEFFICIENT_VERSION = "v2026-09-24"`).
-The shipped constants are these fitted values rounded for publication
-(largest relative difference ~1e-4).
+`BITZER-three-C3-absolute-N-2026-10-06/` is the fit behind the coefficients
+shipped in `src/tmhp/compressor_efficiency.py`
+(`COEFFICIENT_VERSION = "BITZER-three-C3-absolute-N-2026-10-06"`). Its
+`reproduce.py` refits the three quadratics from the tracked raw points -- the
+pilot's 2,467 scroll points and the 1,432 low-lift points of
+`fit_input_lowlift_raw.csv` -- and writes `reproduction.json` (largest
+difference in predicted efficiency against the shipped coefficients: 3e-13).
+
+`v2026-09-24/` is the fit behind the previous coefficients, kept in
+`src/tmhp/compressor_efficiency_legacy.py`
+(`COEFFICIENT_VERSION = "v2026-09-24"`). Those constants are the fitted values
+rounded for publication (largest relative difference ~1e-4). The table and the
+paragraphs below describe that archive.
 
 | file | content |
 | --- | --- |

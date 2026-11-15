@@ -1,6 +1,6 @@
 {
-  "version": "fan-airflow-v2026-11-15a",
-  "data_sha256": "d29727865647b3437995ae2ad09ffd1b6d6426dbb354950b47557eb9febb8b60",
+  "version": "fan-airflow-v2026-11-15b",
+  "data_sha256": "ecefbe1d881dfa7056e8a20a36fbdcb2e2932d7234c8b229115ed64f9f0785d9",
   "law_capacity_unit": "kW",
   "output_unit": "m3/s",
   "meaning": "largest published fan airflow (High/Max step, or the single printed outdoor value)",
@@ -271,36 +271,32 @@
     },
     "airflow|heating|outdoor|air_to_water": {
       "selected_law": {
-        "kind": "linear",
-        "a": 0.0865064326911039,
-        "b": 0.21872622296134417
+        "kind": "power",
+        "a": 0.22383416323998923,
+        "b": 0.6619960968400872
       },
       "capacity_range_W": [
         3000.0,
         16000.0
       ],
-      "n": 59,
-      "n_families": 13,
+      "n": 47,
+      "n_families": 11,
       "manufacturers": [
-        "Daikin",
-        "LG",
         "Mitsubishi Electric",
         "Samsung",
         "Toshiba",
         "Vaillant"
       ],
       "nested_family_cv": {
-        "n": 59,
-        "MAPE_pct": 20.048631826256326,
-        "RMSE": 0.2616082083945687,
-        "bias_pct": 5.888799825566691
+        "n": 47,
+        "MAPE_pct": 17.14630414458323,
+        "RMSE": 0.1899219448608778,
+        "bias_pct": 5.327880679989237
       },
       "meets_shipping_gate": true,
       "status": "provisional",
-      "status_reason": "Six manufacturers and 13 families (2026-11-15 widening), but makers differ systematically by up to +/-25 % at equal model size: manufacturer hold-out MAPE 22.5 % (bias +9.6 %) and family hold-out MAPE 20.05 % miss the pre-set 20 % limits. The label question is settled (explicit-max-only fit within 0.99-1.08 of the all-row fit; Daikin and NIBE print ErP rated outdoor airflow equal or within 2-7 % of their maximum for all but one model), and out-of-sample Panasonic bias is -8.0 %. Model size is declared differently by each maker (A7/W35 nominal, A2/W35 or A-7/W35 reference, kW class), which is a likely share of the spread.",
+      "status_reason": "Fitted on official-domain sources only: 4 manufacturers, 11 families (Daikin, LG and Vaillant 105/125 rows are third-party-hosted manufacturer PDFs, recorded but not fitted until the owner accepts them). Against the pre-set criteria: manufacturer hold-out MAPE 20.2 % (limit 20 %), out-of-sample Panasonic bias -15.8 % (limit 10 %), manufacturers 4 (need 5) and too few explicit-maximum rows (one family) miss; family hold-out MAPE 17.1 % and manufacturer hold-out bias +9.9 % pass. Makers differ systematically at equal model size (a law from the others over-predicts Mitsubishi by 19 % and under-predicts Samsung by 18 %), and model size is declared differently by each maker. Where a document prints both, the maximum equals or exceeds the ErP rated outdoor airflow by 0-7 % (Daikin 4 models, NIBE 3 of 4), so single and rated values are kept as the maximum.",
       "source_ids": [
-        "DAIKIN_EEDEN22_EBLA09-16D",
-        "LG_THERMAV_R32_MONOBLOC_PDB_5BPM5-01D",
         "MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0",
         "MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0",
         "SAMSUNG_CS_GB_AE040RXEDEG",
@@ -311,7 +307,6 @@
         "SAMSUNG_CS_GB_AE120CXYDEK",
         "SAMSUNG_CS_GB_AE160CXYDEK",
         "TOSHIBA_UK_DB_E23-103_00",
-        "VAILLANT_DE_0020326635_03",
         "VAILLANT_UK_0020330791_03"
       ]
     },

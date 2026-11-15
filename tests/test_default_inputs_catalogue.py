@@ -110,10 +110,16 @@ def test_airflow_basis_reads_rated_words_anywhere_in_the_label():
     assert airflow_basis("") == "single_value"
 
 
-def test_air_to_water_outdoor_stratum_has_six_manufacturers_and_no_panasonic():
-    """Panasonic air-to-water units stay out of the fit: they are the out-of-sample check (validation/catalogs)."""
+def test_air_to_water_fit_excludes_panasonic_and_unaccepted_third_party_sources():
+    """Panasonic stays out (it is the out-of-sample check); third-party-hosted PDFs are recorded but not fitted
+    until the owner accepts the source (sources.json owner_accepted)."""
     regression = json.loads((AIRFLOW_ARCHIVE / "regression.json").read_text())
     fit = regression["fits"]["airflow|heating|outdoor|air_to_water"]
-    assert len(fit["manufacturers"]) >= 6
+    sources = {s["source_id"]: s for s in json.loads((AIRFLOW_ARCHIVE / "sources.json").read_text())}
     assert "Panasonic" not in fit["manufacturers"]
-    assert fit["explicit_max_only"]["manufacturers"] == ["Daikin", "Vaillant"]
+    for source_id in fit["source_ids"]:
+        source = sources[source_id]
+        assert not source["evidence_type"].endswith("_third_party_host") or source.get("owner_accepted")
+    rows = json.loads((AIRFLOW_ARCHIVE / "measurements.json").read_text())
+    held = [r for r in rows if sources[r["source_id"]]["evidence_type"].endswith("_third_party_host")]
+    assert held and all(not r["eligible"] and "owner acceptance" in r["exclusion_reason"] for r in held)

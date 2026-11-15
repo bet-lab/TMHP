@@ -20,8 +20,8 @@ Air-to-water outdoor units (added 2026-11-14):
   Conditioner Europe B.V. / Samsung Electronics Limited per its privacy notice; linked from samsung.com).
 
 Widened 2026-11-15 (round 6, still **provisional**): Daikin Altherma 3 M (EBLA-D), Vaillant aroTHERM plus, LG Therma V
-R32 Monobloc and Toshiba Estia R32 added, so the stratum has 6 manufacturers, 13 families and 59 rows. Panasonic is kept
-out on purpose: its nine `validation/catalogs` units are the out-of-sample check.
+R32 Monobloc and Toshiba Estia R32 recorded (23 rows). Panasonic is kept out on purpose: its nine `validation/catalogs`
+units are the out-of-sample check.
 
 - Model size per maker: Daikin 'Heating capacity Nom.' at A7/W35; LG nominal capacity at A7/W35 (= its line-up class);
   Toshiba 'Heating capacity' at A7/W35; Vaillant prints no size row, so the printed A-7/W35 heat output (the value that
@@ -30,19 +30,20 @@ out on purpose: its nine `validation/catalogs` units are the out-of-sample check
   'Air Flow Rate Rated', Toshiba 'Standard air capacity' — any label containing rated/nominal/standard), `single_value`
   (Mitsubishi, Samsung). Outdoor rated and single values are still taken as the maximum, now on measured grounds: where a
   document prints both, the maximum equals the ErP 'rated air flow rate, outdoors' (Daikin EEDEN22, four models, ratio
-  1.00) or exceeds it by 0-7 % (NIBE S2125-8/-12/-16; 31 % for S2125-20), and the explicit-max-only fit lies within
-  0.99-1.08 of the all-row fit at the stratum's capacity quartiles (`regression.json` `explicit_max_only`).
+  1.00) or exceeds it by 0-7 % (NIBE S2125-8/-12/-16; 31 % for S2125-20).
 - Third-party hosts: Daikin EEDEN22, LG product data book 5BPM5-01D and Vaillant 0020326635_03 are unmodified manufacturer
-  PDFs that no manufacturer domain serves publicly (Daikin keeps its databooks behind its business portal). They are kept
-  with `evidence_type=*_third_party_host`; the Daikin values are corroborated by Daikin's own ErP fiche
-  (`DAIKIN_ERP_EBLA11DAW1`, cross-check). Dropping all three leaves 4 manufacturers and moves the Panasonic bias from
-  -8.0 % to -15.8 %.
-- Why still provisional (pre-set criteria, round-6 brief, written before the fit): manufacturer hold-out MAPE 22.5 %
-  (limit 20 %) and family hold-out MAPE 20.05 % (limit 20 %) miss; manufacturer hold-out bias +9.6 % (limit 10 %),
-  Panasonic bias -8.0 % / MAPE 14.2 % (limits 10 % / 20 %), breadth and the label test pass. At equal model size the
-  makers differ systematically: a law fitted to the other makers under-predicts LG by 27 % and Samsung by 14 %, and
-  over-predicts Mitsubishi by 24 % and Daikin by 20 % (Daikin's values are explicit maxima). The model-size definitions
-  also differ by maker.
+  PDFs that no manufacturer domain serves publicly (Daikin keeps its databooks behind its business portal). They carry
+  `evidence_type=*_third_party_host`; the build records their rows but **does not fit them** until the source gets
+  `"owner_accepted": true` in `sources.json` (exclusion reason 'awaiting owner acceptance'). The Daikin values are
+  corroborated by Daikin's own ErP fiche (`DAIKIN_ERP_EBLA11DAW1`, cross-check).
+- Fitted now (official domains only): Mitsubishi, Samsung, Toshiba, Vaillant — 47 rows, 11 families; power law
+  0.224 x^0.662. Against the pre-set criteria (round-6 brief, written before the fit) it misses on manufacturers (4, need
+  5), manufacturer hold-out MAPE 20.2 % (limit 20 %), Panasonic bias -15.8 % (limit 10 %) and explicit-maximum coverage
+  (one family); family hold-out MAPE 17.1 % and manufacturer hold-out bias +9.9 % pass. With the three third-party
+  sources accepted (6 manufacturers, 59 rows) the Panasonic bias becomes -8.0 % and the explicit-max-only fit lies within
+  0.99-1.08 of the all-row fit, but manufacturer hold-out MAPE 22.5 % and family hold-out MAPE 20.05 % still miss, so the
+  stratum would stay provisional either way. Makers differ systematically at equal model size, and the model-size
+  definitions differ by maker.
 - Not yet on the lab NAS: the 2026-11-15 originals are kept locally (`nas_path` null with a note); transfer per #87.
 
 Water-to-air units (added 2026-11-14):

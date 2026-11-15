@@ -143,6 +143,10 @@ def normalize(obs: dict, source: dict) -> dict:
         row.update(eligible=False, exclusion_reason=f"{obs['indoor_type']}: indoor type ambiguous, not fitted")
     if row["capacity_W"] is None:
         row.update(eligible=False, exclusion_reason="no nominal capacity printed")
+    # An unmodified manufacturer PDF found only on a third-party host is recorded but not fitted until the owner
+    # accepts that source (sources.json "owner_accepted": true); see ../README.md, 'Original'.
+    if source["evidence_type"].endswith("_third_party_host") and not source.get("owner_accepted"):
+        row.update(eligible=False, exclusion_reason="third-party-hosted manufacturer PDF; awaiting owner acceptance")
     if obs.get("exclusion_reason"):
         row.update(eligible=False, exclusion_reason=obs["exclusion_reason"])
     if not (row["value"] > 0 and (row["capacity_W"] is None or row["capacity_W"] > 0)):

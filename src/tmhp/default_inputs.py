@@ -19,6 +19,10 @@ return the inputs a manufacturer's catalogue would have given, with their eviden
   estimate's ``assumptions`` also state how far makers sit from the fitted law (each manufacturer held out and
   predicted from the others), because at equal capacity real airflows differ by maker; an airflow given for the
   actual unit takes precedence over the default.
+- **Heat-exchanger conductance** [W/K] per exchanger kind and refrigerant role, from the leaving-end
+  approach temperatures real machines print (:func:`estimate_hx_UA`), sized for the exchanger's own duty
+  (:func:`hx_duty_per_nameplate`). An exchanger whose stratum issues no value keeps an earlier rule, recorded
+  as provisional (:func:`kept_hx_UA`).
 
 Values come from ``tmhp/data/*.json``, exported from the archives in ``validation/default_inputs`` (see the
 README there for collection and filtering rules). A basis or stratum that does not meet the shipping gate
@@ -44,6 +48,7 @@ __all__ = [
     "estimate_hx_UA",
     "estimate_max_airflow",
     "hx_duty_per_nameplate",
+    "kept_hx_UA",
 ]
 
 #: TMHP heat pumps are inverter driven; their default compressor is the 60 rps inverter twin rotary basis.
@@ -325,4 +330,34 @@ def estimate_hx_UA(stratum: str, *, duty: float, heat_capacity_rate: float) -> D
             spread,
             holdout + ".",
         ),
+    )
+
+
+def kept_hx_UA(stratum: str, value: float, *, duty: float, rule: str, reason: str) -> DefaultInputEstimate:
+    """A conductance default [W/K] kept at an earlier rule because ``stratum`` issues no value.
+
+    For an exchanger whose stratum is archived but does not meet the shipping gate (or whose evidence
+    disagrees with itself), the model keeps its earlier sizing rule instead of an estimate. The record
+    says so: ``status`` is ``"provisional"``, ``rule`` (the rule the value follows) is the first entry of
+    ``assumptions`` and ``"Provisional: " + reason`` the last. ``duty`` [W] is the exchanger's duty at the
+    rating point, compared with the duty range the archive covers.
+    """
+    if not (0 < value < float("inf") and 0 < duty < float("inf")):
+        raise ValueError("value and duty must be positive and finite")
+    artifact = _artifact("hx_approach_regression.json")
+    entry = artifact["strata"].get(stratum)
+    if entry is None:
+        raise ValueError(f"No heat-exchanger stratum {stratum!r}; available: {sorted(artifact['strata'])}")
+    low, high = entry["duty_range_W"] or (0.0, float("inf"))
+    return DefaultInputEstimate(
+        value=float(value),
+        unit="W/K",
+        quantity="heat-exchanger conductance",
+        version=artifact["version"],
+        key=stratum,
+        capacity_range_W=(float(low), float(high)),
+        extrapolated=not low <= duty <= high,
+        source_ids=tuple(entry["source_ids"]),
+        assumptions=(rule, f"Provisional: {reason}"),
+        status="provisional",
     )

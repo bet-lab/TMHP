@@ -137,10 +137,12 @@ def test_the_rated_airflow_is_the_largest_the_fan_reaches():
 def test_supplied_airflows_are_used_as_given():
     ashp = AirSourceHeatPump(hp_capacity=3500.0, dV_ou_fan_a_rated=0.61, dV_iu_fan_a_rated=0.2067)
     assert (ashp.dV_ou_fan_a_rated, ashp.dV_iu_fan_a_rated) == (0.61, 0.2067)
-    assert set(ashp.default_input_estimates) == {"V_cmp_ref"}
+    # The conductances are defaults (stated at the supplied airflows): tests/test_hx_ua_defaults.py.
+    ua = {"UA_ou_rated", "UA_ou_evap_rated", "UA_iu_rated"}
+    assert set(ashp.default_input_estimates) == {"V_cmp_ref", *ua}
     only_indoor = AirSourceHeatPump(hp_capacity=3500.0, dV_iu_fan_a_ref=0.2067)
     assert only_indoor.dV_iu_fan_a_rated == 0.2067
-    assert set(only_indoor.default_input_estimates) == {"V_cmp_ref", "dV_ou_fan_a_rated"}
+    assert set(only_indoor.default_input_estimates) == {"V_cmp_ref", "dV_ou_fan_a_rated", *ua}
     gshp = GroundSourceHeatPump(hp_capacity=8000.0, dV_iu_fan_a_rated=0.43, V_cmp_ref=2.4e-5)
     assert gshp.dV_iu_fan_a_rated == 0.43 and not gshp.default_input_estimates
 

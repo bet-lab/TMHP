@@ -78,7 +78,13 @@ from .compressor_efficiency import (
 from .compressor_envelope import RATED_SPEED_SEARCH_MAX, check_rated_condensing, default_rps_max
 from .compressor_speed import solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
-from .default_inputs import DefaultInputEstimate, estimate_displacement, estimate_max_airflow
+from .default_inputs import (
+    DefaultInputEstimate,
+    estimate_displacement,
+    estimate_hx_UA,
+    estimate_max_airflow,
+    hx_duty_per_nameplate,
+)
 from .refrigerant import calc_ref_state
 
 __all__ = [
@@ -716,6 +722,24 @@ class ReferenceStateMixin:
         its own.
         """
         return self._use_default_input(name, estimate_max_airflow(hp_capacity, side=side, product=product, mode=mode))
+
+    def _default_hx_UA(
+        self, name: str, stratum: str, *, nameplate: float, nameplate_mode: str | None, heat_capacity_rate: float
+    ) -> float:
+        """Effective conductance of an exchanger of ``stratum`` from real machines' approaches [W/K] (recorded).
+
+        ``name`` is the constructor argument it stands in for. The exchanger's
+        rating-point duty is the stratum's median duty per watt of the
+        ``nameplate_mode`` nameplate times ``nameplate`` [W]
+        (:func:`~tmhp.default_inputs.hx_duty_per_nameplate`); ``None`` takes the
+        duty as the nameplate itself (a stratum whose sources print no
+        nameplate). ``heat_capacity_rate`` [W/K] is that of the fluid at the
+        reference flow the conductance is stated at
+        (:func:`~tmhp.default_inputs.estimate_hx_UA`).
+        """
+        ratio = 1.0 if nameplate_mode is None else hx_duty_per_nameplate(stratum, nameplate_mode)
+        estimate = estimate_hx_UA(stratum, duty=ratio * nameplate, heat_capacity_rate=heat_capacity_rate)
+        return self._use_default_input(name, estimate)
 
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """The model's own heat exchanger on ``role`` at its rated UA and reference flow."""

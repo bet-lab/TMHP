@@ -75,6 +75,7 @@ from .cycling import (
     continuous_keys,
     resolve_cycling,
 )
+from .default_inputs import kept_hx_UA
 from .defrost import (
     NO_FROST,
     DefrostModel,
@@ -91,7 +92,7 @@ from .enex_functions import (
 from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
-from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
+from .reference_state import RATING_STANDARDS, HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     _props,
     calc_ref_state,
@@ -491,6 +492,17 @@ def _exergy_row(result: dict, ref: str) -> dict:
 #: Cassette and ducted units are not covered: give their ``dV_iu_fan_a_rated``.
 INDOOR_UNIT_TYPES: tuple[str, ...] = ("wall_mounted", "floor_standing")
 
+#: Default indoor-coil conductance per watt of nameplate [W/K per W]: the earlier rule, kept (provisional).
+INDOOR_UA_PER_CAPACITY = 0.16
+#: Why the indoor coil keeps that rule instead of an approach-temperature estimate (recorded in
+#: ``default_input_estimates["UA_iu_rated"]``; archive ``validation/default_inputs/hx_approach``).
+INDOOR_UA_KEPT_REASON = (
+    "kept at the previous rule. The archive's wall-mounted indoor-coil rows come from one manufacturer "
+    "(Mitsubishi Electric, 8 product lines): their leaving approach is 6.3 K on the declared duty but 2.9 K on "
+    "the printed discharge-air temperature, and a second manufacturer's pipe temperatures suggest about 3 K, so "
+    "the evidence does not settle the value and no estimate is issued (shipping gate: 2 manufacturers)."
+)
+
 
 class AirSourceHeatPump(ReferenceStateMixin):
     """Air source heat pump with indoor-unit air heat exchange.
@@ -640,6 +652,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         rps_rated: float | None = None,
         m_dot_ref_rated: float | None = None,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
+        # Effective outdoor-coil conductance as an evaporator (heating) [W/K];
+        # None: the approach-temperature default, or UA_ou_rated when that is given.
+        UA_ou_evap_rated: float | None = None,
         dV_ou_fan_a_ref: float | None = None,
         dV_ou_fan_a_min: float | None = None,
         dV_ou_fan_a_max: float | None = None,
@@ -759,55 +774,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self._last_pr_event: tuple[str, float, float] | None = None
         self.hp_capacity: float = hp_capacity
 
-        # --- 2. Heat exchanger UA ---
-        # Outdoor-coil conductance per watt of nameplate cooling capacity.
-        #
-        # Derived, not chosen. Air-coil catalogues rate an entire range at one
-        # declared condition, so inverting them gives conductance per unit duty
-        # that is comparable across capacities by construction -- and for a
-        # coil whose refrigerant side changes phase that inversion is an
-        # identity, with no parameter fitted. Two rating standards written by
-        # different committees for different applications (EN 328 SC2 for unit
-        # coolers, 352 models across four manufacturers; ENV 327 for air-cooled
-        # condensers, 1,062 models across two) place their populations in the
-        # same band of UA per unit duty, 0.11-0.23 W/K per W, although the air
-        # flow per kilowatt they adopt differs by a factor of 2.4.
-        #
-        # Converting the condenser band to the nameplate basis needs the factor
-        # `1 + 1/EER`, because the nameplate is the indoor coil's cooling duty
-        # while the outdoor coil rejects that duty plus the compressor work
-        # (1.29-1.35 across the reference units). The result is
-        # UA/Q_cool = 0.19, i.e. `hp_capacity / 5`.
-        #
-        # An independent route -- computing the conductance straight from the
-        # outdoor-coil geometry that Trane prints for twelve Precedent packaged
-        # heat pumps, through the Wang/Chi/Chang (2000) plain-fin correlation
-        # and Schmidt fin efficiency -- gives Q/6.8 with a declared
-        # refrigerant-side film coefficient of 2500 W/(m^2 K) and Q/4.3 with
-        # that resistance removed, bracketing the value above. The two routes
-        # share neither inputs nor method.
-        #
-        # See validation/extraction/ua_transfer_law.py to regenerate all of it.
-        # Established for dry, round-tube-plate-fin coils; frosted operation,
-        # microchannel coils and residential mini-splits are outside the
-        # evidence and stated as such in the documentation.
-        if UA_ou_rated is None:
-            self.UA_ou_rated = hp_capacity / 5.0
-        else:
-            self.UA_ou_rated = UA_ou_rated
-
-        # Both faces are air coils sharing the same equivalent approach, so
-        # their conductance ratio is their duty ratio, `1 / (1 + 1/EER)`. That
-        # is 0.73-0.78 across the twelve reference units and 0.78-0.80 at the
-        # EER of current equipment, so 0.8 is derived rather than assumed.
-        # In cooling the indoor coil runs wet, which makes a sensible-basis UA
-        # an underestimate; the ratio rises above 0.8 when the latent load is
-        # large.
-        if UA_iu_rated is None:
-            self.UA_iu_rated = self.UA_ou_rated * 0.8
-        else:
-            self.UA_iu_rated = UA_iu_rated
-
         self.n_ou: float = n_ou
         self.n_iu: float = n_iu
 
@@ -895,6 +861,67 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "fan_rated_power": self.E_iu_fan_rated,
         }
 
+        # --- 2. Heat exchanger UA ---
+        # Stated at the rated (largest) airflows resolved above. A default is the
+        # effective conductance that reproduces the saturation temperature real
+        # machines print at their rating point (tmhp.default_inputs.estimate_hx_UA,
+        # leaving-end approach law), sized for the coil's own duty -- the outdoor
+        # coil rejects the nameplate plus the compressor work as a condenser and
+        # absorbs less than the nameplate as an evaporator
+        # (hx_duty_per_nameplate). The same coil therefore has one value as a
+        # condenser (cooling) and another as an evaporator (heating). A value
+        # the caller gives is used as given; a given UA_ou_rated without
+        # UA_ou_evap_rated serves both roles.
+        outdoor_condensing = "outdoor_coil|fin_tube|condensing"
+        outdoor_evaporating = "outdoor_coil|fin_tube|evaporating"
+        rating_temperatures = RATING_STANDARDS[self._RATING_FAMILY]
+        if UA_ou_rated is None:
+            # Air at the ISO 5151 T1 outdoor dry bulb (35 degC).
+            self.UA_ou_rated = self._default_hx_UA(
+                "UA_ou_rated",
+                outdoor_condensing,
+                nameplate=hp_capacity,
+                nameplate_mode=rating_mode,
+                heat_capacity_rate=air_heat_capacity_rate(
+                    self.dV_ou_fan_a_rated, rating_temperatures["cooling"].source_T_C
+                ),
+            )
+        else:
+            self.UA_ou_rated = UA_ou_rated
+        if UA_ou_evap_rated is not None:
+            self.UA_ou_evap_rated = UA_ou_evap_rated
+        elif UA_ou_rated is not None:
+            # A coil value the caller gave is not silently split into two roles.
+            self.UA_ou_evap_rated = self.UA_ou_rated
+        else:
+            # Air at the ISO 5151 H1 outdoor dry bulb (7 degC).
+            self.UA_ou_evap_rated = self._default_hx_UA(
+                "UA_ou_evap_rated",
+                outdoor_evaporating,
+                nameplate=hp_capacity,
+                nameplate_mode=rating_mode,
+                heat_capacity_rate=air_heat_capacity_rate(
+                    self.dV_ou_fan_a_rated, rating_temperatures["heating"].source_T_C
+                ),
+            )
+
+        # The indoor coil keeps its earlier rule, 0.16 W/K per watt of nameplate,
+        # no longer tied to the outdoor coil: the archive issues no value for
+        # wall-mounted indoor coils (see INDOOR_UA_KEPT_REASON).
+        if UA_iu_rated is None:
+            self.UA_iu_rated = self._use_default_input(
+                "UA_iu_rated",
+                kept_hx_UA(
+                    "indoor_coil|wall_mounted|fin_tube|condensing",
+                    INDOOR_UA_PER_CAPACITY * hp_capacity,
+                    duty=hp_capacity,
+                    rule=f"UA_iu_rated = {INDOOR_UA_PER_CAPACITY:g} W/K per W of nameplate, the earlier rule, kept.",
+                    reason=INDOOR_UA_KEPT_REASON,
+                ),
+            )
+        else:
+            self.UA_iu_rated = UA_iu_rated
+
         # --- 5. Room temperature ---
         self.T_a_room: float = T_a_room
 
@@ -920,8 +947,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """Outdoor coil is the source side, indoor coil the load side, in either mode."""
         if role == "source":
-            return AirCoilSide("air", T_in_C, self.UA_ou_rated, self.dV_ou_fan_a_ref)
+            return AirCoilSide("air", T_in_C, self._UA_ou_rated_for(mode), self.dV_ou_fan_a_ref)
         return AirCoilSide("air", T_in_C, self.UA_iu_rated, self.dV_iu_fan_a_ref)
+
+    def _UA_ou_rated_for(self, mode: str) -> float:
+        """Rated outdoor-coil conductance in ``mode`` [W/K]: a condenser in cooling, an evaporator in heating."""
+        return self.UA_ou_evap_rated if mode == "heating" else self.UA_ou_rated
 
     # =============================================================
     # Refrigerant cycle physics
@@ -1163,9 +1194,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return None
 
         # ── Outdoor unit HX ──
-        # The outdoor coil is always parameterised by UA_ou_rated regardless of mode.
-        # In cooling it acts as condenser; in heating as evaporator — but the physical
-        # geometry (and therefore UA) is unchanged.
+        # In cooling the outdoor coil is the condenser (UA_ou_rated), in heating
+        # the evaporator (UA_ou_evap_rated): one coil, but its effective
+        # conductance differs by refrigerant role (see the constructor).
         if mode == "cooling":
             # Outdoor = condenser → ref rejects heat → air is heated
             ou_hx = calc_HX_perf_for_target_heat(
@@ -1173,7 +1204,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 T_a_in_C=T0,
                 T_ref_sat_K=T_cond_sat_K,
                 A_cross=self.A_cross_ou,
-                UA_rated=self.UA_ou_rated,
+                UA_rated=self._UA_ou_rated_for(mode),
                 dV_fan_ref=self.dV_ou_fan_a_ref,
                 dV_fan_min=self.dV_ou_fan_a_min,
                 dV_fan_max=self.dV_ou_fan_a_max,
@@ -1189,7 +1220,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 T_a_in_C=T0,
                 T_ref_sat_K=T_evap_sat_K,
                 A_cross=self.A_cross_ou,
-                UA_rated=self.UA_ou_rated,
+                UA_rated=self._UA_ou_rated_for(mode),
                 dV_fan_ref=self.dV_ou_fan_a_ref,
                 dV_fan_min=self.dV_ou_fan_a_min,
                 dV_fan_max=self.dV_ou_fan_a_max,
@@ -1763,7 +1794,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     abs(float(perf.get("Q_ref_ou [W]", math.nan))),
                     float(perf.get("dV_ou_a [m3/s]", math.nan)),
                     float(perf.get("T_ou_a_in [°C]", math.nan)),
-                    self.UA_ou_rated,
+                    self._UA_ou_rated_for(perf["mode"]),
                     self.dV_ou_fan_a_ref,
                     self.n_ou,
                     self.dV_ou_fan_a_min,
@@ -2045,7 +2076,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     abs(float(perf.get("Q_ref_ou [W]", math.nan))),
                     float(perf.get("dV_ou_a [m3/s]", math.nan)),
                     float(perf.get("T_ou_a_in [°C]", math.nan)),
-                    self.UA_ou_rated,
+                    self._UA_ou_rated_for(perf["mode"]),
                     self.dV_ou_fan_a_ref,
                     self.n_ou,
                     self.dV_ou_fan_a_max,

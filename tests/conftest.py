@@ -22,7 +22,11 @@
       ``hp_capacity * 1.5e-4 m3/s`` outdoors for ``AirSourceHeatPumpBoiler``;
     - refrigerant R134a for ``AirSourceHeatPumpBoiler``;
     - approach-temperature search box 1-20 K for ``AirSourceHeatPump``
-      (30 K since the catalogue airflows: tests/test_default_inputs_wiring.py).
+      (30 K since the catalogue airflows: tests/test_default_inputs_wiring.py);
+    - the heat-exchanger conductance rules of before the approach-temperature
+      defaults (issues #115-#118, :data:`EARLIER_UA_RULES`): ``AirSourceHeatPump``
+      ``UA_ou_rated = hp_capacity / 5`` for both refrigerant roles and
+      ``UA_iu_rated = 0.8 UA_ou_rated``.
 
     These are explicit inputs given on the test's behalf -- the constructors
     still take them through ``default_input_estimates`` -- so the scenario
@@ -39,7 +43,7 @@ import contextlib
 import dataclasses
 import functools
 import inspect
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import pytest
@@ -66,6 +70,58 @@ EARLIER_ARGUMENTS: tuple[tuple[type, str, Any], ...] = (
     (AirSourceHeatPumpBoiler, "ref", "R134a"),  # R290 now
     (AirSourceHeatPump, "dT_approach_bounds", (1.0, 20.0)),  # (1, 30) now
 )
+
+
+def _first(arguments: dict[str, Any], *names: str) -> Any:
+    """The first of ``names`` the arguments give a value (not ``None``) for."""
+    return next(arguments[name] for name in names if arguments.get(name) is not None)
+
+
+@dataclasses.dataclass(frozen=True)
+class EarlierRule:
+    """An argument filled from the caller's other arguments (signature defaults applied).
+
+    The rule applies where the caller gives no value for ``name`` nor for any of its older names
+    ``aliases``; the rules of a class apply in order, each seeing the values the earlier ones filled.
+    """
+
+    name: str
+    rule: Callable[[dict[str, Any]], Any]
+    aliases: tuple[str, ...] = ()
+
+
+#: Conductance rules of before the approach-temperature defaults (issues #115-#118).
+EARLIER_UA_RULES: tuple[tuple[type, tuple[EarlierRule, ...]], ...] = (
+    (
+        AirSourceHeatPump,
+        (
+            EarlierRule("UA_ou_rated", lambda a: a["hp_capacity"] / 5.0, ("UA_cond_rated", "UA_cond_design")),
+            EarlierRule(
+                "UA_iu_rated",
+                lambda a: 0.8 * _first(a, "UA_ou_rated", "UA_cond_rated", "UA_cond_design"),
+                ("UA_evap_rated", "UA_evap_design"),
+            ),
+        ),
+    ),
+)
+
+
+def _with_earlier_rules(init, rules: tuple[EarlierRule, ...]):
+    """``init`` with each rule's argument filled in where the caller gives no value for it."""
+    signature = inspect.signature(init)
+
+    @functools.wraps(init)
+    def constructor(self, *args, **kwargs):
+        bound = signature.bind(self, *args, **kwargs)
+        values = signature.bind(self, *args, **kwargs)
+        values.apply_defaults()
+        arguments = dict(values.arguments)
+        for rule in rules:
+            if arguments.get(rule.name) is None and all(arguments.get(alias) is None for alias in rule.aliases):
+                arguments[rule.name] = bound.arguments[rule.name] = rule.rule(arguments)
+        init(*bound.args, **bound.kwargs)
+
+    return constructor
 
 
 def _with_earlier_argument(init, name: str, value: Any):
@@ -109,6 +165,8 @@ def earlier_default_inputs() -> Iterator[None]:
         patch.setattr(reference_state, "estimate_max_airflow", max_airflow)
         for cls, name, value in EARLIER_ARGUMENTS:
             patch.setattr(cls, "__init__", _with_earlier_argument(cls.__init__, name, value))
+        for cls, rules in EARLIER_UA_RULES:
+            patch.setattr(cls, "__init__", _with_earlier_rules(cls.__init__, rules))
         yield
 
 

@@ -438,6 +438,7 @@ CTOR_SPECS: dict[str, dict[str, str]] = {
         **_OUTDOOR_FAN_SPACE,
         **_INDOOR_FAN,
         "UA_ou_rated": "pos",
+        "UA_ou_evap_rated": "pos",
         "UA_iu_rated": "pos",
         "UA_cond_rated": "pos",
         "UA_evap_rated": "pos",

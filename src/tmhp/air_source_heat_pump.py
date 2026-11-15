@@ -2102,7 +2102,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         if perf is None:
             return None, None, first_reason
 
+        # A duty above what the compressor delivers flat out has no fixed
+        # point to converge on quickly: the delivered heat, and with it each
+        # coil's approach, moves with the approaches themselves. A flat-out
+        # state met on the way is kept, so that running out of iterations there
+        # is answered as the speed range and not as a cycle that does not exist.
+        flat_out: tuple[tuple[float, float], dict] | None = None
         for _ in range(self._LEAST_LIFT_MAX_ITER):
+            if perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX and perf.get("converged", False):
+                flat_out = (x, perf)
             target = self._largest_airflow_approaches(x[0], x[1], perf)
             if target is None:
                 return None, None, "cycle_invalid"
@@ -2120,6 +2128,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     return None, None, reason
             x, perf = trial, trial_perf
         else:
+            if flat_out is not None:
+                return approaches(flat_out[0]), flat_out[1], None
             return None, None, "cycle_invalid"
 
         # The fixed point puts each coil exactly on its largest airflow, where

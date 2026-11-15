@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-15T08:54:42+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:11:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -164,6 +164,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#each-limit-in-words-and-what-to-do">Each limit in words, and what to do</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#checking-the-standard-conditions-first-operating-range">Checking the standard conditions first: <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code></a></li>
 <li><a class="reference internal" href="#what-triggers-each-value">What triggers each value</a></li>
 <li><a class="reference internal" href="#off-mode-fallback">Off-mode fallback</a></li>
 <li><a class="reference internal" href="#where-this-is-defined-in-the-code">Where this is defined in the code</a></li>
@@ -874,6 +875,187 @@ approach temperature the search admits.</p></td>
 </table>
 </div>
 </section>
+</section>
+<section id="checking-the-standard-conditions-first-operating-range">
+<span id="operating-range"></span><h2>Checking the standard conditions first: <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code><a class="headerlink" href="#checking-the-standard-conditions-first-operating-range" title="Link to this heading">¶</a></h2>
+<p>Before a simulation is set up, <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code> asks a machine the
+standard test conditions of its kind and returns one row per condition:
+whether the compressor runs (<code class="docutils literal notranslate"><span class="pre">runs</span></code>), whether it delivers the nameplate
+duty (<code class="docutils literal notranslate"><span class="pre">meets_request</span></code>) or a reduced one (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> with
+its <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code>), whether it cycles on and off
+(<code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> below 1), the <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> of a point it does
+not run, its <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>, and the limit in the words of the
+<a class="reference internal" href="#operating-limit-warning"><span class="std std-ref">warnings</span></a> (<code class="docutils literal notranslate"><span class="pre">limit</span></code>). Every family has the
+method and the table has the same columns for all of them
+(<code class="docutils literal notranslate"><span class="pre">tmhp.standard_conditions.COLUMNS</span></code>).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">tmhp</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">hp</span> <span class="o">=</span> <span class="n">tmhp</span><span class="o">.</span><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span><span data-line="4"><span class="n">table</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">operating_range</span><span class="p">()</span>
+</span><span data-line="5"><span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">[[</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="s2">&quot;meets_request&quot;</span><span class="p">,</span> <span class="s2">&quot;capacity_binding&quot;</span><span class="p">,</span> <span class="s2">&quot;failure_reason&quot;</span><span class="p">]])</span>
+</span><span data-line="6"><span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;limit&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">():</span>
+</span><span data-line="7">    <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+</span></pre></div>
+</div>
+<p>The default conditions follow the names and temperatures of EN 14511-2 (rating
+conditions) and EN 14825 (part-load conditions); the ground-loop cooling point
+follows ISO 13256-1. The source side comes first: <code class="docutils literal notranslate"><span class="pre">A</span></code> outdoor air (dry bulb),
+<code class="docutils literal notranslate"><span class="pre">B</span></code> brine and <code class="docutils literal notranslate"><span class="pre">W</span></code> water entering the heat pump; then the water leaving it
+(boilers) or the indoor air (space heat pumps). Each is requested at the
+nameplate duty <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code>.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14.0%" />
+<col style="width: 30.0%" />
+<col style="width: 56.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Family</p></th>
+<th class="head"><p>Conditions</p></th>
+<th class="head"><p>Basis</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ASHPB</p></td>
+<td><p>A7/W35, A2/W35, A-7/W35, A7/W55, A2/W55, A-7/W55, A-10/W55, A-15/W55</p></td>
+<td><p>EN 14511-2 standard rating (A7/W35, A7/W55) and application rating
+conditions; A-7 is EN 14825 condition A, A-10 the operation limit of
+the average climate (<code class="docutils literal notranslate"><span class="pre">tmhp.standard_conditions.AIR_TO_WATER</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>ASHP</p></td>
+<td><p>A7/20, A2/20, A-7/20, A-15/20 (heating); A35/27 (cooling)</p></td>
+<td><p>EN 14511-2 standard rating (A7/20, A35/27) and application rating
+conditions (<code class="docutils literal notranslate"><span class="pre">AIR_TO_AIR</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>GSHPB</p></td>
+<td><p>B0/W35, B0/W55, B-5/W45</p></td>
+<td><p>EN 14511-2 brine-to-water conditions (<code class="docutils literal notranslate"><span class="pre">BRINE_TO_WATER</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>WSHPB</p></td>
+<td><p>W10/W35, W10/W55</p></td>
+<td><p>EN 14511-2 water-to-water conditions (<code class="docutils literal notranslate"><span class="pre">WATER_TO_WATER</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>GSHP</p></td>
+<td><p>B0/20 (heating), B25/27 (cooling)</p></td>
+<td><p>EN 14511-2 brine-to-air heating; ISO 13256-1 ground-loop cooling
+(<code class="docutils literal notranslate"><span class="pre">BRINE_TO_AIR</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Which model input a standard temperature is.</strong> The outdoor air is <code class="docutils literal notranslate"><span class="pre">T0</span></code>
+and its standard wet bulb, where one is given, the outdoor humidity
+<code class="docutils literal notranslate"><span class="pre">RH_out</span></code> (the frost correction). The brine or source water entering the heat
+pump is <code class="docutils literal notranslate"><span class="pre">T_source</span></code> of GSHPB and WSHPB; GSHP has no such argument (its source
+is the fluid leaving the borefield, the state <code class="docutils literal notranslate"><span class="pre">T_bhe_f_out</span></code>), so its
+conditions are solved with <code class="docutils literal notranslate"><span class="pre">T_bhe_f_out</span></code> at the brine temperature. A GSHP
+with ground-flow control solves its source from the borehole wall instead, so
+no brine temperature can be imposed and <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code> refuses it
+(<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>) rather than report a condition it did not solve. The indoor
+air is <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">W55</span></code> of a boiler condition is the water <em>leaving</em> the heat pump, which
+is not an input of the boiler models: their sink is the tank temperature
+<code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code>. The table solves <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">=</span> <span class="pre">leaving</span> <span class="pre">water</span> <span class="pre">-</span> <span class="pre">sink_offset_K</span></code> with
+<code class="docutils literal notranslate"><span class="pre">sink_offset_K</span> <span class="pre">=</span> <span class="pre">2.5</span> <span class="pre">K</span></code>, the offset every air-to-water catalogue of the
+validation set states for where the manufacturer measures, and prints both
+temperatures (<code class="docutils literal notranslate"><span class="pre">T_load_side</span> <span class="pre">[°C]</span></code> and <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>). Near a limit those
+2.5 K can decide whether a point runs; <code class="docutils literal notranslate"><span class="pre">sink_offset_K=0</span></code> solves the tank at
+the named temperature, the stricter case of a tank held at 55 °C:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">tmhp</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">hp</span> <span class="o">=</span> <span class="n">tmhp</span><span class="o">.</span><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span><span data-line="4"><span class="n">leaving</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">operating_range</span><span class="p">()</span>                 <span class="c1"># tank 2.5 K below the leaving water</span>
+</span><span data-line="5"><span class="n">tank</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">operating_range</span><span class="p">(</span><span class="n">sink_offset_K</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>   <span class="c1"># tank at the named temperature</span>
+</span><span data-line="6"><span class="nb">print</span><span class="p">(</span><span class="n">leaving</span><span class="p">[[</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="s2">&quot;failure_reason&quot;</span><span class="p">]])</span>
+</span><span data-line="7"><span class="nb">print</span><span class="p">(</span><span class="n">tank</span><span class="p">[[</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="s2">&quot;failure_reason&quot;</span><span class="p">]])</span>
+</span></pre></div>
+</div>
+<p><strong>Part load and other conditions.</strong> A condition is a
+<code class="docutils literal notranslate"><span class="pre">tmhp.StandardCondition</span></code>; <code class="docutils literal notranslate"><span class="pre">at_part_load</span></code> asks it at a share of the
+nameplate duty, and a list of one’s own replaces the defaults. The <code class="docutils literal notranslate"><span class="pre">inputs</span></code>
+column holds the keyword arguments each row was solved with, so a row can be
+reproduced with <code class="docutils literal notranslate"><span class="pre">hp.analyze_steady(**row[&quot;inputs&quot;])</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">tmhp</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.standard_conditions</span><span class="w"> </span><span class="kn">import</span> <span class="n">AIR_TO_WATER</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">hp</span> <span class="o">=</span> <span class="n">tmhp</span><span class="o">.</span><span class="n">AirSourceHeatPumpBoiler</span><span class="p">()</span>
+</span><span data-line="5"><span class="n">mine</span> <span class="o">=</span> <span class="n">tmhp</span><span class="o">.</span><span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A-2/W45&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">,</span> <span class="n">outdoor_wet_bulb_C</span><span class="o">=-</span><span class="mf">3.0</span><span class="p">)</span>
+</span><span data-line="6"><span class="n">table</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">operating_range</span><span class="p">([</span><span class="n">AIR_TO_WATER</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">at_part_load</span><span class="p">(</span><span class="mf">0.3</span><span class="p">),</span> <span class="n">mine</span><span class="p">])</span>
+</span><span data-line="7"><span class="n">row</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span data-line="8"><span class="nb">print</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Q_request [W]&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;runtime_fraction [-]&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">])</span>
+</span></pre></div>
+</div>
+<p><strong>Quiet, and the model is unchanged.</strong> The solves issue no
+<code class="docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code> (the <code class="docutils literal notranslate"><span class="pre">limit</span></code> column is the text a warning would
+carry) and they do not use up the once-per-model notice of a later
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> call. Each condition is solved on a shallow copy of the
+model, so what a solve writes on the model stays on the copy.</p>
+<p><strong>Why it is a method and not part of construction.</strong> It solves the cycle at
+every condition, which costs far more than building an air-source model.
+Measured on an Apple-silicon Mac, each in a fresh process, median of three
+(2026-11-15; other jobs shared the machine, so read them as orders of
+magnitude):</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 14.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 16.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model (default constructor)</p></th>
+<th class="head"><p>Conditions</p></th>
+<th class="head"><p>Construction</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">operating_range()</span></code></p></th>
+<th class="head"><p>Ratio</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ASHPB (R134a)</p></td>
+<td><p>8</p></td>
+<td><p>5.5 ms</p></td>
+<td><p>0.30 s</p></td>
+<td><p>54 ×</p></td>
+</tr>
+<tr class="row-odd"><td><p>ASHPB, <code class="docutils literal notranslate"><span class="pre">ref=&quot;R32&quot;</span></code></p></td>
+<td><p>8</p></td>
+<td><p>3.9 ms</p></td>
+<td><p>0.53 s</p></td>
+<td><p>135 ×</p></td>
+</tr>
+<tr class="row-even"><td><p>ASHP</p></td>
+<td><p>5</p></td>
+<td><p>2.4 ms</p></td>
+<td><p>0.08 s</p></td>
+<td><p>33 ×</p></td>
+</tr>
+<tr class="row-odd"><td><p>GSHPB</p></td>
+<td><p>3</p></td>
+<td><p>203 ms</p></td>
+<td><p>0.013 s</p></td>
+<td><p>0.06 ×</p></td>
+</tr>
+<tr class="row-even"><td><p>WSHPB</p></td>
+<td><p>2</p></td>
+<td><p>7.2 ms</p></td>
+<td><p>0.009 s</p></td>
+<td><p>1.2 ×</p></td>
+</tr>
+<tr class="row-odd"><td><p>GSHP</p></td>
+<td><p>2</p></td>
+<td><p>193 ms</p></td>
+<td><p>0.013 s</p></td>
+<td><p>0.07 ×</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The air-source models would be built 30 to 140 times more slowly, and a sweep
+that builds a model per point would pay that every time, for a check most
+callers make once.</p>
 </section>
 <section id="what-triggers-each-value">
 <h2>What triggers each value<a class="headerlink" href="#what-triggers-each-value" title="Link to this heading">¶</a></h2>

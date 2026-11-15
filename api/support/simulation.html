@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-15T08:54:42+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:11:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -290,6 +290,33 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.operating_limits.steady_notice"><code class="docutils literal notranslate"><span class="pre">steady_notice()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.operating_limits.summarize_operating_limits"><code class="docutils literal notranslate"><span class="pre">summarize_operating_limits()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.operating_limits.warn_if_operating_limited"><code class="docutils literal notranslate"><span class="pre">warn_if_operating_limited()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-tmhp.standard_conditions">Standard conditions: <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code></a><ul>
+<li><a class="reference internal" href="#conditions">Conditions</a></li>
+<li><a class="reference internal" href="#which-model-input-a-standard-temperature-is">Which model input a standard temperature is</a></li>
+<li><a class="reference internal" href="#silence-and-state">Silence and state</a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.AIR_TO_AIR"><code class="docutils literal notranslate"><span class="pre">AIR_TO_AIR</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.AIR_TO_WATER"><code class="docutils literal notranslate"><span class="pre">AIR_TO_WATER</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.BRINE_TO_AIR"><code class="docutils literal notranslate"><span class="pre">BRINE_TO_AIR</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.BRINE_TO_WATER"><code class="docutils literal notranslate"><span class="pre">BRINE_TO_WATER</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.COLUMNS"><code class="docutils literal notranslate"><span class="pre">COLUMNS</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.LEAVING_WATER_TO_TANK_K"><code class="docutils literal notranslate"><span class="pre">LEAVING_WATER_TO_TANK_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition"><code class="docutils literal notranslate"><span class="pre">StandardCondition</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.name"><code class="docutils literal notranslate">name</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.mode"><code class="docutils literal notranslate">mode</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.source_side_C"><code class="docutils literal notranslate">source_side_C</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.load_side_C"><code class="docutils literal notranslate">load_side_C</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.outdoor_wet_bulb_C"><code class="docutils literal notranslate">outdoor_wet_bulb_C</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.part_load"><code class="docutils literal notranslate">part_load</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.basis"><code class="docutils literal notranslate">basis</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.at_part_load"><code class="docutils literal notranslate">at_part_load()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.outdoor_humidity"><code class="docutils literal notranslate">outdoor_humidity</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.WATER_TO_WATER"><code class="docutils literal notranslate"><span class="pre">WATER_TO_WATER</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.standard_conditions.operating_range"><code class="docutils literal notranslate"><span class="pre">operating_range()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.simulation_summary">Simulation summary tables</a><ul>
@@ -4388,6 +4415,306 @@ lower tank set point of a boiler. Call it on the rows collected from
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-tmhp.standard_conditions">
+<span id="standard-conditions-operating-range"></span><h2>Standard conditions: <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code><a class="headerlink" href="#module-tmhp.standard_conditions" title="Link to this heading">¶</a></h2>
+<p>Standard rating conditions, and whether a model runs at them: <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code>.</p>
+<p>Every system model has a method <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code> that solves a short list
+of standard test conditions with <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> and returns one table row
+per condition: whether the compressor runs there, whether it delivers the
+requested duty or a reduced one, whether it cycles on and off, the
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> of a point it cannot run, its <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>, and the
+limit in words. It answers questions like “does the default R32 ASHPB run at
+A-7/W55?” before a simulation is set up:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">tmhp</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">hp</span> <span class="o">=</span> <span class="n">tmhp</span><span class="o">.</span><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span><span data-line="4"><span class="n">table</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">operating_range</span><span class="p">()</span>
+</span><span data-line="5"><span class="n">table</span><span class="p">[[</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="s2">&quot;meets_request&quot;</span><span class="p">,</span> <span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span> <span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">]]</span>
+</span></pre></div>
+</div>
+<p>The check is a method and not part of construction because it solves the
+cycle at every condition: an air-source model is built in a few milliseconds,
+and solving its standard conditions takes a few tenths of a second, 30 to 140
+times as long (the measured times are in the documentation, <em>failure_reason
+semantics</em>). The constructor’s own
+set-point check (a boiler’s upper tank set point above what its compressor
+envelope reaches) looks at the settings; this method solves operating points.</p>
+<section id="conditions">
+<h3>Conditions<a class="headerlink" href="#conditions" title="Link to this heading">¶</a></h3>
+<p>A condition is a <a class="reference internal" href="#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardCondition</span></code></a>. The default lists below follow the
+condition names and temperatures of EN 14511-2 (test conditions for rating)
+and EN 14825 (part-load conditions for seasonal performance); the brine-to-air
+cooling point follows ISO 13256-1 (ground-loop heat pumps). The name gives the
+source side first and the load side second: <code class="docutils literal notranslate"><span class="pre">A</span></code> outdoor air (dry bulb),
+<code class="docutils literal notranslate"><span class="pre">B</span></code> brine and <code class="docutils literal notranslate"><span class="pre">W</span></code> water entering the source heat exchanger, then <code class="docutils literal notranslate"><span class="pre">W</span></code>
+water leaving the heat pump (boilers) or the indoor air (space heat pumps).
+The default request is the nameplate duty <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code>; any condition can
+be asked at part load (<a class="reference internal" href="#tmhp.standard_conditions.StandardCondition.at_part_load" title="tmhp.standard_conditions.StandardCondition.at_part_load"><code class="xref py py-meth docutils literal notranslate"><span class="pre">StandardCondition.at_part_load()</span></code></a>), and a caller can
+pass a list of their own.</p>
+</section>
+<section id="which-model-input-a-standard-temperature-is">
+<h3>Which model input a standard temperature is<a class="headerlink" href="#which-model-input-a-standard-temperature-is" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Outdoor air</strong> is <code class="docutils literal notranslate"><span class="pre">T0</span></code> (ASHP, ASHPB). The standard’s wet bulb, where it
+gives one, becomes <code class="docutils literal notranslate"><span class="pre">RH_out</span></code> (the frost correction of a heating point).</p></li>
+<li><p><strong>Brine or source water entering the heat pump</strong> is <code class="docutils literal notranslate"><span class="pre">T_source</span></code> (GSHPB,
+WSHPB). GSHP has no such argument: its source is the fluid leaving the
+borefield, the model state <code class="docutils literal notranslate"><span class="pre">T_bhe_f_out</span></code>, which the table sets to the
+condition’s brine temperature on its copy of the model (below). A GSHP with
+ground-flow control (<code class="docutils literal notranslate"><span class="pre">ground_flow_control</span></code> other than constant flow)
+solves its source from the borehole wall instead, so a brine temperature
+cannot be imposed: <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code> refuses it (<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>) rather
+than report a condition it did not solve.</p></li>
+<li><p><strong>Leaving water</strong> (the <code class="docutils literal notranslate"><span class="pre">W35</span></code> of <code class="docutils literal notranslate"><span class="pre">A7/W35</span></code>) is not an input of the boiler
+models: their sink is the tank temperature <code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code>. The table solves
+<code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">=</span> <span class="pre">leaving</span> <span class="pre">water</span> <span class="pre">-</span> <span class="pre">sink_offset_K</span></code> with <code class="docutils literal notranslate"><span class="pre">sink_offset_K</span> <span class="pre">=</span> <span class="pre">2.5</span> <span class="pre">K</span></code>
+(<a class="reference internal" href="#tmhp.standard_conditions.LEAVING_WATER_TO_TANK_K" title="tmhp.standard_conditions.LEAVING_WATER_TO_TANK_K"><code class="xref py py-data docutils literal notranslate"><span class="pre">LEAVING_WATER_TO_TANK_K</span></code></a>), the offset every air-to-water catalogue
+of the validation set states for where the manufacturer measures
+(<code class="docutils literal notranslate"><span class="pre">sink_offset_K</span></code> in <code class="docutils literal notranslate"><span class="pre">validation/catalogs</span></code>). <code class="docutils literal notranslate"><span class="pre">sink_offset_K=0</span></code> solves
+the tank at the named temperature instead – a stricter point, since the
+water around the condenser is then as hot as the standard’s leaving water.
+The table prints both temperatures.</p></li>
+<li><p><strong>Indoor air</strong> is <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code> (ASHP, GSHP).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T0</span></code> of GSHP, GSHPB and WSHPB is the dead state of the exergy columns
+only; the table gives it the source-side temperature.</p></li>
+</ul>
+</section>
+<section id="silence-and-state">
+<h3>Silence and state<a class="headerlink" href="#silence-and-state" title="Link to this heading">¶</a></h3>
+<p>The solves make no <code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code>: what a warning would
+say is the <code class="docutils literal notranslate"><span class="pre">limit</span></code> column, worded by the same generator
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.operating_limits.steady_message()</span></code>). They do not count as the
+“reported once per model and limit” of a later <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> call. Each
+condition is solved on a shallow copy of the model, so what a solve writes
+on the model (GSHPB’s <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> sets <code class="docutils literal notranslate"><span class="pre">T_bhe_f_out_K</span></code> to its
+<code class="docutils literal notranslate"><span class="pre">T_source</span></code>, for one) stays on the copy.</p>
+</section>
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.AIR_TO_AIR">
+<span class="sig-prename descclassname"><span class="pre">tmhp.standard_conditions.</span></span><span class="sig-name descname"><span class="pre">AIR_TO_AIR</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><span class="pre">StandardCondition</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(StandardCondition(name='A7/20',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=7.0,</span> <span class="pre">load_side_C=20.0,</span> <span class="pre">outdoor_wet_bulb_C=6.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">standard</span> <span class="pre">rating</span> <span class="pre">condition,</span> <span class="pre">heating</span> <span class="pre">(indoor</span> <span class="pre">20</span> <span class="pre">°C)'),</span> <span class="pre">StandardCondition(name='A2/20',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=2.0,</span> <span class="pre">load_side_C=20.0,</span> <span class="pre">outdoor_wet_bulb_C=1.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">application</span> <span class="pre">rating</span> <span class="pre">condition;</span> <span class="pre">EN</span> <span class="pre">14825</span> <span class="pre">condition</span> <span class="pre">B</span> <span class="pre">(+2</span> <span class="pre">°C)'),</span> <span class="pre">StandardCondition(name='A-7/20',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=-7.0,</span> <span class="pre">load_side_C=20.0,</span> <span class="pre">outdoor_wet_bulb_C=-8.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">application</span> <span class="pre">rating</span> <span class="pre">condition;</span> <span class="pre">EN</span> <span class="pre">14825</span> <span class="pre">condition</span> <span class="pre">A</span> <span class="pre">(-7</span> <span class="pre">°C)'),</span> <span class="pre">StandardCondition(name='A-15/20',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=-15.0,</span> <span class="pre">load_side_C=20.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">application</span> <span class="pre">rating</span> <span class="pre">condition</span> <span class="pre">(no</span> <span class="pre">wet</span> <span class="pre">bulb</span> <span class="pre">given)'),</span> <span class="pre">StandardCondition(name='A35/27',</span> <span class="pre">mode='cooling',</span> <span class="pre">source_side_C=35.0,</span> <span class="pre">load_side_C=27.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">standard</span> <span class="pre">rating</span> <span class="pre">condition,</span> <span class="pre">cooling:</span> <span class="pre">outdoor</span> <span class="pre">35</span> <span class="pre">°C</span> <span class="pre">(24</span> <span class="pre">°C</span> <span class="pre">wet</span> <span class="pre">bulb),</span> <span class="pre">indoor</span> <span class="pre">27</span> <span class="pre">°C</span> <span class="pre">(19</span> <span class="pre">°C</span> <span class="pre">wet</span> <span class="pre">bulb);</span> <span class="pre">the</span> <span class="pre">model</span> <span class="pre">is</span> <span class="pre">sensible-only,</span> <span class="pre">so</span> <span class="pre">the</span> <span class="pre">wet</span> <span class="pre">bulbs</span> <span class="pre">are</span> <span class="pre">not</span> <span class="pre">inputs'))</span></span><a class="headerlink" href="#tmhp.standard_conditions.AIR_TO_AIR" title="Link to this definition">¶</a></dt>
+<dd><p>outdoor dry bulb / indoor dry bulb.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Air-to-air conditions (ASHP)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.AIR_TO_WATER">
+<span class="sig-prename descclassname"><span class="pre">tmhp.standard_conditions.</span></span><span class="sig-name descname"><span class="pre">AIR_TO_WATER</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><span class="pre">StandardCondition</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(StandardCondition(name='A7/W35',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=7.0,</span> <span class="pre">load_side_C=35.0,</span> <span class="pre">outdoor_wet_bulb_C=6.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">standard</span> <span class="pre">rating</span> <span class="pre">condition,</span> <span class="pre">low-temperature</span> <span class="pre">application</span> <span class="pre">(30/35</span> <span class="pre">°C)'),</span> <span class="pre">StandardCondition(name='A2/W35',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=2.0,</span> <span class="pre">load_side_C=35.0,</span> <span class="pre">outdoor_wet_bulb_C=1.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">application</span> <span class="pre">rating</span> <span class="pre">condition'),</span> <span class="pre">StandardCondition(name='A-7/W35',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=-7.0,</span> <span class="pre">load_side_C=35.0,</span> <span class="pre">outdoor_wet_bulb_C=-8.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">application</span> <span class="pre">rating</span> <span class="pre">condition;</span> <span class="pre">EN</span> <span class="pre">14825</span> <span class="pre">condition</span> <span class="pre">A</span> <span class="pre">(-7</span> <span class="pre">°C)'),</span> <span class="pre">StandardCondition(name='A7/W55',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=7.0,</span> <span class="pre">load_side_C=55.0,</span> <span class="pre">outdoor_wet_bulb_C=6.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">standard</span> <span class="pre">rating</span> <span class="pre">condition,</span> <span class="pre">medium-temperature</span> <span class="pre">application</span> <span class="pre">(47/55</span> <span class="pre">°C)'),</span> <span class="pre">StandardCondition(name='A2/W55',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=2.0,</span> <span class="pre">load_side_C=55.0,</span> <span class="pre">outdoor_wet_bulb_C=1.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">application</span> <span class="pre">rating</span> <span class="pre">condition'),</span> <span class="pre">StandardCondition(name='A-7/W55',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=-7.0,</span> <span class="pre">load_side_C=55.0,</span> <span class="pre">outdoor_wet_bulb_C=-8.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">application</span> <span class="pre">rating</span> <span class="pre">condition;</span> <span class="pre">EN</span> <span class="pre">14825</span> <span class="pre">condition</span> <span class="pre">A</span> <span class="pre">(-7</span> <span class="pre">°C),</span> <span class="pre">fixed</span> <span class="pre">outlet'),</span> <span class="pre">StandardCondition(name='A-10/W55',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=-10.0,</span> <span class="pre">load_side_C=55.0,</span> <span class="pre">outdoor_wet_bulb_C=-11.0,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14825</span> <span class="pre">operation</span> <span class="pre">limit</span> <span class="pre">TOL</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">average</span> <span class="pre">climate</span> <span class="pre">(-10</span> <span class="pre">°C),</span> <span class="pre">fixed</span> <span class="pre">outlet'),</span> <span class="pre">StandardCondition(name='A-15/W55',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=-15.0,</span> <span class="pre">load_side_C=55.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">application</span> <span class="pre">rating</span> <span class="pre">condition</span> <span class="pre">(no</span> <span class="pre">wet</span> <span class="pre">bulb</span> <span class="pre">given)'))</span></span><a class="headerlink" href="#tmhp.standard_conditions.AIR_TO_WATER" title="Link to this definition">¶</a></dt>
+<dd><p>outdoor dry bulb (wet bulb) / leaving water.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Air-to-water heating conditions (ASHPB)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.BRINE_TO_AIR">
+<span class="sig-prename descclassname"><span class="pre">tmhp.standard_conditions.</span></span><span class="sig-name descname"><span class="pre">BRINE_TO_AIR</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><span class="pre">StandardCondition</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(StandardCondition(name='B0/20',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=0.0,</span> <span class="pre">load_side_C=20.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">standard</span> <span class="pre">rating</span> <span class="pre">condition,</span> <span class="pre">brine-to-air</span> <span class="pre">heating;</span> <span class="pre">ISO</span> <span class="pre">13256-1</span> <span class="pre">ground</span> <span class="pre">loop'),</span> <span class="pre">StandardCondition(name='B25/27',</span> <span class="pre">mode='cooling',</span> <span class="pre">source_side_C=25.0,</span> <span class="pre">load_side_C=27.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='ISO</span> <span class="pre">13256-1</span> <span class="pre">ground-loop</span> <span class="pre">cooling</span> <span class="pre">(liquid</span> <span class="pre">entering</span> <span class="pre">25</span> <span class="pre">°C,</span> <span class="pre">indoor</span> <span class="pre">27</span> <span class="pre">°C)'))</span></span><a class="headerlink" href="#tmhp.standard_conditions.BRINE_TO_AIR" title="Link to this definition">¶</a></dt>
+<dd><p>brine leaving the borefield / indoor dry bulb.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Brine-to-air conditions (GSHP)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.BRINE_TO_WATER">
+<span class="sig-prename descclassname"><span class="pre">tmhp.standard_conditions.</span></span><span class="sig-name descname"><span class="pre">BRINE_TO_WATER</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><span class="pre">StandardCondition</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(StandardCondition(name='B0/W35',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=0.0,</span> <span class="pre">load_side_C=35.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">standard</span> <span class="pre">rating</span> <span class="pre">condition,</span> <span class="pre">low-temperature</span> <span class="pre">application</span> <span class="pre">(brine</span> <span class="pre">0/-3</span> <span class="pre">°C)'),</span> <span class="pre">StandardCondition(name='B0/W55',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=0.0,</span> <span class="pre">load_side_C=55.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">standard</span> <span class="pre">rating</span> <span class="pre">condition,</span> <span class="pre">medium-temperature</span> <span class="pre">application</span> <span class="pre">(47/55</span> <span class="pre">°C)'),</span> <span class="pre">StandardCondition(name='B-5/W45',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=-5.0,</span> <span class="pre">load_side_C=45.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">application</span> <span class="pre">rating</span> <span class="pre">condition'))</span></span><a class="headerlink" href="#tmhp.standard_conditions.BRINE_TO_WATER" title="Link to this definition">¶</a></dt>
+<dd><p>brine entering / leaving water.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Brine-to-water heating conditions (GSHPB)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.COLUMNS">
+<span class="sig-prename descclassname"><span class="pre">tmhp.standard_conditions.</span></span><span class="sig-name descname"><span class="pre">COLUMNS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('condition',</span> <span class="pre">'mode',</span> <span class="pre">'basis',</span> <span class="pre">'part_load</span> <span class="pre">[-]',</span> <span class="pre">'T_source_side</span> <span class="pre">[°C]',</span> <span class="pre">'T_load_side</span> <span class="pre">[°C]',</span> <span class="pre">'T_tank_w</span> <span class="pre">[°C]',</span> <span class="pre">'RH_out</span> <span class="pre">[-]',</span> <span class="pre">'inputs',</span> <span class="pre">'runs',</span> <span class="pre">'meets_request',</span> <span class="pre">'Q_request</span> <span class="pre">[W]',</span> <span class="pre">'Q_delivered</span> <span class="pre">[W]',</span> <span class="pre">'Q_max</span> <span class="pre">[W]',</span> <span class="pre">'Q_min</span> <span class="pre">[W]',</span> <span class="pre">'capacity_clamped',</span> <span class="pre">'capacity_binding',</span> <span class="pre">'runtime_fraction</span> <span class="pre">[-]',</span> <span class="pre">'cop_sys</span> <span class="pre">[-]',</span> <span class="pre">'failure_reason',</span> <span class="pre">'failure_detail',</span> <span class="pre">'limit')</span></span><a class="headerlink" href="#tmhp.standard_conditions.COLUMNS" title="Link to this definition">¶</a></dt>
+<dd><p>Columns of an <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code> table, the same for every family.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.LEAVING_WATER_TO_TANK_K">
+<span class="sig-prename descclassname"><span class="pre">tmhp.standard_conditions.</span></span><span class="sig-name descname"><span class="pre">LEAVING_WATER_TO_TANK_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.5</span></span><a class="headerlink" href="#tmhp.standard_conditions.LEAVING_WATER_TO_TANK_K" title="Link to this definition">¶</a></dt>
+<dd><p>How far a boiler’s tank temperature sits below the leaving water of a standard name [K].</p>
+<p>The value every air-to-water catalogue of the validation set gives as
+<code class="docutils literal notranslate"><span class="pre">sink_offset_K</span></code> (the validation harness solves <code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code> at the
+catalogue’s leaving water less this offset).</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.standard_conditions.</span></span><span class="sig-name descname"><span class="pre">StandardCondition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_side_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_side_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdoor_wet_bulb_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">part_load</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/standard_conditions.html#StandardCondition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>One test condition: temperatures, mode and requested part load.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Condition name in the standards’ notation, source side first:
+<code class="docutils literal notranslate"><span class="pre">&quot;A-7/W55&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;B0/W35&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;A7/20&quot;</span></code>.</p></li>
+<li><p><strong>mode</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Heating for every boiler condition; the space heat pumps have both.</p></li>
+<li><p><strong>source_side_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Outdoor-air dry bulb (<code class="docutils literal notranslate"><span class="pre">A</span></code>), or brine or water entering the source
+heat exchanger (<code class="docutils literal notranslate"><span class="pre">B</span></code>, <code class="docutils literal notranslate"><span class="pre">W</span></code>) [°C]. In cooling it is the side the
+heat is rejected to.</p></li>
+<li><p><strong>load_side_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Water leaving the heat pump (boilers; the tank is solved
+<code class="docutils literal notranslate"><span class="pre">sink_offset_K</span></code> below it) or the indoor air (space heat pumps) [°C].</p></li>
+<li><p><strong>outdoor_wet_bulb_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Outdoor wet bulb [°C] of an air-source heating condition, passed to
+the model as <code class="docutils literal notranslate"><span class="pre">RH_out</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code>: the standard gives none, or the
+model does not use it; the model’s default humidity applies.</p></li>
+<li><p><strong>part_load</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Requested duty as a share of the nameplate <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> (&gt; 0).</p></li>
+<li><p><strong>basis</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Where the condition comes from.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.mode">
+<span class="sig-name descname"><span class="pre">mode</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.mode" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.source_side_C">
+<span class="sig-name descname"><span class="pre">source_side_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.source_side_C" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.load_side_C">
+<span class="sig-name descname"><span class="pre">load_side_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.load_side_C" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.outdoor_wet_bulb_C">
+<span class="sig-name descname"><span class="pre">outdoor_wet_bulb_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.outdoor_wet_bulb_C" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.part_load">
+<span class="sig-name descname"><span class="pre">part_load</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.0</span></span><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.part_load" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.basis">
+<span class="sig-name descname"><span class="pre">basis</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.basis" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.at_part_load">
+<span class="sig-name descname"><span class="pre">at_part_load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">part_load</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/standard_conditions.html#StandardCondition.at_part_load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.at_part_load" title="Link to this definition">¶</a></dt>
+<dd><p>The same condition with the request at <code class="docutils literal notranslate"><span class="pre">part_load</span></code> of the nameplate duty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>part_load</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardCondition</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.outdoor_humidity">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">outdoor_humidity</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.outdoor_humidity" title="Link to this definition">¶</a></dt>
+<dd><p>Outdoor relative humidity (0-1) of the dry and wet bulb at 101325 Pa; <code class="docutils literal notranslate"><span class="pre">None</span></code> without a wet bulb.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.StandardCondition.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_side_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_side_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdoor_wet_bulb_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">part_load</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.standard_conditions.StandardCondition.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>mode</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>source_side_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>load_side_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>outdoor_wet_bulb_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>part_load</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>basis</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.WATER_TO_WATER">
+<span class="sig-prename descclassname"><span class="pre">tmhp.standard_conditions.</span></span><span class="sig-name descname"><span class="pre">WATER_TO_WATER</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><span class="pre">StandardCondition</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(StandardCondition(name='W10/W35',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=10.0,</span> <span class="pre">load_side_C=35.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">standard</span> <span class="pre">rating</span> <span class="pre">condition,</span> <span class="pre">low-temperature</span> <span class="pre">application</span> <span class="pre">(10/7</span> <span class="pre">°C)'),</span> <span class="pre">StandardCondition(name='W10/W55',</span> <span class="pre">mode='heating',</span> <span class="pre">source_side_C=10.0,</span> <span class="pre">load_side_C=55.0,</span> <span class="pre">outdoor_wet_bulb_C=None,</span> <span class="pre">part_load=1.0,</span> <span class="pre">basis='EN</span> <span class="pre">14511-2</span> <span class="pre">standard</span> <span class="pre">rating</span> <span class="pre">condition,</span> <span class="pre">medium-temperature</span> <span class="pre">application</span> <span class="pre">(47/55</span> <span class="pre">°C)'))</span></span><a class="headerlink" href="#tmhp.standard_conditions.WATER_TO_WATER" title="Link to this definition">¶</a></dt>
+<dd><p>source water entering / leaving water.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Water-to-water heating conditions (WSHPB)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.standard_conditions.operating_range">
+<span class="sig-prename descclassname"><span class="pre">tmhp.standard_conditions.</span></span><span class="sig-name descname"><span class="pre">operating_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">family</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sink_offset_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/standard_conditions.html#operating_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.standard_conditions.operating_range" title="Link to this definition">¶</a></dt>
+<dd><p>Solve rating conditions with <code class="docutils literal notranslate"><span class="pre">model.analyze_steady</span></code> and tabulate whether the machine runs at each.</p>
+<p>The implementation behind every model’s <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code> method;
+call the method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – A system model (ASHP, GSHP, ASHPB, GSHPB, WSHPB).</p></li>
+<li><p><strong>family</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The model’s kind, which selects the default conditions and how a
+condition becomes <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> arguments.</p></li>
+<li><p><strong>conditions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<a class="reference internal" href="#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardCondition</span></code></a>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Conditions to solve; the family’s default list
+(<a class="reference internal" href="#tmhp.standard_conditions.AIR_TO_WATER" title="tmhp.standard_conditions.AIR_TO_WATER"><code class="xref py py-data docutils literal notranslate"><span class="pre">AIR_TO_WATER</span></code></a>, …) when omitted.</p></li>
+<li><p><strong>sink_offset_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Boilers: the tank is solved this far below the condition’s leaving
+water [K] (<a class="reference internal" href="#tmhp.standard_conditions.LEAVING_WATER_TO_TANK_K" title="tmhp.standard_conditions.LEAVING_WATER_TO_TANK_K"><code class="xref py py-data docutils literal notranslate"><span class="pre">LEAVING_WATER_TO_TANK_K</span></code></a>; 0 solves the tank at the
+named temperature). Not used by the space heat pumps.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>One row per condition, in order, with the columns <a class="reference internal" href="#tmhp.standard_conditions.COLUMNS" title="tmhp.standard_conditions.COLUMNS"><code class="xref py py-data docutils literal notranslate"><span class="pre">COLUMNS</span></code></a>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">condition</span></code>, <code class="docutils literal notranslate"><span class="pre">mode</span></code>, <code class="docutils literal notranslate"><span class="pre">basis</span></code>, <code class="docutils literal notranslate"><span class="pre">part_load</span> <span class="pre">[-]</span></code>: the condition.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_source_side</span> <span class="pre">[°C]</span></code>, <code class="docutils literal notranslate"><span class="pre">T_load_side</span> <span class="pre">[°C]</span></code>: its temperatures as
+named (leaving water for a boiler, indoor air for a space heat pump).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>: the tank temperature a boiler was solved at
+(<code class="docutils literal notranslate"><span class="pre">T_load_side</span> <span class="pre">-</span> <span class="pre">sink_offset_K</span></code>; NaN for a space heat pump).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RH_out</span> <span class="pre">[-]</span></code>: the outdoor humidity passed (NaN: the model default).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inputs</span></code>: the keyword arguments given to <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>
+(on a shallow copy of the model; GSHP: with <code class="docutils literal notranslate"><span class="pre">T_bhe_f_out</span></code> at
+<code class="docutils literal notranslate"><span class="pre">T_source_side</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runs</span></code>: the compressor runs (<code class="docutils literal notranslate"><span class="pre">hp_is_on</span></code> and <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span>
+<span class="pre">&quot;none&quot;</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">meets_request</span></code>: it runs and delivers the request (within 0.1 %).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_delivered</span> <span class="pre">[W]</span></code>: requested and delivered duty,
+signed as the model signs them (a space heat pump’s heating is
+below zero); <code class="docutils literal notranslate"><span class="pre">Q_delivered</span></code> is <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code> or
+<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> of the row.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span></code>,
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code>, <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>, <code class="docutils literal notranslate"><span class="pre">failure_detail</span></code>: the result keys of the row
+(see <em>Result keys</em>). <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> is a reduced
+duty, <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> an on/off mean (<code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> below 1).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">limit</span></code>: what an <code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code> would say
+about the point – the call, the limit in words with its value, and
+what removes it – or <code class="docutils literal notranslate"><span class="pre">None</span></code> when the point meets its request or
+is an on/off mean.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>

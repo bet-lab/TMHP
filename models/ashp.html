@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-11-15T08:54:42+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:11:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -200,6 +200,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="docutils literal notranslate">analyze_steady()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_dynamic"><code class="docutils literal notranslate">analyze_dynamic()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.postprocess_exergy"><code class="docutils literal notranslate">postprocess_exergy()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.operating_range"><code class="docutils literal notranslate">operating_range()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1409,6 +1410,32 @@ with adaptations for indoor-unit air exchange.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump.AirSourceHeatPump.operating_range">
+<span class="sig-name descname"><span class="pre">operating_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.operating_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.operating_range" title="Link to this definition">¶</a></dt>
+<dd><p>Solve standard rating conditions and tabulate whether the heat pump runs at each.</p>
+<p>A check to call before a simulation; it is not made at construction
+because it solves the cycle at every condition. One row per
+condition: whether the compressor runs, delivers the request or a
+reduced duty, or cycles on and off, its <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>, and the limit in words. No
+<code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code> is issued and the model is not
+changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>conditions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardCondition</span></code></a>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Conditions to solve; <a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.AIR_TO_AIR" title="tmhp.standard_conditions.AIR_TO_AIR"><code class="xref py py-data docutils literal notranslate"><span class="pre">tmhp.standard_conditions.AIR_TO_AIR</span></code></a>
+(A7/20 … A-15/20 and A35/27 at the nameplate duty) when omitted.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Columns <a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.COLUMNS" title="tmhp.standard_conditions.COLUMNS"><code class="xref py py-data docutils literal notranslate"><span class="pre">tmhp.standard_conditions.COLUMNS</span></code></a>; see
+<a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.operating_range" title="tmhp.standard_conditions.operating_range"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.standard_conditions.operating_range()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>

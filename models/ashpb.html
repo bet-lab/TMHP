@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-15T08:54:42+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:11:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -226,6 +226,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.step"><code class="docutils literal notranslate">step()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_dynamic"><code class="docutils literal notranslate">analyze_dynamic()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.postprocess_exergy"><code class="docutils literal notranslate">postprocess_exergy()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.operating_range"><code class="docutils literal notranslate">operating_range()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#usage">Usage</a></li>
@@ -1847,6 +1848,38 @@ limit and what they left unserved. The totals are in
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>DataFrame with exergy columns appended.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.operating_range">
+<span class="sig-name descname"><span class="pre">operating_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sink_offset_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump_boiler.html#AirSourceHeatPumpBoiler.operating_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.operating_range" title="Link to this definition">¶</a></dt>
+<dd><p>Solve standard rating conditions and tabulate whether the heat pump runs at each.</p>
+<p>A check to call before a simulation; it is not made at construction
+because it solves the cycle at every condition. One row per
+condition: whether the compressor runs, delivers the request or a
+reduced duty, or cycles on and off, its <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>, and the limit in words. No
+<code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code> is issued and the model is not
+changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conditions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.StandardCondition" title="tmhp.standard_conditions.StandardCondition"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardCondition</span></code></a>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Conditions to solve; <a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.AIR_TO_WATER" title="tmhp.standard_conditions.AIR_TO_WATER"><code class="xref py py-data docutils literal notranslate"><span class="pre">tmhp.standard_conditions.AIR_TO_WATER</span></code></a>
+(A7/W35 … A-15/W55 at the nameplate duty) when omitted.</p></li>
+<li><p><strong>sink_offset_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The tank is solved this far below each condition’s leaving water
+[K]: <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">=</span> <span class="pre">leaving</span> <span class="pre">water</span> <span class="pre">-</span> <span class="pre">sink_offset_K</span></code>. The default
+2.5 K is the offset of the validation catalogues; 0 solves the
+tank at the named temperature.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Columns <a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.COLUMNS" title="tmhp.standard_conditions.COLUMNS"><code class="xref py py-data docutils literal notranslate"><span class="pre">tmhp.standard_conditions.COLUMNS</span></code></a>; see
+<a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.operating_range" title="tmhp.standard_conditions.operating_range"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.standard_conditions.operating_range()</span></code></a>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>

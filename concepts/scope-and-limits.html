@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP aims at a useful accuracy from a nameplate ( Minimal input), not at reproducing one machine from its drawings. That bargain has a price: some things are outside the models and are refused, and..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:11:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -519,7 +519,8 @@ a source liquid that would freeze – is the off state or a reduced
 duty, not an error</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> / <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> on the row and one
 <code class="docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code> per steady call or dynamic run
-(<a class="reference internal" href="failure-reason-semantics.html#operating-limit-warning"><span class="std std-ref">Being told: OperatingLimitWarning</span></a>)</p></td>
+(<a class="reference internal" href="failure-reason-semantics.html#operating-limit-warning"><span class="std std-ref">Being told: OperatingLimitWarning</span></a>); <code class="docutils literal notranslate"><span class="pre">operating_range()</span></code> for the
+standard test conditions (<a class="reference internal" href="failure-reason-semantics.html#operating-range"><span class="std std-ref">Checking the standard conditions first: operating_range()</span></a>)</p></td>
 </tr>
 <tr class="row-even"><td><p>Time step and thermostat</p></td>
 <td><p>The thermostat switches inside a step, but one cycle is solved per
@@ -553,7 +554,10 @@ same things once, in words: at construction for a set point the compressor
 envelope does not reach, from <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> for a point that does not run
 or runs below the request, and at the end of <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> with the
 steps stopped or limited and what they left unserved
-(<code class="docutils literal notranslate"><span class="pre">df.attrs[&quot;operating_limits&quot;]</span></code>; <a class="reference internal" href="failure-reason-semantics.html#operating-limit-warning"><span class="std std-ref">Being told: OperatingLimitWarning</span></a>).</p>
+(<code class="docutils literal notranslate"><span class="pre">df.attrs[&quot;operating_limits&quot;]</span></code>; <a class="reference internal" href="failure-reason-semantics.html#operating-limit-warning"><span class="std std-ref">Being told: OperatingLimitWarning</span></a>). Before a
+simulation, <code class="docutils literal notranslate"><span class="pre">hp.operating_range()</span></code> solves the standard test conditions of
+the machine’s kind and says at which it runs, at which it runs reduced, and
+what stops the rest (<a class="reference internal" href="failure-reason-semantics.html#operating-range"><span class="std std-ref">Checking the standard conditions first: operating_range()</span></a>).</p>
 </section>
 </section>
 

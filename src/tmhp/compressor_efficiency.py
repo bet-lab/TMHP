@@ -260,21 +260,29 @@ def reject_invalid_efficiency(function: _F) -> _F:
 # not to the call, and ``inspect.signature`` costs about ten times the
 # polynomial it guards; a cycle evaluation asks for some twenty efficiencies.
 # The answer is decided once per model and kept in a weak-key dictionary: an
-# entry goes when its model is collected (so a new object at a reused address
-# is inspected afresh), and reassigning ``eta_cmp_*`` brings a new key. A model
-# that cannot be a weak key (a ``__slots__`` instance without ``__weakref__``,
-# an unhashable one) is inspected on every call, as before.
+# entry goes when its model is collected, and reassigning ``eta_cmp_*`` brings
+# a new key. The dictionary finds keys by equality, so each entry also records
+# the identity of the object it was decided for, and an answer is used only for
+# that object: two models that compare equal (a user ``__eq__``) keep their own
+# call forms. The recorded identity cannot be taken over by a new object while
+# its key is alive, and the entry dies with the key. A model that cannot be a
+# weak key (a ``__slots__`` instance without ``__weakref__``, an unhashable
+# one, one whose hash or equality raises) is inspected on every call, as before.
 
-#: model -> whether it is called as ``model(PR, rps)`` (else ``model(PR)``).
-_TAKES_SPEED: weakref.WeakKeyDictionary[Callable, bool] = weakref.WeakKeyDictionary()
+#: model -> (``id`` of the model the answer was decided for, whether it is
+#: called as ``model(PR, rps)`` -- else ``model(PR)``).
+_TAKES_SPEED: weakref.WeakKeyDictionary[Callable, tuple[int, bool]] = weakref.WeakKeyDictionary()
 
 
 def _takes_speed(model: Callable) -> bool:
     """Whether ``model`` binds ``(PR, rps)``; else it must bind ``(PR)`` (TypeError otherwise)."""
     try:
-        return _TAKES_SPEED[model]
-    except (KeyError, TypeError):  # TypeError: a model that is not hashable or weakly referenceable
-        pass
+        entry = _TAKES_SPEED.get(model)
+    except Exception:  # not hashable, not weakly referenceable, or a hash / equality that raises
+        entry = None
+    else:
+        if entry is not None and entry[0] == id(model):
+            return entry[1]
     signature = inspect.signature(model)
     try:
         signature.bind(1.0, 1.0)
@@ -283,8 +291,9 @@ def _takes_speed(model: Callable) -> bool:
         takes_speed = False
     else:
         takes_speed = True
-    with suppress(TypeError):
-        _TAKES_SPEED[model] = takes_speed
+    if entry is None:  # an equal key of another object keeps its own entry
+        with suppress(Exception):
+            _TAKES_SPEED.setdefault(model, (id(model), takes_speed))
     return takes_speed
 
 

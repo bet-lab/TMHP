@@ -9,7 +9,8 @@ wrong:
 
 * a model reassigned after construction (``model.eta_cmp_isen = f``),
   including to the other call form;
-* a new model at the address of a collected one;
+* a new model at the address of a collected one, and two models that compare
+  equal but take different arguments (the dictionary finds keys by equality);
 * models that cannot be weak keys (``__slots__`` instances, unhashable
   callables) and the less obvious callables (builtins, ``functools.partial``
   with a keyword-bound speed, bound methods);
@@ -167,6 +168,62 @@ def test_a_model_that_fails_the_binding_is_not_cached():
         with pytest.raises(TypeError):
             _eval_eff(takes_nothing, 3.0, 40.0)
     assert takes_nothing not in compressor_efficiency._TAKES_SPEED
+
+
+class _AllEqual:
+    """Every instance compares equal and hashes alike, whatever its call form."""
+
+    def __eq__(self, other):
+        return isinstance(other, _AllEqual)
+
+    def __hash__(self):
+        return 7
+
+
+class _AllEqualPR(_AllEqual):
+    def __call__(self, pr):
+        return 0.61
+
+
+class _AllEqualPRSpeed(_AllEqual):
+    def __call__(self, pr, rps):
+        return 0.5 + 0.002 * rps
+
+
+def test_models_that_compare_equal_keep_their_own_call_forms(counted_signatures):
+    # The cache finds keys by equality; an answer must still belong to the object.
+    pr_only, pr_speed = _AllEqualPR(), _AllEqualPRSpeed()
+    assert pr_only == pr_speed and hash(pr_only) == hash(pr_speed)
+    for _ in range(3):
+        assert _eval_eff(pr_only, 3.0, 40.0) == 0.61
+        assert _eval_eff(pr_speed, 3.0, 40.0) == 0.5 + 0.002 * 40.0
+    for _ in range(2):
+        assert compressor_efficiency._takes_speed(pr_only) is False
+        assert compressor_efficiency._takes_speed(pr_speed) is True
+    # The first object keeps its cached answer; the equal one is inspected every time.
+    assert sum(obj is pr_only for obj in counted_signatures) == 1
+    assert sum(obj is pr_speed for obj in counted_signatures) == 5
+
+
+def test_equal_models_through_the_solver_evaluator():
+    pr_only, pr_speed = _AllEqualPR(), _AllEqualPRSpeed()
+    assert _opt_utils.efficiency_evaluator(pr_only)(3.0, 40.0) == 0.61
+    assert _opt_utils.efficiency_evaluator(pr_speed)(3.0, 40.0) == 0.5 + 0.002 * 40.0
+
+
+class _HashRaises:
+    def __hash__(self):
+        raise ValueError("no hash")
+
+    def __call__(self, pr, rps):
+        return 0.55
+
+
+def test_a_model_whose_hash_raises_is_evaluated_as_before(counted_signatures):
+    model = _HashRaises()
+    for _ in range(2):
+        assert _eval_eff(model, 3.0, 40.0) == 0.55
+    assert counted_signatures == [model, model]
 
 
 # ---------------------------------------------------------------------------

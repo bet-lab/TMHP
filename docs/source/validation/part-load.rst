@@ -97,9 +97,14 @@ Panel (a) — fixed temperatures
 
 Hold the source and sink where they are and take load away. With the shipped
 compressor efficiencies the 9 kW air-to-water model gains 3.3 % between full
-load and the speed floor (reached at 44 % load) at 7 °C air / 35 °C water,
-1.2 % at 7/45 °C, and stays flat at −7/45 °C (COP 2.73 at full load, 2.77 from
-75 % load down to the floor at 33 %). Two effects set those shapes: the heat
+load and the speed floor (reached at 44 % load) at 7 °C air / 35 °C water, and
+1.2 % at 7/45 °C. At −7/45 °C it gains 16.8 % (COP 2.28 at full load, 2.41 at
+75 % load, 2.66 at the floor, reached at 30 % load). That curve carries the
+frost and defrost adjustment, which is on by default (:ref:`ashpb-frost`) and
+follows the load on the outdoor coil (:ref:`frost at part load
+<ashp-frost-load>`): it costs the most at full load and eases as the load
+falls, and that easing is the rise. Without it (``defrost=False``) the same
+curve is close to flat. Two effects set the frost-free shapes: the heat
 exchangers grow large relative to the duty, which raises COP, and the
 compressor loses efficiency at low speed, which takes it back. Their balance
 is measured by ``validation/fixed_boundary_plr/decompose`` on the running
@@ -147,7 +152,7 @@ below its peak, the compressor speed equals ``rps_min``.
     They are drawn hollow in the figures and excluded from every trend verdict.
 
     At −7 °C air and 45 °C water the requests below the floor resolve to the
-    minimum-capacity point as well (COP 2.77 at the floor, reached at 33 %
+    minimum-capacity point as well (COP 2.66 at the floor, reached at 30 %
     load). They used to fail with ``hx_not_converged``: the outdoor-approach
     search probed only the ends of its range and missed the narrow band of
     approaches the fan can serve, which is now solved from the coil's capacity
@@ -186,14 +191,14 @@ carries there (:ref:`ashpb-frost`).
     * - C
       - +7 °C / 27 °C
       - 2.10 kW
-      - 4.25 kW
-      - 5.88
+      - 4.26 kW
+      - 5.89
       - 6.16 (5.37–6.82)
     * - D
       - +12 °C / 24 °C
       - 0.90 kW
-      - 4.84 kW
-      - 7.55
+      - 4.85 kW
+      - 7.56
       - 7.88 (6.40–8.97)
 
 The model sits between the 75th and 90th percentiles at A, at the median at B
@@ -214,7 +219,7 @@ adjusted to move any of this; the load term has none.
 
     Look at the *delivered* column. At points B, C and D the modelled machine
     cannot modulate down to the required load and delivers more than the test
-    point asks for — 4.84 kW where 0.90 kW is required. (At B the 3.45 kW is
+    point asks for — 4.85 kW where 0.90 kW is required. (At B the 3.45 kW is
     the mean over frosting and defrost of a machine that delivers 3.72 kW
     frost-free.)
 
@@ -278,7 +283,7 @@ Reproduce
 .. code-block:: bash
 
     uv run python -m validation.extraction.keymark_declared     # the certified band
-    uv run python -m scripts.validation.part_load_figure        # both panels
+    uv run python -m scripts.validation.part_load_figure        # both panels, and validation/data/part_load_figure/
     uv run python -m validation.fixed_boundary_plr.sweep        # internal-state sweep, both models
     uv run python -m validation.fixed_boundary_plr.figure
 

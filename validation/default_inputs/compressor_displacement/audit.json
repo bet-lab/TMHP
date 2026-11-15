@@ -1,0 +1,317 @@
+{
+  "records": 155,
+  "eligible": 139,
+  "excluded": [
+    {
+      "record_id": "lg:ARI60:DAT134MC",
+      "model_id": "DAT134MC",
+      "source_pdf_page": 6,
+      "exclusion_reason": "manufacturer_W_and_Btu_h_capacity_columns_differ_over_2pct"
+    },
+    {
+      "record_id": "compressor:7SS064EA*:cooling:N-TEC:50",
+      "model_id": "7SS064EA*",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "compressor:7RS102EA*:cooling:N-TEC:50",
+      "model_id": "7RS102EA*",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "compressor:7RS132EA*:cooling:N-TEC:50",
+      "model_id": "7RS132EA*",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "compressor:7PS192EA*:cooling:N-TEC:50",
+      "model_id": "7PS192EA*",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "compressor:7KS280EA*:cooling:N-TEC:50",
+      "model_id": "7KS280EA*",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "compressor:7VS355EA*:cooling:N-TEC:50",
+      "model_id": "7VS355EA*",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5RS072EBA21:1715",
+      "model_id": "5RS072EBA21",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5RS092EBA21:2160",
+      "model_id": "5RS092EBA21",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5PS088EA:2070",
+      "model_id": "5PS088EA",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5PS096EA:2285",
+      "model_id": "5PS096EA",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5KS170EBA21:4175",
+      "model_id": "5KS170EBA21",
+      "source_pdf_page": 16,
+      "exclusion_reason": "under development (☆) in the source table"
+    },
+    {
+      "record_id": "sci:ARI60:SVB220FBAMT",
+      "model_id": "SVB220FBAMT",
+      "source_pdf_page": 12,
+      "exclusion_reason": "400 V variant: SVB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept"
+    },
+    {
+      "record_id": "sci:ARI60:TVB306FPNMT",
+      "model_id": "TVB306FPNMT",
+      "source_pdf_page": 12,
+      "exclusion_reason": "400 V variant: TVB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept"
+    },
+    {
+      "record_id": "sci:ASRET60:SNB220FBAMT",
+      "model_id": "SNB220FBAMT",
+      "source_pdf_page": 14,
+      "exclusion_reason": "400 V variant: SNB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept"
+    },
+    {
+      "record_id": "sci:ASRET60:TNB306FPNMT",
+      "model_id": "TNB306FPNMT",
+      "source_pdf_page": 14,
+      "exclusion_reason": "400 V variant: TNB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept"
+    }
+  ],
+  "errata_applied": [
+    {
+      "record_id": "compressor:5RS066EA*:cooling:N-TEC:50",
+      "field": "capacity_W",
+      "from_value": "1570",
+      "to_value": "1550",
+      "evidence": "PANASONIC-CGZ-2025 PDF p10 (printed p18), R410A 220V-240V 50Hz table, 150 dpi render",
+      "reason": "Transcription slip; printed W 1550 (BTU/h 5289 = 1550 W)",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "compressor:5RS086EA*:cooling:N-TEC:50",
+      "field": "capacity_W",
+      "from_value": "2010",
+      "to_value": "2020",
+      "evidence": "PANASONIC-CGZ-2025 PDF p10 (printed p18), R410A 220V-240V 50Hz table, 150 dpi render",
+      "reason": "Transcription slip; printed W 2020 (BTU/h 6892 = 2020 W)",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "compressor:5KS170EA*:cooling:N-TEC:50",
+      "field": "capacity_W",
+      "from_value": "4039",
+      "to_value": "4090",
+      "evidence": "PANASONIC-CGZ-2025 PDF p10 (printed p18), R410A 220V-240V 50Hz table, 150 dpi render",
+      "reason": "Transcription slip; printed W 4090 (BTU/h 13955 = 4090 W)",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "compressor:7SS064EA*:cooling:N-TEC:50",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "compressor:7RS102EA*:cooling:N-TEC:50",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "compressor:7RS132EA*:cooling:N-TEC:50",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "compressor:7PS192EA*:cooling:N-TEC:50",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "compressor:7KS280EA*:cooling:N-TEC:50",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "compressor:7VS355EA*:cooling:N-TEC:50",
+      "field": "displacement_text",
+      "from_value": "35.5",
+      "to_value": "35.6",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), R290 220-240V 50Hz table, row 7VS355EA*",
+      "reason": "Transcription slip: 35.5 belongs to the R454C row GVS355EAA41 on the same page",
+      "date": "2026-10-26"
+    },
+    {
+      "record_id": "compressor:7VS355EA*:cooling:N-TEC:50",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5RS072EBA21:1715",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5RS092EBA21:2160",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5PS088EA:2070",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5PS096EA:2285",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "panasonic:CGZ2025-p30:5KS170EBA21:4175",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "under development (☆) in the source table",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), COMPRESSOR FOR DEHUMIDIFIER, 220V-240V 50Hz tables; footnote p29: '☆ Under Development'",
+      "reason": "Development models print provisional specifications; README boundary 'development marks are not mixed'",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "sci:ARI60:SVB220FBAMT",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "400 V variant: SVB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept",
+      "evidence": "SCI-ROTARY-2026 p12/p14 400 V block",
+      "reason": "Voltage variants are not independent observations (README: same model voltage variants are kept apart)",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "sci:ARI60:TVB306FPNMT",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "400 V variant: TVB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept",
+      "evidence": "SCI-ROTARY-2026 p12/p14 400 V block",
+      "reason": "Voltage variants are not independent observations (README: same model voltage variants are kept apart)",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "sci:ASRET60:SNB220FBAMT",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "400 V variant: SNB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept",
+      "evidence": "SCI-ROTARY-2026 p12/p14 400 V block",
+      "reason": "Voltage variants are not independent observations (README: same model voltage variants are kept apart)",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "sci:ASRET60:TNB306FPNMT",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "400 V variant: TNB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept",
+      "evidence": "SCI-ROTARY-2026 p12/p14 400 V block",
+      "reason": "Voltage variants are not independent observations (README: same model voltage variants are kept apart)",
+      "date": "2026-11-14"
+    }
+  ],
+  "group_count": 7,
+  "normalized_bases": {
+    "rotary_single_fixed_50Hz": {
+      "n": 98,
+      "manufacturers": [
+        "Highly",
+        "LG",
+        "Panasonic"
+      ],
+      "eta_vol_rps_per_f": 0.8547779182124379,
+      "meets_shipping_gate": true
+    },
+    "rotary_twin_inverter_60rps": {
+      "n": 41,
+      "manufacturers": [
+        "LG",
+        "Mitsubishi Electric SCI"
+      ],
+      "eta_vol_rps_per_f": 0.8870095871327589,
+      "meets_shipping_gate": true
+    }
+  },
+  "evidence_type_counts": {
+    "explicit_numeric_geometry": 97,
+    "manufacturer_nomenclature_decoded": 58
+  },
+  "source_count": 12,
+  "data_sha256": "83a20ddc8f707f1beb4e3938e4f9aba0205fc38e6dd7c4978454dcd0f7882351",
+  "is_latest_release": false,
+  "latest_release": "displacement-v2026-11-14",
+  "all_checks_passed": true,
+  "limitations": [
+    "LG ambient temperature unspecified; refrigerant-side temperature boundaries and frequency/type are matched, not every environmental variable.",
+    "Variable-speed 60Hz means published test/drive-frequency basis, not a measured shaft speed.",
+    "LG variable-speed frequency is a cross-document manufacturer default from the current product page, not directly printed on each 2024 capacity row.",
+    "Per-protocol fits are diagnostic. The shipped relation pools refrigerants and rating points within one compressor basis by dividing out rho_1*dh (CoolProp); fixed-speed 50 Hz and 60 rps inverter bases are never pooled.",
+    "eta_vol*rps assumes the volumetric efficiency of a basis does not depend on refrigerant or rating point; refrigerant hold-out error measures how far that holds.",
+    "SCI's numeric definitions of 'ARI' and 'ASRE-T' come from its 2016 edition (distributor-hosted, byte-identical held copy); the 2026 official edition prints only the labels.",
+    "GMCC 2026 was reviewed and not used: its inverter tables do not state which of R32/R410A the printed capacity refers to.",
+    "Only LG provides the near-15 kW matched R32/R410A comparison; multi-manufacturer coverage is strongest in the lower-capacity fixed50 protocol.",
+    "Highly web snapshots are browser-generated evidence of official HTML, not original manufacturer PDFs."
+  ]
+}

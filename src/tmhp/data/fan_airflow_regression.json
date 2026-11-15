@@ -1,0 +1,348 @@
+{
+  "version": "fan-airflow-v2026-11-14f",
+  "data_sha256": "435ecd76566e4883dc5044f66cb2846a1021bcda88101184d85a739ac11345b8",
+  "law_capacity_unit": "kW",
+  "output_unit": "m3/s",
+  "meaning": "largest published fan airflow (High/Max step, or the single printed outdoor value)",
+  "shipping_gate": {
+    "families": 3,
+    "manufacturers": 2
+  },
+  "strata": {
+    "airflow|cooling|indoor|floor_standing": {
+      "selected_law": {
+        "kind": "proportional",
+        "a": 0.04250598241909443
+      },
+      "capacity_range_W": [
+        2400.0,
+        13600.0
+      ],
+      "n": 26,
+      "n_families": 7,
+      "manufacturers": [
+        "Daikin",
+        "Fujitsu",
+        "Mitsubishi Electric"
+      ],
+      "nested_family_cv": {
+        "n": 26,
+        "MAPE_pct": 12.797696581080947,
+        "RMSE": 0.04893051973120702,
+        "bias_pct": -2.7305061110327764
+      },
+      "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
+      "source_ids": [
+        "DAIKIN-ECPEN26-500",
+        "FUJITSU-EU-2018",
+        "MEUK-5330",
+        "MEUK-5331"
+      ]
+    },
+    "airflow|cooling|indoor|wall_mounted": {
+      "selected_law": {
+        "kind": "linear",
+        "a": 0.03204107373864972,
+        "b": 0.10350835349541901
+      },
+      "capacity_range_W": [
+        1500.0,
+        9671.345309999999
+      ],
+      "n": 130,
+      "n_families": 38,
+      "manufacturers": [
+        "Daikin",
+        "Fujitsu",
+        "LG",
+        "Mitsubishi Electric",
+        "Panasonic"
+      ],
+      "nested_family_cv": {
+        "n": 130,
+        "MAPE_pct": 12.901282363517646,
+        "RMSE": 0.040506294403945084,
+        "bias_pct": 3.4465564763778462
+      },
+      "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
+      "source_ids": [
+        "DAIKIN-ECPEN24-022",
+        "DAIKIN-ECPEN26-500",
+        "FUJITSU-EU-2018",
+        "FUJITSU-UK-KM-2018",
+        "LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125",
+        "LG-US-EM-SZ-EXTPIPE-R32-0725",
+        "LG-US-EM-SZ-STDEFF-MEGA-R32-0725",
+        "MEUK-5330",
+        "MEUK-5331",
+        "PANASONIC-BIGRAC-GEN26-LT"
+      ]
+    },
+    "airflow|cooling|indoor|water_to_air": {
+      "selected_law": {
+        "kind": "linear",
+        "a": 0.049109066490394496,
+        "b": 0.13045183734755236
+      },
+      "capacity_range_W": [
+        4689.137119999999,
+        21628.644966
+      ],
+      "n": 52,
+      "n_families": 7,
+      "manufacturers": [
+        "ClimateMaster",
+        "Daikin Applied",
+        "Enertech Global",
+        "WaterFurnace"
+      ],
+      "nested_family_cv": {
+        "n": 52,
+        "MAPE_pct": 9.591309644382786,
+        "RMSE": 0.0753329349843951,
+        "bias_pct": 3.374453395794526
+      },
+      "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
+      "source_ids": [
+        "CLIMATEMASTER-RP1000-TE",
+        "CLIMATEMASTER-RP1002-TS",
+        "DAIKINAPPLIED-CAT1108-30",
+        "ENERTECH-20D455-01NN-YT",
+        "ENERTECH-20D455-11NN-VSVT",
+        "WATERFURNACE-SC2500AN",
+        "WATERFURNACE-SC2700ANC"
+      ]
+    },
+    "airflow|cooling|outdoor|single_split": {
+      "selected_law": {
+        "kind": "linear",
+        "a": 0.10840271695646415,
+        "b": 0.1776229204750964
+      },
+      "capacity_range_W": [
+        1500.0,
+        13600.0
+      ],
+      "n": 128,
+      "n_families": 31,
+      "manufacturers": [
+        "Fujitsu",
+        "LG",
+        "Mitsubishi Electric",
+        "Panasonic"
+      ],
+      "nested_family_cv": {
+        "n": 128,
+        "MAPE_pct": 14.494412451803178,
+        "RMSE": 0.15812348964371759,
+        "bias_pct": -0.204327167180377
+      },
+      "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
+      "source_ids": [
+        "FUJITSU-EU-2018",
+        "FUJITSU-UK-KM-2018",
+        "LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125",
+        "LG-US-EM-SZ-EXTPIPE-R32-0725",
+        "LG-US-EM-SZ-STDEFF-MEGA-R32-0725",
+        "MEUK-5330",
+        "MEUK-5331",
+        "PANASONIC-BIGRAC-GEN26-LT",
+        "PANASONIC-EU-WEB-FLOOR"
+      ]
+    },
+    "airflow|heating|indoor|floor_standing": {
+      "selected_law": {
+        "kind": "linear",
+        "a": 0.03302115963628598,
+        "b": 0.04015705134678007
+      },
+      "capacity_range_W": [
+        3200.0,
+        16000.0
+      ],
+      "n": 26,
+      "n_families": 7,
+      "manufacturers": [
+        "Daikin",
+        "Fujitsu",
+        "Mitsubishi Electric"
+      ],
+      "nested_family_cv": {
+        "n": 26,
+        "MAPE_pct": 10.938090573020515,
+        "RMSE": 0.048109648729562006,
+        "bias_pct": 2.6459337272687296
+      },
+      "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
+      "source_ids": [
+        "DAIKIN-ECPEN26-500",
+        "FUJITSU-EU-2018",
+        "MEUK-5330",
+        "MEUK-5331"
+      ]
+    },
+    "airflow|heating|indoor|wall_mounted": {
+      "selected_law": {
+        "kind": "linear",
+        "a": 0.031187542939473758,
+        "b": 0.0949850203569232
+      },
+      "capacity_range_W": [
+        2000.0,
+        11200.0
+      ],
+      "n": 131,
+      "n_families": 37,
+      "manufacturers": [
+        "Daikin",
+        "Fujitsu",
+        "LG",
+        "Mitsubishi Electric",
+        "Panasonic"
+      ],
+      "nested_family_cv": {
+        "n": 131,
+        "MAPE_pct": 12.389414689710938,
+        "RMSE": 0.04506949650302232,
+        "bias_pct": 3.259257534780522
+      },
+      "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
+      "source_ids": [
+        "DAIKIN-ECPEN24-022",
+        "DAIKIN-ECPEN26-500",
+        "FUJITSU-EU-2018",
+        "FUJITSU-UK-KM-2018",
+        "LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125",
+        "LG-US-EM-SZ-EXTPIPE-R32-0725",
+        "LG-US-EM-SZ-STDEFF-MEGA-R32-0725",
+        "MEUK-5330",
+        "MEUK-5331",
+        "PANASONIC-BIGRAC-GEN26-LT"
+      ]
+    },
+    "airflow|heating|indoor|water_to_air": {
+      "selected_law": {
+        "kind": "power",
+        "a": 0.11584561389687512,
+        "b": 0.823991127374524
+      },
+      "capacity_range_W": [
+        3370.317305,
+        16939.507846
+      ],
+      "n": 52,
+      "n_families": 7,
+      "manufacturers": [
+        "ClimateMaster",
+        "Daikin Applied",
+        "Enertech Global",
+        "WaterFurnace"
+      ],
+      "nested_family_cv": {
+        "n": 52,
+        "MAPE_pct": 8.247025937869811,
+        "RMSE": 0.07138615748690551,
+        "bias_pct": 0.8444103307551536
+      },
+      "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
+      "source_ids": [
+        "CLIMATEMASTER-RP1000-TE",
+        "CLIMATEMASTER-RP1002-TS",
+        "DAIKINAPPLIED-CAT1108-30",
+        "ENERTECH-20D455-01NN-YT",
+        "ENERTECH-20D455-11NN-VSVT",
+        "WATERFURNACE-SC2500AN",
+        "WATERFURNACE-SC2700ANC"
+      ]
+    },
+    "airflow|heating|outdoor|air_to_water": {
+      "selected_law": {
+        "kind": "power",
+        "a": 0.22015398808245054,
+        "b": 0.6726159912971565
+      },
+      "capacity_range_W": [
+        3000.0,
+        16000.0
+      ],
+      "n": 36,
+      "n_families": 9,
+      "manufacturers": [
+        "Mitsubishi Electric",
+        "Samsung"
+      ],
+      "nested_family_cv": {
+        "n": 36,
+        "MAPE_pct": 19.587079685443765,
+        "RMSE": 0.21629530098174818,
+        "bias_pct": 6.871047591769887
+      },
+      "meets_shipping_gate": true,
+      "status": "provisional",
+      "status_reason": "Family hold-out MAPE 19.6 % and manufacturer hold-out 28.9 % (bias +19.9 %): Mitsubishi Ecodan and Samsung EHS differ systematically; every row is a single printed value, so no explicit maximum confirms it; model size is declared at A2/W35, A-7/W35 or as a kW class depending on the maker.",
+      "source_ids": [
+        "MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0",
+        "MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0",
+        "SAMSUNG_CS_GB_AE040RXEDEG",
+        "SAMSUNG_CS_GB_AE050CXYDEK",
+        "SAMSUNG_CS_GB_AE060RXEDEG",
+        "SAMSUNG_CS_GB_AE080CXYDEK",
+        "SAMSUNG_CS_GB_AE090RXEDEG",
+        "SAMSUNG_CS_GB_AE120CXYDEK",
+        "SAMSUNG_CS_GB_AE160CXYDEK"
+      ]
+    },
+    "airflow|heating|outdoor|single_split": {
+      "selected_law": {
+        "kind": "proportional",
+        "a": 0.1224237624808853
+      },
+      "capacity_range_W": [
+        2000.0,
+        16000.0
+      ],
+      "n": 125,
+      "n_families": 30,
+      "manufacturers": [
+        "Fujitsu",
+        "LG",
+        "Mitsubishi Electric",
+        "Panasonic"
+      ],
+      "nested_family_cv": {
+        "n": 125,
+        "MAPE_pct": 16.426061488023393,
+        "RMSE": 0.1439317230430908,
+        "bias_pct": -3.349003456234314
+      },
+      "meets_shipping_gate": true,
+      "status": "shipped",
+      "status_reason": null,
+      "source_ids": [
+        "FUJITSU-EU-2018",
+        "FUJITSU-UK-KM-2018",
+        "LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125",
+        "LG-US-EM-SZ-EXTPIPE-R32-0725",
+        "LG-US-EM-SZ-STDEFF-MEGA-R32-0725",
+        "MEUK-5330",
+        "MEUK-5331",
+        "PANASONIC-BIGRAC-GEN26-LT",
+        "PANASONIC-EU-WEB-FLOOR"
+      ]
+    }
+  }
+}

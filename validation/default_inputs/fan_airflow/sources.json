@@ -1,0 +1,1006 @@
+[
+  {
+    "source_id": "DAIKIN-ECPEN24-022",
+    "title": "FTXM-A / RXM-A product flyer",
+    "role": "observations",
+    "manufacturer": "Daikin",
+    "url": "https://www.daikin.eu/content/dam/document-library/catalogues/ac/split/ftxm-a/FTXM-A%2C%20RXM-A_Product%20flyer_ECPEN24-022_English.pdf",
+    "evidence_path": "validation/evidence/default_inputs/DAIKIN-ECPEN24-022.pdf",
+    "sha256": "efa381f859691792914561361ae36703f46e464abd5c071cb07573c944d6e20f",
+    "pages": 2,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "chrome_cdp_19122",
+    "accessed_at": "2026-10-22",
+    "rating_conditions": {
+      "status": "explicitly_printed",
+      "cooling": {
+        "indoor_DB_C": 27,
+        "indoor_WB_C": 19,
+        "outdoor_DB_C": 35
+      },
+      "heating": {
+        "indoor_DB_C": 20,
+        "outdoor_DB_C": 7,
+        "outdoor_WB_C": 6
+      },
+      "source_id": "DAIKIN-ECPEN24-022",
+      "pdf_page": 2
+    },
+    "assumption": "High airflow and nominal capacity are paired catalogue specifications, not proof of simultaneous calorimeter measurement at that fan setting.",
+    "nas_path": "energy-systems/daikin-ecpen24-022-source/files/source/DAIKIN-ECPEN24-022.pdf",
+    "archive87_dataset_id": "daikin-ecpen24-022-source"
+  },
+  {
+    "source_id": "FUJITSU-EU-2018",
+    "title": "Air conditioners product catalogue 2018",
+    "role": "observations",
+    "manufacturer": "Fujitsu",
+    "url": "https://www.fujitsu-general.com/shared/pdf-feur-support-ctlg-3ef018-1712e-01.pdf",
+    "evidence_path": "validation/evidence/default_inputs/FUJITSU-EU-2018.pdf",
+    "sha256": "2a989d4c80e7bb7a55a72993bf38d65079bf59862ad1435ff92220ec3b66de0a",
+    "pages": 135,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "chrome_cdp_Network.loadNetworkResource",
+    "accessed_at": "2026-10-22",
+    "rating_conditions": {
+      "status": "explicitly_printed",
+      "cooling": {
+        "indoor_DB_C": 27,
+        "indoor_WB_C": 19,
+        "outdoor_DB_C": 35,
+        "outdoor_WB_C": 24
+      },
+      "heating": {
+        "indoor_DB_C": 20,
+        "outdoor_DB_C": 7,
+        "outdoor_WB_C": 6
+      },
+      "source_id": "FUJITSU-EU-2018",
+      "pdf_page": 135
+    },
+    "assumption": "High airflow and nominal capacity are paired catalogue specifications, not proof of simultaneous calorimeter measurement at that fan setting.",
+    "nas_path": "energy-systems/fujitsu-eu-2018-source/files/source/FUJITSU-EU-2018.pdf",
+    "archive87_dataset_id": "fujitsu-eu-2018-source"
+  },
+  {
+    "source_id": "FUJITSU-UK-KM-2018",
+    "title": "R32 wall mounted model release official PDF",
+    "role": "observations",
+    "manufacturer": "Fujitsu",
+    "url": "https://www.fujitsu-general.com/shared/pdf-fcuk-support-ctlg-3efnp26-1811e-01.pdf",
+    "evidence_path": "validation/evidence/default_inputs/FUJITSU-UK-KM-2018.pdf",
+    "sha256": "18009c61bfd9c71b7c2cda73db8572e329eae79df24fc35a96d931a3aab85b89",
+    "pages": 2,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "chrome_cdp_Network.loadNetworkResource",
+    "accessed_at": "2026-10-22",
+    "rating_conditions": {
+      "status": "explicitly_printed",
+      "cooling": {
+        "indoor_DB_C": 27,
+        "indoor_WB_C": 19,
+        "outdoor_DB_C": 35,
+        "outdoor_WB_C": 24
+      },
+      "heating": {
+        "indoor_DB_C": 20,
+        "outdoor_DB_C": 7,
+        "outdoor_WB_C": 6
+      },
+      "source_id": "FUJITSU-UK-KM-2018",
+      "pdf_page": 2
+    },
+    "assumption": "High airflow and nominal capacity are paired catalogue specifications, not proof of simultaneous calorimeter measurement at that fan setting.",
+    "nas_path": "energy-systems/fujitsu-uk-km-2018-source/files/source/FUJITSU-UK-KM-2018.pdf",
+    "archive87_dataset_id": "fujitsu-uk-km-2018-source"
+  },
+  {
+    "source_id": "MEUK-5331",
+    "title": "Mitsubishi Electric M series data book (RAC 2024, code M-P0924B), UK LES document library",
+    "role": "observations",
+    "manufacturer": "Mitsubishi Electric",
+    "url": "https://library.mitsubishielectric.co.uk/pdf/download_full/5331",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/MEUK-5331.pdf",
+    "sha256": "1178e2d732c2668246ef362f665622d1f911fdf52ab22fa4771365cc3c7cd321",
+    "pages": 610,
+    "evidence_type": "official_databook_pdf",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "Wall-mounted MSZ-* and floor-standing MFZ-KW/KT spec pages used: pdf pp. 8-22, 382-384. Rating temperatures not printed on spec pages. Multi-only indoor columns (MSZ-LN18, MSZ-EF18/22) and Multi rows of MFZ-KT skipped.",
+    "rating_conditions": "not printed on specification page (databook M-P0924B)",
+    "nas_path": "energy-systems/meuk-5331-source/files/source/MEUK-5331.pdf",
+    "archive87_dataset_id": "meuk-5331-source"
+  },
+  {
+    "source_id": "MEUK-5330",
+    "title": "Mitsubishi Electric Mr. Slim P-series data book (PAC 2024), UK LES document library",
+    "role": "observations",
+    "manufacturer": "Mitsubishi Electric",
+    "url": "https://library.mitsubishielectric.co.uk/pdf/download_full/5330",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/MEUK-5330.pdf",
+    "sha256": "07d112acffb01113b8d15cf40ae860ae28a5d87e7be3e882ee20261644f0fc6e",
+    "pages": 471,
+    "evidence_type": "official_databook_pdf",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "PKA-M wall-mounted (pp. 85-86) and PSA-M floor-standing (pp. 151-154) used. Cassette/ducted/ceiling-suspended pages ignored per scope.",
+    "rating_conditions": "not printed on specification page",
+    "nas_path": "energy-systems/meuk-5330-source/files/source/MEUK-5330.pdf",
+    "archive87_dataset_id": "meuk-5330-source"
+  },
+  {
+    "source_id": "MEUK-4366",
+    "title": "Mitsubishi Electric UK product information sheet PKA-M R32 (PKA-M100KA2 / PUZ-ZM100), Sep 2023",
+    "role": "cross_check",
+    "manufacturer": "Mitsubishi",
+    "url": "https://library.mitsubishielectric.co.uk/pdf/download_full/4366",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/MEUK-4366.pdf",
+    "sha256": "01576fc19da789829eaf62603e4dda11e34cbd6f9197e62cb603464823c27d0d",
+    "pages": 2,
+    "evidence_type": "official_datasheet_pdf",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "Cross-check only, not transcribed: AIRFLOW (l/s) Lo-Mi2-Mi1-Hi 333-383-433 (3 values under a 4-step label) = MEUK-5330 PKA-M100KA(L)2 20-23-26 m3/min.",
+    "nas_path": "energy-systems/meuk-4366-source/files/source/MEUK-4366.pdf",
+    "archive87_dataset_id": "meuk-4366-source"
+  },
+  {
+    "source_id": "MEUK-4486",
+    "title": "Mitsubishi Electric UK product information sheet PSA-M R32 Power Inverter, Apr 2025",
+    "role": "cross_check",
+    "manufacturer": "Mitsubishi",
+    "url": "https://library.mitsubishielectric.co.uk/pdf/download_full/4486",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/MEUK-4486.pdf",
+    "sha256": "3d1091ea6e8b0f69066e13bf6c557a376aac9022f232557a8223d24b9bd9fd6e",
+    "pages": 2,
+    "evidence_type": "official_datasheet_pdf",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "Cross-check only, not transcribed: AIRFLOW (l/s) Lo-Mi-Hi 333-367-400 (M71), 417-467-500 (M100), 417-467-517 (M125/M140); consistent with MEUK-5330 m3/min values. UK-condition capacities also printed.",
+    "nas_path": "energy-systems/meuk-4486-source/files/source/MEUK-4486.pdf",
+    "archive87_dataset_id": "meuk-4486-source"
+  },
+  {
+    "source_id": "MEUK-4591",
+    "title": "Mitsubishi Electric UK product information sheet PSA-M R32 Standard Inverter",
+    "role": "cross_check",
+    "manufacturer": "Mitsubishi",
+    "url": "https://library.mitsubishielectric.co.uk/pdf/download_full/4591",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/MEUK-4591.pdf",
+    "sha256": "c39f6f742d753d730a2fb52d916661f9ad6366833b67fad02be8b141a5d81211",
+    "pages": 2,
+    "evidence_type": "official_datasheet_pdf",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "Cross-check only, not transcribed (same indoor airflow as MEUK-4486/5330).",
+    "nas_path": "energy-systems/meuk-4591-source/files/source/MEUK-4591.pdf",
+    "archive87_dataset_id": "meuk-4591-source"
+  },
+  {
+    "source_id": "PANASONIC-BIGRAC-GEN26-LT",
+    "title": "Panasonic PACi NX / commercial catalogue \"BIGRAC GEN 26\" (English text, hosted under LT ProClub folder), created 2026-02-17",
+    "role": "observations",
+    "manufacturer": "Panasonic",
+    "url": "https://www.panasonicproclub.com/uploads/LT/catalogues/BIGRAC_GEN_26_LR.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/PANASONIC-BIGRAC-GEN26-LT.pdf",
+    "sha256": "888fdda09580665f23e92f5db443179a6ce8bb8ea313bc2adbb52d23706d37b4",
+    "pages": 86,
+    "evidence_type": "official_catalogue_pdf",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "PK4 wall-mounted Elite (p.27) and Standard (p.29) single-phase kits and YKEA server-room wall units (p.62) used; three-phase duplicates (pp.28,30) not repeated. Cassette/ceiling/ducted pages ignored.",
+    "rating_conditions": "Cooling indoor 27°C DB/19°C WB, outdoor 35°C DB/24°C WB; heating indoor 20°C DB, outdoor 7°C DB/6°C WB; EER/COP per EN14511 (printed)",
+    "nas_path": "energy-systems/panasonic-bigrac-gen26-lt-source/files/source/PANASONIC-BIGRAC-GEN26-LT.pdf",
+    "archive87_dataset_id": "panasonic-bigrac-gen26-lt-source"
+  },
+  {
+    "source_id": "PANASONIC-EU-WEB-FLOOR",
+    "title": "Panasonic Europe official product page: Floor Console Inverter+ R32 (IE_en), specifications table",
+    "role": "observations",
+    "manufacturer": "Panasonic",
+    "url": "https://www.aircon.panasonic.eu/IE_en/product/floor-console-inverter-r32/",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/floor-console-inverter-r32.html",
+    "sha256": "dc06bb30fdc826386d0a540092b733559fb281f2e3204aa141d80e7e175b39fa",
+    "pages": null,
+    "evidence_type": "official_product_page_html",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "HTML saved with curl; values use decimal comma. No fan-step labels on airflow rows.",
+    "rating_conditions": "EER/COP per EN14511 (page footnote); temperature conditions not printed on page",
+    "nas_path": "energy-systems/panasonic-eu-web-floor-source/files/source/floor-console-inverter-r32.html",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-13 for #86 (not in the #87 ledger); see ../nas-transfer-20261113.json"
+  },
+  {
+    "source_id": "LG-US-EM-SZ-EXTPIPE-R32-0725",
+    "title": "LG Electronics USA, R32 Single-Zone Extended Piping Wall-Mounted Engineering Manual (07/25)",
+    "role": "observations",
+    "manufacturer": "LG",
+    "url": "https://media.us.lg.com/m/74b01976a84998a2/original/EM_SZ_Extended_Piping_R32_07_25.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/LG-US-EM-SZ-EXTPIPE-R32-0725.pdf",
+    "sha256": "925e5d5eee177112ebbc50f8033f2822d5f0d53302bbf52f3a5d6583f5970be0",
+    "pages": 74,
+    "evidence_type": "official_engineering_manual_pdf",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "US (AHRI-type) rating conditions; Btu/h and CFM.",
+    "rating_conditions": "AHRI-type US rating: cooling indoor 80°F DB/67°F WB, outdoor 95°F DB/75°F WB; heating indoor 70°F DB/59°F WB, outdoor 47°F DB/43°F WB; 24.6 ft line (printed). 'Power Input is rated at high speed' (footnote).",
+    "nas_path": "energy-systems/lg-us-em-sz-extpipe-r32-0725-source/files/source/LG-US-EM-SZ-EXTPIPE-R32-0725.pdf",
+    "archive87_dataset_id": "lg-us-em-sz-extpipe-r32-0725-source"
+  },
+  {
+    "source_id": "LG-US-EM-SZ-STDEFF-MEGA-R32-0725",
+    "title": "LG Electronics USA, R32 Single-Zone Standard Efficiency, Mega and Mega 115V Wall-Mounted Engineering Manual (07/25)",
+    "role": "observations",
+    "manufacturer": "LG",
+    "url": "https://media.us.lg.com/m/75d38490119ee3a9/original/EM_SZ_StdEff_Mega_Mega115_R32_07_25.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/LG-US-EM-SZ-STDEFF-MEGA-R32-0725.pdf",
+    "sha256": "6962c1b5d9d14bb86248364a4c62236547437f07f1a6277f24a3415e887f1ccc",
+    "pages": 113,
+    "evidence_type": "official_engineering_manual_pdf",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "Standard Efficiency (Table 4/5) and Mega (Table 6/7) transcribed; Mega and Std Eff print identical values (duplicates flagged). Mega 115V (Table 8/9, KSSAC091B/121B) identical to 9k/12k rows and not transcribed.",
+    "rating_conditions": "AHRI-type US rating: cooling indoor 80°F DB/67°F WB, outdoor 95°F DB/75°F WB; heating indoor 70°F DB/59°F WB, outdoor 47°F DB/43°F WB; 24.6 ft line (printed). 'Power Input is rated at high speed' (footnote).",
+    "nas_path": "energy-systems/lg-us-em-sz-stdeff-mega-r32-0725-source/files/source/LG-US-EM-SZ-STDEFF-MEGA-R32-0725.pdf",
+    "archive87_dataset_id": "lg-us-em-sz-stdeff-mega-r32-0725-source"
+  },
+  {
+    "source_id": "LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125",
+    "title": "LG Electronics USA, R32 Single-Zone Art Cool Premier Wall-Mounted Engineering Manual (01/25)",
+    "role": "observations",
+    "manufacturer": "LG",
+    "url": "https://media.us.lg.com/m/fe7b6d93d9a5897/original/EM_SZ_Art_Cool_Premier_R32_01_25.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125.pdf",
+    "sha256": "3fa05dbc3d2e092049bcd2fd00f3f9d768c8efe5ba354df00a154ef4a59e4315",
+    "pages": 74,
+    "evidence_type": "official_engineering_manual_pdf",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "Indoor airflow identical for 15/18/24k (same chassis).",
+    "rating_conditions": "AHRI-type US rating: cooling indoor 80°F DB/67°F WB, outdoor 95°F DB/75°F WB; heating indoor 70°F DB/59°F WB, outdoor 47°F DB/43°F WB; 24.6 ft line (printed). 'Power Input is rated at high speed' (footnote).",
+    "nas_path": "energy-systems/lg-us-em-sz-artcool-premier-r32-0125-source/files/source/LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125.pdf",
+    "archive87_dataset_id": "lg-us-em-sz-artcool-premier-r32-0125-source"
+  },
+  {
+    "source_id": "DAIKIN-ECPEN26-500",
+    "title": "Daikin Europe general catalogue ECPEN26-500 (flipbook chapters 04_ECPEN26-500_Split and 05_ECPEN26-500B_Sky_Air), catalogues.daikin.eu",
+    "role": "observations",
+    "manufacturer": "Daikin",
+    "url": "https://catalogues.daikin.eu/flipbooks/EN/General_catalogue/04split/ and .../05skyair/ (page URL = <chunk>/<catalogue page>/)",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/",
+    "sha256": null,
+    "pages": null,
+    "evidence_type": "official_catalogue_flipbook (per-page SVG text layer + JPG background + HTML text)",
+    "access_method": "curl",
+    "accessed_at": "2026-10-26",
+    "notes": "No downloadable PDF found for the flipbook. For each catalogue page the vector text layer (files/assets/common/page-vectorlayers/NNNN.svg), page background image (page-html5-substrates/pageNNNN_4.jpg) and page HTML were saved; NNNN = catalogue page - chapter first page + 1 (04split first page 279, 05skyair 353). Values read from SVG glyph positions and verified on re-rendered page images. Indoor airflow only (outdoor airflow not printed). ATXM/ATXF/ATXC (pp.335,337,338) print the same values as FTXM/FTXF/FTXC and were not repeated; colour variants pp.317,347 and alternative Sky Air outdoor pairings pp.390,391,400,401 likewise not repeated; FTXM-A + RZAG (p.392) not repeated.",
+    "files": [
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p307.html",
+        "sha256": "6ed56c9960c23278782b8416ea2b32afa7aa28a3199c5b0a88d784efeb1a8dd0"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p307.jpg",
+        "sha256": "a8b82fa564af04c113bf246370708b19fd25e1d11d22a8e25fc5eed2cea4a203"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p307.svg",
+        "sha256": "1421bf23de4b723d1cc02e752f8ceaad2a0b1203ac31c394c416021328a8aa5e"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p311.html",
+        "sha256": "f82f1797b0042010e6968bb8dc6d5446fe7c1d39abcba3fb1a39ed59854fbf03"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p311.jpg",
+        "sha256": "66bb0c53a93517e35a6a854577b1e960e9e9e33863c606ccc0a1a7378abd66d6"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p311.svg",
+        "sha256": "e992c0e28b43972f1142e3aab0adcef85fd3d76deb0b64813435f3ce15647650"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p315.html",
+        "sha256": "78dc59876286ee6e8536bbf168e61cc556f7bcba0b8545b53c05f13182727be4"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p315.jpg",
+        "sha256": "8b9be961c76a53700d2fe7563cefab5723a62269e37e41282cfcf44f4953460d"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p315.svg",
+        "sha256": "7cf245576e16eec49219b2829d3a33249aa363f986673c92bf317eea732e7999"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p317.html",
+        "sha256": "edb62277030ef27c3bc11483ad7c4f382f5eadf0c09bad37af84f64d3ca5112c"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p317.jpg",
+        "sha256": "5c3adc9858db02a679ff884970aec0e4de6ca6077537ed7f5475292d36bfbe33"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p317.svg",
+        "sha256": "7313fdc60e95e961de51705c340a10d462127253be9ffd9239dd0796426dfd58"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p320.html",
+        "sha256": "2becf651c2619e2ced56510cb32ae4a2cc8eabec377eed75e6c716444676f918"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p320.jpg",
+        "sha256": "d0198d1f32c93cf49d62e8d76ad97b2085e6f05588be09bede305f76f2c3dac0"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p320.svg",
+        "sha256": "6e893f94b23cbf4c82418519bff09c9ac06c59e9d7aa187b366ad1ff6b9b9a7d"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p321.html",
+        "sha256": "0a15650ca7d3b2e50f1d050dfa17000242040572dc2230bf40500b77543dd4d7"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p321.jpg",
+        "sha256": "4043c99ac3f8d907ab82b9e9c3fc71fffeb31c62a69f92d934c335f1375ddca7"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p321.svg",
+        "sha256": "4ad7745360140f807e6a440435449c22cedb5cf65c77d8a521875b29f10bb975"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p322.html",
+        "sha256": "b64a02f21c99daf9f3b6777330715014cd9217fac753594fb8b6550a797f6817"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p322.jpg",
+        "sha256": "d19475d2546e05ed95d1051ecb16e21754fa9cbcbeadb5ec6059e4e81fab0f2e"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p322.svg",
+        "sha256": "f4895225107894dbe982d2e7f661e0670f1ccb558f8739338eb52c15624c9fbc"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p323.html",
+        "sha256": "de459846df88b583911ad0125bb0d547a275813573464e5f2524e97e67ff67b9"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p323.jpg",
+        "sha256": "5af054171f346496805c5c16f4ecdc4b2be3dc7f7c10450670a26327831e33ba"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p323.svg",
+        "sha256": "2dd20e07e4bf6d1679e0414c958a3029e39905a268abc13ed9e3e87adbcf0490"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p326.html",
+        "sha256": "15eb5a7333dcf031c931bb6ae31a0bc4bd5f2db530c75093318790c15eb7c846"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p326.jpg",
+        "sha256": "dc0aec00a977a66a1aab2a3a64e00b95324c3916eb2d0ab34681b10eb7de1605"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p326.svg",
+        "sha256": "1e411db6a52ab41f02c76a35e9eb514b0e0671831e2b633f176e6dcee092922b"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p335.html",
+        "sha256": "025e4e58f1feb7541cd8765b56c21641f0d081758f864f9a7b44f65153c4a905"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p335.jpg",
+        "sha256": "1da96ee2f3a03e843b5e827a22e989b9da7a36c9dbdd614225fcc71c022f3d4a"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p335.svg",
+        "sha256": "0bcfc3db321ca080bdddec76a02dd395426243165d59e3209f5fdcad17824ee7"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p336.html",
+        "sha256": "1469844085cb88bfe041e38fc6b0b702d32b6d27415a3de7ca7f08cdd9d39244"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p336.jpg",
+        "sha256": "8c29fdbb02881c5174168c005ae9e3601fe600c2dea8af44121338162f31a4bc"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p336.svg",
+        "sha256": "72310073ab2ade831824d5f0d3de2a778e998a623670cb98955f76ab762f21ca"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p337.html",
+        "sha256": "e9e7148ea453a0465e5cd65527942759d56799aa3c2bbae035988da239a41b70"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p337.jpg",
+        "sha256": "731e082ee1004d0054e8b7ffe8caf9b5269202fe3155248f2af32ea94fc906ed"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p337.svg",
+        "sha256": "6b5ee114c0550ef59d49d4fbe44dd21f4669bccbb2fad7c630f2bc87de89424b"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p338.html",
+        "sha256": "dc659f625d295b0e3f319fe785a73028530d77655338036978cf5a4a8a8f08e2"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p338.jpg",
+        "sha256": "494916d612ef62e30be78924e172f4da113dbff0ad78d6becaee68f880af8569"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p338.svg",
+        "sha256": "ef44ffac600a38a690aedc85c190a7458ddfd639a14daeecbc6ab78f758f870c"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p344.html",
+        "sha256": "dbfc8d2f146a95453173f586ca1879906b718d47d38f6a3e1eed8b96b7e33f9e"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p344.jpg",
+        "sha256": "3a702f4b5256483a875dcffa818ccff19a53fbfaf0f118d68e30fe5eec6ca1f5"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p344.svg",
+        "sha256": "21540f235a1eef46651e278ab4c584a24c71cdff3836258f4952ead15170f405"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p345.html",
+        "sha256": "0f7b3b226c196ef604fd58d73d7a460c947d60cdbbae9db459f63dc366ed7cfa"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p345.jpg",
+        "sha256": "bab990d45d501f18a1682cfcaa35ba3eb1873f60f27e41e2f9a398c66f75a398"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p345.svg",
+        "sha256": "6018f1eaf01fd209626b051f64867f4da014ffe762f53352622af3233056b33b"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p347.html",
+        "sha256": "5e0871724f8d79dd69c168427b74e621d2f5b326148295657118773ef8e1e253"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p347.jpg",
+        "sha256": "e39faa5c01c90f3882c4369622526f9d23e8a23f2c2bd5fbc415ed44df2b6cb6"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p347.svg",
+        "sha256": "29e4ba4bb625a0780612fb7fe925741d29ed88bf5a541cbb12f5657c4a5f2066"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p348.html",
+        "sha256": "ed5ca26baeeb5bcb3dfd81318ec1295d71940d67e505e4b2d714d31e4b792d82"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p348.jpg",
+        "sha256": "9cca08b71c38a4b5881bad97363db13e5e2b7a03c9b90b4ca1ab6798b60b4d5c"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p348.svg",
+        "sha256": "8468a98f554f72977f3d2ca239a3f6b7631d7968859d0e841df407b4f6889181"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p349.html",
+        "sha256": "812b43607aa93e6d0ab6ad26591e354a2b4907eb8ea3f24d79eed996f27385c7"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p349.jpg",
+        "sha256": "aae391ec4fd5ad43fbe56c6d772984f0e42ab282f9bc7e991a628aac0e984a24"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p349.svg",
+        "sha256": "190853bee6507bed9656658f8419abd707be3cac4a676700b4cf749069143532"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p350.html",
+        "sha256": "3608e35939dce9227998680ed3d5f205d472bc5439d09bc6f8c20a7392e5e47c"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p350.jpg",
+        "sha256": "c3d72b03edb12dba756d5264f59aa247d26b8c55160dc4605810c33a66a44773"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/04split_p350.svg",
+        "sha256": "222a870264efcd8ca2830f8260f81f0556c4bbbff0562ddd04f1bb84002f94fd"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p389.html",
+        "sha256": "3bb3b226a2dc8090f09539455f2fbbf5c12a7adb651c4c1f9b0ab1d9d3491714"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p389.jpg",
+        "sha256": "b0102856124316e39e2ab2015b685f91e30dec10c370e1fb7bbb05a363cd6567"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p389.svg",
+        "sha256": "6b1d942c70a83b11482453ec5423f2b1860b08a66f34ba13686503936f833282"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p390.html",
+        "sha256": "9a5e137b56bfbcff724f303e0aa6087fd6ab9b4d9e8d23c07e5a0cbac1fb0b5e"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p390.jpg",
+        "sha256": "787d278975c498ad30b0129fabd4cc78c3e78b2e2ca68d65c4946ca2236644cf"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p390.svg",
+        "sha256": "73d040b64ce388101d240cf7045a1a545079ffb39786d94c8ebcf7224d1fdd2e"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p391.html",
+        "sha256": "5d4b08053298ad4e4003e7c674df095e086231001c495520b6e658a5d169a9b0"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p391.jpg",
+        "sha256": "e2cb79f42dc4a449a5316be0ffb400d31a24f7c3185ce2e2347fcbcb67a3fab5"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p391.svg",
+        "sha256": "a216266157b6b038c0f18dba0c93ef554e512b59b9dd64aa53b8c7aa04869bd6"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p392.html",
+        "sha256": "bc2d61b02742c1adbeee2b7af45afc1935b043c0f5b6cfb463664e5e97ad09bd"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p392.jpg",
+        "sha256": "190a2c4e71e1d4573d522b870e4c1fe5a2d2186bbf0e51c0a8d9502126c1c521"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p392.svg",
+        "sha256": "db4e4a9e619cb87c0c1e889941ac0d7e19e3ddd1c957c43016acc41dde57730f"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p399.html",
+        "sha256": "65117f86c06cba95b52b921532885743548da5ceb07e512e3aada7022ec30a7f"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p399.jpg",
+        "sha256": "38fc18ed02549583aca520b5520b16668f31f7e34f4c05a3443b05f6f953d9da"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p399.svg",
+        "sha256": "48de4509f7f7a43cbede23bec5208504e143f89f3a49f0452fab74fb9d57815b"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p400.html",
+        "sha256": "9648a61da0c9c5103d6e8e941fd0fad65e0644e723b0a1fd80217b838a2807b1"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p400.jpg",
+        "sha256": "f7e36cccc1f1904cc2c80f2f2aa59e0a15b85487c5c1f43fd8f7222af53fcfda"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p400.svg",
+        "sha256": "63b23588d1ffad6ee1c29618085174b1b68d43ccf2cea6b259692b77fdef9a6d"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p401.html",
+        "sha256": "30cc6a70da9b22604e6fea6fa326a666c0412a4ba1c80786d4c46332716cb3ff"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p401.jpg",
+        "sha256": "64786059ba20104c5d7f08788f30b03f09e493688ef03fb0332d9dca4e166205"
+      },
+      {
+        "path": "validation/evidence/default_inputs/fan_airflow/DAIKIN-ECPEN26-500/05skyair_p401.svg",
+        "sha256": "a68be098706cfac4eea912d4f7125da8852935ad2efd2dd045e6b062174f2852"
+      }
+    ],
+    "rating_conditions": "not printed on this catalogue page",
+    "nas_path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-13 for #86 (not in the #87 ledger); see ../nas-transfer-20261113.json"
+  },
+  {
+    "source_id": "WATERFURNACE-SC2500AN",
+    "title": "WaterFurnace 5 Series 500A11 Specification Catalog (SC2500AN, revision 18 Nov 2022)",
+    "role": "observations",
+    "manufacturer": "WaterFurnace",
+    "url": "https://www.waterfurnace.com/literature/5series/SC2500AN.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/WATERFURNACE-SC2500AN.pdf",
+    "sha256": "8b01513449e1e9ea9cececa12a56f03f805e891288dfe02144b40332b32adaa7",
+    "pages": 90,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "direct HTTPS download (curl -L, browser User-Agent) from the manufacturer domain",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": {
+      "standard": "AHRI/ASHRAE/ISO 13256-1",
+      "pdf_page": 6,
+      "table": "Variable Speed ECM or 5-Speed ECM Motor (7/15/2015)",
+      "ground_loop": "Cooling Brine Full Load 77°F / Part Load 68°F; Heating Brine Full Load 32°F / Part Load 41°F",
+      "cooling_EAT": "80.6°F DB, 66.2°F WB",
+      "heating_EAT": "68°F DB, 59°F WB",
+      "voltage": "All ratings based upon 208V operation"
+    },
+    "notes": "Single speed 018-070 and dual capacity 026-072 with standard variable speed ECM. 012 (PSC only, 1 ton) not transcribed. airflow_text = highest printed VS ECM setting (setting 10, factory 'Aux'); compressor-mode maximum (top of boldface L-H range) is in each row note. Optional 1 hp motor values kept in notes only. Thousands separators in printed capacities are dropped in capacity_text so the build can parse them.",
+    "nas_path": "energy-systems/waterfurnace-sc2500an-source/files/source/WATERFURNACE-SC2500AN.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "WATERFURNACE-SC2700ANC",
+    "title": "WaterFurnace 7 Series 700A11 Specification Catalog (SC2700ANC, nomenclature Rev. 03 April 2023/B; revision guide to 28 Sept 2023)",
+    "role": "observations",
+    "manufacturer": "WaterFurnace",
+    "url": "https://www.waterfurnace.com/literature/7series/SC2700ANC.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/WATERFURNACE-SC2700ANC.pdf",
+    "sha256": "c478484717b3becbaa30e83b061b9038ef3f1ccf3e9d00128fb19ea9f95e2dcc",
+    "pages": 54,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "direct HTTPS download (curl -L, browser User-Agent) from the manufacturer domain",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": {
+      "standard": "AHRI/ASHRAE/ISO 13256-1",
+      "pdf_page": 6,
+      "table": "Variable Speed ECM Motor (1/15/21)",
+      "ground_loop": "Cooling Full Load 77°F / Part Load 68°F; Heating Full Load 32°F / Part Load 41°F",
+      "cooling_EAT": "80.6°F DB, 66.2°F WB",
+      "heating_EAT": "68°F DB, 59°F WB",
+      "voltage": "All ratings based upon 208V operation"
+    },
+    "notes": "Variable speed compressor 036/048/060 (3-5 ton). Full-load GLHP capacity used. Optional 1 hp motor (036) kept in note only. Thousands separators in printed capacities are dropped in capacity_text so the build can parse them.",
+    "nas_path": "energy-systems/waterfurnace-sc2700anc-source/files/source/WATERFURNACE-SC2700ANC.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "CLIMATEMASTER-RP1000-TE",
+    "title": "ClimateMaster Tranquility 30 Digital (TE) Series Residential Products Technical Guide RP1000 (revision 27 Apr 2023)",
+    "role": "observations",
+    "manufacturer": "ClimateMaster",
+    "url": "https://files.climatemaster.com/Residential/Resources/Product-Catalogs/RP1000-TE-Product-Catalog.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/CLIMATEMASTER-RP1000-TE.pdf",
+    "sha256": "e403fe7cd8bba64156120c66ae7533d11de60250d055790deb14c334068204d8",
+    "pages": 56,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "direct HTTPS download (curl -L, browser User-Agent) from the manufacturer file domain files.climatemaster.com",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": {
+      "standard": "ASHRAE/AHRI/ISO 13256-1",
+      "pdf_page": 11,
+      "ground_loop": "Cooling Full Load 77°F / Part Load 68°F; Heating Full Load 32°F / Part Load 41°F",
+      "cooling_EAT": "80.6/66.2°F DB/WB [27/19°C]",
+      "heating_EAT": "68°F [20°C]",
+      "fan_power": "Fan power corrected to zero external static pressure"
+    },
+    "notes": "Two-stage, sizes 026-072, variable-speed ECM with selectable airflow (25 CFM steps) between printed minimum and maximum. Thousands separators in printed capacities are dropped in capacity_text so the build can parse them.",
+    "nas_path": "energy-systems/climatemaster-rp1000-te-source/files/source/CLIMATEMASTER-RP1000-TE.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "CLIMATEMASTER-RP1002-TS",
+    "title": "ClimateMaster Tranquility 20 (TS) Series Single-Stage Residential Products Technical Guide RP1002 (revision 17 April 2023)",
+    "role": "observations",
+    "manufacturer": "ClimateMaster",
+    "url": "https://files.climatemaster.com/Residential/Resources/Product-Catalogs/RP1002-TS-Product-Catalog.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/CLIMATEMASTER-RP1002-TS.pdf",
+    "sha256": "3dc59cfddf95315e2da6a05ec31dc910342d1f0fbc58d6a03bfb6f0a06417505",
+    "pages": 40,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "direct HTTPS download (curl -L, browser User-Agent) from the manufacturer file domain files.climatemaster.com",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": {
+      "standard": "ASHRAE/AHRI/ISO 13256-1",
+      "pdf_page": 9,
+      "ground_loop": "Cooling 77°F / Heating 32°F EWT",
+      "cooling_EAT": "80.6°F DB, 66.2°F WB",
+      "heating_EAT": "68°F DB, 59°F WB",
+      "voltage": "All ratings based upon operation at lower voltage of dual voltage rated models"
+    },
+    "notes": "Single-stage 018-070, ECM constant-volume blower (PSC discontinued per revision history 17 April 2023). Metric (SI) rating table on the same page not transcribed (IP values used). Thousands separators in printed capacities are dropped in capacity_text so the build can parse them.",
+    "nas_path": "energy-systems/climatemaster-rp1002-ts-source/files/source/CLIMATEMASTER-RP1002-TS.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "ENERTECH-20D455-11NN-VSVT",
+    "title": "Enertech Global VS/VT Rev. J Models Engineering Submittal Data Manual 20D455-11NN (code 260305J)",
+    "role": "observations",
+    "manufacturer": "Enertech Global",
+    "url": "https://sa3212slp003.blob.core.windows.net/sharepointdocuments/publisher/858a002a3329037f72ba4b7f6c69d7dfbd60dd4ff4dbb9c0a1695fbea665859f/20D455-11NN%20-%20VSVT%20Rev%20J%20models%20EDSM.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/ENERTECH-20D455-11NN-VSVT.pdf",
+    "sha256": "21eddd4006dcbd942548a78f7d0f37c213c2263f7d05f77c8f9ec423fca0cf23",
+    "pages": 35,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "document link read from the official product page rendered in the user's Chrome (CDP 127.0.0.1:19122, own tab); file downloaded with curl from the linked Enertech document store",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": {
+      "standard": "ISO 13256-1 (includes pump penalties)",
+      "pdf_page": [
+        3,
+        4
+      ],
+      "ground_loop": "Full Load: 32°F heating / 77°F cooling; Part Load: 41°F heating / 68°F cooling",
+      "cooling_EAT": "80.6°F DB, 66.2°F WB",
+      "heating_EAT": "68.0°F DB, 59.0°F WB"
+    },
+    "notes": "Linked as 'VS-VT Rev. J Models - Eng. Submittal Data' from the official product page https://enertechusa.com/geothermal-product-catalog/item/vs-vt?type=residential; the file is served from Enertech's document store (Azure blob sa3212slp003.blob.core.windows.net/sharepointdocuments/publisher), not from enertechusa.com itself. VS006-VS012 (PSC blower only, 0.5-1 ton) not transcribed. airflow_text = largest value in the highest-program row (may be AUX/EMG Heat); mode-specific compressor maxima in row notes. Thousands separators in printed capacities are dropped in capacity_text so the build can parse them.",
+    "nas_path": "energy-systems/enertech-20d455-11nn-vsvt-source/files/source/ENERTECH-20D455-11NN-VSVT.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "ENERTECH-20D455-01NN-YT",
+    "title": "Enertech Global YT Rev. J Models Engineering Submittal Data 20D455-01NN (multi-positional packaged water-to-air)",
+    "role": "observations",
+    "manufacturer": "Enertech Global",
+    "url": "https://sa3212slp003.blob.core.windows.net/sharepointdocuments/publisher/e7e34d20ad8f261912f341ca4669a3ba170b181bc8267b220b30afbe3206e0aa/20D455-01NN%20-%20YT%20EDSM%20-%20Revision%20J%20Models.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/ENERTECH-20D455-01NN-YT.pdf",
+    "sha256": "f960b2a6b5123b3572b56555b84cef1a2772dd496f2924198d8f96bc039535ac",
+    "pages": 20,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "document link read from the official product page rendered in the user's Chrome (CDP 127.0.0.1:19122, own tab); file downloaded with curl from the linked Enertech document store",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": {
+      "standard": "ISO 13256-1 (includes pump penalties)",
+      "pdf_page": 2,
+      "ground_loop": "Full Load: 32°F heating / 77°F cooling; Part Load: 41°F heating / 68°F cooling",
+      "cooling_EAT": "80.6°F DB, 66.2°F WB",
+      "heating_EAT": "68.0°F DB, 59.0°F WB"
+    },
+    "notes": "Linked as 'YT Rev. J Models - Eng. Submittal Data' from https://enertechusa.com/geothermal-product-catalog/item/yt?type=residential; file served from Enertech's Azure blob document store. airflow_text = AUX/EMG Heat value of the highest program (largest printed); mode-specific compressor maxima in row notes. Thousands separators in printed capacities are dropped in capacity_text so the build can parse them.",
+    "nas_path": "energy-systems/enertech-20d455-01nn-yt-source/files/source/ENERTECH-20D455-01NN-YT.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "DAIKINAPPLIED-CAT1108-30",
+    "title": "Daikin Applied Catalog 1108-30 Enfinity Horizontal Ceiling-Mounted Water Source Heat Pumps, Model CCH Standard Range / CCW Geothermal Range, sizes 007-070",
+    "role": "observations",
+    "manufacturer": "Daikin Applied",
+    "url": "https://tahoeweb.daikinapplied.com/api/general/DownloadDocumentByName/media/CAT_1108-30_Enfinity_CCH-CCW_%20007-070_LR.pdf/",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/DAIKINAPPLIED-CAT1108-30.pdf",
+    "sha256": "27ab9cc983412f0dd0c14be3ed91381d6a408cf354fc8c2776deec6c38d77121",
+    "pages": 60,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "direct HTTPS download (curl -L, browser User-Agent) from Daikin Applied document API (tahoeweb.daikinapplied.com)",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": {
+      "standard": "ASHRAE/AHRI/ISO 13256-1",
+      "pdf_page": 4,
+      "ground_loop": "Cooling EWT 77°F / Heating EWT 32°F (ISO 13256-1 Ground Loop)",
+      "cooling_EAT": "80.6°F db, 66.2°F wb (27/19°C)",
+      "heating_EAT": "68°F db (20°C)",
+      "voltage": "All ratings based on 208V operation; 070* 208-230/60/3"
+    },
+    "notes": "Commercial horizontal ceiling-mounted unit; only non-NIBE manufacturer with a printed maximum. Sizes 007-012 (constant-torque motor, <=1 ton) and the PSC fan option not transcribed. Ratings table header does not split CCH/CCW; CCW (geothermal range, 30-110°F EWT) prefix chosen because GLHP 32°F EWT is outside the CCH range (55-110°F). Thousands separators in printed capacities are dropped in capacity_text so the build can parse them.",
+    "nas_path": "energy-systems/daikinapplied-cat1108-30-source/files/source/DAIKINAPPLIED-CAT1108-30.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "BOSCH-BTC760108305G-SM-REVC",
+    "title": "Bosch Engineering Submittal Sheet BTC 760108305 G (10.2022), CDi series Model SM Rev C Residential Geothermal Heat Pump",
+    "role": "observations",
+    "manufacturer": "Bosch Thermotechnology",
+    "url": "https://www.bosch-homecomfort.com/us/media/country_pool/documents/engineering-submittal-sheets/water-to-air-water-source-heat-pumps/btc760108305g_greensource_sm_revc_ess_10.2022.pdf",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/BOSCH-BTC760108305G-SM-REVC.pdf",
+    "sha256": "0fd05c160f8e89844749dcd7bc6174627287d379772099036d80bf95c9fa706c",
+    "pages": 53,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "direct HTTPS download (curl -L, browser User-Agent); URL taken from https://www.bosch-homecomfort.com/us/en/residential/technical-documentation/discontinued-products/discontinued-geothermal-heat-pumps/",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": {
+      "standard": "ASHRAE/AHRI/ISO 13256-1",
+      "pdf_page": 5,
+      "ground_loop": "Cooling Full Load 77°F / Part Load 68°F; Heating Full Load 32°F / Part Load 41°F"
+    },
+    "notes": "Rated-airflow-only source (fan_step 'Rated', excluded by the build). Linked from the Bosch 'discontinued geothermal heat pumps' technical-documentation page. The Rev A/B ESS BTC 760108306 O (09.2023) prints identical ratings and blower table and was not kept (duplicate). Thousands separators in printed capacities are dropped in capacity_text so the build can parse them.",
+    "nas_path": "energy-systems/bosch-btc760108305g-sm-revc-source/files/source/BOSCH-BTC760108305G-SM-REVC.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0",
+    "title": "Ecodan ATW Databook (PUZ-WZ) Vol.1.0",
+    "role": "observations",
+    "manufacturer": "Mitsubishi Electric",
+    "url": "https://library.mitsubishielectric.co.uk/pdf/download_full/5483",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0.pdf",
+    "sha256": "d6cc1ca7c6bb2e2af75e15930c0031623de6c25bbf49b636bb42c56004077886",
+    "pages": 230,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "curl -L (no browser); listed at https://library.mitsubishielectric.co.uk/pdf/directory/residential_heating/technical_documents/current/databook as /pdf/book/Ecodan_ATW_Databook_(PUZ-WZ)_Vol.1_.0",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "Capacity: 'Based on EN14511-1:2018, EN14511-2:2018, EN14511-3:2018 and EN14511-4:2018.' (PUZ-WZ50/60/80) and 'Based on EN14511-1:2022, ...-4:2022.' (PUZ-WZ85/100/120); Heating (A7/W35) and Heating (A2/W35); COP/power input include pump input. Spec footnote *1 Heating: Dry-bulb 7 C, Wet-bulb 6 C (noise).",
+    "capacity_basis": "Heating reference capacity (Partload1), which this databook defines at A-7/W35 (PDF p38 note); value from '5.2 Heating performance data', ambient -7 degC, water outlet 35 degC",
+    "notes": "Outdoor spec table (pp.6-10, A-2..A-6) gives 'Air flow m3/min (CFM)'; capacity table p.11 (A-7). ErP Lot1 tables (pp.12-25) give 'Rated air flow outdoor' in m3/h, which for PUZ-WZ85/100/120 (3,170 m3/h) does not match the spec-table airflow. A7/W35 values are rating points below the model class.",
+    "nas_path": "energy-systems/meuk-ecodan-databook-puz-wz-vol1-0-source/files/source/MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0",
+    "title": "Ecodan ATW Databook R290/R32 Vol.6.0",
+    "role": "observations",
+    "manufacturer": "Mitsubishi Electric",
+    "url": "https://library.mitsubishielectric.co.uk/pdf/download_full/4966",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0.pdf",
+    "sha256": "a6e42fa53a6e5e0dd93ae98645ccd68c9b924b0fd322b665b04e4f9b6cb23e01",
+    "pages": 466,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "curl -L (no browser); listed at https://library.mitsubishielectric.co.uk/pdf/directory/residential_heating/technical_documents/current/databook as /pdf/book/Ecodan_ATW_Databook_Vol.6_.0_.pdf",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "Capacity tables 1.2 (pp.27-33, A-23..A-29): 'Based on EN14511-1:2018, EN14511-2:2018, EN14511-3:2018 and EN14511-4:2018.'; Heating (A7/W35) and Heating (A2/W35). Split-type: 'The table shows performance data obtained when an indoor unit is connected.'",
+    "capacity_basis": "Heating reference capacity (Partload1), which this databook defines at A2/W35 (PDF p82 note); value from the EN 14511 rating table row 'Heating (A2/W35) Capacity'",
+    "notes": "Outdoor spec tables pp.6-26 (A-2..A-22). PUZ-WZ50/60/80 duplicated from the PUZ-WZ databook and not transcribed here. PXZ-4F75VG/5F85VG (multi-split, p.26) not transcribed (not a dedicated ATW outdoor unit). Older Vol5.9 (download_full/4701) covers the same R32 units and was not transcribed.",
+    "nas_path": "energy-systems/meuk-ecodan-databook-r290-r32-vol6-0-source/files/source/MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "SAMSUNG_CS_GB_AE050CXYDEK",
+    "title": "Mono R290 (b2b) - AE050CXYDEK/EU",
+    "role": "observations",
+    "manufacturer": "Samsung",
+    "url": "https://samsung-climatesolutions.com/gb/b2b/products/ehs/mono/r290.ae050cxydekeu.html",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/SAMSUNG_CS_GB_AE050CXYDEK.html",
+    "sha256": "8ddb10ffc068703e0d03e5a0b85c7b0831b02049e9b010f5e7db29494e244ee3",
+    "pages": null,
+    "evidence_type": "official_product_page_html",
+    "access_method": "curl -L with desktop browser User-Agent; raw server HTML saved unmodified (spec block is server-rendered)",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "Not printed on the page for 'Heating [kW]' (footnote marker 'Heating 2)' without footnote text).",
+    "capacity_basis": "Model-size heating capacity printed on the product page (kW class); the page prints no rating condition",
+    "notes": "samsung-climatesolutions.com is Samsung Electronics Air Conditioner Europe B.V.'s HVAC site (not samsung.com). Pump-integrated (CXYBEK/CXYBGK) pages checked: same capacity and airflow. Domain samsung-climatesolutions.com is accepted as official (user decision 2026-11-14): its privacy notice names Samsung Electronics Air Conditioner Europe B.V. and Samsung Electronics Limited (UK), and samsung.com/uk/business/climate/ links to it.",
+    "nas_path": "energy-systems/samsung-cs-gb-ae050cxydek-source/files/source/SAMSUNG_CS_GB_AE050CXYDEK.html",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "SAMSUNG_CS_GB_AE080CXYDEK",
+    "title": "Mono R290 (b2b) - AE080CXYDEK/EU",
+    "role": "observations",
+    "manufacturer": "Samsung",
+    "url": "https://samsung-climatesolutions.com/gb/b2b/products/ehs/mono/r290.ae080cxydekeu.html",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/SAMSUNG_CS_GB_AE080CXYDEK.html",
+    "sha256": "719f065fa6a2146829b19e4ea3c8dc3c77954ee362fb8cfe3504a6248d3718cd",
+    "pages": null,
+    "evidence_type": "official_product_page_html",
+    "access_method": "curl -L with desktop browser User-Agent; raw server HTML saved unmodified (spec block is server-rendered)",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "Not printed on the page for 'Heating [kW]' (footnote marker 'Heating 2)' without footnote text).",
+    "capacity_basis": "Model-size heating capacity printed on the product page (kW class); the page prints no rating condition",
+    "notes": "samsung-climatesolutions.com is Samsung Electronics Air Conditioner Europe B.V.'s HVAC site (not samsung.com). Pump-integrated (CXYBEK/CXYBGK) pages checked: same capacity and airflow. Domain samsung-climatesolutions.com is accepted as official (user decision 2026-11-14): its privacy notice names Samsung Electronics Air Conditioner Europe B.V. and Samsung Electronics Limited (UK), and samsung.com/uk/business/climate/ links to it.",
+    "nas_path": "energy-systems/samsung-cs-gb-ae080cxydek-source/files/source/SAMSUNG_CS_GB_AE080CXYDEK.html",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "SAMSUNG_CS_GB_AE120CXYDEK",
+    "title": "Mono R290 (b2b) - AE120CXYDEK/EU",
+    "role": "observations",
+    "manufacturer": "Samsung",
+    "url": "https://samsung-climatesolutions.com/gb/b2b/products/ehs/mono/r290.ae120cxydekeu.html",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/SAMSUNG_CS_GB_AE120CXYDEK.html",
+    "sha256": "a98307d87a9544812d7df4d85ada0f3bc24c45219c1bf5460bf21b42d70ea46c",
+    "pages": null,
+    "evidence_type": "official_product_page_html",
+    "access_method": "curl -L with desktop browser User-Agent; raw server HTML saved unmodified (spec block is server-rendered)",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "Not printed on the page for 'Heating [kW]' (footnote marker 'Heating 2)' without footnote text).",
+    "capacity_basis": "Model-size heating capacity printed on the product page (kW class); the page prints no rating condition",
+    "notes": "samsung-climatesolutions.com is Samsung Electronics Air Conditioner Europe B.V.'s HVAC site (not samsung.com). Pump-integrated (CXYBEK/CXYBGK) pages checked: same capacity and airflow. Domain samsung-climatesolutions.com is accepted as official (user decision 2026-11-14): its privacy notice names Samsung Electronics Air Conditioner Europe B.V. and Samsung Electronics Limited (UK), and samsung.com/uk/business/climate/ links to it.",
+    "nas_path": "energy-systems/samsung-cs-gb-ae120cxydek-source/files/source/SAMSUNG_CS_GB_AE120CXYDEK.html",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "SAMSUNG_CS_GB_AE160CXYDEK",
+    "title": "Mono R290 (b2b) - AE160CXYDEK/EU",
+    "role": "observations",
+    "manufacturer": "Samsung",
+    "url": "https://samsung-climatesolutions.com/gb/b2b/products/ehs/mono/r290.ae160cxydekeu.html",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/SAMSUNG_CS_GB_AE160CXYDEK.html",
+    "sha256": "a327f18a37909a78656d4b54f2c7edd5bfbb21802ea9c9bb328079c143d1657f",
+    "pages": null,
+    "evidence_type": "official_product_page_html",
+    "access_method": "curl -L with desktop browser User-Agent; raw server HTML saved unmodified (spec block is server-rendered)",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "Not printed on the page for 'Heating [kW]' (footnote marker 'Heating 2)' without footnote text).",
+    "capacity_basis": "Model-size heating capacity printed on the product page (kW class); the page prints no rating condition",
+    "notes": "samsung-climatesolutions.com is Samsung Electronics Air Conditioner Europe B.V.'s HVAC site (not samsung.com). Pump-integrated (CXYBEK/CXYBGK) pages checked: same capacity and airflow. Domain samsung-climatesolutions.com is accepted as official (user decision 2026-11-14): its privacy notice names Samsung Electronics Air Conditioner Europe B.V. and Samsung Electronics Limited (UK), and samsung.com/uk/business/climate/ links to it.",
+    "nas_path": "energy-systems/samsung-cs-gb-ae160cxydek-source/files/source/SAMSUNG_CS_GB_AE160CXYDEK.html",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "SAMSUNG_CS_GB_AE040RXEDEG",
+    "title": "Samsung EHS Split Heat Pump Outdoor Unit R32 | UK - AE040RXEDEG/EU",
+    "role": "observations",
+    "manufacturer": "Samsung",
+    "url": "https://samsung-climatesolutions.com/gb/b2b/products/ehs/split/outdoor-r32.ae040rxedegeu.html",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/SAMSUNG_CS_GB_AE040RXEDEG.html",
+    "sha256": "4ffade44018169c7905ee7a2724e50cbb8e044f77bde42b279302ef8c34e5279",
+    "pages": null,
+    "evidence_type": "official_product_page_html",
+    "access_method": "curl -L with desktop browser User-Agent; raw server HTML saved unmodified (spec block is server-rendered)",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "Not printed on the page for 'Heating [kW]' (footnote marker 'Heating 2)' without footnote text).",
+    "capacity_basis": "Model-size heating capacity printed on the product page (kW class); the page prints no rating condition",
+    "notes": "samsung-climatesolutions.com is Samsung Electronics Air Conditioner Europe B.V.'s HVAC site (not samsung.com). Outdoor-unit page; hydro unit not named. Domain samsung-climatesolutions.com is accepted as official (user decision 2026-11-14): its privacy notice names Samsung Electronics Air Conditioner Europe B.V. and Samsung Electronics Limited (UK), and samsung.com/uk/business/climate/ links to it.",
+    "nas_path": "energy-systems/samsung-cs-gb-ae040rxedeg-source/files/source/SAMSUNG_CS_GB_AE040RXEDEG.html",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "SAMSUNG_CS_GB_AE060RXEDEG",
+    "title": "Samsung EHS Split Heat Pump Outdoor Unit R32 | UK - AE060RXEDEG/EU",
+    "role": "observations",
+    "manufacturer": "Samsung",
+    "url": "https://samsung-climatesolutions.com/gb/b2b/products/ehs/split/outdoor-r32.ae060rxedegeu.html",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/SAMSUNG_CS_GB_AE060RXEDEG.html",
+    "sha256": "b13ceec273aed4b775e947b6a92a4241c6e639e40e0a6231d842ab2f4ce5dd5b",
+    "pages": null,
+    "evidence_type": "official_product_page_html",
+    "access_method": "curl -L with desktop browser User-Agent; raw server HTML saved unmodified (spec block is server-rendered)",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "Not printed on the page for 'Heating [kW]' (footnote marker 'Heating 2)' without footnote text).",
+    "capacity_basis": "Model-size heating capacity printed on the product page (kW class); the page prints no rating condition",
+    "notes": "samsung-climatesolutions.com is Samsung Electronics Air Conditioner Europe B.V.'s HVAC site (not samsung.com). Outdoor-unit page; hydro unit not named. Domain samsung-climatesolutions.com is accepted as official (user decision 2026-11-14): its privacy notice names Samsung Electronics Air Conditioner Europe B.V. and Samsung Electronics Limited (UK), and samsung.com/uk/business/climate/ links to it.",
+    "nas_path": "energy-systems/samsung-cs-gb-ae060rxedeg-source/files/source/SAMSUNG_CS_GB_AE060RXEDEG.html",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "SAMSUNG_CS_GB_AE090RXEDEG",
+    "title": "Samsung EHS Split Heat Pump Outdoor Unit R32 | UK - AE090RXEDEG/EU",
+    "role": "observations",
+    "manufacturer": "Samsung",
+    "url": "https://samsung-climatesolutions.com/gb/b2b/products/ehs/split/outdoor-r32.ae090rxedegeu.html",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/SAMSUNG_CS_GB_AE090RXEDEG.html",
+    "sha256": "fb6e75f9fc6fb0c31f2780f47fb190d24bb5992aa8859b40b948aad5c2e2ca6b",
+    "pages": null,
+    "evidence_type": "official_product_page_html",
+    "access_method": "curl -L with desktop browser User-Agent; raw server HTML saved unmodified (spec block is server-rendered)",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "Not printed on the page for 'Heating [kW]' (footnote marker 'Heating 2)' without footnote text).",
+    "capacity_basis": "Model-size heating capacity printed on the product page (kW class); the page prints no rating condition",
+    "notes": "samsung-climatesolutions.com is Samsung Electronics Air Conditioner Europe B.V.'s HVAC site (not samsung.com). Outdoor-unit page; hydro unit not named. Domain samsung-climatesolutions.com is accepted as official (user decision 2026-11-14): its privacy notice names Samsung Electronics Air Conditioner Europe B.V. and Samsung Electronics Limited (UK), and samsung.com/uk/business/climate/ links to it.",
+    "nas_path": "energy-systems/samsung-cs-gb-ae090rxedeg-source/files/source/SAMSUNG_CS_GB_AE090RXEDEG.html",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "NIBE_S2125_IHB_EN_2525-1_8-12-16-20",
+    "title": "Installer manual NIBE S2125 (IHB EN 2525-1), S2125-8/-12/-16/-20",
+    "role": "observations",
+    "manufacturer": "NIBE",
+    "url": "https://assetstore.nibe.se/hcms/v2.3/entity/document/905826/storage/OTA1ODI2LzAvbWFzdGVyLy8vNTAyNTg5MTA0",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/NIBE_S2125_IHB_EN_2525-1_8-12-16-20.pdf",
+    "sha256": "6c0e7fee514577b53610a77951b6010721b952f1b30152a912dc0dba63346d9b",
+    "pages": 84,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "curl -L (no browser); link 'Installer manual (IHB)' on https://www.nibe.eu/en-eu/products/heat-pumps/air-water-heat-pumps/s2125",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "'Output data according to EN 14 511, partial load' (capacity/power input/COP at nominal flow, outdoor/supply temp); SCOP according to EN 14825; ErP tables per Regulation 813/2013.",
+    "capacity_basis": "No model-size capacity printed: the A7/W35 output row is EN 14511 partial load (rows recorded, excluded)",
+    "notes": "Technical specifications pp.50 (1x230 V) and 52 (3x400 V); ErP information pp.56-63. A7/W35 values are part-load points; maximum capacities and Pdesignh are printed separately and given in each row note.",
+    "nas_path": "energy-systems/nibe-s2125-ihb-en-2525-1-8-12-16-20-source/files/source/NIBE_S2125_IHB_EN_2525-1_8-12-16-20.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "NIBE_S2125-14_IHB_EN_2525-1",
+    "title": "Installer manual NIBE S2125-14 (IHB EN 2525-1)",
+    "role": "observations",
+    "manufacturer": "NIBE",
+    "url": "https://assetstore.nibe.se/hcms/v2.3/entity/document/905779/storage/OTA1Nzc5LzAvbWFzdGVyLy8vNTAyNTk3MTQ3",
+    "evidence_path": "validation/evidence/default_inputs/fan_airflow/NIBE_S2125-14_IHB_EN_2525-1.pdf",
+    "sha256": "530058ed939b65cf5c13f6aa9d20a9c575a7ae0ba357e57e3f536ce11c7e4707",
+    "pages": 56,
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "curl -L (no browser); link 'Installer manual (IHB)' on https://www.nibe.eu/en-eu/products/heat-pumps/air-water-heat-pumps/s2125",
+    "accessed_at": "2026-11-14",
+    "rating_conditions": "'Output data according to EN 14 511, partial load' (capacity/power input/COP at nominal flow); ErP table per Regulation 813/2013.",
+    "capacity_basis": "No model-size capacity printed: the A7/W35 output row is EN 14511 partial load (rows recorded, excluded)",
+    "notes": "Technical specifications p.43; ErP information p.47. 3x400 V only.",
+    "nas_path": "energy-systems/nibe-s2125-14-ihb-en-2525-1-source/files/source/NIBE_S2125-14_IHB_EN_2525-1.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  }
+]

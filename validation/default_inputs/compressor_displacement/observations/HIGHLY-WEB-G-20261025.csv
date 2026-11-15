@@ -1,0 +1,4 @@
+record_id,source_pdf_page,printed_page,locator,manufacturer,family_id,model_id,refrigerant,protocol,test_condition,capacity_W,capacity_Btu_h,power_W,displacement_text,displacement_basis,note
+highly:HIGHLY-WEB-G-20261025:GSG108TV:2660,1,,"table[1], data row[2], heading=Constant-Speed/R32 220V/240V 50Hz",Highly,Highly:G,GSG108TV,R32,ASHRAE_50Hz_fixed_single,ASHRAE/T,2660,9076,,10.8,printed,
+highly:HIGHLY-WEB-G-20261025:PSG151RV:2130,1,,"table[2], data row[2], heading=Constant-Speed/R290 220V/240V 50Hz",Highly,Highly:G,PSG151RV,R290,ASHRAE_50Hz_fixed_single,ASHRAE/T,2130,7268,,15.1,printed,
+highly:HIGHLY-WEB-G-20261025:PSG184SV:2653,1,,"table[2], data row[3], heading=Constant-Speed/R290 220V/240V 50Hz",Highly,Highly:G,PSG184SV,R290,ASHRAE_50Hz_fixed_single,ASHRAE/T,2653,9052,,18.4,printed,

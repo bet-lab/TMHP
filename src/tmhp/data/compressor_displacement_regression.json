@@ -1,0 +1,175 @@
+{
+  "version": "displacement-v2026-11-14b",
+  "data_sha256": "83a20ddc8f707f1beb4e3938e4f9aba0205fc38e6dd7c4978454dcd0f7882351",
+  "formula": "V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)",
+  "units": {
+    "Q_nom": "W",
+    "rho_1": "kg/m3",
+    "dh": "J/kg",
+    "eta_vol_rps": "rev/s",
+    "V_cmp_ref": "m3/rev"
+  },
+  "property_convention": "rho_1 at the evaporating dew-point pressure and suction temperature; dh = h_1 - h_liquid with the liquid at the condensing dew-point pressure (CoolProp), as in tmhp.compressor_speed",
+  "capacity_duty": "cooling",
+  "shipping_gate": {
+    "families": 3,
+    "manufacturers": 2
+  },
+  "bases": {
+    "rotary_single_fixed_50Hz": {
+      "reference_protocol": "ASHRAE_50Hz_fixed_single",
+      "reference_condition": {
+        "T_evap_C": 7.2,
+        "T_cond_C": 54.4,
+        "T_suction_C": 35.0,
+        "T_liquid_C": 46.1,
+        "superheat_K": 27.8,
+        "subcooling_K": 8.3
+      },
+      "eta_vol_rps_per_f": 0.8547779182124379,
+      "frequency_Hz": 50,
+      "eta_vol_rps": 42.73889591062189,
+      "n": 98,
+      "n_families": 15,
+      "manufacturers": [
+        "Highly",
+        "LG",
+        "Panasonic"
+      ],
+      "refrigerants": [
+        "R22",
+        "R290",
+        "R32",
+        "R410A"
+      ],
+      "protocols": {
+        "ASHRAE_50Hz_fixed_single": {
+          "description": "Fixed-speed single-rotary compressor at 50 Hz supply, ASHRAE-type rating point",
+          "T_evap_C": 7.2,
+          "T_cond_C": 54.4,
+          "T_suction_C": 35.0,
+          "T_liquid_C": 46.1,
+          "superheat_K": 27.8,
+          "subcooling_K": 8.3,
+          "frequency_Hz": 50,
+          "speed_basis": "fixed-speed supply frequency as printed",
+          "compressor_type": "rotary_single",
+          "basis": "rotary_single_fixed_50Hz"
+        }
+      },
+      "capacity_range_W": [
+        960.0,
+        8300.0
+      ],
+      "capacity_trend_log_slope": 0.005657359079862987,
+      "nested_family_cv": {
+        "n": 98,
+        "MAPE_pct": 2.4031307536306423,
+        "RMSE": 0.578784799818025,
+        "bias_pct": -0.3026141199244029
+      },
+      "nested_manufacturer_cv": {
+        "n": 98,
+        "MAPE_pct": 2.742134025963406,
+        "RMSE": 0.5945482180118421,
+        "bias_pct": -0.9079899942091234
+      },
+      "nested_refrigerant_cv": {
+        "n": 98,
+        "MAPE_pct": 2.2833892525626927,
+        "RMSE": 0.599602723070403,
+        "bias_pct": 0.1642045150530925
+      },
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "HIGHLY-WEB-D-20261025",
+        "HIGHLY-WEB-G-20261025",
+        "HIGHLY-WEB-H-20261025",
+        "HIGHLY-WEB-L-20261025",
+        "HIGHLY-WEB-TH-20261025",
+        "LG-ROTARY-2024",
+        "PANASONIC-CGZ-2025"
+      ]
+    },
+    "rotary_twin_inverter_60rps": {
+      "reference_protocol": "ARI_60Hz_variable_twin",
+      "reference_condition": {
+        "T_evap_C": 7.2,
+        "T_cond_C": 54.4,
+        "T_suction_C": 18.3,
+        "T_liquid_C": 46.1,
+        "superheat_K": 11.1,
+        "subcooling_K": 8.3
+      },
+      "eta_vol_rps_per_f": 0.8870095871327589,
+      "frequency_Hz": 60,
+      "eta_vol_rps": 53.22057522796553,
+      "n": 41,
+      "n_families": 14,
+      "manufacturers": [
+        "LG",
+        "Mitsubishi Electric SCI"
+      ],
+      "refrigerants": [
+        "R32",
+        "R410A"
+      ],
+      "protocols": {
+        "ARI_60Hz_variable_twin": {
+          "description": "DC inverter twin-rotary compressor at 60 Hz published test frequency, ARI rating point",
+          "T_evap_C": 7.2,
+          "T_cond_C": 54.4,
+          "T_suction_C": 18.3,
+          "T_liquid_C": 46.1,
+          "superheat_K": 11.1,
+          "subcooling_K": 8.3,
+          "frequency_Hz": 60,
+          "speed_basis": "DC inverter test frequency as published; not measured shaft speed",
+          "compressor_type": "rotary_twin",
+          "basis": "rotary_twin_inverter_60rps"
+        },
+        "ASHRAE_T_60rps_variable_twin": {
+          "description": "DC inverter twin-rotary compressor at 60 rps published performance speed, ASRE-T rating point (return gas 35 C)",
+          "T_evap_C": 7.2,
+          "T_cond_C": 54.4,
+          "T_suction_C": 35.0,
+          "T_liquid_C": 46.1,
+          "superheat_K": 27.8,
+          "subcooling_K": 8.3,
+          "frequency_Hz": 60,
+          "speed_basis": "DC inverter test frequency as published; not measured shaft speed",
+          "compressor_type": "rotary_twin",
+          "basis": "rotary_twin_inverter_60rps"
+        }
+      },
+      "capacity_range_W": [
+        2890.0,
+        14877.0
+      ],
+      "capacity_trend_log_slope": 0.019102393566708224,
+      "nested_family_cv": {
+        "n": 41,
+        "MAPE_pct": 2.6777939093221654,
+        "RMSE": 0.7919775636750012,
+        "bias_pct": -0.12863052699818397
+      },
+      "nested_manufacturer_cv": {
+        "n": 41,
+        "MAPE_pct": 2.550811371517637,
+        "RMSE": 0.7397436766366122,
+        "bias_pct": -0.38174796849547626
+      },
+      "nested_refrigerant_cv": {
+        "n": 41,
+        "MAPE_pct": 3.846438407786063,
+        "RMSE": 1.0912501628442937,
+        "bias_pct": -0.29974584269611787
+      },
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "LG-ROTARY-2024",
+        "SCI-ROTARY-2026"
+      ]
+    }
+  }
+}

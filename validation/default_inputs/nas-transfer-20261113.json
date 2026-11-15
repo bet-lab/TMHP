@@ -1,0 +1,566 @@
+{
+ "verified_at": "2026-11-13T12:33:18.063189+00:00",
+ "transport": "rclone receipt-nas SMB",
+ "files": 79,
+ "smb_readback_sha256": "79/79 matched",
+ "nfs_read_sha256": "79/79 matched",
+ "nas_payload_root": "/mnt/datasets",
+ "smb_payload_root": "receipt-nas:datasets",
+ "destination_preflight": "both dataset folders absent before upload",
+ "shared_nas_metadata_written": false,
+ "files_detail": [
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p307.html",
+   "bytes": 7923,
+   "sha256": "6ed56c9960c23278782b8416ea2b32afa7aa28a3199c5b0a88d784efeb1a8dd0",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p307.jpg",
+   "bytes": 248856,
+   "sha256": "a8b82fa564af04c113bf246370708b19fd25e1d11d22a8e25fc5eed2cea4a203",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p307.svg",
+   "bytes": 69116,
+   "sha256": "1421bf23de4b723d1cc02e752f8ceaad2a0b1203ac31c394c416021328a8aa5e",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p311.html",
+   "bytes": 9256,
+   "sha256": "f82f1797b0042010e6968bb8dc6d5446fe7c1d39abcba3fb1a39ed59854fbf03",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p311.jpg",
+   "bytes": 274352,
+   "sha256": "66bb0c53a93517e35a6a854577b1e960e9e9e33863c606ccc0a1a7378abd66d6",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p311.svg",
+   "bytes": 83002,
+   "sha256": "e992c0e28b43972f1142e3aab0adcef85fd3d76deb0b64813435f3ce15647650",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p315.html",
+   "bytes": 8904,
+   "sha256": "78dc59876286ee6e8536bbf168e61cc556f7bcba0b8545b53c05f13182727be4",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p315.jpg",
+   "bytes": 247708,
+   "sha256": "8b9be961c76a53700d2fe7563cefab5723a62269e37e41282cfcf44f4953460d",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p315.svg",
+   "bytes": 81702,
+   "sha256": "7cf245576e16eec49219b2829d3a33249aa363f986673c92bf317eea732e7999",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p317.html",
+   "bytes": 9089,
+   "sha256": "edb62277030ef27c3bc11483ad7c4f382f5eadf0c09bad37af84f64d3ca5112c",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p317.jpg",
+   "bytes": 295776,
+   "sha256": "5c3adc9858db02a679ff884970aec0e4de6ca6077537ed7f5475292d36bfbe33",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p317.svg",
+   "bytes": 82062,
+   "sha256": "7313fdc60e95e961de51705c340a10d462127253be9ffd9239dd0796426dfd58",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p320.html",
+   "bytes": 9638,
+   "sha256": "2becf651c2619e2ced56510cb32ae4a2cc8eabec377eed75e6c716444676f918",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p320.jpg",
+   "bytes": 226591,
+   "sha256": "d0198d1f32c93cf49d62e8d76ad97b2085e6f05588be09bede305f76f2c3dac0",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p320.svg",
+   "bytes": 89159,
+   "sha256": "6e893f94b23cbf4c82418519bff09c9ac06c59e9d7aa187b366ad1ff6b9b9a7d",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p321.html",
+   "bytes": 9468,
+   "sha256": "0a15650ca7d3b2e50f1d050dfa17000242040572dc2230bf40500b77543dd4d7",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p321.jpg",
+   "bytes": 273979,
+   "sha256": "4043c99ac3f8d907ab82b9e9c3fc71fffeb31c62a69f92d934c335f1375ddca7",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p321.svg",
+   "bytes": 83860,
+   "sha256": "4ad7745360140f807e6a440435449c22cedb5cf65c77d8a521875b29f10bb975",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p322.html",
+   "bytes": 9045,
+   "sha256": "b64a02f21c99daf9f3b6777330715014cd9217fac753594fb8b6550a797f6817",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p322.jpg",
+   "bytes": 223887,
+   "sha256": "d19475d2546e05ed95d1051ecb16e21754fa9cbcbeadb5ec6059e4e81fab0f2e",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p322.svg",
+   "bytes": 74632,
+   "sha256": "f4895225107894dbe982d2e7f661e0670f1ccb558f8739338eb52c15624c9fbc",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p323.html",
+   "bytes": 7273,
+   "sha256": "de459846df88b583911ad0125bb0d547a275813573464e5f2524e97e67ff67b9",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p323.jpg",
+   "bytes": 241477,
+   "sha256": "5af054171f346496805c5c16f4ecdc4b2be3dc7f7c10450670a26327831e33ba",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p323.svg",
+   "bytes": 57042,
+   "sha256": "2dd20e07e4bf6d1679e0414c958a3029e39905a268abc13ed9e3e87adbcf0490",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p326.html",
+   "bytes": 8802,
+   "sha256": "15eb5a7333dcf031c931bb6ae31a0bc4bd5f2db530c75093318790c15eb7c846",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p326.jpg",
+   "bytes": 228395,
+   "sha256": "dc0aec00a977a66a1aab2a3a64e00b95324c3916eb2d0ab34681b10eb7de1605",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p326.svg",
+   "bytes": 78188,
+   "sha256": "1e411db6a52ab41f02c76a35e9eb514b0e0671831e2b633f176e6dcee092922b",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p335.html",
+   "bytes": 9023,
+   "sha256": "025e4e58f1feb7541cd8765b56c21641f0d081758f864f9a7b44f65153c4a905",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p335.jpg",
+   "bytes": 260922,
+   "sha256": "1da96ee2f3a03e843b5e827a22e989b9da7a36c9dbdd614225fcc71c022f3d4a",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p335.svg",
+   "bytes": 83536,
+   "sha256": "0bcfc3db321ca080bdddec76a02dd395426243165d59e3209f5fdcad17824ee7",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p336.html",
+   "bytes": 8307,
+   "sha256": "1469844085cb88bfe041e38fc6b0b702d32b6d27415a3de7ca7f08cdd9d39244",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p336.jpg",
+   "bytes": 217443,
+   "sha256": "8c29fdbb02881c5174168c005ae9e3601fe600c2dea8af44121338162f31a4bc",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p336.svg",
+   "bytes": 71270,
+   "sha256": "72310073ab2ade831824d5f0d3de2a778e998a623670cb98955f76ab762f21ca",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p337.html",
+   "bytes": 8664,
+   "sha256": "e9e7148ea453a0465e5cd65527942759d56799aa3c2bbae035988da239a41b70",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p337.jpg",
+   "bytes": 258480,
+   "sha256": "731e082ee1004d0054e8b7ffe8caf9b5269202fe3155248f2af32ea94fc906ed",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p337.svg",
+   "bytes": 71406,
+   "sha256": "6b5ee114c0550ef59d49d4fbe44dd21f4669bccbb2fad7c630f2bc87de89424b",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p338.html",
+   "bytes": 7240,
+   "sha256": "dc659f625d295b0e3f319fe785a73028530d77655338036978cf5a4a8a8f08e2",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p338.jpg",
+   "bytes": 204999,
+   "sha256": "494916d612ef62e30be78924e172f4da113dbff0ad78d6becaee68f880af8569",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p338.svg",
+   "bytes": 56320,
+   "sha256": "ef44ffac600a38a690aedc85c190a7458ddfd639a14daeecbc6ab78f758f870c",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p344.html",
+   "bytes": 8583,
+   "sha256": "dbfc8d2f146a95453173f586ca1879906b718d47d38f6a3e1eed8b96b7e33f9e",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p344.jpg",
+   "bytes": 230659,
+   "sha256": "3a702f4b5256483a875dcffa818ccff19a53fbfaf0f118d68e30fe5eec6ca1f5",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p344.svg",
+   "bytes": 77150,
+   "sha256": "21540f235a1eef46651e278ab4c584a24c71cdff3836258f4952ead15170f405",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p345.html",
+   "bytes": 8833,
+   "sha256": "0f7b3b226c196ef604fd58d73d7a460c947d60cdbbae9db459f63dc366ed7cfa",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p345.jpg",
+   "bytes": 261815,
+   "sha256": "bab990d45d501f18a1682cfcaa35ba3eb1873f60f27e41e2f9a398c66f75a398",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p345.svg",
+   "bytes": 81965,
+   "sha256": "6018f1eaf01fd209626b051f64867f4da014ffe762f53352622af3233056b33b",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p347.html",
+   "bytes": 8787,
+   "sha256": "5e0871724f8d79dd69c168427b74e621d2f5b326148295657118773ef8e1e253",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p347.jpg",
+   "bytes": 274252,
+   "sha256": "e39faa5c01c90f3882c4369622526f9d23e8a23f2c2bd5fbc415ed44df2b6cb6",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p347.svg",
+   "bytes": 79943,
+   "sha256": "29e4ba4bb625a0780612fb7fe925741d29ed88bf5a541cbb12f5657c4a5f2066",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p348.html",
+   "bytes": 9420,
+   "sha256": "ed5ca26baeeb5bcb3dfd81318ec1295d71940d67e505e4b2d714d31e4b792d82",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p348.jpg",
+   "bytes": 222361,
+   "sha256": "9cca08b71c38a4b5881bad97363db13e5e2b7a03c9b90b4ca1ab6798b60b4d5c",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p348.svg",
+   "bytes": 86159,
+   "sha256": "8468a98f554f72977f3d2ca239a3f6b7631d7968859d0e841df407b4f6889181",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p349.html",
+   "bytes": 8026,
+   "sha256": "812b43607aa93e6d0ab6ad26591e354a2b4907eb8ea3f24d79eed996f27385c7",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p349.jpg",
+   "bytes": 259186,
+   "sha256": "aae391ec4fd5ad43fbe56c6d772984f0e42ab282f9bc7e991a628aac0e984a24",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p349.svg",
+   "bytes": 69144,
+   "sha256": "190853bee6507bed9656658f8419abd707be3cac4a676700b4cf749069143532",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p350.html",
+   "bytes": 7969,
+   "sha256": "3608e35939dce9227998680ed3d5f205d472bc5439d09bc6f8c20a7392e5e47c",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p350.jpg",
+   "bytes": 219429,
+   "sha256": "c3d72b03edb12dba756d5264f59aa247d26b8c55160dc4605810c33a66a44773",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/04split_p350.svg",
+   "bytes": 70841,
+   "sha256": "222a870264efcd8ca2830f8260f81f0556c4bbbff0562ddd04f1bb84002f94fd",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p389.html",
+   "bytes": 7526,
+   "sha256": "3bb3b226a2dc8090f09539455f2fbbf5c12a7adb651c4c1f9b0ab1d9d3491714",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p389.jpg",
+   "bytes": 248060,
+   "sha256": "b0102856124316e39e2ab2015b685f91e30dec10c370e1fb7bbb05a363cd6567",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p389.svg",
+   "bytes": 64274,
+   "sha256": "6b1d942c70a83b11482453ec5423f2b1860b08a66f34ba13686503936f833282",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p390.html",
+   "bytes": 7262,
+   "sha256": "9a5e137b56bfbcff724f303e0aa6087fd6ab9b4d9e8d23c07e5a0cbac1fb0b5e",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p390.jpg",
+   "bytes": 223355,
+   "sha256": "787d278975c498ad30b0129fabd4cc78c3e78b2e2ca68d65c4946ca2236644cf",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p390.svg",
+   "bytes": 61971,
+   "sha256": "73d040b64ce388101d240cf7045a1a545079ffb39786d94c8ebcf7224d1fdd2e",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p391.html",
+   "bytes": 7268,
+   "sha256": "5d4b08053298ad4e4003e7c674df095e086231001c495520b6e658a5d169a9b0",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p391.jpg",
+   "bytes": 242505,
+   "sha256": "e2cb79f42dc4a449a5316be0ffb400d31a24f7c3185ce2e2347fcbcb67a3fab5",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p391.svg",
+   "bytes": 60967,
+   "sha256": "a216266157b6b038c0f18dba0c93ef554e512b59b9dd64aa53b8c7aa04869bd6",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p392.html",
+   "bytes": 7897,
+   "sha256": "bc2d61b02742c1adbeee2b7af45afc1935b043c0f5b6cfb463664e5e97ad09bd",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p392.jpg",
+   "bytes": 200478,
+   "sha256": "190a2c4e71e1d4573d522b870e4c1fe5a2d2186bbf0e51c0a8d9502126c1c521",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p392.svg",
+   "bytes": 68352,
+   "sha256": "db4e4a9e619cb87c0c1e889941ac0d7e19e3ddd1c957c43016acc41dde57730f",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p399.html",
+   "bytes": 7816,
+   "sha256": "65117f86c06cba95b52b921532885743548da5ceb07e512e3aada7022ec30a7f",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p399.jpg",
+   "bytes": 271915,
+   "sha256": "38fc18ed02549583aca520b5520b16668f31f7e34f4c05a3443b05f6f953d9da",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p399.svg",
+   "bytes": 65239,
+   "sha256": "48de4509f7f7a43cbede23bec5208504e143f89f3a49f0452fab74fb9d57815b",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p400.html",
+   "bytes": 7819,
+   "sha256": "9648a61da0c9c5103d6e8e941fd0fad65e0644e723b0a1fd80217b838a2807b1",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p400.jpg",
+   "bytes": 246913,
+   "sha256": "f7e36cccc1f1904cc2c80f2f2aa59e0a15b85487c5c1f43fd8f7222af53fcfda",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p400.svg",
+   "bytes": 65190,
+   "sha256": "63b23588d1ffad6ee1c29618085174b1b68d43ccf2cea6b259692b77fdef9a6d",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p401.html",
+   "bytes": 7470,
+   "sha256": "30cc6a70da9b22604e6fea6fa326a666c0412a4ba1c80786d4c46332716cb3ff",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p401.jpg",
+   "bytes": 266133,
+   "sha256": "64786059ba20104c5d7f08788f30b03f09e493688ef03fb0332d9dca4e166205",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/daikin-ecpen26-500-source/files/source/DAIKIN-ECPEN26-500/05skyair_p401.svg",
+   "bytes": 61267,
+   "sha256": "a68be098706cfac4eea912d4f7125da8852935ad2efd2dd045e6b062174f2852",
+   "smb_readback": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/panasonic-eu-web-floor-source/files/source/floor-console-inverter-r32.html",
+   "bytes": 420621,
+   "sha256": "dc06bb30fdc826386d0a540092b733559fb281f2e3204aa141d80e7e175b39fa",
+   "smb_readback": true,
+   "nfs_read": true
+  }
+ ]
+}

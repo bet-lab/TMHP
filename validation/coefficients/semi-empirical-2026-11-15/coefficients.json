@@ -1,0 +1,871 @@
+{
+ "version": "semi-empirical-2026-11-15",
+ "status": "fitted and cross-validated; not wired into src/ (a later step)",
+ "regenerate": "uv run python -m validation.compressor_maps.semi_empirical",
+ "inputs": [
+  {
+   "path": "validation/bitzer_efficiency_pilot/raw/bitzer_raw_points.csv",
+   "sha256": "3c5330f1b471a2c982a526b637a07d676fa364c6761dcb93a5a11736afd918b3",
+   "tracked": true
+  },
+  {
+   "path": "validation/coefficients/BITZER-three-C3-absolute-N-2026-10-06/fit_input_lowlift_raw.csv",
+   "sha256": "ebe2843e14fd4674791effcf8ba1b102be742ffda99dc115e545f52c1810941b",
+   "tracked": true
+  },
+  {
+   "path": "validation/data/compressor_maps/bitzer_highpr_raw.csv",
+   "sha256": "cf9ea4c7612f236f7820e2f1e6e8ccaac7cc52765309fc5193c3b9433f4eee4b",
+   "tracked": true
+  },
+  {
+   "path": "validation/data/compressor_maps/points_derived.csv",
+   "sha256": "d59bef8c62b274bd00a6e9e7a73898555056b12f0d68f7e721324dfa11fea38c",
+   "tracked": true
+  },
+  {
+   "path": "validation/data/compressor_maps/points_copeland_opi.csv",
+   "sha256": "c4bfdef1dc2ba48a146f9a0b193ad1726d52083bbfccc2068c66affabf9b4b0c",
+   "tracked": false
+  },
+  {
+   "path": "validation/default_inputs/compressor_displacement/measurements.csv",
+   "sha256": "26755e9f7b0e7ac8805cc680d162a3c62c735de9b2bf81db26f02dbd6ff04f82",
+   "tracked": true
+  },
+  {
+   "path": "validation/data/inverter_efficiency_ossorio2023.csv",
+   "sha256": "352a82baddd96340bcb37c5f987258778c051418468a3fc93614625c363082b7",
+   "tracked": true
+  },
+  {
+   "path": "validation/data/compressor_maps/points_ossorio2019_rotary.csv",
+   "sha256": "fa743dfa96b6d653c0b064c99bd0fb0e3dd5a5fe16f1d80c333e2ce1844d7dad",
+   "tracked": true
+  }
+ ],
+ "conventions": {
+  "MEP_s": "rho_1 * (h_2s - h_1) [Pa]",
+  "k": "effective exponent: k/(k-1)(PR^((k-1)/k)-1) = (h_2s-h_1) rho_1 / p_1",
+  "phi": "(isentropic work to rv + isochoric work to p_2) / isentropic work",
+  "phi_z": "phi - zv*(phi-1) where PR < rv^k, else phi",
+  "n": "N / 50 rev/s (absolute)",
+  "states": "dew-point saturation pressures; suction superheat as the source states",
+  "huber_threshold": 0.05,
+  "weights": "each machine 1; units equal within a machine, speed records within a unit, rows within a record"
+ },
+ "types": {
+  "scroll": {
+   "family_form": "scroll",
+   "provisional": false,
+   "eta_oi": {
+    "quantity": "m_dot (h_2s - h_1) / P_terminal (inverter excluded)",
+    "form": "1/eta = a*phi_z(PR; rv, k, zv) + losses",
+    "level_form": "add",
+    "losses": "(q0/n + q1 + q2*n)*1e5/MEP_s + cL*(PR-1)/n + qf*n^2*1e4*rho_1/MEP_s + cu*(MEP_s/1e6)/n + cH*(PR^((k-1)/k)-1); terms not listed in parameters are zero",
+    "terms": [
+     "q2",
+     "cL",
+     "zv"
+    ],
+    "parameters": {
+     "rv": 2.975091,
+     "q2": 1.054178,
+     "cL": 0.058443,
+     "zv": 0.64542
+    },
+    "speed_coordinate": "n = N/50 rev/s",
+    "N_rated_default_rps": null,
+    "level_a": 1.091016,
+    "level": {
+     "class": "residential-size scroll machines: displacement <= 80 cm3/rev, BITZER excluded",
+     "machines": 62,
+     "a_median": 1.091016,
+     "a_iqr": [
+      1.068853,
+      1.147127
+     ],
+     "by_group_median": {
+      "AREP": 1.290634,
+      "Copeland": 1.087545,
+      "literature": 1.250086
+     },
+     "all_machines_median": 1.092425,
+     "bitzer_median": 1.157337,
+     "displacement_trend": {
+      "a_vs_lnV_slope": 0.023481,
+      "level_loco_rmse_median": 0.064217,
+      "level_loco_rmse_trend": 0.073611,
+      "adopted": false
+     }
+    },
+    "eta_oi_at_rating_reference": 0.76463,
+    "rating_reference": {
+     "refrigerant": "R410A",
+     "T_evap_C": 7.2,
+     "T_cond_C": 54.4,
+     "superheat_K": 11.1,
+     "N": 60.0
+    }
+   },
+   "eta_v": {
+    "form": "eta_v = c0 - c_re*(PR^(1/k) - 1) - c_Lv*(PR - 1)/n",
+    "candidate": "scroll:eta_v:V1:abs",
+    "c_re": 0.010634,
+    "c_Lv": 0.0174,
+    "c0": 1.00841,
+    "c0_by_level_class": null,
+    "rows": 11526,
+    "machines": 85
+   },
+   "split": {
+    "rows": 818,
+    "machines": 4,
+    "units": 7,
+    "E0": {
+     "coefficients": [
+      0.915582
+     ],
+     "rmse_in_sample": 0.048342,
+     "loco_rmse": 0.057304
+    },
+    "E1": {
+     "coefficients": [
+      0.921586,
+      -0.010572
+     ],
+     "rmse_in_sample": 0.045944,
+     "loco_rmse": 0.063828
+    },
+    "selected": "E0",
+    "unit_means": [
+     {
+      "unit": "Copeland ZP21K5E R32 [arep_rpt11_ornl2013]",
+      "source_id": "arep_rpt11_ornl2013",
+      "refrigerant": "R32",
+      "rows": 166,
+      "PR_min": 1.6,
+      "PR_max": 4.523256,
+      "eta_em_mean": 0.887572,
+      "eta_em_sd": 0.034135,
+      "eta_isen_mean": 0.70568
+     },
+     {
+      "unit": "Copeland ZP21K5E R410A [arep_rpt11_ornl2013]",
+      "source_id": "arep_rpt11_ornl2013",
+      "refrigerant": "R410A",
+      "rows": 196,
+      "PR_min": 1.592357,
+      "PR_max": 5.142857,
+      "eta_em_mean": 0.910641,
+      "eta_em_sd": 0.031571,
+      "eta_isen_mean": 0.697769
+     },
+     {
+      "unit": "Copeland ZP21K5E R410A [ornl_tm_2013_414]",
+      "source_id": "ornl_tm_2013_414",
+      "refrigerant": "R410A",
+      "rows": 196,
+      "PR_min": 1.592357,
+      "PR_max": 5.142857,
+      "eta_em_mean": 0.90583,
+      "eta_em_sd": 0.031672,
+      "eta_isen_mean": 0.732825
+     },
+     {
+      "unit": "Copeland ZP31K5E R32 [arep_rpt39_emerson2014]",
+      "source_id": "arep_rpt39_emerson2014",
+      "refrigerant": "R32",
+      "rows": 23,
+      "PR_min": 1.954076,
+      "PR_max": 5.327074,
+      "eta_em_mean": 0.875319,
+      "eta_em_sd": 0.040011,
+      "eta_isen_mean": 0.703408
+     },
+     {
+      "unit": "arep_rpt21_ornl2013 Copeland scroll 3.11 in3/rev (PFV, 7/8 in suction) R404A [arep_rpt21_ornl2013]",
+      "source_id": "arep_rpt21_ornl2013",
+      "refrigerant": "R404A",
+      "rows": 191,
+      "PR_min": 2.473684,
+      "PR_max": 8.761905,
+      "eta_em_mean": 0.920026,
+      "eta_em_sd": 0.022238,
+      "eta_isen_mean": 0.685484
+     },
+     {
+      "unit": "cuevas_lebrun_2009 hermetic scroll 54.25 cm3 R134a R134a [cuevas_lebrun_2009 T3]",
+      "source_id": "cuevas_lebrun_2009",
+      "refrigerant": "R134a",
+      "rows": 28,
+      "PR_min": 1.455224,
+      "PR_max": 5.229167,
+      "eta_em_mean": 0.999594,
+      "eta_em_sd": 0.017758,
+      "eta_isen_mean": 0.625964
+     },
+     {
+      "unit": "cuevas_lebrun_2009 hermetic scroll 54.25 cm3 R134a R134a [cuevas_lebrun_2009]",
+      "source_id": "cuevas_lebrun_2009",
+      "refrigerant": "R134a",
+      "rows": 18,
+      "PR_min": 1.483871,
+      "PR_max": 5.622642,
+      "eta_em_mean": 0.93661,
+      "eta_em_sd": 0.013382,
+      "eta_isen_mean": 0.647224
+     }
+    ],
+    "between_unit_range": [
+     0.875319,
+     0.999594
+    ]
+   },
+   "hull_PR_N": [
+    [
+     6.1714,
+     90.0
+    ],
+    [
+     1.5646,
+     90.0
+    ],
+    [
+     1.5016,
+     72.5
+    ],
+    [
+     1.462,
+     58.0
+    ],
+    [
+     1.4552,
+     38.667
+    ],
+    [
+     1.5426,
+     20.0
+    ],
+    [
+     4.9446,
+     20.0
+    ],
+    [
+     7.6708,
+     38.667
+    ],
+    [
+     8.7619,
+     58.333
+    ],
+    [
+     7.6708,
+     72.5
+    ]
+   ],
+   "power_basis_of_fit": "terminal (sources on the inverter-input basis divided by the drive model I1)",
+   "monotonic_check": {
+    "N15": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.264382
+    },
+    "N20": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.306489
+    },
+    "N40": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.396273
+    },
+    "N60": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.431034
+    },
+    "N90": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.446836
+    },
+    "N120": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.445394
+    }
+   }
+  },
+  "rotary_twin_inverter": {
+   "family_form": "rotary",
+   "provisional": true,
+   "eta_oi": {
+    "quantity": "m_dot (h_2s - h_1) / P_terminal (inverter excluded)",
+    "form": "1/eta = 1 + a*losses (q2 = 1)",
+    "level_form": "scaled",
+    "losses": "(q0/n + q1 + q2*n)*1e5/MEP_s + cL*(PR-1)/n + qf*n^2*1e4*rho_1/MEP_s + cu*(MEP_s/1e6)/n + cH*(PR^((k-1)/k)-1); terms not listed in parameters are zero",
+    "terms": [
+     "q2",
+     "cL",
+     "cu"
+    ],
+    "parameters": {
+     "cL": 0.03401,
+     "cu": 0.118791
+    },
+    "speed_coordinate": "n = N/N_rated",
+    "N_rated_default_rps": 60.0,
+    "level_a": 1.275779,
+    "level": {
+     "class": "LG + Mitsubishi SCI inverter twin rotaries, 60 Hz rating points (power read as excluding the inverter)",
+     "machines": 41,
+     "a_median": 1.275779,
+     "a_iqr": [
+      1.178631,
+      1.408864
+     ],
+     "by_refrigerant": {
+      "R32": {
+       "machines": 23,
+       "a_median": 1.316402,
+       "a_iqr": [
+        1.275806,
+        1.436211
+       ],
+       "eta_oi_median": 0.704801,
+       "eta_oi_iqr": [
+        0.686362,
+        0.711276
+       ]
+      },
+      "R410A": {
+       "machines": 18,
+       "a_median": 1.172723,
+       "a_iqr": [
+        1.127009,
+        1.219861
+       ],
+       "eta_oi_median": 0.732608,
+       "eta_oi_iqr": [
+        0.724819,
+        0.740255
+       ]
+      }
+     }
+    },
+    "eta_oi_at_rating_reference": 0.715788,
+    "rating_reference": {
+     "refrigerant": "R410A",
+     "T_evap_C": 7.2,
+     "T_cond_C": 54.4,
+     "superheat_K": 11.1,
+     "N": 60.0
+    },
+    "level_note": "Use level.by_refrigerant[ref].a_median when the refrigerant is R32 or R410A, else level_a (pooled)."
+   },
+   "eta_v": {
+    "form": "eta_v = c0 - c_re*(PR^(1/k) - 1) - c_Lv*(PR - 1)/n",
+    "candidate": "rotary:eta_v:V1:rel",
+    "c_re": 0.022817,
+    "c_Lv": 0.027815,
+    "c0": 0.989702,
+    "c0_by_level_class": {
+     "machines": 39,
+     "c0_median": 0.989702,
+     "c0_iqr": [
+      0.977258,
+      1.021397
+     ]
+    },
+    "rows": 72,
+    "machines": 1
+   },
+   "split": {
+    "rows": 4,
+    "machines": 1,
+    "units": 1,
+    "E0": {
+     "coefficients": [
+      0.857678
+     ],
+     "rmse_in_sample": 0.020505,
+     "loco_rmse": null
+    },
+    "E1": {
+     "coefficients": [
+      0.856769,
+      -0.031788
+     ],
+     "rmse_in_sample": 0.014323,
+     "loco_rmse": null
+    },
+    "selected": "E0",
+    "unit_means": [
+     {
+      "unit": "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R32 [arep_rpt26_hitachi2013]",
+      "source_id": "arep_rpt26_hitachi2013",
+      "refrigerant": "R32",
+      "rows": 4,
+      "PR_min": 2.307292,
+      "PR_max": 3.419739,
+      "eta_em_mean": 0.890151,
+      "eta_em_sd": 0.013852,
+      "eta_isen_mean": 0.731735
+     },
+     {
+      "unit": "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R410A [arep_rpt26_hitachi2013]",
+      "source_id": "arep_rpt26_hitachi2013",
+      "refrigerant": "R410A",
+      "rows": 4,
+      "PR_min": 2.290212,
+      "PR_max": 3.398477,
+      "eta_em_mean": 0.857678,
+      "eta_em_sd": 0.023677,
+      "eta_isen_mean": 0.77366
+     }
+    ],
+    "between_unit_range": [
+     0.857678,
+     0.857678
+    ]
+   },
+   "hull_PR_N": [
+    [
+     1.9429,
+     30.0
+    ],
+    [
+     6.8421,
+     30.0
+    ],
+    [
+     6.8421,
+     120.0
+    ],
+    [
+     1.9429,
+     120.0
+    ]
+   ],
+   "power_basis_of_fit": "terminal (sources on the inverter-input basis divided by the drive model I1)",
+   "monotonic_check": {
+    "N15": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.298061
+    },
+    "N20": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.357826
+    },
+    "N40": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.501333
+    },
+    "N60": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.56456
+    },
+    "N90": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.596498
+    },
+    "N120": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.596052
+    }
+   }
+  },
+  "rotary_single_fixed": {
+   "family_form": "rotary",
+   "provisional": true,
+   "eta_oi": {
+    "quantity": "m_dot (h_2s - h_1) / P_terminal (inverter excluded)",
+    "form": "1/eta = 1 + a*losses (q2 = 1)",
+    "level_form": "scaled",
+    "losses": "(q0/n + q1 + q2*n)*1e5/MEP_s + cL*(PR-1)/n + qf*n^2*1e4*rho_1/MEP_s + cu*(MEP_s/1e6)/n + cH*(PR^((k-1)/k)-1); terms not listed in parameters are zero",
+    "terms": [
+     "q2",
+     "cL",
+     "cu"
+    ],
+    "parameters": {
+     "cL": 0.03401,
+     "cu": 0.118791
+    },
+    "speed_coordinate": "n = N/N_rated",
+    "N_rated_default_rps": 50.0,
+    "level_a": 1.729347,
+    "level": {
+     "class": "LG + Panasonic fixed-speed single rotaries at 50 Hz and AREP #26 (R-410A, R-32 units)",
+     "machines": 57,
+     "a_median": 1.729347,
+     "a_iqr": [
+      1.619929,
+      1.85511
+     ],
+     "arep26_unit_levels": {
+      "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R32 [arep_rpt26_hitachi2013]": 1.849758,
+      "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R410A [arep_rpt26_hitachi2013]": 1.785611
+     },
+     "by_refrigerant": {
+      "R22": {
+       "machines": 10,
+       "a_median": 1.790992,
+       "eta_oi_median": 0.64896
+      },
+      "R410A": {
+       "machines": 46,
+       "a_median": 1.692558,
+       "eta_oi_median": 0.654651
+      }
+     }
+    },
+    "eta_oi_at_rating_reference": 0.667428,
+    "rating_reference": {
+     "refrigerant": "R410A",
+     "T_evap_C": 7.2,
+     "T_cond_C": 54.4,
+     "superheat_K": 11.1,
+     "N": 60.0
+    }
+   },
+   "eta_v": {
+    "form": "eta_v = c0 - c_re*(PR^(1/k) - 1) - c_Lv*(PR - 1)/n",
+    "candidate": "rotary:eta_v:V1:rel",
+    "c_re": 0.022817,
+    "c_Lv": 0.027815,
+    "c0": 0.981532,
+    "c0_by_level_class": {
+     "machines": 25,
+     "c0_median": 0.981532,
+     "c0_iqr": [
+      0.970319,
+      1.000898
+     ]
+    },
+    "rows": 72,
+    "machines": 1
+   },
+   "split": {
+    "rows": 4,
+    "machines": 1,
+    "units": 1,
+    "E0": {
+     "coefficients": [
+      0.857678
+     ],
+     "rmse_in_sample": 0.020505,
+     "loco_rmse": null
+    },
+    "E1": {
+     "coefficients": [
+      0.856769,
+      -0.031788
+     ],
+     "rmse_in_sample": 0.014323,
+     "loco_rmse": null
+    },
+    "selected": "E0",
+    "unit_means": [
+     {
+      "unit": "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R32 [arep_rpt26_hitachi2013]",
+      "source_id": "arep_rpt26_hitachi2013",
+      "refrigerant": "R32",
+      "rows": 4,
+      "PR_min": 2.307292,
+      "PR_max": 3.419739,
+      "eta_em_mean": 0.890151,
+      "eta_em_sd": 0.013852,
+      "eta_isen_mean": 0.731735
+     },
+     {
+      "unit": "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R410A [arep_rpt26_hitachi2013]",
+      "source_id": "arep_rpt26_hitachi2013",
+      "refrigerant": "R410A",
+      "rows": 4,
+      "PR_min": 2.290212,
+      "PR_max": 3.398477,
+      "eta_em_mean": 0.857678,
+      "eta_em_sd": 0.023677,
+      "eta_isen_mean": 0.77366
+     }
+    ],
+    "between_unit_range": [
+     0.857678,
+     0.857678
+    ]
+   },
+   "hull_PR_N": [
+    [
+     1.9429,
+     30.0
+    ],
+    [
+     6.8421,
+     30.0
+    ],
+    [
+     6.8421,
+     120.0
+    ],
+    [
+     1.9429,
+     120.0
+    ]
+   ],
+   "power_basis_of_fit": "terminal (sources on the inverter-input basis divided by the drive model I1)",
+   "monotonic_check": {
+    "N15": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.271413
+    },
+    "N20": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.32685
+    },
+    "N40": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.457015
+    },
+    "N60": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.508123
+    },
+    "N90": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.523757
+    },
+    "N120": {
+     "within_0_1": true,
+     "decreasing_beyond_data": true,
+     "eta_at_PR12": 0.510442
+    }
+   }
+  }
+ },
+ "drive": {
+  "form": "eta_inv = 1 - lam*(1 + beta*(60/N - 1)), N in rev/s",
+  "beta": 0.617538,
+  "lam_median": 0.058774,
+  "lam_by_inverter": {
+   "A": 0.061895,
+   "AKO": 0.044617,
+   "APY": 0.069639,
+   "B": 0.028755,
+   "C": 0.058774
+  },
+  "lam_iqr": [
+   0.044617,
+   0.061895
+  ],
+  "eta_at_60rps": 0.941226,
+  "eta_at_20rps": 0.868636,
+  "data_range_rps": [
+   15.0,
+   120.0
+  ],
+  "load_form_I3": {
+   "theta_beta_gamma": [
+    0.446119,
+    0.080845
+   ],
+   "lam_by_inverter": {
+    "A": 0.052489,
+    "AKO": 0.040818,
+    "APY": 0.063127,
+    "B": 0.025813,
+    "C": 0.052615
+   }
+  }
+ },
+ "selection": {
+  "speed_coordinate": {
+   "scroll": {
+    "level_form": {
+     "loco_shape_add": 0.044824,
+     "loco_shape_scaled": 0.04424,
+     "selected": "add"
+    },
+    "loso_shape_mean_abs": 0.041572,
+    "loso_shape_mean_rel": 0.042194,
+    "loco_shape_abs": 0.044824,
+    "loco_shape_rel": 0.04632,
+    "selected": "abs",
+    "copeland_rated_speed_test": [
+     {
+      "speed": "abs",
+      "machines": 44,
+      "rated_speeds_rps": "60,75,90",
+      "loco_shape": 0.032325,
+      "loco_total": 0.097424
+     },
+     {
+      "speed": "rel",
+      "machines": 44,
+      "rated_speeds_rps": "60,75,90",
+      "loco_shape": 0.032546,
+      "loco_total": 0.097601
+     }
+    ]
+   },
+   "rotary": {
+    "level_form": {
+     "loco_shape_add": 0.039061,
+     "loco_shape_scaled": 0.03213,
+     "selected": "scaled"
+    },
+    "loso_shape_mean_abs": 0.030132,
+    "loso_shape_mean_rel": 0.024633,
+    "loco_shape_abs": 0.03213,
+    "loco_shape_rel": 0.031784,
+    "selected": "rel"
+   }
+  },
+  "drop_tolerance": 0.0001
+ },
+ "sensitivity": {
+  "shao_as_inverter_input": {
+   "parameters": {
+    "cL": 0.033178,
+    "cu": 0.095682
+   },
+   "twin_level_a_median": 1.427429,
+   "loso": [
+    {
+     "held_out": "shao_2004",
+     "rows": 324,
+     "machines": 3,
+     "rmse_shape": 0.040779,
+     "bias_shape": 0.000964,
+     "bias_level": 0.062668,
+     "rmse_total": 0.092739
+    },
+    {
+     "held_out": "ossorio_2019_cnit",
+     "rows": 18,
+     "machines": 1,
+     "rmse_shape": 0.013161,
+     "bias_shape": 9e-05,
+     "bias_level": -0.081685,
+     "rmse_total": 0.0828
+    },
+    {
+     "held_out": "arep_rpt26_hitachi2013",
+     "rows": 48,
+     "machines": 1,
+     "rmse_shape": 0.011328,
+     "bias_shape": 1.4e-05,
+     "bias_level": -0.03093,
+     "rmse_total": 0.033271
+    }
+   ]
+  }
+ },
+ "checks": {
+  "gmcc_inverter_input": [
+   {
+    "model": "GMCC EDTN210",
+    "refrigerant": "R290",
+    "V_disp_cm3": 21.0,
+    "T_evap_C": 2.7,
+    "T_cond_C": 42.3,
+    "PR": 2.8,
+    "eta_oi_lo": 0.653,
+    "eta_oi_hi": 0.669,
+    "model_terminal": 0.716419,
+    "model_x_inverter60": 0.674313,
+    "implied_inverter_eff": 0.922644
+   },
+   {
+    "model": "GMCC LDTN180",
+    "refrigerant": "R290",
+    "V_disp_cm3": 18.1,
+    "T_evap_C": -6.7,
+    "T_cond_C": 54.4,
+    "PR": 4.9,
+    "eta_oi_lo": 0.639,
+    "eta_oi_hi": 0.639,
+    "model_terminal": 0.681925,
+    "model_x_inverter60": 0.641846,
+    "implied_inverter_eff": 0.937053
+   }
+  ],
+  "highly_2024": {
+   "rows": 8,
+   "data_eta_oi_median": 0.744634,
+   "model_median": 0.722485,
+   "ratio_data_model_median": 1.030656
+  },
+  "prototype_reproduction": {
+   "target": "eta_is (discharge temperature), plain least squares, n = N/50, as p01/p03",
+   "train_rows": 2467,
+   "params_rv_a_q0_q2_cL": [
+    2.82358,
+    1.133112,
+    0.0,
+    0.900116,
+    0.058755
+   ],
+   "lowlift": {
+    "rows": 1432,
+    "bias": 0.019245,
+    "rmse": 0.039993
+   },
+   "highpr": {
+    "rows": 24,
+    "bias": -0.020359,
+    "rmse": 0.027757
+   },
+   "p03_log": {
+    "params": [
+     2.8236,
+     1.1331,
+     0.0,
+     0.9001,
+     0.0588
+    ],
+    "lowlift": [
+     0.0192,
+     0.04
+    ],
+    "highpr": [
+     -0.0204,
+     0.0278
+    ]
+   }
+  },
+  "pipeline_variant_bitzer_only": {
+   "form": "scroll:q0+q2+cL:abs",
+   "train_rows": 2447,
+   "params": {
+    "rv": 2.794481,
+    "q0": 0.0,
+    "q2": 0.891295,
+    "cL": 0.053938
+   },
+   "lowlift": {
+    "rows": 1273,
+    "bias": 0.021668,
+    "rmse": 0.044263
+   },
+   "highpr": {
+    "rows": 24,
+    "bias": -0.011506,
+    "rmse": 0.020603
+   }
+  }
+ }
+}

@@ -1,0 +1,21 @@
+source_id,reason,rows,affects
+arep_rpt26_hitachi2013,displacement not confirmed (eta_v fit only),48,eta_v only
+arep_rpt58_emerson2016,"source excluded: Gas-cycle stand; the report prints the entering gas temperature equal to the dew point although it states 20 F superheat, and Table 1 row 7 prints 12.8 psia for a 40 F dew point (printed_flag in parse/arep_rowlist.py)",29,eta_oi and eta_v
+bitzer,refused by the BITZER software (limit status != 0),1108,eta_oi and eta_v
+bitzer,volume balance: eta_v > 1.02,179,eta_oi and eta_v
+copeland_opi,"duplicate of a voltage-code twin (same machine stem, identical row)",1344,eta_oi and eta_v
+copeland_opi,energy balance: eta_oi > 1 (power below the isentropic power),34,eta_oi and eta_v
+copeland_opi,inverter-input power below the inverter data (15 rev/s),50,eta_oi and eta_v
+copeland_opi,volume balance: eta_v > 1.02,272,eta_oi and eta_v
+copeland_opi,displacement not confirmed (eta_v fit only),431,eta_v only
+cuevas_lebrun_2009,energy balance: eta_em > 1.02 on terminal power,2,eta_oi and eta_v
+dardenne_2015_ijr,source excluded: Vapour-injection scroll,63,eta_oi and eta_v
+ossorio_2019_cnit,displacement not confirmed (eta_v fit only),18,eta_v only
+rating_fixed_single,flagged in the source table / duplicate: under development (☆) in the source table,11,eta_oi and eta_v
+rating_lg_sci_twin,flagged in the source table / duplicate: 400 V variant: SNB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept,1,eta_oi and eta_v
+rating_lg_sci_twin,flagged in the source table / duplicate: 400 V variant: SVB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept,1,eta_oi and eta_v
+rating_lg_sci_twin,flagged in the source table / duplicate: 400 V variant: TNB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept,1,eta_oi and eta_v
+rating_lg_sci_twin,flagged in the source table / duplicate: 400 V variant: TVB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept,1,eta_oi and eta_v
+rating_lg_sci_twin,flagged in the source table / duplicate: manufacturer_W_and_Btu_h_capacity_columns_differ_over_2pct,1,eta_oi and eta_v
+shao_2004,displacement not confirmed (eta_v fit only),252,eta_v only
+tello_oquendo_2017_ijr,source excluded: Vapour-injection scroll,16,eta_oi and eta_v

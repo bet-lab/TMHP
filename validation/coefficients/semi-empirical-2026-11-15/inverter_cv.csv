@@ -1,0 +1,22 @@
+form,test,held_out,n,rmse_shape,bias_total,rmse_total,theta
+I1,in_sample,all,203,0.0057988,,,0.6175
+I1,leave_one_inverter_out,A,133,0.00688398,0.00905602,0.0125545,0.5149
+I1,leave_one_inverter_out,AKO,5,0.0063817,-0.0143345,0.0181256,0.6215
+I1,leave_one_inverter_out,APY,13,0.00207885,0.0179672,0.0183886,0.6220
+I1,leave_one_inverter_out,B,35,0.00421116,-0.038449,0.0416502,0.6072
+I1,leave_one_inverter_out,C,17,0.0119722,0.00928944,0.0132999,0.6537
+I1,set_transfer,ossorio2019 (fit on 2023 only),18,0.00389534,0.00456489,0.0130117,0.6265
+I2,in_sample,all,203,0.00714419,,,0.2274
+I2,leave_one_inverter_out,A,133,0.00723337,0.00147278,0.00761079,0.1909
+I2,leave_one_inverter_out,AKO,5,0.00305739,-0.0083093,0.00949457,0.2281
+I2,leave_one_inverter_out,APY,13,0.00447261,0.0188355,0.0206934,0.2224
+I2,leave_one_inverter_out,B,35,0.00611412,-0.0322064,0.0338307,0.2179
+I2,leave_one_inverter_out,C,17,0.0151706,0.0125126,0.0170462,0.2582
+I2,set_transfer,ossorio2019 (fit on 2023 only),18,0.00408147,0.00941735,0.0153122,0.2230
+I3,in_sample,all,203,0.00408285,,,0.4461;0.0808
+I3,leave_one_inverter_out,A,133,0.00540057,0.00747028,0.0104424,0.4429;0.0327
+I3,leave_one_inverter_out,AKO,5,0.00582081,-0.0117015,0.0150494,0.4513;0.0804
+I3,leave_one_inverter_out,APY,13,0.00140587,0.0179479,0.0185321,0.4490;0.0806
+I3,leave_one_inverter_out,B,35,0.0039592,-0.0362729,0.0392892,0.4338;0.0808
+I3,leave_one_inverter_out,C,17,0.0127142,0.0110197,0.0145501,0.4658;0.0935
+I3,set_transfer,ossorio2019 (fit on 2023 only),18,0.0033473,0.00521413,0.0129308,0.4548;0.0802

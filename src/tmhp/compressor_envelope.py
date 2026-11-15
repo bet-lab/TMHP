@@ -759,11 +759,7 @@ def _outside_domain(model: object, pressure_ratio: float, rps: float) -> bool:
     domain = getattr(model, "validity_domain", None)
     if domain is None or not efficiency_extrapolated(model, pressure_ratio, rps):  # type: ignore[arg-type]
         return False
-    tol = _DOMAIN_RTOL
-    return not (
-        domain.pr_min * (1 - tol) <= pressure_ratio <= domain.pr_max * (1 + tol)
-        and domain.rps_min * (1 - tol) <= rps <= domain.rps_max * (1 + tol)
-    )
+    return not domain.contains(pressure_ratio, rps, rtol=_DOMAIN_RTOL)
 
 
 _F = TypeVar("_F", bound=Callable[..., Any])

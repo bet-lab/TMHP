@@ -25,8 +25,10 @@ import weakref
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
-from functools import wraps
-from typing import TypeVar, cast
+from functools import lru_cache, wraps
+from typing import Any, TypeVar, cast
+
+from scipy.optimize import brentq
 
 COEFFICIENT_VERSION = "BITZER-three-C3-absolute-N-2026-10-06"
 SOURCE_URL = "https://app.notion.com/p/3ee6947d125d80f4830ffcb408fa647d"
@@ -113,9 +115,11 @@ class ValidityDomain:
     pr_follow_min: float
     rps_follow_min: float
 
-    def contains(self, pressure_ratio: float, rps: float) -> bool:
-        """Whether (PR, N) lies inside the fitting-data box."""
-        return self.pr_min <= pressure_ratio <= self.pr_max and self.rps_min <= rps <= self.rps_max
+    def contains(self, pressure_ratio: float, rps: float, rtol: float = 0.0) -> bool:
+        """Whether (PR, N) lies inside the fitting-data box (``rtol``: edges widened by that relative margin)."""
+        return self.pr_min * (1 - rtol) <= pressure_ratio <= self.pr_max * (1 + rtol) and self.rps_min * (
+            1 - rtol
+        ) <= rps <= self.rps_max * (1 + rtol)
 
 
 def _clamp(value: float, low: float, high: float) -> float:
@@ -222,6 +226,422 @@ eta_isen_default = make_eta_isen(RPS_REF)
 eta_em_default = make_eta_em(RPS_REF)
 
 
+# ===========================================================================
+# Compressor-type-specific semi-empirical models (draft, open to review)
+# ===========================================================================
+# DESIGN: ~/scratch/tmhp-efficiency-model-20261115/DESIGN.md sections 5 and 11;
+# fit archive: validation/coefficients/semi-empirical-2026-11-15/ (README there
+# lists what is provisional). Fitted to standalone-compressor data only.
+#
+# Where each loss sits
+# --------------------
+# The archive fits the *terminal-basis* overall isentropic efficiency
+#
+#     eta_oi = m_dot (h_2s - h_1) / P_terminal          (inverter excluded)
+#
+# and splits it into the package's two compressor quantities with a constant
+# electromechanical share ``eta_em`` (measured scroll and rotary discharge
+# temperatures, archive ``split``):
+#
+#     eta_cmp_isen = eta_oi / eta_em     the gas-side loss: sets the discharge
+#                                        enthalpy and so the condenser duty
+#     eta_cmp      = eta_em * eta_inv    the loss that never reaches the gas:
+#                                        motor and mechanical (eta_em) and the
+#                                        drive (eta_inv, Ossorio inverter data)
+#
+# so the package's ``E_cmp = m_dot (h_2 - h_1) / eta_cmp`` is the electrical
+# input at the **inverter input** (grid side). ``eta_cmp_vol`` is the archive's
+# volumetric form. The three quantities share the suction state, which the
+# forms need beyond PR and speed (:class:`SuctionState`).
+
+#: Compressor types a model may be given (``compressor_type``); the first is the default.
+COMPRESSOR_TYPES = ("rotary_twin_inverter", "scroll", "rotary_single_fixed")
+#: Rotary speed-shape variants (measurement only until the owner decides; the first is the default).
+ROTARY_SPEED_VARIANTS = ("archive", "ossorio_anchored")
+
+# --- BEGIN GENERATED semi-empirical coefficients ---
+# Emitted by ``python -m validation.compressor_maps.semi_empirical.emit`` from
+# validation/coefficients/semi-empirical-2026-11-15/coefficients.json and rotary_speed_variants.json.
+SEMI_EMPIRICAL_VERSION = "semi-empirical-2026-11-15"
+SEMI_EMPIRICAL_TYPES: dict[str, Any] = {
+    "scroll": {
+        "family": "scroll",
+        "level_form": "add",
+        "speed": "abs",
+        "parameters": {"rv": 2.975091, "q2": 1.054178, "cL": 0.058443, "zv": 0.64542},
+        "level": 1.091016,
+        "level_by_refrigerant": {},
+        "eta_v": {"c0": 1.00841, "c_re": 0.010634, "c_Lv": 0.0174, "speed": "abs"},
+        "eta_em": 0.915582,
+        "hull_PR_N": (
+            (6.1714, 90.0),
+            (1.5646, 90.0),
+            (1.5016, 72.5),
+            (1.462, 58.0),
+            (1.4552, 38.667),
+            (1.5426, 20.0),
+            (4.9446, 20.0),
+            (7.6708, 38.667),
+            (8.7619, 58.333),
+            (7.6708, 72.5),
+        ),
+        "provisional": False,
+    },
+    "rotary_twin_inverter": {
+        "family": "rotary",
+        "level_form": "scaled",
+        "speed": "rel",
+        "parameters": {"cL": 0.03401, "cu": 0.118791},
+        "level": 1.275779,
+        "level_by_refrigerant": {"R32": 1.316402, "R410A": 1.172723},
+        "eta_v": {"c0": 0.989702, "c_re": 0.022817, "c_Lv": 0.027815, "speed": "rel"},
+        "eta_em": 0.857678,
+        "hull_PR_N": ((1.9429, 30.0), (6.8421, 30.0), (6.8421, 120.0), (1.9429, 120.0)),
+        "provisional": True,
+    },
+    "rotary_single_fixed": {
+        "family": "rotary",
+        "level_form": "scaled",
+        "speed": "rel",
+        "parameters": {"cL": 0.03401, "cu": 0.118791},
+        "level": 1.729347,
+        "level_by_refrigerant": {},
+        "eta_v": {"c0": 0.981532, "c_re": 0.022817, "c_Lv": 0.027815, "speed": "rel"},
+        "eta_em": 0.857678,
+        "hull_PR_N": ((1.9429, 30.0), (6.8421, 30.0), (6.8421, 120.0), (1.9429, 120.0)),
+        "provisional": True,
+    },
+}
+SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS: dict[str, Any] = {
+    "archive": {
+        "terms": ("q2", "cL", "cu"),
+        "parameters": {"cL": 0.03401, "cu": 0.118791},
+        "level": {"rotary_twin_inverter": 1.275779, "rotary_single_fixed": 1.729347},
+        "level_by_refrigerant": {"rotary_twin_inverter": {"R32": 1.316402, "R410A": 1.172723}},
+    },
+    "ossorio_anchored": {
+        "terms": ("q2", "cu", "cH", "qf"),
+        "parameters": {"cu": 0.242992, "cH": 2.408944, "qf": 0.123333},
+        "level": {"rotary_twin_inverter": 0.501171, "rotary_single_fixed": 0.790302},
+        "level_by_refrigerant": {"rotary_twin_inverter": {"R32": 0.447823, "R410A": 0.567186}},
+    },
+}
+SEMI_EMPIRICAL_DRIVE: dict[str, Any] = {"lam": 0.058774, "beta": 0.617538, "N_ref_rps": 60.0}
+
+
+# --- END GENERATED semi-empirical coefficients ---
+class SuctionStateRequired(TypeError):
+    """A state-dependent efficiency model was evaluated without the suction state."""
+
+
+@dataclass(frozen=True)
+class SuctionState:
+    """Compressor suction state handed to an efficiency model that declares ``needs_state``.
+
+    ``p_suc`` suction pressure [Pa], ``rho_suc`` suction density [kg/m3] (the
+    homogeneous density for wet suction), ``dh_isen`` isentropic enthalpy rise
+    ``h_2s - h_1`` [J/kg] to the discharge pressure. The pressure ratio is
+    passed beside it, as for every model.
+    """
+
+    p_suc: float
+    rho_suc: float
+    dh_isen: float
+
+    @property
+    def mep(self) -> float:
+        """Isentropic mean effective pressure ``rho_1 (h_2s - h_1)`` [Pa]."""
+        return self.rho_suc * self.dh_isen
+
+
+def suction_state(p_suc: float, rho_suc: float, h_suc: float, h_isen: float) -> SuctionState:
+    """:class:`SuctionState` from the suction pressure, density, enthalpy and the isentropic discharge enthalpy."""
+    return SuctionState(float(p_suc), float(rho_suc), float(h_isen) - float(h_suc))
+
+
+#: Bracket of the effective exponent. The archive solved it in [0.8, 2.0]; the
+#: work ratio is monotone in k, so the wider bracket returns the same root
+#: wherever that one has it and also covers wet suction near saturation.
+_K_LO, _K_HI = 0.5, 3.0
+
+
+def _pow_term(e: float, log_x: float) -> float:
+    """(x**e - 1) / e, continuous through e = 0 (where it is ln x)."""
+    if abs(e) < 1e-9:
+        return log_x
+    return math.expm1(e * log_x) / e
+
+
+@lru_cache(maxsize=8192)
+def effective_exponent(pressure_ratio: float, work_ratio: float) -> float:
+    """The k with ``k/(k-1) (PR^((k-1)/k) - 1) = w_s rho_1 / p_1`` (``work_ratio``).
+
+    Raises :class:`InvalidCompressorEfficiency` when no k in
+    ``[0.5, 3.0]`` reproduces the state (the point is not one the forms
+    describe): no silent substitute.
+    """
+    if not (math.isfinite(pressure_ratio) and pressure_ratio > 1.0 and math.isfinite(work_ratio) and work_ratio > 0):
+        raise InvalidCompressorEfficiency(f"no effective exponent at PR={pressure_ratio!r}, w_s rho/p={work_ratio!r}")
+    log_pr = math.log(pressure_ratio)
+
+    def f(k: float) -> float:
+        return _pow_term((k - 1.0) / k, log_pr) - work_ratio
+
+    f_lo, f_hi = f(_K_LO), f(_K_HI)
+    if f_lo * f_hi > 0.0:
+        raise InvalidCompressorEfficiency(
+            f"no effective exponent in [{_K_LO}, {_K_HI}] at PR={pressure_ratio:.4g}, w_s rho/p={work_ratio:.4g}"
+        )
+    return float(brentq(f, _K_LO, _K_HI, xtol=1e-12))
+
+
+def _phi(pressure_ratio: float, k: float, rv: float) -> float:
+    """Scroll work ratio: isentropic work to the built-in volume ratio ``rv`` plus isochoric work, over isentropic."""
+    log_pr = math.log(pressure_ratio)
+    ws = _pow_term((k - 1.0) / k, log_pr)
+    wi = k * _pow_term(k - 1.0, math.log(rv)) + (pressure_ratio / rv - rv ** (k - 1.0))
+    return float(wi / ws)
+
+
+@dataclass(frozen=True)
+class HullDomain:
+    """Convex (PR, N) hull of a fit's data, vertices counter-clockwise; N in rev/s.
+
+    Used for the ``efficiency_extrapolated`` flag only: outside it the
+    semi-empirical forms are followed as they are (no hold, no clamp).
+    """
+
+    vertices: tuple[tuple[float, float], ...]
+
+    def contains(self, pressure_ratio: float, rps: float, rtol: float = 0.0) -> bool:
+        """Whether (PR, N) lies inside the hull (``rtol``: also accept a point that far outside, relatively)."""
+        if self._inside(pressure_ratio, rps):
+            return True
+        if rtol <= 0.0:
+            return False
+        return any(
+            self._inside(pressure_ratio * (1.0 + a * rtol), rps * (1.0 + b * rtol))
+            for a, b in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1))
+        )
+
+    def _inside(self, x: float, y: float) -> bool:
+        if not (math.isfinite(x) and math.isfinite(y)):
+            return False
+        v = self.vertices
+        sign = 0.0
+        for (x1, y1), (x2, y2) in zip(v, v[1:] + v[:1], strict=True):
+            cross = (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)
+            if cross == 0.0:
+                continue
+            if sign == 0.0:
+                sign = cross
+            elif (cross > 0.0) != (sign > 0.0):
+                return False
+        return True
+
+
+def _hull(vertices: tuple[tuple[float, float], ...]) -> HullDomain:
+    """Hull with counter-clockwise vertices (the archive writes scipy ConvexHull order)."""
+    area = sum(x1 * y2 - x2 * y1 for (x1, y1), (x2, y2) in zip(vertices, vertices[1:] + vertices[:1], strict=True))
+    return HullDomain(tuple(vertices) if area > 0 else tuple(reversed(vertices)))
+
+
+@dataclass(frozen=True)
+class CompressorSpec:
+    """Which default compressor model a heat-pump model builds (the ``compressor_type`` argument).
+
+    The public form of ``compressor_type`` is one of :data:`COMPRESSOR_TYPES`;
+    a ``CompressorSpec`` adds the options that exist **for measurement only**
+    while the owner question of DESIGN 11.4 is open:
+
+    ``rotary_speed_variant``
+        ``"archive"`` (default; the archive's fit, Shao 2004, Ossorio 2019 and
+        AREP #26 together) or ``"ossorio_anchored"`` (Shao kept out of the speed
+        shape; ``validation/compressor_maps/semi_empirical/variants.py``).
+        Rotary types only.
+    ``inverter``
+        False sets the drive efficiency to one (isolates the inverter loss).
+    ``eta_oi_scale``
+        Multiplies ``eta_oi`` (sensitivity to the efficiency level, e.g. 0.90
+        for the independently measured level of DESIGN 11.3 item 1). With the
+        constant split it scales ``eta_cmp_isen``.
+    """
+
+    compressor_type: str = COMPRESSOR_TYPES[0]
+    rotary_speed_variant: str = ROTARY_SPEED_VARIANTS[0]
+    inverter: bool = True
+    eta_oi_scale: float = 1.0
+
+    def __post_init__(self) -> None:
+        if self.compressor_type not in COMPRESSOR_TYPES:
+            raise ValueError(f"compressor_type must be one of {COMPRESSOR_TYPES}, got {self.compressor_type!r}")
+        if self.rotary_speed_variant not in ROTARY_SPEED_VARIANTS:
+            raise ValueError(
+                f"rotary_speed_variant must be one of {ROTARY_SPEED_VARIANTS}, got {self.rotary_speed_variant!r}"
+            )
+        if not (math.isfinite(self.eta_oi_scale) and 0.0 < self.eta_oi_scale <= 1.5):
+            raise ValueError(f"eta_oi_scale must be in (0, 1.5], got {self.eta_oi_scale!r}")
+
+
+def resolve_compressor_type(value: str | CompressorSpec) -> CompressorSpec:
+    """A model's ``compressor_type`` argument as a :class:`CompressorSpec` (validated)."""
+    if isinstance(value, CompressorSpec):
+        return value
+    if isinstance(value, str):
+        return CompressorSpec(value)
+    raise TypeError(f"compressor_type must be a str or CompressorSpec, got {type(value).__name__}")
+
+
+class SemiEmpiricalCompressor:
+    """One compressor of a given type: ``eta_oi``, ``eta_v``, the split and the drive.
+
+    Forms (archive ``coefficients.json``; ``n`` the speed coordinate)::
+
+        scroll   1/eta_oi = a phi_z(PR; rv, k, zv) + L          ("add" level form)
+        rotary   1/eta_oi = 1 + a L          (q2 = 1)           ("scaled" level form)
+        L = (q0/n + q1 + q2 n) 1e5/MEP_s + cL (PR-1)/n + qf n^2 1e4 rho_1/MEP_s
+            + cu (MEP_s/1e6)/n + cH (PR^((k-1)/k) - 1)          (absent terms are zero)
+        eta_v   = c0 - c_re (PR^(1/k) - 1) - c_Lv (PR - 1)/n
+        eta_inv = 1 - lam (1 + beta (60/N - 1))                 (N in rev/s)
+
+    Speed coordinate: scroll ``n = N/50`` (absolute); rotary ``n = N/N_rated``
+    with ``N_rated`` the **machine's** rated speed (``rps_rated``, the speed the
+    model solves at its rating point, or the caller's). The archive anchored the
+    rotary level on 60 Hz (twin) and 50 Hz (single) rating points at ``n = 1``;
+    here ``n = 1`` is the machine's own rated point, so the level is read at the
+    rated point of the machine whatever its rated speed. ``rps_rated=None``
+    evaluates every speed as the rated speed (``n = 1``): that is the object
+    used while the rated speed itself is being solved, where the candidate
+    speed *is* the rated speed by definition.
+
+    Out of the data the forms are followed as they are; :attr:`validity_domain`
+    (the data hull, N in rev/s as the archive wrote it) only feeds the
+    ``efficiency_extrapolated`` flag.
+    """
+
+    def __init__(self, spec: CompressorSpec, ref: str, rps_rated: float | None) -> None:
+        self.spec = spec
+        self.ref = ref
+        self.rps_rated = rps_rated
+        t = SEMI_EMPIRICAL_TYPES[spec.compressor_type]
+        self.family: str = t["family"]
+        self.level_form: str = t["level_form"]
+        self.speed: str = t["speed"]
+        params = dict(t["parameters"])
+        level = t["level"]
+        by_ref = t["level_by_refrigerant"]
+        if self.family == "rotary":
+            v = SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS[spec.rotary_speed_variant]
+            params = dict(v["parameters"])
+            level = v["level"][spec.compressor_type]
+            by_ref = v["level_by_refrigerant"].get(spec.compressor_type, {})
+        self.parameters: dict[str, float] = params
+        self.level: float = float(by_ref.get(ref, level))
+        self.eta_v_coefficients: dict[str, Any] = dict(t["eta_v"])
+        self.eta_em_split: float = float(t["eta_em"])
+        self.validity_domain = _hull(t["hull_PR_N"])
+        self.provisional: bool = bool(t["provisional"])
+        if self.family == "rotary" and self.level_form != "scaled":
+            raise ValueError("rotary forms are fitted in the scaled level form")
+        self.eta_vol = SemiEmpiricalEfficiency(self, "eta_cmp_vol")
+        self.eta_isen = SemiEmpiricalEfficiency(self, "eta_cmp_isen")
+        self.eta_em = SemiEmpiricalEfficiency(self, "eta_cmp")
+
+    def _n(self, rps: float, coordinate: str) -> float:
+        if coordinate == "abs":
+            return rps / 50.0
+        return 1.0 if self.rps_rated is None else rps / self.rps_rated
+
+    def _k(self, pressure_ratio: float, state: SuctionState) -> float:
+        return effective_exponent(pressure_ratio, state.dh_isen * state.rho_suc / state.p_suc)
+
+    def eta_oi(self, pressure_ratio: float, rps: float, state: SuctionState) -> float:
+        """Terminal-basis overall isentropic efficiency (inverter excluded, before ``eta_oi_scale``)."""
+        p = self.parameters
+        k = self._k(pressure_ratio, state)
+        mep = state.mep
+        n = self._n(rps, self.speed)
+        if not (mep > 0.0 and n > 0.0):
+            raise InvalidCompressorEfficiency(f"nonpositive MEP_s={mep!r} or speed coordinate {n!r}")
+        loss = (p.get("q0", 0.0) / n + p.get("q1", 0.0) + p.get("q2", 1.0 if self.family == "rotary" else 0.0) * n) * (
+            1e5 / mep
+        )
+        loss += p.get("cL", 0.0) * (pressure_ratio - 1.0) / n
+        loss += p.get("qf", 0.0) * n * n * 1e4 * state.rho_suc / mep
+        loss += p.get("cu", 0.0) * (mep / 1e6) / n
+        loss += p.get("cH", 0.0) * (pressure_ratio ** ((k - 1.0) / k) - 1.0)
+        if self.family == "scroll":
+            rv = p["rv"]
+            base = _phi(pressure_ratio, k, rv)
+            if pressure_ratio < rv**k:
+                base -= p.get("zv", 0.0) * (base - 1.0)
+            inverse = self.level * base + loss
+        else:
+            inverse = 1.0 + self.level * loss
+        return float(1.0 / inverse)
+
+    def eta_v(self, pressure_ratio: float, rps: float, state: SuctionState) -> float:
+        c = self.eta_v_coefficients
+        k = self._k(pressure_ratio, state)
+        n = self._n(rps, c["speed"])
+        return float(c["c0"] - c["c_re"] * (pressure_ratio ** (1.0 / k) - 1.0) - c["c_Lv"] * (pressure_ratio - 1.0) / n)
+
+    def eta_inverter(self, rps: float) -> float:
+        """Drive efficiency at shaft speed ``rps`` [rev/s] (one with ``inverter=False``)."""
+        if not self.spec.inverter:
+            return 1.0
+        d = SEMI_EMPIRICAL_DRIVE
+        return float(1.0 - d["lam"] * (1.0 + d["beta"] * (d["N_ref_rps"] / rps - 1.0)))
+
+
+class SemiEmpiricalEfficiency:
+    """One of the package's three quantities of a :class:`SemiEmpiricalCompressor`.
+
+    ``eta_cmp_vol`` and ``eta_cmp_isen`` declare ``needs_state`` and are called
+    ``model(PR, N, state)``; ``eta_cmp`` (motor, mechanical and drive) depends
+    on the speed only and is called ``model(PR, N)``. Calling a state-dependent
+    quantity without the state raises :class:`SuctionStateRequired`.
+    """
+
+    def __init__(self, compressor: SemiEmpiricalCompressor, quantity: str) -> None:
+        self.compressor = compressor
+        self.quantity = quantity
+        self.needs_state = quantity != "eta_cmp"
+
+    @property
+    def validity_domain(self) -> HullDomain:
+        return self.compressor.validity_domain
+
+    @property
+    def rps_rated(self) -> float | None:
+        return self.compressor.rps_rated
+
+    def __call__(self, pressure_ratio: float, rps: float, state: SuctionState | None = None) -> float:
+        c = self.compressor
+        if self.quantity == "eta_cmp":
+            return c.eta_em_split * c.eta_inverter(rps)
+        if state is None:
+            raise SuctionStateRequired(
+                f"the {c.spec.compressor_type} {self.quantity} model needs the suction state: "
+                "call it as model(PR, rps, SuctionState(...)) (see tmhp.compressor_efficiency.SuctionState)"
+            )
+        if self.quantity == "eta_cmp_vol":
+            return c.eta_v(pressure_ratio, rps, state)
+        return c.eta_oi(pressure_ratio, rps, state) * c.spec.eta_oi_scale / c.eta_em_split
+
+    def extrapolated(self, pressure_ratio: float, rps: float) -> bool:
+        return not self.validity_domain.contains(pressure_ratio, rps)
+
+    def __repr__(self) -> str:
+        return f"SemiEmpiricalEfficiency({self.compressor.spec!r}, {self.quantity}, rps_rated={self.rps_rated!r})"
+
+
+def default_efficiencies(spec: CompressorSpec, ref: str, rps_rated: float | None) -> dict[str, Callable]:
+    """The three default efficiency models of a machine (``rps_rated=None``: while the rated speed is solved)."""
+    c = SemiEmpiricalCompressor(spec, ref, rps_rated)
+    return {"eta_cmp_isen": c.eta_isen, "eta_cmp_vol": c.eta_vol, "eta_cmp": c.eta_em}
+
+
 def efficiency_extrapolated(model: float | Callable, pressure_ratio: float, rps: float) -> bool:
     """Whether ``model`` is evaluated outside its fitting data at (PR, N).
 
@@ -231,7 +651,7 @@ def efficiency_extrapolated(model: float | Callable, pressure_ratio: float, rps:
     ``N = cmp_rpm / 60``.
     """
     domain = getattr(model, "validity_domain", None)
-    if not isinstance(domain, ValidityDomain):
+    if not isinstance(domain, (ValidityDomain, HullDomain)):
         return False
     return not domain.contains(pressure_ratio, rps)
 
@@ -297,15 +717,27 @@ def _takes_speed(model: Callable) -> bool:
     return takes_speed
 
 
-def _eval_eff(model: float | Callable, PR: float, rps: float) -> float:
-    """Evaluate a scalar or PR / PR-speed callable and enforce 0 < eta <= 1.
+def needs_state(model: object) -> bool:
+    """Whether ``model`` declares that it is called ``model(PR, rps, state)`` (attribute ``needs_state``)."""
+    return callable(model) and getattr(model, "needs_state", False) is True
 
-    Constructors resolve None to the corresponding baseline factory. Inspect
-    argument binding rather than catching a TypeError raised inside a model;
-    the answer is kept per model (:func:`_takes_speed`).
+
+def _eval_eff(model: float | Callable, PR: float, rps: float, state: SuctionState | None = None) -> float:
+    """Evaluate a scalar or a callable efficiency model and enforce 0 < eta <= 1.
+
+    Call forms: a model that declares ``needs_state = True`` is called
+    ``model(PR, rps, state)`` with the :class:`SuctionState` of the cycle
+    (:class:`SuctionStateRequired` when the caller has none); otherwise
+    ``model(PR, rps)`` or ``model(PR)`` -- the public way to supply one's own
+    efficiency. Inspect argument binding rather than catching a TypeError
+    raised inside a model; the answer is kept per model (:func:`_takes_speed`).
     """
     if not callable(model):
         value = float(model)
+    elif needs_state(model):
+        if state is None:
+            raise SuctionStateRequired(f"{model!r} needs the suction state; the caller passed none")
+        value = float(model(PR, rps, state))
     elif _takes_speed(model):
         value = float(model(PR, rps))
     else:

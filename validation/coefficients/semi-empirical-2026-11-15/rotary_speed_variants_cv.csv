@@ -1,0 +1,5 @@
+variant,candidate,form,loco_shape_all,loco_total_all,loso_shape_mean,parameters,loso_shape_shao_2004,loso_shape_ossorio_2019_cnit,loso_shape_arep_rpt26_hitachi2013,edge_bias_top,edge_bias_bottom,edge_bias_low_speed,ratio_ossorio_30,ratio_ossorio_90,ratio_ossorio_120,ratio_shao_30,ratio_shao_90,ratio_shao_120
+a,selected terms without qf,rotary:q2+cL+cu:rel:scaled,0.0317842,0.112893,0.0246334,cL=0.03401; cu=0.1188,0.0433896,0.0181214,0.0123893,0.0281832,0.0103974,0.0435701,0.904996,0.979521,0.931719,0.858186,0.982589,0.924185
+a,selected terms with qf,rotary:q2+cL+cu+qf:rel:scaled,0.0320417,0.112098,0.0253472,cL=0.03401; cu=0.1188; qf=5.897e-13,0.0433896,0.0202628,0.0123893,0.0281832,0.00873363,0.0430419,0.904996,0.979521,0.931719,0.858186,0.98259,0.924185
+b,selected terms without qf,rotary:q2+cu+cH:rel:scaled,0.0215113,0.106604,0.01873,cu=0.1927; cH=1.455,0.0239566,0.0175945,0.014639,0.0302538,0.0435166,0.00260753,0.973272,0.959996,0.908575,,,
+b,selected terms with qf,rotary:q2+cu+cH+qf:rel:scaled,0.0208806,0.102031,0.0179461,cu=0.243; cH=2.409; qf=0.1233,0.0234922,0.0155463,0.0147998,0.0273376,0.0371447,-0.00175344,0.967863,0.962021,0.907897,,,

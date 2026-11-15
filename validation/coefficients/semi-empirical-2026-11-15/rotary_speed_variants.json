@@ -1,0 +1,94 @@
+{
+ "variants": {
+  "a": {
+   "description": "archive data arrangement: Shao, Ossorio and AREP #26 inform the shared shape",
+   "terms": [
+    "q2",
+    "cL",
+    "cu"
+   ],
+   "backward_elimination_selected": [
+    "q2",
+    "cL",
+    "cu"
+   ],
+   "parameters": {
+    "cL": 0.03401,
+    "cu": 0.118791
+   },
+   "high_speed_term": {
+    "term": "qf",
+    "loco_shape_without": 0.031784,
+    "loco_shape_with": 0.032042,
+    "kept": false,
+    "rule": "kept only if LOCO shape RMSE falls by more than 0.0001"
+   },
+   "level_twin": 1.275779,
+   "level_twin_by_refrigerant": {
+    "R32": 1.316402,
+    "R410A": 1.172723
+   },
+   "level_single_fixed": 1.729347
+  },
+  "b": {
+   "description": "Ossorio-anchored: each Shao speed record carries its own level (Shao informs the PR shape only)",
+   "terms": [
+    "q2",
+    "cu",
+    "cH",
+    "qf"
+   ],
+   "backward_elimination_selected": [
+    "q2",
+    "qf",
+    "cu",
+    "cH"
+   ],
+   "parameters": {
+    "cu": 0.242992,
+    "cH": 2.408944,
+    "qf": 0.123333
+   },
+   "high_speed_term": {
+    "term": "qf",
+    "loco_shape_without": 0.021511,
+    "loco_shape_with": 0.020881,
+    "kept": true,
+    "rule": "kept only if LOCO shape RMSE falls by more than 0.0001"
+   },
+   "level_twin": 0.501171,
+   "level_twin_by_refrigerant": {
+    "R32": 0.447823,
+    "R410A": 0.567186
+   },
+   "level_single_fixed": 0.790302
+  }
+ },
+ "data_speed_ratios": {
+  "ossorio_2019_cnit": {
+   "ossorio_2019_cnit TPB306F R290 [ossorio_2019_cnit]": {
+    "30": 0.97979,
+    "90": 0.978393,
+    "120": 0.914434
+   }
+  },
+  "shao_2004": {
+   "shao_2004 Hitachi SGZ20DB2-Y R22 [shao_2004]": {
+    "30": 0.718251,
+    "90": 0.994047,
+    "120": 0.927214
+   },
+   "shao_2004 Mitsubishi RHV207FEM R22 [shao_2004]": {
+    "30": 0.768918,
+    "90": 1.019021,
+    "120": 0.817212
+   },
+   "shao_2004 SANYO 80870080 R22 [shao_2004]": {
+    "30": 0.854945,
+    "90": 1.002532,
+    "120": 0.971031
+   }
+  }
+ },
+ "note": "Level form scaled, relative speed coordinate n = N/N_rated (archive selections). Variant a with the archive terms reproduces the archive parameters. Levels are refitted on the same rating points as the archive with each variant's shape."
+}

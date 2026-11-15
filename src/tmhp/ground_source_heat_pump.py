@@ -46,7 +46,15 @@ from ._opt_utils import (
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
 from .borehole_capacity import configure_borehole_dynamics
-from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
+from .compressor_efficiency import (
+    COMPRESSOR_TYPES,
+    CompressorSpec,
+    SuctionState,
+    _eval_eff,
+    needs_state,
+    reject_invalid_efficiency,
+    resolve_compressor_type,
+)
 from .compressor_envelope import (
     BINDING_DISCHARGE,
     CONTROL_KEY,
@@ -578,8 +586,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_cond_max: float | Literal["auto"] | None = "auto",
         # Ground-loop liquid (None: 25 % ethylene glycol). Keyword-only.
         source_fluid: str | SourceFluid | None = None,
+        # Compressor type whose default efficiency models are used where
+        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
+        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
     ):
         validate_ctor("GSHP", locals())
+        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "air")
         # Liquid of the ground loop: its properties enter the source-side
@@ -649,7 +661,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         rps_check = rps_rated if rps_rated is not None else rps_min
         for name, legacy in (("eta_v", eta_v), ("eta_em", eta_em)):
             if legacy is not None:
-                _eval_eff(legacy, 3.0, rps_check)
+                # A probe at PR 3 of the deprecated inputs. There is no cycle
+                # yet, so a model that needs the suction state is not probed
+                # here; it is evaluated (and rejected if invalid) at every
+                # cycle evaluation, with the cycle's state.
+                if not needs_state(legacy):
+                    _eval_eff(legacy, 3.0, rps_check)
                 warnings.warn(
                     f"{name} is deprecated; use eta_cmp_vol / eta_cmp. Explicit new inputs take precedence.",
                     DeprecationWarning,
@@ -855,6 +872,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 "eta_cmp_vol": eta_cmp_vol,
                 "eta_cmp": eta_cmp,
             },
+            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
@@ -1124,22 +1142,23 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             eta_vol_at = efficiency_evaluator(self.eta_cmp_vol)
             eta_isen_at = efficiency_evaluator(self.eta_cmp_isen)
             eta_em_at = efficiency_evaluator(self.eta_cmp)
+            suction = SuctionState(P_evap, rho_suction, dh_isen)
 
             def residual(rps: float) -> float:
-                eta_vol = eta_vol_at(ratio_P_cmp, rps)
-                eta_isen = eta_isen_at(ratio_P_cmp, rps)
+                eta_vol = eta_vol_at(ratio_P_cmp, rps, suction)
+                eta_isen = eta_isen_at(ratio_P_cmp, rps, suction)
                 # Validate the drive model on every candidate as well. It acts
                 # on input power only, not on the refrigerant heat duty.
-                eta_em_at(ratio_P_cmp, rps)
+                eta_em_at(ratio_P_cmp, rps, suction)
                 m_dot = self.V_cmp_ref * rho_suction * eta_vol * rps
                 h_out = h_in + dh_isen / eta_isen
                 dh = h_in - h_expansion if mode == "cooling" else h_out - h_liquid
                 return float(m_dot * dh - Q_ref_iu)
 
             cmp_rps, converged_rps, capacity_clamped = solve_compressor_speed(residual, self.rps_min, self.rps_max)
-            val_eta_isen = eta_isen_at(ratio_P_cmp, cmp_rps)
-            val_eta_vol = eta_vol_at(ratio_P_cmp, cmp_rps)
-            val_eta_em = eta_em_at(ratio_P_cmp, cmp_rps)
+            val_eta_isen = eta_isen_at(ratio_P_cmp, cmp_rps, suction)
+            val_eta_vol = eta_vol_at(ratio_P_cmp, cmp_rps, suction)
+            val_eta_em = eta_em_at(ratio_P_cmp, cmp_rps, suction)
             cycle_states = with_discharge_state(cycle_states, h_isen, val_eta_isen, self.ref)
             m_dot_ref = self.V_cmp_ref * rho_suction * val_eta_vol * cmp_rps
         else:

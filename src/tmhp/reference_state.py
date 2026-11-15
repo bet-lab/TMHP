@@ -68,7 +68,13 @@ from typing import Any, Literal
 import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
-from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_efficiency import (
+    CompressorSpec,
+    InvalidCompressorEfficiency,
+    SuctionState,
+    _eval_eff,
+    default_efficiencies,
+)
 from .compressor_envelope import RATED_SPEED_SEARCH_MAX, check_rated_condensing, default_rps_max
 from .compressor_speed import solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
@@ -273,36 +279,26 @@ def rating_condition(
     )
 
 
-def _rated_speed_efficiency(factory: Callable[[float], Callable]) -> Callable[[float, float], float]:
-    """Evaluate absolute shaft speed at every candidate reference point."""
-    correlation = factory(1.0)
-    return lambda pressure_ratio, rps: correlation(pressure_ratio, rps)
-
-
-#: Efficiency factories by attribute, used when the caller supplied none.
-BASELINE_FACTORIES: dict[str, Callable[[float], Callable]] = {
-    "eta_cmp_isen": make_eta_isen,
-    "eta_cmp_vol": make_eta_vol,
-    "eta_cmp": make_eta_em,
-}
-
-
 def reference_efficiencies(
     supplied: Mapping[str, float | Callable | None],
     resolved: Mapping[str, float | Callable] | None,
+    compressor: CompressorSpec,
+    ref: str,
 ) -> dict[str, float | Callable]:
     """Efficiencies to evaluate the reference state with.
 
     ``resolved`` (the model's final efficiencies) is used when the rated speed
     is already known. Otherwise caller-supplied models are used as they are and
-    omitted ones use BITZER correlations at each candidate shaft speed.
+    omitted ones are the type's default models with ``rps_rated=None``: every
+    candidate speed of the rated-speed solve is evaluated as the rated speed
+    (``n = 1`` in a relative speed coordinate), because the speed being solved
+    *is* the machine's rated speed. Absolute-speed forms (scroll, drive) see
+    the candidate speed itself.
     """
     if resolved is not None:
         return dict(resolved)
-    return {
-        name: model if model is not None else _rated_speed_efficiency(BASELINE_FACTORIES[name])
-        for name, model in supplied.items()
-    }
+    defaults = default_efficiencies(compressor, ref, None)
+    return {name: model if model is not None else defaults[name] for name, model in supplied.items()}
 
 
 _CACHE: dict[tuple, ReferenceState] = {}
@@ -452,11 +448,14 @@ def _solve(
         h3 = states["h_ref_exp_in [J/kg]"]
         h4 = states["h_ref_exp_out [J/kg]"]
         rho = states["rho_ref_cmp_in [kg/m3]"]
+        # Suction state of this duty: the states were solved with eta_isen = 1,
+        # so h_ref_cmp_out is the isentropic discharge enthalpy.
+        suction = SuctionState(states["P_ref_cmp_in [Pa]"], rho, dh_isen)
 
         def duties(rps: float) -> tuple[float, float, float, float, float]:
-            eta_vol = _eval_eff(eta_vol_model, PR, rps)
-            eta_isen = _eval_eff(eta_isen_model, PR, rps)
-            _eval_eff(eta_em_model, PR, rps)
+            eta_vol = _eval_eff(eta_vol_model, PR, rps, suction)
+            eta_isen = _eval_eff(eta_isen_model, PR, rps, suction)
+            _eval_eff(eta_em_model, PR, rps, suction)
             m_dot = V_cmp_ref * rho * eta_vol * rps
             h2 = h1 + dh_isen / eta_isen
             return m_dot, m_dot * (h2 - h3), m_dot * (h1 - h4), eta_vol, eta_isen
@@ -466,7 +465,7 @@ def _solve(
             # denominator. With raw speed-dependent fits, condenser duty can
             # decrease before rising again, so its value at rps_min is not a
             # lower capacity bound.
-            eta_vol = _eval_eff(eta_vol_model, PR, rps)
+            eta_vol = _eval_eff(eta_vol_model, PR, rps, suction)
             m_dot = V_cmp_ref * rho * eta_vol * rps
             return float(m_dot * (h1 - h4) - Q_evap)
 
@@ -495,6 +494,7 @@ def _solve(
             "eta_isen": eta_isen,
             "T_cond_K": T_cond_K,
             "T_evap_K": T_evap_K,
+            "suction": suction,
         }
 
     # Heating: the evaporator takes Q_rated less the compressor work.
@@ -559,7 +559,7 @@ def _solve(
             f"(V_cmp_ref={V_cmp_ref:.4g} m3/rev); supply V_cmp_ref or rps_rated consistent with the machine"
         )
     rps_ref = c["rps"]
-    eta_em = _eval_eff(eta_em_model, c["PR"], rps_ref)
+    eta_em = _eval_eff(eta_em_model, c["PR"], rps_ref, c["suction"])
     E_cmp_ref = c["Q_cond"] - c["Q_evap"]
     return ReferenceState(
         rps_rated=rps_ref if rps_rated is None else rps_rated,
@@ -727,12 +727,14 @@ class ReferenceStateMixin:
         rps_rated: float | None,
         m_dot_ref_rated: float | None,
         efficiencies: Mapping[str, float | Callable | None],
+        compressor: CompressorSpec,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
     ) -> dict[str, float | Callable]:
         """Resolve ``rps_rated``, ``m_dot_ref_rated`` and the compressor efficiencies.
 
         ``efficiencies`` maps ``eta_cmp_isen`` / ``eta_cmp_vol`` / ``eta_cmp``
-        to the caller's input (``None`` = baseline correlation). Explicit
+        to the caller's input (``None`` = the default model of ``compressor``,
+        :func:`~tmhp.compressor_efficiency.default_efficiencies`). Explicit
         ``rps_rated`` / ``m_dot_ref_rated`` take precedence over solved values.
         Returns the resolved efficiencies; also sets ``rps_rated``,
         ``m_dot_ref_rated``, ``rated_condition`` and ``reference_state``
@@ -759,18 +761,19 @@ class ReferenceStateMixin:
         )
 
         def resolve(speed: float) -> dict[str, float | Callable]:
-            return {
-                name: model if model is not None else BASELINE_FACTORIES[name](speed)
-                for name, model in efficiencies.items()
-            }
+            defaults = default_efficiencies(compressor, self.ref, speed)
+            return {name: model if model is not None else defaults[name] for name, model in efficiencies.items()}
 
         state: ReferenceState | None = None
         if rps_rated is None or m_dot_ref_rated is None:
-            # Scalars and baseline correlations are hashable descriptions of the
-            # compressor; a caller's callable is not, so it is solved uncached.
+            # Scalars and the default models (described by the compressor spec)
+            # are hashable descriptions of the compressor; a caller's callable is
+            # not, so it is solved uncached.
             cacheable = not any(callable(model) for model in efficiencies.values())
-            cache_key = tuple(sorted(efficiencies.items())) if cacheable else None
-            etas = reference_efficiencies(efficiencies, None if rps_rated is None else resolve(rps_rated))
+            cache_key = (compressor, tuple(sorted(efficiencies.items()))) if cacheable else None
+            etas = reference_efficiencies(
+                efficiencies, None if rps_rated is None else resolve(rps_rated), compressor, self.ref
+            )
             kwargs: dict[str, Any] = dict(
                 ref=self.ref,
                 V_cmp_ref=self.V_cmp_ref,

@@ -51,7 +51,15 @@ from ._source_boiler import (
 )
 from ._tank_solve import solve_lumped_tank
 from ._validation import validate_ctor, validate_dynamic, validate_steady
-from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
+from .compressor_efficiency import (
+    COMPRESSOR_TYPES,
+    CompressorSpec,
+    InvalidCompressorEfficiency,
+    _eval_eff,
+    reject_invalid_efficiency,
+    resolve_compressor_type,
+    suction_state,
+)
 from .compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
@@ -297,8 +305,12 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         # (None: no cycling, the row over-delivers at the minimum speed).
         Cd_cycling: CyclingDegradation | float | None = CC_WATER_DEFAULT,
         source_fluid: str | SourceFluid | None = None,
+        # Compressor type whose default efficiency models are used where
+        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
+        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
     ) -> None:
         validate_ctor("WSHPB", locals())
+        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
         # Liquid of the source loop: its properties enter the source-side
@@ -473,6 +485,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             rps_rated=rps_rated,
             m_dot_ref_rated=m_dot_ref_rated,
             efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
@@ -693,11 +706,14 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 h_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
             except ValueError:
                 h_cmp_out_isen = h_cmp_in
+            # Suction state for the efficiency models that need it (a failed
+            # isentropic flash leaves dh_isen 0: such a model reports the point infeasible).
+            suction = suction_state(cs_i["P_ref_cmp_in [Pa]"], rho_cmp_in, h_cmp_in, h_cmp_out_isen)
 
             # Compressor speed (rev/s) at which the condenser duty matches the requested tank load.
             def _residual_rps(rps):
-                eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps)
-                eta_isen_r = _eval_eff(self.eta_cmp_isen, ratio, rps)
+                eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps, suction)
+                eta_isen_r = _eval_eff(self.eta_cmp_isen, ratio, rps, suction)
                 h_cmp_out_local = h_cmp_in + (h_cmp_out_isen - h_cmp_in) / eta_isen_r
                 dh_cond_local = h_cmp_out_local - h_exp_in
                 m_dot = self.V_cmp_ref * rho_cmp_in * eta_vol_r * rps
@@ -708,9 +724,9 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             else:
                 rps_i, converged_i, clamped_i = rps_fixed, True, None
 
-            eta_vol_i = _eval_eff(self.eta_cmp_vol, ratio, rps_i)
-            eta_isen_i = _eval_eff(self.eta_cmp_isen, ratio, rps_i)
-            eta_em_i = _eval_eff(self.eta_cmp, ratio, rps_i)
+            eta_vol_i = _eval_eff(self.eta_cmp_vol, ratio, rps_i, suction)
+            eta_isen_i = _eval_eff(self.eta_cmp_isen, ratio, rps_i, suction)
+            eta_em_i = _eval_eff(self.eta_cmp, ratio, rps_i, suction)
 
             # Final state with the speed-resolved isentropic efficiency.
             cs_i = calc_ref_state(

@@ -1,10 +1,10 @@
-"""EnergyPlus Python Plugin adapter for the tmhp ASHPB (#165 P2).
+"""EnergyPlus Python Plugin adapter for the tmhp ASHPB.
 
 Surrogates :class:`~tmhp.AirSourceHeatPumpBoiler` inside EnergyPlus as a
 ``PlantComponent:UserDefined`` device. Each plant-solver call hands the plugin
 the loop inlet temperature, mass flow, specific heat, and load request (plus the
 site outdoor drybulb); the plugin solves the refrigerant cycle with the public
-``analyze_steady()`` seam (#165 P0) and writes back the outlet-temperature and
+``analyze_steady()`` seam and writes back the outlet-temperature and
 mass-flow actuators, routing the system's electricity to a metered output.
 
 Metered electricity and delivered heat (what crosses the EnergyPlus boundary)
@@ -44,8 +44,8 @@ Why ``analyze_steady`` (not ``step()``): EnergyPlus owns the storage-tank state
 through ``WaterHeater:Mixed`` and asks the component for a *steady* answer each
 timestep (given the inlet/outdoor conditions and the loop load, what is the
 leaving temperature and the electric input). The dynamic ``step()`` kernel — and
-its tank model — is instead what the FMU adapter (#165 P1,
-:mod:`tmhp.integrations.fmu`) wraps. The two BES adapters therefore ride on
+its tank model — is instead what the FMU adapter
+(:mod:`tmhp.integrations.fmu`) wraps. The two BES adapters therefore ride on
 different seams of the same model.
 
 Runtime: EnergyPlus runs Python plugins in its **embedded CPython**, so
@@ -72,7 +72,8 @@ Configuration (environment variables, all optional):
 ``TMHP_PLUGIN_LOG``                    if set, append a per-call/tally log to this path
 =====================================  ===========================================
 
-IDF wiring (see the issue #180 / the validated demo for a full example): one
+IDF wiring (the "IDF wiring" section of
+``docs/source/integrations/energyplus-python.rst`` lists every object): one
 ``PlantComponent:UserDefined`` named ``ASHPB_UserDefined`` with an init manager
 bound to :class:`TmhpPlantInit` and a simulation manager bound to
 :class:`TmhpPlantSurrogate`, a ``PythonPlugin:Variables`` global

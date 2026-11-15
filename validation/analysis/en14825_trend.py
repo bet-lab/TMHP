@@ -40,6 +40,40 @@ compressor descriptions are therefore run through the identical trajectory:
 ``defaults``
     What TMHP ships now (``compressor_efficiency.COEFFICIENT_VERSION``).
 
+Water side of a test point
+--------------------------
+The model's sink is a plate condenser with circulating water:
+``analyze_steady`` takes the water *entering* the condenser (``T_tank_w``) and
+its flow (``m_dot_w``). EN 14825 names the *leaving* water of each part-load
+point (variable outlet, the columns of :data:`EN14825_POINTS`). The entering
+water follows from the water flow, and the rule implemented here
+(:func:`en14825_water_flow`, :func:`solve_at_leaving_water`) is:
+
+* **Fixed water flow, set at the standard rating.** The flow is the one that
+  carries the nameplate duty ``hp_capacity`` at the EN 14511-2 rise of the
+  application's standard rating condition -- 30/35 °C (5 K) for the low- and
+  47/55 °C (8 K) for the medium-temperature application
+  (:func:`tmhp.standard_conditions.en14511_water_rise`) -- and is kept at
+  every part-load point, so the rise across the condenser scales with the
+  heat the unit delivers there.
+* **The entering water** is the point's leaving water less the delivered heat
+  over ``m_dot_w c_w``. The delivered heat is the mean over frosting and
+  defrost (``Q_ref_tank [W]``, which is what the standard measures), or, at a
+  point below the minimum-speed duty (``capacity_clamped == "min"``), the
+  continuous duty the running machine delivers (``Q_min [W]``). Since that
+  heat depends on the entering water, the point is solved by fixed-point
+  iteration (to 0.01 K).
+
+This is the fixed-flow reading of EN 14825 (the part-load points of a unit
+with a fixed water flow are tested at the flow of the EN 14511 standard
+rating). Not verified against the standard's text here: the clause and table
+numbers, whether the reference flow is set at the nameplate duty or at the
+duty declared at the standard rating (the model's nameplate at the medium
+application's 47/55 °C rating is taken as ``hp_capacity``), the rule for
+units with a variable water flow, and how a cycling point's water
+temperatures are averaged. The previous convention (tank = leaving water
+less 2.5 K, the lumped tank model's) does not apply to the condenser model.
+
 Run
 ---
 ``uv run python -m validation.analysis.en14825_trend [--jobs N]``
@@ -60,6 +94,8 @@ import pandas as pd
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.compressor_efficiency_legacy import ETA_EM_REF, eta_isen_default, make_eta_vol
 from tmhp.compressor_speed import RATED_POINT_AIR_TO_WATER
+from tmhp.constants import c_w
+from tmhp.standard_conditions import en14511_water_rise
 
 # The pre-refit correlations (Guth shape, Cuevas leakage term, 0.90 - 0.02 PR) are frozen
 # verbatim under validation/coefficients/v1-legacy/ so the ablation can still run them.
@@ -101,9 +137,51 @@ EN14825_POINTS = {
     ),
 }
 
-#: Temperature drop from the declared leaving-water temperature to the bulk
-#: tank node the model is asked to hold.
-SINK_OFFSET_K = 2.5
+#: Leaving water of the EN 14511-2 standard rating condition of each
+#: application [°C] (30/35 and 47/55 °C); its rise sets the fixed water flow.
+RATED_LEAVING_WATER_C = {"low": 35.0, "medium": 55.0}
+
+#: Convergence of the entering-water iteration [K] and its iteration limit.
+WATER_ITERATION_TOL_K = 0.01
+WATER_ITERATION_MAX = 8
+
+
+def en14825_water_flow(capacity_w: float, application: str) -> float:
+    """Fixed water flow of a part-load test [kg/s]: the nameplate duty at the standard rating's rise."""
+    return capacity_w / (c_w * en14511_water_rise(RATED_LEAVING_WATER_C[application]))
+
+
+def _running_heat(result: dict, fallback: float) -> float:
+    """Heat the water carries at a solved point [W]: the cycling floor's continuous duty, else the delivered mean."""
+    if result.get("failure_reason", "none") != "none":
+        return fallback
+    key = "Q_min [W]" if result.get("capacity_clamped") == "min" else "Q_ref_tank [W]"
+    value = float(result.get(key, float("nan")))
+    return value if value == value and value > 0.0 else fallback
+
+
+def solve_at_leaving_water(
+    model: AirSourceHeatPumpBoiler, t_outdoor: float, leaving_C: float, duty: float, m_dot_w: float
+) -> tuple[dict, float]:
+    """``analyze_steady`` at a leaving-water temperature with a fixed water flow: (result, entering water [°C]).
+
+    The water enters ``heat / (m_dot_w c_w)`` below ``leaving_C``, with ``heat``
+    the heat the water carries at the solved point (:func:`_running_heat`);
+    iterated to :data:`WATER_ITERATION_TOL_K`.
+    """
+    heat = duty
+    t_in = leaving_C - heat / (m_dot_w * c_w)
+    result: dict = {}
+    for _ in range(WATER_ITERATION_MAX):
+        result = model.analyze_steady(T_tank_w=t_in, T0=t_outdoor, Q_ref_tank=duty, m_dot_w=m_dot_w, return_dict=True)
+        assert isinstance(result, dict)
+        heat = _running_heat(result, heat)
+        t_next = leaving_C - heat / (m_dot_w * c_w)
+        if abs(t_next - t_in) < WATER_ITERATION_TOL_K:
+            break
+        t_in = t_next
+    return result, t_in
+
 
 #: A machine is sized above the design load it is certified against; the ratio
 #: is a property of the installation, not of the model, so it is swept rather
@@ -239,15 +317,10 @@ def trajectory(
     # over the cycling period that analyze_steady reports by default.
     model = AirSourceHeatPumpBoiler(hp_capacity=capacity_w, ref=refrigerant, Cd_cycling=None, **variant.kwargs)
     design_load = capacity_w * oversizing
+    m_dot_w = en14825_water_flow(capacity_w, application)
     rows = []
     for label, t_outdoor, lwt, load_ratio in EN14825_POINTS[application]:
-        result = model.analyze_steady(
-            T_tank_w=lwt - SINK_OFFSET_K,
-            T0=t_outdoor,
-            Q_ref_tank=design_load * load_ratio,
-            return_dict=True,
-        )
-        assert isinstance(result, dict)
+        result, t_entering = solve_at_leaving_water(model, t_outdoor, lwt, design_load * load_ratio, m_dot_w)
         ok = result.get("failure_reason", "none") == "none"
         rows.append(
             {
@@ -260,6 +333,8 @@ def trajectory(
                 "plr": load_ratio,
                 "t_outdoor_C": t_outdoor,
                 "lwt_C": lwt,
+                "t_water_in_C": t_entering,
+                "m_dot_w_kg_s": m_dot_w,
                 # A failed point carries no speed (#102); keep the row, NaN speed.
                 "rps": float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0,
                 "clamped": result.get("capacity_clamped") is not None,

@@ -860,6 +860,11 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             "dV_mix_sup_w_in": flows["dV_cold_in"],
         }
 
+    @property
+    def K_tank_hx(self) -> float:
+        """Heat the tank heat exchanger carries per kelvin of condensing temperature above the tank water [W/K]."""
+        return float(self.UA_tank_hx)
+
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """Ground-loop evaporator (source) and tank-immersed condenser (load)."""
         if role == "source":

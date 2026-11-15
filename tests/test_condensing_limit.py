@@ -34,7 +34,13 @@ from tmhp.compressor_envelope import (
 from tmhp.reference_state import ReferenceStateError
 from tmhp.refrigerant import props_si
 
-pytestmark = pytest.mark.filterwarnings("ignore::RuntimeWarning")
+# The boiler scenarios are stated for the earlier tank heat exchanger (5 K approach at the nameplate,
+# without circulating water): the earlier default machine (tests/conftest.py). The space heat pumps at the
+# end of the module keep the present defaults (current_defaults).
+pytestmark = [
+    pytest.mark.filterwarnings("ignore::RuntimeWarning"),
+    pytest.mark.earlier_defaults,
+]
 
 BOILERS = {
     "ASHPB": (tmhp.AirSourceHeatPumpBoiler, dict(T0=7.0)),
@@ -433,6 +439,7 @@ def test_min_on_time_run_does_not_depend_on_the_step():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.current_defaults
 def test_air_to_air_ceiling_names_the_condensing_limit():
     hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0, defrost=None)
     free = _quiet(hp.analyze_steady, Q_r_iu=-3000.0, T0=7.0, T_a_room=20.0, verbose=False)
@@ -449,6 +456,7 @@ def test_air_to_air_ceiling_names_the_condensing_limit():
     assert off["failure_reason"] == CONDENSING_TEMP_ABOVE_MAX and off["E_cmp [W]"] == 0.0
 
 
+@pytest.mark.current_defaults
 def test_air_to_air_direct_ceiling_and_the_shared_check_agree_on_the_condensing_limit():
     """The ASHP's own ceiling solve (least-lift point, bisected) names the condensing limit,
     and it is the answer the shared decorator's check gives: the largest duty under the limit.
@@ -493,6 +501,7 @@ def test_air_to_air_direct_ceiling_and_the_shared_check_agree_on_the_condensing_
     assert flat_out["capacity_clamped"] == "max" and flat_out["capacity_binding"] != BINDING_CONDENSING
 
 
+@pytest.mark.current_defaults
 def test_gshp_reports_the_condensing_limit():
     hp = _quiet(tmhp.GroundSourceHeatPump, ref="R32")
     case = dict(Q_r_iu=3000.0, T0=30.0, T_a_room=26.0, T_bhe_wall=25.0)
@@ -506,6 +515,7 @@ def test_gshp_reports_the_condensing_limit():
     assert off["failure_reason"] == CONDENSING_TEMP_ABOVE_MAX and off["E_cmp [W]"] == 0.0
 
 
+@pytest.mark.current_defaults
 def test_rating_point_above_the_limit_names_the_standard_for_air_to_air():
     with pytest.raises(ReferenceStateError, match=r"ISO 5151.*above T_cond_max=40 °C of R32"):
         _quiet(tmhp.AirSourceHeatPump, ref="R32", T_cond_max=40.0)

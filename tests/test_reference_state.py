@@ -114,7 +114,9 @@ def test_model_cycle_at_reference_saturation_reproduces_rated_speed_and_mass_flo
 
     ashpb = AirSourceHeatPumpBoiler(dV_fan_a_max=3.0)
     s = ashpb.reference_state
-    row = ashpb._calc_state(7 - s.T_evap_sat_C, 55, ashpb.hp_capacity, 7, flow_state=FLOW_STATE)
+    # The water entering the plate condenser at A7/W55 (55 degC leaving at the rated flow).
+    T_in = s.condition.load.T_in_C
+    row = ashpb._calc_state(7 - s.T_evap_sat_C, T_in, ashpb.hp_capacity, 7, flow_state=FLOW_STATE)
     assert row["cmp_rpm [rpm]"] / 60 == pytest.approx(ashpb.rps_rated, rel=1e-6)
     assert row["m_dot_ref [kg/s]"] == pytest.approx(ashpb.m_dot_ref_rated, rel=1e-6)
     assert row["Q_ref_tank [W]"] == pytest.approx(ashpb.hp_capacity, rel=1e-6)

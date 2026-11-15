@@ -120,8 +120,11 @@ class RatingStandard:
 #:
 #: ``source_T_C`` / ``load_T_C`` are the secondary-fluid inlet temperatures.
 #: TMHP's air coils are dry (sensible only), so wet-bulb conditions of the
-#: standards are not used. The boiler models' condenser is immersed in a
-#: lumped tank; the tank temperature is set to the standard's water outlet
+#: standards are not used. The boilers' ``load_T_C`` is the standard's water
+#: outlet temperature: a plate condenser with circulating water is rated with
+#: water entering at the outlet less the rise its rated flow takes at
+#: ``hp_capacity`` (:func:`tmhp.heat_exchanger.tank_hx_rating_side`); a
+#: condenser without circulating water works against a tank at the outlet
 #: temperature, the conservative end of the condenser water range.
 RATING_STANDARDS: dict[str, dict[str, RatingStandard]] = {
     "ASHP": {
@@ -163,8 +166,8 @@ class HXSide:
 
     ``fluid`` is ``"air"`` or ``"water"`` for a single-phase stream crossing a
     constant-saturation-temperature surface (``Q = eps C dT``,
-    ``eps = 1 - exp(-UA / C)``), or ``"tank"`` for the boiler condenser
-    immersed in a lumped tank (``Q = UA dT``), as in the models' own cycles.
+    ``eps = 1 - exp(-UA / C)``), or ``"tank"`` for a boiler condenser without
+    circulating water (``Q = UA dT``), as in the models' own cycles.
 
     ``rho_cp`` is the stream's volumetric heat capacity ``rho c_p``
     [J/(m³ K)]. Left out, the stream is standard air or water (the constants

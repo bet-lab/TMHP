@@ -566,9 +566,10 @@ def condensing_tank_cutout(model: Any) -> float | None:
     """Highest tank temperature a boiler heats at its nameplate duty inside the condensing limit [degC].
 
     The cycle condenses at the tank temperature plus the tank heat exchanger's
-    approach, ``hp_capacity / UA_tank_hx`` at the nameplate duty, and the
-    hottest it may condense is the bubble point of the limit pressure. ``None``
-    without a limit.
+    approach, ``hp_capacity / K_tank_hx`` at the nameplate duty (``K_tank_hx``:
+    the heat the exchanger carries per kelvin above the tank water, the
+    water entering a plate condenser), and the hottest it may condense is the
+    bubble point of the limit pressure. ``None`` without a limit.
     """
     limit, ref = getattr(model, "T_cond_max", None), getattr(model, "ref", None)
     if limit is None or ref is None:
@@ -577,7 +578,7 @@ def condensing_tank_cutout(model: Any) -> float | None:
         (T_reach_K,) = _props("T", "P", _condensing_pressure_limits(ref, float(limit))[0], "Q", 0, ref)
     except ValueError:
         return None
-    return float(cu.K2C(T_reach_K)) - float(model.hp_capacity) / float(model.UA_tank_hx)
+    return float(cu.K2C(T_reach_K)) - float(model.hp_capacity) / float(model.K_tank_hx)
 
 
 def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
@@ -606,7 +607,7 @@ def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
         return
     new_lower = lower if lower < cutout else cutout - (upper - lower)
     model.T_tank_w_upper_bound, model.T_tank_w_lower_bound = cutout, new_lower
-    approach = float(model.hp_capacity) / float(model.UA_tank_hx)
+    approach = float(model.hp_capacity) / float(model.K_tank_hx)
     moved = "" if new_lower == lower else f", and the lower bound is moved from {lower:g} to {new_lower:.1f} °C"
     warnings.warn(
         f"{what}: T_tank_w_upper_bound={upper:g} °C is above the tank temperature the compressor envelope "

@@ -14,9 +14,11 @@ import warnings
 
 import pytest
 
-from tmhp import AirSourceHeatPump
+from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
 from tmhp.air_properties import air_heat_capacity_rate
+from tmhp.constants import c_w
 from tmhp.default_inputs import _artifact, hx_duty_per_nameplate
+from tmhp.reference_state import HXSide
 
 CAPACITIES = (3500.0, 8000.0, 15000.0)
 #: Coil-equation round trip: the default reproduces the law's leaving approach to this [K].
@@ -159,3 +161,122 @@ def test_ashp_conductance_exists_at_any_airflow(factor: float) -> None:
         assert math.isfinite(UA) and UA > 0
     # More air at the same leaving approach needs a larger conductance.
     assert (model.UA_ou_rated > reference.UA_ou_rated) == (factor > 1.0)
+
+
+# ---------------------------------------------------------------------------
+# AirSourceHeatPumpBoiler: plate condenser with circulating water, outdoor evaporator
+# ---------------------------------------------------------------------------
+BPHE_COND = "water_condenser|bphe|condensing"
+
+
+@pytest.mark.parametrize("capacity", CAPACITIES)
+def test_ashpb_defaults_reproduce_the_law_through_the_coil_equation(capacity: float) -> None:
+    model = build(AirSourceHeatPumpBoiler, hp_capacity=capacity)
+    assert model.m_dot_w_rated == pytest.approx(capacity / (c_w * 5.0))
+    # The condenser's duty is the heating nameplate.
+    condenser = leaving_approach(model.UA_tank_hx, model.m_dot_w_rated * c_w, capacity)
+    assert condenser == pytest.approx(law_leaving_approach(BPHE_COND), abs=ROUND_TRIP_TOL_K)
+    C_air = air_heat_capacity_rate(model.dV_fan_a_rated, 7.0)
+    duty = hx_duty_per_nameplate(OU_EVAP, "heating") * capacity
+    outdoor = leaving_approach(model.UA_ou_rated, C_air, duty)
+    assert outdoor == pytest.approx(law_leaving_approach(OU_EVAP), abs=ROUND_TRIP_TOL_K)
+
+
+@pytest.mark.parametrize("capacity", CAPACITIES)
+def test_ashpb_a7_w35_runs_at_the_law_approach(capacity: float) -> None:
+    """EN 14511 A7/W35: water entering at 30 degC at the rated flow leaves at 35 degC."""
+    model = build(AirSourceHeatPumpBoiler, hp_capacity=capacity)
+    row = model.analyze_steady(T_tank_w=30.0, T0=7.0, Q_ref_tank=capacity, return_dict=True)
+    assert row["failure_reason"] == "none" and row["Q_ref_tank [W]"] == pytest.approx(capacity)
+    C_w = model.m_dot_w_rated * c_w
+    assert row["C_w_tank [W/K]"] == pytest.approx(C_w)
+    check_cycle_approach(
+        f"ASHPB {capacity:.0f} W condenser",
+        law=law_leaving_approach(BPHE_COND),
+        model_dT=row["dT_ref_tank [K]"] - row["Q_ref_tank [W]"] / C_w,
+        UA_rated=model.UA_tank_hx,
+        flow=model.m_dot_w_rated,
+        flow_rated=model.m_dot_w_rated,
+        exponent=0.0,
+        C=C_w,
+        duty=row["Q_ref_tank [W]"],
+        duty_rated=capacity,
+    )
+    check_cycle_approach(
+        f"ASHPB {capacity:.0f} W outdoor coil",
+        law=law_leaving_approach(OU_EVAP),
+        model_dT=row["T_ou_a_mid [°C]"] - row["T_ref_evap_sat [°C]"],
+        UA_rated=model.UA_ou_rated,
+        flow=row["dV_ou_a [m3/s]"],
+        flow_rated=model.dV_fan_a_ref,
+        exponent=model.n_ou,
+        C=air_heat_capacity_rate(row["dV_ou_a [m3/s]"], 7.0),
+        duty=row["Q_ref_ou [W]"],
+        duty_rated=hx_duty_per_nameplate(OU_EVAP, "heating") * capacity,
+    )
+
+
+def test_ashpb_given_conductances_and_flow_are_used_as_given() -> None:
+    model = build(AirSourceHeatPumpBoiler, hp_capacity=8000.0, UA_tank_hx=1500.0, UA_ou_rated=900.0)
+    assert (model.UA_tank_hx, model.UA_ou_rated) == (1500.0, 900.0)
+    assert not {"UA_tank_hx", "UA_ou_rated"} & set(model.default_input_estimates)
+    flow = build(AirSourceHeatPumpBoiler, hp_capacity=8000.0, m_dot_w_rated=0.5)
+    assert flow.m_dot_w_rated == 0.5
+    # The default conductance is stated at the given flow.
+    assert leaving_approach(flow.UA_tank_hx, 0.5 * c_w, 8000.0) == pytest.approx(law_leaving_approach(BPHE_COND))
+    rise = build(AirSourceHeatPumpBoiler, hp_capacity=8000.0, dT_w_rated=8.0)
+    assert rise.m_dot_w_rated == pytest.approx(8000.0 / (c_w * 8.0))
+
+
+def test_ashpb_default_input_estimates_carry_the_conductances() -> None:
+    model = build(AirSourceHeatPumpBoiler, hp_capacity=8000.0)
+    estimates = model.default_input_estimates
+    assert estimates["UA_tank_hx"].key == BPHE_COND and estimates["UA_tank_hx"].value == model.UA_tank_hx
+    assert estimates["UA_ou_rated"].key == OU_EVAP and estimates["UA_ou_rated"].value == model.UA_ou_rated
+    assert estimates["UA_tank_hx"].status == estimates["UA_ou_rated"].status == "shipped"
+
+
+@pytest.mark.parametrize("factor", (0.85, 1.15))
+def test_ashpb_conductance_exists_at_any_flow(factor: float) -> None:
+    reference = build(AirSourceHeatPumpBoiler, hp_capacity=8000.0)
+    model = build(
+        AirSourceHeatPumpBoiler,
+        hp_capacity=8000.0,
+        m_dot_w_rated=factor * reference.m_dot_w_rated,
+        dV_fan_a_rated=factor * reference.dV_fan_a_rated,
+    )
+    for UA in (model.UA_tank_hx, model.UA_ou_rated):
+        assert math.isfinite(UA) and UA > 0
+
+
+def test_ashpb_circulation_flow_of_a_call() -> None:
+    """``None`` is the rated circulation flow; ``0`` (a call, or ``m_dot_w_rated``) the no-flow form."""
+    model = build(AirSourceHeatPumpBoiler, hp_capacity=8000.0)
+    rated = model.analyze_steady(T_tank_w=40.0, T0=7.0, Q_ref_tank=6000.0, return_dict=True)
+    explicit = model.analyze_steady(
+        T_tank_w=40.0, T0=7.0, Q_ref_tank=6000.0, m_dot_w=model.m_dot_w_rated, return_dict=True
+    )
+    assert rated["C_w_tank [W/K]"] == pytest.approx(model.m_dot_w_rated * c_w)
+    assert rated["cop_sys [-]"] == explicit["cop_sys [-]"]
+    assert rated["dT_ref_tank [K]"] == pytest.approx(6000.0 / model.K_tank_hx)
+
+    # The previous tank exchanger: UA_tank_hx = hp_capacity / 5 against the tank temperature. A call with
+    # m_dot_w=0 takes that form whatever the model's rated flow.
+    previous = {"UA_tank_hx": 8000.0 / 5.0, "UA_ou_rated": 0.7 * 8000.0 / 5.0}
+    call = build(AirSourceHeatPumpBoiler, hp_capacity=8000.0, **previous).analyze_steady(
+        T_tank_w=40.0, T0=7.0, Q_ref_tank=6000.0, m_dot_w=0.0, return_dict=True
+    )
+    # With m_dot_w_rated=0 the machine is the previous one: rated against a tank at the W55 outlet.
+    no_flow_model = build(AirSourceHeatPumpBoiler, hp_capacity=8000.0, m_dot_w_rated=0.0, **previous)
+    assert no_flow_model.rated_condition.load == HXSide("tank", 55.0, 8000.0 / 5.0)
+    assert no_flow_model.K_tank_hx == 8000.0 / 5.0
+    no_flow = no_flow_model.analyze_steady(T_tank_w=40.0, T0=7.0, Q_ref_tank=6000.0, return_dict=True)
+    no_flow_zero = no_flow_model.analyze_steady(T_tank_w=40.0, T0=7.0, Q_ref_tank=6000.0, m_dot_w=0, return_dict=True)
+    for row in (call, no_flow, no_flow_zero):
+        assert row["dT_ref_tank [K]"] == pytest.approx(6000.0 / 1600.0, rel=1e-9)
+        assert math.isnan(row["C_w_tank [W/K]"]) and math.isnan(row["epsilon_tank_hx [-]"])
+    for key in ("cop_sys [-]", "E_cmp [W]", "T_ref_cond_sat_l [°C]", "dV_ou_a [m3/s]"):
+        assert no_flow[key] == no_flow_zero[key], key
+    # Without circulating water the archive has no conductance: the caller must give it.
+    with pytest.raises(ValueError, match="UA_tank_hx"):
+        build(AirSourceHeatPumpBoiler, hp_capacity=8000.0, m_dot_w_rated=0.0)

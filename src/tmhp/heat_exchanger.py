@@ -10,7 +10,7 @@ from scipy.optimize import root_scalar
 
 from . import calc_util as cu
 from .air_properties import air_density
-from .constants import P0_PA, c_a, rho_a
+from .constants import P0_PA, c_a, c_w, rho_a, rho_w
 from .reference_state import (
     Fluid,  # noqa: F401 -- named by the annotations AirCoilSide inherits; the docs build resolves them here
     HXSide,
@@ -150,6 +150,35 @@ def calc_UA_from_leaving_approach(Q_hx: float, C: float, dT_out: float) -> float
     if not all(math.isfinite(v) and v > 0 for v in (Q_hx, C, dT_out)):
         raise ValueError("Duty, heat capacity rate and leaving approach must be positive and finite")
     return C * math.log1p(Q_hx / (C * dT_out))
+
+
+def calc_tank_hx_conductance(UA: float, m_dot_w: float) -> float:
+    """Heat a boiler's tank heat exchanger carries per kelvin of condensing temperature above the tank [W/K].
+
+    With circulating water (``m_dot_w`` [kg/s] > 0) the exchanger is a plate
+    condenser the tank water *enters*: ``C_w (1 - exp(-UA / C_w))`` with
+    ``C_w = m_dot_w c_w``. With no flow (``m_dot_w = 0``, an immersed or
+    wrapped coil) it is ``UA`` itself, working against the tank temperature.
+    """
+    if not (math.isfinite(UA) and UA > 0 and math.isfinite(m_dot_w) and m_dot_w >= 0):
+        raise ValueError("UA must be positive and m_dot_w nonnegative (both finite)")
+    if m_dot_w == 0:
+        return UA
+    C_w = m_dot_w * c_w
+    return C_w * (1.0 - math.exp(-UA / C_w))
+
+
+def tank_hx_rating_side(T_out_C: float, UA: float, m_dot_w: float, Q_rated: float) -> HXSide:
+    """Load side of a boiler's rating point: the tank heat exchanger at a standard's water outlet ``T_out_C``.
+
+    A plate condenser with circulating water (``m_dot_w`` [kg/s] > 0) is rated
+    with water entering at the outlet less the rise the flow takes at the
+    rated duty ``Q_rated`` [W], so the water leaves at ``T_out_C``. The
+    no-flow form (``m_dot_w = 0``) works against a tank at ``T_out_C``.
+    """
+    if m_dot_w > 0:
+        return HXSide("water", T_out_C - Q_rated / (m_dot_w * c_w), UA, m_dot_w / rho_w)
+    return HXSide("tank", T_out_C, UA)
 
 
 def calc_UA_from_inlet_difference(Q_hx: float, C: float, ITD: float) -> float:

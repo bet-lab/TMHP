@@ -26,7 +26,9 @@
     - the heat-exchanger conductance rules of before the approach-temperature
       defaults (issues #115-#118, :data:`EARLIER_UA_RULES`): ``AirSourceHeatPump``
       ``UA_ou_rated = hp_capacity / 5`` for both refrigerant roles and
-      ``UA_iu_rated = 0.8 UA_ou_rated``.
+      ``UA_iu_rated = 0.8 UA_ou_rated``; ``AirSourceHeatPumpBoiler``
+      ``UA_tank_hx = hp_capacity / 5`` without circulating water
+      (``m_dot_w_rated = 0``) and ``UA_ou_rated = 0.7 UA_tank_hx``.
 
     These are explicit inputs given on the test's behalf -- the constructors
     still take them through ``default_input_estimates`` -- so the scenario
@@ -101,6 +103,19 @@ EARLIER_UA_RULES: tuple[tuple[type, tuple[EarlierRule, ...]], ...] = (
                 lambda a: 0.8 * _first(a, "UA_ou_rated", "UA_cond_rated", "UA_cond_design"),
                 ("UA_evap_rated", "UA_evap_design"),
             ),
+        ),
+    ),
+    (
+        AirSourceHeatPumpBoiler,
+        (
+            EarlierRule("UA_tank_hx", lambda a: a["hp_capacity"] / 5.0, ("UA_tank", "UA_cond_design")),
+            EarlierRule(
+                "UA_ou_rated",
+                lambda a: 0.7 * _first(a, "UA_tank_hx", "UA_tank", "UA_cond_design"),
+                ("UA_evap_design",),
+            ),
+            # No circulating water: the tank exchanger works against the tank temperature.
+            EarlierRule("m_dot_w_rated", lambda a: 0.0),
         ),
     ),
 )

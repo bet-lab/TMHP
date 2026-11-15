@@ -91,6 +91,9 @@ def test_the_rating_point_reproduces_the_rated_speed():
     # faster than the reference state (with R134a the fan stays at full flow there).
     boiler = AirSourceHeatPumpBoiler(dV_fan_a_min=AirSourceHeatPumpBoiler().dV_fan_a_rated)
     assert boiler.rated_condition.source.density == pytest.approx(air_density(7.0))
-    row = boiler.analyze_steady(T_tank_w=55.0, T0=7.0, Q_ref_tank=boiler.hp_capacity)
+    # A7/W55: water leaving at 55 degC, so entering the plate condenser 5 K below at the rated flow.
+    T_in = boiler.rated_condition.load.T_in_C
+    assert T_in == pytest.approx(55.0 - boiler.dT_w_rated)
+    row = boiler.analyze_steady(T_tank_w=T_in, T0=7.0, Q_ref_tank=boiler.hp_capacity)
     assert row["cmp_rpm [rpm]"] / 60.0 == pytest.approx(boiler.rps_rated, rel=1e-6)
     assert row["m_dot_ref [kg/s]"] == pytest.approx(boiler.m_dot_ref_rated, rel=1e-6)

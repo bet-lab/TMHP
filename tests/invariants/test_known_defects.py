@@ -538,6 +538,7 @@ def test_t6_multi_node_tank_time_step_independence(case):
 # 30 min, 2 h without a draw: 1.51 vs 1.95 kWh and a 62.6 / 65.05 degC peak at 60 / 600 s with
 # the band at the stop, 1.82 vs 2.50 kWh and 62.4 / 66.2 degC with a 53-58 degC band, each with a
 # condensing_temp_above_max step. Now the protection stop outranks the minimum run time.
+@pytest.mark.earlier_defaults  # the R32 machine with the 60 degC envelope stop: tests/conftest.py
 @pytest.mark.parametrize(
     "band, T_init",
     [pytest.param(None, 54.0, id="band-at-the-stop"), pytest.param((53.0, 58.0), 52.0, id="band-below-the-stop")],

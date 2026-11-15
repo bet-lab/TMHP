@@ -59,11 +59,24 @@ def test_ashpb_default_compressor_efficiencies():
     assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(make_eta_em(rated)(4.0, 55.0))
 
 
-def test_ashpb_default_heat_exchanger_uas_follow_validation_rules():
+def test_ashpb_default_heat_exchanger_uas_follow_the_approach_archive():
+    """Plate condenser at the rated circulation flow (5 K rise), outdoor coil as an evaporator in A7 air."""
+    from tmhp.air_properties import air_heat_capacity_rate
+    from tmhp.constants import c_w
+    from tmhp.default_inputs import estimate_hx_UA, hx_duty_per_nameplate
+
     ashpb = AirSourceHeatPumpBoiler(hp_capacity=9_000.0)
 
-    assert ashpb.UA_tank_hx == pytest.approx(1_800.0)
-    assert ashpb.UA_ou_rated == pytest.approx(1_260.0)
+    assert ashpb.m_dot_w_rated == pytest.approx(9_000.0 / (c_w * 5.0))
+    condenser = estimate_hx_UA("water_condenser|bphe|condensing", duty=9_000.0, heat_capacity_rate=9_000.0 / 5.0)
+    assert ashpb.UA_tank_hx == pytest.approx(condenser.value)
+    evaporating = "outdoor_coil|fin_tube|evaporating"
+    outdoor = estimate_hx_UA(
+        evaporating,
+        duty=hx_duty_per_nameplate(evaporating, "heating") * 9_000.0,
+        heat_capacity_rate=air_heat_capacity_rate(ashpb.dV_fan_a_rated, 7.0),
+    )
+    assert ashpb.UA_ou_rated == pytest.approx(outdoor.value)
 
 
 def test_gshpb_analyze_steady():

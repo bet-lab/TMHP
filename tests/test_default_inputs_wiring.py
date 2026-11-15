@@ -183,13 +183,14 @@ def test_ashpb_default_outdoor_airflow_is_the_air_to_water_catalogue_maximum(cap
     estimate = boiler.default_input_estimates["dV_fan_a_rated"]
     assert estimate == law and estimate.key == "airflow|heating|outdoor|air_to_water"
     assert estimate.source_ids and estimate.assumptions  # where it comes from, and its scatter
-    assert set(boiler.default_input_estimates) == {"V_cmp_ref", "dV_fan_a_rated"}
+    assert set(boiler.default_input_estimates) == {"V_cmp_ref", "dV_fan_a_rated", "UA_tank_hx", "UA_ou_rated"}
 
 
 def test_a_published_outdoor_airflow_overrides_the_ashpb_default():
     boiler = AirSourceHeatPumpBoiler(hp_capacity=8000.0, dV_fan_a_rated=1.1)
     assert boiler.dV_fan_a_rated == 1.1
-    assert set(boiler.default_input_estimates) == {"V_cmp_ref"}
+    # The conductances are defaults, the outdoor one stated at the published airflow.
+    assert set(boiler.default_input_estimates) == {"V_cmp_ref", "UA_tank_hx", "UA_ou_rated"}
     # The earlier names of the argument are inputs too.
     assert AirSourceHeatPumpBoiler(dV_ou_fan_a_design=2.0).dV_fan_a_rated == 2.0
     assert AirSourceHeatPumpBoiler(dV_fan_a_ref=2.0).dV_fan_a_rated == 2.0

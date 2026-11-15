@@ -60,6 +60,12 @@ def make_model() -> AirSourceHeatPumpBoiler:
         # both schedules run below 5 degC, where the default now averages the
         # running cycle over frost and defrost (tests/test_ashpb_defrost.py).
         defrost=False,
+        # The heat exchangers of the recorded machine (before the approach-
+        # temperature defaults, #115-#118): a tank exchanger without circulating
+        # water at 5 K approach (hp_capacity / 5) and the outdoor coil at 0.7 of it.
+        UA_tank_hx=15000 / 5.0,
+        UA_ou_rated=0.7 * 15000 / 5.0,
+        m_dot_w_rated=0.0,
     )
 
 

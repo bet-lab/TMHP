@@ -287,6 +287,11 @@ _TANK_GEOMETRY = {
     "k_ins": "pos",
     "h_o": "pos",
 }
+#: The boilers' tank heat exchanger: rated water rise and circulation flow.
+_TANK_HX_FLOW = {
+    "dT_w_rated": "pos",
+    "m_dot_w_rated": "nonneg",
+}
 _TANK_CONTROL = {
     "T_tank_w_upper_bound": "T_water",
     "T_tank_w_lower_bound": "T_water",
@@ -400,6 +405,7 @@ CTOR_SPECS: dict[str, dict[str, str]] = {
         **_CYCLE,
         **_TANK_GEOMETRY,
         **_TANK_CONTROL,
+        **_TANK_HX_FLOW,
         **_AIR_FAN,
         "UA_tank_hx": "pos",
         "UA_ou_rated": "pos",
@@ -412,6 +418,7 @@ CTOR_SPECS: dict[str, dict[str, str]] = {
         **_CYCLE,
         **_TANK_GEOMETRY,
         **_TANK_CONTROL,
+        **_TANK_HX_FLOW,
         **_BOREHOLE,
         **_GROUND_HYDRAULICS,
         "UA_tank_hx": "pos",
@@ -425,6 +432,7 @@ CTOR_SPECS: dict[str, dict[str, str]] = {
         **_CYCLE,
         **_TANK_GEOMETRY,
         **_TANK_CONTROL,
+        **_TANK_HX_FLOW,
         **_BOREHOLE,
         "UA_tank_hx": "pos",
         "UA_water": "pos",

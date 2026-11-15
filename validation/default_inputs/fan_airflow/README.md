@@ -48,7 +48,8 @@ Air-to-water outdoor units (added 2026-11-14, widened and **shipped** 2026-11-15
   the large ones.
 - Samsung pages come from samsung-climatesolutions.com, accepted as official (operated by Samsung Electronics Air
   Conditioner Europe B.V. / Samsung Electronics Limited per its privacy notice; linked from samsung.com).
-- Not yet on the lab NAS: the 2026-11-15 originals are kept locally (`nas_path` null with a note); transfer per #87.
+- The 2026-11-15 originals are on the lab NAS (`nas_path`, `archive87_dataset_id`); their SHA-256 were checked there
+  against `sources.json` on 2026-11-15 (19 files of 13 sources).
 
 Water-to-air units (added 2026-11-14):
 

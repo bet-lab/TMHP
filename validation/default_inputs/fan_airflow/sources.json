@@ -1018,9 +1018,8 @@
     "rating_conditions": "(1) Ta DB/WB 7°C/6°C - LWC 35°C (DT = 5°C); (2) Ta 7/6 °C - LWC 45 °C; (5) EN 14825.",
     "capacity_basis": "Daikin 'Heating capacity Nom.' at condition (1) A7/W35 (Daikin's declared nominal heating capacity)",
     "notes": "Specification tables p6 (EBLA09-14DW1) and p12 (EBLA16DW17); later pages repeat the same airflow for D3W1/DV3/D3V3 variants. Third-party host: kept because the values are corroborated on Daikin's own domain (DAIKIN_ERP_EBLA11DAW1: rated outdoor airflow 3350 m3/h = 55.8 m3/min Heating High) and the databook prints 'Rated airflow (outdoor)' equal to Heating High for all four models.",
-    "nas_path": null,
-    "archive87_dataset_id": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check.",
+    "nas_path": "energy-systems/daikin-eeden22-ebla09-16d-source/files/source/DAIKIN_EEDEN22_EBLA09-16D.pdf",
+    "archive87_dataset_id": "daikin-eeden22-ebla09-16d-source",
     "owner_accepted": true,
     "owner_acceptance": "Owner decision 2026-11-15 (round-6 input window: 'switch to the 6-manufacturer stratum'), accepted after comparison with Daikin's own domain: product table DAIKIN_EU_TABLE_EBLA09-14D3W1 prints Air flow rate Heating High 48.0 / 55.8 / 70.4 m3/min and Heating capacity Nom. 9.37 / 10.6 / 12.0 kW (1) for EBLA09/11/14DA3W1; ErP fiches DAIKIN_ERP_EBLA09/11/14/16DAW1 print rated outdoor airflow 2880 / 3350 / 4220 / 5100 m3/h (= 48.0 / 55.8 / 70.4 / 85.0 m3/min); catalogue DAIKIN_ECPEN22-756 p10 prints Heating capacity Nom. 16.0 kW (1) for EBLA16D. All 4 rows match."
   },
@@ -1037,9 +1036,8 @@
     "access_method": "curl -L (generated PDF; the en_GB locale renders missing labels, so the Greek locale is kept)",
     "accessed_at": "2026-11-15",
     "notes": "Cross-check only, not transcribed: 'Ονομαστική παροχή αέρα, εξωτερικού χώρου' (rated air flow rate, outdoors) 3350 m3/h, Prated 10 kW. Equals EEDEN22 EBLA11DW1 Heating High 55.8 m3/min.",
-    "nas_path": null,
-    "archive87_dataset_id": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check."
+    "nas_path": "energy-systems/daikin-erp-ebla11daw1-source/files/source/DAIKIN_ERP_EBLA11DAW1_el.pdf",
+    "archive87_dataset_id": "daikin-erp-ebla11daw1-source"
   },
   {
     "source_id": "VAILLANT_UK_0020330791_03",
@@ -1056,9 +1054,8 @@
     "rating_conditions": "Technical data tables, EN 14511 points A2/W35, A7/W35, A-7/W35 and others as printed.",
     "capacity_basis": "Printed 'Heat output, A-7/W35' (the capacity that matches the marketed size class; no separate model-size row is printed)",
     "notes": "Fan data p45 (printed 45), heat outputs p47 (printed 47). VWL 105/6 and 125/6 (larger casing) are in VAILLANT_DE_0020326635_03.",
-    "nas_path": null,
-    "archive87_dataset_id": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check."
+    "nas_path": "energy-systems/vaillant-uk-0020330791-03-source/files/source/VAILLANT_UK_0020330791_03.pdf",
+    "archive87_dataset_id": "vaillant-uk-0020330791-03-source"
   },
   {
     "source_id": "LG_THERMAV_R32_MONOBLOC_PDB_5BPM5-01D",
@@ -1075,9 +1072,8 @@
     "rating_conditions": "Note 4: 'Performances are accordance with EN14511 and reflect ErP testing conditions'; rated running current at outdoor 7 °CDB/6 °CWB, LWT 35 °C.",
     "capacity_basis": "Nominal heating capacity at LWT 35 °C (equals the capacity class of the line-up table)",
     "notes": "Cross-check only since 2026-11-15 (its six rows were re-founded on LG's own ErP fiches, LG_GR_ERP_THERMAV_R32_MONOBLOC). Prints 'Air Flow Rate Rated (m³/min × No.)' 60.0 × 1 (HM051/071/091M U43, p12) and 60.0 × 2 (HM121/141/161M U33, p14). Against LG's ErP fiches: 3600 m3/h is 2.4 % below the larger fiche value 3690 m3/h (Mid. Temp) for the small units; 7200 m3/h equals the larger fiche value (Low Temp) for the large units. Capacities pp.11/13 equal LG's leaflet.",
-    "nas_path": null,
-    "archive87_dataset_id": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check."
+    "nas_path": "energy-systems/lg-thermav-r32-monobloc-pdb-5bpm5-01d-source/files/source/LG_THERMAV_R32_MONOBLOC_PDB_5BPM5-01D.pdf",
+    "archive87_dataset_id": "lg-thermav-r32-monobloc-pdb-5bpm5-01d-source"
   },
   {
     "source_id": "TOSHIBA_UK_DB_E23-103_00",
@@ -1094,9 +1090,8 @@
     "rating_conditions": "*1 Heating: outside air 7 °C, water supply 30 °C, outlet 35 °C, refrigerant piping 7.5 m.",
     "capacity_basis": "'Heating capacity *1' at A7/W35 (the unit's size class)",
     "notes": "3-1-1 Outdoor unit specifications pp.136-140 (printed 135-139). toshiba-aircon.co.uk is operated by Toshiba's UK air-conditioning distributor (Carrier Solutions UK, per the site footer link to its pay-gap report); the PDF is Toshiba Carrier's engineering data book.",
-    "nas_path": null,
-    "archive87_dataset_id": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check."
+    "nas_path": "energy-systems/toshiba-uk-db-e23-103-00-source/files/source/TOSHIBA_UK_DB_E23-103_00.pdf",
+    "archive87_dataset_id": "toshiba-uk-db-e23-103-00-source"
   },
   {
     "source_id": "VAILLANT_DE_0020326635_03",
@@ -1113,14 +1108,12 @@
     "rating_conditions": "Technische Daten, EN 14511 points as printed.",
     "capacity_basis": "Printed 'Heizleistung, A-7/W35' (same rule as VAILLANT_UK_0020330791_03)",
     "notes": "Cross-check only since 2026-11-15: the two VWL 105/125 rows were re-pointed to Vaillant's own English edition VAILLANT_UK_0020330792_03 (professional.vaillant.co.uk), which prints the same values (fan p48 'Fan, air flow, maximum 5,100 m³/h'; p50 'Heat output, A-7/W35 9.20 / 12.20 kW'). German technical data: fan p51 (printed 49), heat outputs p53 (printed 51).",
-    "nas_path": null,
-    "archive87_dataset_id": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check."
+    "nas_path": "energy-systems/vaillant-de-0020326635-03-source/files/source/VAILLANT_DE_0020326635_03.pdf",
+    "archive87_dataset_id": "vaillant-de-0020326635-03-source"
   },
   {
-    "archive87_dataset_id": null,
-    "nas_path": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check.",
+    "archive87_dataset_id": "vaillant-uk-0020330792-03-source",
+    "nas_path": "energy-systems/vaillant-uk-0020330792-03-source/files/source/VAILLANT_UK_0020330792_03.pdf",
     "accessed_at": "2026-11-15",
     "source_id": "VAILLANT_UK_0020330792_03",
     "title": "Vaillant aroTHERM plus VWL 105/6 A 230V S2 ... VWL 125/6 A S2 installation and maintenance instructions, 0020330792_03",
@@ -1137,9 +1130,8 @@
     "notes": "Fan data p48 (printed 48), heat outputs p50 (printed 50)."
   },
   {
-    "archive87_dataset_id": null,
-    "nas_path": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check.",
+    "archive87_dataset_id": "daikin-eu-table-ebla09-14d3w1-source",
+    "nas_path": "energy-systems/daikin-eu-table-ebla09-14d3w1-source/files/source/DAIKIN_EU_TABLE_EBLA09-14D3W1.html",
     "accessed_at": "2026-11-15",
     "source_id": "DAIKIN_EU_TABLE_EBLA09-14D3W1",
     "title": "Daikin Europe product specification table EBLA09-14D3W1 (EBLA09/11/14DA3W1)",
@@ -1154,9 +1146,8 @@
     "notes": "Cross-check of DAIKIN_EEDEN22_EBLA09-16D: 'Air flow rate | Heating | High | m³/min | 48.0 | 55.8 | 70.4'; 'Heating capacity | Nom. | kW | 9.37 (1), 9.00 (2) | 10.6 (1), 9.82 (2) | 12.0 (1), 12.5 (2)'. No public table for the 16 kW unit was found (product.table.html/EBLA16D3W1 returns 404)."
   },
   {
-    "archive87_dataset_id": null,
-    "nas_path": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check.",
+    "archive87_dataset_id": "daikin-ecpen22-756-source",
+    "nas_path": "energy-systems/daikin-ecpen22-756-source/files/source/DAIKIN_ECPEN22-756.pdf",
     "accessed_at": "2026-11-15",
     "source_id": "DAIKIN_ECPEN22-756",
     "title": "Daikin Altherma 3 M Product catalogue 2022 E(B/D)LA-D(7) series, ECPEN22-756",
@@ -1171,9 +1162,8 @@
     "notes": "Cross-check of DAIKIN_EEDEN22_EBLA09-16D capacities: p10 'Heating capacity Nom.' 9.37 / 10.6 / 12.0 / 16.0 kW (1) for EBLA09/11/14/16D(3). Prints no airflow."
   },
   {
-    "archive87_dataset_id": null,
-    "nas_path": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check.",
+    "archive87_dataset_id": "daikin-erp-ebla09daw1-source",
+    "nas_path": "energy-systems/daikin-erp-ebla09daw1-source/files/source/DAIKIN_ERP_EBLA09DAW1_el.pdf",
     "accessed_at": "2026-11-15",
     "source_id": "DAIKIN_ERP_EBLA09DAW1",
     "title": "Daikin ErP technical documentation (Regulation 813/2013) EBLA09DAW1, Greek locale",
@@ -1188,9 +1178,8 @@
     "notes": "Cross-check only: rated air flow rate, outdoors printed '2880 m3/h', equal to EEDEN22 Heating High."
   },
   {
-    "archive87_dataset_id": null,
-    "nas_path": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check.",
+    "archive87_dataset_id": "daikin-erp-ebla14daw1-source",
+    "nas_path": "energy-systems/daikin-erp-ebla14daw1-source/files/source/DAIKIN_ERP_EBLA14DAW1_el.pdf",
     "accessed_at": "2026-11-15",
     "source_id": "DAIKIN_ERP_EBLA14DAW1",
     "title": "Daikin ErP technical documentation (Regulation 813/2013) EBLA14DAW1, Greek locale",
@@ -1205,9 +1194,8 @@
     "notes": "Cross-check only: rated air flow rate, outdoors printed '4220 m3/h', equal to EEDEN22 Heating High."
   },
   {
-    "archive87_dataset_id": null,
-    "nas_path": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check.",
+    "archive87_dataset_id": "daikin-erp-ebla16daw1-source",
+    "nas_path": "energy-systems/daikin-erp-ebla16daw1-source/files/source/DAIKIN_ERP_EBLA16DAW1_el.pdf",
     "accessed_at": "2026-11-15",
     "source_id": "DAIKIN_ERP_EBLA16DAW1",
     "title": "Daikin ErP technical documentation (Regulation 813/2013) EBLA16DAW1, Greek locale",
@@ -1266,8 +1254,7 @@
         "sha256": "104de884a4de6d4579bd1caa8ae79914c5e44d5506f1e4c0fb5ab39076b1bc03"
       }
     ],
-    "nas_path": null,
-    "archive87_dataset_id": null,
-    "nas_note": "Not yet on the lab NAS: this round-6 task did not write to the NAS datasets share; local copy kept under the evidence path and in the worker's scratch evidence folder. Transfer per #87 before nas_check."
+    "nas_path": "energy-systems/lg-gr-erp-thermav-r32-monobloc-source/files/source/LG_GR_ERP_THERMAV_R32_MONOBLOC/",
+    "archive87_dataset_id": "lg-gr-erp-thermav-r32-monobloc-source"
   }
 ]

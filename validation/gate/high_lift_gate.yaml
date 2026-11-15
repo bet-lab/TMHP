@@ -9,56 +9,98 @@
 # water) is the selector the test checks against that row, so renumbering a
 # catalogue cannot silently point the gate at another operating point.
 #
-# This file does not say whether the gate passes. It does not today (about
-# -20 % on the three catalogue points); the stages that follow close it, and the
-# pass assertion belongs to them.
-schema_version: 1
+# This file does not say whether the gate passes. It does not today (the three
+# catalogue points are 13 to 20 % below the catalogue); the work on the
+# compressor efficiency model is what closes it, and the pass assertion belongs
+# to that work.
+#
+# Owner decisions of 2026-11-15 recorded here:
+# - the gate is judged on machines the single-stage cycle of TMHP can represent.
+#   The Panasonic T-CAP M units (WH-WXG09/12/16, R290) use a scroll compressor
+#   with vapour injection, so their A-7 points are reported, not gated. They
+#   stay in the parity runs: no evaluated point is removed, the layer is split.
+# - the water temperature of a standard condition is the leaving water, with the
+#   tank 2.5 K below it (the convention of the catalogue parity runs): "the
+#   default R32 unit runs at A-7/W55" is judged at a 52.5 degC tank.
+schema_version: 2
 issue: "https://github.com/bet-lab/TMHP/issues/96"
 
 # ---------------------------------------------------------------------------
-# Gate: only points with evidence in the repository. A catalogue row is a
-# manufacturer's published COP at the stated condition.
+# Gate: only points with evidence in the repository, on machines inside the
+# model's scope. A catalogue row is a manufacturer's published COP at the
+# stated condition.
 # ---------------------------------------------------------------------------
 gate:
   tolerance_rel: 0.10          # |cop_pred / cop_catalogue - 1| <= 0.10
   catalogue_points:
-    - id: wh-wxg09me8-a-7-w55
-      catalog: panasonic_wh_wxg09me8
-      point_id: 7
-      condition: {t_source_C: -7, t_sink_C: 55}
-    - id: wh-wxg09me8-a-7-w65
-      catalog: panasonic_wh_wxg09me8
-      point_id: 12
-      condition: {t_source_C: -7, t_sink_C: 65}
     - id: wh-uq09he8-a-7-w55
       catalog: panasonic_wh_uq09he8
       point_id: 12
       condition: {t_source_C: -7, t_sink_C: 55}
+    - id: wh-uq12he8-a-7-w55
+      catalog: panasonic_wh_uq12he8
+      point_id: 12
+      condition: {t_source_C: -7, t_sink_C: 55}
+    - id: wh-uq16he8-a-7-w55
+      catalog: panasonic_wh_uq16he8
+      point_id: 14
+      condition: {t_source_C: -7, t_sink_C: 55}
 
   # The default refrigerant-R32 air-to-water machine must run at A-7/W55
-  # (``failure_reason == "none"``). Here W55 is the TANK temperature handed to
-  # ``analyze_steady`` -- the convention of the diagnosis that found it stopping
-  # on the discharge-temperature limit. The parity harness instead treats a
-  # catalogue's 55 °C as leaving water and sets the tank 2.5 K below it; the
-  # variant below evaluates that reading too, because the two differ in outcome:
-  # at tank 55 °C the machine stops (discharge_temp_above_max), at tank 52.5 °C it
-  # runs but capped by the discharge-temperature limit. Which one is the gate is
-  # an owner decision, recorded in the report that accompanies this file.
+  # (``failure_reason == "none"``): leaving water 55 degC, so a 52.5 degC tank
+  # handed to ``analyze_steady``. The variant reads the 55 degC as the tank
+  # temperature, the convention of the diagnosis that first found the machine
+  # stopping there; it is printed for comparison and is not the gate.
   runs:
     - id: default-r32-ashpb-a-7-w55
       model: AirSourceHeatPumpBoiler
       constructor: {ref: R32, hp_capacity: 8000.0}
-      call: {T0: -7.0, T_tank_w: 55.0, Q_ref_tank: 8000.0}
+      call: {T0: -7.0, T_tank_w: 52.5, Q_ref_tank: 8000.0}
       variants:
-        - id: tank-52.5-leaving-water-55
-          call: {T0: -7.0, T_tank_w: 52.5, Q_ref_tank: 8000.0}
+        - id: tank-55
+          call: {T0: -7.0, T_tank_w: 55.0, Q_ref_tank: 8000.0}
 
 # ---------------------------------------------------------------------------
-# Reported, not gated. No catalogue unit exists for ground- or water-source
-# boilers, so the range below is an ESTIMATE, not evidence. Do not tune the
-# model toward it.
+# Reported, not gated.
 # ---------------------------------------------------------------------------
 reported:
+  # Catalogue rows of machines outside the model's scope. TMHP solves a
+  # single-stage cycle without injection (docs: concepts/scope-and-limits); a
+  # vapour-injection compressor holds its efficiency and its discharge
+  # temperature at pressure ratios where a single-stage one does not, so the
+  # difference at these points is expected to stay and is not a target.
+  vapour_injection:
+    reason: "scroll compressor with vapour injection; TMHP is a single-stage cycle without injection"
+    source: "Panasonic catalogue 'New Aquarea T-CAP M Series' (UK-AQUAREA-M-25): R290 scroll compressor with injection technology"
+    catalogs: [panasonic_wh_wxg09me8, panasonic_wh_wxg12me8, panasonic_wh_wxg16me8]
+    catalogue_points:
+      - id: wh-wxg09me8-a-7-w55
+        catalog: panasonic_wh_wxg09me8
+        point_id: 7
+        condition: {t_source_C: -7, t_sink_C: 55}
+      - id: wh-wxg09me8-a-7-w65
+        catalog: panasonic_wh_wxg09me8
+        point_id: 12
+        condition: {t_source_C: -7, t_sink_C: 65}
+      - id: wh-wxg12me8-a-7-w55
+        catalog: panasonic_wh_wxg12me8
+        point_id: 7
+        condition: {t_source_C: -7, t_sink_C: 55}
+      - id: wh-wxg12me8-a-7-w65
+        catalog: panasonic_wh_wxg12me8
+        point_id: 12
+        condition: {t_source_C: -7, t_sink_C: 65}
+      - id: wh-wxg16me8-a-7-w55
+        catalog: panasonic_wh_wxg16me8
+        point_id: 7
+        condition: {t_source_C: -7, t_sink_C: 55}
+      - id: wh-wxg16me8-a-7-w65
+        catalog: panasonic_wh_wxg16me8
+        point_id: 12
+        condition: {t_source_C: -7, t_sink_C: 65}
+
+  # No catalogue unit exists for ground- or water-source boilers, so the range
+  # below is an ESTIMATE, not evidence. Do not tune the model toward it.
   estimate_basis: "estimate recorded in bet-lab/TMHP#96 (no catalogue, measurement or Keymark data in the repository)"
   items:
     - id: gshpb-b0-w35

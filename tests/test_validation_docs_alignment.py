@@ -112,6 +112,31 @@ def test_coverage_counts_match_the_harness(summary: pd.DataFrame) -> None:
     assert f"{attempted} attempted, {evaluated} evaluated" in text
 
 
+def _celsius(value: float, signed: bool) -> str:
+    text = f"{value:g}"
+    return f"+{text}" if signed and value > 0 else text
+
+
+def test_coverage_temperature_spans_match_the_points(points: pd.DataFrame) -> None:
+    """The coverage table's source and sink spans are the extremes of the attempted points.
+
+    The table counts all attempted points, held catalogues included, so the span
+    is over the same set; the adopted units' own span is stated beside it.
+    """
+    raw = _read("docs/source/validation/index.rst")
+    source = re.sub(r"\s+", " ", _list_table_row(raw, "Source temperature")).replace("−", "-")
+    adopted = points[points.status == "adopted"]
+    expected = (
+        f"{_celsius(points.t_source_C.min(), True)} to {_celsius(points.t_source_C.max(), True)} °C "
+        f"(adopted units {_celsius(adopted.t_source_C.min(), True)} to "
+        f"{_celsius(adopted.t_source_C.max(), True)} °C)"
+    )
+    assert expected in source, f"coverage table says {source.strip()!r}, the points span {expected!r}"
+    sink = re.sub(r"\s+", " ", _list_table_row(raw, "Sink temperature"))
+    expected = f"{_celsius(points.t_sink_C.min(), False)} to {_celsius(points.t_sink_C.max(), False)} °C"
+    assert expected in sink, f"coverage table says {sink.strip()!r}, the points span {expected!r}"
+
+
 @pytest.mark.parametrize("label", sorted(INDEX_ROWS))
 def test_residuals_table_matches_the_harness(points: pd.DataFrame, label: str) -> None:
     """Each group row quotes its own MAPE, bias and evaluated/attempted count."""

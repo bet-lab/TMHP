@@ -72,4 +72,5 @@ async def main():
     (HERE / "highly_web_tables.json").write_text(json.dumps(results, ensure_ascii=False, indent=2) + "\n")
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

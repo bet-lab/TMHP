@@ -12,16 +12,22 @@ from pathlib import Path
 
 import pandas as pd
 
-d = Path(sys.argv[1])
-tag = sys.argv[2] if len(sys.argv) > 2 else ""
-allf = sorted((d / "raw" / "per_compressor").glob("*.csv"))
-files = [f for f in allf if (f"_{tag}" in f.stem)] if tag else [f for f in allf if "_lowlift" not in f.stem]
-df = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
-df.to_csv(d / "raw" / (f"bitzer_raw_points_{tag}.csv" if tag else "bitzer_raw_points.csv"), index=False)
-ok = df.BITZER_limit_status == 0
-print(f"{len(files)} compressors, {len(df)} requests, {ok.sum()} inside envelope, {(~ok).sum()} refused")
-print(
-    df.groupby(["refrigerant", "compressor_id"])
-    .BITZER_limit_status.apply(lambda s: f"{(s == 0).sum()}/{len(s)}")
-    .to_string()
-)
+
+def main() -> None:
+    d = Path(sys.argv[1])
+    tag = sys.argv[2] if len(sys.argv) > 2 else ""
+    allf = sorted((d / "raw" / "per_compressor").glob("*.csv"))
+    files = [f for f in allf if (f"_{tag}" in f.stem)] if tag else [f for f in allf if "_lowlift" not in f.stem]
+    df = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+    df.to_csv(d / "raw" / (f"bitzer_raw_points_{tag}.csv" if tag else "bitzer_raw_points.csv"), index=False)
+    ok = df.BITZER_limit_status == 0
+    print(f"{len(files)} compressors, {len(df)} requests, {ok.sum()} inside envelope, {(~ok).sum()} refused")
+    print(
+        df.groupby(["refrigerant", "compressor_id"])
+        .BITZER_limit_status.apply(lambda s: f"{(s == 0).sum()}/{len(s)}")
+        .to_string()
+    )
+
+
+if __name__ == "__main__":
+    main()

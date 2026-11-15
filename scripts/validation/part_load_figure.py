@@ -36,6 +36,12 @@ certificates by ``validation.extraction.keymark_declared``.
 
 Panel (b) is the one that decides whether the trend is right. Panel (a) shows
 what the model does with a question the certification data never asks.
+
+The plotted values are written to ``validation/data/part_load_figure/`` with a
+provenance record (``validation.study_provenance``), and
+``docs/source/validation/part-load.rst`` quotes them;
+``tests/test_part_load_page.py`` checks the page against those CSVs and the CSVs
+against a rerun of this script's functions.
 """
 
 from __future__ import annotations
@@ -63,6 +69,10 @@ from _dmpl_common import (  # noqa: E402
 from tmhp import AirSourceHeatPumpBoiler  # noqa: E402
 
 KEYMARK_SUMMARY = REPO_ROOT / "validation" / "data" / "keymark_en14825_summary.csv"
+DATA_DIR = REPO_ROOT / "validation" / "data" / "part_load_figure"
+SWEEP_CSV = DATA_DIR / "sweep.csv"
+TRAJECTORY_CSV = DATA_DIR / "trajectory.csv"
+PROVENANCE = REPO_ROOT / "validation" / "data" / "provenance" / "part_load_figure.json"
 
 #: Fixed-temperature sweep: outdoor air and leaving water held, load varied.
 SWEEP_CONDITIONS = (
@@ -88,14 +98,28 @@ NOMINAL_W = 9000.0
 DESIGN_LOAD_W = 6000.0
 SINK_OFFSET_K = 2.5
 
+#: The model this figure asks its question of, chosen explicitly so the figure
+#: does not move with a library default: the running machine (below the speed
+#: floor ``analyze_steady`` would otherwise report the mean over the on/off
+#: cycling period, ``tmhp.cycling``), with frost and defrost on, as shipped.
+MODEL_SETTINGS = {"hp_capacity": NOMINAL_W, "ref": "R32", "Cd_cycling": None, "defrost": True}
 
-def sweep_fixed_temperatures() -> list[dict]:
-    # The running machine: below the speed floor analyze_steady would otherwise
-    # report the mean over the on/off cycling period (tmhp.cycling).
-    model = AirSourceHeatPumpBoiler(hp_capacity=NOMINAL_W, ref="R32", Cd_cycling=None)
+
+def _model() -> AirSourceHeatPumpBoiler:
+    return AirSourceHeatPumpBoiler(**MODEL_SETTINGS)
+
+
+def sweep_fixed_temperatures(
+    conditions: tuple[tuple[float, float], ...] | None = None,
+    fractions: tuple[float, ...] | None = None,
+) -> list[dict]:
+    """Panel (a): every requested point, including any that did not converge (``cop`` NaN)."""
+    model = _model()
+    conditions = conditions or tuple((t, lwt) for t, lwt, _ in SWEEP_CONDITIONS)
+    fractions = fractions or tuple(float(f) for f in LOAD_FRACTIONS)
     rows = []
-    for t_outdoor, lwt, color in SWEEP_CONDITIONS:
-        for fraction in LOAD_FRACTIONS:
+    for t_outdoor, lwt in conditions:
+        for fraction in fractions:
             result = model.analyze_steady(
                 T_tank_w=lwt - SINK_OFFSET_K,
                 T0=t_outdoor,
@@ -103,26 +127,27 @@ def sweep_fixed_temperatures() -> list[dict]:
                 return_dict=True,
             )
             assert isinstance(result, dict)
-            if result.get("failure_reason", "none") != "none":
-                continue
+            failure = result.get("failure_reason", "none")
+            rps = float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0
             rows.append(
                 {
                     "t_outdoor_C": t_outdoor,
                     "lwt_C": lwt,
-                    "color": color,
                     "plr": fraction,
-                    "cop": float(result["cop_sys [-]"]),
-                    "rps": float(result["cmp_rpm [rpm]"]) / 60.0,
-                    "at_floor": abs(float(result["cmp_rpm [rpm]"]) / 60.0 - model.rps_min) < 1e-6,
+                    "q_request_W": NOMINAL_W * fraction,
+                    "q_delivered_W": float(result["Q_ref_tank [W]"]) if failure == "none" else np.nan,
+                    "cop": float(result["cop_sys [-]"]) if failure == "none" else np.nan,
+                    "rps": rps,
+                    "at_floor": failure == "none" and abs(rps - model.rps_min) < 1e-6,
+                    "failure_reason": failure,
                 }
             )
     return rows
 
 
 def trajectory_en14825() -> list[dict]:
-    # The running machine: below the speed floor analyze_steady would otherwise
-    # report the mean over the on/off cycling period (tmhp.cycling).
-    model = AirSourceHeatPumpBoiler(hp_capacity=NOMINAL_W, ref="R32", Cd_cycling=None)
+    """Panel (b): the four EN 14825 test points."""
+    model = _model()
     rows = []
     for label, t_outdoor, lwt, load_ratio in EN14825_LOW:
         result = model.analyze_steady(
@@ -149,10 +174,39 @@ def trajectory_en14825() -> list[dict]:
     return rows
 
 
+def write_data(sweep: pd.DataFrame, trajectory: pd.DataFrame) -> None:
+    """The plotted values and their provenance record."""
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from validation import study_provenance
+
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    sweep.to_csv(SWEEP_CSV, index=False)
+    trajectory.to_csv(TRAJECTORY_CSV, index=False)
+    study_provenance.write(
+        PROVENANCE,
+        "scripts/validation/part_load_figure.py",
+        [SWEEP_CSV, TRAJECTORY_CSV, static_path("validation_part_load.svg")],
+        {
+            "model": MODEL_SETTINGS,
+            "sink_offset_K": SINK_OFFSET_K,
+            "sweep_conditions": [(t, lwt) for t, lwt, _ in SWEEP_CONDITIONS],
+            "load_fractions": [float(f) for f in LOAD_FRACTIONS],
+            "en14825_points": EN14825_LOW,
+            "design_load_W": DESIGN_LOAD_W,
+        },
+        "air-to-water part load of the running machine: fixed-temperature sweep and EN 14825 trajectory "
+        "(docs/source/validation/part-load.rst)",
+        command="python -m scripts.validation.part_load_figure",
+    )
+
+
 def main() -> None:
     apply_style("report", hashsalt="tmhp.validation.part-load")
     sweep = pd.DataFrame(sweep_fixed_temperatures())
     trajectory = pd.DataFrame(trajectory_en14825())
+    write_data(sweep, trajectory)
+    sweep = sweep[sweep.failure_reason == "none"]
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.46))
     _panels: list = []

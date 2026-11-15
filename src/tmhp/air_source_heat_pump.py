@@ -647,7 +647,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             UA_cond_rated = UA_cond_design
         if UA_evap_rated is None:
             UA_evap_rated = UA_evap_design
-        # UA_cond/evap_rated → UA_ou/iu_rated (physical-unit rename, issue #183)
+        # UA_cond/evap_rated → UA_ou/iu_rated (rename from cycle role to physical unit)
         if UA_cond_rated is not None or UA_evap_rated is not None:
             warnings.warn(
                 "UA_cond_rated/UA_evap_rated are deprecated and will be removed in a future"

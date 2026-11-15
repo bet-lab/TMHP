@@ -2580,7 +2580,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         return self.postprocess_exergy(df)
 
     # =============================================================
-    # Public single-timestep kernel (#165 P0) — analyze_dynamic loops over it
+    # Public single-timestep kernel — analyze_dynamic loops over it
     # =============================================================
 
     def make_initial_state(self, T_tank_w_init_C: float, tank_level_init: float = 1.0) -> DynamicState:

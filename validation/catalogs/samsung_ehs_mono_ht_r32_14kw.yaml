@@ -22,7 +22,6 @@ source:
   table: "Heating capacity and COP tables; reproduced as Table 1 of Jo & Choi, KJACR 2026"
   url: "https://www.theheatpumpwarehouse.co.uk/wp-content/uploads/2024/11/tdb-ehs-mono-ht-quiet-for-europe-r32-50hz-hp-ver.2.1-221005-compressed-compressed.pdf"
 published_inputs: {}
-sink_offset_K: 2.5
 notes: >-
   The paper applies a 2.5 K leaving-water-to-tank offset below 60 degC and
   5 K above it. The harness carries a single offset, so the three 65 degC rows

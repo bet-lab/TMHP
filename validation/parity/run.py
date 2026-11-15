@@ -52,6 +52,7 @@ import pandas as pd
 
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
 from tmhp.compressor_efficiency import COEFFICIENT_VERSION
+from tmhp.standard_conditions import en14511_condenser_water
 
 from .spec import Catalog, OperatingPoint, load_all
 
@@ -115,10 +116,15 @@ def _build_model(catalog: Catalog, overrides: dict | None = None, mode: str = "c
 
 def _run_point(model, catalog: Catalog, point: OperatingPoint) -> dict:
     if catalog.model_class == "ASHPB":
+        # EN 14511: the catalogue's leaving water, entered at the standard's rise below it, at the flow
+        # that carries the published duty at that rise (tmhp.standard_conditions.en14511_condenser_water).
+        duty = point.q_kW * 1000.0
+        T_entering, m_dot_w = en14511_condenser_water(point.t_sink_C, duty)
         result = model.analyze_steady(
-            T_tank_w=point.t_sink_C - catalog.sink_offset_K,
+            T_tank_w=T_entering,
             T0=point.t_source_C,
-            Q_ref_tank=point.q_kW * 1000.0,
+            Q_ref_tank=duty,
+            m_dot_w=m_dot_w,
             return_dict=True,
         )
     else:

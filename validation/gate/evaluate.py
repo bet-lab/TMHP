@@ -25,6 +25,7 @@ import pandas as pd
 import yaml
 
 import tmhp
+from tmhp.standard_conditions import en14511_condenser_water
 from validation.parity.run import RESULTS_DIR, run_catalog
 from validation.parity.spec import load_all
 
@@ -69,6 +70,20 @@ def _run(model_name: str, constructor: dict[str, Any], call: dict[str, Any]) -> 
     return result
 
 
+def gate_call(entry: dict[str, Any]) -> dict[str, Any]:
+    """The ``analyze_steady`` call of a gate run: its ``call``, completed with the EN 14511 inlet water and flow.
+
+    ``en14511_leaving_water_C`` names the water leaving the condenser; the
+    water enters the standard's rise below it at the flow that carries
+    ``Q_ref_tank`` at that rise (:func:`tmhp.standard_conditions.en14511_condenser_water`).
+    """
+    call = dict(entry["call"])
+    leaving = entry.get("en14511_leaving_water_C")
+    if leaving is not None:
+        call["T_tank_w"], call["m_dot_w"] = en14511_condenser_water(float(leaving), float(call["Q_ref_tank"]))
+    return call
+
+
 def evaluate_run(entry: dict[str, Any], call: dict[str, Any], label: str) -> dict[str, Any]:
     result = _run(entry["model"], entry["constructor"], call)
     failure = str(result.get("failure_reason", "none"))
@@ -107,7 +122,7 @@ def evaluate_all() -> dict[str, list[dict[str, Any]]]:
     for entry in gate["gate"]["catalogue_points"]:
         out["gate"].append(evaluate_catalogue_point(entry, tol))
     for entry in gate["gate"]["runs"]:
-        out["gate"].append(evaluate_run(entry, entry["call"], entry["id"]))
+        out["gate"].append(evaluate_run(entry, gate_call(entry), entry["id"]))
         for variant in entry.get("variants", []):
             out["variants"].append(evaluate_run(entry, variant["call"], f"{entry['id']} [{variant['id']}]"))
     for entry in gate["reported"]["vapour_injection"]["catalogue_points"]:

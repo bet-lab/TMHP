@@ -19,9 +19,16 @@
 #   The Panasonic T-CAP M units (WH-WXG09/12/16, R290) use a scroll compressor
 #   with vapour injection, so their A-7 points are reported, not gated. They
 #   stay in the parity runs: no evaluated point is removed, the layer is split.
-# - the water temperature of a standard condition is the leaving water, with the
-#   tank 2.5 K below it (the convention of the catalogue parity runs): "the
-#   default R32 unit runs at A-7/W55" is judged at a 52.5 degC tank.
+# - (superseded on 2026-11-16) the water temperature of a standard condition is
+#   the leaving water, with the tank 2.5 K below it: "the default R32 unit runs
+#   at A-7/W55" was judged at a 52.5 degC tank.
+#
+# Owner decision of 2026-11-16, which replaces the second one above: the boilers'
+# tank heat exchanger is an external plate condenser with circulating water, and
+# the harness hands the models the inlet and outlet water EN 14511 states. A-7/W55
+# is water entering at 47 degC and leaving at 55 degC (an 8 K rise, the flow that
+# carries the duty at it): tmhp.standard_conditions.en14511_condenser_water, the
+# convention of the catalogue parity runs (validation/parity/run.py).
 schema_version: 2
 issue: "https://github.com/bet-lab/TMHP/issues/96"
 
@@ -47,15 +54,19 @@ gate:
       condition: {t_source_C: -7, t_sink_C: 55}
 
   # The default refrigerant-R32 air-to-water machine must run at A-7/W55
-  # (``failure_reason == "none"``): leaving water 55 degC, so a 52.5 degC tank
-  # handed to ``analyze_steady``. The variant reads the 55 degC as the tank
-  # temperature, the convention of the diagnosis that first found the machine
-  # stopping there; it is printed for comparison and is not the gate.
+  # (``failure_reason == "none"``): water leaving at 55 degC, so evaluate.py
+  # completes the call with the EN 14511 inlet water and flow of
+  # ``en14511_leaving_water_C`` (47 degC, the flow for an 8 K rise). The variant
+  # reads the 55 degC as the tank water entering the condenser at the machine's
+  # rated circulation flow, as the diagnosis that first found the machine
+  # stopping there read it as the tank temperature; it is printed for
+  # comparison and is not the gate.
   runs:
     - id: default-r32-ashpb-a-7-w55
       model: AirSourceHeatPumpBoiler
       constructor: {ref: R32, hp_capacity: 8000.0}
-      call: {T0: -7.0, T_tank_w: 52.5, Q_ref_tank: 8000.0}
+      call: {T0: -7.0, Q_ref_tank: 8000.0}
+      en14511_leaving_water_C: 55.0
       variants:
         - id: tank-55
           call: {T0: -7.0, T_tank_w: 55.0, Q_ref_tank: 8000.0}
@@ -101,15 +112,18 @@ reported:
 
   # No catalogue unit exists for ground- or water-source boilers, so the range
   # below is an ESTIMATE, not evidence. Do not tune the model toward it.
+  # W35 is water leaving at 35 degC: these boilers take no per-call flow, so the
+  # water enters at 30 degC at their rated circulation flow (5 K at the
+  # nameplate, EN 14511 30/35).
   estimate_basis: "estimate recorded in bet-lab/TMHP#96 (no catalogue, measurement or Keymark data in the repository)"
   items:
     - id: gshpb-b0-w35
       model: GroundSourceHeatPumpBoiler
       constructor: {hp_capacity: 8000.0}
-      call: {T_source: 0.0, T_tank_w: 35.0, Q_ref_tank: 8000.0}
+      call: {T_source: 0.0, T_tank_w: 30.0, Q_ref_tank: 8000.0}
       estimate_cop: {min: 4.2, max: 4.8}
     - id: wshpb-w10-w35
       model: WaterSourceHeatPumpBoiler
       constructor: {hp_capacity: 8000.0}
-      call: {T_source: 10.0, T_tank_w: 35.0, Q_ref_tank: 8000.0}
+      call: {T_source: 10.0, T_tank_w: 30.0, Q_ref_tank: 8000.0}
       estimate_cop: {min: 5.0, max: 6.0}

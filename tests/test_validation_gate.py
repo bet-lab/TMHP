@@ -15,8 +15,10 @@ import math
 
 import pandas as pd
 import pytest
-from validation.gate.evaluate import GATE_FILE, catalogue_point, evaluate_all, load_gate, parity_layers
+from validation.gate.evaluate import GATE_FILE, catalogue_point, evaluate_all, gate_call, load_gate, parity_layers
 from validation.parity.run import RESULTS_DIR
+
+from tmhp.constants import c_w
 
 #: The gate, as the owner set it on 2026-11-15: A-7/W55 of the three Panasonic
 #: WH-UQ units (R410A), machines the single-stage cycle can represent. Spelled
@@ -48,8 +50,14 @@ def test_gate_is_the_three_catalogue_points_plus_the_default_r32_run() -> None:
     (run,) = gate["gate"]["runs"]
     assert run["model"] == "AirSourceHeatPumpBoiler"
     assert run["constructor"]["ref"] == "R32"
-    # Leaving water 55 degC: the tank 2.5 K below it, as the catalogue parity runs read a catalogue.
-    assert run["call"] == {"T0": -7.0, "T_tank_w": 52.5, "Q_ref_tank": 8000.0}
+    # Leaving water 55 degC, as EN 14511 states it (decision of 2026-11-16): water entering at 47 degC at
+    # the flow that carries the duty at an 8 K rise, as the catalogue parity runs read a catalogue.
+    assert run["call"] == {"T0": -7.0, "Q_ref_tank": 8000.0}
+    assert run["en14511_leaving_water_C"] == 55.0
+    call = gate_call(run)
+    assert call["T_tank_w"] == pytest.approx(47.0)
+    assert call["m_dot_w"] == pytest.approx(8000.0 / (c_w * 8.0))
+    assert {k: call[k] for k in ("T0", "Q_ref_tank")} == run["call"]
     assert [v["call"]["T_tank_w"] for v in run["variants"]] == [55.0]
 
 
@@ -97,6 +105,8 @@ def test_ground_and_water_source_items_are_reported_not_gated() -> None:
     assert "estimate" in gate["reported"]["estimate_basis"]
     assert reported["gshpb-b0-w35"]["estimate_cop"] == {"min": 4.2, "max": 4.8}
     assert reported["wshpb-w10-w35"]["estimate_cop"] == {"min": 5.0, "max": 6.0}
+    # W35: water entering at 30 degC at the boilers' rated circulation flow (5 K at the nameplate).
+    assert {item["call"]["T_tank_w"] for item in reported.values()} == {30.0}
     # No catalogue exists for either family, so nothing may be referenced as evidence.
     assert all("catalog" not in item for item in reported.values())
 

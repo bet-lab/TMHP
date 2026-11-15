@@ -23,9 +23,6 @@ source:
 published_inputs:
   displacement_cc: 42.4
   rated_air_flow_m3_s: 1.280
-# The catalogue's reference is leaving water temperature; the model's tank
-# temperature sits this far below it.
-sink_offset_K: 2.5
 points:
   - id: 1
     t_source_C: -15

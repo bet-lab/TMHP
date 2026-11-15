@@ -171,7 +171,7 @@ from .source_fluid import (
     source_freeze_limited,
     warn_if_loop_modelled_as_water,
 )
-from .standard_conditions import LEAVING_WATER_TO_TANK_K, StandardCondition
+from .standard_conditions import StandardCondition
 from .standard_conditions import operating_range as _operating_range
 from .stratified_tank import StratifiedTank
 from .subsystems import add_uv_power_to_e_tot
@@ -3318,7 +3318,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self,
         conditions: Iterable[StandardCondition] | None = None,
         *,
-        sink_offset_K: float = LEAVING_WATER_TO_TANK_K,
+        sink_offset_K: float | None = None,
     ) -> pd.DataFrame:
         """Solve standard rating conditions and tabulate whether the heat pump runs at each.
 
@@ -3335,11 +3335,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         conditions : iterable of StandardCondition, optional
             Conditions to solve; :data:`tmhp.standard_conditions.BRINE_TO_WATER`
             (B0/W35, B0/W55, B-5/W45 at the nameplate duty) when omitted.
-        sink_offset_K : float
-            The tank is solved this far below each condition's leaving water
-            [K]: ``T_tank_w = leaving water - sink_offset_K``. The default
-            2.5 K is the offset of the validation catalogues; 0 solves the
-            tank at the named temperature.
+            A condition names the water leaving the heat pump; it is solved with
+            the water entering the condenser below it by the temperature rise of
+            the rating (:mod:`tmhp.standard_conditions`), the table's ``T_tank_w [°C]``.
+        sink_offset_K : float, optional
+            The water enters this far below each condition's leaving water [K],
+            at the rated circulation flow, instead (0: the tank water at the
+            named temperature, a stricter point). ``None``: the EN 14511 rise.
 
         Returns
         -------

@@ -23,14 +23,16 @@ Fields
     These are specification inputs, not tuning -- the same status as the
     nameplate capacity. Anything absent falls back to the library default,
     which is the case the derivation work is really about.
-``sink_offset_K``
-    For ASHPB only: how far the tank temperature sits below the catalogue's
-    leaving water temperature. A statement about where the manufacturer
-    measures, not a fitted parameter.
 ``points``
     The operating grid. ``t_source_C`` is outdoor air; ``t_sink_C`` is leaving
     water (ASHPB) or indoor dry bulb (ASHP); ``q_kW`` is the published duty;
-    ``cop`` and/or ``power_kW`` are the published targets.
+    ``cop`` and/or ``power_kW`` are the published targets. An air-to-water
+    point is run as EN 14511 states the rating (``run.py``): the water enters
+    at ``t_sink_C - dT_w`` and leaves at ``t_sink_C``, at the flow
+    ``q / (c_w dT_w)``, with ``dT_w`` 5 K up to 45 degC leaving, 8 K at 55 degC
+    and 10 K at 65 degC, linear in between
+    (:func:`tmhp.standard_conditions.en14511_water_rise`, the same convention
+    the models' ``operating_range()`` uses).
 ``mode``
     ``heating`` or ``cooling``; may be set per point.
 
@@ -90,7 +92,6 @@ class Catalog:
     points: tuple[OperatingPoint, ...]
     source: dict[str, Any] = field(default_factory=dict)
     published_inputs: dict[str, Any] = field(default_factory=dict)
-    sink_offset_K: float = 0.0
     cop_definition: str = ""
     notes: str = ""
     #: Test standard the published grid was rated under (see RATING_STANDARDS).

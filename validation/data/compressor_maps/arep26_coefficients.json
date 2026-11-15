@@ -1,0 +1,247 @@
+{
+  "source": "AHRI Low-GWP AREP Test Report #26, Compressor Calorimeter Test of Refrigerant R-32 in a R-410A Rotary Type Compressor (Shanghai Hitachi Electrical Appliances Co., 13 Oct 2013)",
+  "file": "compressor_maps/arep/AREP_Rpt026.pdf",
+  "compressor": "Shanghai Hitachi hermetic rotary, R-410A design, nominal displacement 28.0 cc, constant speed 50 Hz, 2.5 hp, with a liquid-injection port added (table header: compressor model ASH280*)",
+  "note": "Coefficients transcribed verbatim (three significant digits as printed). Defining sentences, pdf p. 6: 'The equation is in the form of: X=C1+C2*(S) +C3*D+C4*(S2) +C5*(S*D) +C6*(D2) +C7*(S3) +C8*(D*S2) +C9*(S*D2) +C10*(D3). Where, C= Equation Coefficient, represents compressor performance; S= Suction dew point temperature, degC; D=Discharge dew point temperature, degC; X=Compressor performance (mass flow rate, capacity, power and COP)'. Tables 5 and 6 print no units: the units below (W, W, W/W, kg/h) are those of Table 4 of the same report and are confirmed by evaluating the polynomials at the four standard points (see the verification log). Table 5 (R410A) is fitted to the test results of conditions 1-24 of Table 3, Table 6 (R32) to the 16 starred conditions of Table 3 (report p. 4). Valid range per report: evaporating -8 to 13 degC, condensing 37 to 60 degC (Table 3).",
+  "term_order": [
+    "1",
+    "S",
+    "D",
+    "S^2",
+    "S*D",
+    "D^2",
+    "S^3",
+    "D*S^2",
+    "S*D^2",
+    "D^3"
+  ],
+  "term_order_note": "index k of the coefficient list multiplies TERMS[k]: C1..C10",
+  "variables": {
+    "S": "suction dew-point temperature, degC",
+    "D": "discharge dew-point temperature, degC"
+  },
+  "units": {
+    "power": "W",
+    "capacity": "W",
+    "cop": "W/W",
+    "flow": "kg/h"
+  },
+  "quantity_order_in_tables": [
+    "power",
+    "capacity",
+    "cop",
+    "flow"
+  ],
+  "fluids": {
+    "R410A": {
+      "table": "Table5",
+      "title": "Table5. 10 Coefficients for R410A (compressor model: ASH280*)",
+      "pdf_page": 7,
+      "coefficients_verbatim": {
+        "power": [
+          "-2.35E+02",
+          "-2.54E+01",
+          "8.09E+01",
+          "-3.91E-01",
+          "5.83E-01",
+          "-1.24E+00",
+          "-6.20E-03",
+          "-9.69E-04",
+          "2.07E-03",
+          "1.06E-02"
+        ],
+        "capacity": [
+          "1.13E+04",
+          "3.47E+02",
+          "-1.96E+02",
+          "4.90E+00",
+          "-2.73E+00",
+          "2.42E+00",
+          "-7.60E-03",
+          "-3.50E-02",
+          "-1.91E-03",
+          "-1.72E-02"
+        ],
+        "cop": [
+          "1.37E+01",
+          "5.38E-01",
+          "-4.24E-01",
+          "6.79E-03",
+          "-1.40E-02",
+          "5.47E-03",
+          "1.65E-05",
+          "-9.65E-05",
+          "1.01E-04",
+          "-2.82E-05"
+        ],
+        "flow": [
+          "1.59E+02",
+          "5.00E+00",
+          "-1.63E+00",
+          "7.24E-02",
+          "-1.52E-02",
+          "2.62E-02",
+          "5.63E-04",
+          "-3.07E-04",
+          "-2.30E-05",
+          "-2.01E-04"
+        ]
+      },
+      "coefficients": {
+        "power": [
+          -235.0,
+          -25.4,
+          80.9,
+          -0.391,
+          0.583,
+          -1.24,
+          -0.0062,
+          -0.000969,
+          0.00207,
+          0.0106
+        ],
+        "capacity": [
+          11300.0,
+          347.0,
+          -196.0,
+          4.9,
+          -2.73,
+          2.42,
+          -0.0076,
+          -0.035,
+          -0.00191,
+          -0.0172
+        ],
+        "cop": [
+          13.7,
+          0.538,
+          -0.424,
+          0.00679,
+          -0.014,
+          0.00547,
+          1.65e-05,
+          -9.65e-05,
+          0.000101,
+          -2.82e-05
+        ],
+        "flow": [
+          159.0,
+          5.0,
+          -1.63,
+          0.0724,
+          -0.0152,
+          0.0262,
+          0.000563,
+          -0.000307,
+          -2.3e-05,
+          -0.000201
+        ]
+      }
+    },
+    "R32": {
+      "table": "Table6",
+      "title": "Table6. 10 Coefficients for R32 (compressor model: ASH280*)",
+      "pdf_page": 9,
+      "coefficients_verbatim": {
+        "power": [
+          "8.90E+02",
+          "1.19E+01",
+          "9.00E+00",
+          "3.31E-01",
+          "-1.09E+00",
+          "2.58E-01",
+          "-1.61E-02",
+          "-1.63E-02",
+          "2.06E-02",
+          "9.60E-04"
+        ],
+        "capacity": [
+          "1.46E+04",
+          "7.68E+02",
+          "-4.52E+02",
+          "1.37E+01",
+          "-2.23E+01",
+          "8.77E+00",
+          "6.78E-02",
+          "-2.36E-01",
+          "2.26E-01",
+          "-6.74E-02"
+        ],
+        "cop": [
+          "1.43E+01",
+          "6.90E-01",
+          "-4.92E-01",
+          "1.17E-02",
+          "-2.15E-02",
+          "7.49E-03",
+          "8.16E-05",
+          "-2.13E-04",
+          "1.91E-04",
+          "-4.62E-05"
+        ],
+        "flow": [
+          "1.26E+02",
+          "9.88E+00",
+          "-2.34E+00",
+          "2.11E-01",
+          "-3.06E-01",
+          "4.79E-02",
+          "1.84E-03",
+          "-3.85E-03",
+          "3.39E-03",
+          "-3.90E-04"
+        ]
+      },
+      "coefficients": {
+        "power": [
+          890.0,
+          11.9,
+          9.0,
+          0.331,
+          -1.09,
+          0.258,
+          -0.0161,
+          -0.0163,
+          0.0206,
+          0.00096
+        ],
+        "capacity": [
+          14600.0,
+          768.0,
+          -452.0,
+          13.7,
+          -22.3,
+          8.77,
+          0.0678,
+          -0.236,
+          0.226,
+          -0.0674
+        ],
+        "cop": [
+          14.3,
+          0.69,
+          -0.492,
+          0.0117,
+          -0.0215,
+          0.00749,
+          8.16e-05,
+          -0.000213,
+          0.000191,
+          -4.62e-05
+        ],
+        "flow": [
+          126.0,
+          9.88,
+          -2.34,
+          0.211,
+          -0.306,
+          0.0479,
+          0.00184,
+          -0.00385,
+          0.00339,
+          -0.00039
+        ]
+      }
+    }
+  }
+}

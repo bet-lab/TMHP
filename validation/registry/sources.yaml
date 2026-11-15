@@ -164,6 +164,127 @@ documents:
     pages: 35
     sha256: "7da8c43e3c3f8ba3905a016f56a6205db2049ed7c5e7403db70fbe4ddbafc291"
 
+  - path: compressor_maps/arep/AREP_Rpt024.pdf
+    title: "AHRI Low-GWP AREP Test Report #24: Compressor calorimeter test of refrigerant DR-5 in a R-410A scroll compressor"
+    publisher: "Emerson Climate Technologies (Rajendran, Nicholson, 20 Aug 2013), public"
+    document_id: "AHRI Low-GWP AREP Test Report #24"
+    rating_condition: "Copeland ZP31K5E-PFV scroll 1.8 in3/rev, 3500 rpm nominal, 60 Hz; DR-5 row list (Tables 1 and 3, 22 points), 20 degF superheat, 15 degF subcooling; R-410A baseline is published rating data, not tabulated"
+    used_by: "compressor_maps.parse.arep_rowlist -> points_arep_rowlist.csv (22 points)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 1049288
+    pages: 20
+    sha256: "bfa9ef08e5c06a15a3d8827f66b9323ba3fe2c72b94acb71cb8b9415da47960c"
+
+  - path: compressor_maps/arep/AREP_Rpt026.pdf
+    title: "AHRI Low-GWP AREP Test Report #26: Compressor calorimeter test of refrigerant R-32 in a R-410A rotary type compressor"
+    publisher: "Shanghai Hitachi Electrical Appliances (Zhang, Zhu, Qin, 13 Oct 2013), public"
+    document_id: "AHRI Low-GWP AREP Test Report #26"
+    rating_condition: "Hermetic rotary 28.0 cc, constant speed 50 Hz, liquid-injection port added; Table 4 = four standard points x R-410A/R-32 (measured), Tables 5-6 = ten-coefficient polynomials, Table 3 = 26 reporting conditions"
+    used_by: "compressor_maps.parse.arep26_rotary -> points_arep26_rotary.csv (8 measured + 40 polynomial rows) and arep26_coefficients.json"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 348205
+    pages: 11
+    sha256: "9205582ac723d53e07a5849a265742c99053f1ad80910e9bbdd7662713a053ed"
+
+  - path: compressor_maps/arep/AREP_Rpt033.pdf
+    title: "AHRI Low-GWP AREP Test Report #33: Compressor calorimeter test of R-410A alternative R-32/R-134a mixture using a scroll compressor"
+    publisher: "Oak Ridge National Laboratory (Shrestha, Sharma, Abdelaziz, 18 Feb 2014), public"
+    document_id: "AHRI Low-GWP AREP Test Report #33"
+    rating_condition: "Copeland ZP21K5E-PFV scroll 1.24 in3/rev, 60 Hz; appendix A: 6 tables; all 364 cells identical to ORNL/TM-2013/414 (Pub46026)"
+    used_by: "compared cell by cell with points_arep.csv rows of ornl_tm_2013_414 (identical; not duplicated)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 546330
+    pages: 23
+    sha256: "e893a727c5d33d1a450e59b67e37266de3899b6a37a232ad1c622dd4f55d2425"
+
+  - path: compressor_maps/arep/AREP_Rpt034.pdf
+    title: "AHRI Low-GWP AREP Test Report #34: Compressor calorimeter test of refrigerant DR-7 in a R-404A scroll compressor"
+    publisher: "Emerson Climate Technologies (Rajendran, Nicholson, 14 Apr 2014), public"
+    document_id: "AHRI Low-GWP AREP Test Report #34"
+    rating_condition: "Copeland ZF18K4E-TFD scroll 5.983 in3/rev, 3500 rpm nominal, 60 Hz; DR-7 row list (19 points), 20 degF superheat, 0 degF subcooling, no liquid injection; R-404A baseline is published rating data, not tabulated"
+    used_by: "compressor_maps.parse.arep_rowlist -> points_arep_rowlist.csv (19 points)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 1279030
+    pages: 20
+    sha256: "f1ab2eddefb53f906d4dd5676fd59c295890843b88f96b6150bd6237f04e0282"
+
+  - path: compressor_maps/arep/AREP_Rpt036.pdf
+    title: "AHRI Low-GWP AREP Test Report #36: Compressor calorimeter test of refrigerant L-40 in a R-404A scroll compressor"
+    publisher: "Emerson Climate Technologies (Rajendran, Nicholson, 14 Apr 2014), public"
+    document_id: "AHRI Low-GWP AREP Test Report #36"
+    rating_condition: "Copeland ZF18K4E-TFD scroll 5.983 in3/rev, 3500 rpm nominal, 60 Hz; L-40 row list (19 points), 20 degF superheat, 0 degF subcooling, no liquid injection in the tables; R-404A baseline is published rating data, not tabulated"
+    used_by: "compressor_maps.parse.arep_rowlist -> points_arep_rowlist.csv (19 points)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 1284152
+    pages: 20
+    sha256: "9b22ae9529f7d7bc63fdbe73fa196f9fe1406af68a6060e37445de0be2e7f69d"
+
+  - path: compressor_maps/arep/AREP_Rpt038.pdf
+    title: "AHRI Low-GWP AREP Test Report #38: Compressor calorimeter test of refrigerant L-41b in a R-410A scroll compressor"
+    publisher: "Emerson Climate Technologies (Rajendran, Nicholson, 14 Apr 2014), public"
+    document_id: "AHRI Low-GWP AREP Test Report #38"
+    rating_condition: "Copeland ZP31K5E-PFV scroll 1.8 in3/rev, 3500 rpm nominal, 60 Hz; L-41b row list (30 points), 20 degF superheat, 15 degF subcooling; R-410A baseline is published rating data, not tabulated"
+    used_by: "compressor_maps.parse.arep_rowlist -> points_arep_rowlist.csv (30 points)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 952919
+    pages: 20
+    sha256: "310a9a883726c9261292889d1a4f82893b71dfa5fbeac9261bd8bbf99ac9b39c"
+
+  - path: compressor_maps/arep/AREP_Rpt039.pdf
+    title: "AHRI Low-GWP AREP Test Report #39: Compressor calorimeter test of refrigerant R-32 in a R-410A scroll compressor"
+    publisher: "Emerson Climate Technologies (Rajendran, Nicholson, 14 Apr 2014), public"
+    document_id: "AHRI Low-GWP AREP Test Report #39"
+    rating_condition: "Copeland ZP31K5E-PFV scroll 1.8 in3/rev, 3500 rpm nominal, 60 Hz; pure R-32 row list (23 points), 20 degF superheat, 15 degF subcooling; R-410A baseline is published rating data, not tabulated"
+    used_by: "compressor_maps.parse.arep_rowlist -> points_arep_rowlist.csv (23 points)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 811095
+    pages: 19
+    sha256: "8bdeded16a2865ae1a0efad739d6442176ae07e5f79faba6ec0807bb25b46303"
+
+  - path: compressor_maps/arep/AREP_Rpt040.pdf
+    title: "AHRI Low-GWP AREP Test Report #40: Compressor calorimeter test of refrigerant DR-5 in a R-410A rotary type compressor"
+    publisher: "Shanghai Hitachi Electrical Appliances (Zhang, Zhu, 1 May 2014), public"
+    document_id: "AHRI Low-GWP AREP Test Report #40"
+    rating_condition: "Same 28.0 cc rotary as report #26, 50 Hz, no injection; Table 3 = four standard points x R-410A/DR-5; its R-410A column is identical to report #26 Table 4 (not an independent measurement)"
+    used_by: "compressor_maps.parse.arep26_rotary -> points_arep26_rotary.csv (4 DR-5 rows)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 231567
+    pages: 6
+    sha256: "bff49d8e24740a63c2b26b9b7517001a9b9a30aa72cc7b67a6d4ebf86067da9c"
+
+  - path: compressor_maps/arep/AREP_Rpt058.pdf
+    title: "AHRI Low-GWP AREP Test Report #58: Compressor calorimeter test of refrigerant DR-5A (R454B) in a R-410A scroll compressor"
+    publisher: "Emerson Climate Technologies (Rajendran, Pham, Bella, Skillen, 18 Jan 2016), public"
+    document_id: "AHRI Low-GWP AREP Test Report #58"
+    rating_condition: "Copeland ZP31K5E-PFV scroll 1.8 in3/rev, gas-cycle stand (no glide data); DR-5A row list (29 points), 20 degF superheat, 15 degF subcooling; R-410A baseline is published rating data, not tabulated"
+    used_by: "compressor_maps.parse.arep_rowlist -> points_arep_rowlist.csv (29 points)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 1022328
+    pages: 20
+    sha256: "f3fcf38c82e6d4987c1fe7f3556c47278118882a4920b527d5cc47b38785c488"
+
+  - path: compressor_maps/arep/AREP_Rpt065.pdf
+    title: "AHRI Low-GWP AREP Test Report #65: Compressor calorimeter test of refrigerant L-41-2 (R-447A) in a R-410A scroll compressor"
+    publisher: "Emerson Climate Technologies (Rajendran, Pham, Bella, Skillen, 18 Jan 2016; tested in Mikulov), public"
+    document_id: "AHRI Low-GWP AREP Test Report #65"
+    rating_condition: "Copeland ZP122KCE-TFD scroll 6.853 in3/rev, 380-3-50, 2900 rpm nominal; R-447A row list (23 points), 20 R superheat, 15 R subcooling; R-410A baseline is published rating data, not tabulated"
+    used_by: "compressor_maps.parse.arep_rowlist -> points_arep_rowlist.csv (23 points)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 1046460
+    pages: 20
+    sha256: "89b94765c56f8dfa15c04cce522148bf18154d0f2939258758e0d8a20d3fc3c2"
+
+  - path: compressor_maps/arep/AREP_Rpt066.pdf
+    title: "AHRI Low-GWP AREP Test Report #66: Compressor calorimeter test of refrigerant HPR2A in a R-410A scroll compressor"
+    publisher: "Danfoss Commercial Compressors, Tianjin (Suindykov, Zhang, Gernemann, 18 Jan 2016), public"
+    document_id: "AHRI Low-GWP AREP Test Report #66"
+    rating_condition: "Danfoss SH161A4 hermetic fixed-speed scroll, 400 V 50 Hz, 2900 rpm (displacement not printed); HPR2A Tables A1 (SI) and A2 (IP) with 28 points, 11.1 K superheat, 8.3 K subcooling at the bubble point; R-410A from published data plus validation points, not tabulated"
+    used_by: "compressor_maps.parse.arep_rowlist -> points_arep_rowlist_no_displacement.csv (28 points)"
+    obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
+    bytes: 814069
+    pages: 23
+    sha256: "3d4d8c33edd2d688d55ba2b7616772f84186ac119cfb422be74d7fc5cd3abf08"
+
   - path: compressor_maps/arep/Pub42278.pdf
     title: "AHRI Low-GWP AREP Test Report #21: Compressor calorimeter test of R-404A alternatives ARM-31a, D2Y-65, L-40 and R-32/R-134a (50/50)"
     publisher: "Oak Ridge National Laboratory (Shrestha, Sharma, Abdelaziz, 2013), public"

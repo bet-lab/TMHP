@@ -155,7 +155,7 @@ The first runnable example uses `AirSourceHeatPumpBoiler` because it is the quan
 ```python
 from tmhp import AirSourceHeatPumpBoiler
 
-# Build a model — the refrigerant is a constructor argument (default: R134a)
+# Build a model — the refrigerant is a constructor argument (default: R290)
 ashpb = AirSourceHeatPumpBoiler(ref="R32")
 
 # Steady state: tank at 55 °C, ambient at 5 °C, target condenser duty 8 kW

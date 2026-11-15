@@ -438,7 +438,7 @@ ends the run inside the step, as at any set point: the same machine, one hour
 from 50 °C, takes 1.165 kWh and stops at 59.9 °C with 60 s and with 600 s
 steps alike. A set point
 inside the envelope is untouched and nothing warns -- 65 °C with R290 or
-R134a, which is why GSHPB and WSHPB default to R290. The duty reduction above
+R134a, which is why ASHPB, GSHPB and WSHPB default to R290. The duty reduction above
 then serves ``analyze_steady`` and the steps that go past the cut-out all the
 same: a stratified tank whose coil-side water is hotter than the sensor, a
 minimum run time, a set point moved after construction.

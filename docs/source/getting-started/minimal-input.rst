@@ -38,7 +38,7 @@ What you give
       - ``Q_r_iu``, ``T0``, ``T_a_room``; the ground is ``Ts`` (16 °C) unless
         ``T_bhe_wall`` is given
     * - ASHPB — air to hot-water tank
-      - :class:`~tmhp.AirSourceHeatPumpBoiler` (15 kW, R134a)
+      - :class:`~tmhp.AirSourceHeatPumpBoiler` (15 kW, R290)
       - EN 14511 A7/W55
       - ``T_tank_w``, ``T0`` (outdoor air), ``Q_ref_tank`` (heat to the tank)
     * - GSHPB — ground to hot-water tank
@@ -230,8 +230,10 @@ What follows the refrigerant
       - :doc:`/models/gshpb`, *Default sizing*
 
 The default refrigerants are chosen so the default machine runs inside these
-limits: R32 for the space-conditioning families, R134a for ASHPB (60–65 °C
-tank) and R290 for GSHPB and WSHPB (55–65 °C tank).
+limits: R32 for the space-conditioning families and R290 for the three
+water-heating families (ASHPB with a 60–65 °C tank band, GSHPB and WSHPB with
+55–65 °C). ASHPB was R134a until the 6th round (2026-11): a fluid being phased
+out, and the one whose default machine was rated above the fitted speed range.
 
 What is on by default
 =====================

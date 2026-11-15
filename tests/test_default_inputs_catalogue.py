@@ -163,7 +163,12 @@ def test_third_party_hosted_rows_are_not_fitted_until_owner_accepted():
 
     path = AIRFLOW_ARCHIVE / "observations/DAIKIN_EEDEN22_EBLA09-16D.csv"
     obs = dict(next(csv.DictReader(path.open())), source_id="X")
-    source = {"url": "u", "evidence_path": "e", "sha256": None, "evidence_type": "manufacturer_databook_pdf_third_party_host"}
+    source = {
+        "url": "u",
+        "evidence_path": "e",
+        "sha256": None,
+        "evidence_type": "manufacturer_databook_pdf_third_party_host",
+    }
     row = normalize(obs, source)
     assert not row["eligible"] and "owner acceptance" in row["exclusion_reason"]
     assert normalize(obs, {**source, "owner_accepted": True})["eligible"]

@@ -83,7 +83,7 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
-from .hx_fan import INDOOR_AIRFLOW_PER_W, SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
+from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
@@ -479,6 +479,11 @@ def _exergy_row(result: dict, ref: str) -> dict:
     return {key: _boxed(value) for key, value in row.items()}
 
 
+#: Indoor-unit classes with a catalogue airflow law (:func:`tmhp.default_inputs.estimate_max_airflow`).
+#: Cassette and ducted units are not covered: give their ``dV_iu_fan_a_rated``.
+INDOOR_UNIT_TYPES: tuple[str, ...] = ("wall_mounted", "floor_standing")
+
+
 class AirSourceHeatPump(ReferenceStateMixin):
     """Air source heat pump with indoor-unit air heat exchange.
 
@@ -628,6 +633,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
         T_cond_max: float | Literal["auto"] | None = "auto",
+        # Indoor-unit class whose catalogue airflow stands in for an omitted
+        # dV_iu_fan_a_rated: "wall_mounted" or "floor_standing".
+        indoor_unit_type: str = "wall_mounted",
     ):
         validate_ctor("ASHP", locals())
         import warnings
@@ -779,8 +787,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self.n_iu: float = n_iu
 
         # --- 3. Outdoor unit fan ---
+        # The rated airflow is the unit's largest: with none given it is the
+        # largest fan step single-split outdoor units of this capacity publish
+        # (tmhp.default_inputs), for the duty the nameplate names. The fan
+        # modulates below it; UA_ou_rated and the fan power are stated at it.
+        rating_mode = self._rating_mode(rated_condition)
         if dV_ou_fan_a_rated is None:
-            self.dV_ou_fan_a_rated = hp_capacity * 0.0002
+            self.dV_ou_fan_a_rated = self._default_max_airflow(
+                "dV_ou_fan_a_rated", hp_capacity, side="outdoor", product="single_split", mode=rating_mode
+            )
         else:
             self.dV_ou_fan_a_rated = dV_ou_fan_a_rated
 
@@ -813,10 +828,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # --- 4. Indoor unit fan ---
         # The indoor airflow sets the condensing (heating) and evaporating
         # (cooling) temperatures through the coil's approach, so it decides
-        # the supply-air temperature and most of the lift. 400 cfm/ton is the
-        # airflow unitary equipment is rated at; see ``INDOOR_AIRFLOW_PER_W``.
+        # the supply-air temperature and most of the lift. With none given it
+        # is the largest fan step indoor units of this class and capacity
+        # publish (tmhp.default_inputs).
+        self.indoor_unit_type: str = indoor_unit_type
         if dV_iu_fan_a_rated is None:
-            self.dV_iu_fan_a_rated = hp_capacity * INDOOR_AIRFLOW_PER_W
+            if indoor_unit_type not in INDOOR_UNIT_TYPES:
+                raise ValueError(
+                    f"indoor_unit_type={indoor_unit_type!r} has no catalogue airflow: use one of "
+                    f"{', '.join(INDOOR_UNIT_TYPES)}, or give the unit's own dV_iu_fan_a_rated"
+                )
+            self.dV_iu_fan_a_rated = self._default_max_airflow(
+                "dV_iu_fan_a_rated", hp_capacity, side="indoor", product=indoor_unit_type, mode=rating_mode
+            )
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 

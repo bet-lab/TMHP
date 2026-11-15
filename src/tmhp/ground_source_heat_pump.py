@@ -146,11 +146,6 @@ def _require_finite(**values: float | None) -> None:
             raise ValueError(f"{name} must be a finite number, got {value!r}")
 
 
-#: Default rated indoor airflow per watt of capacity [m³/s per W]: 400 cfm per
-#: ton of refrigeration, the usual selection airflow of a water-to-air unit
-#: (0.215 m³/s = 773 m³/h for 4 kW).
-IU_AIRFLOW_PER_W = 5.37e-5
-
 #: Borehole-wall temperature seen by a ground closure [K]: a fixed value, or a
 #: function of the borefield load ``Q_bhe`` [W] of the point being evaluated
 #: (a dynamic step, whose own load moves the wall within the step).
@@ -720,8 +715,17 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             self.UA_cond, self.UA_evap = self.UA_ground_rated, self.UA_iu_rated
 
         # --- 3. Indoor unit fan ---
+        # The rated airflow is the unit's largest: with none given it is the
+        # largest blower airflow water-to-air units of this capacity publish
+        # (tmhp.default_inputs), for the duty the nameplate names.
         if dV_iu_fan_a_rated is None:
-            self.dV_iu_fan_a_rated = hp_capacity * IU_AIRFLOW_PER_W
+            self.dV_iu_fan_a_rated = self._default_max_airflow(
+                "dV_iu_fan_a_rated",
+                hp_capacity,
+                side="indoor",
+                product="water_to_air",
+                mode=self._rating_mode(rated_condition),
+            )
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 

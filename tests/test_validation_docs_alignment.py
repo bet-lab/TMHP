@@ -266,6 +266,28 @@ def test_defaults_displacement_table_matches_the_decision_module() -> None:
         assert cells == [f"{value:.2f}" for value in expected], f"{capacity_kW:g} kW: {cells}"
 
 
+def test_defaults_airflow_table_matches_the_constructors() -> None:
+    """Every "before → after" cell of the airflow table is what the constructors gave and give."""
+    from tmhp import AirSourceHeatPump, GroundSourceHeatPump
+
+    text = _read("docs/source/validation/defaults.rst")
+    start = text.index(".. list-table:: Default rated (= maximum) airflow [m³/s], before → after")
+    table = text[start : text.index("Until November 2026 the outdoor airflow", start)]
+    rows = {
+        "``AirSourceHeatPump`` ``dV_ou_fan_a_rated``": (AirSourceHeatPump, "dV_ou_fan_a_rated", 0.0002),
+        "``AirSourceHeatPump`` ``dV_iu_fan_a_rated``": (AirSourceHeatPump, "dV_iu_fan_a_rated", 5.37e-5),
+        "``GroundSourceHeatPump`` ``dV_iu_fan_a_rated``": (GroundSourceHeatPump, "dV_iu_fan_a_rated", 5.37e-5),
+    }
+    for label, (cls, name, before_per_W) in rows.items():
+        row = re.sub(r"\s+", " ", _list_table_row(table, label))
+        cells = [cell.strip() for cell in row.split(" - ")[1:]]
+        expected = [
+            f"{before_per_W * capacity:.3f} → {getattr(cls(hp_capacity=capacity), name):.3f}"
+            for capacity in (3500.0, 8000.0, 15000.0)
+        ]
+        assert cells == expected, f"{label}: {cells}"
+
+
 def test_defaults_ablation_table_matches_the_study() -> None:
     """The four-description comparison quotes ``coefficient_ablation_parity.csv``."""
     ablation = pd.read_csv(ABLATION).set_index("variant")

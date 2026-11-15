@@ -72,7 +72,7 @@ from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, make_
 from .compressor_envelope import RATED_SPEED_SEARCH_MAX, check_rated_condensing, default_rps_max
 from .compressor_speed import solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
-from .default_inputs import DefaultInputEstimate, estimate_displacement
+from .default_inputs import DefaultInputEstimate, estimate_displacement, estimate_max_airflow
 from .refrigerant import calc_ref_state
 
 __all__ = [
@@ -696,6 +696,26 @@ class ReferenceStateMixin:
     def _default_displacement(self, hp_capacity: float, ref: str) -> float:
         """Displacement of a machine given only its capacity and refrigerant [m³/rev] (recorded)."""
         return self._use_default_input("V_cmp_ref", estimate_displacement(hp_capacity, ref))
+
+    def _rating_mode(self, rated_condition: Mapping[str, Any] | RatingCondition | None) -> Mode:
+        """The duty ``hp_capacity`` names: the mode of the rating condition the caller asked for."""
+        if isinstance(rated_condition, RatingCondition):
+            return rated_condition.mode
+        mode: Mode = (rated_condition or {}).get("mode", self._RATING_DEFAULT_MODE)
+        table = RATING_STANDARDS[self._RATING_FAMILY]
+        if mode not in table:
+            raise ValueError(f"{self._RATING_FAMILY} has no {mode!r} rating condition; available: {sorted(table)}")
+        return mode
+
+    def _default_max_airflow(self, name: str, hp_capacity: float, *, side: str, product: str, mode: str) -> float:
+        """Largest fan airflow a catalogue gives a product of this class and capacity [m³/s] (recorded).
+
+        ``name`` is the constructor argument it stands in for. ``mode`` is the
+        duty ``hp_capacity`` names (:meth:`_rating_mode`): the catalogues print
+        cooling and heating capacity separately and each law is fitted against
+        its own.
+        """
+        return self._use_default_input(name, estimate_max_airflow(hp_capacity, side=side, product=product, mode=mode))
 
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """The model's own heat exchanger on ``role`` at its rated UA and reference flow."""

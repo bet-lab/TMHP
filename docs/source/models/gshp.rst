@@ -65,8 +65,11 @@ capacity, so the rating-point COP is the same from 1 to 100 kW:
        source-side heat within 50 W/m.
      - 1 × 1 / 3 × 2
    * - ``dV_iu_fan_a_rated``
-     - 5.37e-5 m³/s per W (400 cfm per ton).
-     - 773 / 5 800 m³/h
+     - Largest blower airflow water-to-air units of that capacity publish:
+       ``0.0491 × kW + 0.1305`` m³/s (cooling-rated; both capacities here lie
+       outside the 4.7 to 21.6 kW of the catalogue rows, which
+       ``default_input_estimates`` reports as ``extrapolated``).
+     - 1 177 / 5 773 m³/h
 
 The helpers are :func:`tmhp.ground_defaults.default_ground_flow_lpm`,
 :func:`tmhp.ground_defaults.default_borefield_layout` and
@@ -108,7 +111,8 @@ runs 1.4 % faster at nameplate.
 
    Until November 2026 the defaults were fixed at the values of the 4 kW
    machine (20.04 L/min, 100 W, one borehole) and the indoor airflow was
-   0.0002 m³/s per W (2 880 m³/h for 4 kW). A larger machine then ran on the
+   0.0002 m³/s per W (2 880 m³/h for 4 kW), then 5.37e-5 m³/s per W
+   (400 cfm per ton, 773 m³/h for 4 kW). A larger machine then ran on the
    small loop: at 30 kW the system COP of rated heating against a 0 °C
    borehole wall fell from 3.8 to 2.1 and some rating points had no
    solution; 100 kW could not be constructed. To reproduce

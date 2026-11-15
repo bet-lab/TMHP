@@ -139,18 +139,24 @@ always be read back.
       - GSHP, GSHPB, WSHPB
       - :doc:`/models/gshp`, :doc:`/models/gshpb`, :doc:`/models/wshpb`
     * - Rated outdoor airflow
-      - ASHP: 720 m³/h per kW. ASHPB: 540 m³/h per kW. The fan modulates down
-        to 15 % of it
+      - ASHP: the largest airflow single-split outdoor units of that capacity
+        publish, ``0.1084 × kW + 0.1776`` m³/s (573 m³/h per kW at 3.5 kW,
+        470 at 8 kW). ASHPB: 540 m³/h per kW. It is also the fan's maximum;
+        the fan modulates down to 15 % of it
       - ASHP, ASHPB
-      - :doc:`/validation/defaults`, *Summary*
+      - :doc:`/validation/defaults`, *Maximum fan airflow*
     * - Rated indoor airflow
-      - 193 m³/h per kW (400 cfm per ton), modulating down to 15 %
+      - ASHP: the largest airflow wall-mounted indoor units publish,
+        ``0.0320 × kW + 0.1035`` m³/s (222 m³/h per kW at 3.5 kW, 162 at
+        8 kW); ``indoor_unit_type="floor_standing"`` selects that class.
+        GSHP: of water-to-air units, ``0.0491 × kW + 0.1305`` m³/s.
+        Modulating down to 15 %
       - ASHP, GSHP
-      - :doc:`/models/ashp`, *Indoor airflow*
+      - :doc:`/validation/defaults`, *Maximum fan airflow*
     * - Fan power
-      - From the airflow at 60 Pa and 60 % fan efficiency: outdoor fan 2.0 %
-        (ASHP) or 1.5 % (ASHPB) of the nameplate at rated flow, indoor fan
-        0.5 %
+      - From the airflow at 60 Pa and 60 % fan efficiency: at rated flow the
+        ASHP outdoor fan draws 1.6 % of the nameplate at 3.5 kW and 1.2 % at
+        15 kW, its indoor fan 0.6 % and 0.4 %; the ASHPB outdoor fan 1.5 %
       - ASHP, GSHP, ASHPB
       - :doc:`/models/ashp`, *Indoor airflow*
     * - Source-loop flow

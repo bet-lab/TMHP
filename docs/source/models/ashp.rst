@@ -129,20 +129,26 @@ represent off operation. There is no tank energy balance.
 Indoor airflow
 ==============
 
-The rated indoor airflow defaults to ``5.37e-5 m³/s`` per watt of
-``hp_capacity`` — 400 cfm per ton, 193 m³/h per kW, the airflow at which unitary
-equipment is rated (``tmhp.hx_fan.INDOOR_AIRFLOW_PER_W``). Pass
-``dV_iu_fan_a_rated`` when the unit's own figure is known; wall-mounted split
-units publish 170 to 310 m³/h per kW at their high fan speed.
+The rated indoor airflow defaults to the largest airflow wall-mounted indoor
+units of that capacity publish: ``0.0320 × kW + 0.1035`` m³/s for a
+cooling-rated unit, 0.232 m³/s (209 m³/h per kW) at the default 4 kW
+(:func:`tmhp.default_inputs.estimate_max_airflow`;
+:doc:`/validation/defaults`, *Maximum fan airflow*).
+``indoor_unit_type="floor_standing"`` selects that class instead. Pass
+``dV_iu_fan_a_rated`` when the unit's own figure is known — a cassette or
+ducted unit has no catalogue class and needs it. The rated airflow is also the
+fan's maximum.
 
 The airflow decides the supply-air temperature and, through the indoor coil's
 approach, most of the temperature lift. At the default a unit delivering its
-nameplate capacity supplies air about 15 K from the room: 35 °C in heating at a
+nameplate capacity supplies air about 14 K from the room: 34 °C in heating at a
 20 °C room, 12 °C in cooling at a 27 °C room, with the refrigerant saturated
-17 K from the room air. (The earlier default, 720 m³/h per kW, moved four times
-that air: supply air 5 K from the room, a condensing temperature near 30 °C,
-and a rated COP above what such equipment declares.) The indoor fan draws about
-0.5 % of the nameplate capacity at rated flow, both fans together 1.3 to 2.5 %.
+16 K from the room air. (Until November 2026 the default was 193 m³/h per kW,
+400 cfm per ton — the airflow unitary equipment is rated at rather than its
+largest; before that, 720 m³/h per kW moved four times that air: supply air
+5 K from the room, a condensing temperature near 30 °C, and a rated COP above
+what such equipment declares.) The indoor fan draws about 0.6 % of the
+nameplate capacity at rated flow, both fans together 1.5 to 2.1 %.
 
 Because the fan power is small against the compressor's, the least-power
 operating point keeps the indoor fan at its largest airflow at every load; the

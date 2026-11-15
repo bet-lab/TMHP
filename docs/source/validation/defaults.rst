@@ -95,15 +95,21 @@ Summary
         before it almost everywhere
       - :mod:`tmhp.compressor_envelope`
     * - Rated outdoor air flow
-      - 720 m³/h per kW (air-to-air), 540 (air-to-water)
-      - Manufacturer specifications for the respective product classes
-      - —
-    * - Rated indoor air flow (air-to-air)
-      - 193 m³/h per kW (``5.37e-5`` m³/s per W)
-      - 400 cfm per ton, the airflow at which unitary equipment is rated. The
-        validation units publish 168–309 m³/h per kW and are run at their own
-        figure, so this default does not enter the parity results
-      - —
+      - Air-to-air: ``0.1084·Q + 0.1776`` m³/s (``Q`` in kW, cooling-rated).
+        Air-to-water: 540 m³/h per kW
+      - Largest printed fan step of 128 single-split outdoor units (31
+        families, four manufacturers). The air-to-water figure is the earlier
+        constant; its catalogue stratum is provisional and not used
+      - ``default_inputs.fan_airflow``
+    * - Rated indoor air flow
+      - Wall-mounted split: ``0.0320·Q + 0.1035`` m³/s. Water-to-air
+        (ground source): ``0.0491·Q + 0.1305`` m³/s (cooling-rated)
+      - Largest printed fan step of 130 wall-mounted units (38 families, five
+        manufacturers) and 52 water-to-air units (7 families, four
+        manufacturers). The validation units publish their own indoor airflow
+        and are run at it, so the indoor default does not enter the parity
+        results
+      - ``default_inputs.fan_airflow``
 
 Every ``Reproduce`` entry is a module under ``validation/extraction/``,
 ``validation/compressor_maps/`` or ``validation/default_inputs/``::
@@ -281,10 +287,11 @@ to every quantity it had to declare rather than read.
     The rule is established for dry, round-tube-plate-fin outdoor coils of
     packaged equipment. Frosted operation, microchannel coils and the
     residential mini-split product class lie outside the evidence. The
-    mini-split exclusion matters in practice: TMHP's rated air-flow default of
-    720 m³/h per kW is a mini-split figure, while the geometric evidence comes
-    from packaged units at roughly half that. The two defaults presently point
-    at different product classes, and that is an open item rather than a
+    mini-split exclusion matters in practice: TMHP's rated air-flow default is
+    the catalogue maximum of single-split units (573 m³/h per kW at 3.5 kW,
+    470 at 8 kW; `Maximum fan airflow`_), while the geometric evidence comes
+    from packaged units at 240 to 360. The two defaults still point at
+    different product classes, and that is an open item rather than a
     resolved one.
 
 
@@ -418,6 +425,131 @@ treated as such.
     dependence of the efficiencies. Where it matters is the modulation envelope
     — displacement and ``rps_min`` jointly fix the lowest duty the machine can
     deliver. If you know your machine's displacement, pass ``V_cmp_ref``.
+
+
+Maximum fan airflow
+===================
+
+A fan default has to say *which* airflow it is. Catalogues print several fan
+steps, and the one the model needs is the largest: the rated airflow is where
+the fan stops (``dV_*_fan_a_max`` defaults to it), where the coil conductance
+is stated and where the fan power is anchored. So the default is the largest
+fan step a product publishes, fitted against the capacity of the same duty —
+cooling airflow against cooling capacity, heating against heating — with one
+law per product class. Families are weighted equally, and of a proportional, a
+linear and a power law the simplest within 2 % of the best family-hold-out
+error is kept (:func:`tmhp.default_inputs.estimate_max_airflow`; ``Q`` is the
+capacity in kW, the result m³/s).
+
+.. list-table:: Catalogue airflow laws the constructors use
+    :header-rows: 1
+    :widths: 34 22 16 14 14
+
+    * - Input left out
+      - Law [m³/s]
+      - Rows / families / manufacturers
+      - Capacity [kW]
+      - Family hold-out MAPE
+    * - ``AirSourceHeatPump`` outdoor, cooling-rated
+      - ``0.1084·Q + 0.1776``
+      - 128 / 31 / 4
+      - 1.5–13.6
+      - 14.5 %
+    * - ``AirSourceHeatPump`` outdoor, heating-rated
+      - ``0.1224·Q``
+      - 125 / 30 / 4
+      - 2.0–16.0
+      - 16.4 %
+    * - ``AirSourceHeatPump`` indoor wall-mounted, cooling-rated
+      - ``0.0320·Q + 0.1035``
+      - 130 / 38 / 5
+      - 1.5–9.7
+      - 12.9 %
+    * - ``AirSourceHeatPump`` indoor wall-mounted, heating-rated
+      - ``0.0312·Q + 0.0950``
+      - 131 / 37 / 5
+      - 2.0–11.2
+      - 12.4 %
+    * - ``AirSourceHeatPump`` indoor floor-standing, cooling-rated
+      - ``0.0425·Q``
+      - 26 / 7 / 3
+      - 2.4–13.6
+      - 12.8 %
+    * - ``AirSourceHeatPump`` indoor floor-standing, heating-rated
+      - ``0.0330·Q + 0.0402``
+      - 26 / 7 / 3
+      - 3.2–16.0
+      - 10.9 %
+    * - ``GroundSourceHeatPump`` indoor, cooling-rated
+      - ``0.0491·Q + 0.1305``
+      - 52 / 7 / 4
+      - 4.7–21.6
+      - 9.6 %
+    * - ``GroundSourceHeatPump`` indoor, heating-rated
+      - ``0.1158·Q^0.824``
+      - 52 / 7 / 4
+      - 3.4–16.9
+      - 8.2 %
+
+The duty is the one the nameplate names: the mode of the rating condition
+(cooling unless ``rated_condition={"mode": "heating"}`` is given).
+``indoor_unit_type="floor_standing"`` selects that class for
+``AirSourceHeatPump``; cassette and ducted units have no stratum and need
+their own ``dV_iu_fan_a_rated``. A capacity outside the catalogue rows still
+gets a value, flagged ``extrapolated`` in
+``model.default_input_estimates["dV_iu_fan_a_rated"]`` (and
+``["dV_ou_fan_a_rated"]``) — the default 4 kW ``GroundSourceHeatPump`` is such
+a case, below the smallest water-to-air row.
+
+.. list-table:: Default rated (= maximum) airflow [m³/s], before → after
+    :header-rows: 1
+    :widths: 40 20 20 20
+
+    * - Input
+      - 3.5 kW
+      - 8 kW
+      - 15 kW
+    * - ``AirSourceHeatPump`` ``dV_ou_fan_a_rated``
+      - 0.700 → 0.557
+      - 1.600 → 1.045
+      - 3.000 → 1.804
+    * - ``AirSourceHeatPump`` ``dV_iu_fan_a_rated``
+      - 0.188 → 0.216
+      - 0.430 → 0.360
+      - 0.805 → 0.584
+    * - ``GroundSourceHeatPump`` ``dV_iu_fan_a_rated``
+      - 0.188 → 0.302
+      - 0.430 → 0.523
+      - 0.805 → 0.867
+
+Until November 2026 the outdoor airflow was ``0.0002 m³/s`` per watt
+(720 m³/h per kW) and both indoor airflows ``5.37e-5 m³/s`` per watt (400 cfm
+per ton, the airflow unitary equipment is *rated* at, not its largest). Against
+the catalogue maxima the outdoor figure was 1.26 to 1.66 times too large, and
+the water-to-air indoor figure 0.62 to 0.93 of it.
+
+.. admonition:: Where the catalogue airflow meets the dry-coil model
+    :class: warning
+
+    The indoor laws give 150 to 160 m³/h per kW for wall-mounted units of
+    9 kW and above and for floor-standing units of any size. TMHP's coils are
+    dry, so the whole nameplate is sensible heat, and at that airflow the room
+    air has to change by about 20 K. The approach-temperature search bound
+    (``dT_approach_bounds``, 20 K by default) then binds at the rating point
+    itself: a default ``AirSourceHeatPump`` reaches its nameplate at 35/27 °C
+    up to 8 kW, delivers 98 % of it at 9 kW and 89 % at 15 kW, and a
+    floor-standing unit 96 % at any capacity. Such a point is reported with
+    ``capacity_clamped == "max"`` and ``capacity_binding == "cycle"``.
+    ``dT_approach_bounds=(1.0, 30.0)`` — what the catalogue parity runs use —
+    lets the unit reach its nameplate, at a wider approach and a lower COP.
+    Which of the two should give way (the bound, or the indoor conductance at
+    maximum airflow) is an open item.
+
+The air-to-water outdoor stratum (36 rows, 9 families, Mitsubishi Electric and
+Samsung) is packaged as **provisional**: predicting one manufacturer from the
+other misses by 28.9 %, and no row is an explicit maximum. It is not a
+constructor default — ``AirSourceHeatPumpBoiler`` keeps 540 m³/h per kW
+(``0.00015 m³/s`` per watt).
 
 
 Compressor efficiency

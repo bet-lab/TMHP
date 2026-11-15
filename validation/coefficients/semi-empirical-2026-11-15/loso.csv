@@ -34,6 +34,9 @@ arep_rpt26_hitachi2013,48,1,0.014748,-0.000772765,-0.0663549,0.0677673,rotary,st
 shao_2004,324,3,0.182133,-0.0141198,0.0721365,0.201228,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
 ossorio_2019_cnit,18,1,0.035441,-0.00342181,-0.0910744,0.0976673,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
 arep_rpt26_hitachi2013,48,1,0.0123941,3.90313e-18,-0.0933293,0.094221,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
-shao_2004,324,3,0.0407793,0.000963634,0.062668,0.0927391,rotary,sensitivity: Shao read as inverter-input
-ossorio_2019_cnit,18,1,0.0131613,8.9797e-05,-0.0816846,0.0827996,rotary,sensitivity: Shao read as inverter-input
-arep_rpt26_hitachi2013,48,1,0.0113278,1.37902e-05,-0.0309301,0.033271,rotary,sensitivity: Shao read as inverter-input
+shao_2004,324,3,0.0234922,0.000552485,0.117609,0.134865,rotary,default: Ossorio-anchored variant b (rotary:q2+cu+cH+qf:rel:scaled)
+ossorio_2019_cnit,18,1,0.0155463,0.000431634,-0.0483241,0.0511051,rotary,default: Ossorio-anchored variant b (rotary:q2+cu+cH+qf:rel:scaled)
+arep_rpt26_hitachi2013,48,1,0.0147998,0.000164549,-0.131034,0.137324,rotary,default: Ossorio-anchored variant b (rotary:q2+cu+cH+qf:rel:scaled)
+shao_2004,324,3,0.0243334,0.00056434,0.0870422,0.110014,rotary,sensitivity: Shao read as inverter-input
+ossorio_2019_cnit,18,1,0.0158981,0.000445528,-0.0146151,0.0218844,rotary,sensitivity: Shao read as inverter-input
+arep_rpt26_hitachi2013,48,1,0.0149937,0.000205341,-0.108779,0.11706,rotary,sensitivity: Shao read as inverter-input

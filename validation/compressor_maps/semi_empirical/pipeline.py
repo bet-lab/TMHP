@@ -30,7 +30,6 @@ from validation.compressor_maps.semi_empirical import cv
 from validation.compressor_maps.semi_empirical.model import (
     N_REF,
     Data,
-    EtaV,
     SemiEmpirical,
     State,
 )
@@ -398,30 +397,3 @@ def hull(df: pd.DataFrame) -> list[list[float]]:
     pts = df[["PR", "N_rps"]].drop_duplicates().to_numpy(float)
     h = ConvexHull(pts)
     return [[round(float(pts[i, 0]), 4), round(float(pts[i, 1]), 3)] for i in h.vertices]
-
-
-def fit_eta_v(d: pd.DataFrame, family: str, speed: str) -> tuple[dict, pd.DataFrame]:
-    rows = d[d.use_v & (d.family == family) & (d.role == "shape")].copy()
-    res, table = {}, []
-    for free in (False, True):
-        f = EtaV(family, speed, free)
-        st = f.fit(Data.of(rows, speed, ycol="eta_v"))
-        pred, _ = cv.loco(f, rows, ycol="eta_v", warm=st) if rows.machine.nunique() > 1 else (None, None)
-        summ = cv.loco_summary(rows, pred, ycol="eta_v") if pred is not None else None
-        r = {
-            "family": family,
-            "candidate": f.name,
-            "rows": len(rows),
-            "machines": int(rows.machine.nunique()),
-            "c_re": st.theta[0],
-            "c_Lv": st.theta[1],
-            "c0_median": f.population_level(st),
-            "loco_shape": float(summ.rmse_shape.iloc[0]) if summ is not None else np.nan,
-            "loco_total": float(summ.rmse_total.iloc[0]) if summ is not None else np.nan,
-        }
-        table.append(r)
-        res[f.name] = (f, st, r)
-    t = pd.DataFrame(table)
-    best = t.loc[t.loco_total.idxmin(), "candidate"] if t.loco_total.notna().all() else t.candidate.iloc[-1]
-    t["selected"] = t.candidate == best
-    return res[best], t

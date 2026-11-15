@@ -1,7 +1,8 @@
 {
  "variants": {
   "a": {
-   "description": "archive data arrangement: Shao, Ossorio and AREP #26 inform the shared shape",
+   "description": "Shao-informed (the first archive's data arrangement): Shao, Ossorio and AREP #26 inform the shared shape",
+   "default": false,
    "terms": [
     "q2",
     "cL",
@@ -32,6 +33,7 @@
   },
   "b": {
    "description": "Ossorio-anchored: each Shao speed record carries its own level (Shao informs the PR shape only)",
+   "default": true,
    "terms": [
     "q2",
     "cu",
@@ -64,6 +66,7 @@
    "level_single_fixed": 0.790302
   }
  },
+ "default": "b",
  "data_speed_ratios": {
   "ossorio_2019_cnit": {
    "ossorio_2019_cnit TPB306F R290 [ossorio_2019_cnit]": {
@@ -90,5 +93,5 @@
    }
   }
  },
- "note": "Level form scaled, relative speed coordinate n = N/N_rated (archive selections). Variant a with the archive terms reproduces the archive parameters. Levels are refitted on the same rating points as the archive with each variant's shape."
+ "note": "Level form scaled, relative speed coordinate n = N/N_rated (the archive's selections on the original data arrangement). Variant b is the default rotary shape of the archive (coefficients.json types.rotary_*); variant a, the original arrangement, is kept as the documented alternative. Levels are refitted on the same rating points with each variant's shape."
 }

@@ -97,38 +97,130 @@ def test_efficiencies_within_bounds(spec, ref):
     for pr_target in (1.5, 2.0, 3.0, 5.0, 8.0, 11.0):
         pr, st = state_at_pr(ref, pr_target, 50.0)
         for rps in (15.0, 30.0, 55.0, 90.0, 120.0):
-            for value in (comp.eta_oi(pr, rps, st), comp.eta_em(pr, rps)):
+            for value in (comp.eta_oi(pr, rps, st), comp.eta_em(pr, rps, st), comp.eta_isen(pr, rps, st)):
                 assert 0.0 < value <= 1.0, (pr, rps, value)
-            # eta_isen = eta_oi / eta_em (constant split) exceeds one where eta_oi > eta_em; _eval_eff caps it
-            # (variant b at low PR, see test_constant_split_can_put_eta_isen_above_one).
-            assert comp.eta_isen(pr, rps, st) > 0.0
             if comp.validity_domain.contains(pr, rps):
                 assert 0.0 < comp.eta_vol(pr, rps, st) <= 1.02, (pr, rps)
 
 
-def test_constant_split_can_put_eta_isen_above_one():
-    """Rotary split eta_em = 0.858 is a constant; variant b reaches eta_oi above it at low PR, so eta_oi / eta_em
-    exceeds one. ``_eval_eff`` caps it at one (the package's range rule) -- a finding for the split, recorded here."""
-    comp = SemiEmpiricalCompressor(
-        CompressorSpec("rotary_twin_inverter", rotary_speed_variant="ossorio_anchored"), "R290", 55.0
-    )
+# Envelope grid of the bound checks: PR beyond the single-stage limit (11) to 15; the lowest speed the models reach
+# (rps_min 15 rev/s by default, any positive value accepted) against a rated speed up to the 150 rev/s rated-speed
+# search bound, so relative speeds down to 0.05; absolute (scroll) speeds down to 2.5 rev/s.
+ENV_PR = (1.05, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 8.0, 11.0, 13.0, 15.0)
+ENV_RPS = (2.5, 5.0, 7.5, 10.0, 15.0, 20.0, 30.0, 45.0, 60.0, 90.0, 120.0, 150.0)
+
+
+@pytest.mark.parametrize("spec", SPECS, ids=lambda s: f"{s.compressor_type}-{s.rotary_speed_variant}")
+@pytest.mark.parametrize("ref", ["R32", "R410A", "R290", "R134a"])
+def test_eta_v_positive_and_bounded_over_the_envelope(spec, ref):
+    """eta_v in (0, c0] for every PR and speed, falling with PR and (below the rated speed) with falling speed."""
+    comp = SemiEmpiricalCompressor(spec, ref, 50.0)
+    c0 = comp.eta_v_coefficients["c0"]
+    grid = np.empty((len(ENV_PR), len(ENV_RPS)))
+    for i, pr_target in enumerate(ENV_PR):
+        pr, st = state_at_pr(ref, pr_target, 45.0 if ref != "R134a" else 60.0)
+        for j, rps in enumerate(ENV_RPS):
+            grid[i, j] = comp.eta_v(pr, rps, st)
+            assert _eval_eff(comp.eta_vol, pr, rps, st) > 0.0
+    assert np.all(grid > 0.0) and np.all(grid <= c0), grid
+    assert np.all(np.diff(grid, axis=0) < 0.0)
+    low = np.array(ENV_RPS) <= 50.0
+    assert np.all(np.diff(grid[:, low], axis=1) > 0.0)
+
+
+@pytest.mark.parametrize("ctype", COMPRESSOR_TYPES)
+def test_split_is_bounded_for_any_eta_oi(ctype):
+    """Loss-share split: 0 < eta_is <= 1 and 0 < eta_em <= 1 for every eta_oi in (0, 1], product eta_oi."""
+    comp = SemiEmpiricalCompressor(CompressorSpec(ctype), "R32", 50.0)
+    assert 0.0 <= comp.loss_share <= 1.0
+    for eta_oi in np.r_[1e-4, np.linspace(0.01, 1.0, 100)]:
+        eta_is, eta_em = comp.split(float(eta_oi))
+        assert 0.0 < eta_is <= 1.0 + 1e-15 and 0.0 < eta_em <= 1.0 + 1e-15
+        assert eta_is * eta_em == pytest.approx(eta_oi, rel=1e-12)
+        assert eta_is >= eta_oi - 1e-15 and eta_em >= eta_oi - 1e-15
+
+
+@pytest.mark.parametrize("spec", SPECS, ids=lambda s: f"{s.compressor_type}-{s.rotary_speed_variant}")
+def test_split_is_bounded_over_the_envelope(spec):
+    comp = SemiEmpiricalCompressor(spec, "R32", 50.0)
+    for pr_target in ENV_PR:
+        pr, st = state_at_pr("R32", pr_target, 45.0)
+        for rps in ENV_RPS:
+            eta_is, eta_cmp = comp.eta_isen(pr, rps, st), comp.eta_em(pr, rps, st)
+            assert 0.0 < eta_is <= 1.0 and 0.0 < eta_cmp <= 1.0, (pr, rps, eta_is, eta_cmp)
+
+
+def test_split_stays_below_one_where_the_constant_split_did_not():
+    """The first archive's constant rotary eta_em (0.858) put eta_oi / eta_em above one at low PR in variant b."""
+    comp = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R290", 55.0)
     pr, st = state_at_pr("R290", 1.5, 50.0)
-    assert comp.eta_oi(pr, 30.0, st) > comp.eta_em_split
-    assert comp.eta_isen(pr, 30.0, st) > 1.0
-    assert _eval_eff(comp.eta_isen, pr, 30.0, st) == 1.0
+    eta_oi = comp.eta_oi(pr, 30.0, st)
+    assert eta_oi > 0.858
+    assert comp.eta_isen(pr, 30.0, st) < 1.0
+    assert comp.eta_isen(pr, 30.0, st) * comp.eta_em(pr, 30.0, st) == pytest.approx(eta_oi * comp.eta_inverter(30.0))
 
 
-def test_rotary_eta_v_is_not_bounded_by_its_form_and_such_a_point_is_infeasible():
-    """The archive's linear eta_v form reaches zero at high PR and low relative speed (rotary c_Lv (PR-1)/n).
-
-    Inside the data hull it stays positive (above). Outside, the value is not clamped: ``_eval_eff`` rejects it,
-    so the operating point is infeasible -- a finding for the fit, recorded here so it is not lost.
-    """
+def test_rotary_eta_v_stays_positive_where_the_linear_form_reached_zero():
+    """The first archive's linear eta_v reached zero at PR 11 and 15 rev/s (rated 55): the bounded form does not."""
     comp = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R32", 55.0)
     pr, st = state_at_pr("R32", 11.0, 50.0)
-    assert comp.eta_vol(pr, 15.0, st) <= 0.0
-    with pytest.raises(InvalidCompressorEfficiency):
-        _eval_eff(comp.eta_vol, pr, 15.0, st)
+    assert 0.0 < comp.eta_vol(pr, 15.0, st) < comp.eta_vol(pr, 55.0, st)
+    old = 0.989702 - 0.022817 * (pr ** (1.0 / comp._k(pr, st)) - 1.0) - 0.027815 * (pr - 1.0) / (15.0 / 55.0)
+    assert old <= 0.0
+
+
+def test_rotary_eta_v_level_matches_the_displacement_regression():
+    """At each regression basis's reference condition (n = 1) the model eta_v is the basis's pooled eta_vol."""
+    import json
+
+    reg = json.loads((Path(tmhp.__file__).parent / "data" / "compressor_displacement_regression.json").read_text())
+    for ctype, basis in (
+        ("rotary_twin_inverter", "rotary_twin_inverter_60rps"),
+        ("rotary_single_fixed", "rotary_single_fixed_50Hz"),
+    ):
+        b = reg["bases"][basis]
+        cond = b["reference_condition"]
+        comp = SemiEmpiricalCompressor(CompressorSpec(ctype), "R32", None)
+        for ref in ("R32", "R410A"):
+            pr, st = state_at(ref, cond["T_evap_C"], cond["T_cond_C"], cond["superheat_K"])
+            assert comp.eta_v(pr, b["frequency_Hz"], st) == pytest.approx(b["eta_vol_rps_per_f"], rel=0.03), (
+                ctype,
+                ref,
+            )
+
+
+def test_rotary_eta_v_level_is_the_median_of_the_rating_points():
+    pts = pd.read_csv(ARCHIVE / "eta_v_rating_points.csv")
+    for ctype, basis, n in (
+        ("rotary_twin_inverter", "rotary_twin_inverter_60rps", 41),
+        ("rotary_single_fixed", "rotary_single_fixed_50Hz", 98),
+    ):
+        g = pts[pts.basis == basis]
+        assert len(g) == n
+        # the csv carries six significant digits
+        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["eta_v"]["c0"] == pytest.approx(g.c0.median(), abs=1e-5)
+        # c0 of a point is its eta_v over the shape at its condition (n = 1)
+        comp = SemiEmpiricalCompressor(CompressorSpec(ctype), "R32", None)
+        unit = comp.eta_v_coefficients["c0"]
+        for r in g.head(5).itertuples():
+            shape = math.exp(-comp.eta_v_coefficients["parameters"].get("c_re", 0.0) * (r.PR ** (1.0 / r.k) - 1.0))
+            p = comp.eta_v_coefficients["parameters"]
+            shape /= 1.0 + p.get("c_L", 0.0) * (r.PR - 1.0) + p.get("c_s", 0.0) + p.get("c_f", 0.0)
+            assert r.c0 * shape == pytest.approx(r.eta_v, rel=1e-5)
+        assert unit > 0
+
+
+def test_default_rotary_speed_shape_is_ossorio_anchored():
+    import json
+
+    assert ROTARY_SPEED_VARIANTS[0] == "ossorio_anchored"
+    assert CompressorSpec().rotary_speed_variant == "ossorio_anchored"
+    var = json.loads((ARCHIVE / "rotary_speed_variants.json").read_text())
+    assert var["default"] == "b"
+    b = ce.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS["ossorio_anchored"]
+    for ctype in ("rotary_twin_inverter", "rotary_single_fixed"):
+        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["parameters"] == b["parameters"]
+        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["level"] == b["level"][ctype]
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=lambda s: f"{s.compressor_type}-{s.rotary_speed_variant}")
@@ -150,19 +242,24 @@ def test_inverter_is_on_the_electrical_side_only():
     d = ce.SEMI_EMPIRICAL_DRIVE
     for rps in (20.0, 60.0, 100.0):
         eta_inv = 1.0 - d["lam"] * (1.0 + d["beta"] * (60.0 / rps - 1.0))
-        assert on.eta_em(pr, rps) == pytest.approx(off.eta_em(pr, rps) * eta_inv)
+        assert on.eta_em(pr, rps, st) == pytest.approx(off.eta_em(pr, rps, st) * eta_inv)
         assert on.eta_isen(pr, rps, st) == off.eta_isen(pr, rps, st)
         assert on.eta_vol(pr, rps, st) == off.eta_vol(pr, rps, st)
     # eta_isen * eta_cmp without the drive is the terminal-basis eta_oi
-    assert off.eta_isen(pr, 60.0, st) * off.eta_em(pr, 60.0) == pytest.approx(off.eta_oi(pr, 60.0, st))
+    assert off.eta_isen(pr, 60.0, st) * off.eta_em(pr, 60.0, st) == pytest.approx(off.eta_oi(pr, 60.0, st))
 
 
-def test_eta_oi_scale_scales_the_gas_side():
+def test_eta_oi_scale_scales_the_overall_efficiency_before_the_split():
     a = SemiEmpiricalCompressor(CompressorSpec("scroll"), "R32", 50.0)
     b = SemiEmpiricalCompressor(CompressorSpec("scroll", eta_oi_scale=0.9), "R32", 50.0)
     pr, st = state_at("R32", 0.0, 50.0)
-    assert b.eta_isen(pr, 40.0, st) == pytest.approx(0.9 * a.eta_isen(pr, 40.0, st))
-    assert b.eta_em(pr, 40.0) == a.eta_em(pr, 40.0)
+    inv = b.eta_inverter(40.0)
+    overall_a = a.eta_isen(pr, 40.0, st) * a.eta_em(pr, 40.0, st) / inv
+    overall_b = b.eta_isen(pr, 40.0, st) * b.eta_em(pr, 40.0, st) / inv
+    assert overall_a == pytest.approx(a.eta_oi(pr, 40.0, st))
+    assert overall_b == pytest.approx(0.9 * overall_a)
+    assert b.eta_isen(pr, 40.0, st) < a.eta_isen(pr, 40.0, st)
+    assert b.eta_em(pr, 40.0, st) < a.eta_em(pr, 40.0, st)
 
 
 def test_rotary_speed_is_relative_to_the_machine_rated_speed():
@@ -187,22 +284,22 @@ def test_variant_b_follows_ossorio_speed_shape_better_than_a():
     for variant in ROTARY_SPEED_VARIANTS:
         c = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter", rotary_speed_variant=variant), "R290", 60.0)
         ratios[variant] = [c.eta_oi(pr, n, st) / c.eta_oi(pr, 60.0, st) for n in (30.0, 120.0)]
-    assert abs(ratios["ossorio_anchored"][0] - 0.97) < abs(ratios["archive"][0] - 0.97)
-    assert ratios["archive"][1] < 1.0 and ratios["ossorio_anchored"][1] < 1.0
+    assert abs(ratios["ossorio_anchored"][0] - 0.97) < abs(ratios["shao_informed"][0] - 0.97)
+    assert ratios["shao_informed"][1] < 1.0 and ratios["ossorio_anchored"][1] < 1.0
 
 
 # ---------------------------------------------------------------------------------------------- call form
 def test_state_less_call_raises_a_clear_error():
     comp = SemiEmpiricalCompressor(CompressorSpec(), "R32", 50.0)
-    for model in (comp.eta_isen, comp.eta_vol):
+    # eta_cmp too: the loss-share split makes it depend on eta_oi, hence on the state
+    for model in (comp.eta_isen, comp.eta_vol, comp.eta_em):
+        assert model.needs_state
         with pytest.raises(SuctionStateRequired, match="suction state"):
             model(3.0, 50.0)
         with pytest.raises(SuctionStateRequired):
             _eval_eff(model, 3.0, 50.0)
         with pytest.raises(SuctionStateRequired):
             efficiency_evaluator(model)(3.0, 50.0)
-    # the drive quantity needs no state
-    assert _eval_eff(comp.eta_em, 3.0, 50.0) == comp.eta_em(3.0, 50.0)
 
 
 def test_user_callables_keep_their_call_forms():
@@ -308,6 +405,11 @@ def test_steady_result_reports_the_new_efficiencies():
     r = m.analyze_steady(T_tank_w=40.0, T0=7.0, Q_ref_tank=4000.0, return_dict=True)
     assert r["failure_reason"] == "none"
     pr, rps = r["pr_cmp [-]"], r["cmp_rpm [rpm]"] / 60.0
-    assert r["eta_cmp [-]"] == pytest.approx(m.eta_cmp(pr, rps))
-    assert r["eta_cmp_isen [-]"] == pytest.approx(r["eta_cmp_isen [-]"])
+    assert 0.0 < r["eta_cmp [-]"] <= 1.0 and 0.0 < r["eta_cmp_isen [-]"] <= 1.0
+    assert pr > 1.0
+    # loss-share split: eta_em = eta_oi + f (1 - eta_oi) with eta_oi = eta_cmp_isen * eta_em
+    comp = m.eta_cmp.compressor
+    eta_em = r["eta_cmp [-]"] / comp.eta_inverter(rps)
+    eta_oi = r["eta_cmp_isen [-]"] * eta_em
+    assert eta_em == pytest.approx(eta_oi + comp.loss_share * (1.0 - eta_oi), rel=1e-9)
     assert r["efficiency_extrapolated"] in (True, False)

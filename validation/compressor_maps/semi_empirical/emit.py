@@ -28,8 +28,9 @@ from validation.compressor_maps.semi_empirical.run import ARCHIVE, VERSION
 MODULE = REPO_ROOT / "src" / "tmhp" / "compressor_efficiency.py"
 BEGIN = "# --- BEGIN GENERATED semi-empirical coefficients ---"
 END = "# --- END GENERATED semi-empirical coefficients ---"
-#: Package names of the rotary speed-shape variants (``variants.py``: ``a`` archive, ``b`` Ossorio-anchored).
-VARIANT_NAMES = {"a": "archive", "b": "ossorio_anchored"}
+#: Package names of the rotary speed-shape variants (``variants.py``: ``b`` Ossorio-anchored, the default; ``a``
+#: Shao-informed, the first archive's arrangement). The default is listed first.
+VARIANT_NAMES = {"b": "ossorio_anchored", "a": "shao_informed"}
 ROTARY_TYPES = ("rotary_twin_inverter", "rotary_single_fixed")
 
 
@@ -46,11 +47,17 @@ def _speed(candidate_or_coordinate: str) -> str:
 def block_data() -> dict[str, Any]:
     """The constants of the generated block, from the archive files."""
     coeffs = json.loads((ARCHIVE / "coefficients.json").read_text())
-    variants = json.loads((ARCHIVE / "rotary_speed_variants.json").read_text())["variants"]
+    var_file = json.loads((ARCHIVE / "rotary_speed_variants.json").read_text())
+    variants = var_file["variants"]
     types: dict[str, Any] = {}
     for name, t in coeffs["types"].items():
         oi = t["eta_oi"]
         by_ref = oi["level"].get("by_refrigerant", {}) if name == "rotary_twin_inverter" else {}
+        split = t["split"]
+        if split["selected"] != "F":
+            raise SystemExit(
+                f"{name}: the library implements the loss-share split F, archive selected {split['selected']}"
+            )
         types[name] = {
             "family": t["family_form"],
             "level_form": oi["level_form"],
@@ -60,23 +67,28 @@ def block_data() -> dict[str, Any]:
             "level_by_refrigerant": {r: v["a_median"] for r, v in by_ref.items()},
             "eta_v": {
                 "c0": t["eta_v"]["c0"],
-                "c_re": t["eta_v"]["c_re"],
-                "c_Lv": t["eta_v"]["c_Lv"],
-                "speed": _speed(t["eta_v"]["candidate"]),
+                "parameters": dict(t["eta_v"]["parameters"]),
+                "speed": _speed(t["eta_v"]["speed_coordinate"]),
             },
-            "eta_em": t["split"][t["split"]["selected"]]["coefficients"][0],
+            "loss_share": split["F"]["coefficients"][0],
             "hull_PR_N": tuple(tuple(v) for v in t["hull_PR_N"]),
             "provisional": t["provisional"],
         }
-    # Variant "a" must be the archive's rotary fit (variants.py reproduces it); refuse to emit otherwise.
-    a = variants["a"]
+    # The default variant must be the archive's rotary fit (run.py uses its fit object); refuse to emit otherwise.
+    default = var_file["default"]
+    if next(iter(VARIANT_NAMES)) != default:
+        raise SystemExit(f"VARIANT_NAMES must list the archive's default variant {default!r} first")
+    dv = variants[default]
     for name in ROTARY_TYPES:
-        if a["parameters"] != types[name]["parameters"]:
-            raise SystemExit(f"rotary_speed_variants.json variant a differs from coefficients.json ({name})")
-    if abs(a["level_twin"] - types["rotary_twin_inverter"]["level"]) > 1e-6:
-        raise SystemExit("rotary_speed_variants.json variant a twin level differs from coefficients.json")
+        if dv["parameters"] != types[name]["parameters"]:
+            raise SystemExit(f"rotary_speed_variants.json variant {default} differs from coefficients.json ({name})")
+    if abs(dv["level_twin"] - types["rotary_twin_inverter"]["level"]) > 1e-6:
+        raise SystemExit(f"rotary_speed_variants.json variant {default} twin level differs from coefficients.json")
+    if abs(dv["level_single_fixed"] - types["rotary_single_fixed"]["level"]) > 1e-6:
+        raise SystemExit(f"rotary_speed_variants.json variant {default} single level differs from coefficients.json")
     speed_variants = {}
-    for key, v in variants.items():
+    for key in VARIANT_NAMES:
+        v = variants[key]
         speed_variants[VARIANT_NAMES[key]] = {
             "terms": tuple(v["terms"]),
             "parameters": dict(v["parameters"]),

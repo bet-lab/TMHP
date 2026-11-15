@@ -27,6 +27,12 @@ def _style(ax, xlabel: str, ylabel: str) -> None:
     ax.legend(frameon=False, fontsize=7)
 
 
+def _fit_rows(d, fam: str, chosen) -> pd.DataFrame:
+    """The rows the chosen fit was made on (its units carry the fitted levels; rotary: the variant's arrangement)."""
+    rows = chosen[fam].get("rows")
+    return P.shape_rows(d, fam) if rows is None else rows
+
+
 def _normalised(form, st, rows: pd.DataFrame, level: float) -> np.ndarray:
     """Data moved to the default level: y * eta(default level) / eta(own unit level), row by row."""
     d = Data.of(rows, form.speed)
@@ -43,7 +49,7 @@ def fig_eta_vs_pr(path: Path, d, chosen, level_value, twin_r410a) -> None:
     ):
         form, st = chosen[fam]["form"], chosen[fam]["state"]
         lv = twin_r410a if (t == "rotary_twin_inverter" and twin_r410a) else level_value[t]
-        rows = P.shape_rows(d, fam)
+        rows = _fit_rows(d, fam, chosen)
         if len(rows) > 2500:
             rows = rows.iloc[np.sort(rng.choice(len(rows), 2500, replace=False))]
         ax.scatter(
@@ -77,7 +83,7 @@ def fig_residuals(path: Path, d, chosen) -> None:
     ]
     for ax, (fam, col, bins) in zip(axes, specs, strict=True):
         form, st = chosen[fam]["form"], chosen[fam]["state"]
-        rows = P.shape_rows(d, fam)
+        rows = _fit_rows(d, fam, chosen)
         dd = Data.of(rows, form.speed)
         rows = rows.assign(e=form.predict(st, dd, st.levels) - dd.y, w=machine_weights(rows))
         key = "group" if fam == "scroll" else "source_id"

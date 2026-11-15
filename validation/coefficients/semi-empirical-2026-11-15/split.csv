@@ -1,5 +1,7 @@
-family,form,coefficients,rmse_in_sample,loco_bias,loco_rmse,selected
-scroll,E0,0.9156,0.0483424,-4.48426e-16,0.0573044,True
-scroll,E1,0.9216;-0.0106,0.0459437,-0.00881414,0.063828,False
-rotary,E0,0.8577,0.0205051,,,True
-rotary,E1,0.8568;-0.0318,0.0143231,,,False
+family,form,coefficients,rmse_in_sample,rmse_in_sample_eta_is,loco_bias,loco_rmse,loco_bias_eta_is,loco_rmse_eta_is,selected
+scroll,E0,0.9156,0.0483424,0.0344386,-4.48426e-16,0.0573044,-0.000800826,0.0409587,False
+scroll,E1,0.9216;-0.0106,0.0459437,0.032797,-0.00881414,0.063828,0.00612884,0.0468614,False
+scroll,F,0.7687,0.0462167,0.0328258,-0.00216971,0.05592,0.000182092,0.0398472,True
+rotary,E0,0.8577,0.0205051,0.018228,,,,,False
+rotary,E1,0.8568;-0.0318,0.0143231,0.0130262,,,,,False
+rotary,F,0.5759,0.019742,0.0175665,,,,,True

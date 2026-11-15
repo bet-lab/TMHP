@@ -348,57 +348,84 @@ header = """# Provenance registry for validation/evidence/
 documents:
 """
 
-lines = [header]
-described, undescribed = [], []
-bulk_counts: dict[str, tuple[int, int]] = {}
-for p in sorted(EV.rglob("*")):
-    if not p.is_file():
-        continue
-    rel = str(p.relative_to(EV))
-    parent = next((d for d in BULK_DIRS if rel.startswith(d + "/")), None)
-    if parent:
-        count, size = bulk_counts.get(parent, (0, 0))
-        bulk_counts[parent] = (count + 1, size + p.stat().st_size)
-        continue
-    (described if rel in DESCRIBED else undescribed).append((rel, p))
 
-for rel, d in ((r, DESCRIBED[r]) for r in DESCRIBED if r in BULK_DIRS):
-    count, size = bulk_counts.get(rel, (0, 0))
-    if not count:
-        continue
-    lines.append(f"  - path: {rel}/\n")
-    lines.append(f'    title: "{d["title"]}"\n')
-    lines.append(f'    publisher: "{d["publisher"]}"\n')
-    lines.append(f'    document_id: "{d["doc_id"]}"\n')
-    lines.append(f'    rating_condition: "{d["rating"]}"\n')
-    lines.append(f'    used_by: "{d["used_by"]}"\n')
-    lines.append(f'    obtain_from: "{d["obtain_from"] if "obtain_from" in d else d["url"]}"\n')
-    lines.append(f"    files: {count}\n")
-    lines.append(f"    bytes: {size}\n")
-    lines.append("\n")
+def main() -> None:
+    """Rewrite the registry from the evidence tree, or refuse and leave it as it is.
 
-for rel, p in described:
-    d = DESCRIBED[rel]
-    npages = pages(p)
-    lines.append(f"  - path: {rel}\n")
-    lines.append(f'    title: "{d["title"]}"\n')
-    lines.append(f'    publisher: "{d["publisher"]}"\n')
-    lines.append(f'    document_id: "{d["doc_id"]}"\n')
-    lines.append(f'    rating_condition: "{d["rating"]}"\n')
-    lines.append(f'    used_by: "{d["used_by"]}"\n')
-    lines.append(f'    obtain_from: "{d["url"]}"\n')
-    lines.append(f"    bytes: {p.stat().st_size}\n")
-    if npages:
-        lines.append(f"    pages: {npages}\n")
-    lines.append(f'    sha256: "{sha(p)}"\n')
-    lines.append("\n")
+    The evidence tree is not tracked, so on most checkouts it is absent or
+    partial. Writing from what happens to be present would silently replace the
+    committed registry with a shorter one; instead every described document must
+    be present before anything is written.
+    """
+    if not EV.is_dir():
+        raise SystemExit(
+            f"build_registry: no evidence tree at {EV.relative_to(REPO)} (validation/evidence is not "
+            "tracked); obtain the documents listed in validation/registry/sources.yaml first. "
+            "The registry was left untouched."
+        )
 
-lines.append("# Archived but not yet consumed by an extraction script. Listed so the\n")
-lines.append("# evidence tree stays auditable: a file with no reader is a file nobody\n")
-lines.append("# has checked.\n")
-lines.append("unused_archive:\n")
-for rel, p in undescribed:
-    lines.append(f'  - path: {rel}\n    bytes: {p.stat().st_size}\n    sha256: "{sha(p)}"\n')
+    described, undescribed = [], []
+    bulk_counts: dict[str, tuple[int, int]] = {}
+    for p in sorted(EV.rglob("*")):
+        if not p.is_file():
+            continue
+        rel = str(p.relative_to(EV))
+        parent = next((d for d in BULK_DIRS if rel.startswith(d + "/")), None)
+        if parent:
+            count, size = bulk_counts.get(parent, (0, 0))
+            bulk_counts[parent] = (count + 1, size + p.stat().st_size)
+            continue
+        (described if rel in DESCRIBED else undescribed).append((rel, p))
 
-OUT.write_text("".join(lines))
-print(f"wrote {OUT} -- {len(described)} described, {len(undescribed)} archived")
+    found = {rel for rel, _ in described} | {rel for rel, (count, _) in bulk_counts.items() if count}
+    missing = sorted(set(DESCRIBED) - found)
+    if missing:
+        raise SystemExit(
+            f"build_registry: {len(missing)} described document(s) missing from "
+            f"{EV.relative_to(REPO)}; writing now would drop them from the registry. "
+            "The registry was left untouched. Missing:\n  " + "\n  ".join(missing)
+        )
+
+    lines = [header]
+    for rel, d in ((r, DESCRIBED[r]) for r in DESCRIBED if r in BULK_DIRS):
+        count, size = bulk_counts[rel]
+        lines.append(f"  - path: {rel}/\n")
+        lines.append(f'    title: "{d["title"]}"\n')
+        lines.append(f'    publisher: "{d["publisher"]}"\n')
+        lines.append(f'    document_id: "{d["doc_id"]}"\n')
+        lines.append(f'    rating_condition: "{d["rating"]}"\n')
+        lines.append(f'    used_by: "{d["used_by"]}"\n')
+        lines.append(f'    obtain_from: "{d["obtain_from"] if "obtain_from" in d else d["url"]}"\n')
+        lines.append(f"    files: {count}\n")
+        lines.append(f"    bytes: {size}\n")
+        lines.append("\n")
+
+    for rel, p in described:
+        d = DESCRIBED[rel]
+        npages = pages(p)
+        lines.append(f"  - path: {rel}\n")
+        lines.append(f'    title: "{d["title"]}"\n')
+        lines.append(f'    publisher: "{d["publisher"]}"\n')
+        lines.append(f'    document_id: "{d["doc_id"]}"\n')
+        lines.append(f'    rating_condition: "{d["rating"]}"\n')
+        lines.append(f'    used_by: "{d["used_by"]}"\n')
+        lines.append(f'    obtain_from: "{d["url"]}"\n')
+        lines.append(f"    bytes: {p.stat().st_size}\n")
+        if npages:
+            lines.append(f"    pages: {npages}\n")
+        lines.append(f'    sha256: "{sha(p)}"\n')
+        lines.append("\n")
+
+    lines.append("# Archived but not yet consumed by an extraction script. Listed so the\n")
+    lines.append("# evidence tree stays auditable: a file with no reader is a file nobody\n")
+    lines.append("# has checked.\n")
+    lines.append("unused_archive:\n")
+    for rel, p in undescribed:
+        lines.append(f'  - path: {rel}\n    bytes: {p.stat().st_size}\n    sha256: "{sha(p)}"\n')
+
+    OUT.write_text("".join(lines))
+    print(f"wrote {OUT} -- {len(described)} described, {len(undescribed)} archived")
+
+
+if __name__ == "__main__":
+    main()

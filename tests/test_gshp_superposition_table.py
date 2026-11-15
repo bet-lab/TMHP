@@ -49,6 +49,9 @@ def _run(cls, dt: float, load: np.ndarray, **kw) -> np.ndarray:
     return frame[_COLS].to_numpy(dtype=float)
 
 
+# The two routes agree to the solver tolerance of the operating point, about 1e-9 relative; the absolute bound
+# below was established on the earlier default machine, so the scenario stays on it (tests/conftest.py).
+@pytest.mark.earlier_defaults
 @pytest.mark.parametrize("dt", [3600.0, 600.0])
 def test_tabulated_superposition_gives_the_pulse_by_pulse_numbers(dt):
     load = np.where((np.arange(18) // 3) % 2 == 0, 4000.0, 0.0)

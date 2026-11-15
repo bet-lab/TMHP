@@ -1,7 +1,17 @@
 # semi-empirical-2026-11-15 — compressor-type-specific semi-empirical efficiency model
 
-Fitted and cross-validated coefficient archive. **Not wired into `src/`** (a later step). Standalone-compressor
-data only; no heat-pump catalogue number is read anywhere in the pipeline.
+Fitted and cross-validated coefficient archive, wired into `src/tmhp/compressor_efficiency.py` (generated block,
+`python -m validation.compressor_maps.semi_empirical.emit`). Standalone-compressor data only; no heat-pump catalogue
+number is read anywhere in the pipeline.
+
+**Revised in place on 2026-11-16** (the archive had not reached `main`; the version name is kept, `coefficients.json`
+→ `revision` says what changed): (1) the volumetric efficiency has a form that is positive and bounded by
+construction, and the rotary level comes from the catalogue rating points of the default displacement regression;
+(2) the eta_is / eta_em split is a fixed share of the loss work reaching the gas, bounded by construction; (3) the
+default rotary speed shape is the Ossorio-anchored variant `b` (owner-delegated decision); the first archive's
+Shao-informed arrangement stays as variant `a` in `rotary_speed_variants*`. Second pass the same day: (4) the rotary
+eta_oi level is given per refrigerant wherever rating points exist (R290 from the Highly 2024 inverter twins), and
+(5) the uncertainty of eta_v above the rotary data (PR > 6.8) is recorded.
 
 ## What
 
@@ -12,63 +22,187 @@ three types:
 | type | form | speed coordinate | level `a` (IQR) | eta_oi at R410A 7.2/54.4 °C, 60 rev/s | status |
 |---|---|---|---|---|---|
 | `scroll` | `1/eta = a phi_z(PR; rv, k, zv) + q2 n 1e5/MEP_s + cL (PR-1)/n` | `n = N/50` | 1.091 (1.069–1.147), 62 residential machines | 0.765 | fitted |
-| `rotary_twin_inverter` | `1/eta = 1 + a (n 1e5/MEP_s + cL (PR-1)/n + cu MEP_s/1e6/n)` | `n = N/N_rated` (60) | 1.276 pooled; R32 1.316, R410A 1.173 | 0.716 (pooled level) | **provisional** |
-| `rotary_single_fixed` | same rotary shape | `n = N/N_rated` (50) | 1.729 (1.620–1.855) | 0.667 | **provisional** |
+| `rotary_twin_inverter` | `1/eta = 1 + a (n 1e5/MEP_s + qf n^2 1e4 rho_1/MEP_s + cu MEP_s/1e6/n + cH (PR^((k-1)/k) - 1))` | `n = N/N_rated` (60) | per refrigerant (below); pooled 0.523 | 0.748 (pooled level) | **provisional** |
+| `rotary_single_fixed` | same rotary shape | `n = N/N_rated` (50) | per refrigerant (below); pooled 0.790 | 0.670 (pooled) | **provisional** |
 
-Parameters: scroll `rv = 2.975, q2 = 1.054 bar, cL = 0.0584, zv = 0.645`; rotary `q2 = 1 (normaliser), cL = 0.0340,
-cu = 0.119`. `phi_z` is the built-in-volume-ratio work ratio with a share `zv` of the over-compression loss relieved
-below `PR = rv^k`. Full definitions: `coefficients.json` → `conventions`, `types.*.eta_oi`, and the docstring of
-`validation/compressor_maps/semi_empirical/model.py`.
+### Rotary eta_oi level per refrigerant (revised 2026-11-16, second pass)
+
+A refrigerant gets its own level (median over its rating points) where the type has at least three rating points of
+it; every other refrigerant takes the pooled level (median over all rating points of the type) — an extrapolation in
+suction pressure / MEP_s.
+
+| type | refrigerant | rating points | level `a` median (IQR) |
+|---|---|---|---|
+| twin | R32 | 23, LG + Mitsubishi SCI | 0.448 (0.434–0.489) |
+| twin | R410A | 18, LG + Mitsubishi SCI | 0.567 (0.527–0.590) |
+| twin | R290 | 7, Highly 2024 inverter twins (power basis not printed, read as excluding the inverter: **assumed**) | 0.790 (0.782–0.877) |
+| twin | any other (R134a, R1234yf, R454B, R452B, R22, ...) | pooled over the 48 | 0.523 (0.452–0.585) |
+| single | R22 | 10, Panasonic | 0.802 (0.776–0.833) |
+| single | R410A | 46, LG + Panasonic | 0.784 (0.731–0.841) |
+| single | any other (R32, R290, ...) | pooled over the 56 + AREP #26 | 0.790 (0.744–0.834) |
+
+Before settling on constants, the archive tests whether one pooled level fits R32, R410A and R290 once the loss
+terms are right (`level_by_refrigerant.csv`, `coefficients.json` → `selection.rotary_level_by_refrigerant`).
+Leave one refrigerant out over the twin rating points: a pooled level alone predicts the held-out refrigerant with
+RMSE 0.092 (R290) / 0.071 (R32) / 0.034 (R410A); the best single extra loss term fitted on the other two
+refrigerants (cL) gives 0.037 / 0.031 / 0.027 with a coefficient that swings from 0.57 to the bound 50 between folds;
+each refrigerant around its own median level scatters 0.026 / 0.021 / 0.022. Among the default variant's backward
+elimination candidates, the shapes whose levels agree across refrigerants (spread ≤ 1.17, no `cH`) have LOCO shape
+errors 0.034–0.040 against 0.021 for the selected shape. The refrigerant dependence sits mainly in `cH`
+(`PR^((k-1)/k) - 1`, small for R290's k ≈ 1.04), which only the R22 Shao records identify. So per-refrigerant levels.
+
+Independent checks (not fit data):
+
+| check | before (pooled LG/SCI level) | after (R290 level) |
+|---|---|---|
+| GMCC R290 inverter-input points: implied inverter efficiency (drive model at 60 rev/s 0.941) | 0.807 / 0.802 | 0.892 / 0.896 |
+| Highly 2024 R290 inverter **single** rotary (out of sample), data / model | 0.939 | 1.036 |
+| Panasonic fixed-speed single R290 (6, flagged "under development"; pooled single level, R290 has no eligible single points), data / model | — | 0.847 |
+
+The single-rotary R290 check says the pooled single level is ~15 % optimistic for R290 — the same mechanism as the
+twin (the `cH` term is small for R290), so the pooled level for refrigerants without rating points (R134a, R1234yf:
+lower suction pressure still) carries this risk.
+
+Parameters: scroll `rv = 2.975, q2 = 1.054 bar, cL = 0.0584, zv = 0.645`; rotary (variant `b`, default)
+`q2 = 1 (normaliser), cu = 0.243, cH = 2.409, qf = 0.123`. `phi_z` is the built-in-volume-ratio work ratio with a
+share `zv` of the over-compression loss relieved below `PR = rv^k`. Full definitions: `coefficients.json` →
+`conventions`, `types.*.eta_oi`, and the docstring of `validation/compressor_maps/semi_empirical/model.py`.
 
 Drive: `eta_inv = 1 - lam (1 + beta (60/N - 1))`, `beta = 0.618`, `lam = 0.0588` (median of five measured
 inverters, IQR 0.045–0.062): 0.941 at 60 rev/s, 0.869 at 20 rev/s.
+
+### Volumetric efficiency (revised)
+
+    eta_v = c0 * exp(-c_re (PR^(1/k) - 1)) / (1 + c_L (PR - 1)/n + c_s/n + c_f n^2)
+
+The exponential is the clearance re-expansion law `1 - c_re (PR^(1/k) - 1)` to first order and stays positive; the
+denominator is the delivered share when gas in the chamber leaves either through the discharge (rate ~ n) or back
+to suction (leakage ~ pressure difference `c_L (PR - 1)`, a share that does not scale with it `c_s`, e.g. suction
+heating, and a port drop `c_f n^2`). All parameters >= 0, so `0 < eta_v <= c0` for every PR >= 1 and speed > 0 and
+eta_v falls with PR and with falling speed. The first archive's linear form `c0 - c_re (...) - c_Lv (PR-1)/n`
+crossed zero (rotary: at PR 11 and 15 rev/s for a machine rated at 55 rev/s).
+
+| type | terms (parameters) | level `c0` (IQR, n) | eta_v at the regression's reference condition (n = 1) | min over the envelope grid, new / first archive |
+|---|---|---|---|---|
+| `scroll` | `c_re = 0.00980, c_L = 0.0207`, `n = N/50` | 1.011 (0.998–1.033), median of the unit levels of the scroll eta_v rows | — | 0.123 / −4.07 |
+| `rotary_twin_inverter` | `c_re = 0.0681, c_s = 0.1234`, `n = N/N_rated` | 1.130 (1.103–1.171), 41 rating points (LG, Mitsubishi SCI) | R32 0.889, R410A 0.871 (regression 0.887) | 0.088 / −6.63 |
+| `rotary_single_fixed` | same shape | 1.102 (1.078–1.121), 98 rating points (Highly, LG, Panasonic) | R32 0.866, R410A 0.852 (regression 0.855) | 0.086 / −6.65 |
+
+Envelope grid (`eta_v_envelope.csv`): PR 1.01–15, k 0.9–1.3, n 0.05–3 (relative) or 2.5–150 rev/s (scroll).
+
+* **Rotary shape.** Rows with a mass flow from the sources that measure a PR or speed dependence, each unit with its
+  own level: Shao 2004 (the machine with a confirmed displacement, 72 rows, 30–120 rev/s), AREP #26 (measured mass
+  flow at fixed 50 Hz, PR 2.3–6.3, R-410A and R-32; its rated eta_v under the archive's 0.85 bracket is a level
+  effect, the induction-motor slip) and Ossorio 2019 (30–120 rev/s at one condition; displacement inferred from the
+  printed efficiency, so it informs the speed shape only). Backward elimination from `c_re, c_L, c_s, c_f` on the
+  leave-one-machine-out shape RMSE drops `c_f` and then `c_L` (`eta_v_backward.csv`). Cross-validation
+  (`eta_v_selection.csv`), new form against the first archive's linear form on the same rows: LOCO shape 0.0167 /
+  0.0220, LOSO mean 0.0163 / 0.0204, top-20 %-PR hold-out bias −0.015 / −0.025, lowest-speed hold-out +0.012 /
+  +0.023.
+* **How weakly the shape is identified.** Three machines. The speed term rests on two sources that disagree:
+  eta_v(30)/eta_v(60) is 0.886 in Shao and 0.939 in Ossorio; the model gives 0.901 for both (`eta_v_speed_ratios.csv`).
+  The selected `c_s/n` (a speed loss that does not grow with PR) is what Shao shows (its 30-to-60 rev/s step is about
+  the same at PR 1.9 and 6.8); `c_L (PR - 1)/n` alone scores 0.0223. The PR fall rests mostly on Shao (R22, 2004);
+  AREP #26 falls more slowly (0.885 → 0.753 from PR 2.3 to 6.25 against the model's 0.80 ratio), hence the negative
+  top-PR bias. No rotary eta_v data above PR 6.8; the form is followed beyond it. With the two Shao machines whose
+  displacement is not confirmed, the elimination keeps `c_re, c_s, c_f` (sensitivity in `coefficients.json` →
+  `selection.eta_v_rotary`).
+* **Rotary level.** Every eligible rating point of
+  `validation/default_inputs/compressor_displacement/measurements.csv` (capacity, displacement and test frequency;
+  power is not needed): `c0` of a point is its eta_v over the shape at its own condition and `n = 1`
+  (`eta_v_rating_points.csv`). Same points and the same speed convention as the displacement regression (fixed-speed
+  single rotaries at the 50 Hz supply frequency), so the model reproduces the regression's pooled eta_vol at the
+  regression's reference condition (table). No eta_v bracket is applied to the rating points (it would select on
+  the quantity measured): the first archive used 39 + 25 points with power and inside the 0.85–1.05 bracket.
+  Highly 2024 R290 inverter rotaries (check only): data 0.930, model at the twin level 0.873.
+* **eta_v level by refrigerant (audit, not acted on).** The level stays one pooled value per type (the displacement
+  regression's convention: the refrigerant enters through fluid properties). Per-refrigerant medians over pooled:
+  twin R32 0.977, R410A 1.044; single R22 1.010, R290 1.018, R32 0.958, R410A 0.990; Highly 2024 R290 twins (not in
+  the regression) data / model 1.064. R290 evidence is mixed (single +1.8 %, Highly twins +6.4 %), within the
+  R32/R410A spread of the twins.
+* **eta_v above the data (PR > 6.8): stated uncertainty.** R32, 60 rev/s, n = 1, each slope re-levelled on the twin
+  rating points (`eta_v_high_pr.csv`, `types.*.eta_v.uncertainty_above_data`):
+
+  | PR slope | c_re | PR 6 | PR 8 | PR 10 | top-20 %-PR bias AREP #26 / Shao | shape RMSE AREP #26 / Shao |
+  |---|---|---|---|---|---|---|
+  | selected (Shao, AREP #26, Ossorio; machine weights) | 0.0681 | 0.796 | 0.736 | 0.684 | −0.013 / +0.002 | 0.016 / 0.013 |
+  | AREP #26 alone (c_s held) | 0.0546 | 0.812 | 0.763 | 0.719 | −0.001 / +0.022 | 0.014 / 0.019 |
+  | Shao 2004 alone | 0.0726 | 0.791 | 0.728 | 0.673 | −0.017 / −0.004 | 0.016 / 0.012 |
+
+  The archive's rule (each machine weight 1, LOCO) selects the joint fit; leave-one-source-out shape errors of the
+  selected form are Shao 0.020, AREP #26 0.016, Ossorio 0.012. No clearance fraction for rolling pistons can be
+  cited from the sources at hand: Molinaroli 2017 (four Tecumseh machines) lumps clearance re-expansion and leakage
+  into one nozzle area (A_TOT 0.009–0.059 mm²). `c_re` carries every PR-dependent loss that does not fall with speed
+  and is not a clearance fraction.
+* **Scroll.** Refitted in the bounded form with the archive's two terms: LOCO shape 0.0414 against 0.0412 for the
+  linear form. The linear scroll form is positive above 15 rev/s but crosses zero below it at high PR, and the
+  models accept any `rps_min > 0`.
+
+### eta_is / eta_em split (revised)
+
+A fixed share `f` of the loss work `P - m_dot w_s` reaches the gas: `eta_is = 1/(1 + f (1/eta_oi - 1))`,
+`eta_em = eta_oi + f (1 - eta_oi)`; their product is `eta_oi` and both lie in (0, 1] for any `eta_oi` in (0, 1].
+The first archive's constant `eta_em` (0.916 scroll, 0.858 rotary) gave `eta_is > 1` wherever `eta_oi > eta_em`
+(variant `b` at low PR). Fitted on the measured eta_is (discharge temperature) of `split.split_rows`:
+
+| family | f | rows / machines | identification |
+|---|---|---|---|
+| scroll | 0.769 | 818 / 4 (7 units) | unit values 0.67–1.00 (Cuevas T3 inverter-fed 1.00); LOCO RMSE eta_is 0.0398 (constant eta_em 0.0410), eta_em 0.0559 (0.0573) |
+| rotary | 0.576 | 4 / 1 (AREP #26 R-410A) | one machine, no cross-validation; R-32 unit 0.684 (possible liquid injection); in-sample RMSE eta_is 0.0176 (constant 0.0182) |
 
 ## Regenerate
 
 ```
 uv run python -m validation.compressor_maps.derive           # needs the untracked points_copeland_opi.csv
-uv run python -m validation.compressor_maps.semi_empirical   # about 8 minutes on 8 workers
+uv run python -m validation.compressor_maps.semi_empirical   # about 8 minutes on 8 workers; also writes rotary_speed_variants*
+uv run python -m validation.compressor_maps.semi_empirical.emit   # the library's generated block
 ```
 
-`coefficients.json["inputs"]` records the SHA-256 of every input file. The Copeland point file is not
+`coefficients.json["inputs"]` records the SHA-256 of every input file (the rating points `measurements.csv` and,
+for the consistency check, the displacement `regression.json` beside it included). The Copeland point file is not
 redistributable; without it the pipeline stops and prints how to regenerate it.
 
 ## Files
 
 | file | content |
 |---|---|
-| `coefficients.json` | per type: form, parameters, level with IQR, speed coordinate, eta_v, split, hull, power basis, provisional flag, monotonicity check; drive model; selection numbers; sensitivity; checks (GMCC, Highly, prototype reproduction) |
+| `coefficients.json` | per type: form, parameters, level with IQR, speed coordinate, eta_v (form, parameters, level and its rating points, regression consistency, envelope), split, hull, power basis, provisional flag, monotonicity check; drive model; selection numbers (incl. `selection.eta_v_rotary`); sensitivity; checks (GMCC, Highly, prototype reproduction) |
 | `data_sources.csv` | per source: family, role, origin, machines, rows used / excluded / not derivable, PR and speed range, power basis, whether stated or assumed, evidence |
 | `exclusions.csv` | excluded rows by source, reason and which fits they leave |
-| `backward_elimination.csv` | every candidate scored in the term elimination |
-| `model_selection.csv` | finalists, start form and shipped-form baseline on every criterion |
+| `backward_elimination.csv` | every candidate scored in the eta_oi term elimination (arrangement a; variant b's in `rotary_speed_variants_backward.csv`) |
+| `model_selection.csv` | finalists, start form, shipped-form baseline and the default (variant b) on every criterion |
 | `loco.csv`, `loso.csv`, `edge_holdout.csv`, `step_slopes.csv`, `parameter_stability.csv` | cross-validation tables |
-| `eta_v_selection.csv`, `split.csv`, `inverter_cv.csv` | eta_v forms, eta_is/eta_em split, drive model cross-validation |
-| `levels.csv` | level per machine (scroll) and per rating point (rotary) |
+| `eta_v_selection.csv`, `eta_v_backward.csv`, `eta_v_speed_ratios.csv`, `eta_v_rating_points.csv`, `eta_v_envelope.csv` | eta_v forms and their CV, the elimination, speed ratios against the data, the rating points with their `c0`, bounds over the envelope grid |
+| `level_by_refrigerant.csv`, `eta_v_high_pr.csv` | the pooled-level test over the twin rating points; eta_v at PR 6/8/10 under three PR slopes |
+| `split.csv`, `inverter_cv.csv` | eta_is/eta_em split forms, drive model cross-validation |
+| `levels.csv` | eta_oi level per machine (scroll) and per rating point (rotary) |
 | `grid_vs_shipped.csv` | eta_oi at PR 2–10 × N 20/40/60/90 (R410A, SDT 45 °C, SH 10 K) next to the shipped eta_is·eta_em |
+| `rotary_speed_variants.json`, `rotary_speed_variants_cv.csv`, `rotary_speed_variants_backward.csv` | both rotary speed-shape variants (`default: "b"`) |
 | `figures/` | eta_oi vs PR; residuals by PR and speed; speed dependence; drive model; level vs displacement |
 
-## Rotary speed-shape variants (added 2026-11-16, for measurement)
+## Rotary speed-shape variants
 
-`uv run python -m validation.compressor_maps.semi_empirical.variants` writes `rotary_speed_variants.json`,
-`rotary_speed_variants_cv.csv` and `rotary_speed_variants_backward.csv`. Variant `a` is this archive's arrangement
-(it reproduces the parameters above). Variant `b` ("Ossorio-anchored") gives every Shao 2004 speed record its own
+Variant `b` ("Ossorio-anchored", the **default** since the revision) gives every Shao 2004 speed record its own
 level, so Shao informs only the within-record PR shape and the speed terms rest on Ossorio 2019; the archive's
-selection rule (backward elimination on the LOCO shape RMSE) then keeps `q2, qf, cu, cH`. The high-speed term `qf`
-is kept in `b` (LOCO shape 0.0209 with, 0.0215 without) and not in `a` (0.0320 with, 0.0318 without). Model
-eta(N)/eta(60) at Ossorio's condition, 30 / 90 / 120 rev/s: `a` 0.905 / 0.980 / 0.932, `b` 0.968 / 0.962 / 0.908,
-data 0.980 / 0.978 / 0.914. Twin-rotary level in `b`: 0.501 (R32 0.448, R410A 0.567). The library carries both
-(`CompressorSpec.rotary_speed_variant`); `a` is the default until the owner decides.
+selection rule (backward elimination on the LOCO shape RMSE) then keeps `q2, qf, cu, cH`, and the high-speed term
+`qf` is kept by the explicit rule (LOCO shape 0.0209 with, 0.0215 without). Variant `a` ("Shao-informed", the first
+archive's arrangement, `rotary_speed_variant="shao_informed"` in the library) keeps `q2, cL, cu` (`qf`: 0.0320 with,
+0.0318 without). Model eta(N)/eta(60) at Ossorio's condition, 30 / 90 / 120 rev/s: `a` 0.905 / 0.980 / 0.932, `b`
+0.968 / 0.962 / 0.908, data 0.980 / 0.978 / 0.914. The level form (scaled) and the speed coordinate (relative) were
+selected on arrangement `a` and are kept for `b`; on arrangement `b` the same rules would keep the additive level
+form with the absolute coordinate and terms `q2, cH` (LOCO shape 0.0200 against 0.0209 for `b`; a tie within the
+archive's 0.001 tolerance). `b` is used as measured because the decision was made on it.
 
 ## Limits (read before use)
 
-* **Rotary types are provisional.** Their shape rests on five machines: Shao 2004 (R22, three manufacturer-map
-  polynomials, power basis not stated), Ossorio 2019 (one measured R290 speed sweep at one condition) and AREP #26
-  (one fixed-speed machine, PR ≤ 6.3). No rotary data above PR 6.3; the inverter twin rotaries have one rating point
-  each, so they set only the level. The relative speed coordinate was selected for the rotary family by
-  leave-one-source-out (0.0246 vs 0.0301), a difference carried by one machine with a non-60 Hz base (Shao's Hitachi,
-  79 Hz) and Ossorio's placeholder rated speed. The low-speed shape is a compromise between Shao (−23 % at 30 rev/s)
-  and Ossorio (−2 %); read as inverter-input, Shao fits the measured sources better (LOSO in `loso.csv`).
+* **Rotary types are provisional.** Their eta_oi shape rests on five machines: Shao 2004 (R22, three
+  manufacturer-map polynomials, power basis not stated), Ossorio 2019 (one measured R290 speed sweep at one
+  condition) and AREP #26 (one fixed-speed machine, PR ≤ 6.3). No rotary data above PR 6.8; the inverter twin rotaries
+  have one rating point each, so they set only the level.
+* **Refrigerants without rating points take the pooled level.** With variant `b` the level depends strongly on the
+  refrigerant (twin R32 0.45, R410A 0.57, R290 0.79); the R290 fixed-speed check shows the pooled level ~15 %
+  optimistic for a refrigerant outside its data. The GMCC check still implies an inverter efficiency of 0.89–0.90,
+  below the measured drive model (0.94 at 60 rev/s).
 * **Level depends on the power basis.** LG/SCI twin-rotary and Shao powers are read as excluding the inverter
   (assumed); Copeland's drive-input powers are divided by the median drive model (the Copeland drive is not named), so
   the scroll default level (mostly Copeland machines) carries the drive model's level uncertainty (inverter IQR
@@ -76,8 +210,7 @@ data 0.980 / 0.978 / 0.914. Twin-rotary level in `b`: 0.501 (R32 0.448, R410A 0.
 * **Sources disagree on the scroll PR shape.** Copeland polynomials fall faster than the model above PR 7, BITZER and
   the R-404A AREP scroll slower; the selected scroll form over-predicts the top-20 %-PR hold-out by +0.018 (start form
   −0.007). `zv` and `rv` are not stable when Copeland is left out (`zv` → 0, `rv` −0.31).
-* **The eta_is/eta_em split is weakly identified.** Scroll: 4 measured machines, `eta_em = 0.916` (LOCO RMSE 0.057);
-  rotary: one machine, four R-410A points, `eta_em = 0.858`, no cross-validation possible.
-* **Rotary eta_v** shape comes from one Shao machine with a confirmed displacement (72 rows); its `c0` from the rating
-  points.
+* **The split is weakly identified.** Scroll: four measured machines; rotary: one machine, four R-410A points.
+* **Rotary eta_v** shape: three machines, two speed sources that disagree (above); level from 139 rating points at
+  one condition per protocol (PR about 3.4).
 * Out of range the forms are followed as they are; `hull_PR_N` is for an `efficiency_extrapolated` flag only.

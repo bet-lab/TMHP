@@ -1,0 +1,11 @@
+step,candidate,loco_shape,decision,family
+0,rotary:eta_v_bounded:c_re+c_L+c_s+c_f:rel,0.018104,start,rotary
+1,rotary:eta_v_bounded:c_L+c_s+c_f:rel,0.0271165,drop c_re: not taken,rotary
+1,rotary:eta_v_bounded:c_re+c_s+c_f:rel,0.018104,drop c_L: not taken,rotary
+1,rotary:eta_v_bounded:c_re+c_L+c_f:rel,0.0222677,drop c_s: not taken,rotary
+1,rotary:eta_v_bounded:c_re+c_L+c_s:rel,0.0166744,drop c_f: accepted,rotary
+2,rotary:eta_v_bounded:c_L+c_s:rel,0.0266145,drop c_re: not taken,rotary
+2,rotary:eta_v_bounded:c_re+c_s:rel,0.0166744,drop c_L: accepted,rotary
+2,rotary:eta_v_bounded:c_re+c_L:rel,0.0222677,drop c_s: not taken,rotary
+3,rotary:eta_v_bounded:c_s:rel,0.0386557,drop c_re: not taken,rotary
+3,rotary:eta_v_bounded:c_re:rel,0.0416926,drop c_s: not taken,rotary

@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from validation.compressor_maps.schema import REPO_ROOT
-from validation.compressor_maps.semi_empirical import assemble, figures, verify
+from validation.compressor_maps.semi_empirical import assemble, etav, figures, verify
 from validation.compressor_maps.semi_empirical import inverter as inv
 from validation.compressor_maps.semi_empirical import pipeline as P
 from validation.compressor_maps.semi_empirical.model import Data, Quadratic, SemiEmpirical
@@ -20,6 +20,12 @@ from validation.compressor_maps.semi_empirical.sources import SOURCES
 from validation.compressor_maps.semi_empirical.split import fit_split
 
 VERSION = "semi-empirical-2026-11-15"
+#: Revised in place (the archive was not on main yet): what changed on 2026-11-16.
+REVISION = (
+    "2026-11-16: eta_v form bounded by construction (exp clearance x competing-outflow leakage), rotary eta_v level "
+    "from the displacement-regression rating points; eta_is/eta_em split as a fixed loss share reaching the gas; "
+    "default rotary speed shape = the Ossorio-anchored variant b (variant a kept in rotary_speed_variants*)"
+)
 ARCHIVE = REPO_ROOT / "validation" / "coefficients" / VERSION
 TYPES = {
     "scroll": ("scroll", "scroll"),
@@ -169,13 +175,43 @@ def main(argv: list[str] | None = None) -> int:
             ct = P.copeland_speed_test(ev.df["scroll"], best[(lev, "abs")].terms, lev)
             speed_tables[fam]["copeland_rated_speed_test"] = ct.to_dict(orient="records")
 
+    # ---- default rotary shape: the Ossorio-anchored variant (owner-delegated decision, DESIGN 12) --------------
+    # The level form and speed coordinate above were selected on the first arrangement (Shao, Ossorio and AREP #26
+    # in one shared shape). The default shape is variant b of ``variants``: the same selection rule (backward
+    # elimination, then the explicit high-speed-term rule) on the arrangement where every Shao speed record has its
+    # own level, with the level form and speed coordinate kept. Its fit object is used as it is, so
+    # coefficients.json and rotary_speed_variants.json carry the same numbers by construction.
+    from validation.compressor_maps.semi_empirical import variants as V  # noqa: PLC0415  (imports this module)
+
+    var_result, var_cv, var_backward, var_fits = V.run_variants(d)
+    vb = var_fits[V.DEFAULT]
+    res_b = {**P.finalist_metrics(vb["evaluator"], vb["form"], "rotary"), "rows": vb["rows"]}
+    name_b = f"default: Ossorio-anchored variant b ({vb['form'].name})"
+    sel_rows.append(P.selection_row(name_b, "rotary", res_b, "default (variant b)"))
+    loco_rows.append(res_b["loco"].assign(family="rotary", candidate=name_b))
+    loso_rows.append(res_b["loso"].assign(family="rotary", candidate=name_b))
+    edge_rows.append(res_b["edges"].assign(family="rotary", candidate=name_b))
+    if not res_b["steps"].empty:
+        step_rows.append(res_b["steps"].assign(family="rotary", candidate=name_b))
+    stab_rows.append(P.stability_table(name_b, vb["form"], res_b).assign(family="rotary"))
+    first_rotary = chosen["rotary"]["form"].name
+    chosen["rotary"] = res_b
+    speed_tables["rotary"]["default_shape"] = {
+        "variant": V.DEFAULT,
+        "description": V.VARIANTS[V.DEFAULT],
+        "candidate": vb["form"].name,
+        "first_archive_selection_on_arrangement_a": first_rotary,
+        "note": "level form and speed coordinate as selected on arrangement a (see the archive README for what the "
+        "same rules give on arrangement b); kept, because the decision was made on variant b as measured",
+    }
+
     # ---- sensitivity: Shao read as inverter-input ---------------------------------------------------------
     rot_form: SemiEmpirical = chosen["rotary"]["form"]
     d_alt = d.copy()
     sh = d_alt.source_id == "shao_2004"
     d_alt.loc[sh, "eta_inv"] = inv_fit.eta(d_alt.loc[sh, "N_rps"].to_numpy(float))
     d_alt.loc[sh, "eta_oi"] = d_alt.loc[sh, "eta_oi_meas"] / d_alt.loc[sh, "eta_inv"]
-    alt_rows = P.shape_rows(d_alt, "rotary")
+    alt_rows = V.arrange(P.shape_rows(d_alt, "rotary"), V.DEFAULT)
     st_alt = rot_form.fit(Data.of(alt_rows, rot_form.speed))
     lo_alt, _ = P.cv.loso(rot_form, alt_rows, P.LOSO_GROUPS["rotary"], "source_id", warm=st_alt)
 
@@ -196,24 +232,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     alt_twin = float(np.median(list(alt_lv.values())))
 
-    # ---- eta_v, split ---------------------------------------------------------------------------------
-    etav, etav_tables = {}, []
-    for fam, form in (("scroll", scr_form), ("rotary", rot_form)):
-        (fv, stv, rv), t = P.fit_eta_v(d, fam, form.speed)
-        etav[fam] = (fv, stv, rv)
-        etav_tables.append(t)
-    lv_rows = d[(d.role == "level") & (d.reason_v == "") & d.use_oi & (d.family == "rotary")]
-    fv_r, stv_r, _ = etav["rotary"]
-    c0_rating = fv_r.fit_levels(stv_r, Data.of(lv_rows, fv_r.speed, ycol="eta_v")) if fv_r.free_c0 else {}
-    c0_by_class = {}
-    for cls in ("rotary_twin_inverter", "rotary_single_fixed"):
-        keys = set(lv_rows[lv_rows.level_class == cls].unit)
-        vals = [v for k, v in c0_rating.items() if k in keys]
-        c0_by_class[cls] = {
-            "machines": len(vals),
-            "c0_median": float(np.median(vals)) if vals else None,
-            "c0_iqr": [float(np.quantile(vals, 0.25)), float(np.quantile(vals, 0.75))] if vals else None,
-        }
+    # ---- eta_v (bounded form; rotary level from the displacement-regression rating points), split ----------------
+    regression = json.loads((assemble.RATING.parent / "regression.json").read_text())
+    ev_v = etav.fit_all(d, assemble.RATING, regression)
     split = {}
     split_tables = []
     for fam in ("scroll", "rotary"):
@@ -223,28 +244,47 @@ def main(argv: list[str] | None = None) -> int:
 
     # ---- checks -----------------------------------------------------------------------------------------
     eta_inv60 = float(inv_fit.eta(np.array([60.0]))[0])
+
+    def level_for(t: str, ref: str) -> float:
+        """The library's rule: the refrigerant's own level where it has rating points, else the pooled level."""
+        r = levels[t]["by_refrigerant"].get(ref)
+        return r["a_median"] if (r and r["used_as_level"]) else level_value[t]
+
+    pooled_lg_sci = float(np.median(units_r[units_r.source_id == "rating_lg_sci_twin"].a))
     gmcc = []
     for g in assemble.GMCC_CHECK:
-        m = P.eval_at_condition(
-            rot_form,
-            st_r,
-            level_value["rotary_twin_inverter"],
-            g["refrigerant"],
-            g["T_evap_C"],
-            g["T_cond_C"],
-            11.1,
-            60.0,
-        )
         meas = 0.5 * (g["eta_oi_lo"] + g["eta_oi_hi"])
-        gmcc.append({**g, "model_terminal": m, "model_x_inverter60": m * eta_inv60, "implied_inverter_eff": meas / m})
+        row = dict(g)
+        for tag, lv in (("", level_for("rotary_twin_inverter", g["refrigerant"])), ("_lg_sci_pooled", pooled_lg_sci)):
+            m = P.eval_at_condition(rot_form, st_r, lv, g["refrigerant"], g["T_evap_C"], g["T_cond_C"], 11.1, 60.0)
+            row.update({f"model_terminal{tag}": m, f"model_x_inverter60{tag}": m * eta_inv60})
+            row[f"implied_inverter_eff{tag}"] = meas / m
+        row["measured_inverter_model_at_60rps"] = eta_inv60
+        gmcc.append(row)
     hi = d[d.source_id == "highly_catalogue_2024"]
-    hpred = rot_form.predict(st_r, Data.of(hi, rot_form.speed), level_value["rotary_twin_inverter"])
-    highly = {
-        "rows": int(len(hi)),
-        "data_eta_oi_median": float(hi.eta_oi.median()),
-        "model_median": float(np.median(hpred)),
-        "ratio_data_model_median": float(np.median(hi.eta_oi.to_numpy() / hpred)),
+    highly = {"note": "the seven twins set the R290 level (in sample); the single rotary is out of sample"}
+    for tag, sel in (("twins", hi.comp_type == "rotary_twin"), ("single_inverter", hi.comp_type != "rotary_twin")):
+        h = hi[sel]
+        for lt, lv in (("r290_level", level_for("rotary_twin_inverter", "R290")), ("lg_sci_pooled", pooled_lg_sci)):
+            hp = rot_form.predict(st_r, Data.of(h, rot_form.speed), lv)
+            highly[f"{tag}_{lt}"] = {
+                "rows": int(len(h)),
+                "data_eta_oi_median": float(h.eta_oi.median()),
+                "model_median": float(np.median(hp)),
+                "ratio_data_model_median": float(np.median(h.eta_oi.to_numpy() / hp)),
+            }
+    # fixed-speed single R290 (Panasonic, flagged 'under development' in the source table: a check, never fit data)
+    p290 = d[(d.source_id == "rating_fixed_single") & (d.refrigerant == "R290") & d.eta_oi.notna()]
+    sp = rot_form.predict(st_r, Data.of(p290, rot_form.speed), level_for("rotary_single_fixed", "R290"))
+    single_r290 = {
+        "rows": int(len(p290)),
+        "source": "Panasonic fixed-speed single rotaries, R290, 50 Hz (flagged under development; check only)",
+        "level_used": level_for("rotary_single_fixed", "R290"),
+        "data_eta_oi_median": float(p290.eta_oi.median()) if len(p290) else None,
+        "model_median": float(np.median(sp)) if len(p290) else None,
+        "ratio_data_model_median": float(np.median(p290.eta_oi.to_numpy() / sp)) if len(p290) else None,
     }
+    lvl_test, lvl_test_table = P.refrigerant_level_test(rot_form, st_r, d, vb["rows"], var_backward)
     repro, pv = verify.reproduce(d), verify.pipeline_variant(d)
     pr_max = {
         "scroll": float(ev.df["scroll"].PR.max()),
@@ -267,7 +307,8 @@ def main(argv: list[str] | None = None) -> int:
     grid = []
     for t, (fam, _) in TYPES.items():
         form, st = chosen[fam]["form"], chosen[fam]["state"]
-        lv = twin_r410a if (t == "rotary_twin_inverter" and twin_r410a) else level_value[t]
+        # the library's level rule for R410A (its own level where the type has R410A rating points)
+        lv = level_value[t] if t == "scroll" else level_for(t, "R410A")
         for n in P.GRID_N:
             e = P.eval_eta(
                 form,
@@ -326,7 +367,10 @@ def main(argv: list[str] | None = None) -> int:
     exclusions_table(d).to_csv(out / "exclusions.csv", index=False)
     inv_cv.to_csv(out / "inverter_cv.csv", index=False, float_format="%.6g")
     pd.concat(split_tables).to_csv(out / "split.csv", index=False, float_format="%.6g")
-    pd.concat(etav_tables).to_csv(out / "eta_v_selection.csv", index=False, float_format="%.6g")
+    lvl_test_table.to_csv(out / "level_by_refrigerant.csv", index=False, float_format="%.6g")
+    for name, table in ev_v["tables"].items():
+        table.to_csv(out / f"{name}.csv", index=False, float_format="%.6g")
+    V.write(var_result, var_cv, var_backward, out)
     grid.to_csv(out / "grid_vs_shipped.csv", index=False, float_format="%.6g")
     lv_tab = pd.concat(
         [
@@ -339,12 +383,44 @@ def main(argv: list[str] | None = None) -> int:
 
     inputs = [
         {"path": str(p.relative_to(REPO_ROOT)), "sha256": _sha(p), "tracked": p.name != "points_copeland_opi.csv"}
-        for p in assemble.input_files()
+        for p in [*assemble.input_files(), assemble.RATING.parent / "regression.json"]
     ]
     types = {}
     for t, (fam, cls) in TYPES.items():
         form, st = chosen[fam]["form"], chosen[fam]["state"]
-        fv, stv, rv = etav[fam]
+        v = ev_v[fam]
+        if fam == "rotary":
+            lv_v = v["levels"][t]
+            eta_v = {
+                "form": v["form"],
+                "candidate": v["candidate"],
+                "terms": v["terms"],
+                "parameters": v["parameters"],
+                "speed_coordinate": "n = N/N_rated",
+                "c0": lv_v["c0_median"],
+                "c0_iqr": lv_v["c0_iqr"],
+                "level_source": f"catalogue rating points of the displacement-regression basis {lv_v['basis']}",
+                "level": lv_v,
+                "regression_consistency": v["regression_consistency"][t],
+                "shape_rows": v["shape_rows"],
+                "shape_machines": v["shape_machines"],
+                "envelope": ev_v["envelope"][t],
+                "uncertainty_above_data": v["high_pr_uncertainty"],
+            }
+        else:
+            eta_v = {
+                "form": v["form"],
+                "candidate": v["candidate"],
+                "terms": v["terms"],
+                "parameters": v["parameters"],
+                "speed_coordinate": "n = N/50 rev/s",
+                "c0": v["c0"],
+                "c0_iqr": v["c0_iqr"],
+                "level_source": "median of the unit levels of the scroll eta_v rows",
+                "rows": v["rows"],
+                "machines": v["machines"],
+                "envelope": ev_v["envelope"][t],
+            }
         types[t] = {
             "family_form": fam,
             "provisional": fam == "rotary",
@@ -368,29 +444,24 @@ def main(argv: list[str] | None = None) -> int:
                 "eta_oi_at_rating_reference": ref_eta[t],
                 "rating_reference": P.RATING_REF,
             },
-            "eta_v": {
-                "form": "eta_v = c0 - c_re*(PR^(1/k) - 1) - c_Lv*(PR - 1)/n",
-                "candidate": fv.name,
-                "c_re": float(stv.theta[0]),
-                "c_Lv": float(stv.theta[1]),
-                "c0": (c0_by_class.get(t, {}).get("c0_median") or rv["c0_median"])
-                if fam == "rotary"
-                else rv["c0_median"],
-                "c0_by_level_class": c0_by_class.get(t) if fam == "rotary" else None,
-                "rows": rv["rows"],
-                "machines": rv["machines"],
-            },
+            "eta_v": eta_v,
             "split": split[fam],
             "hull_PR_N": hulls[fam],
             "power_basis_of_fit": "terminal (sources on the inverter-input basis divided by the drive model I1)",
             "monotonic_check": mono[t],
         }
-    types["rotary_twin_inverter"]["eta_oi"]["level_note"] = (
-        "Use level.by_refrigerant[ref].a_median when the refrigerant is R32 or R410A, else level_a (pooled)."
-    )
+    for t in ("rotary_twin_inverter", "rotary_single_fixed"):
+        own = [r for r, v in levels[t]["by_refrigerant"].items() if v["used_as_level"]]
+        types[t]["eta_oi"]["level_note"] = (
+            f"Use level.by_refrigerant[ref].a_median for {', '.join(own)} (rating points of that refrigerant); any "
+            "other refrigerant takes level_a (pooled over all rating points of the type) -- an extrapolation in "
+            "suction pressure / MEP_s."
+        )
+    rotary_eta_v = {k: v for k, v in ev_v["rotary"].items() if k not in ("levels", "regression_consistency")}
     coeffs = {
         "version": VERSION,
-        "status": "fitted and cross-validated; not wired into src/ (a later step)",
+        "status": "fitted and cross-validated; wired into src/tmhp/compressor_efficiency.py (generated block)",
+        "revision": REVISION,
         "regenerate": "uv run python -m validation.compressor_maps.semi_empirical",
         "inputs": inputs,
         "conventions": {
@@ -415,7 +486,13 @@ def main(argv: list[str] | None = None) -> int:
             "data_range_rps": [15.0, 120.0],
             "load_form_I3": {"theta_beta_gamma": inv_i3.theta.tolist(), "lam_by_inverter": inv_i3.lam},
         },
-        "selection": {"speed_coordinate": speed_tables, "drop_tolerance": P.DROP_TOL},
+        "selection": {
+            "speed_coordinate": speed_tables,
+            "drop_tolerance": P.DROP_TOL,
+            "eta_v_rotary": rotary_eta_v,
+            "eta_v_scroll_old_form": ev_v["scroll"]["old_form"],
+            "rotary_level_by_refrigerant": lvl_test,
+        },
         "sensitivity": {
             "shao_as_inverter_input": {
                 "parameters": dict(zip(rot_form.shape_names, st_alt.theta.tolist(), strict=True)),
@@ -426,6 +503,7 @@ def main(argv: list[str] | None = None) -> int:
         "checks": {
             "gmcc_inverter_input": gmcc,
             "highly_2024": highly,
+            "single_fixed_r290": single_r290,
             "prototype_reproduction": repro,
             "pipeline_variant_bitzer_only": pv,
         },

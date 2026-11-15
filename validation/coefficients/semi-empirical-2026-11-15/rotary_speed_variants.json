@@ -1,7 +1,8 @@
 {
  "variants": {
   "a": {
-   "description": "archive data arrangement: Shao, Ossorio and AREP #26 inform the shared shape",
+   "description": "Shao-informed (the first archive's data arrangement): Shao, Ossorio and AREP #26 inform the shared shape",
+   "default": false,
    "terms": [
     "q2",
     "cL",
@@ -23,15 +24,21 @@
     "kept": false,
     "rule": "kept only if LOCO shape RMSE falls by more than 0.0001"
    },
-   "level_twin": 1.275779,
+   "level_twin": 1.27097,
    "level_twin_by_refrigerant": {
+    "R290": 1.145152,
     "R32": 1.316402,
     "R410A": 1.172723
    },
-   "level_single_fixed": 1.729347
+   "level_single_fixed": 1.729347,
+   "level_single_fixed_by_refrigerant": {
+    "R22": 1.790992,
+    "R410A": 1.692558
+   }
   },
   "b": {
    "description": "Ossorio-anchored: each Shao speed record carries its own level (Shao informs the PR shape only)",
+   "default": true,
    "terms": [
     "q2",
     "cu",
@@ -56,14 +63,20 @@
     "kept": true,
     "rule": "kept only if LOCO shape RMSE falls by more than 0.0001"
    },
-   "level_twin": 0.501171,
+   "level_twin": 0.52336,
    "level_twin_by_refrigerant": {
+    "R290": 0.790146,
     "R32": 0.447823,
     "R410A": 0.567186
    },
-   "level_single_fixed": 0.790302
+   "level_single_fixed": 0.790302,
+   "level_single_fixed_by_refrigerant": {
+    "R22": 0.802211,
+    "R410A": 0.783514
+   }
   }
  },
+ "default": "b",
  "data_speed_ratios": {
   "ossorio_2019_cnit": {
    "ossorio_2019_cnit TPB306F R290 [ossorio_2019_cnit]": {
@@ -90,5 +103,5 @@
    }
   }
  },
- "note": "Level form scaled, relative speed coordinate n = N/N_rated (archive selections). Variant a with the archive terms reproduces the archive parameters. Levels are refitted on the same rating points as the archive with each variant's shape."
+ "note": "Level form scaled, relative speed coordinate n = N/N_rated (the archive's selections on the original data arrangement). Variant b is the default rotary shape of the archive (coefficients.json types.rotary_*); variant a, the original arrangement, is kept as the documented alternative. Levels are refitted on the same rating points with each variant's shape."
 }

@@ -195,9 +195,10 @@ SOURCES: tuple[Source, ...] = (
         "catalogue",
         "terminal",
         "assumed",
-        "check",
-        "Highly R290 inverter rotary catalogue rating points: power basis not printed; compared with the model, "
-        "not fitted.",
+        "level",
+        "Highly R290 inverter rotary catalogue rating points (60 rev/s, ASHRAE 7.2/54.4 C): power basis not printed, "
+        "read as excluding the inverter like LG/SCI (assumed). The seven twin rotaries set the R290 level of "
+        "rotary_twin_inverter; the one single rotary (inverter-driven, no level class) stays a check.",
     ),
     Source(
         "rating_lg_sci_twin",

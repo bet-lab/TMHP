@@ -24,13 +24,13 @@ from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import least_squares
 from scipy.spatial import ConvexHull
 
 from validation.compressor_maps.semi_empirical import cv
 from validation.compressor_maps.semi_empirical.model import (
     N_REF,
     Data,
-    EtaV,
     SemiEmpirical,
     State,
 )
@@ -52,6 +52,14 @@ GRID_REF = {"refrigerant": "R410A", "T_cond_C": 45.0, "superheat_K": 10.0}
 # rated speed used when the selected speed coordinate is relative (twin: 60 Hz rating; fixed: 50 Hz supply)
 N_RATED_DEFAULT = {"scroll": 60.0, "rotary_twin_inverter": 60.0, "rotary_single_fixed": 50.0}
 RATING_REF = {"refrigerant": "R410A", "T_evap_C": 7.2, "T_cond_C": 54.4, "superheat_K": 11.1, "N": 60.0}
+#: A refrigerant gets its own rotary eta_oi level when it has at least this many rating points of the type.
+MIN_POINTS_PER_REFRIGERANT = 3
+LEVEL_RULE = (
+    "level per refrigerant (median over its rating points) where the type has >= 3 rating points of that "
+    "refrigerant; any other refrigerant takes the pooled level (median over all rating points of the type), an "
+    "extrapolation in suction pressure / MEP_s. No loss term supported by the shape cross-validation carries the "
+    "refrigerant dependence with one pooled level (selection.rotary_level_by_refrigerant)."
+)
 
 
 def shape_rows(d: pd.DataFrame, family: str) -> pd.DataFrame:
@@ -298,22 +306,30 @@ def rotary_levels(form: SemiEmpirical, st: State, d: pd.DataFrame) -> tuple[dict
     u["a"] = u.index.map(lv)
     arep = {k: v for k, v in st.levels.items() if k.startswith("arep_rpt26")}
     out: dict = {}
-    tw = u[u.level_class == "rotary_twin_inverter"]
-    out["rotary_twin_inverter"] = {
-        "class": "LG + Mitsubishi SCI inverter twin rotaries, 60 Hz rating points (power read as excluding the inverter)",
-        "machines": int(len(tw)),
-        "a_median": float(tw.a.median()),
-        "a_iqr": [float(tw.a.quantile(0.25)), float(tw.a.quantile(0.75))],
-        "by_refrigerant": {
+
+    def by_ref(g_all: pd.DataFrame) -> dict:
+        return {
             r: {
                 "machines": int(len(g)),
+                "sources": sorted(g.source_id.unique().tolist()),
                 "a_median": float(g.a.median()),
                 "a_iqr": [float(g.a.quantile(0.25)), float(g.a.quantile(0.75))],
                 "eta_oi_median": float(g.eta_oi.median()),
                 "eta_oi_iqr": [float(g.eta_oi.quantile(0.25)), float(g.eta_oi.quantile(0.75))],
+                "used_as_level": bool(len(g) >= MIN_POINTS_PER_REFRIGERANT),
             }
-            for r, g in tw.groupby("refrigerant")
-        },
+            for r, g in g_all.groupby("refrigerant")
+        }
+
+    tw = u[u.level_class == "rotary_twin_inverter"]
+    out["rotary_twin_inverter"] = {
+        "class": "inverter twin rotaries at 60 rev/s rating points: LG + Mitsubishi SCI (R32, R410A) and Highly 2024 "
+        "(R290); power read as excluding the inverter (assumed, not printed)",
+        "machines": int(len(tw)),
+        "a_median": float(tw.a.median()),
+        "a_iqr": [float(tw.a.quantile(0.25)), float(tw.a.quantile(0.75))],
+        "by_refrigerant": by_ref(tw),
+        "rule": LEVEL_RULE,
     }
     fx = u[u.level_class == "rotary_single_fixed"]
     a_fx = np.r_[fx.a.to_numpy(), list(arep.values())]
@@ -323,10 +339,8 @@ def rotary_levels(form: SemiEmpirical, st: State, d: pd.DataFrame) -> tuple[dict
         "a_median": float(np.median(a_fx)),
         "a_iqr": [float(np.quantile(a_fx, 0.25)), float(np.quantile(a_fx, 0.75))],
         "arep26_unit_levels": arep,
-        "by_refrigerant": {
-            r: {"machines": int(len(g)), "a_median": float(g.a.median()), "eta_oi_median": float(g.eta_oi.median())}
-            for r, g in fx.groupby("refrigerant")
-        },
+        "by_refrigerant": by_ref(fx),
+        "rule": LEVEL_RULE,
     }
     return out, u.reset_index()
 
@@ -400,28 +414,108 @@ def hull(df: pd.DataFrame) -> list[list[float]]:
     return [[round(float(pts[i, 0]), 4), round(float(pts[i, 1]), 3)] for i in h.vertices]
 
 
-def fit_eta_v(d: pd.DataFrame, family: str, speed: str) -> tuple[dict, pd.DataFrame]:
-    rows = d[d.use_v & (d.family == family) & (d.role == "shape")].copy()
-    res, table = {}, []
-    for free in (False, True):
-        f = EtaV(family, speed, free)
-        st = f.fit(Data.of(rows, speed, ycol="eta_v"))
-        pred, _ = cv.loco(f, rows, ycol="eta_v", warm=st) if rows.machine.nunique() > 1 else (None, None)
-        summ = cv.loco_summary(rows, pred, ycol="eta_v") if pred is not None else None
-        r = {
-            "family": family,
-            "candidate": f.name,
-            "rows": len(rows),
-            "machines": int(rows.machine.nunique()),
-            "c_re": st.theta[0],
-            "c_Lv": st.theta[1],
-            "c0_median": f.population_level(st),
-            "loco_shape": float(summ.rmse_shape.iloc[0]) if summ is not None else np.nan,
-            "loco_total": float(summ.rmse_total.iloc[0]) if summ is not None else np.nan,
+# ------------------------------------------------------------------------------------------------ level by refrigerant
+LEVEL_TEST_TERMS = ("q0", "q1", "cL", "qf", "cu", "cH")
+
+
+def _term_columns(d: Data) -> dict[str, np.ndarray]:
+    return {
+        "q0": 1e5 / (d.n * d.mep),
+        "q1": 1e5 / d.mep,
+        "cL": (d.pr - 1.0) / d.n,
+        "qf": d.n**2 * 1e4 * d.rho / d.mep,
+        "cu": d.mep / 1e6 / d.n,
+        "cH": d.pr ** ((d.k - 1.0) / d.k) - 1.0,
+    }
+
+
+def refrigerant_level_test(
+    form: SemiEmpirical, st: State, d: pd.DataFrame, shape_rows_b: pd.DataFrame, backward: pd.DataFrame
+) -> tuple[dict, pd.DataFrame]:
+    """Can one pooled level carry R32, R410A and R290 (twin rating points) once the loss terms are right?
+
+    (1) Leave one refrigerant out over the rating points: a pooled level, alone or with one loss-term coefficient
+    fitted on the other two refrigerants' points (added to the shape's value, never below zero in total), predicts the
+    held-out refrigerant; compared with the scatter of each refrigerant around its own median level.
+    (2) Every candidate of the default variant's backward elimination (shape fitted on its data): spread of the
+    per-refrigerant median levels against its shape LOCO error.
+    """
+    rat = d[d.use_oi & (d.level_class == "rotary_twin_inverter")]
+    D = Data.of(rat, form.speed)
+    _, loss, p = form._base_loss(st.theta, D)
+    C = _term_columns(D)
+    ref = rat.refrigerant.to_numpy()
+    refs = sorted(set(ref))
+    rows = []
+    for t in (None, *LEVEL_TEST_TERMS):
+        errs, fits = {}, {}
+        for r in refs:
+            tr = ref != r
+
+            def fun(x, tr=tr, t=t):
+                L = loss[tr] + (x[1] * C[t][tr] if t else 0.0)
+                return 1.0 / (1.0 + x[0] * L) - D.y[tr]
+
+            lo = [0.0, -p.get(t, 0.0) if t else -1e-12]
+            hi = [10.0, 50.0 if t else 1e-12]
+            x = least_squares(fun, [0.5, 0.0], bounds=(lo, hi)).x
+            L = loss[~tr] + (x[1] * C[t][~tr] if t else 0.0)
+            errs[r] = float(np.sqrt(np.mean((1.0 / (1.0 + x[0] * L) - D.y[~tr]) ** 2)))
+            fits[r] = f"a={x[0]:.3f} coef={x[1]:.4g}"
+        rows.append(
+            {
+                "test": "leave one refrigerant out",
+                "candidate": f"pooled level + {t}" if t else "pooled level only",
+                **{f"rmse_{r}": errs[r] for r in refs},
+                "rmse_mean": float(np.mean(list(errs.values()))),
+                "fit_by_heldout": "; ".join(f"{r}: {v}" for r, v in fits.items()),
+            }
+        )
+    lv = form.fit_levels(st, D)
+    own = {}
+    for r in refs:
+        sel = ref == r
+        a = float(np.median([lv[k] for k in rat[sel].unit.unique()]))
+        own[r] = float(np.sqrt(np.mean((form.predict(st, Data.of(rat[sel], form.speed), a) - D.y[sel]) ** 2)))
+    ref_name = "reference: own-refrigerant median level (in sample)"
+    rows.append(
+        {
+            "test": "leave one refrigerant out",
+            "candidate": ref_name,
+            **{f"rmse_{r}": own[r] for r in refs},
+            "rmse_mean": float(np.mean(list(own.values()))),
         }
-        table.append(r)
-        res[f.name] = (f, st, r)
-    t = pd.DataFrame(table)
-    best = t.loc[t.loco_total.idxmin(), "candidate"] if t.loco_total.notna().all() else t.candidate.iloc[-1]
-    t["selected"] = t.candidate == best
-    return res[best], t
+    )
+    seen = set()
+    for _, h in backward[backward.variant == "b"].iterrows():
+        terms = tuple(h.candidate.split(":")[1].split("+"))
+        if terms in seen:
+            continue
+        seen.add(terms)
+        f = SemiEmpirical("rotary", terms, form.speed, form.level)
+        s = f.fit(Data.of(shape_rows_b, f.speed))
+        lvc = f.fit_levels(s, D)
+        med = {r: float(np.median([lvc[k] for k in rat[ref == r].unit.unique()])) for r in refs}
+        rows.append(
+            {
+                "test": "backward candidate of variant b",
+                "candidate": f.name,
+                "loco_shape": float(h.loco_shape),
+                **{f"a_{r}": med[r] for r in refs},
+                "level_spread_max_over_min": max(med.values()) / min(med.values()),
+            }
+        )
+    t = pd.DataFrame(rows)
+    loro = t[t.test == "leave one refrigerant out"].set_index("candidate")
+    best = loro.drop(index=ref_name).rmse_mean.idxmin()
+    cols = [f"rmse_{r}" for r in refs]
+    summary = {
+        "own_level_rmse": own,
+        "pooled_only_rmse": loro.loc["pooled level only", cols].to_dict(),
+        "best_one_term": best,
+        "best_one_term_rmse": loro.loc[best, cols].to_dict(),
+        "verdict": "per-refrigerant levels: no single loss term predicts a held-out refrigerant within the scatter "
+        "around its own level, and the shapes whose levels agree across refrigerants are rejected by the shape "
+        "cross-validation",
+    }
+    return summary, t

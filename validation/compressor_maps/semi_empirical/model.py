@@ -29,7 +29,12 @@ normaliser -- a machine's losses scale together instead of sharing absolute loss
 ``0 < eta_oi <= 1``. (A form ``base + a_u (1 + L)`` was tried first; its fit drove the constant to zero and the loss
 coefficients to their bounds, i.e. it degenerates to this one.)
 
-eta_v (same units)::
+eta_v (same units), the archive's form since the 2026-11-16 revision (:class:`EtaVBounded`, positive by
+construction)::
+
+    eta_v = c0_u exp(-c_re (PR^(1/k) - 1)) / (1 + c_L (PR - 1)/n + c_s/n + c_f n^2)
+
+and the first archive's linear form, kept for comparison (:class:`EtaV`; crosses zero at high PR and low n)::
 
     eta_v = c0_u - c_re (PR^(1/k) - 1) - c_Lv (PR - 1)/n          (V1; V0 fixes c0_u = 1)
 
@@ -398,6 +403,121 @@ class EtaV:
     def predict(self, st: State, d: Data, levels: dict[str, float] | float) -> np.ndarray:
         c = np.array([levels[k] for k in d.units]) if isinstance(levels, dict) else np.full(len(d.units), levels)
         return self.X(d) @ st.theta + c[d.u]
+
+    def population_level(self, st: State, units: list[str] | None = None) -> float:
+        vals = [v for k, v in st.levels.items() if units is None or k in units]
+        return float(np.median(vals)) if vals else 1.0
+
+
+#: Bounds of the bounded eta_v shape parameters (all >= 0: each term can only lower eta_v).
+ETA_V_BOUNDS = {"c_re": (0.0, 0.5), "c_L": (0.0, 5.0), "c_s": (0.0, 5.0), "c_f": (0.0, 5.0)}
+ETA_V_START = {"c_re": 0.02, "c_L": 0.02, "c_s": 0.05, "c_f": 0.01}
+ETA_V_TERMS = ("c_re", "c_L", "c_s", "c_f")
+ETA_V_LEVEL_BOUNDS = (0.2, 2.0)
+
+
+@dataclass(frozen=True)
+class EtaVBounded:
+    """Volumetric efficiency, positive and bounded by construction::
+
+        eta_v = c0_u * exp(-c_re (PR^(1/k) - 1)) / (1 + c_L (PR - 1)/n + c_s/n + c_f n^2)
+
+    * ``exp(-c_re (PR^(1/k) - 1))`` -- clearance re-expansion. The ideal clearance law is
+      ``1 - c_re (PR^(1/k) - 1)`` (``c_re`` the clearance volume over the swept volume); the exponential is the same
+      to first order in ``c_re (PR^(1/k) - 1)`` (0.787 against 0.808 at PR 10, k 1.1, c_re 0.03) and stays positive
+      at any PR.
+    * ``1/(1 + x)`` -- competing outflows. Gas trapped in the compression chamber leaves through the discharge at a
+      rate set by the swept flow (~ n) or back to suction through the leakage paths at a rate set by the pressure
+      difference (``c_L (PR - 1)``); the delivered share is ``n / (n + c_L (PR - 1))``. ``c_s/n`` is a share that
+      does not scale with the pressure difference (suction-gas heating: heat per kilogram ~ time per revolution);
+      ``c_f n^2`` the suction-port pressure drop (~ rho N^2). To first order in ``x`` the denominator is the linear
+      form ``1 - x`` of :class:`EtaV`, which crosses zero at high PR and low speed; ``1/(1 + x)`` cannot.
+
+    Every parameter is >= 0, so eta_v falls monotonically with PR, with falling speed (below the port-drop optimum)
+    and is in ``(0, c0_u]`` for every PR >= 1 and n > 0. Terms not in ``terms`` are zero.
+    """
+
+    family: str
+    speed: str
+    terms: tuple[str, ...] = ("c_re", "c_L")
+    kind: str = "eta_v_bounded"
+
+    @property
+    def name(self) -> str:
+        return f"{self.family}:eta_v_bounded:{'+'.join(self.terms)}:{self.speed}"
+
+    @property
+    def shape_names(self) -> list[str]:
+        return list(self.terms)
+
+    def _parts(self, th: np.ndarray, d: Data) -> tuple[np.ndarray, np.ndarray, dict[str, np.ndarray], dict]:
+        p = dict.fromkeys(ETA_V_TERMS, 0.0)
+        p.update(zip(self.terms, th, strict=True))
+        u = d.pr ** (1.0 / d.k) - 1.0
+        cols = {"c_L": (d.pr - 1.0) / d.n, "c_s": 1.0 / d.n, "c_f": d.n**2}
+        den = 1.0 + sum(p[t] * c for t, c in cols.items())
+        clr = np.exp(-p["c_re"] * u)
+        return clr, den, {"c_re": u, **cols}, p
+
+    def shape(self, th: np.ndarray, d: Data) -> np.ndarray:
+        clr, den, _, _ = self._parts(th, d)
+        return clr / den
+
+    def eta(self, th: np.ndarray, c0: np.ndarray, d: Data) -> np.ndarray:
+        return c0[d.u] * self.shape(th, d)
+
+    def fit(self, d: Data, warm: State | None = None) -> State:
+        ns, nu = len(self.terms), len(d.units)
+        th0 = np.array([ETA_V_START[t] for t in self.terms])
+        if warm is not None and len(warm.theta) == ns:
+            th0 = np.clip(
+                warm.theta, [ETA_V_BOUNDS[t][0] for t in self.terms], [ETA_V_BOUNDS[t][1] for t in self.terms]
+            )
+        s0 = self.shape(th0, d)
+        c00 = np.array([np.median(d.y[d.u == i] / s0[d.u == i]) for i in range(nu)])
+        if warm is not None:
+            c00 = np.array([warm.levels.get(k, v) for k, v in zip(d.units, c00, strict=True)])
+        lo = np.r_[[ETA_V_BOUNDS[t][0] for t in self.terms], np.full(nu, ETA_V_LEVEL_BOUNDS[0])]
+        hi = np.r_[[ETA_V_BOUNDS[t][1] for t in self.terms], np.full(nu, ETA_V_LEVEL_BOUNDS[1])]
+        x0 = np.clip(np.r_[th0, c00], lo + 1e-12, hi - 1e-12)
+        sw = np.sqrt(d.w)
+
+        def fun(x):
+            return sw * psi(self.eta(x[:ns], x[ns:], d) - d.y)[0]
+
+        def jac(x):
+            th, c0 = x[:ns], x[ns:]
+            clr, den, cols, _ = self._parts(th, d)
+            e = c0[d.u] * clr / den
+            g = psi(e - d.y)[1] * sw
+            J = np.zeros((len(d.y), ns + nu))
+            for j, t in enumerate(self.terms):
+                J[:, j] = g * (-cols[t] * e if t == "c_re" else -e * cols[t] / den)
+            J[np.arange(len(d.y)), ns + d.u] = g * clr / den
+            return J
+
+        r = least_squares(fun, x0, jac=jac, bounds=(lo, hi), method="trf", x_scale="jac", max_nfev=400)
+        return State(r.x[:ns].copy(), dict(zip(d.units, r.x[ns:].tolist(), strict=True)))
+
+    def fit_levels(self, st: State, d: Data) -> dict[str, float]:
+        """Level of each unit with the shape fixed (weighted Huber, one parameter per unit)."""
+        s = self.shape(st.theta, d)
+        out = {}
+        for i, name in enumerate(d.units):
+            m = d.u == i
+            y, sm, w = d.y[m], s[m], np.sqrt(d.w[m])
+            c0 = float(np.clip(np.median(y / sm), ETA_V_LEVEL_BOUNDS[0] + 1e-9, ETA_V_LEVEL_BOUNDS[1] - 1e-9))
+
+            def fun(c, y=y, sm=sm, w=w):
+                return w * psi(c[0] * sm - y)[0]
+
+            r = least_squares(fun, [c0], bounds=([ETA_V_LEVEL_BOUNDS[0]], [ETA_V_LEVEL_BOUNDS[1]]))
+            out[name] = float(r.x[0])
+        return out
+
+    def predict(self, st: State, d: Data, levels: dict[str, float] | float) -> np.ndarray:
+        c = np.array([levels[k] for k in d.units]) if isinstance(levels, dict) else np.full(len(d.units), levels)
+        return self.eta(st.theta, c, d)
 
     def population_level(self, st: State, units: list[str] | None = None) -> float:
         vals = [v for k, v in st.levels.items() if units is None or k in units]

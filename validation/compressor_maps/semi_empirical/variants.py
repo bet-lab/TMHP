@@ -1,6 +1,8 @@
 """Rotary speed-shape variants (DESIGN 11.3 item 2): which sources inform the rotary speed terms.
 
-The archive's rotary shape (variant ``a``) is fitted on Shao 2004, Ossorio 2019 and AREP #26 together; its
+Variant ``b`` (Ossorio-anchored) is the archive's default rotary shape since the 2026-11-16 revision (owner-delegated
+decision, DESIGN 12); variant ``a`` is the documented alternative. The first archive's rotary shape (variant ``a``,
+"Shao-informed") is fitted on Shao 2004, Ossorio 2019 and AREP #26 together; its
 low-speed fall is a compromise between Shao (-23 % at 30 rev/s, power basis not stated) and Ossorio (-2 %, measured
 with the drive separated). Variant ``b`` ("Ossorio-anchored") keeps Shao out of the *speed* shape: every Shao speed
 record becomes its own unit with its own level, so Shao's level-versus-speed variation is absorbed by the record
@@ -11,15 +13,17 @@ relative weight of the terms inside a Shao record still depends on that record's
 
 For both variants the archive's selection rule (backward elimination from every candidate rotary term on the LOCO
 shape RMSE, ``pipeline.DROP_TOL``) picks the terms on that variant's data arrangement; variant ``a`` thereby
-reproduces the archive. The same rule is then applied explicitly to the high-speed side: the candidate term
+reproduces the first archive's rotary fit. The same rule is then applied explicitly to the high-speed side: the candidate term
 ``qf`` (port/valve flow loss ~ rho N^2, which makes the efficiency fall at high speed) is kept only if it lowers the
 leave-one-machine-out shape RMSE by more than ``pipeline.DROP_TOL``; the cross-validation numbers are written
 either way. Level form (``scaled``) and speed coordinate (relative) are the archive's selections and are not
 re-selected here.
 
-Writes ``validation/coefficients/semi-empirical-2026-11-15/rotary_speed_variants.json`` and
-``rotary_speed_variants_cv.csv``. Needs the same inputs as the archive run (including the untracked Copeland point
-file, because ``assemble.build`` reads every source)::
+Writes ``validation/coefficients/semi-empirical-2026-11-15/rotary_speed_variants.json``,
+``rotary_speed_variants_cv.csv`` and ``rotary_speed_variants_backward.csv``; the archive run
+(``python -m validation.compressor_maps.semi_empirical``) calls :func:`run_variants` and writes them with the rest.
+Needs the same inputs as the archive run (including the untracked Copeland point file, because ``assemble.build``
+reads every source)::
 
     uv run python -m validation.compressor_maps.semi_empirical.variants
 """
@@ -42,9 +46,12 @@ HIGH_SPEED_TERM = "qf"
 SPEED = "rel"
 LEVEL = "scaled"
 VARIANTS = {
-    "a": "archive data arrangement: Shao, Ossorio and AREP #26 inform the shared shape",
+    "a": "Shao-informed (the first archive's data arrangement): Shao, Ossorio and AREP #26 inform the shared shape",
     "b": "Ossorio-anchored: each Shao speed record carries its own level (Shao informs the PR shape only)",
 }
+#: The default rotary speed shape (owner-delegated decision, DESIGN 12: the measured modern source with the drive
+#: measured separately, and the variant whose high-speed term the cross-validation supports).
+DEFAULT = "b"
 
 
 def arrange(rot: pd.DataFrame, variant: str) -> pd.DataFrame:
@@ -83,13 +90,17 @@ def data_ratios(rows: pd.DataFrame, source: str) -> dict[str, dict[str, float]]:
     return out
 
 
-def main() -> int:
-    inv_fit = inv.default_model(inv.load())
-    d = assemble.build(inv_fit)
+def run_variants(d: pd.DataFrame) -> tuple[dict, pd.DataFrame, pd.DataFrame, dict]:
+    """Both variants on the fit table ``d``: (json result, CV table, backward table, per-variant fit objects).
+
+    The fit objects (``form``, ``state``, the variant's ``Evaluator``) let the archive run use the default variant's
+    fit itself, so ``coefficients.json`` and ``rotary_speed_variants.json`` cannot drift apart.
+    """
     rot = P.shape_rows(d, "rotary")
     cv_rows: list[dict] = []
     backward_rows: list[dict] = []
-    result: dict = {"variants": {}}
+    result: dict = {"variants": {}, "default": DEFAULT}
+    fits: dict = {}
     for v, what in VARIANTS.items():
         rows = arrange(rot, v)
         ev = P.Evaluator({"rotary": rows})
@@ -136,8 +147,10 @@ def main() -> int:
         form, st, _ = scores["selected terms with qf"] if keep_hs else scores["selected terms without qf"]
         levels, _ = P.rotary_levels(form, st, d)
         params = dict(zip(form.shape_names, st.theta.tolist(), strict=True))
+        fits[v] = {"form": form, "state": st, "evaluator": ev, "rows": rows}
         result["variants"][v] = {
             "description": what,
+            "default": v == DEFAULT,
             "terms": list(form.terms),
             "backward_elimination_selected": list(terms),
             "parameters": params,
@@ -150,23 +163,42 @@ def main() -> int:
             },
             "level_twin": levels["rotary_twin_inverter"]["a_median"],
             "level_twin_by_refrigerant": {
-                r: x["a_median"] for r, x in levels["rotary_twin_inverter"]["by_refrigerant"].items()
+                r: x["a_median"]
+                for r, x in levels["rotary_twin_inverter"]["by_refrigerant"].items()
+                if x["used_as_level"]
             },
             "level_single_fixed": levels["rotary_single_fixed"]["a_median"],
+            "level_single_fixed_by_refrigerant": {
+                r: x["a_median"]
+                for r, x in levels["rotary_single_fixed"]["by_refrigerant"].items()
+                if x["used_as_level"]
+            },
         }
     result["data_speed_ratios"] = {
         "ossorio_2019_cnit": data_ratios(rot, "ossorio_2019_cnit"),
         "shao_2004": data_ratios(rot, "shao_2004"),
     }
     result["note"] = (
-        "Level form scaled, relative speed coordinate n = N/N_rated (archive selections). Variant a with the "
-        "archive terms reproduces the archive parameters. Levels are refitted on the same rating points as the "
-        "archive with each variant's shape."
+        "Level form scaled, relative speed coordinate n = N/N_rated (the archive's selections on the original data "
+        "arrangement). Variant b is the default rotary shape of the archive (coefficients.json types.rotary_*); "
+        "variant a, the original arrangement, is kept as the documented alternative. Levels are refitted on the "
+        "same rating points with each variant's shape."
     )
-    table = pd.DataFrame(cv_rows)
-    table.to_csv(ARCHIVE / "rotary_speed_variants_cv.csv", index=False, float_format="%.6g")
-    pd.DataFrame(backward_rows).to_csv(ARCHIVE / "rotary_speed_variants_backward.csv", index=False, float_format="%.6g")
-    (ARCHIVE / "rotary_speed_variants.json").write_text(json.dumps(_clean(result), indent=1) + "\n")
+    return result, pd.DataFrame(cv_rows), pd.DataFrame(backward_rows), fits
+
+
+def write(result: dict, table: pd.DataFrame, backward: pd.DataFrame, out=ARCHIVE) -> None:
+    table.to_csv(out / "rotary_speed_variants_cv.csv", index=False, float_format="%.6g")
+    backward.to_csv(out / "rotary_speed_variants_backward.csv", index=False, float_format="%.6g")
+    (out / "rotary_speed_variants.json").write_text(json.dumps(_clean(result), indent=1) + "\n")
+
+
+def main() -> int:
+    """Write the variant files alone (the archive run ``python -m ...semi_empirical`` writes them too)."""
+    inv_fit = inv.default_model(inv.load())
+    d = assemble.build(inv_fit)
+    result, table, backward, _ = run_variants(d)
+    write(result, table, backward)
     print(table.to_string())
     print(json.dumps(_clean(result["variants"]), indent=1))
     return 0

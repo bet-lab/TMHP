@@ -261,12 +261,26 @@ point for one of the reasons below and a smaller duty has one,
 
 The result is a running point with ``capacity_clamped == "max"``,
 ``Q_max [W]`` (the duty delivered) and ``Q_request [W]`` (the duty asked for);
-``capacity_binding`` names the limit the next larger duty tried ran into, or
-``"pressure_ratio"`` when the point returned sits on ``PR_cycle_max`` (the
-source heat exchanger then asks for a larger approach than the ceiling leaves
-it). ``"compressor"`` remains the value for the speed ceiling ``rps_max``.
-When no smaller duty runs, the result is the off state with the request's own
-``failure_reason``.
+``capacity_binding`` names the limit that is active *at the point returned* --
+what bounds its delivered duty, not where the duty search stopped -- so every
+request that lands on the same operating point reports the same limit. When
+more than one is active, the first of these names it:
+
+1. ``"pressure_ratio"`` -- the point sits on ``PR_cycle_max`` (the source heat
+   exchanger then asks for a larger approach than the ceiling leaves it);
+2. ``"compressor"`` -- the point's own solve already runs at the speed ceiling
+   ``rps_max``. Every larger duty asked for delivers this same point, so a
+   refusal further up the search belongs to the request, not to the point
+   (an 8 kW R290 ASHPB at W55/A-12 delivers 8,998 W at ``rps_max`` for a
+   request of 12, 20 or 40 kW alike, and reports ``"compressor"`` for all
+   three, although the 40 kW search was refused by the outdoor coil above
+   about 33 kW of gross duty);
+3. the limit the next larger duty tried ran into -- the search closed on that
+   limit's boundary.
+
+``"compressor"`` is also the value for a request met at the speed ceiling
+without any reduction. When no smaller duty runs, the result is the off state
+with the request's own ``failure_reason``.
 
 Not reduced: ``cycle_invalid`` for any other cause, ``t_cond_below_t_in`` and
 ``optimizer_failed``. A request with no cycle at all is, with the boilers, a

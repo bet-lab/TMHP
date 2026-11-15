@@ -267,7 +267,7 @@ def test_dt_cycle_min_removed(cls, kwargs):
 
 
 # ---------------------------------------------------------------------------
-# Compressor pressure-ratio envelope + rps search bounds (#166, #188)
+# Compressor pressure-ratio envelope + rps search bounds
 # Applied to the whole HP family (ASHP / ASHPB / GSHP / GSHPB / WSHPB): the PR
 # floor/ceiling is now the single operating-point guard after the dT_cycle_min
 # fixed-lift guard was removed. Ceiling default tightened 10 -> 5 for the

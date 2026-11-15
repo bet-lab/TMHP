@@ -26,6 +26,10 @@ from tmhp.ground_source_heat_pump_boiler import COIL_PEAK_KEY
 
 T_COND = "T_ref_cond_sat_l [°C]"
 
+# The levels below are stated for the earlier tank heat exchanger, a coil of hp_capacity / 5 without
+# circulating water (5 K above the water around it at the nameplate): the earlier default machine.
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 
 def _quiet(fn, *args, **kwargs):
     with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):

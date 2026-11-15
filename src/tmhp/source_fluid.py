@@ -31,13 +31,15 @@ Operating lower limit
 liquid in the loop: in heating the liquid leaving the heat pump
 (``T_bhe_f_in [°C]``). Two things set the margin.
 
-- The evaporator surface is colder than the liquid leaving it. With the
-  default source heat exchanger (``UA = 0.18 * hp_capacity``) and the default
-  flow (3 K loop temperature difference at the rated source heat) the
-  refrigerant evaporates 2.9 K below the leaving liquid at the rated duty
-  (effectiveness 0.51: ``3 K / 0.51 - 3 K``). A 3 K margin therefore keeps the
-  refrigerant, and with it the plate surface, at or above the freezing point
-  at that duty.
+- The evaporator surface is colder than the liquid leaving it. The default
+  source heat exchanger holds the leaving-end approach real brine-to-refrigerant
+  evaporators print (3.5 K at their duty, :func:`tmhp.default_inputs.estimate_hx_UA`);
+  with the default flow (3 K loop temperature difference at the rated source
+  heat) the refrigerant evaporates 3.4 K below the leaving liquid at the rated
+  duty (effectiveness 0.47: ``3 K / 0.47 - 3 K``). A 3 K margin therefore keeps
+  the refrigerant within about 0.4 K of the freezing point at that duty (the
+  earlier ``UA = 0.18 * hp_capacity`` evaporated 2.9 K below the leaving
+  liquid, inside the margin).
 - Manufacturers of water-to-water and water-to-air units ask for antifreeze
   whenever the loop may enter the unit below 40-45 °F (4.4-7.2 °C), and for a
   freezing point 10-15 °F (5.6-8.3 K) below the lowest entering temperature

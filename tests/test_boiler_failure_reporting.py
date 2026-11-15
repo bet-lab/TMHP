@@ -151,11 +151,13 @@ _COLLAPSE_CASES = [
 # The #96 points were found with the former capacity-independent heat
 # exchangers of the liquid-source boilers (500 W/K, 24 L/min, 200 W pump);
 # with the capacity-scaled defaults the same inputs stay below PR 7.15.
-# Their 16 K condenser approach rates R410A at 71 °C condensing, above its
-# condensing limit (65 °C), so that limit is off for these recorded machines.
+# Their 16 K condenser approach (a tank coil without circulating water) rates R410A at 71 °C condensing,
+# above its condensing limit (65 °C), so that limit is off for these recorded machines.
 _LEGACY_HX = {
-    "GSHPB": dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0, T_cond_max=None),
-    "WSHPB": dict(UA_tank_hx=500.0, UA_water=500.0, dV_b_f_lpm=24.0, E_pmp=200.0, T_cond_max=None),
+    "GSHPB": dict(
+        UA_tank_hx=500.0, m_dot_w_rated=0.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0, T_cond_max=None
+    ),
+    "WSHPB": dict(UA_tank_hx=500.0, m_dot_w_rated=0.0, UA_water=500.0, dV_b_f_lpm=24.0, E_pmp=200.0, T_cond_max=None),
 }
 _FAMILY_CLASS = {
     "ASHPB": AirSourceHeatPumpBoiler,
@@ -232,15 +234,17 @@ def _tank_balance_residual(model, df, T_init: float, dt: float, T_sup: float) ->
 def gshpb_failing_run():
     """Default GSHPB from just below its hysteresis floor, four 300 s steps.
 
-    The former default machine (R410A, UA_tank_hx 500 W/K, 8 kW) condenses 16 K
-    above the tank, so above ~55.4 °C it would condense beyond the R410A
+    The former default machine (R410A, UA_tank_hx 500 W/K without circulating
+    water, 8 kW) condenses 16 K above the tank, so above ~55.4 °C it would condense beyond the R410A
     critical point (71.3 °C): the first step heats the 100 L tank to ~60 °C
     and every later step is called but has no cycle. Before #96 each of those
     steps still put the requested 8 kW into the tank. (R410A and no condensing
     limit are spelled out: this is the machine the defect was found on.)
     """
     dt, n = 300.0, 4
-    model = GroundSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400, UA_tank_hx=500.0, ref="R410A", T_cond_max=None)
+    model = GroundSourceHeatPumpBoiler(
+        dt_s=dt, t_max_s=86400, UA_tank_hx=500.0, m_dot_w_rated=0.0, ref="R410A", T_cond_max=None
+    )
     df = model.analyze_dynamic(
         n * dt,
         dt,
@@ -331,7 +335,7 @@ def wshpb_failing_run():
     GSHPB: its 16 K condenser approach also crosses the R410A critical point
     once the tank passes ~55.4 °C."""
     dt, n = 300.0, 3
-    model = WaterSourceHeatPumpBoiler(UA_tank_hx=500.0, ref="R410A", T_cond_max=None)
+    model = WaterSourceHeatPumpBoiler(UA_tank_hx=500.0, m_dot_w_rated=0.0, ref="R410A", T_cond_max=None)
     df = model.analyze_dynamic(
         n * dt,
         dt,

@@ -15,7 +15,13 @@ import warnings
 
 import pytest
 
-from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler, GroundSourceHeatPump
+from tmhp import (
+    AirSourceHeatPump,
+    AirSourceHeatPumpBoiler,
+    GroundSourceHeatPump,
+    GroundSourceHeatPumpBoiler,
+    WaterSourceHeatPumpBoiler,
+)
 from tmhp.air_properties import air_heat_capacity_rate
 from tmhp.constants import c_w
 from tmhp.default_inputs import _artifact, hx_duty_per_nameplate
@@ -398,3 +404,110 @@ def test_gshp_conductance_exists_at_any_flow(factor: float) -> None:
     )
     for UA in (model.UA_ground_rated, model.UA_ground_evap_rated, model.UA_iu_rated):
         assert math.isfinite(UA) and UA > 0
+
+
+# ---------------------------------------------------------------------------
+# GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler: plate condenser and liquid-source evaporator
+# ---------------------------------------------------------------------------
+SOURCE_BOILERS = {
+    "GSHPB": (GroundSourceHeatPumpBoiler, "UA_ground", 0.0, {"t_max_s": 86400.0}),
+    "WSHPB": (WaterSourceHeatPumpBoiler, "UA_water", 10.0, {}),
+}
+
+
+def source_heat_capacity_rate(model) -> float:
+    return model.dV_b_f_m3s * model.source_fluid.rho * model.source_fluid.cp
+
+
+@pytest.mark.parametrize("family", list(SOURCE_BOILERS))
+@pytest.mark.parametrize("capacity", CAPACITIES)
+def test_source_boiler_defaults_reproduce_the_law_through_the_coil_equation(family: str, capacity: float) -> None:
+    cls, source, _, extra = SOURCE_BOILERS[family]
+    model = build(cls, hp_capacity=capacity, **extra)
+    assert model.m_dot_w_rated == pytest.approx(capacity / (c_w * 5.0))
+    condenser = leaving_approach(model.UA_tank_hx, model.m_dot_w_rated * c_w, capacity)
+    assert condenser == pytest.approx(law_leaving_approach(BPHE_COND), abs=ROUND_TRIP_TOL_K)
+    duty = hx_duty_per_nameplate(GROUND_EVAP, "heating") * capacity
+    evaporator = leaving_approach(getattr(model, source), source_heat_capacity_rate(model), duty)
+    assert evaporator == pytest.approx(law_leaving_approach(GROUND_EVAP), abs=ROUND_TRIP_TOL_K)
+
+
+@pytest.mark.parametrize("family", list(SOURCE_BOILERS))
+@pytest.mark.parametrize("capacity", CAPACITIES)
+def test_source_boiler_rating_points_run_at_the_law_approach(family: str, capacity: float) -> None:
+    """EN 14511 B0/W35 (GSHPB) and W10/W35 (WSHPB): water entering at 30 degC at the rated flow."""
+    cls, source, T_source, extra = SOURCE_BOILERS[family]
+    model = build(cls, hp_capacity=capacity, **extra)
+    row = model.analyze_steady(T_tank_w=30.0, T_source=T_source, Q_ref_tank=capacity)
+    assert row["failure_reason"] == "none" and row["Q_ref_tank [W]"] == pytest.approx(capacity)
+    C_w = model.m_dot_w_rated * c_w
+    check_cycle_approach(
+        f"{family} {capacity:.0f} W condenser",
+        law=law_leaving_approach(BPHE_COND),
+        model_dT=row["dT_ref_tank [K]"] - row["Q_ref_tank [W]"] / C_w,
+        UA_rated=model.UA_tank_hx,
+        flow=model.m_dot_w_rated,
+        flow_rated=model.m_dot_w_rated,
+        exponent=0.0,
+        C=C_w,
+        duty=row["Q_ref_tank [W]"],
+        duty_rated=capacity,
+    )
+    C = source_heat_capacity_rate(model)
+    duty = row["Q_ref_ground [W]" if family == "GSHPB" else "Q_ref_water [W]"]
+    T_entering = T_source + row["E_pmp [W]"] / C  # the pump's heat warms the loop before the exchanger
+    check_cycle_approach(
+        f"{family} {capacity:.0f} W source evaporator",
+        law=law_leaving_approach(GROUND_EVAP),
+        model_dT=T_entering - row["T_ref_evap_sat [°C]"] - duty / C,
+        UA_rated=getattr(model, source),
+        flow=row["dV_bhe_f [m3/s]"],
+        flow_rated=model.dV_b_f_m3s,
+        exponent=0.0,
+        C=C,
+        duty=duty,
+        duty_rated=hx_duty_per_nameplate(GROUND_EVAP, "heating") * capacity,
+    )
+
+
+@pytest.mark.parametrize("family", list(SOURCE_BOILERS))
+def test_source_boiler_given_conductances_and_flow_are_used_as_given(family: str) -> None:
+    cls, source, _, extra = SOURCE_BOILERS[family]
+    model = build(cls, hp_capacity=8000.0, UA_tank_hx=1500.0, **{source: 900.0}, **extra)
+    assert (model.UA_tank_hx, getattr(model, source)) == (1500.0, 900.0)
+    assert not {"UA_tank_hx", source} & set(model.default_input_estimates)
+    flow = build(cls, hp_capacity=8000.0, m_dot_w_rated=0.5, **extra)
+    assert flow.m_dot_w_rated == 0.5
+    assert leaving_approach(flow.UA_tank_hx, 0.5 * c_w, 8000.0) == pytest.approx(law_leaving_approach(BPHE_COND))
+    estimates = build(cls, hp_capacity=8000.0, **extra).default_input_estimates
+    assert (estimates["UA_tank_hx"].key, estimates[source].key) == (BPHE_COND, GROUND_EVAP)
+
+
+@pytest.mark.parametrize("family", list(SOURCE_BOILERS))
+@pytest.mark.parametrize("factor", (0.85, 1.15))
+def test_source_boiler_conductance_exists_at_any_flow(family: str, factor: float) -> None:
+    cls, source, _, extra = SOURCE_BOILERS[family]
+    reference = build(cls, hp_capacity=8000.0, **extra)
+    flow_name = "ground_flow_ref_lpm" if family == "GSHPB" else "dV_b_f_lpm"
+    model = build(
+        cls,
+        hp_capacity=8000.0,
+        m_dot_w_rated=factor * reference.m_dot_w_rated,
+        **{flow_name: factor * reference.dV_b_f_m3s * 60000.0},
+        **extra,
+    )
+    for UA in (model.UA_tank_hx, getattr(model, source)):
+        assert math.isfinite(UA) and UA > 0
+
+
+@pytest.mark.parametrize("family", list(SOURCE_BOILERS))
+def test_source_boiler_without_circulating_water_is_the_previous_machine(family: str) -> None:
+    cls, source, T_source, extra = SOURCE_BOILERS[family]
+    previous = {"UA_tank_hx": 8000.0 / 5.0, source: 0.18 * 8000.0}
+    model = build(cls, hp_capacity=8000.0, m_dot_w_rated=0.0, **previous, **extra)
+    assert model.rated_condition.load == HXSide("tank", 55.0, 8000.0 / 5.0)
+    assert model.K_tank_hx == 8000.0 / 5.0
+    row = model.analyze_steady(T_tank_w=40.0, T_source=T_source, Q_ref_tank=6000.0)
+    assert row["dT_ref_tank [K]"] == pytest.approx(6000.0 / 1600.0, rel=1e-9)
+    with pytest.raises(ValueError, match="UA_tank_hx"):
+        build(cls, hp_capacity=8000.0, m_dot_w_rated=0.0, **extra)

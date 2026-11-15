@@ -237,6 +237,7 @@ def _historical_efficiency_plant():
         eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr,
         eta_cmp=0.855,
         UA_tank_hx=500.0,
+        m_dot_w_rated=0.0,  # the recorded tank coil had no circulating water
         UA_ground=500.0,
         ground_flow_ref_lpm=24.0,
         E_pmp=200.0,

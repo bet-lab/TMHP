@@ -30,7 +30,9 @@
       ``UA_tank_hx = hp_capacity / 5`` without circulating water
       (``m_dot_w_rated = 0``) and ``UA_ou_rated = 0.7 UA_tank_hx``;
       ``GroundSourceHeatPump`` ``UA_ground_rated = 0.18 hp_capacity`` for both
-      roles and ``UA_iu_rated = 0.08 hp_capacity``.
+      roles and ``UA_iu_rated = 0.08 hp_capacity``; ``GroundSourceHeatPumpBoiler``
+      and ``WaterSourceHeatPumpBoiler`` ``UA_tank_hx = hp_capacity / 5`` without
+      circulating water and a source exchanger of ``0.18 hp_capacity``.
 
     These are explicit inputs given on the test's behalf -- the constructors
     still take them through ``default_input_estimates`` -- so the scenario
@@ -53,7 +55,13 @@ from typing import Any
 import pytest
 
 import tmhp.reference_state as reference_state
-from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler, GroundSourceHeatPump
+from tmhp import (
+    AirSourceHeatPump,
+    AirSourceHeatPumpBoiler,
+    GroundSourceHeatPump,
+    GroundSourceHeatPumpBoiler,
+    WaterSourceHeatPumpBoiler,
+)
 from tmhp.compressor_speed import default_displacement
 
 MARKER = "earlier_defaults"
@@ -133,6 +141,17 @@ EARLIER_UA_RULES: tuple[tuple[type, tuple[EarlierRule, ...]], ...] = (
             ),
             EarlierRule("UA_iu_rated", lambda a: 0.08 * a["hp_capacity"], _GSHP_ROLE_NAMES),
         ),
+    ),
+    *(
+        (
+            cls,
+            (
+                EarlierRule("UA_tank_hx", lambda a: a["hp_capacity"] / 5.0, ("UA_tank", "UA_cond_design")),
+                EarlierRule("m_dot_w_rated", lambda a: 0.0),
+                EarlierRule(source, lambda a: 0.18 * a["hp_capacity"], ("UA_evap_design",)),
+            ),
+        )
+        for cls, source in ((GroundSourceHeatPumpBoiler, "UA_ground"), (WaterSourceHeatPumpBoiler, "UA_water"))
     ),
 )
 

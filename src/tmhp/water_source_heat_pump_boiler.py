@@ -44,6 +44,7 @@ from ._source_boiler import (
     default_source_flow_lpm,
     default_source_hx_UA,
     default_tank_hx_UA,
+    rated_circulation_flow,
     rated_source_heat,
     warn_if_field_overloaded,
     warn_if_laminar,
@@ -101,7 +102,7 @@ from .enex_functions import (
     calc_mixing_valve_flows,
     calc_mixing_valve_temp,
 )
-from .heat_exchanger import calc_phase_change_hx_effectiveness
+from .heat_exchanger import calc_phase_change_hx_effectiveness, calc_tank_hx_conductance, tank_hx_rating_side
 from .heat_transfer import calc_simple_tank_UA
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
@@ -148,8 +149,12 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
     ``hp_capacity`` and ``ref`` are enough to build a machine; the sizes left
     as ``None`` follow the capacity (:mod:`tmhp._source_boiler`), so the rated
-    cycle is the same at every capacity: ``UA_tank_hx = hp_capacity / 5``,
-    ``UA_water = 0.18 * hp_capacity``, source-loop flow ``dV_b_f_lpm =
+    cycle is the same at every capacity: ``UA_tank_hx`` a plate condenser at
+    the rated circulation flow ``m_dot_w_rated = hp_capacity / (c_w
+    dT_w_rated)`` (5 K rise; the tank water enters it) and ``UA_water`` the
+    source evaporator at the rated source flow, both sized to the leaving-end
+    approach of real exchangers (:func:`tmhp.default_inputs.estimate_hx_UA`,
+    recorded in ``default_input_estimates``), source-loop flow ``dV_b_f_lpm =
     0.75 * hp_capacity / (rho c * 3 K)`` (3.58 L/min per kW), ``E_pmp =
     75 W/ton * hp_capacity`` (21.3 W per kW), and a submerged coil ``H_b`` of
     200 m or as long as the rated source-side heat needs at 50 W/m. A value
@@ -294,6 +299,14 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         T_cond_max: float | Literal["auto"] | None = "auto",
         m_dot_ref_rated: float | None = None,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
+        # Tank heat exchanger: an external plate condenser fed with tank water
+        # by a circulation pump. dT_w_rated [K] is the water temperature rise
+        # across it at hp_capacity (EN 14511 30/35 degC rating), m_dot_w_rated
+        # [kg/s] the circulation flow (None: hp_capacity / (c_w dT_w_rated);
+        # 0.0: no flow, a coil working against the tank temperature, whose
+        # UA_tank_hx must then be given).
+        dT_w_rated: float = 5.0,
+        m_dot_w_rated: float | None = None,
         # Deprecated:
         refrigerant: str | None = None,
         V_disp_cmp: float | None = None,
@@ -349,19 +362,25 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
         if UA_tank_hx is None:
-            UA_tank_hx = (
-                UA_tank
-                if UA_tank is not None
-                else (UA_cond_design if UA_cond_design is not None else default_tank_hx_UA(hp_capacity))
-            )
+            UA_tank_hx = UA_tank if UA_tank is not None else UA_cond_design
+        # Tank heat exchanger: the plate condenser at the rated circulation flow
+        # (tmhp._source_boiler); the tank water entering it is the tank temperature.
+        self.dT_w_rated: float = float(dT_w_rated)
+        self.m_dot_w_rated: float = rated_circulation_flow(hp_capacity, self.dT_w_rated, m_dot_w_rated)
+        if UA_tank_hx is None:
+            UA_tank_hx = self._use_default_input("UA_tank_hx", default_tank_hx_UA(hp_capacity, self.m_dot_w_rated))
         if UA_water is None:
-            UA_water = UA_evap_design if UA_evap_design is not None else default_source_hx_UA(hp_capacity)
+            UA_water = UA_evap_design
+        if UA_water is None:
+            # The source evaporator at the rated source flow of the loop liquid.
+            C_source = dV_b_f_lpm / 60000 * fluid.rho * fluid.cp
+            UA_water = self._use_default_input("UA_water", default_source_hx_UA(hp_capacity, C_source))
         warn_if_setpoint_unreachable(
             what="WaterSourceHeatPumpBoiler",
             ref=ref,
             T_tank_w_upper_bound=T_tank_w_upper_bound,
             hp_capacity=hp_capacity,
-            UA_tank_hx=UA_tank_hx,
+            K_tank_hx=calc_tank_hx_conductance(UA_tank_hx, self.m_dot_w_rated),
         )
 
         self.tank_physical = {
@@ -601,14 +620,19 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
     @property
     def K_tank_hx(self) -> float:
-        """Heat the tank heat exchanger carries per kelvin of condensing temperature above the tank water [W/K]."""
-        return float(self.UA_tank_hx)
+        """Heat the tank heat exchanger carries per kelvin of condensing temperature above the tank water [W/K].
+
+        ``C_w (1 - exp(-UA_tank_hx / C_w))`` with ``C_w = m_dot_w_rated c_w`` (the
+        plate condenser at its rated circulation flow, the tank water entering
+        it), or ``UA_tank_hx`` without circulating water (``m_dot_w_rated = 0``).
+        """
+        return calc_tank_hx_conductance(self.UA_tank_hx, self.m_dot_w_rated)
 
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
-        """Source-water evaporator (source) and tank-immersed condenser (load)."""
+        """Source-water evaporator (source) and the tank heat exchanger (load, rated at the standard's water outlet)."""
         if role == "source":
             return HXSide("water", T_in_C, self.UA_water, self.dV_b_f_m3s, self.source_fluid.rho * self.source_fluid.cp)
-        return HXSide("tank", T_in_C, self.UA_tank_hx)
+        return tank_hx_rating_side(T_in_C, self.UA_tank_hx, self.m_dot_w_rated, self.hp_capacity)
 
     @discharge_controlled(reject=False)
     @reject_invalid_efficiency
@@ -626,7 +650,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             return self._calc_off_state(T_tank_w, T0, flow_state)
 
         # 1. Analytical Condenser Approach Temperature
-        dT_ref_tank = Q_tank_load / self.UA_tank_hx
+        dT_ref_tank = Q_tank_load / self.K_tank_hx
 
         T_tank_w_K = cu.C2K(T_tank_w)
 
@@ -788,7 +812,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             # it actually delivers (tmhp._source_boiler.close_tank_hx). When
             # the balance cannot be bracketed the request-based state stands
             # and `tank_hx_residual [W]` reports the open balance.
-            closed_state = close_tank_hx(_cycle, state, dT_ref_tank, self.UA_tank_hx)
+            closed_state = close_tank_hx(_cycle, state, dT_ref_tank, self.K_tank_hx)
             if closed_state is not None:
                 state = closed_state
         self._last_pr_event = state["pr_event"]
@@ -809,7 +833,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         h_ref_exp_in = cycle_states["h_ref_exp_in [J/kg]"]
         # Residual of the tank-side closure: zero wherever the compressor meets
         # the request, and driven to zero on a speed bound.
-        tank_hx_residual = Q_ref_tank - self.UA_tank_hx * dT_ref_tank
+        tank_hx_residual = Q_ref_tank - self.K_tank_hx * dT_ref_tank
 
         # 4. NTU Evaporator Analysis
         eps = calc_phase_change_hx_effectiveness(self.UA_water, self.dV_b_f_m3s * fluid.rho, fluid.cp)

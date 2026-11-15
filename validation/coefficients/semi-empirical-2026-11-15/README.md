@@ -48,6 +48,18 @@ redistributable; without it the pipeline stops and prints how to regenerate it.
 | `grid_vs_shipped.csv` | eta_oi at PR 2–10 × N 20/40/60/90 (R410A, SDT 45 °C, SH 10 K) next to the shipped eta_is·eta_em |
 | `figures/` | eta_oi vs PR; residuals by PR and speed; speed dependence; drive model; level vs displacement |
 
+## Rotary speed-shape variants (added 2026-11-16, for measurement)
+
+`uv run python -m validation.compressor_maps.semi_empirical.variants` writes `rotary_speed_variants.json`,
+`rotary_speed_variants_cv.csv` and `rotary_speed_variants_backward.csv`. Variant `a` is this archive's arrangement
+(it reproduces the parameters above). Variant `b` ("Ossorio-anchored") gives every Shao 2004 speed record its own
+level, so Shao informs only the within-record PR shape and the speed terms rest on Ossorio 2019; the archive's
+selection rule (backward elimination on the LOCO shape RMSE) then keeps `q2, qf, cu, cH`. The high-speed term `qf`
+is kept in `b` (LOCO shape 0.0209 with, 0.0215 without) and not in `a` (0.0320 with, 0.0318 without). Model
+eta(N)/eta(60) at Ossorio's condition, 30 / 90 / 120 rev/s: `a` 0.905 / 0.980 / 0.932, `b` 0.968 / 0.962 / 0.908,
+data 0.980 / 0.978 / 0.914. Twin-rotary level in `b`: 0.501 (R32 0.448, R410A 0.567). The library carries both
+(`CompressorSpec.rotary_speed_variant`); `a` is the default until the owner decides.
+
 ## Limits (read before use)
 
 * **Rotary types are provisional.** Their shape rests on five machines: Shao 2004 (R22, three manufacturer-map

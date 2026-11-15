@@ -1,11 +1,11 @@
-"""P1 FMU adapter tests (#165) — FMI 2.0 co-sim slave wrapping step().
+"""FMU adapter tests — FMI 2.0 co-sim slave wrapping step().
 
 Requires the ``integrations`` extra (pythonfmu / fmpy); skipped otherwise so
 the core test suite stays dependency-light::
 
     uv run --with pythonfmu --with fmpy python3 -m pytest tmhp/tests/test_fmu_adapter.py
 
-Correctness is anchored to the public ``step()`` kernel (#165 P0): the slave
+Correctness is anchored to the public ``step()`` kernel: the slave
 must reproduce a raw ``step()``-driven trajectory exactly (it only maps keys
 and sanitizes the FMI boundary), and — via the full PythonFMU build + fmpy
 round-trip — must reproduce the public ``analyze_dynamic()`` reference while

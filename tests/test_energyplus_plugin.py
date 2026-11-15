@@ -1,9 +1,9 @@
-"""P2 EnergyPlus Python Plugin adapter tests (#165) — PlantComponent:UserDefined.
+"""EnergyPlus Python Plugin adapter tests — PlantComponent:UserDefined.
 
 The plugin classes import ``pyenergyplus`` (bundled in an EnergyPlus install,
 not pip-installable) and a full check needs EnergyPlus running the embedded
 interpreter — that end-to-end co-simulation is exercised outside CI. Here we
-anchor correctness to the public ``analyze_steady()`` seam (#165 P0), which is
+anchor correctness to the public ``analyze_steady()`` seam, which is
 exactly what the plugin calls, so the contract the adapter depends on is tested
 dependency-light; the plugin-class structure is checked only when
 ``pyenergyplus`` is importable.

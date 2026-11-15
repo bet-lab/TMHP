@@ -1,4 +1,4 @@
-"""Building-energy-simulation co-simulation adapters (#165).
+"""Building-energy-simulation co-simulation adapters.
 
 Optional subpackage — each adapter needs an extra dependency that the core
 ``tmhp`` package does not require, so this package is **not** imported by
@@ -9,11 +9,11 @@ Adapters depend only on the public seams of the heat-pump models
 (``AirSourceHeatPumpBoiler.step()`` / ``.analyze_steady()``), never on private
 helpers:
 
-* :mod:`tmhp.integrations.fmu` (#165 P1) — FMI 2.0 FMU wrapping ``step()``
+* :mod:`tmhp.integrations.fmu` — FMI 2.0 FMU wrapping ``step()``
   (the dynamic kernel; the FMU owns the storage-tank state). Needs ``pythonfmu``.
 * :mod:`tmhp.integrations.fmu3` — FMI 3.0 Co-Simulation FMU wrapping the same
   ``step()`` seam. Needs ``pythonfmu3``.
-* :mod:`tmhp.integrations.energyplus_plugin` (#165 P2) — EnergyPlus Python
+* :mod:`tmhp.integrations.energyplus_plugin` — EnergyPlus Python
   Plugin surrogating the ASHPB as a ``PlantComponent:UserDefined`` through
   ``analyze_steady()`` (the *steady-state* seam; EnergyPlus owns the
   ``WaterHeater:Mixed`` tank state). Runs inside EnergyPlus's embedded CPython,

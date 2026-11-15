@@ -1,5 +1,5 @@
-"""Shared deterministic ASHPB dynamic scenarios for the P0 step()-kernel
-regression suite (#165).
+"""Shared deterministic ASHPB dynamic scenarios for the step()-kernel
+regression suite.
 
 Both the golden generator (``python -m`` / direct run, pre-refactor) and the
 regression tests import from here so the *exact same* schedules drive both

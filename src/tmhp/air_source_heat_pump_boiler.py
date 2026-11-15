@@ -1843,8 +1843,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               A ``"min"`` point is reported as that cycling mean (below); at a
               ``"max"`` point compare ``"Q_ref_tank [W]"`` against
               ``"Q_request [W]"`` for the shortfall. A ``"max"`` point carries
-              ``"capacity_binding"``: ``"compressor"`` (``rps_max``), or the
-              operating limit the request ran into when a smaller duty runs --
+              ``"capacity_binding"``, the limit active at the point returned:
+              ``"compressor"`` (``rps_max``; also for a reduced point that
+              already runs at it), or the operating limit the request ran into
+              when a smaller duty runs --
               ``"discharge_temperature"`` (``T_dis_max``),
               ``"condensing_temperature"`` (``T_cond_max``),
               ``"pressure_ratio"`` (``PR_cycle_max``), ``"outdoor_coil"`` (the
@@ -2580,7 +2582,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         return self.postprocess_exergy(df)
 
     # =============================================================
-    # Public single-timestep kernel (#165 P0) — analyze_dynamic loops over it
+    # Public single-timestep kernel — analyze_dynamic loops over it
     # =============================================================
 
     def make_initial_state(self, T_tank_w_init_C: float, tank_level_init: float = 1.0) -> DynamicState:

@@ -224,6 +224,7 @@ def test_a_minus7_w55_full_load_is_solved_at_the_held_boundary():
     assert row["T_ref_cmp_out [°C]"] == pytest.approx(271.4, abs=2.0)
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_a_minus7_w55_half_load_has_a_valid_cycle_after_the_guard():
     """The cycle closes at 7.5 kW (3 K outdoor approach) with all efficiencies in (0, 1]."""
     hp = _ashpb()

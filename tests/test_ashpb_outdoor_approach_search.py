@@ -96,6 +96,7 @@ def test_request_below_minimum_speed_delivers_the_floor_capacity():
     assert mean["cmp_rpm [rpm]"] == pytest.approx(60.0 * model.rps_min)
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 @pytest.mark.parametrize("min_fraction", [0.99, 0.999])
 def test_narrow_fan_range_still_finds_the_band(min_fraction):
     model = AirSourceHeatPumpBoiler(ref="R32", dV_fan_a_min=min_fraction * 15000.0 * 0.00015)

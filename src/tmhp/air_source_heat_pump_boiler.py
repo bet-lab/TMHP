@@ -575,11 +575,19 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self.n_ou: float = n_ou
 
         # --- 3. Outdoor unit fan ---
-        # Default fan flow rate is scaled at 0.0002 m^3/s per W (or 720 CMH per kW),
-        # representing an optimal ratio of airflow volume to thermal capacity.
-        # This provides enough margin so that nominal optimization operates at ~80% fan ratio.
+        # The rated airflow is the unit's largest: with none given it is the
+        # largest fan step air-to-water outdoor units of this heating capacity
+        # publish (tmhp.default_inputs), recorded in default_input_estimates.
+        # The fan modulates below it; UA_ou_rated and the fan power are stated
+        # at it.
         if dV_fan_a_rated is None:
-            self.dV_fan_a_rated = hp_capacity * 0.00015
+            self.dV_fan_a_rated = self._default_max_airflow(
+                "dV_fan_a_rated",
+                hp_capacity,
+                side="outdoor",
+                product="air_to_water",
+                mode=self._rating_mode(rated_condition),
+            )
         else:
             self.dV_fan_a_rated = dV_fan_a_rated
 

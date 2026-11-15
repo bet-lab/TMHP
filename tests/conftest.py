@@ -18,7 +18,8 @@
       refrigerant (:func:`tmhp.compressor_speed.default_displacement`);
     - largest airflow ``hp_capacity * 2.0e-4 m3/s`` outdoors and
       ``hp_capacity * 5.37e-5 m3/s`` (400 cfm/ton) indoors, for
-      ``AirSourceHeatPump`` and ``GroundSourceHeatPump``;
+      ``AirSourceHeatPump`` and ``GroundSourceHeatPump``, and
+      ``hp_capacity * 1.5e-4 m3/s`` outdoors for ``AirSourceHeatPumpBoiler``;
     - refrigerant R134a for ``AirSourceHeatPumpBoiler``;
     - approach-temperature search box 1-20 K for ``AirSourceHeatPump``
       (30 K since the catalogue airflows: tests/test_default_inputs_wiring.py).
@@ -50,8 +51,13 @@ from tmhp.compressor_speed import default_displacement
 MARKER = "earlier_defaults"
 
 #: Largest airflow per watt of nameplate capacity the constructors assumed before issue #86 [m3/s per W].
-EARLIER_OUTDOOR_AIRFLOW_PER_W = 2.0e-4
-EARLIER_INDOOR_AIRFLOW_PER_W = 5.37e-5
+EARLIER_AIRFLOW_PER_W = {
+    ("outdoor", "single_split"): 2.0e-4,
+    ("outdoor", "air_to_water"): 1.5e-4,
+    ("indoor", "wall_mounted"): 5.37e-5,
+    ("indoor", "floor_standing"): 5.37e-5,
+    ("indoor", "water_to_air"): 5.37e-5,
+}
 #: Constructor arguments whose default was another one then.
 EARLIER_ARGUMENTS: tuple[tuple[type, str, Any], ...] = (
     (AirSourceHeatPumpBoiler, "ref", "R134a"),  # R290 now
@@ -92,8 +98,7 @@ def earlier_default_inputs() -> Iterator[None]:
 
     def max_airflow(hp_capacity, *, side, product, mode="cooling"):
         estimate = estimate_max_airflow(hp_capacity, side=side, product=product, mode=mode)
-        per_watt = EARLIER_OUTDOOR_AIRFLOW_PER_W if side == "outdoor" else EARLIER_INDOOR_AIRFLOW_PER_W
-        return dataclasses.replace(estimate, value=hp_capacity * per_watt)
+        return dataclasses.replace(estimate, value=hp_capacity * EARLIER_AIRFLOW_PER_W[side, product])
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(reference_state, "estimate_displacement", displacement)

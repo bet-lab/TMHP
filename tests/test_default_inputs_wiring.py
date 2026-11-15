@@ -167,12 +167,30 @@ def test_airflow_outside_the_catalogue_capacities_is_flagged():
     assert not GroundSourceHeatPump(hp_capacity=8000.0).default_input_estimates["dV_iu_fan_a_rated"].extrapolated
 
 
-def test_the_air_to_water_outdoor_airflow_is_not_wired():
-    """The provisional air-to-water stratum is not a constructor default; the boiler keeps its constant."""
-    boiler = AirSourceHeatPumpBoiler(hp_capacity=8000.0)
-    assert boiler.dV_fan_a_rated == pytest.approx(8000.0 * 0.00015)
+@pytest.mark.parametrize("capacity", [3500.0, 8000.0, 15000.0])
+def test_ashpb_default_outdoor_airflow_is_the_air_to_water_catalogue_maximum(capacity):
+    """The largest fan step air-to-water outdoor units of that heating capacity publish (owner decision 2026-11-15).
+
+    The constant before it, ``hp_capacity * 1.5e-4 m3/s``, was 1.0 to 1.5 times
+    the catalogue airflow from 3.5 to 15 kW.
+    """
+    boiler = AirSourceHeatPumpBoiler(hp_capacity=capacity)
+    law = estimate_max_airflow(capacity, side="outdoor", product="air_to_water", mode="heating")
+    assert boiler.dV_fan_a_rated == law.value
+    assert boiler.dV_fan_a_max == boiler.dV_fan_a_ref == boiler.dV_fan_a_rated
+    estimate = boiler.default_input_estimates["dV_fan_a_rated"]
+    assert estimate == law and estimate.key == "airflow|heating|outdoor|air_to_water"
+    assert estimate.source_ids and estimate.assumptions  # where it comes from, and its scatter
+    assert set(boiler.default_input_estimates) == {"V_cmp_ref", "dV_fan_a_rated"}
+
+
+def test_a_published_outdoor_airflow_overrides_the_ashpb_default():
+    boiler = AirSourceHeatPumpBoiler(hp_capacity=8000.0, dV_fan_a_rated=1.1)
+    assert boiler.dV_fan_a_rated == 1.1
     assert set(boiler.default_input_estimates) == {"V_cmp_ref"}
-    assert all(estimate.status == "shipped" for estimate in boiler.default_input_estimates.values())
+    # The earlier names of the argument are inputs too.
+    assert AirSourceHeatPumpBoiler(dV_ou_fan_a_design=2.0).dV_fan_a_rated == 2.0
+    assert AirSourceHeatPumpBoiler(dV_fan_a_ref=2.0).dV_fan_a_rated == 2.0
 
 
 RATING_POINTS = {"cooling": (1.0, 35.0, 27.0), "heating": (-1.0, 7.0, 20.0)}  # ISO 5151 T1 / H1

@@ -16,7 +16,7 @@ import pytest
 
 import tmhp
 from tests._fluids import ANTIFREEZE_WITH_WATER_PROPERTIES
-from tmhp.compressor_envelope import RATED_SPEED_SEARCH_MAX
+from tmhp.compressor_envelope import DISCHARGE_TOL_K, RATED_SPEED_SEARCH_MAX
 from tmhp.constants import c_w, rho_w
 
 from ._checks import KnownDefectObserved, check_running_cycle, expect
@@ -114,11 +114,15 @@ def test_c5_wshpb_does_not_report_degenerate_efficiency_as_success():
 
 
 # C6 fixed by the compressor operating envelope (T_dis_max, R32 150 °C): the point
-# discharged at 201.6 °C and is now discharge_temp_above_max (no smaller duty runs).
+# discharged at 201.6 °C and was then discharge_temp_above_max (no smaller duty ran).
+# With the catalogue displacement and outdoor airflow (#86) the discharge-temperature
+# control holds it on the limit (wet suction, x = 0.93): the check is the limit with the
+# tolerance the control closes to.
 def test_c6_ashpb_discharge_temperature_limit():
     _, r = FAMILIES["ASHPB"].run("R32", SteadyCase(T_source=0.0, T_demand=60.0, load_W=15000.0))
     T_dis = num(r, "T_ref_cmp_out [°C]")
-    expect((not is_reported_running(r)) or T_dis <= 150.0, f"T_cmp_out={T_dis:.1f} °C reported as success")
+    limit = 150.0 + DISCHARGE_TOL_K
+    expect((not is_reported_running(r)) or T_dis <= limit, f"T_cmp_out={T_dis:.3f} °C reported as success")
 
 
 # C11 fixed: the GSHPB/WSHPB suction superheat is capped at the evaporator approach

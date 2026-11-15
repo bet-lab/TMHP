@@ -73,7 +73,7 @@ Parity
     * - Modes
       - Heating and cooling
     * - Source temperature
-      - −20 to +40 °C
+      - −15 to +46.1 °C (adopted units −15 to +40 °C)
     * - Sink temperature
       - 15 to 65 °C leaving water / indoor dry bulb
 

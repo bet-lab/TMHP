@@ -362,7 +362,7 @@ def main(argv: list[str] | None = None) -> int:
 
     inputs = [
         {"path": str(p.relative_to(REPO_ROOT)), "sha256": _sha(p), "tracked": p.name != "points_copeland_opi.csv"}
-        for p in assemble.input_files()
+        for p in [*assemble.input_files(), assemble.RATING.parent / "regression.json"]
     ]
     types = {}
     for t, (fam, cls) in TYPES.items():

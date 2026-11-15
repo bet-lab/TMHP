@@ -29,7 +29,12 @@ normaliser -- a machine's losses scale together instead of sharing absolute loss
 ``0 < eta_oi <= 1``. (A form ``base + a_u (1 + L)`` was tried first; its fit drove the constant to zero and the loss
 coefficients to their bounds, i.e. it degenerates to this one.)
 
-eta_v (same units)::
+eta_v (same units), the archive's form since the 2026-11-16 revision (:class:`EtaVBounded`, positive by
+construction)::
+
+    eta_v = c0_u exp(-c_re (PR^(1/k) - 1)) / (1 + c_L (PR - 1)/n + c_s/n + c_f n^2)
+
+and the first archive's linear form, kept for comparison (:class:`EtaV`; crosses zero at high PR and low n)::
 
     eta_v = c0_u - c_re (PR^(1/k) - 1) - c_Lv (PR - 1)/n          (V1; V0 fixes c0_u = 1)
 

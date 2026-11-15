@@ -15,7 +15,10 @@ Modules
     assemble   the fit-ready table with exclusion bookkeeping (``build``)
     thermo     k, MEP_s, phi
     inverter   drive efficiency forms and their cross-validation
-    model      eta_oi forms, eta_v form, shipped-form baseline; weighted Huber fits with unit levels
+    model      eta_oi forms, eta_v forms (bounded and the first linear one), shipped-form baseline; weighted Huber
+               fits with unit levels
+    etav       eta_v: shape selection, rotary level from the displacement-regression rating points, bounds
+    variants   rotary speed-shape variants (b, Ossorio-anchored, is the default)
     cv         LOCO / LOSO / edge hold-outs / step slopes
     split      eta_is / eta_em split from measured discharge temperatures
     pipeline   backward elimination, speed coordinate, levels, checks

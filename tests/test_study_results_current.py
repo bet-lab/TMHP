@@ -289,6 +289,7 @@ def test_source_cop_timeseries_figure_reproduces() -> None:
 STUDY_RECORDS = {
     "validation/data/fixed_boundary_plr/": "validation/data/provenance/fixed_boundary_plr.json",
     "validation/data/ashp_part_load_sweep.csv": "validation/data/provenance/ashp_trend.json",
+    "validation/data/part_load_figure/": "validation/data/provenance/part_load_figure.json",
     "validation/data/refrigerant_nameplate_sweep.csv": "validation/data/provenance/refrigerant_diagnosis.json",
     "validation/data/final_report/": "validation/data/provenance/final_report.json",
     "validation/data/power_cop/": "validation/data/provenance/power_cop.json",

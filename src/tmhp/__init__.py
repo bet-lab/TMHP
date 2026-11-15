@@ -34,6 +34,7 @@ from .gshpb_stc_tank import GSHPB_STC_tank
 from .heat_transfer import *  # noqa: F401, F403
 from .operating_limits import OperatingLimitWarning, summarize_operating_limits
 from .refrigerant import *  # noqa: F401, F403
+from .standard_conditions import StandardCondition
 from .subsystems import *  # noqa: F401, F403
 from .thermodynamics import *  # noqa: F401, F403
 from .visualization import *  # noqa: F401, F403
@@ -58,6 +59,7 @@ __all__ = [
     "GSHPB_STC_routed",
     "GSHPB_STC_tank",
     "OperatingLimitWarning",
+    "StandardCondition",
     "WaterSourceHeatPumpBoiler",
     "default_solar_router",
     "summarize_operating_limits",

@@ -26,7 +26,7 @@ from __future__ import annotations
 import contextlib
 import math
 import warnings
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Literal
 
 import numpy as np
@@ -131,6 +131,8 @@ from .source_fluid import (
     source_freeze_limited,
     warn_if_loop_modelled_as_water,
 )
+from .standard_conditions import StandardCondition
+from .standard_conditions import operating_range as _operating_range
 
 
 def _require_finite(**values: float | None) -> None:
@@ -3051,3 +3053,39 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         df["X_eff_iu_fan [-]"] = 1 - df["Xc_iu_fan [W]"] / df["X_in_iu_fan [W]"].replace(0, np.nan)
 
         return df
+
+    # =============================================================
+    # Standard-condition check
+    # =============================================================
+
+    def operating_range(self, conditions: Iterable[StandardCondition] | None = None) -> pd.DataFrame:
+        """Solve standard rating conditions and tabulate whether the heat pump runs at each.
+
+        A check to call before a simulation; it is not made at construction
+        because it solves the cycle at every condition. One row per
+        condition: whether the compressor runs, delivers the request or a
+        reduced duty, or cycles on and off, its ``failure_reason``,
+        ``cop_sys [-]``, and the limit in words. No
+        :class:`~tmhp.OperatingLimitWarning` is issued and the model is not
+        changed.
+
+        The model has no argument for the brine entering it: a condition is
+        solved on a shallow copy whose borefield-outlet fluid
+        (``T_bhe_f_out``) is at the condition's brine temperature. With
+        ground-flow control the source is solved from the borehole wall and
+        no brine temperature can be imposed, so the call raises
+        ``ValueError``.
+
+        Parameters
+        ----------
+        conditions : iterable of StandardCondition, optional
+            Conditions to solve; :data:`tmhp.standard_conditions.BRINE_TO_AIR`
+            (B0/20 and B25/27 at the nameplate duty) when omitted.
+
+        Returns
+        -------
+        pd.DataFrame
+            Columns :data:`tmhp.standard_conditions.COLUMNS`; see
+            :func:`tmhp.standard_conditions.operating_range`.
+        """
+        return _operating_range(self, "brine_to_air", conditions)

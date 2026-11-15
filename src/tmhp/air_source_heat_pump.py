@@ -18,7 +18,7 @@ heat exchange at the indoor unit.
 
 import contextlib
 import math
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from typing import Any, Literal
 
 import numpy as np
@@ -94,6 +94,8 @@ from .refrigerant import (
     reportable_state,
     with_discharge_state,
 )
+from .standard_conditions import StandardCondition
+from .standard_conditions import operating_range as _operating_range
 
 # Objective bands for the operating-point search in ``_optimize_operation``.
 #
@@ -667,7 +669,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             UA_cond_rated = UA_cond_design
         if UA_evap_rated is None:
             UA_evap_rated = UA_evap_design
-        # UA_cond/evap_rated → UA_ou/iu_rated (physical-unit rename, issue #183)
+        # UA_cond/evap_rated → UA_ou/iu_rated (rename from cycle role to physical unit)
         if UA_cond_rated is not None or UA_evap_rated is not None:
             warnings.warn(
                 "UA_cond_rated/UA_evap_rated are deprecated and will be removed in a future"
@@ -3212,3 +3214,32 @@ class AirSourceHeatPump(ReferenceStateMixin):
         df["X_eff_iu_fan [-]"] = 1 - df["Xc_iu_fan [W]"] / df["X_in_iu_fan [W]"].replace(0, np.nan)
 
         return df
+
+    # =============================================================
+    # Standard-condition check
+    # =============================================================
+
+    def operating_range(self, conditions: Iterable[StandardCondition] | None = None) -> pd.DataFrame:
+        """Solve standard rating conditions and tabulate whether the heat pump runs at each.
+
+        A check to call before a simulation; it is not made at construction
+        because it solves the cycle at every condition. One row per
+        condition: whether the compressor runs, delivers the request or a
+        reduced duty, or cycles on and off, its ``failure_reason``,
+        ``cop_sys [-]``, and the limit in words. No
+        :class:`~tmhp.OperatingLimitWarning` is issued and the model is not
+        changed.
+
+        Parameters
+        ----------
+        conditions : iterable of StandardCondition, optional
+            Conditions to solve; :data:`tmhp.standard_conditions.AIR_TO_AIR`
+            (A7/20 ... A-15/20 and A35/27 at the nameplate duty) when omitted.
+
+        Returns
+        -------
+        pd.DataFrame
+            Columns :data:`tmhp.standard_conditions.COLUMNS`; see
+            :func:`tmhp.standard_conditions.operating_range`.
+        """
+        return _operating_range(self, "air_to_air", conditions)

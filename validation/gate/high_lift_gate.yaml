@@ -1,0 +1,73 @@
+# Round-6 acceptance gate for the high-temperature hot-water axis, and the
+# points reported beside it. Bet-lab/TMHP#96.
+#
+# Read by validation/gate/evaluate.py (prints the current value of every entry)
+# and pinned by tests/test_validation_gate.py. The file holds the DEFINITION of
+# the gate, not catalogue numbers: a catalogue point is named by catalogue slug
+# and point id, and its COP and duty are read from validation/catalogs at
+# evaluation time. The condition written next to the id (outdoor air, leaving
+# water) is the selector the test checks against that row, so renumbering a
+# catalogue cannot silently point the gate at another operating point.
+#
+# This file does not say whether the gate passes. It does not today (about
+# -20 % on the three catalogue points); the stages that follow close it, and the
+# pass assertion belongs to them.
+schema_version: 1
+issue: "https://github.com/bet-lab/TMHP/issues/96"
+
+# ---------------------------------------------------------------------------
+# Gate: only points with evidence in the repository. A catalogue row is a
+# manufacturer's published COP at the stated condition.
+# ---------------------------------------------------------------------------
+gate:
+  tolerance_rel: 0.10          # |cop_pred / cop_catalogue - 1| <= 0.10
+  catalogue_points:
+    - id: wh-wxg09me8-a-7-w55
+      catalog: panasonic_wh_wxg09me8
+      point_id: 7
+      condition: {t_source_C: -7, t_sink_C: 55}
+    - id: wh-wxg09me8-a-7-w65
+      catalog: panasonic_wh_wxg09me8
+      point_id: 12
+      condition: {t_source_C: -7, t_sink_C: 65}
+    - id: wh-uq09he8-a-7-w55
+      catalog: panasonic_wh_uq09he8
+      point_id: 12
+      condition: {t_source_C: -7, t_sink_C: 55}
+
+  # The default refrigerant-R32 air-to-water machine must run at A-7/W55
+  # (``failure_reason == "none"``). Here W55 is the TANK temperature handed to
+  # ``analyze_steady`` -- the convention of the diagnosis that found it stopping
+  # on the discharge-temperature limit. The parity harness instead treats a
+  # catalogue's 55 °C as leaving water and sets the tank 2.5 K below it; the
+  # variant below evaluates that reading too, because the two differ in outcome:
+  # at tank 55 °C the machine stops (discharge_temp_above_max), at tank 52.5 °C it
+  # runs but capped by the discharge-temperature limit. Which one is the gate is
+  # an owner decision, recorded in the report that accompanies this file.
+  runs:
+    - id: default-r32-ashpb-a-7-w55
+      model: AirSourceHeatPumpBoiler
+      constructor: {ref: R32, hp_capacity: 8000.0}
+      call: {T0: -7.0, T_tank_w: 55.0, Q_ref_tank: 8000.0}
+      variants:
+        - id: tank-52.5-leaving-water-55
+          call: {T0: -7.0, T_tank_w: 52.5, Q_ref_tank: 8000.0}
+
+# ---------------------------------------------------------------------------
+# Reported, not gated. No catalogue unit exists for ground- or water-source
+# boilers, so the range below is an ESTIMATE, not evidence. Do not tune the
+# model toward it.
+# ---------------------------------------------------------------------------
+reported:
+  estimate_basis: "estimate recorded in bet-lab/TMHP#96 (no catalogue, measurement or Keymark data in the repository)"
+  items:
+    - id: gshpb-b0-w35
+      model: GroundSourceHeatPumpBoiler
+      constructor: {hp_capacity: 8000.0}
+      call: {T_source: 0.0, T_tank_w: 35.0, Q_ref_tank: 8000.0}
+      estimate_cop: {min: 4.2, max: 4.8}
+    - id: wshpb-w10-w35
+      model: WaterSourceHeatPumpBoiler
+      constructor: {hp_capacity: 8000.0}
+      call: {T_source: 10.0, T_tank_w: 35.0, Q_ref_tank: 8000.0}
+      estimate_cop: {min: 5.0, max: 6.0}

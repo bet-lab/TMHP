@@ -8,17 +8,14 @@ returned an empty/None result. These wrappers keep the call sites readable.
 
 from __future__ import annotations
 
-import inspect
 import math
 import warnings
-import weakref
 from collections.abc import Callable, Iterable, Iterator
-from contextlib import contextmanager, suppress
-from typing import Any
+from contextlib import contextmanager
 
 from scipy.optimize import brentq
 
-from .compressor_efficiency import InvalidCompressorEfficiency
+from .compressor_efficiency import InvalidCompressorEfficiency, _takes_speed
 
 __all__ = [
     "ignore_minpack_progress_warning",
@@ -74,34 +71,9 @@ def safe_float_attr(obj: object, name: str, default: float) -> float:
 # ---------------------------------------------------------------------------
 # Compressor efficiencies inside a speed solve
 # ---------------------------------------------------------------------------
-# ``compressor_efficiency._eval_eff`` decides on every call whether a model is
-# ``model(PR, rps)`` or ``model(PR)`` by binding its signature. The answer
-# belongs to the model, not to the call, and ``inspect.signature`` costs about
-# ten times the polynomial it guards: one cycle evaluation asks for some
-# twenty efficiencies (two per speed candidate), which made the inspection
-# 40 % of a 24 h air-source run. Here it is decided once per model.
-
-#: model -> whether it is called as ``model(PR, rps)`` (else ``model(PR)``).
-_TAKES_SPEED: weakref.WeakKeyDictionary[Any, bool] = weakref.WeakKeyDictionary()
-
-
-def _takes_speed(model: Callable) -> bool:
-    """Whether ``model`` binds ``(PR, rps)`` -- the test of ``_eval_eff``, kept per model."""
-    try:
-        return _TAKES_SPEED[model]
-    except (KeyError, TypeError):  # TypeError: a model that is not hashable or weakly referenceable
-        pass
-    signature = inspect.signature(model)
-    try:
-        signature.bind(1.0, 1.0)
-    except TypeError:
-        signature.bind(1.0)
-        takes_speed = False
-    else:
-        takes_speed = True
-    with suppress(TypeError):
-        _TAKES_SPEED[model] = takes_speed
-    return takes_speed
+# ``compressor_efficiency._takes_speed`` decides once per model whether it is
+# ``model(PR, rps)`` or ``model(PR)``; the evaluator below also skips that
+# lookup on every call of a solver's inner loop.
 
 
 def efficiency_evaluator(model: float | Callable) -> Callable[[float, float], float]:
@@ -110,7 +82,7 @@ def efficiency_evaluator(model: float | Callable) -> Callable[[float, float], fl
     The same value and the same :class:`InvalidCompressorEfficiency` as
     :func:`tmhp.compressor_efficiency._eval_eff` at every point (a scalar or a
     PR / PR-speed callable, ``0 < eta <= 1`` enforced, a value above one set
-    to one); only the call form of a callable is decided once instead of on
+    to one); the call form of a callable is looked up once here instead of on
     every evaluation.
     """
     if callable(model):

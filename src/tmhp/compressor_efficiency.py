@@ -21,7 +21,9 @@ from __future__ import annotations
 
 import inspect
 import math
+import weakref
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from functools import wraps
 from typing import TypeVar, cast
@@ -254,23 +256,60 @@ def reject_invalid_efficiency(function: _F) -> _F:
     return cast(_F, wrapped)
 
 
+# Whether a model is ``model(PR, rps)`` or ``model(PR)`` belongs to the model,
+# not to the call, and ``inspect.signature`` costs about ten times the
+# polynomial it guards; a cycle evaluation asks for some twenty efficiencies.
+# The answer is decided once per model and kept in a weak-key dictionary: an
+# entry goes when its model is collected, and reassigning ``eta_cmp_*`` brings
+# a new key. The dictionary finds keys by equality, so each entry also records
+# the identity of the object it was decided for, and an answer is used only for
+# that object: two models that compare equal (a user ``__eq__``) keep their own
+# call forms. The recorded identity cannot be taken over by a new object while
+# its key is alive, and the entry dies with the key. A model that cannot be a
+# weak key (a ``__slots__`` instance without ``__weakref__``, an unhashable
+# one, one whose hash or equality raises) is inspected on every call, as before.
+
+#: model -> (``id`` of the model the answer was decided for, whether it is
+#: called as ``model(PR, rps)`` -- else ``model(PR)``).
+_TAKES_SPEED: weakref.WeakKeyDictionary[Callable, tuple[int, bool]] = weakref.WeakKeyDictionary()
+
+
+def _takes_speed(model: Callable) -> bool:
+    """Whether ``model`` binds ``(PR, rps)``; else it must bind ``(PR)`` (TypeError otherwise)."""
+    try:
+        entry = _TAKES_SPEED.get(model)
+    except Exception:  # not hashable, not weakly referenceable, or a hash / equality that raises
+        entry = None
+    else:
+        if entry is not None and entry[0] == id(model):
+            return entry[1]
+    signature = inspect.signature(model)
+    try:
+        signature.bind(1.0, 1.0)
+    except TypeError:
+        signature.bind(1.0)
+        takes_speed = False
+    else:
+        takes_speed = True
+    if entry is None:  # an equal key of another object keeps its own entry
+        with suppress(Exception):
+            _TAKES_SPEED.setdefault(model, (id(model), takes_speed))
+    return takes_speed
+
+
 def _eval_eff(model: float | Callable, PR: float, rps: float) -> float:
     """Evaluate a scalar or PR / PR-speed callable and enforce 0 < eta <= 1.
 
     Constructors resolve None to the corresponding baseline factory. Inspect
-    argument binding rather than catching a TypeError raised inside a model.
+    argument binding rather than catching a TypeError raised inside a model;
+    the answer is kept per model (:func:`_takes_speed`).
     """
-    if callable(model):
-        signature = inspect.signature(model)
-        try:
-            signature.bind(PR, rps)
-        except TypeError:
-            signature.bind(PR)
-            value = float(model(PR))
-        else:
-            value = float(model(PR, rps))
-    else:
+    if not callable(model):
         value = float(model)
+    elif _takes_speed(model):
+        value = float(model(PR, rps))
+    else:
+        value = float(model(PR))
     if not math.isfinite(value) or value <= 0:
         # No compressor delivers flow or a discharge state with eta <= 0: the
         # point is infeasible, not a lossless or reversed machine.

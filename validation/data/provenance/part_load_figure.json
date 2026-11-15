@@ -1,0 +1,105 @@
+{
+ "script": "scripts/validation/part_load_figure.py",
+ "command": "python -m scripts.validation.part_load_figure",
+ "question": "air-to-water part load of the running machine: fixed-temperature sweep and EN 14825 trajectory (docs/source/validation/part-load.rst)",
+ "model_settings": {
+  "model": {
+   "hp_capacity": 9000.0,
+   "ref": "R32",
+   "Cd_cycling": null,
+   "defrost": true
+  },
+  "sink_offset_K": 2.5,
+  "sweep_conditions": [
+   [
+    7.0,
+    35.0
+   ],
+   [
+    7.0,
+    45.0
+   ],
+   [
+    -7.0,
+    45.0
+   ]
+  ],
+  "load_fractions": [
+   1.0,
+   0.9648,
+   0.9296,
+   0.8944,
+   0.8592,
+   0.824,
+   0.7888,
+   0.7536,
+   0.7183999999999999,
+   0.6832,
+   0.6479999999999999,
+   0.6128,
+   0.5776,
+   0.5424,
+   0.5072,
+   0.472,
+   0.43679999999999997,
+   0.40159999999999996,
+   0.36639999999999995,
+   0.33119999999999994,
+   0.29599999999999993,
+   0.2607999999999999,
+   0.2255999999999999,
+   0.1903999999999999,
+   0.1552,
+   0.12
+  ],
+  "en14825_points": [
+   [
+    "A",
+    -7.0,
+    34.0,
+    0.88
+   ],
+   [
+    "B",
+    2.0,
+    30.0,
+    0.54
+   ],
+   [
+    "C",
+    7.0,
+    27.0,
+    0.35
+   ],
+   [
+    "D",
+    12.0,
+    24.0,
+    0.15
+   ]
+  ],
+  "design_load_W": 6000.0
+ },
+ "outputs": [
+  "docs/source/_static/validation_part_load.svg",
+  "validation/data/part_load_figure/sweep.csv",
+  "validation/data/part_load_figure/trajectory.csv"
+ ],
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "7648998662f703b13792e2384f6a5962dcf81631",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "3a4c532b524385b05a582dcb0d10ea267bf99be8",
+ "validation_parity_tree": "a1cfee06702656e5516c0d9e9d0ca94a31797e30",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-15T08:08:44+00:00"
+}

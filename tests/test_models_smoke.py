@@ -2,8 +2,9 @@
 
 These tests catch wide classes of regressions (NameError, AttributeError,
 KeyError, sign convention flips) that the pure-import tests cannot.
-They use single representative operating points; they are not validation
-against external data.
+They use single representative operating points, each of which must be solved:
+converged, ``failure_reason == "none"``, not capacity-clamped, the requested duty
+met. They are not validation against external data.
 """
 
 import warnings
@@ -22,6 +23,18 @@ from tmhp import (
 from tmhp.compressor_envelope import default_rps_max
 
 
+def _assert_solved(result: dict, duty_key: str, requested_W: float) -> None:
+    """A representative point must actually be solved: converged, no failure code, the request met.
+
+    A non-converged result (``hx_not_converged``, ``optimizer_failed``) can still
+    carry plausible-looking numbers, so those alone do not pass.
+    """
+    assert result["converged"] is True, result["failure_reason"]
+    assert result["failure_reason"] == "none"
+    assert result["capacity_clamped"] is None
+    assert float(result[duty_key]) == pytest.approx(requested_W, rel=1e-6)
+
+
 def test_ashpb_analyze_steady():
     ashpb = AirSourceHeatPumpBoiler(ref="R32")
     result = ashpb.analyze_steady(T_tank_w=55.0, T0=5.0, Q_ref_tank=8_000.0)
@@ -29,14 +42,7 @@ def test_ashpb_analyze_steady():
     assert result["E_cmp [W]"] > 0
     assert result["Q_ref_tank [W]"] > 0
     assert result["cop_sys [-]"] > 1.0
-    # failure_reason is a diagnostic, not a pass/fail gate — it may say
-    # "hx_not_converged" or "optimizer_failed" even when the returned
-    # numbers (E_cmp, COP) are usable. Just assert it surfaces.
-    assert result["failure_reason"] in {
-        "none",
-        "hx_not_converged",
-        "optimizer_failed",
-    }
+    _assert_solved(result, "Q_ref_tank [W]", 8_000.0)
 
 
 def test_ashpb_default_compressor_efficiencies():
@@ -66,14 +72,7 @@ def test_gshpb_analyze_steady():
     assert isinstance(result, dict)
     assert result["E_cmp [W]"] > 0
     assert result["cop_sys [-]"] > 1.0
-    # failure_reason is a diagnostic, not a pass/fail gate — it may say
-    # "hx_not_converged" or "optimizer_failed" even when the returned
-    # numbers (E_cmp, COP) are usable. Just assert it surfaces.
-    assert result["failure_reason"] in {
-        "none",
-        "hx_not_converged",
-        "optimizer_failed",
-    }
+    _assert_solved(result, "Q_ref_tank [W]", 8_000.0)
 
 
 def test_wshpb_analyze_steady():
@@ -84,14 +83,7 @@ def test_wshpb_analyze_steady():
     assert result["Q_ref_tank [W]"] > 0
     assert result["cop_ref [-]"] > 1.0
     assert result["cop_sys [-]"] > 1.0
-    # failure_reason is a diagnostic, not a pass/fail gate — it may say
-    # "hx_not_converged" or "optimizer_failed" even when the returned
-    # numbers (E_cmp, COP) are usable. Just assert it surfaces.
-    assert result["failure_reason"] in {
-        "none",
-        "hx_not_converged",
-        "optimizer_failed",
-    }
+    _assert_solved(result, "Q_ref_tank [W]", 8_000.0)
 
 
 def test_ashp_heating_analyze_steady():
@@ -110,14 +102,7 @@ def test_ashp_heating_analyze_steady():
     assert isinstance(result, dict)
     assert result["E_cmp [W]"] > 0
     assert result["cop_sys [-]"] > 1.0
-    # failure_reason is a diagnostic, not a pass/fail gate — it may say
-    # "hx_not_converged" or "optimizer_failed" even when the returned
-    # numbers (E_cmp, COP) are usable. Just assert it surfaces.
-    assert result["failure_reason"] in {
-        "none",
-        "hx_not_converged",
-        "optimizer_failed",
-    }
+    _assert_solved(result, "Q_ref_iu [W]", 5_000.0)
 
 
 def test_gshp_heating_analyze_steady():
@@ -132,14 +117,7 @@ def test_gshp_heating_analyze_steady():
     assert isinstance(result, dict)
     assert result["E_cmp [W]"] > 0
     assert result["cop_sys [-]"] > 1.0
-    # failure_reason is a diagnostic, not a pass/fail gate — it may say
-    # "hx_not_converged" or "optimizer_failed" even when the returned
-    # numbers (E_cmp, COP) are usable. Just assert it surfaces.
-    assert result["failure_reason"] in {
-        "none",
-        "hx_not_converged",
-        "optimizer_failed",
-    }
+    _assert_solved(result, "Q_ref_iu [W]", 3_000.0)
 
 
 def test_gshp_cooling_analyze_steady():
@@ -156,8 +134,7 @@ def test_gshp_cooling_analyze_steady():
     assert result["mode"] == "cooling"
     assert result["E_cmp [W]"] > 0
     assert result["cop_sys [-]"] > 1.0
-    assert abs(float(result["Q_ref_iu [W]"]) - 3000.0) < 1e-6
-    assert result["failure_reason"] == "none"
+    _assert_solved(result, "Q_ref_iu [W]", 3_000.0)
 
 
 def test_ashp_off_mode_failure_reason_is_diagnostic():
@@ -268,7 +245,7 @@ def test_dt_cycle_min_removed(cls, kwargs):
 
 
 # ---------------------------------------------------------------------------
-# Compressor pressure-ratio envelope + rps search bounds (#166, #188)
+# Compressor pressure-ratio envelope + rps search bounds
 # Applied to the whole HP family (ASHP / ASHPB / GSHP / GSHPB / WSHPB): the PR
 # floor/ceiling is now the single operating-point guard after the dT_cycle_min
 # fixed-lift guard was removed. Ceiling default tightened 10 -> 5 for the

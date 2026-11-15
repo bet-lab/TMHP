@@ -263,7 +263,8 @@ Demand side
         duty, not an error
       - ``failure_reason`` / ``capacity_binding`` on the row and one
         ``OperatingLimitWarning`` per steady call or dynamic run
-        (:ref:`operating-limit-warning`)
+        (:ref:`operating-limit-warning`); ``operating_range()`` for the
+        standard test conditions (:ref:`operating-range`)
     * - Time step and thermostat
       - The thermostat switches inside a step, but one cycle is solved per
         step
@@ -294,4 +295,7 @@ same things once, in words: at construction for a set point the compressor
 envelope does not reach, from ``analyze_steady`` for a point that does not run
 or runs below the request, and at the end of ``analyze_dynamic`` with the
 steps stopped or limited and what they left unserved
-(``df.attrs["operating_limits"]``; :ref:`operating-limit-warning`).
+(``df.attrs["operating_limits"]``; :ref:`operating-limit-warning`). Before a
+simulation, ``hp.operating_range()`` solves the standard test conditions of
+the machine's kind and says at which it runs, at which it runs reduced, and
+what stops the rest (:ref:`operating-range`).

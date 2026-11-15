@@ -96,11 +96,11 @@ Summary
       - :mod:`tmhp.compressor_envelope`
     * - Rated outdoor air flow
       - Air-to-air: ``0.1084·Q + 0.1776`` m³/s (``Q`` in kW, cooling-rated).
-        Air-to-water: ``0.2202·Q^0.673`` m³/s (heating-rated)
+        Air-to-water: ``0.0864·Q + 0.2208`` m³/s (heating-rated)
       - Largest printed fan step of 128 single-split outdoor units (31
-        families, four manufacturers) and of 36 air-to-water outdoor units
-        (9 families, 2 manufacturers; a provisional stratum, see `Maximum fan
-        airflow`_)
+        families, four manufacturers) and of 59 air-to-water outdoor units
+        (13 families, 6 manufacturers; the widest scatter of the airflow
+        laws, see `Maximum fan airflow`_)
       - ``default_inputs.fan_airflow``
     * - Rated indoor air flow
       - Wall-mounted split: ``0.0320·Q + 0.1035`` m³/s. Water-to-air
@@ -492,10 +492,10 @@ capacity in kW, the result m³/s).
       - 3.4–16.9
       - 8.2 %
     * - ``AirSourceHeatPumpBoiler`` outdoor, heating-rated
-      - ``0.2202·Q^0.673``
-      - 36 / 9 / 2
+      - ``0.0864·Q + 0.2208``
+      - 59 / 13 / 6
       - 3.0–16.0
-      - 19.6 %
+      - 20.2 %
 
 The duty is the one the nameplate names: the mode of the rating condition
 (cooling unless ``rated_condition={"mode": "heating"}`` is given).
@@ -528,16 +528,16 @@ a case, below the smallest water-to-air row.
       - 0.430 → 0.523
       - 0.805 → 0.867
     * - ``AirSourceHeatPumpBoiler`` ``dV_fan_a_rated``
-      - 0.525 → 0.511
-      - 1.200 → 0.892
-      - 2.250 → 1.361
+      - 0.525 → 0.523
+      - 1.200 → 0.912
+      - 2.250 → 1.517
 
 Until November 2026 the outdoor airflow was ``0.0002 m³/s`` per watt
 (720 m³/h per kW) for air-to-air and ``0.00015 m³/s`` per watt (540 m³/h per
 kW) for air-to-water, and both indoor airflows ``5.37e-5 m³/s`` per watt
 (400 cfm per ton, the airflow unitary equipment is *rated* at, not its
 largest). Against the catalogue maxima the air-to-air outdoor figure was 1.26
-to 1.66 times too large, the air-to-water one 1.03 to 1.65 times, and the
+to 1.66 times too large, the air-to-water one 1.00 to 1.48 times, and the
 water-to-air indoor figure 0.62 to 0.93 of it.
 
 .. admonition:: Where the catalogue airflow meets the dry-coil model
@@ -563,15 +563,20 @@ water-to-air indoor figure 0.62 to 0.93 of it.
     35/27 °C) rather than the box (126 % and 124 % at 20 K).
 
 The air-to-water outdoor stratum is the weakest of the airflow laws and says
-so. It is packaged as **provisional** (36 rows, 9 families, Mitsubishi Electric
-and Samsung): predicting one manufacturer from the other misses by 28.9 %, and
-no row is an explicit maximum. ``AirSourceHeatPumpBoiler`` uses it all the same
-(owner decision, 2026-11-15): a default is chosen by the evidence for the
-input, and against the nine Panasonic units of the validation set — which are
-not in the stratum — the law misses the published airflow by 17.7 % where the
-constant missed it by 32.5 %. ``model.default_input_estimates["dV_fan_a_rated"]``
-carries the status, the sources and the hold-out error; a published airflow
-passed as ``dV_fan_a_rated`` replaces it.
+so. It has 59 rows from 13 families and 6 manufacturers (Daikin, LG,
+Mitsubishi Electric, Samsung, Toshiba, Vaillant), and the manufacturers
+differ: predicting each from the other five misses by 22.7 % on average,
+between −27 % and +25 % by manufacturer, and a family held out by 20.2 % —
+both a little over the 20 % the other strata were held to. It ships as the
+default by the owner's decision (2026-11-15), as a central value with that
+spread stated: a default is chosen by the evidence for the input, and against
+the nine Panasonic units of the validation set — which are not in the stratum
+— the law misses the published airflow by 14.1 % (8.0 % low on average) where
+the constant missed it by 32.5 %.
+``model.default_input_estimates["dV_fan_a_rated"]`` carries the sources, the
+hold-out errors and the spread between manufacturers (a unit's own airflow
+can differ from the default by about ±23 %); a published airflow passed as
+``dV_fan_a_rated`` replaces it.
 
 
 Compressor efficiency

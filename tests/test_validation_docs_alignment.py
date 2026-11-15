@@ -386,8 +386,19 @@ def test_defaults_air_to_water_airflow_law_matches_the_packaged_stratum() -> Non
     assert f"Air-to-water: {formula} m³/s (heating-rated)" in summary
     assert f"{entry['n']} air-to-water outdoor units" in summary
     assert f"({entry['n_families']} families, {len(entry['manufacturers'])} manufacturers" in summary
-    # The text calls the stratum provisional exactly while the package does.
-    assert (entry.get("status", "shipped") == "provisional") == ("a provisional stratum" in summary)
+    assert entry.get("status", "shipped") == "shipped"
+    # The scatter the section states is the packaged hold-out error, by family and by manufacturer.
+    section = re.sub(r"\s+", " ", text[text.index("The air-to-water outdoor stratum is the weakest") :])
+    by_maker = entry["nested_manufacturer_cv"]
+    biases = entry["manufacturer_holdout_bias_pct"].values()
+    assert (
+        f"{entry['n']} rows from {entry['n_families']} families and {len(entry['manufacturers'])} manufacturers"
+        in section
+    )
+    assert f"({', '.join(entry['manufacturers'])})" in section
+    assert f"misses by {by_maker['MAPE_pct']:.1f} % on average" in section
+    assert f"between −{abs(min(biases)):.0f} % and +{max(biases):.0f} % by manufacturer" in section
+    assert f"a family held out by {entry['nested_family_cv']['MAPE_pct']:.1f} %" in section
 
 
 def test_defaults_ablation_table_matches_the_study() -> None:

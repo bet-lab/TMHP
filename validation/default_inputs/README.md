@@ -1,14 +1,19 @@
 # 기본 입력값 카탈로그 아카이브 (#86)
 
-사용자가 압축기 배제체적과 팬 최대 풍량을 주지 않을 때 TMHP가 쓰는 기본값의 근거 자료다. 정격 용량을
-x로 하는 회귀식을 제조사 카탈로그 원문에서 만든다. 아카이브는 둘이다.
+사용자가 압축기 배제체적, 팬 최대 풍량, 열교환기 컨덕턴스(UA)를 주지 않을 때 TMHP가 쓰는 기본값의 근거
+자료다. 앞의 둘은 정격 용량을 x로 하는 회귀식을 제조사 카탈로그 원문에서 만든다. 아카이브는 셋이다.
 
 | 폴더 | 응답 | 층(stratum) |
 |---|---|---|
 | [compressor_displacement/](compressor_displacement/README.md) | 기하 배제체적 [cm³/rev] | 압축기 형식 × 속도 기준 (냉매·시험 조건은 rho_1 · Δh로 정규화) |
 | [fan_airflow/](fan_airflow/README.md) | 최대 풍량 [m³/s] | 모드 × 측(실내/실외) × 형식 |
+| [hx_approach/](hx_approach/README.md) | 정격점 냉매 포화온도 → 출구 접근온도 [K]와 유효 UA [W/K] | 열교환기 종류 × 냉매 역할(응축/증발) |
 
-두 폴더 모두 사람이 고치는 파일(`sources.json`, `observations/<source_id>.csv`, `errata.csv`)과 빌드가 만드는
+`hx_approach`는 응답이 다르다. 용량 회귀가 아니라 실제 기계가 정격점에서 인쇄한 냉매 압력의 포화온도로
+접근온도를 구하고, 다른 크기의 기계로 옮길 때 고정할 양(출구 접근온도·UA 비례·유입 온도차)을 제품군 보류
+시험으로 고른다.
+
+세 폴더 모두 사람이 고치는 파일(`sources.json`, `observations/<source_id>.csv`, `errata.csv`)과 빌드가 만드는
 파일(`measurements.*`, `regression.json`, `audit.json`), 덧붙이기만 하는 `releases.json`으로 나뉜다. 공통
 빌드·정오표·릴리스 기록은 `archive.py`, 적합 함수는 `regression.py`에 있다.
 

@@ -1,6 +1,6 @@
 {
-  "version": "fan-airflow-v2026-11-15d",
-  "data_sha256": "39a47761840297fac157208cba215d7674564ca447243fca6f54eedd24eaca03",
+  "version": "fan-airflow-v2026-11-15e",
+  "data_sha256": "84718e8d8b93077adb4375977767e21ad83b5378b492fd22a0a1105af28664a1",
   "law_capacity_unit": "kW",
   "output_unit": "m3/s",
   "meaning": "largest published fan airflow (High/Max step, or the single printed outdoor value)",
@@ -355,47 +355,50 @@
     },
     "airflow|heating|outdoor|air_to_water": {
       "selected_law": {
-        "kind": "power",
-        "a": 0.22006764944384996,
-        "b": 0.6719978566165766
+        "kind": "linear",
+        "a": 0.08638075140618998,
+        "b": 0.22081297146503032
       },
       "capacity_range_W": [
         3000.0,
         16000.0
       ],
-      "n": 53,
-      "n_families": 12,
+      "n": 59,
+      "n_families": 13,
       "manufacturers": [
         "Daikin",
+        "LG",
         "Mitsubishi Electric",
         "Samsung",
         "Toshiba",
         "Vaillant"
       ],
       "nested_family_cv": {
-        "n": 53,
-        "MAPE_pct": 17.44263753965525,
-        "RMSE": 0.2008967184291282,
-        "bias_pct": 5.355129017582566
+        "n": 59,
+        "MAPE_pct": 20.213785552099083,
+        "RMSE": 0.2626741726737674,
+        "bias_pct": 5.924289277583645
       },
       "nested_manufacturer_cv": {
-        "n": 53,
-        "MAPE_pct": 19.580841512346257,
-        "RMSE": 0.20661993843238835,
-        "bias_pct": 8.910875046810103
+        "n": 59,
+        "MAPE_pct": 22.706918809818813,
+        "RMSE": 0.2771574750866113,
+        "bias_pct": 9.717071343586918
       },
       "manufacturer_holdout_bias_pct": {
-        "Daikin": 11.079402505992983,
-        "Mitsubishi Electric": 19.51658075148523,
-        "Samsung": -17.497214390750223,
-        "Toshiba": 2.484973427598297,
-        "Vaillant": -7.084272204328579
+        "Daikin": 20.167830986981755,
+        "LG": -27.490832648606474,
+        "Mitsubishi Electric": 24.56083795544459,
+        "Samsung": -13.699534533138731,
+        "Toshiba": 7.8625211970839155,
+        "Vaillant": -4.337369467450658
       },
       "meets_shipping_gate": true,
-      "status": "provisional",
-      "status_reason": "Awaiting owner reconfirmation. The owner approved (2026-11-15) shipping the 6-manufacturer stratum as a central value with the manufacturer spread stated, on condition that the third-party copies match the manufacturers' own domains. LG's airflow did not match (no LG-domain document prints it; LG's ErP fiche for HM091M U43 prints 3690/2388 m3/h, not 3600), so this fit has 5 manufacturers, 12 families, 53 rows - not the approved stratum. Against the pre-set criteria it meets manufacturer hold-out MAPE 19.6 % / bias +8.9 %, family hold-out MAPE 17.4 % and the explicit-max test, but misses out-of-sample Panasonic bias: -15.1 % (limit 10 %; 8 of 9 units are larger than the default). Model size is declared differently by each maker.",
+      "status": "shipped",
+      "status_reason": "Shipped by owner decision (2026-11-15: switch to the 6-manufacturer stratum, central value with the manufacturer spread stated). Two pre-set criteria are missed: manufacturer hold-out MAPE 22.7 % (limit 20 %) and family hold-out MAPE 20.2 % (limit 20 %). Met: 6 manufacturers / 13 families, manufacturer hold-out bias +9.7 % (limit 10 %), out-of-sample Panasonic bias -8.0 % and MAPE 14.1 %, explicit-max-only fit within 0.99-1.08 of the all-row fit. LG rows rest on LG's own ErP fiches, Daikin rows on an owner-accepted databook copy matched on daikin.eu. Model size is declared differently by each maker.",
       "source_ids": [
         "DAIKIN_EEDEN22_EBLA09-16D",
+        "LG_GR_ERP_THERMAV_R32_MONOBLOC",
         "MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0",
         "MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0",
         "SAMSUNG_CS_GB_AE040RXEDEG",

@@ -89,22 +89,22 @@ def test_new_product_class_strata_are_shipped(side, product, mode, capacity):
     assert len(estimate.source_ids) >= 2
 
 
-def test_air_to_water_outdoor_airflow_awaits_owner_reconfirmation_with_spread():
-    """The owner approved the 6-manufacturer stratum; LG failed the official check, so the 5-manufacturer fit stays
-    provisional until reconfirmed (2026-11-15). The spread and the missed criterion are stated."""
+def test_air_to_water_outdoor_airflow_is_shipped_with_spread_and_missed_criteria():
+    """Owner decision 2026-11-15: the 6-manufacturer stratum ships as a central value with the manufacturer spread
+    stated; the missed pre-set criteria stay in the reason."""
     estimate = estimate_max_airflow(8000.0, side="outdoor", product="air_to_water", mode="heating")
     package = json.loads(AIRFLOW_PACKAGE.read_text())
     entry = package["strata"]["airflow|heating|outdoor|air_to_water"]
-    assert estimate.status == "provisional"
-    assert estimate.assumptions[-1].startswith("Provisional: Awaiting owner reconfirmation")
-    assert "Panasonic bias" in estimate.assumptions[-1]
+    assert estimate.status == "shipped"
+    assert len(entry["manufacturers"]) == 6
+    assert estimate.assumptions[-1].startswith("Note: Shipped by owner decision")
+    assert "manufacturer hold-out MAPE" in estimate.assumptions[-1]
     spread = estimate.assumptions[-2]
     assert spread.startswith("Spread between manufacturers")
     assert f"MAPE {entry['nested_manufacturer_cv']['MAPE_pct']:.1f} %" in spread
     biases = entry["manufacturer_holdout_bias_pct"].values()
     assert f"{min(biases):+.0f} to {max(biases):+.0f} %" in spread
     assert "takes precedence" in spread
-    assert estimate_max_airflow(3500.0, side="indoor", product="wall_mounted").status == "shipped"
     assert estimate_displacement(3500.0, "R32").status == "shipped"
 
 
@@ -144,9 +144,26 @@ def test_air_to_water_fit_excludes_panasonic_and_unaccepted_third_party_sources(
     rows = json.loads((AIRFLOW_ARCHIVE / "measurements.json").read_text())
     held = [r for r in rows if sources[r["source_id"]]["evidence_type"].endswith("_third_party_host")]
     unaccepted = [r for r in held if not sources[r["source_id"]].get("owner_accepted")]
-    assert unaccepted and all(not r["eligible"] and "owner acceptance" in r["exclusion_reason"] for r in unaccepted)
-    # Accepted after a match on Daikin's own domain; LG's airflow found no such match (2026-11-15).
-    assert "Daikin" in fit["manufacturers"] and "LG" not in fit["manufacturers"]
+    assert all(not r["eligible"] and "owner acceptance" in r["exclusion_reason"] for r in unaccepted)
+    # Daikin accepted after a match on Daikin's own domain; LG rests on LG's own ErP fiches (2026-11-15).
+    assert {"Daikin", "LG"} <= set(fit["manufacturers"])
+    lg = sources["LG_GR_ERP_THERMAV_R32_MONOBLOC"]
+    assert lg["role"] == "observations" and not lg["evidence_type"].endswith("_third_party_host")
+    assert sources["LG_THERMAV_R32_MONOBLOC_PDB_5BPM5-01D"]["role"] == "cross_check"
     for source in sources.values():
         if source.get("owner_accepted"):
             assert source["owner_acceptance"].startswith("Owner decision")
+
+
+def test_third_party_hosted_rows_are_not_fitted_until_owner_accepted():
+    """The acceptance gate itself: same row, unaccepted vs accepted third-party source."""
+    import csv
+
+    from validation.default_inputs.fan_airflow.build import normalize
+
+    path = AIRFLOW_ARCHIVE / "observations/DAIKIN_EEDEN22_EBLA09-16D.csv"
+    obs = dict(next(csv.DictReader(path.open())), source_id="X")
+    source = {"url": "u", "evidence_path": "e", "sha256": None, "evidence_type": "manufacturer_databook_pdf_third_party_host"}
+    row = normalize(obs, source)
+    assert not row["eligible"] and "owner acceptance" in row["exclusion_reason"]
+    assert normalize(obs, {**source, "owner_accepted": True})["eligible"]

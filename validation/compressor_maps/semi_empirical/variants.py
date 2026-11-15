@@ -163,9 +163,16 @@ def run_variants(d: pd.DataFrame) -> tuple[dict, pd.DataFrame, pd.DataFrame, dic
             },
             "level_twin": levels["rotary_twin_inverter"]["a_median"],
             "level_twin_by_refrigerant": {
-                r: x["a_median"] for r, x in levels["rotary_twin_inverter"]["by_refrigerant"].items()
+                r: x["a_median"]
+                for r, x in levels["rotary_twin_inverter"]["by_refrigerant"].items()
+                if x["used_as_level"]
             },
             "level_single_fixed": levels["rotary_single_fixed"]["a_median"],
+            "level_single_fixed_by_refrigerant": {
+                r: x["a_median"]
+                for r, x in levels["rotary_single_fixed"]["by_refrigerant"].items()
+                if x["used_as_level"]
+            },
         }
     result["data_speed_ratios"] = {
         "ossorio_2019_cnit": data_ratios(rot, "ossorio_2019_cnit"),

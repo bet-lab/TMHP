@@ -294,8 +294,8 @@ SEMI_EMPIRICAL_TYPES: dict[str, Any] = {
         "level_form": "scaled",
         "speed": "rel",
         "parameters": {"cu": 0.242992, "cH": 2.408944, "qf": 0.123333},
-        "level": 0.501171,
-        "level_by_refrigerant": {"R32": 0.447823, "R410A": 0.567186},
+        "level": 0.52336,
+        "level_by_refrigerant": {"R290": 0.790146, "R32": 0.447823, "R410A": 0.567186},
         "eta_v": {"c0": 1.129917, "parameters": {"c_re": 0.068093, "c_s": 0.123416}, "speed": "rel"},
         "loss_share": 0.575922,
         "hull_PR_N": ((1.9429, 30.0), (6.8421, 30.0), (6.8421, 120.0), (1.9429, 120.0)),
@@ -307,7 +307,7 @@ SEMI_EMPIRICAL_TYPES: dict[str, Any] = {
         "speed": "rel",
         "parameters": {"cu": 0.242992, "cH": 2.408944, "qf": 0.123333},
         "level": 0.790302,
-        "level_by_refrigerant": {},
+        "level_by_refrigerant": {"R22": 0.802211, "R410A": 0.783514},
         "eta_v": {"c0": 1.101583, "parameters": {"c_re": 0.068093, "c_s": 0.123416}, "speed": "rel"},
         "loss_share": 0.575922,
         "hull_PR_N": ((1.9429, 30.0), (6.8421, 30.0), (6.8421, 120.0), (1.9429, 120.0)),
@@ -318,14 +318,20 @@ SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS: dict[str, Any] = {
     "ossorio_anchored": {
         "terms": ("q2", "cu", "cH", "qf"),
         "parameters": {"cu": 0.242992, "cH": 2.408944, "qf": 0.123333},
-        "level": {"rotary_twin_inverter": 0.501171, "rotary_single_fixed": 0.790302},
-        "level_by_refrigerant": {"rotary_twin_inverter": {"R32": 0.447823, "R410A": 0.567186}},
+        "level": {"rotary_twin_inverter": 0.52336, "rotary_single_fixed": 0.790302},
+        "level_by_refrigerant": {
+            "rotary_twin_inverter": {"R290": 0.790146, "R32": 0.447823, "R410A": 0.567186},
+            "rotary_single_fixed": {"R22": 0.802211, "R410A": 0.783514},
+        },
     },
     "shao_informed": {
         "terms": ("q2", "cL", "cu"),
         "parameters": {"cL": 0.03401, "cu": 0.118791},
-        "level": {"rotary_twin_inverter": 1.275779, "rotary_single_fixed": 1.729347},
-        "level_by_refrigerant": {"rotary_twin_inverter": {"R32": 1.316402, "R410A": 1.172723}},
+        "level": {"rotary_twin_inverter": 1.27097, "rotary_single_fixed": 1.729347},
+        "level_by_refrigerant": {
+            "rotary_twin_inverter": {"R290": 1.145152, "R32": 1.316402, "R410A": 1.172723},
+            "rotary_single_fixed": {"R22": 1.790992, "R410A": 1.692558},
+        },
     },
 }
 SEMI_EMPIRICAL_DRIVE: dict[str, Any] = {"lam": 0.058774, "beta": 0.617538, "N_ref_rps": 60.0}

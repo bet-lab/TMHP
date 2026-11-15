@@ -45,7 +45,14 @@ import numpy as np
 import pandas as pd
 
 from validation.compressor_maps.semi_empirical import cv
-from validation.compressor_maps.semi_empirical.model import ETA_V_TERMS, Data, EtaV, EtaVBounded, State
+from validation.compressor_maps.semi_empirical.model import (
+    ETA_V_TERMS,
+    Data,
+    EtaV,
+    EtaVBounded,
+    State,
+    machine_weights,
+)
 from validation.compressor_maps.semi_empirical.thermo import _props, k_effective, suction_state
 
 DROP_TOL = 1e-4
@@ -327,6 +334,64 @@ def speed_ratios(form, st: State, rows: pd.DataFrame) -> pd.DataFrame:
     return r.groupby(["source_id", "N"])[["data", "model"]].mean().reset_index()
 
 
+# ------------------------------------------------------------------------------------------------ PR slope above the data
+HIGH_PR = (3.4, 6.0, 8.0, 10.0)
+
+
+def high_pr_slopes(sel: EtaVBounded, st: State, rot: pd.DataFrame, pts: pd.DataFrame) -> tuple[dict, pd.DataFrame]:
+    """eta_v at PR 3.4/6/8/10 (R32, condensing dew point 50 degC, superheat 10 K, 60 rev/s at n = 1) for the PR slope
+    of the selected fit, of AREP #26 alone (fixed speed: c_s held at the selected value) and of Shao alone; each
+    re-levelled on the twin rating points. Per source: shape RMSE (unit levels refitted) and the bias on the top 20 %
+    of that source's PR with the unit levels fitted on its lower 80 %. The range is the stated uncertainty of eta_v
+    above the rotary data (PR 6.8); the selection itself is the archive's rule (machine weights, LOCO)."""
+    from validation.compressor_maps.semi_empirical.thermo import state_at_pr  # noqa: PLC0415
+
+    c_s = float(dict(zip(sel.terms, st.theta, strict=True)).get("c_s", 0.0))
+    arep = rot[rot.source_id == "arep_rpt26_hitachi2013"]
+    shao = rot[rot.source_id == "shao_2004"]
+    st_a = EtaVBounded("rotary", sel.speed, ("c_re",)).fit(Data.of(arep, sel.speed, ycol="eta_v"))
+    two = EtaVBounded("rotary", sel.speed, ("c_re", "c_s"))
+    variants = {
+        "selected fit (Shao, AREP #26, Ossorio)": (sel, st),
+        "PR slope from AREP #26 alone (c_s held)": (two, State(np.array([st_a.theta[0], c_s]), {})),
+        "Shao 2004 alone": (two, two.fit(Data.of(shao, sel.speed, ycol="eta_v"))),
+    }
+    tw = pts[pts.basis == BASIS["rotary_twin_inverter"]]
+    rows = []
+    for name, (form, s) in variants.items():
+        c0 = float(np.median(tw.eta_v / form.shape(s.theta, _data_n1(tw))))
+        p = dict(zip(form.terms, s.theta, strict=True))
+        r = {"variant": name, "c_re": p.get("c_re", 0.0), "c_s": p.get("c_s", 0.0), "c0_twin": c0}
+        for pr in HIGH_PR:
+            _, k, _, _ = state_at_pr("R32", pr, 50.0, 10.0)
+            dd = _data_n1(pd.DataFrame({"PR": [pr], "k": [k], "N_rps": [60.0], "eta_v": [0.0]}))
+            r[f"eta_v_PR{pr:g}"] = float(c0 * form.shape(s.theta, dd)[0])
+        for src, g in rot.groupby("source_id"):
+            key = src.split("_")[0]
+            dg = Data.of(g, form.speed, ycol="eta_v")
+            e = form.predict(s, dg, form.fit_levels(s, dg)) - dg.y
+            r[f"shape_rmse_{key}"] = cv.wstats(e, machine_weights(g))[1]
+            if g.PR.nunique() > 3:
+                q = g.PR.quantile(0.8)
+                lv = form.fit_levels(s, Data.of(g[q > g.PR], form.speed, ycol="eta_v"))
+                dt = Data.of(g[q <= g.PR], form.speed, ycol="eta_v")
+                pop = float(np.median(list(lv.values())))
+                e = form.predict(s, dt, {u: lv.get(u, pop) for u in dt.units}) - dt.y
+                r[f"top20_PR_bias_{key}"] = float(np.mean(e))
+        rows.append(r)
+    t = pd.DataFrame(rows)
+    hi = {f"PR{pr:g}": [float(t[f"eta_v_PR{pr:g}"].min()), float(t[f"eta_v_PR{pr:g}"].max())] for pr in HIGH_PR[1:]}
+    return {
+        "range_R32_60rps_n1": hi,
+        "data_PR_max": float(rot.PR.max()),
+        "statement": "above the rotary eta_v data (PR <= 6.8) the PR fall is an extrapolation of mostly Shao 2004 "
+        "(R22, manufacturer maps); AREP #26 (measured) falls more slowly. The range over the three PR slopes is the "
+        "stated uncertainty. Molinaroli 2017 (four rolling-piston machines) lumps clearance re-expansion and leakage "
+        "into one nozzle area and gives no clearance fraction, so no clearance-volume bound is cited; c_re carries "
+        "every PR-dependent loss that does not fall with speed and is not a clearance fraction.",
+    }, t
+
+
 # ------------------------------------------------------------------------------------------------ driver
 def fit_all(d: pd.DataFrame, rating_path, regression: dict) -> dict:
     """Everything the archive records about eta_v (rotary selection and levels, scroll refit, old-form comparison)."""
@@ -392,6 +457,18 @@ def fit_all(d: pd.DataFrame, rating_path, regression: dict) -> dict:
         sr.append(speed_ratios(f, m["state"], rot).assign(candidate=name))
     out["tables"]["eta_v_speed_ratios"] = pd.concat(sr, ignore_index=True)
     out["tables"]["eta_v_rating_points"] = pts
+    hp, hp_table = high_pr_slopes(sel, st, rot, pts)
+    out["rotary"]["high_pr_uncertainty"] = hp
+    out["tables"]["eta_v_high_pr"] = hp_table
+    # eta_v level by refrigerant (audit; the level stays pooled per type, the regression's convention)
+    by_ref = {}
+    for t, b in BASIS.items():
+        g = pts[pts.basis == b]
+        by_ref[t] = {r: float(x.c0.median() / g.c0.median()) for r, x in g.groupby("refrigerant")}
+    h = d[(d.source_id == "highly_catalogue_2024") & d.eta_v.notna() & (d.comp_type == "rotary_twin")]
+    hm = sel.predict(st, Data.of(h, sel.speed, ycol="eta_v"), levels["rotary_twin_inverter"]["c0_median"])
+    by_ref["highly_2024_r290_twins_data_over_model"] = float(np.median(h.eta_v.to_numpy() / hm))
+    out["rotary"]["eta_v_level_by_refrigerant_audit"] = by_ref
     # scroll
     scr = shape_rows(d, "scroll")
     ev_c = Evaluator(scr)

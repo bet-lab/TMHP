@@ -151,9 +151,10 @@ def test_split_is_bounded_over_the_envelope(spec):
 
 
 def test_split_stays_below_one_where_the_constant_split_did_not():
-    """The first archive's constant rotary eta_em (0.858) put eta_oi / eta_em above one at low PR in variant b."""
-    comp = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R290", 55.0)
-    pr, st = state_at_pr("R290", 1.5, 50.0)
+    """The first archive's constant rotary eta_em (0.858) put eta_oi / eta_em above one at low PR in variant b
+    (R1234yf, pooled level, PR 2, 30 rev/s: eta_oi about 0.876)."""
+    comp = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R1234yf", 55.0)
+    pr, st = state_at_pr("R1234yf", 2.0, 50.0)
     eta_oi = comp.eta_oi(pr, 30.0, st)
     assert eta_oi > 0.858
     assert comp.eta_isen(pr, 30.0, st) < 1.0
@@ -208,6 +209,47 @@ def test_rotary_eta_v_level_is_the_median_of_the_rating_points():
             shape /= 1.0 + p.get("c_L", 0.0) * (r.PR - 1.0) + p.get("c_s", 0.0) + p.get("c_f", 0.0)
             assert r.c0 * shape == pytest.approx(r.eta_v, rel=1e-5)
         assert unit > 0
+
+
+def test_rotary_level_per_refrigerant_where_rating_points_exist():
+    """R32 / R410A from LG + SCI, R290 from the Highly 2024 twins; other refrigerants take the pooled level."""
+    import json
+
+    coeffs = json.loads((ARCHIVE / "coefficients.json").read_text())
+    for ctype, own in (("rotary_twin_inverter", {"R32", "R410A", "R290"}), ("rotary_single_fixed", {"R22", "R410A"})):
+        level = coeffs["types"][ctype]["eta_oi"]["level"]
+        used = {r for r, v in level["by_refrigerant"].items() if v["used_as_level"]}
+        assert used == own
+        for ref in ("R32", "R410A", "R290", "R22", "R134a", "R1234yf"):
+            comp = SemiEmpiricalCompressor(CompressorSpec(ctype), ref, 60.0)
+            expected = level["by_refrigerant"][ref]["a_median"] if ref in own else level["a_median"]
+            assert comp.level == pytest.approx(expected, abs=1e-6), (ctype, ref)
+    r290 = coeffs["types"]["rotary_twin_inverter"]["eta_oi"]["level"]["by_refrigerant"]["R290"]
+    assert r290["machines"] == 7 and r290["sources"] == ["highly_catalogue_2024"]
+
+
+def test_gmcc_check_uses_the_r290_level():
+    """The GMCC inverter-input points (R290) against the model at the R290 level: an implied inverter efficiency."""
+    import json
+
+    coeffs = json.loads((ARCHIVE / "coefficients.json").read_text())
+    comp = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R290", 60.0)
+    for g in coeffs["checks"]["gmcc_inverter_input"]:
+        pr, st = state_at("R290", g["T_evap_C"], g["T_cond_C"], 11.1)
+        assert comp.eta_oi(pr, 60.0, st) == pytest.approx(g["model_terminal"], abs=2e-6)
+        assert 0.85 < g["implied_inverter_eff"] < 1.0
+
+
+def test_eta_v_uncertainty_above_the_data_is_recorded():
+    import json
+
+    coeffs = json.loads((ARCHIVE / "coefficients.json").read_text())
+    unc = coeffs["types"]["rotary_twin_inverter"]["eta_v"]["uncertainty_above_data"]
+    comp = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R32", None)
+    for pr_target in (6.0, 8.0, 10.0):
+        lo, hi = unc["range_R32_60rps_n1"][f"PR{pr_target:g}"]
+        pr, st = state_at_pr("R32", pr_target, 50.0)
+        assert lo - 1e-3 <= comp.eta_v(pr, 60.0, st) <= hi + 1e-3
 
 
 def test_default_rotary_speed_shape_is_ossorio_anchored():

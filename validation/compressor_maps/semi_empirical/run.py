@@ -244,28 +244,47 @@ def main(argv: list[str] | None = None) -> int:
 
     # ---- checks -----------------------------------------------------------------------------------------
     eta_inv60 = float(inv_fit.eta(np.array([60.0]))[0])
+
+    def level_for(t: str, ref: str) -> float:
+        """The library's rule: the refrigerant's own level where it has rating points, else the pooled level."""
+        r = levels[t]["by_refrigerant"].get(ref)
+        return r["a_median"] if (r and r["used_as_level"]) else level_value[t]
+
+    pooled_lg_sci = float(np.median(units_r[units_r.source_id == "rating_lg_sci_twin"].a))
     gmcc = []
     for g in assemble.GMCC_CHECK:
-        m = P.eval_at_condition(
-            rot_form,
-            st_r,
-            level_value["rotary_twin_inverter"],
-            g["refrigerant"],
-            g["T_evap_C"],
-            g["T_cond_C"],
-            11.1,
-            60.0,
-        )
         meas = 0.5 * (g["eta_oi_lo"] + g["eta_oi_hi"])
-        gmcc.append({**g, "model_terminal": m, "model_x_inverter60": m * eta_inv60, "implied_inverter_eff": meas / m})
+        row = dict(g)
+        for tag, lv in (("", level_for("rotary_twin_inverter", g["refrigerant"])), ("_lg_sci_pooled", pooled_lg_sci)):
+            m = P.eval_at_condition(rot_form, st_r, lv, g["refrigerant"], g["T_evap_C"], g["T_cond_C"], 11.1, 60.0)
+            row.update({f"model_terminal{tag}": m, f"model_x_inverter60{tag}": m * eta_inv60})
+            row[f"implied_inverter_eff{tag}"] = meas / m
+        row["measured_inverter_model_at_60rps"] = eta_inv60
+        gmcc.append(row)
     hi = d[d.source_id == "highly_catalogue_2024"]
-    hpred = rot_form.predict(st_r, Data.of(hi, rot_form.speed), level_value["rotary_twin_inverter"])
-    highly = {
-        "rows": int(len(hi)),
-        "data_eta_oi_median": float(hi.eta_oi.median()),
-        "model_median": float(np.median(hpred)),
-        "ratio_data_model_median": float(np.median(hi.eta_oi.to_numpy() / hpred)),
+    highly = {"note": "the seven twins set the R290 level (in sample); the single rotary is out of sample"}
+    for tag, sel in (("twins", hi.comp_type == "rotary_twin"), ("single_inverter", hi.comp_type != "rotary_twin")):
+        h = hi[sel]
+        for lt, lv in (("r290_level", level_for("rotary_twin_inverter", "R290")), ("lg_sci_pooled", pooled_lg_sci)):
+            hp = rot_form.predict(st_r, Data.of(h, rot_form.speed), lv)
+            highly[f"{tag}_{lt}"] = {
+                "rows": int(len(h)),
+                "data_eta_oi_median": float(h.eta_oi.median()),
+                "model_median": float(np.median(hp)),
+                "ratio_data_model_median": float(np.median(h.eta_oi.to_numpy() / hp)),
+            }
+    # fixed-speed single R290 (Panasonic, flagged 'under development' in the source table: a check, never fit data)
+    p290 = d[(d.source_id == "rating_fixed_single") & (d.refrigerant == "R290") & d.eta_oi.notna()]
+    sp = rot_form.predict(st_r, Data.of(p290, rot_form.speed), level_for("rotary_single_fixed", "R290"))
+    single_r290 = {
+        "rows": int(len(p290)),
+        "source": "Panasonic fixed-speed single rotaries, R290, 50 Hz (flagged under development; check only)",
+        "level_used": level_for("rotary_single_fixed", "R290"),
+        "data_eta_oi_median": float(p290.eta_oi.median()) if len(p290) else None,
+        "model_median": float(np.median(sp)) if len(p290) else None,
+        "ratio_data_model_median": float(np.median(p290.eta_oi.to_numpy() / sp)) if len(p290) else None,
     }
+    lvl_test, lvl_test_table = P.refrigerant_level_test(rot_form, st_r, d, vb["rows"], var_backward)
     repro, pv = verify.reproduce(d), verify.pipeline_variant(d)
     pr_max = {
         "scroll": float(ev.df["scroll"].PR.max()),
@@ -288,7 +307,8 @@ def main(argv: list[str] | None = None) -> int:
     grid = []
     for t, (fam, _) in TYPES.items():
         form, st = chosen[fam]["form"], chosen[fam]["state"]
-        lv = twin_r410a if (t == "rotary_twin_inverter" and twin_r410a) else level_value[t]
+        # the library's level rule for R410A (its own level where the type has R410A rating points)
+        lv = level_value[t] if t == "scroll" else level_for(t, "R410A")
         for n in P.GRID_N:
             e = P.eval_eta(
                 form,
@@ -347,6 +367,7 @@ def main(argv: list[str] | None = None) -> int:
     exclusions_table(d).to_csv(out / "exclusions.csv", index=False)
     inv_cv.to_csv(out / "inverter_cv.csv", index=False, float_format="%.6g")
     pd.concat(split_tables).to_csv(out / "split.csv", index=False, float_format="%.6g")
+    lvl_test_table.to_csv(out / "level_by_refrigerant.csv", index=False, float_format="%.6g")
     for name, table in ev_v["tables"].items():
         table.to_csv(out / f"{name}.csv", index=False, float_format="%.6g")
     V.write(var_result, var_cv, var_backward, out)
@@ -384,6 +405,7 @@ def main(argv: list[str] | None = None) -> int:
                 "shape_rows": v["shape_rows"],
                 "shape_machines": v["shape_machines"],
                 "envelope": ev_v["envelope"][t],
+                "uncertainty_above_data": v["high_pr_uncertainty"],
             }
         else:
             eta_v = {
@@ -428,9 +450,13 @@ def main(argv: list[str] | None = None) -> int:
             "power_basis_of_fit": "terminal (sources on the inverter-input basis divided by the drive model I1)",
             "monotonic_check": mono[t],
         }
-    types["rotary_twin_inverter"]["eta_oi"]["level_note"] = (
-        "Use level.by_refrigerant[ref].a_median when the refrigerant is R32 or R410A, else level_a (pooled)."
-    )
+    for t in ("rotary_twin_inverter", "rotary_single_fixed"):
+        own = [r for r, v in levels[t]["by_refrigerant"].items() if v["used_as_level"]]
+        types[t]["eta_oi"]["level_note"] = (
+            f"Use level.by_refrigerant[ref].a_median for {', '.join(own)} (rating points of that refrigerant); any "
+            "other refrigerant takes level_a (pooled over all rating points of the type) -- an extrapolation in "
+            "suction pressure / MEP_s."
+        )
     rotary_eta_v = {k: v for k, v in ev_v["rotary"].items() if k not in ("levels", "regression_consistency")}
     coeffs = {
         "version": VERSION,
@@ -465,6 +491,7 @@ def main(argv: list[str] | None = None) -> int:
             "drop_tolerance": P.DROP_TOL,
             "eta_v_rotary": rotary_eta_v,
             "eta_v_scroll_old_form": ev_v["scroll"]["old_form"],
+            "rotary_level_by_refrigerant": lvl_test,
         },
         "sensitivity": {
             "shao_as_inverter_input": {
@@ -476,6 +503,7 @@ def main(argv: list[str] | None = None) -> int:
         "checks": {
             "gmcc_inverter_input": gmcc,
             "highly_2024": highly,
+            "single_fixed_r290": single_r290,
             "prototype_reproduction": repro,
             "pipeline_variant_bitzer_only": pv,
         },

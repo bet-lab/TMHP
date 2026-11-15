@@ -52,7 +52,8 @@ def block_data() -> dict[str, Any]:
     types: dict[str, Any] = {}
     for name, t in coeffs["types"].items():
         oi = t["eta_oi"]
-        by_ref = oi["level"].get("by_refrigerant", {}) if name == "rotary_twin_inverter" else {}
+        # own level only where the archive's rule uses it (enough rating points of that refrigerant)
+        by_ref = {r: v for r, v in oi["level"].get("by_refrigerant", {}).items() if v.get("used_as_level")}
         split = t["split"]
         if split["selected"] != "F":
             raise SystemExit(
@@ -86,6 +87,12 @@ def block_data() -> dict[str, Any]:
         raise SystemExit(f"rotary_speed_variants.json variant {default} twin level differs from coefficients.json")
     if abs(dv["level_single_fixed"] - types["rotary_single_fixed"]["level"]) > 1e-6:
         raise SystemExit(f"rotary_speed_variants.json variant {default} single level differs from coefficients.json")
+    for name, key in (
+        ("rotary_twin_inverter", "level_twin_by_refrigerant"),
+        ("rotary_single_fixed", "level_single_fixed_by_refrigerant"),
+    ):
+        if dv.get(key, {}) != types[name]["level_by_refrigerant"]:
+            raise SystemExit(f"rotary_speed_variants.json variant {default} {key} differs from coefficients.json")
     speed_variants = {}
     for key in VARIANT_NAMES:
         v = variants[key]
@@ -93,7 +100,10 @@ def block_data() -> dict[str, Any]:
             "terms": tuple(v["terms"]),
             "parameters": dict(v["parameters"]),
             "level": {"rotary_twin_inverter": v["level_twin"], "rotary_single_fixed": v["level_single_fixed"]},
-            "level_by_refrigerant": {"rotary_twin_inverter": dict(v["level_twin_by_refrigerant"])},
+            "level_by_refrigerant": {
+                "rotary_twin_inverter": dict(v["level_twin_by_refrigerant"]),
+                "rotary_single_fixed": dict(v.get("level_single_fixed_by_refrigerant", {})),
+            },
         }
     drive = coeffs["drive"]
     return {

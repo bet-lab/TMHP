@@ -216,6 +216,7 @@ def _derived() -> pd.DataFrame:
             "table_id": d.table_id.astype(str),
             "inv_printed": np.nan,
             "model": d.model.astype(str),
+            "comp_type": d.comp_type.astype(str),
         }
     )
     oss = pd.read_csv(inv.INV_2019)
@@ -290,6 +291,10 @@ def build(inverter_fit: inv.InverterFit | None = None) -> pd.DataFrame:
     meta = d.source_id.map(BY_ID)
     for f in ("group", "family", "origin", "power_basis", "basis_status", "role"):
         d[f] = [getattr(s, f) for s in meta]
+    # Highly 2024: the inverter twin rotaries are R290 rating points of the twin level; the one inverter single
+    # rotary belongs to no level class and stays a check
+    hi = d.source_id == "highly_catalogue_2024"
+    d.loc[hi & (d.comp_type != "rotary_twin"), "role"] = "check"
     # Cuevas Table 3 is inverter-fed with the power at the inverter supply
     d.loc[(d.source_id == "cuevas_lebrun_2009") & (d.table_id == "Table 3"), "power_basis"] = "inverter_input"
     d["record"] = d.unit + " @" + d.N_rps.round(2).astype(str)
@@ -338,6 +343,7 @@ def build(inverter_fit: inv.InverterFit | None = None) -> pd.DataFrame:
     d["level_class"] = ""
     d.loc[d.family == "scroll", "level_class"] = "scroll"
     d.loc[d.source_id == "rating_lg_sci_twin", "level_class"] = "rotary_twin_inverter"
+    d.loc[hi & (d.role == "level"), "level_class"] = "rotary_twin_inverter"
     d.loc[d.source_id.isin(["rating_fixed_single", "arep_rpt26_hitachi2013"]), "level_class"] = "rotary_single_fixed"
     d["target_level"] = (d.family == "scroll") & (d.group != "BITZER") & (d.V_disp_cm3 <= 80.0)
     return d

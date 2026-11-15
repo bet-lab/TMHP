@@ -601,8 +601,8 @@ Each unit run records what produced it in
 edits, the ``src/tmhp`` and harness tree hashes, the coefficient version, the
 Python, CoolProp and platform. The summary refuses units whose records
 disagree, and ``validation/results/manifest.json`` carries what they share.
-``tests/test_validation_results_current.py`` reruns a fixed sample of points
-and fails when the model no longer reproduces them.
+``tests/test_validation_results_current.py`` reruns every committed point and
+fails when the model no longer reproduces it.
 
 Adding a machine is a transcription and nothing else — see
 :doc:`adding-a-catalogue`.

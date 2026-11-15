@@ -362,6 +362,17 @@ documents:
     pages: 6
     sha256: "74bacd10e1ca88394b981fe968f1a62cee0bf8bcf0cfb0ea7f32c1885c7ad4cc"
 
+  - path: compressor_maps/dardenne2015/dardenne2015_polimi.pdf
+    title: "Semi-empirical modelling of a variable speed scroll compressor with vapour injection (author version)"
+    publisher: "Int. J. Refrigeration 54 (Dardenne, Molinaroli, Joppolo et al., 2015); POLIMI repository copy"
+    document_id: "IJR 54 (2015); POLIMI 11311/958185"
+    rating_condition: "EN 13771 calorimeter; R410A vapour-injection scroll, 5.3 m3/h at 50 Hz; Appendix Table A.1: 63 tests, 40-116.67 Hz"
+    used_by: "compressor_maps.parse.dardenne2015 -> points_dardenne2015.csv"
+    obtain_from: "https://re.public.polimi.it/handle/11311/958185"
+    bytes: 784668
+    pages: 12
+    sha256: "d39fb4b8a355e27b02de5ea022a1ed74f8f72e730a332f58490b5b347169c4c8"
+
   - path: compressor_maps/gmcc/gmcc_rotary_catalog_v2024.pdf
     title: "GMCC rotary compressor product catalogue V2024"
     publisher: "GMCC (Midea)"
@@ -439,6 +450,17 @@ documents:
     pages: 28
     sha256: "a69c48f5501f96cffe30f5c78cb2216e6515e8969ff0d54d5ac82b0430c6a20c"
 
+  - path: compressor_maps/ossorio2019/ossorio2019_conf.pdf
+    title: "Efficiency characterization of a variable speed compressor (XI CNIT / II International Engineering Thermodynamics Congress)"
+    publisher: "Ossorio-Santiago & Navarro-Peris, UPV (author copy of the congress proceedings)"
+    document_id: "UPV handle 10251/180707"
+    rating_condition: "EN 13771-1 calorimeter; R290 rotary TPB306F, 30-120 rps, Te -7 / Tc 50 degC, SH 10 K, SC 4 K, APY and AKO inverters; Table 1: 18 tests"
+    used_by: "compressor_maps.parse.ossorio2019 -> points_ossorio2019_rotary.csv"
+    obtain_from: "https://riunet.upv.es/handle/10251/180707"
+    bytes: 958950
+    pages: 14
+    sha256: "c610e7eb19c29e1afaa436d0ba63f468025f95375a3fa70c7a3f9ebabe46ce26"
+
   - path: compressor_maps/papers/cuevas_lebrun_2009_ate.pdf
     title: "Testing and modelling of a variable speed scroll compressor"
     publisher: "Applied Thermal Engineering 29(2-3), 469-478"
@@ -482,6 +504,28 @@ documents:
     bytes: 528064
     pages: 11
     sha256: "dfa048774f392fe4c51c75e74295ce3ddc4579045c25c634d3a8075df805cb73"
+
+  - path: compressor_maps/tello2017/tello_newcharacterization.pdf
+    title: "New characterization methodology for vapor-injection scroll compressors (author version)"
+    publisher: "Tello-Oquendo et al., Int. J. Refrigeration (2017); UPV repository copy"
+    document_id: "IJR 2017 (UPV author version)"
+    rating_condition: "UNE-EN 13771-1 calorimeter; R407C vapour-injection scroll ZH18KVE-TFD 17.1 m3/h; SH 5 K, injection SH 5 K; Table 2: 16 tests"
+    used_by: "compressor_maps.parse.tello2017 -> points_tello2017_scvi.csv"
+    obtain_from: "https://riunet.upv.es/"
+    bytes: 488536
+    pages: 24
+    sha256: "63ca3ecdeb1b5097cce300a9f19331bbf0eafc5457cac183bd3e1b89250a2b74"
+
+  - path: compressor_maps/tello2019/tello2019_thesis.pdf
+    title: "Tello-Oquendo doctoral thesis (UPV): characterisation and semi-empirical modelling of scroll compressors with and without vapour injection"
+    publisher: "Universitat Politecnica de Valencia (2021), 282 pages"
+    document_id: "UPV handle 10251/120473"
+    rating_condition: "Table 5.1 (98 cm3, 17.1 m3/h @ 50 Hz for the SCVI; C15/C21/C30/C38 34/46/67/82 cm3 R290); Table 5.2 test matrix only (no measured values for the non-injection scrolls)"
+    used_by: "displacement and speed of the SCVI for compressor_maps.parse.tello2017; checked for non-injection R290 point tables (none, figures only)"
+    obtain_from: "https://riunet.upv.es/handle/10251/120473"
+    bytes: 4358657
+    pages: 282
+    sha256: "997d76e93dddaf8dd962a8b362657cd8e33add4bfb69f7a624baa1f919630503"
 
   - path: compressor_maps/toshiba/toshiba_review_2001_dc_twin_rotary.pdf
     title: "Toshiba Review 2001: DC twin-rotary compressor"

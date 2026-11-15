@@ -1537,8 +1537,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Phase 2: Nelder-Mead refinement from the best candidate found above.
         #
         # The iteration cap is a guard against a search that does not end, not
-        # a tolerance: a refinement stopped by it reports ``success=False`` and
-        # the point is then answered as ``optimizer_failed`` with the unit off.
+        # a tolerance: a refinement stopped by it reports ``success=False`` and,
+        # unless the refinement from the least-lift point ends (below), the
+        # point is answered as ``optimizer_failed`` with the unit off.
         # Where the least-power point is the least-lift point itself -- both
         # fans at their largest airflow, a corner of the feasible set -- the
         # simplex contracts against the infeasible side and needs 200 to 450
@@ -1563,15 +1564,24 @@ class AirSourceHeatPump(ReferenceStateMixin):
             result["least_lift_reason"] = seed_reason
             return result
         result = refine(best_x0)
-        if seed is not None and seed_val < float(result.fun):
+        if seed is not None and (seed_val < float(result.fun) or not result.success):
             # The refinement stopped above the least-lift point's own cost: it
             # sits on a flat stretch of the objective (the discharge-temperature
             # control makes the input nearly independent of the outdoor
             # approach) or in another basin. Refine from the least-lift point
             # too and take it when it is materially cheaper -- by more than the
             # two refinements differ when they end in the same place.
+            #
+            # Or it did not end at all. Towards the least-lift corner the
+            # iteration count has no bound a cap can be set by (1173 for a
+            # 5 kW unit at 46/32 degC), and a refinement the cap stops is a
+            # failed search however close it got. The refinement that starts
+            # on the corner ends in a few dozen iterations: where it ends and
+            # is no dearer, it is the answer.
             from_seed = refine(list(seed))
-            if float(from_seed.fun) < (1.0 - self._SEED_GAIN) * float(result.fun):
+            cheaper = float(from_seed.fun) < (1.0 - self._SEED_GAIN) * float(result.fun)
+            ended_instead = not result.success and from_seed.success and float(from_seed.fun) <= float(result.fun)
+            if cheaper or ended_instead:
                 result = from_seed
         return result
 

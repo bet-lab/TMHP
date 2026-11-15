@@ -6,6 +6,11 @@ hundred iterations to meet its tolerance. With an iteration cap of 200 the
 refinement stopped 5e-5 of the input away from the answer, reported
 ``success=False``, and the unit was answered as switched off
 (``optimizer_failed``). The cap is a guard, not a tolerance.
+
+Two things answer such a point. The cap is 1000, which most corners end
+inside. And a refinement the cap still stops (no cap bounds the count: 1173
+iterations at one point below) is replaced by the refinement that starts on
+the least-lift corner itself, where that one ends and is no dearer.
 """
 
 import pytest
@@ -38,7 +43,7 @@ def test_the_corner_point_is_solved():
 
 
 def test_the_refinement_needs_more_than_two_hundred_iterations_there(monkeypatch):
-    """The point this guards: with the earlier cap the same request is refused."""
+    """The refinement of this point ends, but not inside the earlier cap."""
     iterations = []
 
     def counted(fun, x0, **kwargs):
@@ -51,5 +56,60 @@ def test_the_refinement_needs_more_than_two_hundred_iterations_there(monkeypatch
     assert unit.analyze_steady(**POINT)["failure_reason"] == "none"
     assert 200 < max(iterations) < AirSourceHeatPump._REFINE_MAXITER
 
+
+#: A 5 kW R32 unit with a published indoor airflow (Daikin RXM50A) and the catalogue displacement and
+#: outdoor airflow of its capacity, at 46 degC outdoors and a 32 degC room.
+CORNER_UNIT = dict(
+    ref="R32",
+    defrost=None,
+    hp_capacity=5000.0,
+    V_cmp_ref=1.5065195676511936e-05,
+    dV_ou_fan_a_rated=0.7196365052574172,
+    dV_iu_fan_a_rated=0.2467,
+    dT_approach_bounds=(1.0, 30.0),
+)
+CORNER_POINT = dict(Q_r_iu=5000.0, T0=46.0, T_a_room=32.0, verbose=False)
+
+
+def test_a_refinement_the_cap_stops_is_answered_from_the_least_lift_point(monkeypatch):
+    """No cap is large enough for every corner: this one needs 1173 iterations.
+
+    The refinement from the pre-scan runs into the cap 3.5e-5 of the input
+    above the least-lift point, too little for the least-lift refinement to
+    replace it as the cheaper of two finished searches. It replaces it as the
+    one that finished.
+    """
+    refinements = []
+
+    def counted(fun, x0, **kwargs):
+        result = minimize(fun, x0, **kwargs)
+        refinements.append((int(result.nit), bool(result.success)))
+        return result
+
+    monkeypatch.setattr(module, "minimize", counted)
+    row = AirSourceHeatPump(**CORNER_UNIT).analyze_steady(**CORNER_POINT)
+    assert refinements[0] == (AirSourceHeatPump._REFINE_MAXITER, False)
+    assert refinements[-1][1] and refinements[-1][0] < 100
+    assert row["failure_reason"] == "none" and row["hp_is_on"] and row["capacity_clamped"] is None
+    assert row["Q_ref_iu [W]"] == pytest.approx(5000.0, rel=1e-9)
+    assert row["cop_sys [-]"] == pytest.approx(3.2366, abs=0.001)
+    assert row["dV_ou_a [m3/s]"] == pytest.approx(CORNER_UNIT["dV_ou_fan_a_rated"], rel=1e-3)
+    assert row["dV_iu_a [m3/s]"] == pytest.approx(CORNER_UNIT["dV_iu_fan_a_rated"], rel=1e-3)
+
+
+def test_the_cap_is_what_solves_a_corner_the_least_lift_refinement_does_not(monkeypatch):
+    """Heating at -10/20 degC, 115 % of the nameplate: 216 iterations, and with a cap of 200 the unit is off.
+
+    Here the refinement from the least-lift point does not finish inside 200
+    iterations either, so the larger cap is not made redundant by the fallback
+    above (nor the fallback by the cap: the point above needs 1173).
+    """
+    point = dict(Q_r_iu=-5750.0, T0=-10.0, T_a_room=20.0, verbose=False)
+    unit = AirSourceHeatPump(**CORNER_UNIT)
+    row = unit.analyze_steady(**point)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] is None
+    assert row["Q_ref_iu [W]"] == pytest.approx(5750.0, rel=1e-9)
+    assert row["cop_sys [-]"] == pytest.approx(3.0023, abs=0.001)
+
     monkeypatch.setattr(AirSourceHeatPump, "_REFINE_MAXITER", 200)
-    assert unit.analyze_steady(**POINT)["failure_reason"] == "optimizer_failed"
+    assert unit.analyze_steady(**point)["failure_reason"] == "optimizer_failed"

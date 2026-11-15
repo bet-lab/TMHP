@@ -38,7 +38,7 @@ the entering gas temperature equal to the dew temperature although it states 20 
 Report #58 Table 1 wraps its cells over three text lines; the pieces are re-joined by column position
 (see ``_t1_wrapped``) and checked against Table 3.
 
-Report #66 prints no displacement of the SH161A4; its 28 rows go to ``points_arep_rowlist_no_displacement.csv`` so that
+Report #66 prints no displacement of the SH161A4; its 28 rows go to ``arep66_rowlist_no_displacement.csv`` so that
 ``schema.read_points`` (which requires ``V_disp_cm3``) still reads ``points_arep_rowlist.csv``.
 
 Run ``python -m validation.compressor_maps.parse.arep_rowlist`` to write the CSVs.
@@ -57,7 +57,7 @@ from validation.compressor_maps.schema import COLUMNS, DATA_DIR, CompressorPoint
 
 OUT = DATA_DIR / "points_arep_rowlist.csv"
 # rows of reports that print no displacement (#66): ``schema.read_points`` requires V_disp_cm3, so they live apart
-OUT_NO_DISP = DATA_DIR / "points_arep_rowlist_no_displacement.csv"
+OUT_NO_DISP = DATA_DIR / "arep66_rowlist_no_displacement.csv"
 
 NUM = r"(-?\d+(?:\.\d+)?)"
 NUMC = r"(-?[\d,]+(?:\.\d+)?)"  # allows thousands separator

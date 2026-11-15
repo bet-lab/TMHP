@@ -279,7 +279,7 @@ documents:
     publisher: "Danfoss Commercial Compressors, Tianjin (Suindykov, Zhang, Gernemann, 18 Jan 2016), public"
     document_id: "AHRI Low-GWP AREP Test Report #66"
     rating_condition: "Danfoss SH161A4 hermetic fixed-speed scroll, 400 V 50 Hz, 2900 rpm (displacement not printed); HPR2A Tables A1 (SI) and A2 (IP) with 28 points, 11.1 K superheat, 8.3 K subcooling at the bubble point; R-410A from published data plus validation points, not tabulated"
-    used_by: "compressor_maps.parse.arep_rowlist -> points_arep_rowlist_no_displacement.csv (28 points)"
+    used_by: "compressor_maps.parse.arep_rowlist -> arep66_rowlist_no_displacement.csv (28 points)"
     obtain_from: "AHRI Low-GWP AREP report list (www.ahrinet.org/analytics/research/ahri-low-gwp-alternative-refrigerants-evaluation-program)"
     bytes: 814069
     pages: 23

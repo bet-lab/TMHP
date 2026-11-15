@@ -245,7 +245,11 @@ Fujitsu result was checked before being published rather than after.
 
     Backing the conductance out of each machine's own rating point — "if the
     whole residual were conductance, how much would it be?" — places each one
-    against the population the default came from.
+    against the population the default came from. The population and the
+    ``Q/x`` rules below are those of the outdoor-coil default before November
+    2026 (``Q/5`` from component-coil catalogues, :doc:`defaults`, *The
+    previous rule*); the shipped default is now an approach temperature, and
+    this back-out is regenerated with it.
 
     .. list-table::
         :header-rows: 1
@@ -285,7 +289,7 @@ Fujitsu result was checked before being published rather than after.
           - **outside** (low end)
 
     The band is **Q/3.3 to Q/7.1** at p10–p90 of 1,414 component coils, on the
-    nameplate-capacity basis, and the default ``Q/5.0`` sits inside it. The
+    nameplate-capacity basis, and the previous default ``Q/5.0`` sits inside it. The
     machines split at both ends. The three most efficient Daikin units
     would need more conductance than 90 % of the component population (Q/2.4,
     Q/2.6 and Q/3.26 against the band's Q/3.32), while both Fujitsu units
@@ -320,13 +324,15 @@ Fujitsu result was checked before being published rather than after.
 .. admonition:: Why the default was not moved
     :class: note
 
-    Moving the conductance away from ``Q/5`` would improve the numbers on this
-    page for the machines at one end of the band at the cost of the other. It
-    was not done. The value was derived from
+    Moving the conductance away from ``Q/5`` would have improved the numbers on
+    this page for the machines at one end of the band at the cost of the other.
+    It was not done. The value was derived from
     the catalogue population before any parity result existed, and changing it
     afterwards to improve a parity plot is calibration wearing validation's
     clothes — the exact thing this harness is built to prevent. The spread is
-    reported instead.
+    reported instead. The approach-temperature defaults that replaced ``Q/5``
+    in November 2026 were fixed the same way, from an archive of machine data
+    and a hold-out rule, before the parity results were read.
 
 Three smaller patterns, also named rather than left for a reader to find:
 
@@ -587,8 +593,9 @@ Scope
     each boiler, a heating and a cooling point for the ground-source unit; each
     must converge and deliver the requested duty). That shows they run, not that
     their numbers are right: none has been compared against unit-specific
-    data. The conductance rule derived here is for air coils and does not
-    transfer to a water- or brine-coupled face, which is different physics.
+    data. Their liquid-coupled faces take the approach temperatures of the
+    coaxial and plate exchangers of real machines (:doc:`defaults`), not the
+    air-coil values.
 
     The default compressor displacement of ``AirSourceHeatPump``,
     ``GroundSourceHeatPump`` and ``AirSourceHeatPumpBoiler`` is the one a

@@ -90,13 +90,17 @@ of being solved silently:
 * a borefield you sized that carries more than **80 W/m** at the rated
   source-side heat (attribute ``q_bhe_rated``).
 
-At the rated duty the default indoor coil (``UA_iu_rated = 0.08 ×
-hp_capacity``) at this airflow needs an indoor approach of 18 K for the
+The default indoor coil (``UA_iu_rated``) is the effective conductance that,
+at the rated duty and this airflow, leaves the supply air 2.45 K from the
+condensing temperature: the leaving-end approach water-to-air units print at
+their rating point (:doc:`/validation/defaults`, *Heat-exchanger
+conductance*). The same value serves cooling (the coil is dry). The earlier
+default, ``0.08 × hp_capacity``, needed an indoor approach of 18 K for the
 default 4 kW unit: supply air at 30 °C and condensing at 38 °C in heating
 from a 20 °C room, supply air at 17 °C and evaporating at 8.6 °C in cooling
-from 27 °C (the coil is dry). A larger unit moves less air per kW and needs
-more (20 K at 8 kW: supply air at 33 °C and 14 °C).
-``indoor_approach_max_K`` defaults to 25 K.
+from 27 °C; a larger unit moves less air per kW and needed more (20 K at
+8 kW: supply air at 33 °C and 14 °C). ``indoor_approach_max_K`` defaults to
+25 K.
 
 The indoor coil takes the density of the room air it draws in, as the coils of
 :doc:`ashp` do (:ref:`ashp-air-density`): ``dV_iu_a [m3/s]`` and the fan

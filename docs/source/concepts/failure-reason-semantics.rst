@@ -661,21 +661,26 @@ no brine temperature can be imposed and ``operating_range()`` refuses it
 air is ``T_a_room``.
 
 The ``W55`` of a boiler condition is the water *leaving* the heat pump, which
-is not an input of the boiler models: their sink is the tank temperature
-``T_tank_w``. The table solves ``T_tank_w = leaving water - sink_offset_K`` with
-``sink_offset_K = 2.5 K``, the offset every air-to-water catalogue of the
-validation set states for where the manufacturer measures, and prints both
-temperatures (``T_load_side [°C]`` and ``T_tank_w [°C]``). Near a limit those
-2.5 K can decide whether a point runs; ``sink_offset_K=0`` solves the tank at
-the named temperature, the stricter case of a tank held at 55 °C:
+is not an input of the boiler models: their sink is the tank water
+``T_tank_w`` entering the plate condenser. The table hands a boiler the water
+EN 14511 enters with — the leaving water less the standard's rise, 5 K up to
+45 °C, 8 K at 55 °C, 10 K at 65 °C
+(:func:`tmhp.standard_conditions.en14511_water_rise`) — and, for
+``AirSourceHeatPumpBoiler``, the flow that carries the duty at that rise; the
+liquid-source boilers run at their rated circulation flow. It prints both
+temperatures (``T_load_side [°C]`` and ``T_tank_w [°C]``). Near a limit the
+rise can decide whether a point runs. ``sink_offset_K`` replaces it: the
+water enters that much below the leaving water at the rated circulation flow,
+and ``sink_offset_K=0`` solves the tank water at the named temperature, the
+stricter case of a tank held at 55 °C:
 
 .. code-block:: python
 
    import tmhp
 
    hp = tmhp.AirSourceHeatPumpBoiler(ref="R32")
-   leaving = hp.operating_range()                 # tank 2.5 K below the leaving water
-   tank = hp.operating_range(sink_offset_K=0.0)   # tank at the named temperature
+   leaving = hp.operating_range()                 # EN 14511: water enters the rise below the leaving water
+   tank = hp.operating_range(sink_offset_K=0.0)   # tank water at the named temperature
    print(leaving[["condition", "T_tank_w [°C]", "runs", "failure_reason"]])
    print(tank[["condition", "T_tank_w [°C]", "runs", "failure_reason"]])
 
@@ -883,7 +888,7 @@ the recommended lever to pull when you hit each one.
 
     **What to do.** Choose an upper set point the refrigerant reaches
     (``T_cond_max`` less the condenser approach at the nameplate duty,
-    ``hp_capacity / UA_tank_hx``), or a refrigerant with a higher limit (R290, R134a). For a
+    ``hp_capacity / K_tank_hx``), or a refrigerant with a higher limit (R290, R134a). For a
     compressor with a different high-pressure rating give its own
     ``T_cond_max=<°C>``; ``None`` removes the limit for a sensitivity
     study. A zeotropic blend is judged at its dew point: R407C reaches the

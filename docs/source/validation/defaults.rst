@@ -41,27 +41,42 @@ Summary
       - Default
       - Where it comes from
       - Reproduce
-    * - Outdoor coil conductance (air-to-air)
-      - ``UA_ou = hp_capacity / 5``
-      - 1,414 component coils across two rating standards and six
-        manufacturers, converted to the nameplate basis; independently checked
-        against 12 heat pumps' published coil geometry
-      - ``ua_transfer_law``
-    * - Indoor / outdoor conductance ratio
-      - ``UA_iu = 0.8 × UA_ou``
-      - Derived, not chosen: both faces are air coils, so the ratio is the duty
-        ratio ``1 / (1 + 1/EER)``
-      - ``ua_transfer_law``
-    * - Tank heat-exchanger conductance (air-to-water)
-      - ``UA_tank_hx = hp_capacity / 5``
-      - 5 K equivalent LMTD; inside the band Deutz et al. (2018) fit for a
-        tank-mantle machine
-      - —
-    * - Evaporator / condenser conductance ratio (air-to-water)
-      - ``UA_ou = 0.7 × UA_tank_hx``
-      - Duty ratio ``1 − 1/COP``; the measured approach temperatures on the two
-        sides are close enough for the transfer to hold
-      - ``en328_inversion``
+    * - Outdoor coil conductance (per role)
+      - Leaving-end approach 2.76 K as a condenser (``UA_ou_rated`` of
+        ``AirSourceHeatPump``, air at 35 °C) and 3.18 K as an evaporator
+        (``UA_ou_evap_rated``, and ``UA_ou_rated`` of
+        ``AirSourceHeatPumpBoiler``, air at 7 °C), at the rated outdoor airflow
+      - Saturation temperature at the printed pressure of 129 / 96 operating
+        points (13 / 10 product lines, 4 / 2 manufacturers) of split and
+        air-to-water outdoor units; the law chosen by product-line hold-out
+      - ``default_inputs.hx_approach``
+    * - Indoor coil conductance (air-to-air)
+      - ``UA_iu_rated = 0.16 × hp_capacity``, provisional
+      - The earlier rule, no longer tied to the outdoor coil. The wall-mounted
+        indoor-coil rows come from one manufacturer and disagree on the
+        leaving approach, so no value is issued (`Heat-exchanger conductance`_)
+      - ``default_inputs.hx_approach``
+    * - Indoor coil conductance (water-to-air)
+      - Leaving-end approach 2.45 K at the rated indoor airflow
+        (``UA_iu_rated`` of ``GroundSourceHeatPump``, both modes)
+      - 121 operating points of water-to-air units (6 product lines, 3
+        manufacturers)
+      - ``default_inputs.hx_approach``
+    * - Liquid–refrigerant exchanger conductance
+      - Leaving-end approach 3.92 K as a condenser and 3.47 K as an evaporator
+        at the rated loop flow (``UA_ground_rated`` / ``UA_ground_evap_rated``
+        of ``GroundSourceHeatPump``; the evaporating value is ``UA_ground`` and
+        ``UA_water`` of the liquid-source boilers)
+      - 135 / 130 operating points of the coaxial source exchangers of
+        water-to-air units (6 product lines, 3 manufacturers)
+      - ``default_inputs.hx_approach``
+    * - Plate condenser of the boilers (``UA_tank_hx``)
+      - Leaving-end approach 2.01 K with circulating water at
+        ``m_dot_w_rated = hp_capacity / (c_w · dT_w_rated)``, ``dT_w_rated``
+        5 K
+      - 20 operating points of the plate condensers of air-to-water units (3
+        product lines, 2 manufacturers)
+      - ``default_inputs.hx_approach``
     * - Compressor displacement
       - ``V = Q̇ / (ρ₁ · Δh · η_vol·n)`` with ``η_vol·n`` = 53.2 rev/s, so it
         follows the refrigerant (``estimate_displacement``). The ground- and
@@ -139,161 +154,355 @@ Heat-exchanger conductance
 The problem
 -----------
 
-``AirSourceHeatPump`` generates both coil conductances from a single declared
-capacity. What has to be established is therefore a capacity-normalised rule
-and a ratio — not any particular machine's conductance. Before this work the
-code carried a divisor of 10 and a ratio of ``0.8`` with no citation anywhere,
-in the source or in the manuscript. The derived rule below replaced the
-divisor; a merge on 2026-10-06 put the uncited value back by accident, and the
-derived rule was restored on 2026-11-12.
+Every model generates its heat-exchanger conductances from a single declared
+capacity, so what has to be established is a capacity-normalised rule for each
+exchanger — not any particular machine's conductance. Real machines do not
+publish a conductance either. What their service manuals, installation manuals
+and test reports print at a rated point is the refrigerant pressure at a
+service or compressor port, next to the entering air or water temperature, the
+flow and the capacity. That is evidence at the level of the heat exchanger, and
+it is what the cycle needs: the conductance is only the means by which the
+model arrives at the saturation temperature the compressor works against.
 
-Why catalogue inversion is not a fit
+What the conductance means
+--------------------------
+
+Every refrigerant-side exchanger in TMHP is an isothermal refrigerant against
+a single-phase fluid, ``ε = 1 − exp(−UA/C)`` and ``Q = ε C |T_in − T_sat|``.
+There is no refrigerant pressure drop and no desuperheating or subcooling
+zone, so the model's saturation temperature has to be the one at the
+compressor's ports for the pressure ratio to be right. A default conductance is
+therefore defined as the **effective** conductance that reproduces, at the
+rated point, the saturation temperature at the pressure the machine prints.
+Line and coil pressure drop and the single-phase zones are inside it; it is not
+the ``U·A`` one would compute from the coil geometry.
+
+Which approach temperature transfers
 ------------------------------------
 
-When the refrigerant side of a coil changes phase its capacity rate is
-unbounded, the capacity-rate ratio vanishes, and the LMTD and
-effectiveness-NTU descriptions of the coil become the same equation:
+For one operating point, the inlet temperature difference
+``ITD = |T_in − T_sat|``, the leaving-end approach ``ITD − Q/C``, the LMTD and
+``UA/Q`` convert into each other exactly. The choice only matters when a value
+measured on one machine is carried to another of a different capacity and flow:
+what is held fixed? That is a question the data can answer. Per exchanger and
+refrigerant role, each candidate law is fitted with one product line held out
+(product lines that share hardware count as one) and scored by how well it
+predicts the saturation temperature of the held-out units at their own flow and
+duty. The rule, fixed before the data were collected: the simplest law within
+10 % of the lowest error ships, if the stratum has at least three product lines
+and two manufacturers.
+
+.. list-table:: Product-line hold-out error of the predicted saturation temperature (RMSE)
+    :header-rows: 1
+    :widths: 40 20 20 20
+
+    * - Exchanger and role
+      - Fixed leaving approach
+      - ``UA ∝ duty``
+      - Fixed ``ITD``
+    * - Outdoor coil, condensing
+      - 1.70 K
+      - 1.91 K
+      - 3.19 K
+    * - Outdoor coil, evaporating
+      - 1.20 K
+      - 1.36 K
+      - 1.81 K
+    * - Plate condenser of air-to-water units
+      - 1.17 K
+      - 1.53 K
+      - 2.22 K
+    * - Coaxial source exchanger, evaporating
+      - 1.56 K
+      - 1.56 K
+      - 1.99 K
+    * - Coaxial source exchanger, condensing
+      - 2.76 K
+      - 3.08 K
+      - 4.43 K
+    * - Water-to-air indoor coil, condensing
+      - 2.81 K
+      - 2.88 K
+      - 3.63 K
+
+The leaving-end approach wins or ties in every stratum a model uses, and a
+fixed inlet difference — the obvious convention — is the worst everywhere. The
+reason shows in the data: manufacturers build several capacities on one
+chassis, and on a shared coil the inlet difference grows with the load while
+the leaving approach stays put. Holding it fixed gives the conductance in
+closed form,
 
 .. math::
 
-    UA = -\ln\!\left(1 - \frac{\dot Q}{C_{\mathrm{air}}\,\Delta T_1}\right) C_{\mathrm{air}}
+    UA = C \ln\!\left(1 + \frac{\dot Q}{C\,\Delta T_{\mathrm{out}}}\right)
 
-A catalogue that declares duty, air volume flow and a rating temperature
-difference therefore pins the conductance exactly. There is no parameter to
-choose, so the result is either right or the table was misread — and a misread
-column almost always pushes the effectiveness outside ``(0, 1)``, which the
-code refuses. ``validation.extraction.dt_convention`` checks the identity
-numerically over NTU 0.2–5.0.
+with ``C`` the fluid's heat capacity rate at the reference flow and ``Q̇`` the
+exchanger's own duty. A solution exists for every positive duty and flow. A
+fixed inlet difference has none once ``Q̇ ≥ C · ITD`` — a reference flow 15 %
+below the one assumed can be enough — and conductance per unit capacity
+ignores the flow altogether.
 
-This also settles a question that looks like it needs a convention: it does
-not. ``UA/Q`` is the same number whether you compute it on an LMTD or an
-inlet-end basis. Only the *outlet-end approach temperature* differs, and that
-converts exactly through the NTU. All conductances here are reported as an
-equivalent LMTD, which is why they can be compared across sources at all.
+The duty is the exchanger's, not the nameplate: as a condenser the outdoor coil
+of a split unit rejects 1.26 W per watt of cooling nameplate (the nameplate
+plus the compressor work), and as an evaporator absorbs 0.75 W per watt of
+heating nameplate, both archive medians
+(:func:`tmhp.default_inputs.hx_duty_per_nameplate`). The reference flow is the
+rated airflow of the coil (`Maximum fan airflow`_), the rated loop flow, or the
+rated circulation flow of a plate condenser.
 
-What the catalogues say
------------------------
-
-.. list-table::
-    :header-rows: 1
-    :widths: 16 12 34 12 13 13
-
-    * - Rating standard
-      - Models
-      - Manufacturers
-      - Air flow [m³/h per kW]
-      - ``UA/Q`` median
-      - Equivalent LMTD
-    * - EN 328 SC2 (evaporators)
-      - 352
-      - Alfa Laval · Güntner ×2 · GEA Searle
-      - 584
-      - 0.190
-      - 5.28 K
-    * - ENV 327 (condensers)
-      - 1,062
-      - LU-VE · Alfa Laval
-      - 240
-      - 0.146
-      - 6.86 K
-
-Two standards written by different committees for different applications,
-adopting air flows per kilowatt that differ by a factor of 2.4, place their
-product populations in the same band of conductance per unit duty. That
-agreement *between* the standards is the evidence. A regression *through* them
-would mean nothing: inside a single standard ``UA/Q`` and air flow are linked
-by an identity rather than a trend, so the points lie on a curve and a line
-fitted through two such curves is an artefact.
-
-.. admonition:: A claim withdrawn
-    :class: caution
-
-    An earlier version of this work reported a pooled regression of ``UA/Q``
-    against air flow — slope −0.020, R² 0.001 — as evidence that the two are
-    unrelated. That was wrong for the reason just given, and it is withdrawn.
-    What survives is that the two bands overlap, which is circumstantial. The
-    proof is the geometric route below, which is bound by no rating identity at
-    all and lands in the same place.
-
-From the band to the default
-----------------------------
-
-The nameplate is the *indoor* coil's cooling duty; the outdoor coil rejects
-that duty plus the compressor work. A rule written against the nameplate has to
-carry ``1 + 1/EER`` explicitly — 1.29 to 1.35 across the reference units.
-Skipping it misses by about 30 %. Applying it to the condenser band gives
-``UA/Q_cool = 0.19``, that is ``hp_capacity / 5``.
-
-Adding the second condenser manufacturer late in this work was a useful test of
-how settled that is: it moved the condenser median by 5 % and the rounded
-default not at all.
-
-The independent check
+What the archive says
 ---------------------
 
-Trane prints, for every Precedent packaged heat pump, the outdoor coil's face
-area, row count, fin density and tube size *together with* the outdoor fan flow
-and the rated capacity. That is enough to compute the conductance directly from
-a published air-side correlation — `Wang, Chi & Chang (2000)
-<https://doi.org/10.1016/S0017-9310(99)00333-6>`_, already cited by the
-manuscript — with Schmidt fin efficiency, without reference to any component
-catalogue. The two routes share neither inputs nor method.
+.. list-table:: The strata the models use (``validation/default_inputs/hx_approach``)
+    :header-rows: 1
+    :widths: 30 26 16 14 14
 
-Over twelve units of two refrigerant generations the geometric route gives
-``UA/Q_cool`` between 0.119 and 0.206, a median of ``Q/6.8``, and implied
-condensing temperatures of 47–55 °C at the 35 °C rating point, which is the
-product class's ordinary range. Its largest declared quantity is the
-refrigerant-side film coefficient: at 2500 W/(m² K) the route gives ``Q/6.8``,
-and with that resistance removed entirely it gives ``Q/4.3``. The band result
-sits between the two.
+    * - Exchanger and role
+      - Used for
+      - Rows / product lines / manufacturers
+      - Leaving approach, median (p10–p90)
+      - Inlet difference, median
+    * - Outdoor coil, condensing
+      - ``AirSourceHeatPump`` ``UA_ou_rated``
+      - 129 / 13 / 4
+      - 2.76 K (1.1–5.4)
+      - 9.9 K
+    * - Outdoor coil, evaporating
+      - ``AirSourceHeatPump`` ``UA_ou_evap_rated``; ``AirSourceHeatPumpBoiler``
+        ``UA_ou_rated``
+      - 96 / 10 / 2
+      - 3.18 K (2.2–4.7)
+      - 6.8 K
+    * - Plate condenser of air-to-water units
+      - ``UA_tank_hx`` of the three boilers
+      - 20 / 3 / 2
+      - 2.01 K (0.7–3.3)
+      - 7.0 K
+    * - Coaxial source exchanger, condensing
+      - ``GroundSourceHeatPump`` ``UA_ground_rated``
+      - 135 / 6 / 3
+      - 3.92 K (1.6–6.2)
+      - 9.9 K
+    * - Coaxial source exchanger, evaporating
+      - ``GroundSourceHeatPump`` ``UA_ground_evap_rated``;
+        ``GroundSourceHeatPumpBoiler`` ``UA_ground``;
+        ``WaterSourceHeatPumpBoiler`` ``UA_water``
+      - 130 / 6 / 3
+      - 3.47 K (1.4–6.6)
+      - 8.0 K
+    * - Water-to-air indoor coil, condensing
+      - ``GroundSourceHeatPump`` ``UA_iu_rated``
+      - 121 / 6 / 3
+      - 2.45 K (0.7–6.2)
+      - 15.7 K
 
-That is why the band route sets the default: it needs no assumption about the
-refrigerant side at all. The geometric route is the corroboration, and
-``validation.extraction.trane_geometry`` prints the sensitivity of its answer
-to every quantity it had to declare rather than read.
+The 59 sources are manufacturer service and installation manuals (Mitsubishi
+Electric, ClimateMaster, WaterFurnace, Carrier, Bosch, Toshiba, Gree), the
+AHRI low-GWP AREP system test reports, an ORNL mini-split test and a KTH
+air-to-water prototype; the archive's README lists them with their hosts, the
+conversions and the anomalies the documents contain. Outdoor coils are pooled
+across product classes: split and air-to-water outdoor coils are one
+construction and their leaving approaches agree (as condensers 2.9 K for
+wall-mounted splits, 2.3 K for ducted splits and 3.7 K for air-to-water units).
+Indoor coils are not pooled — 6.3 K for wall-mounted units, 2.6 K for ducted
+ones, 2.4 K for water-to-air units — and each model takes the stratum of its
+own kind of indoor unit, where one ships.
+
+The same outdoor coil has a smaller effective conductance as an evaporator than
+as a condenser (a median ratio of 0.78 over the units printed in both modes),
+so each role takes the law of its own stratum: ``AirSourceHeatPump`` has
+``UA_ou_rated`` for cooling and ``UA_ou_evap_rated`` for heating, and
+``GroundSourceHeatPump`` ``UA_ground_rated`` and ``UA_ground_evap_rated``. A
+conductance you pass for the first and not the second serves both roles; a
+value you give is never split.
+
+These values were not chosen by catalogue COP: the laws and their constants
+come from the archive and the hold-out rule alone, and the catalogue comparison
+of :doc:`index` was run only after they were fixed. With them the comparison
+still under-predicts, so the conductance is not where the remaining bias sits.
+
+Every default conductance is recorded in
+``model.default_input_estimates["UA_…"]`` with its law, the spread of the
+population, the hold-out error, the sources and whether the duty lies outside
+the archive's range (``extrapolated``). A conductance you pass is used as given
+and has no entry there.
+
+What it means for a default machine
+-----------------------------------
+
+.. list-table:: Default conductance [W/K], previous rule → now (``Q`` = ``hp_capacity``)
+    :header-rows: 1
+    :widths: 34 18 16 16 16
+
+    * - Conductance
+      - Previous rule
+      - 3.5 kW
+      - 8 kW
+      - 15 kW
+    * - ``AirSourceHeatPump`` ``UA_ou_rated`` (condensing)
+      - ``Q/5``
+      - 700 → 800
+      - 1600 → 1675
+      - 3000 → 3022
+    * - ``AirSourceHeatPump`` ``UA_ou_evap_rated`` (evaporating)
+      - ``Q/5``
+      - 700 → 590
+      - 1600 → 1260
+      - 3000 → 2293
+    * - ``AirSourceHeatPump`` ``UA_iu_rated``
+      - ``0.8 × Q/5``
+      - 560 → 560
+      - 1280 → 1280
+      - 2400 → 2400
+    * - ``AirSourceHeatPumpBoiler`` ``UA_ou_rated``
+      - ``0.7 × Q/5``
+      - 490 → 538
+      - 1120 → 1121
+      - 2100 → 2011
+    * - ``UA_tank_hx`` of the three boilers
+      - ``Q/5``, no flow
+      - 700 → 875
+      - 1600 → 1999
+      - 3000 → 3749
+    * - ``GroundSourceHeatPump`` ``UA_ground_rated`` (condensing)
+      - ``0.18 × Q``
+      - 630 → 700
+      - 1440 → 1599
+      - 2700 → 2999
+    * - ``GroundSourceHeatPump`` ``UA_ground_evap_rated`` (evaporating)
+      - ``0.18 × Q``
+      - 630 → 575
+      - 1440 → 1314
+      - 2700 → 2464
+    * - ``GroundSourceHeatPump`` ``UA_iu_rated``
+      - ``0.08 × Q``
+      - 280 → 582
+      - 640 → 1152
+      - 1200 → 2018
+    * - ``UA_ground`` / ``UA_water`` of the liquid-source boilers
+      - ``0.18 × Q``
+      - 630 → 549
+      - 1440 → 1255
+      - 2700 → 2354
+
+For the outdoor coil as a condenser the new evidence lands almost exactly on
+the previous rule, which was derived from different data by a different route
+(`The previous rule`_). The larger changes are elsewhere: an outdoor coil as an
+evaporator now has about three quarters of its condensing value; the
+indoor coil of the ground-source model has about twice the conductance; and
+the boilers' sink is a different structure, so its ``UA_tank_hx`` is not
+comparable with the earlier one by itself — what the cycle sees is ``K_tank_hx``
+(next section), which is below the earlier ``Q/5``. Small machines get more
+outdoor conductance per watt than large ones because their rated airflow per
+watt is larger (the airflow laws have an intercept).
 
 .. admonition:: How wide the band is, and what that costs you
     :class: warning
 
-    ``Q/5`` is a *median*. On the nameplate basis the population it came from
-    spans **``Q/3.3`` to ``Q/7.1``** at p10–p90, and that width is real
-    hardware, not measurement noise.
-
-    The validation set shows what it costs. Backing the conductance out of each
-    machine's own cooling rating point with the shipped defaults, the two
-    largest Daikin splits imply ``Q/3.8`` and ``Q/5.6`` — inside — while the
-    three smaller ones need more conductance than the band's high end (``Q/2.6``
-    for the 3.5 kW unit; none in ``Q/2``–``Q/16`` closes the gap for the 2.0 and
-    2.5 kW units), and the two Fujitsu splits imply ``Q/7.1`` and ``Q/8.7``, at
-    and beyond the low-conductance end. Their nameplate efficiencies differ
-    accordingly: EER 5.41 down to 3.23 across the seven.
+    The leaving approach of a stratum is a *median*. Between the 10th and 90th
+    percentile of the product lines it spans 1.1–5.4 K for outdoor coils as
+    condensers, 2.2–4.7 K as evaporators, 0.7–3.3 K for plate condensers,
+    1.4–6.6 K and 1.6–6.2 K for coaxial source exchangers as evaporators and
+    condensers, and 0.7–6.2 K for water-to-air indoor coils. That width is
+    real hardware, not measurement noise: at the same duty and flow, two
+    machines at either end of the outdoor condensing band condense about 4 K
+    apart. Even the best law misses the saturation temperature of a held-out
+    product line by 1.2 to 2.8 K (RMSE).
 
     So a single vendor-neutral default describes a typical machine, and **will
     under-predict a high-efficiency product line and over-predict a
-    lower-efficiency one**. If you know the machine, pass
-    ``UA_ou_rated``. :doc:`index` decomposes the rest of that residual, which
-    is not all conductance.
+    lower-efficiency one**. If you know the machine, pass its conductances
+    (``UA_ou_rated``, ``UA_ou_evap_rated``, ``UA_iu_rated``,
+    ``UA_tank_hx`` …). :doc:`index` backs the conductance out of each
+    validation unit's own rating point, and decomposes the rest of the
+    residual, which is not all conductance.
 
     .. note::
 
-        Quote the band on the same basis as the rule. Component catalogues
-        report conductance per unit of *coil* duty (``UA/Q`` 0.108–0.230); the
-        rule is written against the *nameplate*, and the two differ by
-        ``1 + 1/EER`` = 1.307. An earlier version of this page carried the
-        median across but not the band.
+        Quote the band on the same basis as the rule. The archive's spread is
+        a spread of leaving approach; its spread in ``UA`` per watt also
+        carries the spread of airflow per watt, and is wider.
 
-.. admonition:: Where this does not apply at all
+.. admonition:: Where this does not apply
     :class: warning
 
-    The rule is established for dry, round-tube-plate-fin outdoor coils of
-    packaged equipment. Frosted operation, microchannel coils and the
-    residential mini-split product class lie outside the evidence. The
-    mini-split exclusion matters in practice: TMHP's rated air-flow default is
-    the catalogue maximum of single-split units (573 m³/h per kW at 3.5 kW,
-    470 at 8 kW; `Maximum fan airflow`_), while the geometric evidence comes
-    from packaged units at roughly 360. The two defaults still point at
-    different product classes, and that is an open item rather than a
-    resolved one.
+    * **Wall-mounted indoor coils.** No value is shipped. Every row that gives
+      duty, airflow and pressure at one point comes from one manufacturer
+      (Mitsubishi Electric, eight product lines), and the evidence disagrees
+      on the quantity the law uses: 6.3 K of leaving approach on the declared
+      duty and airflow, about 3.5 K on the discharge-air temperature the same
+      tables print, about 3.3 K from a second manufacturer's pipe temperatures
+      at an assumed rated load. The inlet difference agrees at 22 K. So
+      ``AirSourceHeatPump`` keeps ``UA_iu_rated = 0.16 × hp_capacity``, no
+      longer tied to the outdoor coil, and records it as provisional with
+      that reason.
+    * **Frosted operation.** Frosting rows are excluded; frost and defrost are
+      handled by the defrost adjustment, not by the conductance.
+    * **Microchannel coils.** The archive has none; the strata are
+      fin-and-tube coils.
+    * **Wet cooling coils.** Indoor coils run wet in cooling and TMHP's coils
+      are dry, so those rows are excluded. The indoor values come from the dry
+      condensing role and are used in both modes.
+    * **Immersed or wrapped tank coils.** No measured row pairs a condensing
+      pressure with a tank temperature, so no value is issued. Build the
+      boiler with ``m_dot_w_rated=0`` and pass ``UA_tank_hx``.
+    * **Water-to-water machines.** The archive's water-to-water rows come from
+      one manufacturer whose heating tables print suction pressures below
+      their own low-pressure cut-out; the liquid-source boilers borrow the
+      water-to-air coaxial evaporator.
+
+The boilers' sink
+-----------------
+
+The tank heat exchanger of ``AirSourceHeatPumpBoiler``,
+``GroundSourceHeatPumpBoiler`` and ``WaterSourceHeatPumpBoiler`` is an
+external plate condenser fed with tank water by a circulation pump, the
+structure of monobloc air-to-water units. ``T_tank_w`` is the water entering
+the condenser. The rated circulation flow is
+``m_dot_w_rated = hp_capacity / (c_w · dT_w_rated)`` with ``dT_w_rated``
+5 K (the EN 14511 30/35 °C rating), and the heat the exchanger carries per
+kelvin of condensing temperature above the entering water is
+``K_tank_hx = C_w (1 − exp(−UA_tank_hx / C_w))``. ``AirSourceHeatPumpBoiler``
+takes a per-call ``m_dot_w``; the liquid-source boilers run at
+``m_dot_w_rated``. ``m_dot_w_rated=0`` selects the earlier form without
+circulating water, ``UA_tank_hx`` working against the tank temperature
+directly; with ``UA_tank_hx = hp_capacity / 5`` it is the earlier machine.
+
+A rating condition names the *leaving* water (``W35``, ``W55``). The catalogue
+comparisons and ``operating_range()`` hand a boiler the water EN 14511 enters
+with — the leaving water less the standard's rise, 5 K up to 45 °C, 8 K at
+55 °C, 10 K at 65 °C — and, for ``AirSourceHeatPumpBoiler``, the flow that
+carries the duty at that rise (:func:`tmhp.standard_conditions.en14511_water_rise`,
+:func:`tmhp.standard_conditions.en14511_condenser_water`). This replaces the
+earlier convention of a tank 2.5 K below the leaving water with no flow.
+
+The previous rule
+-----------------
+
+Until November 2026 the outdoor coil of ``AirSourceHeatPump`` had
+``UA_ou = hp_capacity / 5`` in both roles and its indoor coil ``0.8 × UA_ou``;
+the boilers had ``UA_tank_hx = hp_capacity / 5`` without circulating water,
+the air-source boiler's outdoor coil ``0.7 × UA_tank_hx``, and the
+ground-source models ``0.18 × hp_capacity`` on the source side and
+``0.08 × hp_capacity`` for the indoor coil. ``hp_capacity / 5`` came from
+1,414 component coils in catalogues rated under EN 328 (352 evaporators,
+median ``UA/Q`` 0.190) and ENV 327 (1,062 condensers, 0.146), converted to the
+nameplate basis with ``1 + 1/EER`` and corroborated by twelve Trane packaged
+units' published coil geometry through the Wang, Chi & Chang (2000) air-side
+correlation. The scripts under ``validation/extraction/``
+(``ua_transfer_law``, ``en328_inversion``, ``trane_geometry``,
+``dt_convention``) still reproduce it.
+
+It was replaced for two reasons. The rating standards fix the temperature
+difference at which a component coil is rated, so the populations say how much
+conductance a coil has at that difference, not which approach a heat pump runs
+at; and residential mini-splits, the product class of the air-to-air validation
+units, were outside that evidence. For outdoor coils the new evidence lands on
+almost the same value. An earlier version of that work also reported a pooled
+regression of ``UA/Q`` against air flow (slope −0.020, R² 0.001) as evidence
+that the two are unrelated; inside one rating standard they are linked by an
+identity, so the regression meant nothing and was withdrawn, leaving the
+overlap of the two standards' bands and the geometric route as the evidence.
 
 
 Compressor displacement

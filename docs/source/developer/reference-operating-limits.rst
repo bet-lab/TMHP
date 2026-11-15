@@ -425,8 +425,11 @@ So at construction (:func:`tmhp.compressor_envelope.limit_tank_setpoints_to_enve
 
 * the cut-out is the tank temperature at which the nameplate duty condenses
   on the limit, ``T_cond_max`` (as the cycle's bubble point) less
-  ``hp_capacity / UA_tank_hx`` -- 59.9 °C for R410A with the default 5 K
-  approach, 60.0 °C for R32, 69.9 °C for R290;
+  ``hp_capacity / K_tank_hx`` (``K_tank_hx``: the heat the tank heat
+  exchanger carries per kelvin of condensing temperature above the tank
+  water) -- 59.9 °C for R410A, 60.0 °C for R32, 69.9 °C for R290 with the
+  tank heat exchanger of before November 2026 (a 5 K approach, no circulating
+  water);
 * a ``T_tank_w_upper_bound`` above it is replaced by it, and a
   ``T_tank_w_lower_bound`` that is not below it is moved down to keep the
   width of the band (the ASHPB's 60–65 °C becomes 54.9–59.9 °C with R410A);

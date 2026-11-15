@@ -251,7 +251,7 @@ the tank overshoots it by up to ``hp_capacity * min_on_time_s / C_tank``.
 
 The three boilers also stop the compressor inside the step at their
 *envelope stop*: the tank temperature at which the nameplate duty would
-condense above ``T_cond_max`` (``T_cond_max − hp_capacity / UA_tank_hx``
+condense above ``T_cond_max`` (``T_cond_max − hp_capacity / K_tank_hx``
 at the condensing-limit pressure; 69.9 °C for the default R290 GSHPB and
 WSHPB, 60 °C for an R32 ASHPB).
 The set points are already capped there (see :doc:`../models/gshpb`), so

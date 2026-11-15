@@ -89,10 +89,13 @@ The catalogue file
     tuning. Anything you omit falls back to the library default, which is the
     case :doc:`the derivation work <defaults>` is really about.
 
-``sink_offset_K``
-    Air-to-water only: how far the tank temperature sits below the catalogue's
-    leaving water temperature. A statement about where the manufacturer
-    measures.
+Air-to-water points need no sink field. The harness runs each one as EN 14511
+states the rating: the water enters at ``t_sink_C`` less the standard's rise
+(5 K up to 45 °C leaving, 8 K at 55 °C, 10 K at 65 °C) and leaves at
+``t_sink_C``, at the flow that carries ``q_kW`` at that rise
+(:func:`tmhp.standard_conditions.en14511_condenser_water`). The former
+``sink_offset_K`` field, a fixed tank temperature 2.5 K below the leaving
+water, is gone.
 
 ``points``
     ``cop`` or ``power_kW``; give either and the other is derived.

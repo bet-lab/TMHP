@@ -75,7 +75,7 @@ cap. ``analyze_steady`` against a hotter tank returns a reduced duty
 (``capacity_binding == "condensing_temperature"``) or the off state with
 ``failure_reason == "condensing_temp_above_max"``.
 
-That cap is the *envelope stop* (``T_cond_max − hp_capacity / UA_tank_hx`` at
+That cap is the *envelope stop* (``T_cond_max − hp_capacity / K_tank_hx`` at
 the condensing-limit pressure), and the in-step thermostat stops the
 compressor there whatever ``min_on_time_s`` says, as in :doc:`gshpb` and
 :doc:`wshpb`: a protection stop outranks the minimum run time. The step is a

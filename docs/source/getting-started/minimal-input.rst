@@ -119,23 +119,30 @@ always be read back.
       - :doc:`/models/reference-state`,
         :doc:`/developer/reference-operating-limits`
     * - Outdoor-coil conductance
-      - ASHP: ``UA_ou_rated = hp_capacity / 5`` [W/K]. ASHPB:
-        ``0.7 × UA_tank_hx`` = ``0.14 × hp_capacity``
+      - The effective ``UA`` [W/K] that reproduces the leaving-end approach
+        real outdoor coils print at their rating point, at the rated outdoor
+        airflow: 2.76 K as a condenser (ASHP ``UA_ou_rated``), 3.18 K as an
+        evaporator (ASHP ``UA_ou_evap_rated``, ASHPB ``UA_ou_rated``)
       - ASHP, ASHPB
       - :doc:`/validation/defaults`, *Heat-exchanger conductance*
     * - Indoor-coil conductance
-      - ASHP: ``UA_iu_rated = 0.8 × UA_ou_rated`` = ``0.16 × hp_capacity``.
-        GSHP: ``0.08 × hp_capacity``
+      - ASHP: ``UA_iu_rated = 0.16 × hp_capacity``, the earlier rule, kept as
+        provisional (no wall-mounted value ships). GSHP: leaving-end approach
+        2.45 K at the rated indoor airflow
       - ASHP, GSHP
       - :doc:`/validation/defaults`; :doc:`/models/gshp`
     * - Tank heat exchanger ``UA_tank_hx``
-      - ``hp_capacity / 5`` [W/K]: a 5 K condensing approach at the nameplate
-        duty
+      - A plate condenser with circulating water at
+        ``m_dot_w_rated = hp_capacity / (c_w · dT_w_rated)``, ``dT_w_rated``
+        5 K; ``UA_tank_hx`` reproduces a leaving-end approach of 2.01 K there.
+        ``m_dot_w_rated=0`` selects a coil without circulating water, whose
+        ``UA_tank_hx`` you give
       - ASHPB, GSHPB, WSHPB
       - :doc:`/validation/defaults`; :doc:`/models/gshpb`, *Default sizing*
     * - Source-side heat exchanger (liquid to refrigerant)
-      - ``0.18 × hp_capacity`` [W/K] (``UA_ground_rated``, ``UA_ground``,
-        ``UA_water``)
+      - Leaving-end approach at the rated loop flow: 3.47 K as an evaporator
+        (GSHP ``UA_ground_evap_rated``, GSHPB ``UA_ground``, WSHPB
+        ``UA_water``), 3.92 K as a condenser (GSHP ``UA_ground_rated``)
       - GSHP, GSHPB, WSHPB
       - :doc:`/models/gshp`, :doc:`/models/gshpb`, :doc:`/models/wshpb`
     * - Rated outdoor airflow
@@ -194,7 +201,7 @@ The size that the rules give for a machine can be checked in one line:
    print(gshp.N_1, gshp.N_2, gshp.H_b)   # 3 2 100.0  -> six 100 m boreholes
    print(gshp.ground_flow_ref_lpm)       # 115.3 L/min of 25 % ethylene glycol
    print(gshp.E_pmp)                     # 640 W
-   print(gshp.UA_ground_rated)           # 5400 W/K
+   print(gshp.UA_ground_rated)           # 5998 W/K (condensing; 4927 W/K evaporating)
 
 The constructor warns (``UserWarning``) when a size you give contradicts the
 rest — a borefield above 80 W/m, a loop flow that is laminar in the U-tubes, a

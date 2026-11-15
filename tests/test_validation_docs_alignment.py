@@ -225,6 +225,187 @@ def _summary_table(text: str) -> str:
     return text[start : text.index("\n\n\n", start)]
 
 
+#: Row label of the strata table in defaults.rst -> the archive stratum it quotes.
+HX_STRATA_ROWS = {
+    "Outdoor coil, condensing": "outdoor_coil|fin_tube|condensing",
+    "Outdoor coil, evaporating": "outdoor_coil|fin_tube|evaporating",
+    "Plate condenser of air-to-water units": "water_condenser|bphe|condensing",
+    "Coaxial source exchanger, condensing": "liquid_source_hx|water_to_air|coaxial|condensing",
+    "Coaxial source exchanger, evaporating": "liquid_source_hx|water_to_air|coaxial|evaporating",
+    "Water-to-air indoor coil, condensing": "indoor_coil|water_to_air|fin_tube|condensing",
+}
+
+
+def _hx_entry(stratum: str) -> dict:
+    from tmhp.default_inputs import _artifact
+
+    entry = _artifact("hx_approach_regression.json")["strata"][stratum]
+    assert entry["meets_shipping_gate"] and entry["law"]["kind"] == "leaving_approach", stratum
+    return entry
+
+
+def _approach(stratum: str) -> str:
+    return f"{_hx_entry(stratum)['law']['dT_out_K']:.2f} K"
+
+
+def _size(stratum: str) -> tuple[int, int, int]:
+    entry = _hx_entry(stratum)
+    return entry["n"], entry["n_holdout_groups"], len(entry["manufacturers"])
+
+
+def _assert_conductance_rows_state_the_shipped_defaults(table: str, a2a, a2w) -> None:
+    """The five conductance rows of the Summary state the laws the constructors use, from the packaged archive."""
+    from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
+    from tmhp.constants import c_w
+
+    def row(label: str) -> str:
+        return re.sub(r"\s+", " ", _list_table_row(table, label))
+
+    def uses(model, name: str, stratum: str) -> None:
+        estimate = model.default_input_estimates[name]
+        assert estimate.key == stratum and estimate.status != "provisional", (name, estimate.key)
+        assert estimate.assumptions[0].startswith(f"leaving-end approach {_approach(stratum)}"), name
+
+    cond, evap = "outdoor_coil|fin_tube|condensing", "outdoor_coil|fin_tube|evaporating"
+    uses(a2a, "UA_ou_rated", cond)
+    uses(a2a, "UA_ou_evap_rated", evap)
+    uses(a2w, "UA_ou_rated", evap)
+    outdoor = row("Outdoor coil conductance (per role)")
+    assert f"Leaving-end approach {_approach(cond)} as a condenser" in outdoor
+    assert f"{_approach(evap)} as an evaporator" in outdoor
+    (n_c, g_c, m_c), (n_e, g_e, m_e) = _size(cond), _size(evap)
+    assert f"{n_c} / {n_e} operating points ({g_c} / {g_e} product lines, {m_c} / {m_e} manufacturers)" in outdoor
+
+    indoor = row("Indoor coil conductance (air-to-air)")
+    assert a2a.default_input_estimates["UA_iu_rated"].status == "provisional"
+    assert f"``UA_iu_rated = {a2a.UA_iu_rated / a2a.hp_capacity:.2f} × hp_capacity``, provisional" in indoor
+
+    water_to_air = "indoor_coil|water_to_air|fin_tube|condensing"
+    gshp = GroundSourceHeatPump()
+    uses(gshp, "UA_iu_rated", water_to_air)
+    n, g, m = _size(water_to_air)
+    water_air_row = row("Indoor coil conductance (water-to-air)")
+    assert f"Leaving-end approach {_approach(water_to_air)} at the rated indoor airflow" in water_air_row
+    assert f"{n} operating points of water-to-air units ({g} product lines, {m} manufacturers)" in water_air_row
+
+    liquid_c = "liquid_source_hx|water_to_air|coaxial|condensing"
+    liquid_e = "liquid_source_hx|water_to_air|coaxial|evaporating"
+    uses(gshp, "UA_ground_rated", liquid_c)
+    uses(gshp, "UA_ground_evap_rated", liquid_e)
+    uses(GroundSourceHeatPumpBoiler(), "UA_ground", liquid_e)
+    uses(WaterSourceHeatPumpBoiler(), "UA_water", liquid_e)
+    liquid = row("Liquid–refrigerant exchanger conductance")
+    assert f"Leaving-end approach {_approach(liquid_c)} as a condenser and {_approach(liquid_e)} as an evaporator" in (
+        liquid
+    )
+    (n_c, g_c, m_c), (n_e, g_e, m_e) = _size(liquid_c), _size(liquid_e)
+    assert (g_c, m_c) == (g_e, m_e)
+    assert f"{n_c} / {n_e} operating points" in liquid and f"({g_c} product lines, {m_c} manufacturers)" in liquid
+
+    plate = "water_condenser|bphe|condensing"
+    uses(a2w, "UA_tank_hx", plate)
+    assert a2w.m_dot_w_rated == pytest.approx(a2w.hp_capacity / (c_w * a2w.dT_w_rated))
+    tank = row("Plate condenser of the boilers (``UA_tank_hx``)")
+    assert f"Leaving-end approach {_approach(plate)} with circulating water" in tank
+    assert f"``dT_w_rated`` {a2w.dT_w_rated:g} K" in tank
+    n, g, m = _size(plate)
+    assert f"{n} operating points of the plate condensers of air-to-water units ({g} product lines, {m}" in tank
+
+
+def test_defaults_conductance_strata_and_holdout_tables_match_the_archive() -> None:
+    """The strata table quotes the packaged archive; the hold-out table quotes the archive's regression.json."""
+    import json
+
+    text = _read("docs/source/validation/defaults.rst")
+    start = text.index(".. list-table:: The strata the models use")
+    strata = text[start : text.index("The 59 sources are", start)]
+    for label, stratum in HX_STRATA_ROWS.items():
+        entry = _hx_entry(stratum)
+        leave, itd = entry["band_p10_p50_p90"]["leave_K"], entry["band_p10_p50_p90"]["ITD_K"]
+        cells = [c.strip() for c in re.sub(r"\s+", " ", _list_table_row(strata, label)).split(" - ")[1:]]
+        n, g, m = _size(stratum)
+        assert cells[1:] == [
+            f"{n} / {g} / {m}",
+            f"{leave[1]:.2f} K ({leave[0]:.1f}–{leave[2]:.1f})",
+            f"{itd[1]:.1f} K",
+        ], (label, cells)
+
+    regression = json.loads((REPO_ROOT / "validation/default_inputs/hx_approach/regression.json").read_text())
+    start = text.index(".. list-table:: Product-line hold-out error")
+    holdout = text[start : text.index("The leaving-end approach wins", start)]
+    holdout_rows = {
+        "Outdoor coil, condensing": "outdoor_coil|fin_tube|condensing",
+        "Outdoor coil, evaporating": "outdoor_coil|fin_tube|evaporating",
+        "Plate condenser of air-to-water units": "water_condenser|bphe|condensing",
+        "Coaxial source exchanger, evaporating": "liquid_source_hx|water_to_air|coaxial|evaporating",
+        "Coaxial source exchanger, condensing": "liquid_source_hx|water_to_air|coaxial|condensing",
+        "Water-to-air indoor coil, condensing": "indoor_coil|water_to_air|fin_tube|condensing",
+    }
+    for label, stratum in holdout_rows.items():
+        candidates = regression["fits"][stratum]["candidates"]
+        cells = [c.strip() for c in re.sub(r"\s+", " ", _list_table_row(holdout, label)).split(" - ")[1:]]
+        expected = [
+            f"{candidates[k]['group_holdout']['RMSE_K']:.2f} K" for k in ("leaving_approach", "ua_per_duty", "itd")
+        ]
+        assert cells == expected, (label, cells)
+    # The packaged archive is the release regression.json was built for.
+    from tmhp.default_inputs import _artifact
+
+    assert _artifact("hx_approach_regression.json")["data_sha256"] == regression["data_sha256"]
+
+
+def test_defaults_conductance_table_matches_the_constructors() -> None:
+    """Every "previous rule → now" cell of the conductance table is what the rule gave and the constructor gives."""
+    from tmhp import (
+        AirSourceHeatPump,
+        AirSourceHeatPumpBoiler,
+        GroundSourceHeatPump,
+        GroundSourceHeatPumpBoiler,
+        WaterSourceHeatPumpBoiler,
+    )
+
+    text = _read("docs/source/validation/defaults.rst")
+    start = text.index(".. list-table:: Default conductance [W/K], previous rule → now")
+    table = text[start : text.index("For the outdoor coil as a condenser", start)]
+    rows = {
+        "``AirSourceHeatPump`` ``UA_ou_rated`` (condensing)": ([AirSourceHeatPump], "UA_ou_rated", 0.2),
+        "``AirSourceHeatPump`` ``UA_ou_evap_rated`` (evaporating)": ([AirSourceHeatPump], "UA_ou_evap_rated", 0.2),
+        "``AirSourceHeatPump`` ``UA_iu_rated``": ([AirSourceHeatPump], "UA_iu_rated", 0.16),
+        "``AirSourceHeatPumpBoiler`` ``UA_ou_rated``": ([AirSourceHeatPumpBoiler], "UA_ou_rated", 0.14),
+        "``UA_tank_hx`` of the three boilers": (
+            [AirSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler],
+            "UA_tank_hx",
+            0.2,
+        ),
+        "``GroundSourceHeatPump`` ``UA_ground_rated`` (condensing)": ([GroundSourceHeatPump], "UA_ground_rated", 0.18),
+        "``GroundSourceHeatPump`` ``UA_ground_evap_rated`` (evaporating)": (
+            [GroundSourceHeatPump],
+            "UA_ground_evap_rated",
+            0.18,
+        ),
+        "``GroundSourceHeatPump`` ``UA_iu_rated``": ([GroundSourceHeatPump], "UA_iu_rated", 0.08),
+    }
+    for label, (classes, name, before_per_W) in rows.items():
+        cells = [c.strip() for c in re.sub(r"\s+", " ", _list_table_row(table, label)).split(" - ")[1:]]
+        for cls in classes:
+            expected = [
+                f"{before_per_W * q:.0f} → {getattr(cls(hp_capacity=q, ref='R32'), name):.0f}"
+                for q in (3500.0, 8000.0, 15000.0)
+            ]
+            assert cells[1:] == expected, (label, cls.__name__, cells)
+    source = [
+        c.strip()
+        for c in re.sub(
+            r"\s+", " ", _list_table_row(table, "``UA_ground`` / ``UA_water`` of the liquid-source boilers")
+        ).split(" - ")[1:]
+    ]
+    for cls, name in ((GroundSourceHeatPumpBoiler, "UA_ground"), (WaterSourceHeatPumpBoiler, "UA_water")):
+        expected = [
+            f"{0.18 * q:.0f} → {getattr(cls(hp_capacity=q, ref='R32'), name):.0f}" for q in (3500.0, 8000.0, 15000.0)
+        ]
+        assert source[1:] == expected, (cls.__name__, source)
+
+
 def test_defaults_summary_states_the_shipped_rules() -> None:
     """The Summary table -- not some historical sentence elsewhere -- states each shipped value."""
     from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
@@ -242,9 +423,7 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
     a2a = AirSourceHeatPump(hp_capacity=5000.0, ref="R32")
     a2w = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R32")
 
-    # The conductance rows of the table state the proportional rules of before the approach-temperature
-    # defaults (issues #115-#118); the code no longer follows them, so they are not compared here until the
-    # page states the new defaults (tests/test_hx_ua_defaults.py pins those).
+    _assert_conductance_rows_state_the_shipped_defaults(table, a2a, a2w)
 
     displacement = re.sub(r"\s+", " ", _list_table_row(table, "Compressor displacement"))
     basis = _artifact("compressor_displacement_regression.json")["bases"][DEFAULT_DISPLACEMENT_BASIS]

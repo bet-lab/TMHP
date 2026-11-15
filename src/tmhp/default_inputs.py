@@ -1,4 +1,5 @@
-"""Catalogue-based default inputs: compressor displacement and maximum fan airflow (issue #86).
+"""Catalogue-based default inputs: compressor displacement, maximum fan airflow (issue #86) and heat-exchanger
+conductance (issues #115-#118).
 
 When a user gives only the rated capacity ``hp_capacity`` (``Q_nom``) and the refrigerant, these functions
 return the inputs a manufacturer's catalogue would have given, with their evidence:
@@ -40,7 +41,9 @@ __all__ = [
     "DEFAULT_DISPLACEMENT_BASIS",
     "DefaultInputEstimate",
     "estimate_displacement",
+    "estimate_hx_UA",
     "estimate_max_airflow",
+    "hx_duty_per_nameplate",
 ]
 
 #: TMHP heat pumps are inverter driven; their default compressor is the 60 rps inverter twin rotary basis.
@@ -220,4 +223,106 @@ def estimate_max_airflow(hp_capacity: float, *, side: str, product: str, mode: s
             *reason,
         ),
         status=status,
+    )
+
+
+def _hx_stratum(stratum: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    artifact = _artifact("hx_approach_regression.json")
+    entry = artifact["strata"].get(stratum)
+    if entry is None:
+        raise ValueError(f"No heat-exchanger stratum {stratum!r}; available: {sorted(artifact['strata'])}")
+    if not entry["meets_shipping_gate"] or entry["law"] is None:
+        raise ValueError(
+            f"Heat-exchanger stratum {stratum!r} rests on {entry['n_holdout_groups']} product lines from "
+            f"{len(entry['manufacturers'])} manufacturer(s); the shipping gate needs "
+            f"{artifact['shipping_gate']['holdout_groups']} and {artifact['shipping_gate']['manufacturers']}"
+        )
+    return artifact, entry
+
+
+def hx_duty_per_nameplate(stratum: str, nameplate_mode: str) -> float:
+    """Median duty of the exchangers of ``stratum`` per watt of their units' ``nameplate_mode`` nameplate.
+
+    The outdoor coil of a split unit rejects 1.26 W per watt of cooling nameplate (the nameplate plus the
+    compressor work); as an evaporator in heating it absorbs 0.84 W per watt of the same nameplate. A default
+    conductance is sized for that duty, not for the nameplate.
+    """
+    _, entry = _hx_stratum(stratum)
+    ratios = entry["duty_per_nameplate_p10_p50_p90"]
+    if nameplate_mode not in ratios:
+        raise ValueError(
+            f"Stratum {stratum!r} has no duty per {nameplate_mode!r} nameplate; available: {sorted(ratios)}"
+        )
+    return float(ratios[nameplate_mode][1])
+
+
+def estimate_hx_UA(stratum: str, *, duty: float, heat_capacity_rate: float) -> DefaultInputEstimate:
+    """Default conductance [W/K] of a refrigerant heat exchanger from the approach temperatures of real machines.
+
+    The value is the *effective* conductance of the model's exchanger (isothermal refrigerant, single-phase
+    fluid, effectiveness ``1 - exp(-UA / C)``) that reproduces, at the stated duty and fluid flow, the
+    saturation temperature machines of the stratum print or were measured at. That pressure is read at a
+    service or compressor port, so line and coil pressure drop and the desuperheating and subcooling zones are
+    inside the value: it is not a geometric ``U A``.
+
+    Parameters
+    ----------
+    stratum
+        Exchanger kind and refrigerant role, for example ``"outdoor_coil|fin_tube|evaporating"`` or
+        ``"water_condenser|bphe|condensing"``.
+    duty
+        Heat duty of the exchanger itself at the rating point [W] (see :func:`hx_duty_per_nameplate`).
+    heat_capacity_rate
+        Heat capacity rate of the fluid at the reference flow the conductance is stated at [W/K].
+
+    The law of each stratum was selected by holding one product line out and predicting its saturation
+    temperature (``validation/default_inputs/hx_approach``); ``assumptions`` states the law, the spread of the
+    population and the hold-out error.
+    """
+    if not (0 < duty < float("inf") and 0 < heat_capacity_rate < float("inf")):
+        raise ValueError("duty and heat_capacity_rate must be positive and finite")
+    # heat_exchanger imports reference_state, which imports this module.
+    from .heat_exchanger import calc_UA_from_inlet_difference, calc_UA_from_leaving_approach
+
+    artifact, entry = _hx_stratum(stratum)
+    law, band = entry["law"], entry["band_p10_p50_p90"]
+    if law["kind"] == "leaving_approach":
+        value = calc_UA_from_leaving_approach(duty, heat_capacity_rate, law["dT_out_K"])
+        rule = f"leaving-end approach {law['dT_out_K']:.2f} K: UA = C ln(1 + Q / (C dT_out))"
+    elif law["kind"] == "itd":
+        value = calc_UA_from_inlet_difference(duty, heat_capacity_rate, law["ITD_K"])
+        rule = f"inlet temperature difference {law['ITD_K']:.2f} K: UA = -C ln(1 - Q / (C ITD))"
+    elif law["kind"] == "ua_per_duty":
+        value = law["k_per_K"] * duty
+        rule = f"UA = {law['k_per_K']:.4f} / K x duty"
+    else:  # pragma: no cover - guarded by the archive export
+        raise ValueError(f"Unknown law kind {law['kind']!r}")
+    low, high = entry["duty_range_W"] or (0.0, float("inf"))
+    cv, maker = entry["group_holdout"], entry["manufacturer_holdout"]
+    spread = (
+        f"Population (10th-50th-90th percentile, product lines weighted equally): leaving approach "
+        f"{band['leave_K'][0]:.1f}-{band['leave_K'][1]:.1f}-{band['leave_K'][2]:.1f} K, inlet difference "
+        f"{band['ITD_K'][0]:.1f}-{band['ITD_K'][1]:.1f}-{band['ITD_K'][2]:.1f} K. A given machine can sit anywhere "
+        "in that band; a conductance given for the machine takes precedence."
+    )
+    holdout = f"Product-line hold-out error of the predicted saturation temperature: RMSE {cv['RMSE_K']:.1f} K"
+    if maker.get("valid"):
+        holdout += f"; manufacturer hold-out RMSE {maker['RMSE_K']:.1f} K"
+    return DefaultInputEstimate(
+        value=float(value),
+        unit="W/K",
+        quantity="heat-exchanger conductance",
+        version=artifact["version"],
+        key=stratum,
+        capacity_range_W=(float(low), float(high)),
+        extrapolated=not low <= duty <= high,
+        source_ids=tuple(entry["source_ids"]),
+        assumptions=(
+            f"{rule}; n = {entry['n']} operating points of {entry['n_holdout_groups']} product lines from "
+            f"{', '.join(entry['manufacturers'])}.",
+            "Effective conductance: reproduces the saturation temperature at the printed (service or compressor "
+            "port) pressure, so refrigerant pressure drop and the desuperheating and subcooling zones are inside it.",
+            spread,
+            holdout + ".",
+        ),
     )

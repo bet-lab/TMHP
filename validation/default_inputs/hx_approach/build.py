@@ -62,7 +62,24 @@ ROLES = ("condensing", "evaporating")
 FITTED_VALUE_KINDS = ("manufacturer_standard_data", "manufacturer_operating_table", "measured_lab")
 #: Surface states under which the sensible effectiveness is that of the model's dry exchanger.
 DRY_STATES = ("dry", "possibly_wet", "n/a")
-CLASS_GROUP = {"split_wall": "split", "split_other": "split"}
+#: Indoor coils differ by the kind of indoor unit; outdoor coils are one construction (fin-and-tube coil with a
+#: propeller fan) whichever unit they serve, and the data agree across classes (see README), so they are pooled.
+INDOOR_KIND = {"split_wall": "wall_mounted", "split_ducted": "ducted", "split_other": "other_indoor_unit",
+               "water_to_air": "water_to_air"}  # fmt: skip
+
+
+def stratum_of(row: dict) -> str:
+    """Stratum key of an observation: the exchanger kind a default is issued for, and the refrigerant's role."""
+    exchanger, product, hx, role = row["exchanger"], row["product_class"], row["hx_type"], row["role"]
+    coil = "microchannel" if hx == "microchannel" else "fin_tube"  # an air coil of unstated type is fin-and-tube
+    if exchanger == "outdoor_coil":
+        return f"outdoor_coil|{coil}|{role}"
+    if exchanger == "indoor_coil":
+        return f"indoor_coil|{INDOOR_KIND.get(product, product)}|{coil}|{role}"
+    if exchanger in ("liquid_source_hx", "load_water_hx"):
+        return f"{exchanger}|{product}|{hx}|{role}"
+    return f"{exchanger}|{hx}|{role}"
+
 
 POWER_TO_W = {"W": 1.0, "kW": 1000.0, "Btu/h": 0.29307107, "MBtu/h": 293.07107, "MBH": 293.07107, "ton": 3516.8525}
 AIRFLOW_TO_M3_S = {"m3/s": 1.0, "m3/min": 1 / 60, "m3/h": 1 / 3600, "l/s": 1e-3, "L/s": 1e-3, "CFM": 0.0283168466 / 60}
@@ -391,9 +408,8 @@ def measure(row: dict, validation_sources: set[str], pressure_basis: dict[str, d
         reasons.append("saturation_from_pipe_surface")
     out["eligible"] = not reasons
     out["exclusion_reason"] = "; ".join(reasons)
-    out["stratum"] = "|".join(
-        (CLASS_GROUP.get(row["product_class"], row["product_class"]), row["exchanger"], row["hx_type"], row["role"])
-    )
+    out["stratum"] = stratum_of(row)
+    out["product_class"] = row["product_class"]
     return out
 
 
@@ -516,6 +532,23 @@ def fit_stratum(rows: list[dict]) -> dict:
         band["UA_per_nameplate"] = [
             weighted_quantile([r["UA_W_K"] / r["nameplate_W"] for r in named], wn, q) for q in (0.1, 0.5, 0.9)
         ]
+    for mode in ("cooling", "heating"):
+        ref = [r for r in rows if r.get(f"nameplate_{mode}_W") and r["Q_hx_W"]]
+        if ref:
+            wr = balanced_weights(ref)
+            band[f"Q_hx_per_{mode}_nameplate"] = [
+                weighted_quantile([r["Q_hx_W"] / r[f"nameplate_{mode}_W"] for r in ref], wr, q) for q in (0.1, 0.5, 0.9)
+            ]
+            band[f"n_with_{mode}_nameplate"] = len(ref)
+    by_class = defaultdict(list)
+    for r in rows:
+        by_class[r["product_class"]].append(r)
+    class_medians = {
+        c: {"n": len(v), "holdout_groups": len({r["holdout_group"] for r in v}),
+            "ITD_K": weighted_quantile([r["ITD_K"] for r in v], balanced_weights(v), 0.5),
+            "leave_K": weighted_quantile([r["leave_K"] for r in v], balanced_weights(v), 0.5)}
+        for c, v in sorted(by_class.items())
+    }  # fmt: skip
     candidates, selected = {}, None
     if len(groups) >= 2:
         for kind in LAWS:
@@ -539,6 +572,7 @@ def fit_stratum(rows: list[dict]) -> dict:
         "manufacturers": makers,
         "value_kinds": dict(Counter(r["value_kind"] for r in rows)),
         "band_p10_p50_p90": band,
+        "by_product_class": class_medians,
         "selected_law": candidates[selected]["law"] if selected else None,
         "candidates": candidates,
         "nameplate_range_W": [min(r["nameplate_W"] for r in named), max(r["nameplate_W"] for r in named)]
@@ -565,7 +599,7 @@ def role_ratios(rows: list[dict]) -> dict:
         if len(by_role) == 2:
             med = {role: sorted(x["UA_W_K"] for x in v)[len(v) // 2] for role, v in by_role.items()}
             first = by_role["condensing"][0]
-            out["|".join((CLASS_GROUP.get(product, product), exchanger, hx_type))].append(
+            out[stratum_of({"exchanger": exchanger, "product_class": product, "hx_type": hx_type, "role": "x"}).rsplit("|", 1)[0]].append(
                 {"model": model, "manufacturer": first["manufacturer"], "holdout_group": first["holdout_group"],
                  "ratio": med["evaporating"] / med["condensing"],
                  "n_rows": {role: len(v) for role, v in by_role.items()}}
@@ -627,6 +661,15 @@ def build(release: str | None = None, note: str = "") -> dict:
         r["holdout_group"] = groups.get(r["family_id"], r["family_id"])
         r["source_sha256"] = registry[o["source_id"]]["sha256"]
         rows.append(r)
+    # The unit's cooling and heating nameplates, wherever the document prints them, on every row of the unit:
+    # a default written against one nameplate needs the duty of each exchanger relative to it.
+    nameplates: dict[tuple, dict[str, float]] = defaultdict(dict)
+    for r in rows:
+        if r["nameplate_W"] and r["nameplate_mode"] in ("cooling", "heating"):
+            nameplates[(r["source_id"], r["model"])][r["nameplate_mode"]] = r["nameplate_W"]
+    for r in rows:
+        for mode in ("cooling", "heating"):
+            r[f"nameplate_{mode}_W"] = nameplates[(r["source_id"], r["model"])].get(mode)
     data_sha256 = write_measurements(rows)
     eligible = defaultdict(list)
     for r in rows:

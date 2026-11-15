@@ -42,12 +42,12 @@ Summary
       - Where it comes from
       - Reproduce
     * - Outdoor coil conductance (per role)
-      - Leaving-end approach 2.76 K as a condenser (``UA_ou_rated`` of
-        ``AirSourceHeatPump``, air at 35 °C) and 3.18 K as an evaporator
+      - Leaving-end approach 2.73 K as a condenser (``UA_ou_rated`` of
+        ``AirSourceHeatPump``, air at 35 °C) and 2.82 K as an evaporator
         (``UA_ou_evap_rated``, and ``UA_ou_rated`` of
         ``AirSourceHeatPumpBoiler``, air at 7 °C), at the rated outdoor airflow
-      - Saturation temperature at the printed pressure of 129 / 96 operating
-        points (13 / 10 product lines, 4 / 2 manufacturers) of split and
+      - Saturation temperature at the printed pressure of 120 / 87 operating
+        points (11 / 8 product lines, 4 / 2 manufacturers) of split and
         air-to-water outdoor units; the law chosen by product-line hold-out
       - ``default_inputs.hx_approach``
     * - Indoor coil conductance (air-to-air)
@@ -57,18 +57,18 @@ Summary
         leaving approach, so no value is issued (`Heat-exchanger conductance`_)
       - ``default_inputs.hx_approach``
     * - Indoor coil conductance (water-to-air)
-      - Leaving-end approach 2.45 K at the rated indoor airflow
+      - Leaving-end approach 2.79 K at the rated indoor airflow
         (``UA_iu_rated`` of ``GroundSourceHeatPump``, both modes)
-      - 121 operating points of water-to-air units (6 product lines, 3
+      - 113 operating points of water-to-air units (5 product lines, 2
         manufacturers)
       - ``default_inputs.hx_approach``
     * - Liquid–refrigerant exchanger conductance
-      - Leaving-end approach 3.92 K as a condenser and 3.47 K as an evaporator
+      - Leaving-end approach 4.06 K as a condenser and 3.47 K as an evaporator
         at the rated loop flow (``UA_ground_rated`` / ``UA_ground_evap_rated``
         of ``GroundSourceHeatPump``; the evaporating value is ``UA_ground`` and
         ``UA_water`` of the liquid-source boilers)
-      - 135 / 130 operating points of the coaxial source exchangers of
-        water-to-air units (6 product lines, 3 manufacturers)
+      - 117 / 118 operating points of the coaxial source exchangers of
+        water-to-air units (5 product lines, 2 manufacturers)
       - ``default_inputs.hx_approach``
     * - Plate condenser of the boilers (``UA_tank_hx``)
       - Leaving-end approach 2.01 K with circulating water at
@@ -201,29 +201,29 @@ and two manufacturers.
       - ``UA ∝ duty``
       - Fixed ``ITD``
     * - Outdoor coil, condensing
-      - 1.70 K
-      - 1.91 K
-      - 3.19 K
+      - 1.63 K
+      - 1.96 K
+      - 3.13 K
     * - Outdoor coil, evaporating
-      - 1.20 K
-      - 1.36 K
-      - 1.81 K
+      - 1.37 K
+      - 1.49 K
+      - 1.84 K
     * - Plate condenser of air-to-water units
       - 1.17 K
       - 1.53 K
       - 2.22 K
     * - Coaxial source exchanger, evaporating
-      - 1.56 K
-      - 1.56 K
+      - 1.58 K
+      - 1.61 K
       - 1.99 K
     * - Coaxial source exchanger, condensing
-      - 2.76 K
-      - 3.08 K
-      - 4.43 K
+      - 2.87 K
+      - 3.14 K
+      - 4.73 K
     * - Water-to-air indoor coil, condensing
-      - 2.81 K
-      - 2.88 K
-      - 3.63 K
+      - 2.72 K
+      - 2.83 K
+      - 3.73 K
 
 The leaving-end approach wins or ties in every stratum a model uses, and a
 fixed inlet difference — the obvious convention — is the worst everywhere. The
@@ -243,8 +243,8 @@ below the one assumed can be enough — and conductance per unit capacity
 ignores the flow altogether.
 
 The duty is the exchanger's, not the nameplate: as a condenser the outdoor coil
-of a split unit rejects 1.26 W per watt of cooling nameplate (the nameplate
-plus the compressor work), and as an evaporator absorbs 0.75 W per watt of
+of a split unit rejects 1.24 W per watt of cooling nameplate (the nameplate
+plus the compressor work), and as an evaporator absorbs 0.76 W per watt of
 heating nameplate, both archive medians
 (:func:`tmhp.default_inputs.hx_duty_per_nameplate`). The reference flow is the
 rated airflow of the coil (`Maximum fan airflow`_), the rated loop flow, or the
@@ -264,14 +264,14 @@ What the archive says
       - Inlet difference, median
     * - Outdoor coil, condensing
       - ``AirSourceHeatPump`` ``UA_ou_rated``
-      - 129 / 13 / 4
-      - 2.76 K (1.1–5.4)
-      - 9.9 K
+      - 120 / 11 / 4
+      - 2.73 K (0.9–3.9)
+      - 9.4 K
     * - Outdoor coil, evaporating
       - ``AirSourceHeatPump`` ``UA_ou_evap_rated``; ``AirSourceHeatPumpBoiler``
         ``UA_ou_rated``
-      - 96 / 10 / 2
-      - 3.18 K (2.2–4.7)
+      - 87 / 8 / 2
+      - 2.82 K (2.0–4.5)
       - 6.8 K
     * - Plate condenser of air-to-water units
       - ``UA_tank_hx`` of the three boilers
@@ -280,21 +280,21 @@ What the archive says
       - 7.0 K
     * - Coaxial source exchanger, condensing
       - ``GroundSourceHeatPump`` ``UA_ground_rated``
-      - 135 / 6 / 3
-      - 3.92 K (1.6–6.2)
-      - 9.9 K
+      - 117 / 5 / 2
+      - 4.06 K (1.6–6.5)
+      - 10.2 K
     * - Coaxial source exchanger, evaporating
       - ``GroundSourceHeatPump`` ``UA_ground_evap_rated``;
         ``GroundSourceHeatPumpBoiler`` ``UA_ground``;
         ``WaterSourceHeatPumpBoiler`` ``UA_water``
-      - 130 / 6 / 3
-      - 3.47 K (1.4–6.6)
-      - 8.0 K
+      - 118 / 5 / 2
+      - 3.47 K (1.0–6.6)
+      - 7.7 K
     * - Water-to-air indoor coil, condensing
       - ``GroundSourceHeatPump`` ``UA_iu_rated``
-      - 121 / 6 / 3
-      - 2.45 K (0.7–6.2)
-      - 15.7 K
+      - 113 / 5 / 2
+      - 2.79 K (1.5–6.6)
+      - 15.9 K
 
 The 59 sources are manufacturer service and installation manuals (Mitsubishi
 Electric, ClimateMaster, WaterFurnace, Carrier, Bosch, Toshiba, Gree), the
@@ -302,14 +302,14 @@ AHRI low-GWP AREP system test reports, an ORNL mini-split test and a KTH
 air-to-water prototype; the archive's README lists them with their hosts, the
 conversions and the anomalies the documents contain. Outdoor coils are pooled
 across product classes: split and air-to-water outdoor coils are one
-construction and their leaving approaches agree (as condensers 2.9 K for
+construction and their leaving approaches agree (as condensers 2.5 K for
 wall-mounted splits, 2.3 K for ducted splits and 3.7 K for air-to-water units).
-Indoor coils are not pooled — 6.3 K for wall-mounted units, 2.6 K for ducted
-ones, 2.4 K for water-to-air units — and each model takes the stratum of its
+Indoor coils are not pooled — 6.8 K for wall-mounted units, 2.6 K for ducted
+ones, 2.8 K for water-to-air units — and each model takes the stratum of its
 own kind of indoor unit, where one ships.
 
 The same outdoor coil has a smaller effective conductance as an evaporator than
-as a condenser (a median ratio of 0.78 over the units printed in both modes),
+as a condenser (a median ratio of 0.72 over the units printed in both modes),
 so each role takes the law of its own stratum: ``AirSourceHeatPump`` has
 ``UA_ou_rated`` for cooling and ``UA_ou_evap_rated`` for heating, and
 ``GroundSourceHeatPump`` ``UA_ground_rated`` and ``UA_ground_evap_rated``. A
@@ -341,14 +341,14 @@ What it means for a default machine
       - 15 kW
     * - ``AirSourceHeatPump`` ``UA_ou_rated`` (condensing)
       - ``Q/5``
-      - 700 → 800
-      - 1600 → 1675
-      - 3000 → 3022
+      - 700 → 801
+      - 1600 → 1677
+      - 3000 → 3025
     * - ``AirSourceHeatPump`` ``UA_ou_evap_rated`` (evaporating)
       - ``Q/5``
-      - 700 → 590
-      - 1600 → 1260
-      - 3000 → 2293
+      - 700 → 639
+      - 1600 → 1360
+      - 3000 → 2470
     * - ``AirSourceHeatPump`` ``UA_iu_rated``
       - ``0.8 × Q/5``
       - 560 → 560
@@ -356,9 +356,9 @@ What it means for a default machine
       - 2400 → 2400
     * - ``AirSourceHeatPumpBoiler`` ``UA_ou_rated``
       - ``0.7 × Q/5``
-      - 490 → 538
-      - 1120 → 1121
-      - 2100 → 2011
+      - 490 → 586
+      - 1120 → 1214
+      - 2100 → 2173
     * - ``UA_tank_hx`` of the three boilers
       - ``Q/5``, no flow
       - 700 → 875
@@ -366,9 +366,9 @@ What it means for a default machine
       - 3000 → 3749
     * - ``GroundSourceHeatPump`` ``UA_ground_rated`` (condensing)
       - ``0.18 × Q``
-      - 630 → 700
-      - 1440 → 1599
-      - 2700 → 2999
+      - 630 → 682
+      - 1440 → 1559
+      - 2700 → 2923
     * - ``GroundSourceHeatPump`` ``UA_ground_evap_rated`` (evaporating)
       - ``0.18 × Q``
       - 630 → 575
@@ -376,9 +376,9 @@ What it means for a default machine
       - 2700 → 2464
     * - ``GroundSourceHeatPump`` ``UA_iu_rated``
       - ``0.08 × Q``
-      - 280 → 582
-      - 640 → 1152
-      - 1200 → 2018
+      - 280 → 544
+      - 640 → 1082
+      - 1200 → 1900
     * - ``UA_ground`` / ``UA_water`` of the liquid-source boilers
       - ``0.18 × Q``
       - 630 → 549
@@ -388,8 +388,8 @@ What it means for a default machine
 For the outdoor coil as a condenser the new evidence lands almost exactly on
 the previous rule, which was derived from different data by a different route
 (`The previous rule`_). The larger changes are elsewhere: an outdoor coil as an
-evaporator now has about three quarters of its condensing value; the
-indoor coil of the ground-source model has about twice the conductance; and
+evaporator now has about four fifths of its condensing value; the
+indoor coil of the ground-source model has 1.6 to 1.9 times the conductance; and
 the boilers' sink is a different structure, so its ``UA_tank_hx`` is not
 comparable with the earlier one by itself — what the cycle sees is ``K_tank_hx``
 (next section), which is below the earlier ``Q/5``. Small machines get more
@@ -400,14 +400,14 @@ watt is larger (the airflow laws have an intercept).
     :class: warning
 
     The leaving approach of a stratum is a *median*. Between the 10th and 90th
-    percentile of the product lines it spans 1.1–5.4 K for outdoor coils as
-    condensers, 2.2–4.7 K as evaporators, 0.7–3.3 K for plate condensers,
-    1.4–6.6 K and 1.6–6.2 K for coaxial source exchangers as evaporators and
-    condensers, and 0.7–6.2 K for water-to-air indoor coils. That width is
+    percentile of the product lines it spans 0.9–3.9 K for outdoor coils as
+    condensers, 2.0–4.5 K as evaporators, 0.7–3.3 K for plate condensers,
+    1.0–6.6 K and 1.6–6.5 K for coaxial source exchangers as evaporators and
+    condensers, and 1.5–6.6 K for water-to-air indoor coils. That width is
     real hardware, not measurement noise: at the same duty and flow, two
-    machines at either end of the outdoor condensing band condense about 4 K
+    machines at either end of the outdoor condensing band condense about 3 K
     apart. Even the best law misses the saturation temperature of a held-out
-    product line by 1.2 to 2.8 K (RMSE).
+    product line by 1.2 to 2.9 K (RMSE).
 
     So a single vendor-neutral default describes a typical machine, and **will
     under-predict a high-efficiency product line and over-predict a
@@ -428,9 +428,9 @@ watt is larger (the airflow laws have an intercept).
 
     * **Wall-mounted indoor coils.** No value is shipped. Every row that gives
       duty, airflow and pressure at one point comes from one manufacturer
-      (Mitsubishi Electric, eight product lines), and the evidence disagrees
-      on the quantity the law uses: 6.3 K of leaving approach on the declared
-      duty and airflow, about 3.5 K on the discharge-air temperature the same
+      (Mitsubishi Electric, six product lines), and the evidence disagrees
+      on the quantity the law uses: 6.8 K of leaving approach on the declared
+      duty and airflow, about 3.6 K on the discharge-air temperature the same
       tables print, about 3.3 K from a second manufacturer's pipe temperatures
       at an assumed rated load. The inlet difference agrees at 22 K. So
       ``AirSourceHeatPump`` keeps ``UA_iu_rated = 0.16 × hp_capacity``, no

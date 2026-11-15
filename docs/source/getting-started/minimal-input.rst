@@ -121,14 +121,14 @@ always be read back.
     * - Outdoor-coil conductance
       - The effective ``UA`` [W/K] that reproduces the leaving-end approach
         real outdoor coils print at their rating point, at the rated outdoor
-        airflow: 2.76 K as a condenser (ASHP ``UA_ou_rated``), 3.18 K as an
+        airflow: 2.73 K as a condenser (ASHP ``UA_ou_rated``), 2.82 K as an
         evaporator (ASHP ``UA_ou_evap_rated``, ASHPB ``UA_ou_rated``)
       - ASHP, ASHPB
       - :doc:`/validation/defaults`, *Heat-exchanger conductance*
     * - Indoor-coil conductance
       - ASHP: ``UA_iu_rated = 0.16 × hp_capacity``, the earlier rule, kept as
         provisional (no wall-mounted value ships). GSHP: leaving-end approach
-        2.45 K at the rated indoor airflow
+        2.79 K at the rated indoor airflow
       - ASHP, GSHP
       - :doc:`/validation/defaults`; :doc:`/models/gshp`
     * - Tank heat exchanger ``UA_tank_hx``
@@ -142,7 +142,7 @@ always be read back.
     * - Source-side heat exchanger (liquid to refrigerant)
       - Leaving-end approach at the rated loop flow: 3.47 K as an evaporator
         (GSHP ``UA_ground_evap_rated``, GSHPB ``UA_ground``, WSHPB
-        ``UA_water``), 3.92 K as a condenser (GSHP ``UA_ground_rated``)
+        ``UA_water``), 4.06 K as a condenser (GSHP ``UA_ground_rated``)
       - GSHP, GSHPB, WSHPB
       - :doc:`/models/gshp`, :doc:`/models/gshpb`, :doc:`/models/wshpb`
     * - Rated outdoor airflow
@@ -201,7 +201,7 @@ The size that the rules give for a machine can be checked in one line:
    print(gshp.N_1, gshp.N_2, gshp.H_b)   # 3 2 100.0  -> six 100 m boreholes
    print(gshp.ground_flow_ref_lpm)       # 115.3 L/min of 25 % ethylene glycol
    print(gshp.E_pmp)                     # 640 W
-   print(gshp.UA_ground_rated)           # 5998 W/K (condensing; 4927 W/K evaporating)
+   print(gshp.UA_ground_rated)           # 5845 W/K (condensing; 4927 W/K evaporating)
 
 The constructor warns (``UserWarning``) when a size you give contradicts the
 rest — a borefield above 80 W/m, a loop flow that is laminar in the U-tubes, a

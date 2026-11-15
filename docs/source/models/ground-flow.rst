@@ -42,15 +42,15 @@ Physical HX sizing and compressor efficiencies
 GSHP sizes its physical ground HX from the leaving-end approach of the coaxial
 exchangers of water-to-air units at the rated loop flow
 (:doc:`/validation/defaults`, *Heat-exchanger conductance*): one value as a
-condenser (``UA_ground_rated``, cooling, 3.92 K) and one as an evaporator
-(``UA_ground_evap_rated``, heating, 3.47 K) — 1599 and 1314 W/K for an 8 kW
+condenser (``UA_ground_rated``, cooling, 4.06 K) and one as an evaporator
+(``UA_ground_evap_rated``, heating, 3.47 K) — 1559 and 1314 W/K for an 8 kW
 unit. ``ground_hx_ua_per_capacity`` selects the proportional rule
 ``UA_ground_rated = ground_hx_ua_per_capacity * hp_capacity`` for both roles
 instead (the rule before November 2026 was 0.18 K^-1), and an explicit
 ``UA_ground_rated`` overrides either; given without ``UA_ground_evap_rated``
 it serves both roles. The independent air-side ``UA_iu_rated`` reproduces the
-2.45 K leaving-end approach of water-to-air indoor coils at the rated indoor
-airflow, 1152 W/K at 8 kW. The physical UAs remain attached to the same
+2.79 K leaving-end approach of water-to-air indoor coils at the rated indoor
+airflow, 1082 W/K at 8 kW. The physical UAs remain attached to the same
 hardware in cooling and heating.
 The deprecated ``UA_cond``/``UA_evap`` inputs retain their historical cycle-role
 mapping only when explicitly supplied; physical inputs take precedence.

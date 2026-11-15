@@ -91,7 +91,7 @@ of being solved silently:
   source-side heat (attribute ``q_bhe_rated``).
 
 The default indoor coil (``UA_iu_rated``) is the effective conductance that,
-at the rated duty and this airflow, leaves the supply air 2.45 K from the
+at the rated duty and this airflow, leaves the supply air 2.79 K from the
 condensing temperature: the leaving-end approach water-to-air units print at
 their rating point (:doc:`/validation/defaults`, *Heat-exchanger
 conductance*). The same value serves cooling (the coil is dry). The earlier

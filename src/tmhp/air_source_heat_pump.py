@@ -498,8 +498,8 @@ INDOOR_UA_PER_CAPACITY = 0.16
 #: ``default_input_estimates["UA_iu_rated"]``; archive ``validation/default_inputs/hx_approach``).
 INDOOR_UA_KEPT_REASON = (
     "kept at the previous rule. The archive's wall-mounted indoor-coil rows come from one manufacturer "
-    "(Mitsubishi Electric, 8 product lines): their leaving approach is 6.3 K on the declared duty but 2.9 K on "
-    "the printed discharge-air temperature, and a second manufacturer's pipe temperatures suggest about 3 K, so "
+    "(Mitsubishi Electric, 6 product lines): their leaving approach is 6.8 K on the declared duty but 3.6 K on "
+    "the printed discharge-air temperature, and a second manufacturer's pipe temperatures suggest about 3.3 K, so "
     "the evidence does not settle the value and no estimate is issued (shipping gate: 2 manufacturers)."
 )
 

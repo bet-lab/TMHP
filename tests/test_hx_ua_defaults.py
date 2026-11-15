@@ -157,7 +157,11 @@ def test_ashp_default_input_estimates_carry_the_conductances() -> None:
     assert (indoor.key, indoor.status, indoor.value) == (IU_WALL, "provisional", pytest.approx(0.16 * 8000.0))
     reason = indoor.assumptions[-1]
     assert reason.startswith("Provisional: kept at the previous rule")
-    assert "one manufacturer" in reason and "8 product lines" in reason and "no estimate is issued" in reason
+    wall = _artifact("hx_approach_regression.json")["strata"][IU_WALL]
+    assert len(wall["manufacturers"]) == 1 and not wall["meets_shipping_gate"]
+    assert f"{wall['law']['dT_out_K']:.1f} K on the declared duty" in reason
+    assert "one manufacturer" in reason and f"{wall['n_holdout_groups']} product lines" in reason
+    assert "no estimate is issued" in reason
 
 
 @pytest.mark.parametrize("factor", (0.85, 1.15))

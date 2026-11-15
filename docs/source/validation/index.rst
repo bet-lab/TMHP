@@ -571,11 +571,14 @@ Scope
     families (:class:`~tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler`,
     :class:`~tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler`,
     :class:`~tmhp.ground_source_heat_pump.GroundSourceHeatPump`, and the
-    subsystem-augmented variants) share the same refrigerant-cycle core and
-    pass smoke tests on representative operating points, but have not been
-    compared against unit-specific data. The conductance rule derived here is
-    for air coils and does not transfer to a water- or brine-coupled face,
-    which is different physics.
+    subsystem-augmented variants) share the same refrigerant-cycle core. The
+    test suite only checks that the three base models solve a representative
+    operating point (``tests/test_models_smoke.py``: one tank-heating point for
+    each boiler, a heating and a cooling point for the ground-source unit; each
+    must converge and deliver the requested duty). That shows they run, not that
+    their numbers are right: none has been compared against unit-specific
+    data. The conductance rule derived here is for air coils and does not
+    transfer to a water- or brine-coupled face, which is different physics.
 
     Every family's default compressor displacement is the fixed
     42 cm³ per 9 kW of nameplate (:func:`tmhp.compressor_speed.default_displacement`);

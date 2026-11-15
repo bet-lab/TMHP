@@ -30,6 +30,8 @@ from tmhp.cycling import (
 from tmhp.g_function import g_step_mean
 from tmhp.ground_coupling import AggregateGFunctionCoupler, reset_ground_coupler, run_window_preview
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 HEATING = dict(Q_r_iu=-800.0, T0=0.0, T_a_room=20.0, T_bhe_wall=5.0)
 COOLING = dict(Q_r_iu=800.0, T0=30.0, T_a_room=27.0, T_bhe_wall=20.0)
 

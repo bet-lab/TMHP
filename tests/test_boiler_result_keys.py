@@ -51,7 +51,9 @@ def _steady(model, family, T_tank_w, Q, **source):
 
 def _steady_cases(model, family):
     cap = model.hp_capacity
-    cold = {"T0": -25.0} if family == "ASHPB" else {"T_source": -8.0}
+    # Cold enough that no duty runs: the default R290 air-source unit still delivers half its
+    # nameplate at -25 degC (pressure-ratio ceiling) and is off from about -30 degC.
+    cold = {"T0": -30.0} if family == "ASHPB" else {"T_source": -8.0}
     return {
         "off": _steady(model, family, 45.0, 0.0),
         "running": _steady(model, family, 45.0, 0.6 * cap),

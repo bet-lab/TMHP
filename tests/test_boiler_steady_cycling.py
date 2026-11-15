@@ -33,6 +33,8 @@ from tmhp.cycling import (
     RUNTIME_FRACTION_KEY,
 )
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 # GSHPB / WSHPB: R410A, the refrigerant these minimum-speed duties belong to.
 # The default is now R290, whose higher rated speed puts the minimum-speed duty
 # at 1.8-2.4 kW here, at or below the 2 kW request. The 59 °C upper set point

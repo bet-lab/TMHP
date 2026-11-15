@@ -41,6 +41,8 @@ from tmhp.operating_limits import (
 )
 from tmhp.simulation_summary import print_operating_limit_summary
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -195,8 +197,9 @@ LIMITED_CASES = [
     ("ASHPB", dict(T_tank_w=55.0, T0=-5.0, Q_ref_tank=15000.0), "discharge_temperature", "Q_ref_tank [W]"),
     ("GSHPB", dict(T_tank_w=35.0, T_source=5.0, Q_ref_tank=8000.0), "source_fluid_freezing", "Q_ref_tank [W]"),
     ("WSHPB", dict(T_tank_w=35.0, T_source=5.0, Q_ref_tank=8000.0), "source_fluid_freezing", "Q_ref_tank [W]"),
-    # Flat out: the 1-30 K approach box no longer binds before the compressor does (#86).
-    ("ASHP", dict(Q_r_iu=20000.0, T0=48.0), "compressor", "Q_ref_iu [W]"),
+    # The 1-20 K approach box of the earlier machine binds before the compressor does; in the present
+    # 1-30 K box the same request ends on the compressor (tests/test_ashp_flat_out_cooling_ceiling.py).
+    ("ASHP", dict(Q_r_iu=20000.0, T0=48.0), "cycle", "Q_ref_iu [W]"),
     ("GSHP", dict(Q_r_iu=-30000.0, T0=0.0), "cycle", "Q_ref_iu [W]"),
 ]
 

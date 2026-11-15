@@ -86,7 +86,10 @@ def test_the_rating_point_reproduces_the_rated_speed():
     assert row["cmp_rpm [rpm]"] / 60.0 == pytest.approx(hp.rps_rated, rel=1e-3)
     assert row["m_dot_ref [kg/s]"] == pytest.approx(hp.m_dot_ref_rated, rel=1e-3)
 
-    boiler = AirSourceHeatPumpBoiler()
+    # The fan held at its reference airflow, as the rating point has it. Left to modulate, the
+    # least-power point of the default R290 unit has the fan 5 % lower and the compressor 0.7 %
+    # faster than the reference state (with R134a the fan stays at full flow there).
+    boiler = AirSourceHeatPumpBoiler(dV_fan_a_min=AirSourceHeatPumpBoiler().dV_fan_a_rated)
     assert boiler.rated_condition.source.density == pytest.approx(air_density(7.0))
     row = boiler.analyze_steady(T_tank_w=55.0, T0=7.0, Q_ref_tank=boiler.hp_capacity)
     assert row["cmp_rpm [rpm]"] / 60.0 == pytest.approx(boiler.rps_rated, rel=1e-6)

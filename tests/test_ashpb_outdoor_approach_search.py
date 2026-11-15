@@ -48,6 +48,7 @@ def _assert_running(model: AirSourceHeatPumpBoiler, result: dict) -> None:
     assert model.dV_fan_a_min - 1e-12 <= result["dV_ou_a [m3/s]"] <= model.dV_fan_a_max + 1e-12
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 @pytest.mark.parametrize("request_W", [3000.0, 7500.0])
 def test_cold_hot_water_point_inside_a_narrow_band_is_solved(request_W):
     # A-7/W55: below ~2.3 K the coil cannot absorb the duty at full airflow,
@@ -103,6 +104,7 @@ def test_narrow_fan_range_still_finds_the_band(min_fraction):
     assert result["Q_ref_tank [W]"] == pytest.approx(10000.0, rel=1e-9)
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_coil_short_at_every_approach_is_named():
     # UA_ou 1/14 of the default: even at full airflow and the largest approach
     # the cycle reaches, the outdoor coil absorbs less than the duty.

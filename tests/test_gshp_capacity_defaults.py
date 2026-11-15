@@ -1,10 +1,14 @@
-"""GSHP ground-side and indoor-air defaults follow the capacity (#96).
+"""GSHP ground-side and indoor-air defaults follow the capacity (#96, #86).
 
-With only ``hp_capacity`` given, the loop flow, pump power, borefield and
-indoor airflow scale with it, so the machine is the same at every size: the
-rating-point COP does not depend on the capacity. A value the caller supplies
-is used as given, and a loop the caller sized badly is reported, not silently
-solved. The dynamic run closes the ground fluid inside each step (G1).
+With only ``hp_capacity`` given, the loop flow, pump power and borefield scale
+with it, so the ground side is the same at every size. The indoor airflow is
+the largest fan step water-to-air units of that capacity publish
+(:mod:`tmhp.default_inputs`, #86), which is not proportional to the capacity:
+large units move less air per kW, and the rating-point COP falls by 8 % from
+3 kW to 100 kW for that reason alone -- with an airflow proportional to the
+capacity it does not depend on the capacity at all. A value the caller
+supplies is used as given, and a loop the caller sized badly is reported, not
+silently solved. The dynamic run closes the ground fluid inside each step (G1).
 """
 
 import math
@@ -15,6 +19,7 @@ import pytest
 
 from tmhp import GroundSourceHeatPump
 from tmhp.constants import c_w, rho_w
+from tmhp.default_inputs import estimate_max_airflow
 from tmhp.ground_defaults import (
     BOREHOLE_DESIGN_LINEAR_LOAD,
     calc_borehole_reynolds,
@@ -31,6 +36,12 @@ SHORT = dict(t_max_s=3600.0)
 # loop liquid (25 % ethylene glycol) is laminar in the 26 mm U-tube, which the
 # constructor reports (test_small_machine_on_the_default_glycol_reports_its_laminar_loop).
 CAPACITIES = (3000.0, 4000.0, 30000.0, 100000.0)
+#: Indoor airflow per watt of capacity before the catalogue law (400 cfm/ton) [m3/s per W].
+PROPORTIONAL_AIRFLOW_PER_W = 5.37e-5
+
+
+def catalogue_airflow(capacity: float) -> float:
+    return estimate_max_airflow(capacity, side="indoor", product="water_to_air", mode="cooling").value
 
 
 def build(**kwargs):
@@ -139,7 +150,10 @@ def test_default_machine_keeps_one_borehole_and_gets_capacity_based_flows():
     assert build(source_fluid="water").ground_flow_ref_lpm == pytest.approx(14.33, abs=0.01)
     assert model.dV_b_f_m3s == pytest.approx(model.ground_flow_ref_lpm / 60000.0)
     assert model.E_pmp == pytest.approx(85.3, abs=0.05)
-    assert model.dV_iu_fan_a_ref == pytest.approx(4000.0 * 5.37e-5)
+    # The largest airflow water-to-air units publish (0.2148 m3/s at 400 cfm/ton before #86). The
+    # default 4 kW is below the smallest unit of that catalogue set (4.7 kW), and says so.
+    assert model.dV_iu_fan_a_ref == pytest.approx(catalogue_airflow(4000.0)) == pytest.approx(0.3269, rel=1e-3)
+    assert model.default_input_estimates["dV_iu_fan_a_rated"].extrapolated
     assert model.q_bhe_rated == pytest.approx(30.0)
     assert model.Re_bhe_ref == pytest.approx(3520.0, rel=0.01)  # turbulent; 11 700 for water
 
@@ -150,40 +164,72 @@ def test_every_default_scales_with_the_capacity(by_capacity):
         ratio = cap / 4000.0
         assert model.ground_flow_ref_lpm == pytest.approx(ratio * base.ground_flow_ref_lpm)
         assert model.E_pmp == pytest.approx(ratio * base.E_pmp)
-        assert model.dV_iu_fan_a_ref == pytest.approx(ratio * base.dV_iu_fan_a_ref)
-        assert model.E_iu_fan_rated == pytest.approx(ratio * base.E_iu_fan_rated)
         assert model.UA_ground_rated == pytest.approx(ratio * base.UA_ground_rated)
-        # The same machine at every size: one rated speed, one pressure ratio.
-        assert model.rps_rated == pytest.approx(base.rps_rated, rel=1e-6)
+        assert model.V_cmp_ref == pytest.approx(ratio * base.V_cmp_ref)
+        # The indoor airflow is the catalogue's, and the fan power follows the airflow.
+        assert model.dV_iu_fan_a_ref == pytest.approx(catalogue_airflow(cap))
+        assert model.E_iu_fan_rated / model.dV_iu_fan_a_ref == pytest.approx(base.E_iu_fan_rated / base.dV_iu_fan_a_ref)
         assert model.q_bhe_rated <= BOREHOLE_DESIGN_LINEAR_LOAD + 1e-9
         assert model.Re_bhe_ref > 2300
     assert by_capacity[30000.0].n_boreholes == 6 and by_capacity[100000.0].n_boreholes == 16
+    # Less air per kW in a larger unit (333 m3/h per kW at 3 kW, 181 at 100 kW), so the indoor coil
+    # asks for a larger lift and the rated speed rises with the size (43.0 to 50.6 rev/s) -- inside
+    # the fitted speed range of the efficiency maps at every size.
+    per_watt = [by_capacity[cap].dV_iu_fan_a_ref / cap for cap in CAPACITIES]
+    speeds = [by_capacity[cap].rps_rated for cap in CAPACITIES]
+    assert per_watt == sorted(per_watt, reverse=True) and speeds == sorted(speeds)
+    assert 0.5 < per_watt[-1] / per_watt[0] < 0.6
+    assert speeds[0] > 33.8 and speeds[-1] < 72.5
 
 
-def test_rating_point_cop_does_not_depend_on_the_capacity(by_capacity):
-    # Before: 30 kW ran on the 4 kW loop (20 L/min, 100 W) and lost 12 % of the
-    # 4 kW system COP at this point; 100 kW could not be constructed at all.
+def test_with_a_proportional_airflow_the_machine_is_the_same_at_every_size():
+    """What the capacity-based ground side guarantees: one rated speed, one rating-point COP."""
+    models = {
+        cap: build(hp_capacity=cap, Ts=0.0, dV_iu_fan_a_rated=cap * PROPORTIONAL_AIRFLOW_PER_W) for cap in CAPACITIES
+    }
+    base = models[4000.0]
+    rows = {cap: model.analyze_steady(Q_r_iu=-cap, T0=0.0, T_a_room=20.0) for cap, model in models.items()}
+    for cap, model in models.items():
+        assert model.E_iu_fan_rated == pytest.approx(cap / 4000.0 * base.E_iu_fan_rated)
+        assert model.rps_rated == pytest.approx(base.rps_rated, rel=1e-6)
+        row = rows[cap]
+        assert row["failure_reason"] == "none" and row["capacity_clamped"] is None, cap
+        for key in ("cop_sys [-]", "cop_ref [-]"):
+            assert row[key] == pytest.approx(rows[4000.0][key], rel=1e-4), (cap, key)
+        loop_dT = row["T_bhe_f_out [°C]"] - row["T_bhe_f_in [°C]"]
+        assert loop_dT == pytest.approx(rows[4000.0]["T_bhe_f_out [°C]"] - rows[4000.0]["T_bhe_f_in [°C]"], abs=1e-3)
+
+
+def test_rating_point_cop_depends_on_the_capacity_through_the_indoor_airflow_only(by_capacity):
+    # Before the capacity-based ground side: 30 kW ran on the 4 kW loop (20 L/min, 100 W) and
+    # lost 12 % of the 4 kW system COP at this point; 100 kW could not be constructed at all.
     rows = {
         cap: model.analyze_steady(Q_r_iu=-cap, T0=0.0, T_a_room=20.0)  # liquid entering 0 °C, room 20 °C
         for cap, model in by_capacity.items()
     }
-    base = rows[4000.0]
     for cap, row in rows.items():
         assert row["failure_reason"] == "none" and row["capacity_clamped"] is None, cap
         assert row["Q_ref_iu [W]"] == pytest.approx(cap, rel=1e-9)
-        for key in ("cop_sys [-]", "cop_ref [-]"):
-            assert row[key] == pytest.approx(base[key], rel=1e-4), (cap, key)
-        loop_dT = row["T_bhe_f_out [°C]"] - row["T_bhe_f_in [°C]"]
-        assert loop_dT == pytest.approx(base["T_bhe_f_out [°C]"] - base["T_bhe_f_in [°C]"], abs=1e-3)
-        assert 2.5 < loop_dT < 3.5
+        assert 2.5 < row["T_bhe_f_out [°C]"] - row["T_bhe_f_in [°C]"] < 3.5
         assert row["E_pmp [W]"] / cap == pytest.approx(75.0 / 3516.853)
-    assert 3.2 < base["cop_sys [-]"] < 4.2
+    # What is left between the sizes is the catalogue airflow (the test above): 4.09 at 3 kW,
+    # 4.05 at 4 kW, 3.82 at 30 kW, 3.77 at 100 kW.
+    cops = [rows[cap]["cop_sys [-]"] for cap in CAPACITIES]
+    assert cops == sorted(cops, reverse=True)
+    assert 0.90 < cops[-1] / cops[0] < 0.95
+    assert rows[4000.0]["cop_sys [-]"] == pytest.approx(4.046, rel=2e-3)
+    assert 3.2 < rows[4000.0]["cop_sys [-]"] < 4.2
 
 
 def test_rated_duty_is_delivered_with_a_plausible_supply_air_temperature(by_capacity):
     model = by_capacity[4000.0]
     heating = model.analyze_steady(Q_r_iu=-4000.0, T0=0.0, T_a_room=20.0)
-    assert 33.0 < heating["T_iu_a_out [°C]"] < 50.0  # was 24 °C at 0.0002 m3/s per W
+    # 24 °C at 0.0002 m3/s per W, the default before #96. At the largest airflow water-to-air
+    # units publish (#86) the nameplate warms the air by 10.2 K (30.2 °C): what the energy balance
+    # gives for that airflow, at the default 4 kW below the smallest catalogue unit (608 cfm/ton
+    # where the law is extrapolated; 487 cfm/ton and 32.7 °C at 8 kW). The lower bound was 33 °C
+    # while the default was 400 cfm/ton.
+    assert 28.0 < heating["T_iu_a_out [°C]"] < 50.0
     assert heating["dV_iu_a [m3/s]"] <= model.dV_iu_fan_a_ref * (1 + 1e-9)
     cooling = build(Ts=25.0).analyze_steady(Q_r_iu=4000.0, T0=30.0, T_a_room=27.0)
     assert cooling["failure_reason"] == "none" and cooling["capacity_clamped"] is None
@@ -198,13 +244,14 @@ def test_borehole_wall_rating_no_longer_collapses_with_the_capacity():
     # Rated heating against a 0 °C borehole wall. Before, one 100 m borehole
     # served every capacity: 30 kW delivered a system COP of 2.05 against
     # 3.8 at 4 kW. The default field now holds the specific load within
-    # 50 W/m, which leaves a few percent between sizes.
+    # 50 W/m, which leaves a few percent between sizes; the catalogue indoor
+    # airflow, smaller per kW in a large unit, another 6 % (3.743 and 3.446).
     cops = {}
     for cap in (4000.0, 30000.0):
         row = build(hp_capacity=cap).analyze_steady(Q_r_iu=-cap, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
         assert row["failure_reason"] == "none" and row["capacity_clamped"] is None, cap
         cops[cap] = row["cop_sys [-]"]
-    assert cops[30000.0] == pytest.approx(cops[4000.0], rel=0.05)
+    assert cops[30000.0] == pytest.approx(cops[4000.0], rel=0.10)
 
 
 def test_supplied_values_are_used_as_given():
@@ -363,5 +410,6 @@ def test_ground_closure_at_the_pressure_ratio_floor_closes_every_candidate():
     assert cycles[0] < 100
     # The operating point itself is unchanged (370.9 W with a water loop; the
     # default glycol's slightly larger borehole resistance adds 0.8 W; the 27 °C
-    # room air, 3.9 % lighter than standard air, another 0.9 W, #96).
-    assert row["E_tot [W]"] == pytest.approx(372.6, rel=2e-3)
+    # room air, 3.9 % lighter than standard air, another 0.9 W, #96 -- 372.6 W in all).
+    # 354.6 W with the catalogue displacement and indoor airflow of a 4 kW R32 unit (#86).
+    assert row["E_tot [W]"] == pytest.approx(354.6, rel=2e-3)

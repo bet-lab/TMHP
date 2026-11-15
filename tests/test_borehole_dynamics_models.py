@@ -107,6 +107,7 @@ def test_argument_is_keyword_only_and_moves_no_positional_argument():
     assert GSHPB_STC_ground(stc=SolarThermalCollector(), borehole_dynamics=False).borehole_dynamics == "off"
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_false_is_the_steady_borehole():
     """``borehole_dynamics=False`` is the model before the dynamic default (values recorded on main f1394dd)."""
     n, dt = 12, 600.0

@@ -20,6 +20,8 @@ from tmhp import AirSourceHeatPump
 from tmhp.compressor_envelope import ETA_ISEN_BELOW_MIN, ETA_ISEN_MIN
 from tmhp.cycling import CAPACITY_RATIO_KEY, MIN_CAPACITY_KEY, PART_LOAD_FACTOR_KEY, RUNTIME_FRACTION_KEY
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 COLD = dict(T0=-25.0, T_a_room=24.0, verbose=False)
 
 

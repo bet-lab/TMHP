@@ -10,6 +10,8 @@ from tmhp import AirSourceHeatPumpBoiler, OperatingLimitWarning
 from tmhp import air_source_heat_pump_boiler as ashpb_module
 from tmhp import calc_util as cu
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 
 @pytest.fixture
 def hp() -> AirSourceHeatPumpBoiler:

@@ -46,6 +46,7 @@ def test_a_compressor_that_is_flat_out_stays_at_its_ceiling(hp):
     assert limited["Q_ref_iu [W]"] < 6000.0
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_a_candidate_without_a_fluid_state_is_infeasible_not_an_exception():
     """A flash CoolProp cannot solve at one search candidate does not abort the solve.
 

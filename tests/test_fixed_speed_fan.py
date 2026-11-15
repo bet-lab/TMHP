@@ -15,6 +15,7 @@ import pytest
 import tmhp.heat_exchanger as heat_exchanger
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler, GroundSourceHeatPump
 from tmhp.constants import c_a, rho_a
+from tmhp.default_inputs import estimate_max_airflow
 from tmhp.heat_exchanger import calc_HX_perf_for_target_heat, calc_UA_from_dV_fan, resolve_fan_flow_limits
 from tmhp.hx_fan import ASHRAE_VSD_COEFFICIENTS, calc_fan_operating_point, calc_fan_power_from_dV_fan
 
@@ -58,9 +59,11 @@ def test_issue_104_example_constructs_and_solves():
 
 
 def test_fixed_fan_at_the_default_reference_airflow_constructs_and_solves():
-    # ``min == max`` equal to the default reference (400 cfm/ton of capacity).
+    # ``min == max`` equal to the default reference: the largest airflow water-to-air units of this
+    # capacity publish (tmhp.default_inputs; 400 cfm/ton of capacity, 0.2148 m3/s, before issue #86).
     flow = GroundSourceHeatPump(ref="R32", R_b=0.2, t_max_s=3600).dV_iu_fan_a_ref
-    assert flow == pytest.approx(4000 * 5.37e-5)
+    catalogue = estimate_max_airflow(4000.0, side="indoor", product="water_to_air", mode="cooling").value
+    assert flow == pytest.approx(catalogue) == pytest.approx(0.3269, rel=1e-3)
     hp = GroundSourceHeatPump(ref="R32", dV_iu_fan_a_min=flow, dV_iu_fan_a_max=flow, R_b=0.2, t_max_s=3600)
     out = hp.analyze_steady(Q_r_iu=-3000, T0=7, T_a_room=20)
     assert out["converged"] and out["failure_reason"] == "none" and out["capacity_clamped"] is None
@@ -205,6 +208,7 @@ def test_ashpb_dhw_at_a_fixed_outdoor_fan(Q):
     _assert_same_state(a, b)
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 @pytest.mark.parametrize(
     "Q,T0,T_room",
     [(-800.0, 7.0, 20.0), (-2000.0, 7.0, 20.0), (-3500.0, 7.0, 20.0), (600.0, 30.0, 26.0), (3500.0, 30.0, 26.0)],
@@ -227,6 +231,7 @@ def test_gshp_fixed_fan_delivers_the_requested_duty_exactly_below_the_compressor
     assert out["Q_ref_iu [W]"] == pytest.approx(3500.0, rel=1e-5)
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_fixed_fan_cannot_turn_down_but_the_approach_absorbs_a_small_duty():
     # A variable fan reports the minimum-capacity clamp for a tiny request; the
     # fixed fan reaches the same compressor floor through a smaller approach.
@@ -236,6 +241,7 @@ def test_fixed_fan_cannot_turn_down_but_the_approach_absorbs_a_small_duty():
     assert out["Q_ref_iu [W]"] > 100.0
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_fixed_fan_with_an_undersized_coil_fails_like_a_variable_fan():
     # 100 W/K carries 2.3 kW at the largest indoor approach searched (25 K).

@@ -121,8 +121,10 @@ def test_default_machines_run_their_brine_rating_points(machines):
     gshp = machines["GSHP", "default"]
     # 3.520 and 3.921 with a water loop before it had a freezing point: the glycol's
     # borehole resistance is 0.168 against 0.162 m K/W. 3.508 and 3.915 with the indoor
-    # coil on 15 °C standard air instead of the 20 °C room air it draws (#96).
-    for load, cop_sys in ((-4000.0, 3.495), (-2000.0, 3.908)):
+    # coil on 15 °C standard air instead of the 20 °C room air it draws (#96). 3.495 and
+    # 3.908 before the catalogue default inputs (#86): the displacement of an R32 unit of
+    # this capacity is 0.65 of the earlier constant and the indoor airflow 1.52 times it.
+    for load, cop_sys in ((-4000.0, 3.743), (-2000.0, 4.139)):
         r = _quiet(gshp.analyze_steady, Q_r_iu=load, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)

@@ -36,7 +36,10 @@ from tmhp.compressor_envelope import (
     resolve_discharge_temp_max,
 )
 
-pytestmark = pytest.mark.filterwarnings("ignore::RuntimeWarning")
+pytestmark = [
+    pytest.mark.filterwarnings("ignore::RuntimeWarning"),
+    pytest.mark.earlier_defaults,  # scenarios pinned on the earlier default machine: tests/conftest.py
+]
 
 FAMILIES = (
     tmhp.AirSourceHeatPump,

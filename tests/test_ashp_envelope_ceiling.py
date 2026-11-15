@@ -31,6 +31,8 @@ from tmhp.compressor_envelope import (
     DISCHARGE_TOL_K,
 )
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 COLD = dict(T0=-25.0, T_a_room=24.0)
 
 

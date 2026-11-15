@@ -65,8 +65,17 @@ def test_supply_air_and_fan_power_at_the_rating_points(hp):
     for out in (heating, cooling):
         assert out["E_iu_fan [W]"] < 0.01 * 4000.0
         assert 0.01 * 4000.0 < out["E_iu_fan [W]"] + out["E_ou_fan [W]"] < 0.04 * 4000.0
-    # Rated COP inside what such equipment declares (A7/20: 3.8-4.8; A35/27: 3.2-4.5).
-    assert 3.8 < heating["cop_sys [-]"] < 4.9
+    # Rated COP inside what such equipment declares. The five Daikin FTXM-A / RXM-A units of 2.0 to
+    # 5.0 kW in validation/catalogs declare 4.14 to 5.00 in heating (H1) and 3.68 to 5.41 in cooling
+    # (T1) (validation/results/gate_a/rated_points.csv); the bounds are that band with 5 % either
+    # side in heating. The heating bound was 4.9 until the catalogue displacement (#86), read off
+    # "3.8-4.8" without a source: the default unit is at 5.03 now (4.74 before), on the upper edge of
+    # the declared band. It delivers its cooling nameplate here, three quarters of what a unit of
+    # this size declares in heating (5.4 kW at 6/20 degC for the 4.2 kW RXM42A, COP 4.19), so the
+    # declared band is a ceiling for this row, not a like-for-like point. The like-for-like one:
+    like = _solve(hp, -5400.0, 6.0, 20.0)
+    assert like["capacity_clamped"] is None and like["cop_sys [-]"] == pytest.approx(4.19, rel=0.05)  # 4.09
+    assert 0.95 * 4.14 < heating["cop_sys [-]"] < 1.05 * 5.00
     assert 3.2 < cooling["cop_sys [-]"] < 4.5
 
 

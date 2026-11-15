@@ -137,6 +137,7 @@ def test_gshp_cooling_analyze_steady():
     _assert_solved(result, "Q_ref_iu [W]", 3_000.0)
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_ashp_off_mode_failure_reason_is_diagnostic():
     # Deliberately tiny UA so the inner HX optimisation cannot converge.
     # The model is expected to fall back to off-mode AND surface a

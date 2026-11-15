@@ -202,6 +202,7 @@ def _pr_and_speed(row: dict) -> tuple[float, float]:
     return row["P_ref_cmp_out [Pa]"] / row["P_ref_cmp_in [Pa]"], row["cmp_rpm [rpm]"] / 60.0
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_a_minus7_w55_full_load_is_solved_at_the_held_boundary():
     """Before the guard eta_is was negative at PR 9.8 and every load at A-7/W55 was cycle_invalid.
 
@@ -236,6 +237,7 @@ def test_a_minus7_w55_half_load_has_a_valid_cycle_after_the_guard():
     # analyze_steady still returns hx_not_converged here: tests/invariants C2.
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_a0_w60_inside_the_domain_is_untouched_by_the_guard():
     hp = _ashpb(T_dis_max=None)  # 201.6 C: refused by default (test_compressor_operating_envelope)
     row = hp.analyze_steady(T_tank_w=60, T0=0, Q_ref_tank=15000)

@@ -23,6 +23,8 @@ from tmhp import GroundSourceHeatPump
 from tmhp._opt_utils import OBJ_CAPACITY_LIMITED, OBJ_INFEASIBLE
 from tmhp.ground_source_heat_pump import _IndoorSearch
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 POINT = dict(T0=0.0, T_a_room=24.0, T_bhe_wall=0.0)
 #: Relative heat within which two flat-out candidates deliver the same ceiling.
 TOL = 5e-3

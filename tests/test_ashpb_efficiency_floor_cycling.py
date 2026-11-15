@@ -28,6 +28,8 @@ from tmhp.compressor_envelope import (
 )
 from tmhp.cycling import CAPACITY_RATIO_KEY, MIN_CAPACITY_KEY, PART_LOAD_FACTOR_KEY, RUNTIME_FRACTION_KEY
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 COLD = dict(T_tank_w=40.0, T0=-15.0)
 
 

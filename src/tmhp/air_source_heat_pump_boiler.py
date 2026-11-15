@@ -1815,8 +1815,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             - ``"failure_reason"`` (str) — one of ``"none"``,
               ``"cycle_invalid"``, ``"t_cond_below_t_in"``,
               ``"pr_above_max"``, ``"discharge_temp_above_max"`` (even
-              under the discharge-temperature control and at a reduced duty
-              the discharge exceeds ``T_dis_max``),
+              under the discharge-temperature control the discharge exceeds
+              ``T_dis_max``, at the request and at every smaller and larger
+              duty tried: a request that is only too small for the limit,
+              refused at low speed while a larger duty runs, is a ``"min"``
+              point, below),
               ``"condensing_temp_above_max"`` (even a reduced duty condenses
               above ``T_cond_max``: the tank is too hot), ``"eta_isen_below_min"``
               (the shipped isentropic fit, extrapolated, is below 0.30, and
@@ -1834,10 +1837,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             - ``"capacity_clamped"`` (str | None) — ``"min"`` when the
               requested duty was below what the compressor delivers at
               ``rps_min`` and the cycle was solved at that floor instead (or
-              below the smallest duty the envelope's efficiency floor admits,
-              where the shipped fit falls under 0.30 before ``rps_min`` is
-              reached: the cycle is then solved at that duty, above
-              ``rps_min``),
+              below the smallest duty the compressor envelope admits, where
+              the discharge exceeds ``T_dis_max`` or the shipped fit falls
+              under 0.30 before ``rps_min`` is reached: the cycle is then
+              solved at that duty, above ``rps_min``),
               ``"max"`` for the corresponding ceiling case, ``None`` when the
               request was met exactly. A clamped point is **converged**: the
               request simply lay outside the machine's deliverable band, which

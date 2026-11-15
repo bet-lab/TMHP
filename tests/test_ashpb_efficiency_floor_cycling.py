@@ -175,11 +175,13 @@ def test_search_returns_the_smallest_running_duty_as_a_min_row():
 
 def test_search_leaves_other_refusals_and_other_limits_alone():
     machine = _Machine(floor=2345.0)
-    for reason in ("discharge_temp_above_max", "pr_above_max", "none"):
+    # A refusal a larger duty does not cure (the discharge limit at low speed is one it does:
+    # tests/test_discharge_floor_cycling.py).
+    for reason in ("pr_above_max", "condensing_temp_above_max", "none"):
         row = {"hp_is_on": False, "failure_reason": reason}
         assert raise_duty_within_envelope(machine, row, machine.solve, 300.0) is row
     assert machine.solved == []
-    # Another limit refuses a duty above the request before one runs: the request keeps its reason.
+    # Another limit refuses every duty above the efficiency floor: the request keeps its reason.
     blocked = _Machine(floor=2345.0, other_limit_above=900.0)
     refused = blocked.solve(300.0)
     assert raise_duty_within_envelope(blocked, refused, blocked.solve, 300.0) is refused

@@ -14,7 +14,10 @@ return the inputs a manufacturer's catalogue would have given, with their eviden
   is :func:`tmhp.compressor_speed.refrigerant_aware_displacement` evaluated at the catalogue rating point of
   the basis with the catalogue ``eta_vol * rps`` (option A, 2026-11-14). The product's nameplate capacity
   is used as the compressor's catalogue capacity at that rating point.
-- **Maximum fan airflow** [m³/s] per mode, side and product class, from the largest published fan step.
+- **Maximum fan airflow** [m³/s] per mode, side and product class, from the largest published fan step. The
+  estimate's ``assumptions`` also state how far makers sit from the fitted law (each manufacturer held out and
+  predicted from the others), because at equal capacity real airflows differ by maker; an airflow given for the
+  actual unit takes precedence over the default.
 
 Values come from ``tmhp/data/*.json``, exported from the archives in ``validation/default_inputs`` (see the
 README there for collection and filtering rules). A basis or stratum that does not meet the shipping gate
@@ -59,8 +62,9 @@ class DefaultInputEstimate:
     extrapolated: bool
     source_ids: tuple[str, ...]
     assumptions: tuple[str, ...] = field(default_factory=tuple)
-    #: ``"shipped"``, or ``"provisional"`` when the evidence meets the shipping gate but is weak; the reason is
-    #: the last entry of ``assumptions``.
+    #: ``"shipped"``, or ``"provisional"`` when the evidence meets the shipping gate but is weak. A recorded reason
+    #: (``"Provisional: ..."``, or ``"Note: ..."`` for a shipped stratum with a caveat) is the last entry of
+    #: ``assumptions``; for airflow, the line before it gives the spread between manufacturers.
     status: str = "shipped"
 
 
@@ -187,7 +191,19 @@ def estimate_max_airflow(hp_capacity: float, *, side: str, product: str, mode: s
     low, high = entry["capacity_range_W"]
     cv = entry["nested_family_cv"]
     status = entry.get("status", "shipped")
-    reason = (f"Provisional: {entry['status_reason']}",) if status != "shipped" and entry.get("status_reason") else ()
+    reason: tuple[str, ...] = ()
+    if entry.get("status_reason"):
+        reason = (f"{'Note' if status == 'shipped' else 'Provisional'}: {entry['status_reason']}",)
+    maker_cv = entry.get("nested_manufacturer_cv", {})
+    maker_bias = entry.get("manufacturer_holdout_bias_pct") or {}
+    spread: tuple[str, ...] = ()
+    if maker_cv.get("MAPE_pct") is not None and maker_bias:
+        spread = (
+            f"Spread between manufacturers (each held out, predicted from the others): MAPE "
+            f"{maker_cv['MAPE_pct']:.1f} %, bias {maker_cv['bias_pct']:+.1f} %, per-manufacturer bias "
+            f"{min(maker_bias.values()):+.0f} to {max(maker_bias.values()):+.0f} %. A given unit's airflow can differ "
+            f"from this default by about +/-{maker_cv['MAPE_pct']:.0f} %; an airflow given for the unit takes precedence.",
+        )
     return DefaultInputEstimate(
         value=float(value),
         unit="m3/s",
@@ -200,6 +216,7 @@ def estimate_max_airflow(hp_capacity: float, *, side: str, product: str, mode: s
         assumptions=(
             f"{law} with x = capacity in kW; n = {entry['n']} from {', '.join(entry['manufacturers'])}.",
             f"Family hold-out error: MAPE {cv.get('MAPE_pct', float('nan')):.1f} %.",
+            *spread,
             *reason,
         ),
         status=status,

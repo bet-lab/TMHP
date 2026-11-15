@@ -1,7 +1,7 @@
 {
   "airflow|heating|outdoor|air_to_water": {
-    "status": "provisional",
+    "status": "shipped",
     "decided": "2026-11-15",
-    "reason": "Fitted on official-domain sources only: 4 manufacturers, 11 families (Daikin, LG and Vaillant 105/125 rows are third-party-hosted manufacturer PDFs, recorded but not fitted until the owner accepts them). Against the pre-set criteria: manufacturer hold-out MAPE 20.2 % (limit 20 %), out-of-sample Panasonic bias -15.8 % (limit 10 %), manufacturers 4 (need 5) and too few explicit-maximum rows (one family) miss; family hold-out MAPE 17.1 % and manufacturer hold-out bias +9.9 % pass. Makers differ systematically at equal model size (a law from the others over-predicts Mitsubishi by 19 % and under-predicts Samsung by 18 %), and model size is declared differently by each maker. Where a document prints both, the maximum equals or exceeds the ErP rated outdoor airflow by 0-7 % (Daikin 4 models, NIBE 3 of 4), so single and rated values are kept as the maximum."
+    "reason": "Shipped by owner decision (2026-11-15) as a central value with the manufacturer spread stated, although one pre-set criterion is missed: out-of-sample Panasonic bias -15.1 % (limit 10 %; 8 of 9 units are larger than the default). Fitted on 5 manufacturers, 12 families, 53 rows (LG rows recorded but not fitted: no LG-domain document confirms their airflow). Met: manufacturer hold-out MAPE 19.6 % and bias +8.9 % (limits 20 % / 10 %), family hold-out MAPE 17.4 %, explicit-max-only fit within 0.98-1.01 of the all-row fit. Model size is declared differently by each maker."
   }
 }

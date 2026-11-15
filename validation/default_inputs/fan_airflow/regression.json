@@ -7,7 +7,7 @@
   "selection": "Family-balanced fits; nested leave-one-family-out. Inner simplest within2% best RMSE. Secondary nested model-token-group holdout prevents suffix variants leaking.",
   "dataset": {
     "records": 802,
-    "eligible": 717,
+    "eligible": 723,
     "errata_applied": 5
   },
   "fits": {
@@ -1926,6 +1926,11 @@
       "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 26
+      },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": -2.5644155874567582,
+        "Fujitsu": -12.826697758235957,
+        "Mitsubishi Electric": -4.410954591560776
       },
       "explicit_max_only": {
         "status": "all rows explicit_max"
@@ -26408,6 +26413,13 @@
       "airflow_basis_counts": {
         "explicit_max": 130
       },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": 9.278434005364392,
+        "Fujitsu": -1.501749000513214,
+        "LG": -19.90177751850698,
+        "Mitsubishi Electric": 11.090033645367061,
+        "Panasonic": -0.5071794130279829
+      },
       "explicit_max_only": {
         "status": "all rows explicit_max"
       },
@@ -31692,6 +31704,12 @@
       "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 52
+      },
+      "manufacturer_holdout_bias_pct": {
+        "ClimateMaster": -1.6886312922164575,
+        "Daikin Applied": 9.973915603615367,
+        "Enertech Global": 11.060414007535899,
+        "WaterFurnace": -4.807694338626333
       },
       "explicit_max_only": {
         "status": "all rows explicit_max"
@@ -51697,6 +51715,12 @@
         "rated": 19,
         "single_value": 69
       },
+      "manufacturer_holdout_bias_pct": {
+        "Fujitsu": 10.037320723909533,
+        "LG": -7.491852917053643,
+        "Mitsubishi Electric": -5.152409334749022,
+        "Panasonic": 7.626128220886972
+      },
       "explicit_max_only": {
         "n": 40,
         "families": 13,
@@ -53634,6 +53658,11 @@
       "status_reason": null,
       "airflow_basis_counts": {
         "explicit_max": 26
+      },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": -2.367965857047018,
+        "Fujitsu": 14.277232054494126,
+        "Mitsubishi Electric": -7.371401662985589
       },
       "explicit_max_only": {
         "status": "all rows explicit_max"
@@ -77916,6 +77945,13 @@
       "airflow_basis_counts": {
         "explicit_max": 131
       },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": 10.412570752605832,
+        "Fujitsu": 3.662505623023155,
+        "LG": -21.31663074596586,
+        "Mitsubishi Electric": 7.880050063700376,
+        "Panasonic": -2.714411086392042
+      },
       "explicit_max_only": {
         "status": "all rows explicit_max"
       },
@@ -83201,6 +83237,12 @@
       "airflow_basis_counts": {
         "explicit_max": 52
       },
+      "manufacturer_holdout_bias_pct": {
+        "ClimateMaster": -6.997727379921917,
+        "Daikin Applied": 6.595903683402617,
+        "Enertech Global": 4.898702671563215,
+        "WaterFurnace": -0.06531465297697213
+      },
       "explicit_max_only": {
         "status": "all rows explicit_max"
       },
@@ -83208,14 +83250,16 @@
     },
     "airflow|heating|outdoor|air_to_water": {
       "stratum": "airflow|heating|outdoor|air_to_water",
-      "n": 47,
+      "n": 53,
       "manufacturers": [
+        "Daikin",
         "Mitsubishi Electric",
         "Samsung",
         "Toshiba",
         "Vaillant"
       ],
       "families": [
+        "daikin:EBLA-D",
         "mitsubishi:PUZ-HWM",
         "mitsubishi:PUZ-SHWM",
         "mitsubishi:PUZ-SWM",
@@ -83230,80 +83274,176 @@
       ],
       "selected_law": {
         "kind": "power",
-        "a": 0.22383416323998923,
-        "b": 0.6619960968400872
+        "a": 0.22006764944384996,
+        "b": 0.6719978566165766
       },
       "candidates": {
         "proportional": {
           "law": {
             "kind": "proportional",
-            "a": 0.10467900444370778
+            "a": 0.1036761564488294
           },
           "family_cv": {
-            "n": 47,
+            "n": 53,
             "valid": true,
-            "MAE": 0.1846797630445086,
-            "RMSE": 0.22289861502281766,
-            "MAPE_pct": 21.925984122682785,
-            "bias_pct": -1.0329370911046407
+            "MAE": 0.18831018305121022,
+            "RMSE": 0.2251329051030889,
+            "MAPE_pct": 21.486188025367692,
+            "bias_pct": -1.4491009044811305
           }
         },
         "linear": {
           "law": {
             "kind": "linear",
-            "a": 0.08027128175620349,
-            "b": 0.24204819818543916
+            "a": 0.07941252988423592,
+            "b": 0.250794315503332
           },
           "family_cv": {
-            "n": 47,
+            "n": 53,
             "valid": true,
-            "MAE": 0.15497590458505078,
-            "RMSE": 0.1990319264107617,
-            "MAPE_pct": 18.009735489048456,
-            "bias_pct": 6.88306252254948
+            "MAE": 0.1590448007618838,
+            "RMSE": 0.2005054353329661,
+            "MAPE_pct": 17.913233873190006,
+            "bias_pct": 6.516312089759205
           }
         },
         "power": {
           "law": {
             "kind": "power",
-            "a": 0.22383416323998923,
-            "b": 0.6619960968400872
+            "a": 0.22006764944384996,
+            "b": 0.6719978566165766
           },
           "family_cv": {
-            "n": 47,
+            "n": 53,
             "valid": true,
-            "MAE": 0.14979498721977033,
-            "RMSE": 0.19276336224049342,
-            "MAPE_pct": 17.21648666187408,
-            "bias_pct": 5.257698162698391
+            "MAE": 0.15180086519293456,
+            "RMSE": 0.19560712802087593,
+            "MAPE_pct": 16.95338076455543,
+            "bias_pct": 4.860888972138432
           }
         }
       },
       "nested_family_cv": {
-        "n": 47,
+        "n": 53,
         "valid": true,
-        "MAE": 0.14862527859825622,
-        "RMSE": 0.1899219448608778,
-        "MAPE_pct": 17.14630414458323,
-        "bias_pct": 5.327880679989237
+        "MAE": 0.15633453140598635,
+        "RMSE": 0.2008967184291282,
+        "MAPE_pct": 17.44263753965525,
+        "bias_pct": 5.355129017582566
       },
       "nested_model_group_cv": {
-        "n": 47,
+        "n": 53,
         "valid": true,
-        "MAE": 0.16120813826940555,
-        "RMSE": 0.20358208625141663,
-        "MAPE_pct": 18.584674587383052,
-        "bias_pct": 6.446358778015777
+        "MAE": 0.16086133398759556,
+        "RMSE": 0.2036084230823645,
+        "MAPE_pct": 18.117227719822175,
+        "bias_pct": 5.831135178292046
       },
       "nested_manufacturer_cv": {
-        "n": 47,
+        "n": 53,
         "valid": true,
-        "MAE": 0.1688919135858197,
-        "RMSE": 0.211364678637094,
-        "MAPE_pct": 20.22321998332557,
-        "bias_pct": 9.887593898116444
+        "MAE": 0.16654368407560777,
+        "RMSE": 0.20661993843238835,
+        "MAPE_pct": 19.580841512346257,
+        "bias_pct": 8.910875046810103
       },
       "family_predictions": [
+        {
+          "record_id": "daikin:EBLA-D:EBLA09DW1",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA09DW1",
+          "fold": "daikin:EBLA-D",
+          "selected_in_training": "power",
+          "observed": 0.8,
+          "predicted": 0.9996590424528585,
+          "capacity_W": 9370.0,
+          "train_groups": [
+            "mitsubishi:PUZ-HWM",
+            "mitsubishi:PUZ-SHWM",
+            "mitsubishi:PUZ-SWM",
+            "mitsubishi:PUZ-WM",
+            "mitsubishi:PUZ-WZ",
+            "mitsubishi:SUZ-SHWM",
+            "mitsubishi:SUZ-SWM",
+            "samsung:EHS-Mono-R290",
+            "samsung:EHS-Split-R32",
+            "toshiba:Estia-R32",
+            "vaillant:aroTHERM-plus"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "daikin:EBLA-D:EBLA11DW1",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA11DW1",
+          "fold": "daikin:EBLA-D",
+          "selected_in_training": "power",
+          "observed": 0.9299999999999999,
+          "predicted": 1.0873000462225355,
+          "capacity_W": 10600.0,
+          "train_groups": [
+            "mitsubishi:PUZ-HWM",
+            "mitsubishi:PUZ-SHWM",
+            "mitsubishi:PUZ-SWM",
+            "mitsubishi:PUZ-WM",
+            "mitsubishi:PUZ-WZ",
+            "mitsubishi:SUZ-SHWM",
+            "mitsubishi:SUZ-SWM",
+            "samsung:EHS-Mono-R290",
+            "samsung:EHS-Split-R32",
+            "toshiba:Estia-R32",
+            "vaillant:aroTHERM-plus"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "daikin:EBLA-D:EBLA14DW1",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA14DW1",
+          "fold": "daikin:EBLA-D",
+          "selected_in_training": "power",
+          "observed": 1.1733333333333333,
+          "predicted": 1.183198266211625,
+          "capacity_W": 12000.0,
+          "train_groups": [
+            "mitsubishi:PUZ-HWM",
+            "mitsubishi:PUZ-SHWM",
+            "mitsubishi:PUZ-SWM",
+            "mitsubishi:PUZ-WM",
+            "mitsubishi:PUZ-WZ",
+            "mitsubishi:SUZ-SHWM",
+            "mitsubishi:SUZ-SWM",
+            "samsung:EHS-Mono-R290",
+            "samsung:EHS-Split-R32",
+            "toshiba:Estia-R32",
+            "vaillant:aroTHERM-plus"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "daikin:EBLA-D:EBLA16DW17",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA16DW17",
+          "fold": "daikin:EBLA-D",
+          "selected_in_training": "power",
+          "observed": 1.4166666666666667,
+          "predicted": 1.439411036476054,
+          "capacity_W": 16000.0,
+          "train_groups": [
+            "mitsubishi:PUZ-HWM",
+            "mitsubishi:PUZ-SHWM",
+            "mitsubishi:PUZ-SWM",
+            "mitsubishi:PUZ-WM",
+            "mitsubishi:PUZ-WZ",
+            "mitsubishi:SUZ-SHWM",
+            "mitsubishi:SUZ-SWM",
+            "samsung:EHS-Mono-R290",
+            "samsung:EHS-Split-R32",
+            "toshiba:Estia-R32",
+            "vaillant:aroTHERM-plus"
+          ],
+          "test_is_extrapolation": false
+        },
         {
           "record_id": "mitsubishi:PUZ-HWM:PUZ-HWM140VHA",
           "family_id": "mitsubishi:PUZ-HWM",
@@ -83311,9 +83451,10 @@
           "fold": "mitsubishi:PUZ-HWM",
           "selected_in_training": "linear",
           "observed": 1.6666666666666667,
-          "predicted": 1.2293515928439938,
+          "predicted": 1.2609566492283453,
           "capacity_W": 14000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
             "mitsubishi:PUZ-WM",
@@ -83332,11 +83473,12 @@
           "family_id": "mitsubishi:PUZ-SHWM",
           "model_id": "E*S***F-***E/PUZ-SHWM60VAA",
           "fold": "mitsubishi:PUZ-SHWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.7295598475388769,
+          "predicted": 0.7200700718415391,
           "capacity_W": 6000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SWM",
             "mitsubishi:PUZ-WM",
@@ -83355,11 +83497,12 @@
           "family_id": "mitsubishi:PUZ-SHWM",
           "model_id": "E*S***F-***E/PUZ-SHWM80VAA",
           "fold": "mitsubishi:PUZ-SHWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.8892752641261799,
+          "predicted": 0.8877836249985118,
           "capacity_W": 8000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SWM",
             "mitsubishi:PUZ-WM",
@@ -83378,11 +83521,12 @@
           "family_id": "mitsubishi:PUZ-SHWM",
           "model_id": "E*S***F-***E/PUZ-SHWM100VAA",
           "fold": "mitsubishi:PUZ-SHWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 1.0333333333333332,
-          "predicted": 1.0368688485250814,
+          "predicted": 1.0554971781554847,
           "capacity_W": 10000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SWM",
             "mitsubishi:PUZ-WM",
@@ -83401,11 +83545,12 @@
           "family_id": "mitsubishi:PUZ-SHWM",
           "model_id": "E*S***F-***E/PUZ-SHWM120VAA",
           "fold": "mitsubishi:PUZ-SHWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.1822020711072219,
+          "predicted": 1.231596408970306,
           "capacity_W": 12100.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SWM",
             "mitsubishi:PUZ-WM",
@@ -83424,11 +83569,12 @@
           "family_id": "mitsubishi:PUZ-SHWM",
           "model_id": "E*S***F-***E/PUZ-SHWM140VAA",
           "fold": "mitsubishi:PUZ-SHWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.3070142129689608,
+          "predicted": 1.3909242844694303,
           "capacity_W": 14000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SWM",
             "mitsubishi:PUZ-WM",
@@ -83447,11 +83593,12 @@
           "family_id": "mitsubishi:PUZ-SWM",
           "model_id": "E*S***F-***E/PUZ-SWM60VAA",
           "fold": "mitsubishi:PUZ-SWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.7295598475388769,
+          "predicted": 0.7200700718415391,
           "capacity_W": 6000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-WM",
@@ -83470,11 +83617,12 @@
           "family_id": "mitsubishi:PUZ-SWM",
           "model_id": "E*S***F-***E/PUZ-SWM80VAA",
           "fold": "mitsubishi:PUZ-SWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.8892752641261799,
+          "predicted": 0.8877836249985118,
           "capacity_W": 8000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-WM",
@@ -83493,11 +83641,12 @@
           "family_id": "mitsubishi:PUZ-SWM",
           "model_id": "E*S***F-***E/PUZ-SWM100VAA",
           "fold": "mitsubishi:PUZ-SWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 1.0333333333333332,
-          "predicted": 1.0368688485250814,
+          "predicted": 1.0554971781554847,
           "capacity_W": 10000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-WM",
@@ -83516,11 +83665,12 @@
           "family_id": "mitsubishi:PUZ-SWM",
           "model_id": "E*S***F-***E/PUZ-SWM120VAA",
           "fold": "mitsubishi:PUZ-SWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.1822020711072219,
+          "predicted": 1.231596408970306,
           "capacity_W": 12100.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-WM",
@@ -83539,11 +83689,12 @@
           "family_id": "mitsubishi:PUZ-SWM",
           "model_id": "E*S***F-***E/PUZ-SWM140VAA",
           "fold": "mitsubishi:PUZ-SWM",
-          "selected_in_training": "power",
+          "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.3070142129689608,
+          "predicted": 1.3909242844694303,
           "capacity_W": 14000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-WM",
@@ -83564,9 +83715,10 @@
           "fold": "mitsubishi:PUZ-WM",
           "selected_in_training": "power",
           "observed": 0.6,
-          "predicted": 0.6560714369987599,
+          "predicted": 0.6557132422254278,
           "capacity_W": 5000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83587,9 +83739,10 @@
           "fold": "mitsubishi:PUZ-WM",
           "selected_in_training": "power",
           "observed": 0.7333333333333333,
-          "predicted": 0.741844634549928,
+          "predicted": 0.7421703742058159,
           "capacity_W": 6000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83610,9 +83763,10 @@
           "fold": "mitsubishi:PUZ-WM",
           "selected_in_training": "power",
           "observed": 0.7333333333333333,
-          "predicted": 0.9381132705409501,
+          "predicted": 0.9402931238462457,
           "capacity_W": 8500.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83633,9 +83787,10 @@
           "fold": "mitsubishi:PUZ-WM",
           "selected_in_training": "power",
           "observed": 0.8333333333333334,
-          "predicted": 1.1297706630193278,
+          "predicted": 1.1340849048140964,
           "capacity_W": 11200.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83656,9 +83811,10 @@
           "fold": "mitsubishi:PUZ-WZ",
           "selected_in_training": "power",
           "observed": 0.7666666666666666,
-          "predicted": 0.6515935828550194,
+          "predicted": 0.6508651694924162,
           "capacity_W": 5000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83679,9 +83835,10 @@
           "fold": "mitsubishi:PUZ-WZ",
           "selected_in_training": "power",
           "observed": 0.7666666666666666,
-          "predicted": 0.7390688266782357,
+          "predicted": 0.7388170331714026,
           "capacity_W": 6000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83702,9 +83859,10 @@
           "fold": "mitsubishi:PUZ-WZ",
           "selected_in_training": "power",
           "observed": 0.7666666666666666,
-          "predicted": 0.9015874120063511,
+          "predicted": 0.9023870104353466,
           "capacity_W": 8000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83725,9 +83883,10 @@
           "fold": "mitsubishi:PUZ-WZ",
           "selected_in_training": "power",
           "observed": 0.7666666666666666,
-          "predicted": 0.9401541976379089,
+          "predicted": 0.9412313906819846,
           "capacity_W": 8500.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83748,9 +83907,10 @@
           "fold": "mitsubishi:PUZ-WZ",
           "selected_in_training": "power",
           "observed": 0.7333333333333333,
-          "predicted": 1.0518774023712403,
+          "predicted": 1.0538129542417807,
           "capacity_W": 10000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83771,9 +83931,10 @@
           "fold": "mitsubishi:PUZ-WZ",
           "selected_in_training": "power",
           "observed": 0.7333333333333333,
-          "predicted": 1.1585175431207622,
+          "predicted": 1.1613415263621594,
           "capacity_W": 11500.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83794,9 +83955,10 @@
           "fold": "mitsubishi:SUZ-SHWM",
           "selected_in_training": "power",
           "observed": 0.4666666666666667,
-          "predicted": 0.47232800582688383,
+          "predicted": 0.4694055769747802,
           "capacity_W": 3000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83817,9 +83979,10 @@
           "fold": "mitsubishi:SUZ-SHWM",
           "selected_in_training": "power",
           "observed": 0.5033333333333333,
-          "predicted": 0.5690072459964887,
+          "predicted": 0.5671810088512441,
           "capacity_W": 4000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83840,9 +84003,10 @@
           "fold": "mitsubishi:SUZ-SHWM",
           "selected_in_training": "power",
           "observed": 0.6950000000000001,
-          "predicted": 0.7397814525884586,
+          "predicted": 0.7405231390587279,
           "capacity_W": 6000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83863,9 +84027,10 @@
           "fold": "mitsubishi:SUZ-SWM",
           "selected_in_training": "power",
           "observed": 0.4666666666666667,
-          "predicted": 0.47931519652859694,
+          "predicted": 0.47788370828315635,
           "capacity_W": 3000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83886,9 +84051,10 @@
           "fold": "mitsubishi:SUZ-SWM",
           "selected_in_training": "power",
           "observed": 0.4666666666666667,
-          "predicted": 0.5768895559486109,
+          "predicted": 0.576268477741352,
           "capacity_W": 4000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83909,9 +84075,10 @@
           "fold": "mitsubishi:SUZ-SWM",
           "selected_in_training": "power",
           "observed": 0.5033333333333333,
-          "predicted": 0.7490500801842178,
+          "predicted": 0.7502646730052714,
           "capacity_W": 6000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83932,9 +84099,10 @@
           "fold": "mitsubishi:SUZ-SWM",
           "selected_in_training": "power",
           "observed": 0.775,
-          "predicted": 0.8648272841397247,
+          "predicted": 0.8675164602883318,
           "capacity_W": 7500.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83955,9 +84123,10 @@
           "fold": "mitsubishi:SUZ-SWM",
           "selected_in_training": "power",
           "observed": 0.775,
-          "predicted": 0.9725882828670306,
+          "predicted": 0.976796582325562,
           "capacity_W": 9000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -83978,9 +84147,10 @@
           "fold": "samsung:EHS-Mono-R290",
           "selected_in_training": "power",
           "observed": 0.9166666666666666,
-          "predicted": 0.6369089506587615,
+          "predicted": 0.6358162579791097,
           "capacity_W": 5000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84001,9 +84171,10 @@
           "fold": "samsung:EHS-Mono-R290",
           "selected_in_training": "power",
           "observed": 1.15,
-          "predicted": 0.8645543880555075,
+          "predicted": 0.8710351160676172,
           "capacity_W": 8000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84024,9 +84195,10 @@
           "fold": "samsung:EHS-Mono-R290",
           "selected_in_training": "power",
           "observed": 1.5,
-          "predicted": 1.12533943645453,
+          "predicted": 1.1427946346620936,
           "capacity_W": 12000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84047,9 +84219,10 @@
           "fold": "samsung:EHS-Mono-R290",
           "selected_in_training": "power",
           "observed": 1.5666666666666667,
-          "predicted": 1.3568016133962963,
+          "predicted": 1.385615246519723,
           "capacity_W": 16000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84061,7 +84234,7 @@
             "toshiba:Estia-R32",
             "vaillant:aroTHERM-plus"
           ],
-          "test_is_extrapolation": true
+          "test_is_extrapolation": false
         },
         {
           "record_id": "samsung:EHS-Split-R32:AE040RXEDEG",
@@ -84070,9 +84243,10 @@
           "fold": "samsung:EHS-Split-R32",
           "selected_in_training": "power",
           "observed": 0.6666666666666666,
-          "predicted": 0.5907065852549922,
+          "predicted": 0.5889693189070803,
           "capacity_W": 4400.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84093,9 +84267,10 @@
           "fold": "samsung:EHS-Split-R32",
           "selected_in_training": "power",
           "observed": 0.7166666666666667,
-          "predicted": 0.7265034736241249,
+          "predicted": 0.7270731328299157,
           "capacity_W": 6000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84116,9 +84291,10 @@
           "fold": "samsung:EHS-Split-R32",
           "selected_in_training": "power",
           "observed": 1.1,
-          "predicted": 0.9521804032896916,
+          "predicted": 0.9575839669278413,
           "capacity_W": 9000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84139,9 +84315,10 @@
           "fold": "toshiba:Estia-R32",
           "selected_in_training": "power",
           "observed": 0.56,
-          "predicted": 0.563319108109394,
+          "predicted": 0.5615886679394345,
           "capacity_W": 4000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84162,9 +84339,10 @@
           "fold": "toshiba:Estia-R32",
           "selected_in_training": "power",
           "observed": 0.56,
-          "predicted": 0.7347585319333462,
+          "predicted": 0.7358118785137605,
           "capacity_W": 6000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84185,9 +84363,10 @@
           "fold": "toshiba:Estia-R32",
           "selected_in_training": "power",
           "observed": 0.8733333333333333,
-          "predicted": 0.8871871757035577,
+          "predicted": 0.8913060431041724,
           "capacity_W": 8000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84208,9 +84387,10 @@
           "fold": "toshiba:Estia-R32",
           "selected_in_training": "power",
           "observed": 0.9733333333333333,
-          "predicted": 1.0930577087519868,
+          "predicted": 1.102028296618679,
           "capacity_W": 11000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84231,9 +84411,10 @@
           "fold": "toshiba:Estia-R32",
           "selected_in_training": "power",
           "observed": 1.3116666666666668,
-          "predicted": 1.280190827061391,
+          "predicted": 1.2941634293774231,
           "capacity_W": 14000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84254,9 +84435,10 @@
           "fold": "toshiba:Estia-R32",
           "selected_in_training": "power",
           "observed": 0.9733333333333333,
-          "predicted": 0.8871871757035577,
+          "predicted": 0.8913060431041724,
           "capacity_W": 8000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84277,9 +84459,10 @@
           "fold": "toshiba:Estia-R32",
           "selected_in_training": "power",
           "observed": 1.3116666666666668,
-          "predicted": 1.0930577087519868,
+          "predicted": 1.102028296618679,
           "capacity_W": 11000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84300,9 +84483,10 @@
           "fold": "toshiba:Estia-R32",
           "selected_in_training": "power",
           "observed": 1.3116666666666668,
-          "predicted": 1.280190827061391,
+          "predicted": 1.2941634293774231,
           "capacity_W": 14000.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84323,9 +84507,10 @@
           "fold": "vaillant:aroTHERM-plus",
           "selected_in_training": "power",
           "observed": 0.6388888888888888,
-          "predicted": 0.5177929522556759,
+          "predicted": 0.5168607776079837,
           "capacity_W": 3600.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84346,9 +84531,10 @@
           "fold": "vaillant:aroTHERM-plus",
           "selected_in_training": "power",
           "observed": 0.6388888888888888,
-          "predicted": 0.6817740708057504,
+          "predicted": 0.6783409863275813,
           "capacity_W": 5400.0,
           "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84369,9 +84555,58 @@
           "fold": "vaillant:aroTHERM-plus",
           "selected_in_training": "power",
           "observed": 0.6388888888888888,
-          "predicted": 0.8130447448688147,
+          "predicted": 0.8072715846813058,
           "capacity_W": 7000.0,
           "train_groups": [
+            "daikin:EBLA-D",
+            "mitsubishi:PUZ-HWM",
+            "mitsubishi:PUZ-SHWM",
+            "mitsubishi:PUZ-SWM",
+            "mitsubishi:PUZ-WM",
+            "mitsubishi:PUZ-WZ",
+            "mitsubishi:SUZ-SHWM",
+            "mitsubishi:SUZ-SWM",
+            "samsung:EHS-Mono-R290",
+            "samsung:EHS-Split-R32",
+            "toshiba:Estia-R32"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "vaillant:aroTHERM-plus:105/6",
+          "family_id": "vaillant:aroTHERM-plus",
+          "model_id": "/VWL 105/6 A 230V S2",
+          "fold": "vaillant:aroTHERM-plus",
+          "selected_in_training": "power",
+          "observed": 1.4166666666666667,
+          "predicted": 0.9696270792733541,
+          "capacity_W": 9200.0,
+          "train_groups": [
+            "daikin:EBLA-D",
+            "mitsubishi:PUZ-HWM",
+            "mitsubishi:PUZ-SHWM",
+            "mitsubishi:PUZ-SWM",
+            "mitsubishi:PUZ-WM",
+            "mitsubishi:PUZ-WZ",
+            "mitsubishi:SUZ-SHWM",
+            "mitsubishi:SUZ-SWM",
+            "samsung:EHS-Mono-R290",
+            "samsung:EHS-Split-R32",
+            "toshiba:Estia-R32"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "vaillant:aroTHERM-plus:125/6",
+          "family_id": "vaillant:aroTHERM-plus",
+          "model_id": "/VWL 125/6 A 230V S2",
+          "fold": "vaillant:aroTHERM-plus",
+          "selected_in_training": "power",
+          "observed": 1.4166666666666667,
+          "predicted": 1.1716366491753825,
+          "capacity_W": 12200.0,
+          "train_groups": [
+            "daikin:EBLA-D",
             "mitsubishi:PUZ-HWM",
             "mitsubishi:PUZ-SHWM",
             "mitsubishi:PUZ-SWM",
@@ -84388,15 +84623,92 @@
       ],
       "model_group_predictions": [
         {
+          "record_id": "daikin:EBLA-D:EBLA09DW1",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA09DW1",
+          "fold": "Daikin:",
+          "selected_in_training": "power",
+          "observed": 0.8,
+          "predicted": 0.9996590424528585,
+          "capacity_W": 9370.0,
+          "train_groups": [
+            "Mitsubishi Electric:",
+            "Mitsubishi Electric:E*S***D-***E",
+            "Mitsubishi Electric:E*S***F-***E",
+            "Samsung:",
+            "Toshiba:",
+            "Vaillant:"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "daikin:EBLA-D:EBLA11DW1",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA11DW1",
+          "fold": "Daikin:",
+          "selected_in_training": "power",
+          "observed": 0.9299999999999999,
+          "predicted": 1.0873000462225355,
+          "capacity_W": 10600.0,
+          "train_groups": [
+            "Mitsubishi Electric:",
+            "Mitsubishi Electric:E*S***D-***E",
+            "Mitsubishi Electric:E*S***F-***E",
+            "Samsung:",
+            "Toshiba:",
+            "Vaillant:"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "daikin:EBLA-D:EBLA14DW1",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA14DW1",
+          "fold": "Daikin:",
+          "selected_in_training": "power",
+          "observed": 1.1733333333333333,
+          "predicted": 1.183198266211625,
+          "capacity_W": 12000.0,
+          "train_groups": [
+            "Mitsubishi Electric:",
+            "Mitsubishi Electric:E*S***D-***E",
+            "Mitsubishi Electric:E*S***F-***E",
+            "Samsung:",
+            "Toshiba:",
+            "Vaillant:"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "daikin:EBLA-D:EBLA16DW17",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA16DW17",
+          "fold": "Daikin:",
+          "selected_in_training": "power",
+          "observed": 1.4166666666666667,
+          "predicted": 1.439411036476054,
+          "capacity_W": 16000.0,
+          "train_groups": [
+            "Mitsubishi Electric:",
+            "Mitsubishi Electric:E*S***D-***E",
+            "Mitsubishi Electric:E*S***F-***E",
+            "Samsung:",
+            "Toshiba:",
+            "Vaillant:"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
           "record_id": "mitsubishi:PUZ-WZ:PUZ-WZ50VAA",
           "family_id": "mitsubishi:PUZ-WZ",
           "model_id": "/PUZ-WZ50VAA(-BS)",
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.7666666666666666,
-          "predicted": 0.6609782840102645,
+          "predicted": 0.661583913483687,
           "capacity_W": 5000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84412,9 +84724,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.7666666666666666,
-          "predicted": 0.7404826675925041,
+          "predicted": 0.743484618293409,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84430,9 +84743,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.7666666666666666,
-          "predicted": 0.8858256328247843,
+          "predicted": 0.8938203145041119,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84448,9 +84762,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.7666666666666666,
-          "predicted": 0.9199207967236942,
+          "predicted": 0.9291897647337065,
           "capacity_W": 8500.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84466,9 +84781,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.7333333333333333,
-          "predicted": 1.0179360060804132,
+          "predicted": 1.0310652688447102,
           "capacity_W": 10000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84484,9 +84800,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.7333333333333333,
-          "predicted": 1.1105382890656161,
+          "predicted": 1.1275641238691865,
           "capacity_W": 11500.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84502,9 +84819,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.6,
-          "predicted": 0.6609782840102645,
+          "predicted": 0.661583913483687,
           "capacity_W": 5000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84520,9 +84838,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.7333333333333333,
-          "predicted": 0.7404826675925041,
+          "predicted": 0.743484618293409,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84538,9 +84857,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.7333333333333333,
-          "predicted": 0.9199207967236942,
+          "predicted": 0.9291897647337065,
           "capacity_W": 8500.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84556,9 +84876,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 0.8333333333333334,
-          "predicted": 1.0924006018069756,
+          "predicted": 1.1086451550353806,
           "capacity_W": 11200.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84574,9 +84895,10 @@
           "fold": "Mitsubishi Electric:",
           "selected_in_training": "power",
           "observed": 1.6666666666666667,
-          "predicted": 1.2553191784451152,
+          "predicted": 1.2788761860532558,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84592,9 +84914,10 @@
           "fold": "Mitsubishi Electric:E*S***D-***E",
           "selected_in_training": "power",
           "observed": 0.4666666666666667,
-          "predicted": 0.5000771951624393,
+          "predicted": 0.5001910802348857,
           "capacity_W": 3000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84610,9 +84933,10 @@
           "fold": "Mitsubishi Electric:E*S***D-***E",
           "selected_in_training": "power",
           "observed": 0.4666666666666667,
-          "predicted": 0.5962146152510207,
+          "predicted": 0.597159676101027,
           "capacity_W": 4000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84628,9 +84952,10 @@
           "fold": "Mitsubishi Electric:E*S***D-***E",
           "selected_in_training": "power",
           "observed": 0.5033333333333333,
-          "predicted": 0.7638953046494227,
+          "predicted": 0.7665699550148259,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84646,9 +84971,10 @@
           "fold": "Mitsubishi Electric:E*S***D-***E",
           "selected_in_training": "power",
           "observed": 0.775,
-          "predicted": 0.8755230350214728,
+          "predicted": 0.8795132064700462,
           "capacity_W": 7500.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84664,9 +84990,10 @@
           "fold": "Mitsubishi Electric:E*S***D-***E",
           "selected_in_training": "power",
           "observed": 0.775,
-          "predicted": 0.9787348742193306,
+          "predicted": 0.9840408176388945,
           "capacity_W": 9000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84682,9 +85009,10 @@
           "fold": "Mitsubishi Electric:E*S***D-***E",
           "selected_in_training": "power",
           "observed": 0.4666666666666667,
-          "predicted": 0.5000771951624393,
+          "predicted": 0.5001910802348857,
           "capacity_W": 3000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84700,9 +85028,10 @@
           "fold": "Mitsubishi Electric:E*S***D-***E",
           "selected_in_training": "power",
           "observed": 0.5033333333333333,
-          "predicted": 0.5962146152510207,
+          "predicted": 0.597159676101027,
           "capacity_W": 4000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84718,9 +85047,10 @@
           "fold": "Mitsubishi Electric:E*S***D-***E",
           "selected_in_training": "power",
           "observed": 0.6950000000000001,
-          "predicted": 0.7638953046494227,
+          "predicted": 0.7665699550148259,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***F-***E",
             "Samsung:",
@@ -84736,9 +85066,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.7124224099717278,
+          "predicted": 0.7131300155112177,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84754,9 +85085,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.8964937706310193,
+          "predicted": 0.8911867360122618,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84772,9 +85104,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 1.0333333333333332,
-          "predicted": 1.0805651312903108,
+          "predicted": 1.069243456513306,
           "capacity_W": 10000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84790,9 +85123,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.273840059982567,
+          "predicted": 1.2562030130394022,
           "capacity_W": 12100.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84808,9 +85142,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.448707852608894,
+          "predicted": 1.425356897515394,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84826,9 +85161,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.7124224099717278,
+          "predicted": 0.7131300155112177,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84844,9 +85180,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.8964937706310193,
+          "predicted": 0.8911867360122618,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84862,9 +85199,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 1.0333333333333332,
-          "predicted": 1.0805651312903108,
+          "predicted": 1.069243456513306,
           "capacity_W": 10000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84880,9 +85218,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.273840059982567,
+          "predicted": 1.2562030130394022,
           "capacity_W": 12100.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84898,9 +85237,10 @@
           "fold": "Mitsubishi Electric:E*S***F-***E",
           "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.448707852608894,
+          "predicted": 1.425356897515394,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Samsung:",
@@ -84916,9 +85256,10 @@
           "fold": "Samsung:",
           "selected_in_training": "power",
           "observed": 0.6666666666666666,
-          "predicted": 0.5777516870039662,
+          "predicted": 0.574622878415415,
           "capacity_W": 4400.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -84934,9 +85275,10 @@
           "fold": "Samsung:",
           "selected_in_training": "power",
           "observed": 0.9166666666666666,
-          "predicted": 0.628353969507534,
+          "predicted": 0.6267852605140045,
           "capacity_W": 5000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -84952,9 +85294,10 @@
           "fold": "Samsung:",
           "selected_in_training": "power",
           "observed": 0.7166666666666667,
-          "predicted": 0.7082876875011282,
+          "predicted": 0.7094786236925492,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -84970,9 +85313,10 @@
           "fold": "Samsung:",
           "selected_in_training": "power",
           "observed": 1.15,
-          "predicted": 0.8555945583916165,
+          "predicted": 0.8627040284557973,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -84988,9 +85332,10 @@
           "fold": "Samsung:",
           "selected_in_training": "power",
           "observed": 1.1,
-          "predicted": 0.9244095013938843,
+          "predicted": 0.9346109647817705,
           "capacity_W": 9000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85006,9 +85351,10 @@
           "fold": "Samsung:",
           "selected_in_training": "power",
           "observed": 1.5,
-          "predicted": 1.1166645320470223,
+          "predicted": 1.136457981157721,
           "capacity_W": 12000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85024,16 +85370,17 @@
           "fold": "Samsung:",
           "selected_in_training": "power",
           "observed": 1.5666666666666667,
-          "predicted": 1.3489040033140929,
+          "predicted": 1.3818977003320876,
           "capacity_W": 16000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
             "Toshiba:",
             "Vaillant:"
           ],
-          "test_is_extrapolation": true
+          "test_is_extrapolation": false
         },
         {
           "record_id": "toshiba:Estia-R32:HWT-401HW-E",
@@ -85042,9 +85389,10 @@
           "fold": "Toshiba:",
           "selected_in_training": "power",
           "observed": 0.56,
-          "predicted": 0.563319108109394,
+          "predicted": 0.5615886679394345,
           "capacity_W": 4000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85060,9 +85408,10 @@
           "fold": "Toshiba:",
           "selected_in_training": "power",
           "observed": 0.56,
-          "predicted": 0.7347585319333462,
+          "predicted": 0.7358118785137605,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85078,9 +85427,10 @@
           "fold": "Toshiba:",
           "selected_in_training": "power",
           "observed": 0.8733333333333333,
-          "predicted": 0.8871871757035577,
+          "predicted": 0.8913060431041724,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85096,9 +85446,10 @@
           "fold": "Toshiba:",
           "selected_in_training": "power",
           "observed": 0.9733333333333333,
-          "predicted": 1.0930577087519868,
+          "predicted": 1.102028296618679,
           "capacity_W": 11000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85114,9 +85465,10 @@
           "fold": "Toshiba:",
           "selected_in_training": "power",
           "observed": 1.3116666666666668,
-          "predicted": 1.280190827061391,
+          "predicted": 1.2941634293774231,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85132,9 +85484,10 @@
           "fold": "Toshiba:",
           "selected_in_training": "power",
           "observed": 0.9733333333333333,
-          "predicted": 0.8871871757035577,
+          "predicted": 0.8913060431041724,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85150,9 +85503,10 @@
           "fold": "Toshiba:",
           "selected_in_training": "power",
           "observed": 1.3116666666666668,
-          "predicted": 1.0930577087519868,
+          "predicted": 1.102028296618679,
           "capacity_W": 11000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85168,9 +85522,10 @@
           "fold": "Toshiba:",
           "selected_in_training": "power",
           "observed": 1.3116666666666668,
-          "predicted": 1.280190827061391,
+          "predicted": 1.2941634293774231,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85186,9 +85541,10 @@
           "fold": "Vaillant:",
           "selected_in_training": "power",
           "observed": 0.6388888888888888,
-          "predicted": 0.5177929522556759,
+          "predicted": 0.5168607776079837,
           "capacity_W": 3600.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85204,9 +85560,10 @@
           "fold": "Vaillant:",
           "selected_in_training": "power",
           "observed": 0.6388888888888888,
-          "predicted": 0.6817740708057504,
+          "predicted": 0.6783409863275813,
           "capacity_W": 5400.0,
           "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85222,9 +85579,48 @@
           "fold": "Vaillant:",
           "selected_in_training": "power",
           "observed": 0.6388888888888888,
-          "predicted": 0.8130447448688147,
+          "predicted": 0.8072715846813058,
           "capacity_W": 7000.0,
           "train_groups": [
+            "Daikin:",
+            "Mitsubishi Electric:",
+            "Mitsubishi Electric:E*S***D-***E",
+            "Mitsubishi Electric:E*S***F-***E",
+            "Samsung:",
+            "Toshiba:"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "vaillant:aroTHERM-plus:105/6",
+          "family_id": "vaillant:aroTHERM-plus",
+          "model_id": "/VWL 105/6 A 230V S2",
+          "fold": "Vaillant:",
+          "selected_in_training": "power",
+          "observed": 1.4166666666666667,
+          "predicted": 0.9696270792733541,
+          "capacity_W": 9200.0,
+          "train_groups": [
+            "Daikin:",
+            "Mitsubishi Electric:",
+            "Mitsubishi Electric:E*S***D-***E",
+            "Mitsubishi Electric:E*S***F-***E",
+            "Samsung:",
+            "Toshiba:"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "vaillant:aroTHERM-plus:125/6",
+          "family_id": "vaillant:aroTHERM-plus",
+          "model_id": "/VWL 125/6 A 230V S2",
+          "fold": "Vaillant:",
+          "selected_in_training": "power",
+          "observed": 1.4166666666666667,
+          "predicted": 1.1716366491753825,
+          "capacity_W": 12200.0,
+          "train_groups": [
+            "Daikin:",
             "Mitsubishi Electric:",
             "Mitsubishi Electric:E*S***D-***E",
             "Mitsubishi Electric:E*S***F-***E",
@@ -85236,15 +85632,84 @@
       ],
       "manufacturer_predictions": [
         {
+          "record_id": "daikin:EBLA-D:EBLA09DW1",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA09DW1",
+          "fold": "Daikin",
+          "selected_in_training": "power",
+          "observed": 0.8,
+          "predicted": 0.9996590424528585,
+          "capacity_W": 9370.0,
+          "train_groups": [
+            "Mitsubishi Electric",
+            "Samsung",
+            "Toshiba",
+            "Vaillant"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "daikin:EBLA-D:EBLA11DW1",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA11DW1",
+          "fold": "Daikin",
+          "selected_in_training": "power",
+          "observed": 0.9299999999999999,
+          "predicted": 1.0873000462225355,
+          "capacity_W": 10600.0,
+          "train_groups": [
+            "Mitsubishi Electric",
+            "Samsung",
+            "Toshiba",
+            "Vaillant"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "daikin:EBLA-D:EBLA14DW1",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA14DW1",
+          "fold": "Daikin",
+          "selected_in_training": "power",
+          "observed": 1.1733333333333333,
+          "predicted": 1.183198266211625,
+          "capacity_W": 12000.0,
+          "train_groups": [
+            "Mitsubishi Electric",
+            "Samsung",
+            "Toshiba",
+            "Vaillant"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "daikin:EBLA-D:EBLA16DW17",
+          "family_id": "daikin:EBLA-D",
+          "model_id": "/EBLA16DW17",
+          "fold": "Daikin",
+          "selected_in_training": "power",
+          "observed": 1.4166666666666667,
+          "predicted": 1.439411036476054,
+          "capacity_W": 16000.0,
+          "train_groups": [
+            "Mitsubishi Electric",
+            "Samsung",
+            "Toshiba",
+            "Vaillant"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
           "record_id": "mitsubishi:PUZ-WZ:PUZ-WZ50VAA",
           "family_id": "mitsubishi:PUZ-WZ",
           "model_id": "/PUZ-WZ50VAA(-BS)",
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.7666666666666666,
-          "predicted": 0.6982079340103946,
+          "predicted": 0.7158944687713689,
           "capacity_W": 5000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85258,9 +85723,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.7666666666666666,
-          "predicted": 0.7797268313228123,
+          "predicted": 0.7906202318802873,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85274,9 +85740,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.7666666666666666,
-          "predicted": 0.9427646259476474,
+          "predicted": 0.9400717580981242,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85290,9 +85757,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.7666666666666666,
-          "predicted": 0.9835240746038563,
+          "predicted": 0.9774346396525835,
           "capacity_W": 8500.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85306,9 +85774,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.7333333333333333,
-          "predicted": 1.1058024205724826,
+          "predicted": 1.089523284315961,
           "capacity_W": 10000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85322,9 +85791,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.7333333333333333,
-          "predicted": 1.228080766541109,
+          "predicted": 1.2016119289793388,
           "capacity_W": 11500.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85338,9 +85808,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.6,
-          "predicted": 0.6982079340103946,
+          "predicted": 0.7158944687713689,
           "capacity_W": 5000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85354,9 +85825,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.7333333333333333,
-          "predicted": 0.7797268313228123,
+          "predicted": 0.7906202318802873,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85370,9 +85842,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.7333333333333333,
-          "predicted": 0.9835240746038563,
+          "predicted": 0.9774346396525835,
           "capacity_W": 8500.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85386,9 +85859,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.8333333333333334,
-          "predicted": 1.2036250973473837,
+          "predicted": 1.1791942000466633,
           "capacity_W": 11200.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85402,9 +85876,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 1.6666666666666667,
-          "predicted": 1.431878009822153,
+          "predicted": 1.388426336751635,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85418,9 +85893,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.4666666666666667,
-          "predicted": 0.5351701393855595,
+          "predicted": 0.5664429425535319,
           "capacity_W": 3000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85434,9 +85910,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.4666666666666667,
-          "predicted": 0.6166890366979771,
+          "predicted": 0.6411687056624504,
           "capacity_W": 4000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85450,9 +85927,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.5033333333333333,
-          "predicted": 0.7797268313228123,
+          "predicted": 0.7906202318802873,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85466,9 +85944,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.775,
-          "predicted": 0.9020051772914386,
+          "predicted": 0.902708876543665,
           "capacity_W": 7500.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85482,9 +85961,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.775,
-          "predicted": 1.024283523260065,
+          "predicted": 1.0147975212070426,
           "capacity_W": 9000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85498,9 +85978,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.4666666666666667,
-          "predicted": 0.5351701393855595,
+          "predicted": 0.5664429425535319,
           "capacity_W": 3000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85514,9 +85995,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.5033333333333333,
-          "predicted": 0.6166890366979771,
+          "predicted": 0.6411687056624504,
           "capacity_W": 4000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85530,9 +86012,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.6950000000000001,
-          "predicted": 0.7797268313228123,
+          "predicted": 0.7906202318802873,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85546,9 +86029,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.7797268313228123,
+          "predicted": 0.7906202318802873,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85562,9 +86046,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.9427646259476474,
+          "predicted": 0.9400717580981242,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85578,9 +86063,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 1.0333333333333332,
-          "predicted": 1.1058024205724826,
+          "predicted": 1.089523284315961,
           "capacity_W": 10000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85594,9 +86080,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.2769921049285595,
+          "predicted": 1.24644738684469,
           "capacity_W": 12100.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85610,9 +86097,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.431878009822153,
+          "predicted": 1.388426336751635,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85626,9 +86114,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.7797268313228123,
+          "predicted": 0.7906202318802873,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85642,9 +86131,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 0.9666666666666667,
-          "predicted": 0.9427646259476474,
+          "predicted": 0.9400717580981242,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85658,9 +86148,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 1.0333333333333332,
-          "predicted": 1.1058024205724826,
+          "predicted": 1.089523284315961,
           "capacity_W": 10000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85674,9 +86165,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.2769921049285595,
+          "predicted": 1.24644738684469,
           "capacity_W": 12100.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85690,9 +86182,10 @@
           "fold": "Mitsubishi Electric",
           "selected_in_training": "linear",
           "observed": 1.0,
-          "predicted": 1.431878009822153,
+          "predicted": 1.388426336751635,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin",
             "Samsung",
             "Toshiba",
             "Vaillant"
@@ -85706,9 +86199,10 @@
           "fold": "Samsung",
           "selected_in_training": "power",
           "observed": 0.6666666666666666,
-          "predicted": 0.5777516870039662,
+          "predicted": 0.574622878415415,
           "capacity_W": 4400.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Toshiba",
             "Vaillant"
@@ -85722,9 +86216,10 @@
           "fold": "Samsung",
           "selected_in_training": "power",
           "observed": 0.9166666666666666,
-          "predicted": 0.628353969507534,
+          "predicted": 0.6267852605140045,
           "capacity_W": 5000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Toshiba",
             "Vaillant"
@@ -85738,9 +86233,10 @@
           "fold": "Samsung",
           "selected_in_training": "power",
           "observed": 0.7166666666666667,
-          "predicted": 0.7082876875011282,
+          "predicted": 0.7094786236925492,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Toshiba",
             "Vaillant"
@@ -85754,9 +86250,10 @@
           "fold": "Samsung",
           "selected_in_training": "power",
           "observed": 1.15,
-          "predicted": 0.8555945583916165,
+          "predicted": 0.8627040284557973,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Toshiba",
             "Vaillant"
@@ -85770,9 +86267,10 @@
           "fold": "Samsung",
           "selected_in_training": "power",
           "observed": 1.1,
-          "predicted": 0.9244095013938843,
+          "predicted": 0.9346109647817705,
           "capacity_W": 9000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Toshiba",
             "Vaillant"
@@ -85786,9 +86284,10 @@
           "fold": "Samsung",
           "selected_in_training": "power",
           "observed": 1.5,
-          "predicted": 1.1166645320470223,
+          "predicted": 1.136457981157721,
           "capacity_W": 12000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Toshiba",
             "Vaillant"
@@ -85802,14 +86301,15 @@
           "fold": "Samsung",
           "selected_in_training": "power",
           "observed": 1.5666666666666667,
-          "predicted": 1.3489040033140929,
+          "predicted": 1.3818977003320876,
           "capacity_W": 16000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Toshiba",
             "Vaillant"
           ],
-          "test_is_extrapolation": true
+          "test_is_extrapolation": false
         },
         {
           "record_id": "toshiba:Estia-R32:HWT-401HW-E",
@@ -85818,9 +86318,10 @@
           "fold": "Toshiba",
           "selected_in_training": "power",
           "observed": 0.56,
-          "predicted": 0.563319108109394,
+          "predicted": 0.5615886679394345,
           "capacity_W": 4000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Vaillant"
@@ -85834,9 +86335,10 @@
           "fold": "Toshiba",
           "selected_in_training": "power",
           "observed": 0.56,
-          "predicted": 0.7347585319333462,
+          "predicted": 0.7358118785137605,
           "capacity_W": 6000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Vaillant"
@@ -85850,9 +86352,10 @@
           "fold": "Toshiba",
           "selected_in_training": "power",
           "observed": 0.8733333333333333,
-          "predicted": 0.8871871757035577,
+          "predicted": 0.8913060431041724,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Vaillant"
@@ -85866,9 +86369,10 @@
           "fold": "Toshiba",
           "selected_in_training": "power",
           "observed": 0.9733333333333333,
-          "predicted": 1.0930577087519868,
+          "predicted": 1.102028296618679,
           "capacity_W": 11000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Vaillant"
@@ -85882,9 +86386,10 @@
           "fold": "Toshiba",
           "selected_in_training": "power",
           "observed": 1.3116666666666668,
-          "predicted": 1.280190827061391,
+          "predicted": 1.2941634293774231,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Vaillant"
@@ -85898,9 +86403,10 @@
           "fold": "Toshiba",
           "selected_in_training": "power",
           "observed": 0.9733333333333333,
-          "predicted": 0.8871871757035577,
+          "predicted": 0.8913060431041724,
           "capacity_W": 8000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Vaillant"
@@ -85914,9 +86420,10 @@
           "fold": "Toshiba",
           "selected_in_training": "power",
           "observed": 1.3116666666666668,
-          "predicted": 1.0930577087519868,
+          "predicted": 1.102028296618679,
           "capacity_W": 11000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Vaillant"
@@ -85930,9 +86437,10 @@
           "fold": "Toshiba",
           "selected_in_training": "power",
           "observed": 1.3116666666666668,
-          "predicted": 1.280190827061391,
+          "predicted": 1.2941634293774231,
           "capacity_W": 14000.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Vaillant"
@@ -85946,9 +86454,10 @@
           "fold": "Vaillant",
           "selected_in_training": "power",
           "observed": 0.6388888888888888,
-          "predicted": 0.5177929522556759,
+          "predicted": 0.5168607776079837,
           "capacity_W": 3600.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Toshiba"
@@ -85962,9 +86471,10 @@
           "fold": "Vaillant",
           "selected_in_training": "power",
           "observed": 0.6388888888888888,
-          "predicted": 0.6817740708057504,
+          "predicted": 0.6783409863275813,
           "capacity_W": 5400.0,
           "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Toshiba"
@@ -85978,9 +86488,44 @@
           "fold": "Vaillant",
           "selected_in_training": "power",
           "observed": 0.6388888888888888,
-          "predicted": 0.8130447448688147,
+          "predicted": 0.8072715846813058,
           "capacity_W": 7000.0,
           "train_groups": [
+            "Daikin",
+            "Mitsubishi Electric",
+            "Samsung",
+            "Toshiba"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "vaillant:aroTHERM-plus:105/6",
+          "family_id": "vaillant:aroTHERM-plus",
+          "model_id": "/VWL 105/6 A 230V S2",
+          "fold": "Vaillant",
+          "selected_in_training": "power",
+          "observed": 1.4166666666666667,
+          "predicted": 0.9696270792733541,
+          "capacity_W": 9200.0,
+          "train_groups": [
+            "Daikin",
+            "Mitsubishi Electric",
+            "Samsung",
+            "Toshiba"
+          ],
+          "test_is_extrapolation": false
+        },
+        {
+          "record_id": "vaillant:aroTHERM-plus:125/6",
+          "family_id": "vaillant:aroTHERM-plus",
+          "model_id": "/VWL 125/6 A 230V S2",
+          "fold": "Vaillant",
+          "selected_in_training": "power",
+          "observed": 1.4166666666666667,
+          "predicted": 1.1716366491753825,
+          "capacity_W": 12200.0,
+          "train_groups": [
+            "Daikin",
             "Mitsubishi Electric",
             "Samsung",
             "Toshiba"
@@ -85997,8 +86542,9 @@
         1.6666666666666667
       ],
       "lower_capacity_n": 20,
-      "upper_capacity_n": 27,
+      "upper_capacity_n": 33,
       "upper_capacity_families": [
+        "daikin:EBLA-D",
         "mitsubishi:PUZ-HWM",
         "mitsubishi:PUZ-SHWM",
         "mitsubishi:PUZ-SWM",
@@ -86007,9 +86553,11 @@
         "mitsubishi:SUZ-SWM",
         "samsung:EHS-Mono-R290",
         "samsung:EHS-Split-R32",
-        "toshiba:Estia-R32"
+        "toshiba:Estia-R32",
+        "vaillant:aroTHERM-plus"
       ],
       "source_ids": [
+        "DAIKIN_EEDEN22_EBLA09-16D",
         "MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0",
         "MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0",
         "SAMSUNG_CS_GB_AE040RXEDEG",
@@ -86020,19 +86568,41 @@
         "SAMSUNG_CS_GB_AE120CXYDEK",
         "SAMSUNG_CS_GB_AE160CXYDEK",
         "TOSHIBA_UK_DB_E23-103_00",
-        "VAILLANT_UK_0020330791_03"
+        "VAILLANT_UK_0020330791_03",
+        "VAILLANT_UK_0020330792_03"
       ],
-      "status": "provisional",
-      "status_reason": "Fitted on official-domain sources only: 4 manufacturers, 11 families (Daikin, LG and Vaillant 105/125 rows are third-party-hosted manufacturer PDFs, recorded but not fitted until the owner accepts them). Against the pre-set criteria: manufacturer hold-out MAPE 20.2 % (limit 20 %), out-of-sample Panasonic bias -15.8 % (limit 10 %), manufacturers 4 (need 5) and too few explicit-maximum rows (one family) miss; family hold-out MAPE 17.1 % and manufacturer hold-out bias +9.9 % pass. Makers differ systematically at equal model size (a law from the others over-predicts Mitsubishi by 19 % and under-predicts Samsung by 18 %), and model size is declared differently by each maker. Where a document prints both, the maximum equals or exceeds the ErP rated outdoor airflow by 0-7 % (Daikin 4 models, NIBE 3 of 4), so single and rated values are kept as the maximum.",
+      "status": "shipped",
+      "status_reason": "Shipped by owner decision (2026-11-15) as a central value with the manufacturer spread stated, although one pre-set criterion is missed: out-of-sample Panasonic bias -15.1 % (limit 10 %; 8 of 9 units are larger than the default). Fitted on 5 manufacturers, 12 families, 53 rows (LG rows recorded but not fitted: no LG-domain document confirms their airflow). Met: manufacturer hold-out MAPE 19.6 % and bias +8.9 % (limits 20 % / 10 %), family hold-out MAPE 17.4 %, explicit-max-only fit within 0.98-1.01 of the all-row fit. Model size is declared differently by each maker.",
       "airflow_basis_counts": {
-        "explicit_max": 3,
+        "explicit_max": 9,
         "rated": 8,
         "single_value": 36
       },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": 11.079402505992983,
+        "Mitsubishi Electric": 19.51658075148523,
+        "Samsung": -17.497214390750223,
+        "Toshiba": 2.484973427598297,
+        "Vaillant": -7.084272204328579
+      },
       "explicit_max_only": {
-        "status": "insufficient explicit_max rows",
-        "n": 3,
-        "families": 1
+        "n": 9,
+        "families": 2,
+        "manufacturers": [
+          "Daikin",
+          "Vaillant"
+        ],
+        "selected_law": {
+          "kind": "power",
+          "a": 0.23940968125155948,
+          "b": 0.6337826650617632
+        },
+        "nested_family_MAPE_pct": 32.830778776105284,
+        "all_rows_over_explicit_max": {
+          "6.00 kW": 0.9843548725996789,
+          "8.00 kW": 0.9952364035320701,
+          "11.20 kW": 1.0081161310831217
+        }
       },
       "meets_shipping_gate": true
     },
@@ -105073,6 +105643,12 @@
         "rated": 18,
         "single_value": 67
       },
+      "manufacturer_holdout_bias_pct": {
+        "Fujitsu": 16.67415475751523,
+        "LG": -10.879170556177508,
+        "Mitsubishi Electric": -6.054177520106592,
+        "Panasonic": 0.9497078417484047
+      },
       "explicit_max_only": {
         "n": 40,
         "families": 13,
@@ -105099,5 +105675,5 @@
     "families": 3,
     "manufacturers": 2
   },
-  "data_sha256": "ecefbe1d881dfa7056e8a20a36fbdcb2e2932d7234c8b229115ed64f9f0785d9"
+  "data_sha256": "39a47761840297fac157208cba215d7674564ca447243fca6f54eedd24eaca03"
 }

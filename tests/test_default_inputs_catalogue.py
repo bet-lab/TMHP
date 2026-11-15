@@ -89,13 +89,33 @@ def test_new_product_class_strata_are_shipped(side, product, mode, capacity):
     assert len(estimate.source_ids) >= 2
 
 
-def test_air_to_water_outdoor_airflow_is_provisional_with_reason():
-    """The ASHPB outdoor stratum is shipped as provisional (decision 2026-11-14); others stay shipped."""
+def test_air_to_water_outdoor_airflow_is_shipped_with_spread_and_missed_criterion():
+    """Owner decision 2026-11-15: shipped as a central value with the manufacturer spread stated; the missed pre-set
+    criterion stays in the reason."""
     estimate = estimate_max_airflow(8000.0, side="outdoor", product="air_to_water", mode="heating")
-    assert estimate.status == "provisional"
-    assert estimate.assumptions[-1].startswith("Provisional:")
-    assert estimate_max_airflow(3500.0, side="indoor", product="wall_mounted").status == "shipped"
+    package = json.loads(AIRFLOW_PACKAGE.read_text())
+    entry = package["strata"]["airflow|heating|outdoor|air_to_water"]
+    assert estimate.status == "shipped"
+    assert estimate.assumptions[-1].startswith("Note: Shipped by owner decision")
+    assert "Panasonic bias" in estimate.assumptions[-1]
+    spread = estimate.assumptions[-2]
+    assert spread.startswith("Spread between manufacturers")
+    assert f"MAPE {entry['nested_manufacturer_cv']['MAPE_pct']:.1f} %" in spread
+    biases = entry["manufacturer_holdout_bias_pct"].values()
+    assert f"{min(biases):+.0f} to {max(biases):+.0f} %" in spread
+    assert "takes precedence" in spread
     assert estimate_displacement(3500.0, "R32").status == "shipped"
+
+
+def test_airflow_spread_line_is_stated_for_every_multi_maker_stratum():
+    package = json.loads(AIRFLOW_PACKAGE.read_text())
+    for key, entry in package["strata"].items():
+        if not entry["meets_shipping_gate"]:
+            continue
+        _, mode, side, product = key.split("|")
+        estimate = estimate_max_airflow(8000.0, side=side, product=product, mode=mode)
+        has_spread = any(a.startswith("Spread between manufacturers") for a in estimate.assumptions)
+        assert has_spread == bool(entry["manufacturer_holdout_bias_pct"])
 
 
 def test_airflow_basis_reads_rated_words_anywhere_in_the_label():
@@ -122,4 +142,10 @@ def test_air_to_water_fit_excludes_panasonic_and_unaccepted_third_party_sources(
         assert not source["evidence_type"].endswith("_third_party_host") or source.get("owner_accepted")
     rows = json.loads((AIRFLOW_ARCHIVE / "measurements.json").read_text())
     held = [r for r in rows if sources[r["source_id"]]["evidence_type"].endswith("_third_party_host")]
-    assert held and all(not r["eligible"] and "owner acceptance" in r["exclusion_reason"] for r in held)
+    unaccepted = [r for r in held if not sources[r["source_id"]].get("owner_accepted")]
+    assert unaccepted and all(not r["eligible"] and "owner acceptance" in r["exclusion_reason"] for r in unaccepted)
+    # Accepted after a match on Daikin's own domain; LG's airflow found no such match (2026-11-15).
+    assert "Daikin" in fit["manufacturers"] and "LG" not in fit["manufacturers"]
+    for source in sources.values():
+        if source.get("owner_accepted"):
+            assert source["owner_acceptance"].startswith("Owner decision")

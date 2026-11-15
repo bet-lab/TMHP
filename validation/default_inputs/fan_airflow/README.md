@@ -5,45 +5,46 @@ floor-standing indoor units of 1:1 single splits and their outdoor units (ASHP);
 pumps (`indoor_type=water_to_air`, GSHP indoor side); air-to-water outdoor units (`indoor_type=air_to_water`,
 outdoor rows, ASHPB). Ducted and cassette split indoor units are out of scope (user decision 2026-10-26).
 
-Air-to-water outdoor units (added 2026-11-14):
+Air-to-water outdoor units (added 2026-11-14, widened and **shipped** 2026-11-15):
 
-- Shipped as **provisional** (`strata_status.json`, decision 2026-11-14): `estimate_max_airflow` returns the value with
-  `status="provisional"` and the reason in `assumptions`. `strata_status.json` is hand-edited; a stratum not listed is
-  `shipped`.
+- Status: **shipped by owner decision (2026-11-15)** as a central value with the spread between manufacturers stated
+  (`strata_status.json`, hand-edited; a stratum not listed is `shipped`). `estimate_max_airflow` returns, in
+  `assumptions`, the manufacturer hold-out MAPE and bias and the range of per-manufacturer biases ('Spread between
+  manufacturers ...'), and the recorded reason as the last line ('Note: ...'). An airflow given for the actual unit takes
+  precedence over the default.
+- Pre-set criteria (round-6 brief, written before the fit, kept in the worker's evidence folder as `criteria.md`):
+  manufacturers >= 5, families >= 8; manufacturer hold-out |bias| <= 10 % and MAPE <= 20 %; family hold-out MAPE <= 20 %;
+  out-of-sample Panasonic (nine `validation/catalogs` units, never fitted) |bias| <= 10 % and MAPE <= 20 %; the
+  explicit-max-only fit within 0.90-1.10 of the all-row fit. Judgement, as fitted (5 manufacturers, 12 families, 53 rows):
+  manufacturer hold-out MAPE 19.6 %, bias +8.9 %; family hold-out MAPE 17.4 %; explicit-max-only ratio 0.98-1.01 — met.
+  **Panasonic bias -15.1 % (MAPE 17.8 %) — missed**: 8 of the 9 Panasonic units are larger than the default. The owner
+  saw the criteria table (including the 6-manufacturer variant, which missed manufacturer and family hold-out MAPE at
+  22.5 % and 20.05 % but had a Panasonic bias of -8.0 %) and chose to ship the central value with the spread stated.
+  After that decision the LG rows failed the official-domain check (below), so the shipped fit is the 5-manufacturer one.
+- Per-manufacturer hold-out bias (law fitted to the others, minus the maker's own rows): Mitsubishi +19.5 %, Daikin
+  +11.1 %, Toshiba +2.5 %, Vaillant -7.1 %, Samsung -17.5 %.
 - `capacity_text` is the **model size**: the heating capacity the manufacturer declares as the unit's size (user decision
   2026-11-14), read exactly as printed. Mitsubishi defines it as the heating reference capacity (Partload1) at A2/W35
-  (Ecodan R290/R32 databook Vol.6.0) or at A-7/W35 (PUZ-WZ databook Vol.1.0); Samsung prints the kW class. The printed
-  A7/W35 EN 14511 rating is often a reduced or part-load point (e.g. PUZ-WZ100 5.80 kW against a 10.0 kW reference
-  capacity) and is kept in `note`. The model number is not decoded (SUZ-SWM80 is 7.5 kW as printed).
+  (Ecodan R290/R32 databook Vol.6.0) or at A-7/W35 (PUZ-WZ databook Vol.1.0); Samsung prints the kW class; Daikin
+  'Heating capacity Nom.' at A7/W35; Toshiba 'Heating capacity' at A7/W35; LG nominal capacity at A7/W35; Vaillant
+  prints no size row, so the printed A-7/W35 heat output (the value matching the marketed 3.5/5/7/10/12 kW class) is
+  used, by analogy with PUZ-WZ. The printed A7/W35 EN 14511 rating is often a reduced or part-load point (e.g. PUZ-WZ100
+  5.80 kW against a 10.0 kW reference capacity) and is kept in `note`. The model number is not decoded.
 - NIBE S2125 prints no model-size capacity (its A7/W35 row is EN 14511 partial load); its rows are recorded and excluded.
+- Airflow labels: `explicit_max` (Daikin 'Heating High', Vaillant 'Fan, air flow, maximum'), `rated` (LG 'Air Flow
+  Rate Rated', Toshiba 'Standard air capacity' — any label containing rated/nominal/standard), `single_value`
+  (Mitsubishi, Samsung). Outdoor rated and single values are taken as the maximum on measured grounds: where a document
+  prints both, the maximum equals the ErP 'rated air flow rate, outdoors' (Daikin, four models) or exceeds it by 0-7 %
+  (NIBE S2125-8/-12/-16; 31 % for S2125-20).
+- Third-party hosts: an unmodified manufacturer PDF found only on a third-party host (`evidence_type=*_third_party_host`)
+  is recorded but fitted only once its source has `"owner_accepted": true` with an `owner_acceptance` note naming the
+  owner decision and the manufacturer-domain documents that print the same values. 2026-11-15: Daikin EEDEN22 accepted
+  (product table, ErP fiches and catalogue on daikin.eu match all 4 rows); Vaillant 105/125 re-pointed to Vaillant's own
+  English edition (0020330792_03), the German third-party copy kept as a cross-check; LG product data book 5BPM5-01D
+  **not accepted** — capacities match LG's leaflet, but no LG-domain document prints its airflow 60.0 m3/min, and LG's
+  ErP fiche for HM091M U43 prints 3690 m3/h (medium temperature) / 2388 m3/h (low temperature), not 3600 m3/h.
 - Samsung pages come from samsung-climatesolutions.com, accepted as official (operated by Samsung Electronics Air
   Conditioner Europe B.V. / Samsung Electronics Limited per its privacy notice; linked from samsung.com).
-
-Widened 2026-11-15 (round 6, still **provisional**): Daikin Altherma 3 M (EBLA-D), Vaillant aroTHERM plus, LG Therma V
-R32 Monobloc and Toshiba Estia R32 recorded (23 rows). Panasonic is kept out on purpose: its nine `validation/catalogs`
-units are the out-of-sample check.
-
-- Model size per maker: Daikin 'Heating capacity Nom.' at A7/W35; LG nominal capacity at A7/W35 (= its line-up class);
-  Toshiba 'Heating capacity' at A7/W35; Vaillant prints no size row, so the printed A-7/W35 heat output (the value that
-  matches the marketed 3.5/5/7/10/12 kW class) is used, by analogy with Mitsubishi PUZ-WZ.
-- Airflow labels now differ: `explicit_max` (Daikin 'Heating High', Vaillant 'Fan, air flow, maximum'), `rated` (LG
-  'Air Flow Rate Rated', Toshiba 'Standard air capacity' — any label containing rated/nominal/standard), `single_value`
-  (Mitsubishi, Samsung). Outdoor rated and single values are still taken as the maximum, now on measured grounds: where a
-  document prints both, the maximum equals the ErP 'rated air flow rate, outdoors' (Daikin EEDEN22, four models, ratio
-  1.00) or exceeds it by 0-7 % (NIBE S2125-8/-12/-16; 31 % for S2125-20).
-- Third-party hosts: Daikin EEDEN22, LG product data book 5BPM5-01D and Vaillant 0020326635_03 are unmodified manufacturer
-  PDFs that no manufacturer domain serves publicly (Daikin keeps its databooks behind its business portal). They carry
-  `evidence_type=*_third_party_host`; the build records their rows but **does not fit them** until the source gets
-  `"owner_accepted": true` in `sources.json` (exclusion reason 'awaiting owner acceptance'). The Daikin values are
-  corroborated by Daikin's own ErP fiche (`DAIKIN_ERP_EBLA11DAW1`, cross-check).
-- Fitted now (official domains only): Mitsubishi, Samsung, Toshiba, Vaillant — 47 rows, 11 families; power law
-  0.224 x^0.662. Against the pre-set criteria (round-6 brief, written before the fit) it misses on manufacturers (4, need
-  5), manufacturer hold-out MAPE 20.2 % (limit 20 %), Panasonic bias -15.8 % (limit 10 %) and explicit-maximum coverage
-  (one family); family hold-out MAPE 17.1 % and manufacturer hold-out bias +9.9 % pass. With the three third-party
-  sources accepted (6 manufacturers, 59 rows) the Panasonic bias becomes -8.0 % and the explicit-max-only fit lies within
-  0.99-1.08 of the all-row fit, but manufacturer hold-out MAPE 22.5 % and family hold-out MAPE 20.05 % still miss, so the
-  stratum would stay provisional either way. Makers differ systematically at equal model size, and the model-size
-  definitions differ by maker.
 - Not yet on the lab NAS: the 2026-11-15 originals are kept locally (`nas_path` null with a note); transfer per #87.
 
 Water-to-air units (added 2026-11-14):

@@ -1,6 +1,6 @@
 {
-  "version": "fan-airflow-v2026-11-15b",
-  "data_sha256": "ecefbe1d881dfa7056e8a20a36fbdcb2e2932d7234c8b229115ed64f9f0785d9",
+  "version": "fan-airflow-v2026-11-15c",
+  "data_sha256": "39a47761840297fac157208cba215d7674564ca447243fca6f54eedd24eaca03",
   "law_capacity_unit": "kW",
   "output_unit": "m3/s",
   "meaning": "largest published fan airflow (High/Max step, or the single printed outdoor value)",
@@ -30,6 +30,17 @@
         "MAPE_pct": 12.797696581080947,
         "RMSE": 0.04893051973120701,
         "bias_pct": -2.7305061110327835
+      },
+      "nested_manufacturer_cv": {
+        "n": 26,
+        "MAPE_pct": 12.116079063998294,
+        "RMSE": 0.047548299875616234,
+        "bias_pct": -4.813836032606676
+      },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": -2.5644155874567582,
+        "Fujitsu": -12.826697758235957,
+        "Mitsubishi Electric": -4.410954591560776
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -65,6 +76,19 @@
         "MAPE_pct": 12.90128236351765,
         "RMSE": 0.04050629440394509,
         "bias_pct": 3.4465564763778476
+      },
+      "nested_manufacturer_cv": {
+        "n": 130,
+        "MAPE_pct": 13.863088592011371,
+        "RMSE": 0.04383772280321337,
+        "bias_pct": 4.197845600930441
+      },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": 9.278434005364392,
+        "Fujitsu": -1.501749000513214,
+        "LG": -19.90177751850698,
+        "Mitsubishi Electric": 11.090033645367061,
+        "Panasonic": -0.5071794130279829
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -106,6 +130,18 @@
         "RMSE": 0.07533293498439503,
         "bias_pct": 3.3744533957945118
       },
+      "nested_manufacturer_cv": {
+        "n": 52,
+        "MAPE_pct": 9.69755451975216,
+        "RMSE": 0.07495020548378462,
+        "bias_pct": 2.8026100061770314
+      },
+      "manufacturer_holdout_bias_pct": {
+        "ClimateMaster": -1.6886312922164575,
+        "Daikin Applied": 9.973915603615367,
+        "Enertech Global": 11.060414007535899,
+        "WaterFurnace": -4.807694338626333
+      },
       "meets_shipping_gate": true,
       "status": "shipped",
       "status_reason": null,
@@ -142,6 +178,18 @@
         "MAPE_pct": 14.494412451803178,
         "RMSE": 0.15812348964371759,
         "bias_pct": -0.2043271671803749
+      },
+      "nested_manufacturer_cv": {
+        "n": 128,
+        "MAPE_pct": 14.054219524552822,
+        "RMSE": 0.17577353281622135,
+        "bias_pct": -0.4260578899838531
+      },
+      "manufacturer_holdout_bias_pct": {
+        "Fujitsu": 10.037320723909533,
+        "LG": -7.491852917053643,
+        "Mitsubishi Electric": -5.152409334749022,
+        "Panasonic": 7.626128220886972
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -181,6 +229,17 @@
         "RMSE": 0.048109648729562,
         "bias_pct": 2.6459337272687216
       },
+      "nested_manufacturer_cv": {
+        "n": 26,
+        "MAPE_pct": 11.501442873657657,
+        "RMSE": 0.04846434239403851,
+        "bias_pct": -3.333963678372215
+      },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": -2.367965857047018,
+        "Fujitsu": 14.277232054494126,
+        "Mitsubishi Electric": -7.371401662985589
+      },
       "meets_shipping_gate": true,
       "status": "shipped",
       "status_reason": null,
@@ -215,6 +274,19 @@
         "MAPE_pct": 12.389414689710938,
         "RMSE": 0.04506949650302235,
         "bias_pct": 3.2592575347805206
+      },
+      "nested_manufacturer_cv": {
+        "n": 131,
+        "MAPE_pct": 13.630680907352877,
+        "RMSE": 0.0493926504791364,
+        "bias_pct": 3.980315591867705
+      },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": 10.412570752605832,
+        "Fujitsu": 3.662505623023155,
+        "LG": -21.31663074596586,
+        "Mitsubishi Electric": 7.880050063700376,
+        "Panasonic": -2.714411086392042
       },
       "meets_shipping_gate": true,
       "status": "shipped",
@@ -256,6 +328,18 @@
         "RMSE": 0.07138615748690554,
         "bias_pct": 0.8444103307551534
       },
+      "nested_manufacturer_cv": {
+        "n": 52,
+        "MAPE_pct": 8.092412596230272,
+        "RMSE": 0.07202422633889385,
+        "bias_pct": 0.6909515416517711
+      },
+      "manufacturer_holdout_bias_pct": {
+        "ClimateMaster": -6.997727379921917,
+        "Daikin Applied": 6.595903683402617,
+        "Enertech Global": 4.898702671563215,
+        "WaterFurnace": -0.06531465297697213
+      },
       "meets_shipping_gate": true,
       "status": "shipped",
       "status_reason": null,
@@ -272,31 +356,46 @@
     "airflow|heating|outdoor|air_to_water": {
       "selected_law": {
         "kind": "power",
-        "a": 0.22383416323998923,
-        "b": 0.6619960968400872
+        "a": 0.22006764944384996,
+        "b": 0.6719978566165766
       },
       "capacity_range_W": [
         3000.0,
         16000.0
       ],
-      "n": 47,
-      "n_families": 11,
+      "n": 53,
+      "n_families": 12,
       "manufacturers": [
+        "Daikin",
         "Mitsubishi Electric",
         "Samsung",
         "Toshiba",
         "Vaillant"
       ],
       "nested_family_cv": {
-        "n": 47,
-        "MAPE_pct": 17.14630414458323,
-        "RMSE": 0.1899219448608778,
-        "bias_pct": 5.327880679989237
+        "n": 53,
+        "MAPE_pct": 17.44263753965525,
+        "RMSE": 0.2008967184291282,
+        "bias_pct": 5.355129017582566
+      },
+      "nested_manufacturer_cv": {
+        "n": 53,
+        "MAPE_pct": 19.580841512346257,
+        "RMSE": 0.20661993843238835,
+        "bias_pct": 8.910875046810103
+      },
+      "manufacturer_holdout_bias_pct": {
+        "Daikin": 11.079402505992983,
+        "Mitsubishi Electric": 19.51658075148523,
+        "Samsung": -17.497214390750223,
+        "Toshiba": 2.484973427598297,
+        "Vaillant": -7.084272204328579
       },
       "meets_shipping_gate": true,
-      "status": "provisional",
-      "status_reason": "Fitted on official-domain sources only: 4 manufacturers, 11 families (Daikin, LG and Vaillant 105/125 rows are third-party-hosted manufacturer PDFs, recorded but not fitted until the owner accepts them). Against the pre-set criteria: manufacturer hold-out MAPE 20.2 % (limit 20 %), out-of-sample Panasonic bias -15.8 % (limit 10 %), manufacturers 4 (need 5) and too few explicit-maximum rows (one family) miss; family hold-out MAPE 17.1 % and manufacturer hold-out bias +9.9 % pass. Makers differ systematically at equal model size (a law from the others over-predicts Mitsubishi by 19 % and under-predicts Samsung by 18 %), and model size is declared differently by each maker. Where a document prints both, the maximum equals or exceeds the ErP rated outdoor airflow by 0-7 % (Daikin 4 models, NIBE 3 of 4), so single and rated values are kept as the maximum.",
+      "status": "shipped",
+      "status_reason": "Shipped by owner decision (2026-11-15) as a central value with the manufacturer spread stated, although one pre-set criterion is missed: out-of-sample Panasonic bias -15.1 % (limit 10 %; 8 of 9 units are larger than the default). Fitted on 5 manufacturers, 12 families, 53 rows (LG rows recorded but not fitted: no LG-domain document confirms their airflow). Met: manufacturer hold-out MAPE 19.6 % and bias +8.9 % (limits 20 % / 10 %), family hold-out MAPE 17.4 %, explicit-max-only fit within 0.98-1.01 of the all-row fit. Model size is declared differently by each maker.",
       "source_ids": [
+        "DAIKIN_EEDEN22_EBLA09-16D",
         "MEUK_ECODAN_DATABOOK_PUZ-WZ_VOL1.0",
         "MEUK_ECODAN_DATABOOK_R290-R32_VOL6.0",
         "SAMSUNG_CS_GB_AE040RXEDEG",
@@ -307,7 +406,8 @@
         "SAMSUNG_CS_GB_AE120CXYDEK",
         "SAMSUNG_CS_GB_AE160CXYDEK",
         "TOSHIBA_UK_DB_E23-103_00",
-        "VAILLANT_UK_0020330791_03"
+        "VAILLANT_UK_0020330791_03",
+        "VAILLANT_UK_0020330792_03"
       ]
     },
     "airflow|heating|outdoor|single_split": {
@@ -332,6 +432,18 @@
         "MAPE_pct": 16.426061488023393,
         "RMSE": 0.1439317230430908,
         "bias_pct": -3.349003456234314
+      },
+      "nested_manufacturer_cv": {
+        "n": 125,
+        "MAPE_pct": 14.567860753179392,
+        "RMSE": 0.16512873013766474,
+        "bias_pct": -0.802493051399236
+      },
+      "manufacturer_holdout_bias_pct": {
+        "Fujitsu": 16.67415475751523,
+        "LG": -10.879170556177508,
+        "Mitsubishi Electric": -6.054177520106592,
+        "Panasonic": 0.9497078417484047
       },
       "meets_shipping_gate": true,
       "status": "shipped",

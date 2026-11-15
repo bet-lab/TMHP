@@ -243,15 +243,19 @@ def test_rated_duty_is_delivered_with_a_plausible_supply_air_temperature(by_capa
 def test_borehole_wall_rating_no_longer_collapses_with_the_capacity():
     # Rated heating against a 0 °C borehole wall. Before, one 100 m borehole
     # served every capacity: 30 kW delivered a system COP of 2.05 against
-    # 3.8 at 4 kW. The default field now holds the specific load within
-    # 50 W/m, which leaves a few percent between sizes; the catalogue indoor
-    # airflow, smaller per kW in a large unit, another 6 % (3.743 and 3.446).
+    # 3.8 at 4 kW (-46 %). The default field now holds the specific load within
+    # 50 W/m, which leaves a few percent between sizes. The catalogue indoor
+    # airflow is smaller per kW in a large unit, and the default indoor coil
+    # holds the leaving approach of real water-to-air coils at that airflow
+    # (#115-#118), so the air leaves warmer and the condensing temperature is
+    # higher: 3.68 at 4 kW and 3.27 at 30 kW (-11 %; 3.743 and 3.446 with the
+    # earlier 0.08 W/K per W coil).
     cops = {}
     for cap in (4000.0, 30000.0):
         row = build(hp_capacity=cap).analyze_steady(Q_r_iu=-cap, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
         assert row["failure_reason"] == "none" and row["capacity_clamped"] is None, cap
         cops[cap] = row["cop_sys [-]"]
-    assert cops[30000.0] == pytest.approx(cops[4000.0], rel=0.10)
+    assert 0.85 < cops[30000.0] / cops[4000.0] < 1.0
 
 
 def test_supplied_values_are_used_as_given():

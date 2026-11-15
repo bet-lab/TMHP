@@ -28,7 +28,9 @@
       ``UA_ou_rated = hp_capacity / 5`` for both refrigerant roles and
       ``UA_iu_rated = 0.8 UA_ou_rated``; ``AirSourceHeatPumpBoiler``
       ``UA_tank_hx = hp_capacity / 5`` without circulating water
-      (``m_dot_w_rated = 0``) and ``UA_ou_rated = 0.7 UA_tank_hx``.
+      (``m_dot_w_rated = 0``) and ``UA_ou_rated = 0.7 UA_tank_hx``;
+      ``GroundSourceHeatPump`` ``UA_ground_rated = 0.18 hp_capacity`` for both
+      roles and ``UA_iu_rated = 0.08 hp_capacity``.
 
     These are explicit inputs given on the test's behalf -- the constructors
     still take them through ``default_input_estimates`` -- so the scenario
@@ -51,7 +53,7 @@ from typing import Any
 import pytest
 
 import tmhp.reference_state as reference_state
-from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
+from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler, GroundSourceHeatPump
 from tmhp.compressor_speed import default_displacement
 
 MARKER = "earlier_defaults"
@@ -92,6 +94,8 @@ class EarlierRule:
     aliases: tuple[str, ...] = ()
 
 
+#: The deprecated cycle-role conductances of GroundSourceHeatPump (their adapter needs the physical ones unset).
+_GSHP_ROLE_NAMES = ("UA_cond", "UA_evap", "UA_cond_design", "UA_evap_design")
 #: Conductance rules of before the approach-temperature defaults (issues #115-#118).
 EARLIER_UA_RULES: tuple[tuple[type, tuple[EarlierRule, ...]], ...] = (
     (
@@ -116,6 +120,18 @@ EARLIER_UA_RULES: tuple[tuple[type, tuple[EarlierRule, ...]], ...] = (
             ),
             # No circulating water: the tank exchanger works against the tank temperature.
             EarlierRule("m_dot_w_rated", lambda a: 0.0),
+        ),
+    ),
+    (
+        GroundSourceHeatPump,
+        (
+            # 0.18 W/K per W for both roles (ground_hx_ua_per_capacity, given, keeps that rule itself).
+            EarlierRule(
+                "UA_ground_rated",
+                lambda a: 0.18 * a["hp_capacity"],
+                ("ground_hx_ua_per_capacity", *_GSHP_ROLE_NAMES),
+            ),
+            EarlierRule("UA_iu_rated", lambda a: 0.08 * a["hp_capacity"], _GSHP_ROLE_NAMES),
         ),
     ),
 )

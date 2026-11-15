@@ -43,6 +43,7 @@ def default_rows():
     return {mode: steady(model, *case) for mode, case in LOADS.items()}
 
 
+@pytest.mark.earlier_defaults  # the 320 W/K indoor coil of the review case: tests/conftest.py
 @pytest.mark.parametrize("load", [-3000.0, -2600.0])
 def test_review_case_fan_range_0p79_to_0p80_delivers_heating(load):
     # Reference 0.8 m3/s and UA 320 W/K: 3 kW needs an indoor approach of about

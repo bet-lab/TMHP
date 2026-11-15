@@ -469,6 +469,7 @@ CTOR_SPECS: dict[str, dict[str, str]] = {
         "UA_cond_design": "pos",
         "UA_evap_design": "pos",
         "UA_ground_rated": "pos",
+        "UA_ground_evap_rated": "pos",
         "UA_iu_rated": "pos",
         "ground_hx_ua_per_capacity": "pos",
         "indoor_approach_min_K": "nonneg",

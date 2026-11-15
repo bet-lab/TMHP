@@ -35,8 +35,9 @@ from tmhp.reference_state import ReferenceStateError
 from tmhp.refrigerant import props_si
 
 # The boiler scenarios are stated for the earlier tank heat exchanger (5 K approach at the nameplate,
-# without circulating water): the earlier default machine (tests/conftest.py). The space heat pumps at the
-# end of the module keep the present defaults (current_defaults).
+# without circulating water) and the GSHP one for its earlier ground exchanger (0.18 W/K per W): the
+# earlier default machine (tests/conftest.py). The air-to-air checks keep the present defaults
+# (current_defaults).
 pytestmark = [
     pytest.mark.filterwarnings("ignore::RuntimeWarning"),
     pytest.mark.earlier_defaults,
@@ -501,7 +502,6 @@ def test_air_to_air_direct_ceiling_and_the_shared_check_agree_on_the_condensing_
     assert flat_out["capacity_clamped"] == "max" and flat_out["capacity_binding"] != BINDING_CONDENSING
 
 
-@pytest.mark.current_defaults
 def test_gshp_reports_the_condensing_limit():
     hp = _quiet(tmhp.GroundSourceHeatPump, ref="R32")
     case = dict(Q_r_iu=3000.0, T0=30.0, T_a_room=26.0, T_bhe_wall=25.0)

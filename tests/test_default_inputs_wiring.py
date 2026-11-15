@@ -144,7 +144,8 @@ def test_supplied_airflows_are_used_as_given():
     assert only_indoor.dV_iu_fan_a_rated == 0.2067
     assert set(only_indoor.default_input_estimates) == {"V_cmp_ref", "dV_ou_fan_a_rated", *ua}
     gshp = GroundSourceHeatPump(hp_capacity=8000.0, dV_iu_fan_a_rated=0.43, V_cmp_ref=2.4e-5)
-    assert gshp.dV_iu_fan_a_rated == 0.43 and not gshp.default_input_estimates
+    assert gshp.dV_iu_fan_a_rated == 0.43
+    assert set(gshp.default_input_estimates) == {"UA_ground_rated", "UA_ground_evap_rated", "UA_iu_rated"}
 
 
 def test_indoor_unit_type_selects_the_catalogue_class():

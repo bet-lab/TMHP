@@ -45,6 +45,7 @@ def test_inverted_zero_or_nonfinite_limits_stay_input_errors(low, high):
         resolve_fan_flow_limits(1.0, low, high, custom_curve=True)
 
 
+@pytest.mark.earlier_defaults  # the 0.08 W/K per W indoor coil the case was built on: tests/conftest.py
 def test_issue_104_example_constructs_and_solves():
     # ``min == max`` on a 0.8 m3/s reference (the issue's numbers; 0.8 was the
     # default reference of a 4 kW unit when it was filed).
@@ -290,6 +291,7 @@ def test_ashpb_dynamic_24h_with_a_fixed_outdoor_fan():
     assert flows.max() == pytest.approx(1.4) and (flows <= 1.4 + 1e-12).all()
 
 
+@pytest.mark.earlier_defaults  # the 0.08 W/K per W indoor coil the case was built on: tests/conftest.py
 def test_gshp_dynamic_24h_with_a_fixed_indoor_fan():
     dt, n = 3600, 24
     model = _gshp(dV_iu_fan_a_rated=0.5, dV_iu_fan_a_min=0.5, dV_iu_fan_a_max=0.5)

@@ -9,12 +9,13 @@ value at any flow.
 
 from __future__ import annotations
 
+import copy
 import math
 import warnings
 
 import pytest
 
-from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
+from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler, GroundSourceHeatPump
 from tmhp.air_properties import air_heat_capacity_rate
 from tmhp.constants import c_w
 from tmhp.default_inputs import _artifact, hx_duty_per_nameplate
@@ -280,3 +281,120 @@ def test_ashpb_circulation_flow_of_a_call() -> None:
     # Without circulating water the archive has no conductance: the caller must give it.
     with pytest.raises(ValueError, match="UA_tank_hx"):
         build(AirSourceHeatPumpBoiler, hp_capacity=8000.0, m_dot_w_rated=0.0)
+
+
+# ---------------------------------------------------------------------------
+# GroundSourceHeatPump: coaxial ground exchanger per refrigerant role, water-to-air indoor coil
+# ---------------------------------------------------------------------------
+GROUND_COND = "liquid_source_hx|water_to_air|coaxial|condensing"
+GROUND_EVAP = "liquid_source_hx|water_to_air|coaxial|evaporating"
+IU_W2A = "indoor_coil|water_to_air|fin_tube|condensing"
+
+
+def ground_heat_capacity_rate(model: GroundSourceHeatPump) -> float:
+    return model.dV_b_f_m3s * model.source_fluid.rho * model.source_fluid.cp
+
+
+@pytest.mark.parametrize("capacity", CAPACITIES)
+def test_gshp_defaults_reproduce_the_law_through_the_coil_equation(capacity: float) -> None:
+    model = build(GroundSourceHeatPump, hp_capacity=capacity, t_max_s=3600.0)
+    C = ground_heat_capacity_rate(model)
+    # The nameplate is the cooling capacity (the default rating condition, ISO 13256-1 cooling).
+    assert model.rated_condition.mode == "cooling"
+    for stratum, UA in ((GROUND_COND, model.UA_ground_rated), (GROUND_EVAP, model.UA_ground_evap_rated)):
+        duty = hx_duty_per_nameplate(stratum, "cooling") * capacity
+        assert leaving_approach(UA, C, duty) == pytest.approx(law_leaving_approach(stratum), abs=ROUND_TRIP_TOL_K)
+    C_air = air_heat_capacity_rate(model.dV_iu_fan_a_rated, 20.0)
+    indoor = leaving_approach(model.UA_iu_rated, C_air, capacity)
+    assert indoor == pytest.approx(law_leaving_approach(IU_W2A), abs=ROUND_TRIP_TOL_K)
+
+
+@pytest.mark.parametrize("capacity", CAPACITIES)
+def test_gshp_rating_points_run_at_the_law_approach(capacity: float) -> None:
+    """ISO 13256-1 ground loop: liquid entering 25 degC (cooling, 27 degC room) and 0 degC (heating, 20 degC)."""
+    model = build(GroundSourceHeatPump, hp_capacity=capacity, t_max_s=3600.0)
+    C = ground_heat_capacity_rate(model)
+    for mode, Q, T_brine, T_room, stratum, UA in (
+        ("cooling", capacity, 25.0, 27.0, GROUND_COND, model.UA_ground_rated),
+        ("heating", -capacity, 0.0, 20.0, GROUND_EVAP, model.UA_ground_evap_rated),
+    ):
+        target = copy.copy(model)
+        target.T_bhe_f_out, target.T_bhe_f_out_K = T_brine, T_brine + 273.15
+        row = target.analyze_steady(Q_r_iu=Q, T0=T_brine, T_a_room=T_room)
+        assert row["failure_reason"] == "none", (mode, row["failure_reason"])
+        assert row["UA_ground_rated [W/K]"] == UA  # the role's conductance is the one reported
+        T_cond, T_evap = row["T_ref_cond_sat_l [°C]"], row["T_ref_evap_sat [°C]"]
+        duty = abs(row["Q_ref_ground [W]"])
+        T_entering = T_brine + row["E_pmp [W]"] / C  # the pump's heat warms the loop before the exchanger
+        inlet_difference = T_cond - T_entering if mode == "cooling" else T_entering - T_evap
+        check_cycle_approach(
+            f"GSHP {capacity:.0f} W {mode} ground exchanger",
+            law=law_leaving_approach(stratum),
+            model_dT=inlet_difference - duty / C,
+            UA_rated=UA,
+            flow=row["dV_bhe_f [m3/s]"],
+            flow_rated=model.dV_b_f_m3s,
+            exponent=0.0,
+            C=C,
+            duty=duty,
+            duty_rated=hx_duty_per_nameplate(stratum, "cooling") * capacity,
+        )
+        T_sat = T_evap if mode == "cooling" else T_cond
+        check_cycle_approach(
+            f"GSHP {capacity:.0f} W {mode} indoor coil",
+            law=law_leaving_approach(IU_W2A),
+            model_dT=abs(T_sat - row["T_iu_a_mid [°C]"]),
+            UA_rated=model.UA_iu_rated,
+            flow=row["dV_iu_a [m3/s]"],
+            flow_rated=model.dV_iu_fan_a_ref,
+            exponent=0.71,  # the indoor coil's airflow exponent (calc_HX_perf_for_target_heat default)
+            C=air_heat_capacity_rate(row["dV_iu_a [m3/s]"], T_room),
+            duty=abs(row["Q_ref_iu [W]"]),
+            duty_rated=capacity,
+        )
+
+
+def test_gshp_given_conductances_are_used_as_given() -> None:
+    one = build(GroundSourceHeatPump, hp_capacity=8000.0, t_max_s=3600.0, UA_ground_rated=1500.0)
+    assert (one.UA_ground_rated, one.UA_ground_evap_rated) == (1500.0, 1500.0)
+    assert one._rated_hx_UAs("heating")[0] == one._rated_hx_UAs("cooling")[0] == 1500.0
+    both = build(
+        GroundSourceHeatPump,
+        hp_capacity=8000.0,
+        t_max_s=3600.0,
+        UA_ground_rated=1500.0,
+        UA_ground_evap_rated=1100.0,
+        UA_iu_rated=700.0,
+    )
+    assert both._rated_hx_UAs("cooling") == (1500.0, 700.0)
+    assert both._rated_hx_UAs("heating") == (1100.0, 700.0)
+    assert both._rating_side("source", "heating", 0.0).UA == 1100.0
+    assert not {"UA_ground_rated", "UA_ground_evap_rated", "UA_iu_rated"} & set(both.default_input_estimates)
+    # The proportional rule, for both roles.
+    rule = build(GroundSourceHeatPump, hp_capacity=8000.0, t_max_s=3600.0, ground_hx_ua_per_capacity=0.2)
+    assert rule.UA_ground_rated == rule.UA_ground_evap_rated == pytest.approx(1600.0)
+
+
+def test_gshp_default_input_estimates_carry_the_conductances() -> None:
+    model = build(GroundSourceHeatPump, hp_capacity=8000.0, t_max_s=3600.0)
+    estimates = model.default_input_estimates
+    for name, key, value in (
+        ("UA_ground_rated", GROUND_COND, model.UA_ground_rated),
+        ("UA_ground_evap_rated", GROUND_EVAP, model.UA_ground_evap_rated),
+        ("UA_iu_rated", IU_W2A, model.UA_iu_rated),
+    ):
+        assert (estimates[name].key, estimates[name].value, estimates[name].status) == (key, value, "shipped")
+
+
+@pytest.mark.parametrize("factor", (0.85, 1.15))
+def test_gshp_conductance_exists_at_any_flow(factor: float) -> None:
+    reference = build(GroundSourceHeatPump, hp_capacity=8000.0, t_max_s=3600.0)
+    model = build(
+        GroundSourceHeatPump,
+        hp_capacity=8000.0,
+        t_max_s=3600.0,
+        ground_flow_ref_lpm=factor * reference.ground_flow_ref_lpm,
+        dV_iu_fan_a_rated=factor * reference.dV_iu_fan_a_rated,
+    )
+    for UA in (model.UA_ground_rated, model.UA_ground_evap_rated, model.UA_iu_rated):
+        assert math.isfinite(UA) and UA > 0

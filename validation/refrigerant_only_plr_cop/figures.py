@@ -44,6 +44,7 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     COLORS,
     GRIDLINE,
     HAIRLINE,
+    TEXT_COLORS,
     apply_style,
     cover_data_ylim,
     finalize,
@@ -484,9 +485,9 @@ def fig5(d, case: str) -> None:
         tw.plot(x, 100 * g.fan_fraction, color=COLORS["hot"], lw=dm.lw(-0.5), ls="dashed", label="$E_{fan}/E_{tot}$")
         tw.set_ylim(0, 30)
         tw.set_yticks(ticks(0, 30, 10))
-        tw.tick_params(labelsize=dm.fs(-3), colors=COLORS["hot"])
+        tw.tick_params(labelsize=dm.fs(-3), color=COLORS["hot"], labelcolor=TEXT_COLORS["hot"])
         if ax in (flat[2], flat[5]):
-            tw.set_ylabel("$E_{fan}/E_{tot}$ [%]", fontsize=dm.fs(-3), color=COLORS["hot"])
+            tw.set_ylabel("$E_{fan}/E_{tot}$ [%]", fontsize=dm.fs(-3), color=TEXT_COLORS["hot"])
     for ax in flat[len(refs) :]:
         ax.set_visible(False)
     for ax in (flat[3], flat[4], flat[5]):

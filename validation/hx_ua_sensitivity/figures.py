@@ -32,6 +32,7 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     COLORS,
     GRIDLINE,
     HAIRLINE,
+    TEXT_COLORS,
     apply_style,
     cover_data_ylim,
     finalize,
@@ -289,7 +290,7 @@ def fig2(d, duty: str) -> None:
         "solid: condensing\ndashed: evaporating",
         transform=axes[0].transAxes,
         fontsize=dm.fs(-3),
-        color=COLORS["muted"],
+        color=TEXT_COLORS["muted"],
         va="bottom",
     )
     for ax, letter in zip(axes, "ab", strict=True):
@@ -390,7 +391,7 @@ def fig5(d, duty: str) -> None:
         r"dashed: $COP_{cmp} = Q/W_{cmp}$" "\n" r"solid: $COP_{sys} = Q/(W_{cmp}+W_{fan})$",
         transform=ax.transAxes,
         fontsize=dm.fs(-3),
-        color=COLORS["muted"],
+        color=TEXT_COLORS["muted"],
         va="top",
     )
     _source(sub, ["cop_ref", "cop_sys", "E_cmp", "E_fan", "E_tot", "fan_share"], f"{tag}5_cop_definition.csv")

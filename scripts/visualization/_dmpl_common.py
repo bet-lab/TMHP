@@ -242,3 +242,16 @@ COLORS = {
     "pv": "oc.yellow6",  # PV irradiance / generation
     "load": "oc.grape6",  # load / demand
 }
+
+#: Text that names a line or a series, where the text is drawn in the line's
+#: colour: the same colour family, dark enough to read on white (WCAG AA for
+#: normal text, 4.5:1). The lines keep ``COLORS``; only the lettering is darker.
+#: Contrast on white: red 5.46 (the line's oc.red5: 2.78), orange 5.18 (oc.orange6:
+#: 2.57 -- open color's own darkest orange reaches 3.0), blue 5.02 (oc.blue5:
+#: 2.99), grey 8.18 (oc.gray5: 2.07).
+TEXT_COLORS = {
+    "hot": "#c92a2a",  # oc.red9
+    "warm": "#c2410c",
+    "cool": "oc.blue8",
+    "muted": "oc.gray7",
+}

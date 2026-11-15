@@ -5,26 +5,36 @@ regenerated when someone runs the harness, so a change to the model can leave
 it describing code that no longer exists -- which is how the published COP
 MAPE came to be a number no version of the library reproduced (#96).
 
-Two checks keep it honest without rerunning all 757 points in CI:
+Three checks keep it honest:
 
 1. ``manifest.json`` names the coefficient set the library ships.
-2. A fixed sample of two catalogues -- one air-to-water unit in full, and a
-   fixed subset of one air-to-air unit -- is rerun through the harness's own
-   :func:`validation.parity.run.run_catalog` and compared with the committed
-   CSV column by column (numbers to ``rel=1e-6`` for platform differences,
-   everything else exactly).
+2. **Every** catalogue is rerun through the harness's own
+   :func:`validation.parity.run.run_catalog` -- all 757 points, about 21 s
+   serial -- and compared with the committed CSV column by column (numbers to
+   ``rel=1e-6`` for platform differences, everything else exactly). A sample
+   would leave most points unguarded: the earlier 26-point sample (3.4 %) did
+   not see 15 of 17 catalogues.
+3. ``manifest.json`` stamps the ``src/tmhp`` tree the results came from. A stamp
+   that differs from the tree under test is not an error by itself -- most
+   changes to ``src/tmhp`` leave every published number alone, and they must
+   not fail unrelated PRs -- but it is only acceptable while the full rerun of
+   (2) still reproduces the results. The stamp is then history ("this tree
+   produced these numbers"), not a claim about HEAD. Regenerate with
+   ``scripts/regen-validation.sh --parity-only`` to move it forward.
 
-Any change to model behaviour moves at least one of those points. When this
-fails, regenerate with ``scripts/regen-validation.sh`` and update the prose the
+Any change to model behaviour moves at least one point. When this fails,
+regenerate with ``scripts/regen-validation.sh`` and update the prose the
 docs-alignment tests point to.
 """
 
 from __future__ import annotations
 
-import dataclasses
+import functools
 import io
 import json
 import math
+import re
+import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -36,18 +46,12 @@ MANIFEST = RESULTS / "manifest.json"
 
 REGEN_HINT = "모델 동작이 바뀌었다. `scripts/regen-validation.sh` 로 결과를 재생성해라"
 
-#: Catalogue slug -> point ids to rerun (``None``: every point). Chosen for run
-#: time: the air-to-water unit is small enough to run whole; the air-to-air
-#: subset keeps both modes, mild and cold heating and the top of the cooling
-#: grid. Each point is solved independently by the harness, so a subset gives
-#: the same rows as the full run.
-SAMPLE: dict[str, tuple[int, ...] | None] = {
-    "panasonic_wh_uq09he8": None,
-    # cooling 20/20, 35/22, 35/27 (rating), 40/32; heating -15/15, -10/20, -5/22, 6/22, 10/24, -15/27, 10/27
-    "daikin_rxm20a": (1, 11, 23, 36, 37, 44, 51, 53, 60, 67, 72),
-}
-
-pytestmark = pytest.mark.skipif(not MANIFEST.exists(), reason="parity harness has not been run in this checkout")
+# One xdist group: the per-catalogue reruns and the stamp test share one worker
+# and one cache of fresh results, so nothing is solved twice.
+pytestmark = [
+    pytest.mark.skipif(not MANIFEST.exists(), reason="parity harness has not been run in this checkout"),
+    pytest.mark.xdist_group("parity-rerun"),
+]
 
 
 def test_manifest_names_the_shipped_coefficients() -> None:
@@ -100,33 +104,99 @@ def _same(a, b) -> bool:
     return a == b
 
 
-@pytest.mark.parametrize("slug", sorted(SAMPLE))
-def test_committed_results_reproduce(slug: str) -> None:
-    from validation.parity.run import run_catalog
+def _slugs() -> list[str]:
     from validation.parity.spec import load_all
 
-    (catalog,) = load_all(slug)
-    wanted = SAMPLE[slug]
-    if wanted is not None:
-        points = tuple(p for p in catalog.points if p.id in wanted)
-        assert {p.id for p in points} == set(wanted), f"{slug}: sample point ids no longer in the catalogue"
-        catalog = dataclasses.replace(catalog, points=points)
+    return sorted(catalog.slug for catalog in load_all())
 
-    # Through a CSV round trip, so both sides carry the same dtypes.
-    fresh = pd.read_csv(io.StringIO(run_catalog(catalog).to_csv(index=False)), float_precision="round_trip")
-    committed = pd.read_csv(RESULTS / f"{slug}.csv", float_precision="round_trip")
-    committed = committed[committed.point_id.isin(fresh.point_id)].reset_index(drop=True)
 
-    assert list(fresh.columns) == list(committed.columns), f"{slug}: result columns changed. {REGEN_HINT}."
-    assert len(fresh) == len(committed), f"{slug}: committed CSV lacks sample points. {REGEN_HINT}."
-
-    mismatches = []
+def _mismatches(fresh: pd.DataFrame, committed: pd.DataFrame, slug: str) -> list[str]:
+    """Differences between a rerun and the committed unit CSV, one line each."""
+    if list(fresh.columns) != list(committed.columns):
+        return [f"{slug}: result columns changed ({list(committed.columns)} -> {list(fresh.columns)})"]
+    if list(fresh.point_id) != list(committed.point_id):
+        return [f"{slug}: point ids differ (committed {len(committed)} rows, rerun {len(fresh)})"]
+    found = []
     for i in range(len(fresh)):
         for column in fresh.columns:
             new, old = fresh.at[i, column], committed.at[i, column]
             if not _same(new, old):
-                mismatches.append(f"point {fresh.at[i, 'point_id']} {column}: committed {old!r}, now {new!r}")
-    assert not mismatches, (
-        f"{slug}: {len(mismatches)} value(s) differ from validation/results/{slug}.csv. {REGEN_HINT}.\n  "
-        + "\n  ".join(mismatches[:15])
+                found.append(f"point {fresh.at[i, 'point_id']} {column}: committed {old!r}, now {new!r}")
+    return found
+
+
+@functools.cache
+def _rerun(slug: str) -> pd.DataFrame:
+    from validation.parity.run import run_catalog
+    from validation.parity.spec import load_all
+
+    (catalog,) = load_all(slug)
+    # Through a CSV round trip, so both sides carry the same dtypes.
+    return pd.read_csv(io.StringIO(run_catalog(catalog).to_csv(index=False)), float_precision="round_trip")
+
+
+def _committed(slug: str) -> pd.DataFrame:
+    return pd.read_csv(RESULTS / f"{slug}.csv", float_precision="round_trip")
+
+
+@pytest.mark.parametrize("slug", _slugs())
+def test_committed_results_reproduce(slug: str) -> None:
+    """Every point of every catalogue, not a sample."""
+    found = _mismatches(_rerun(slug), _committed(slug), slug)
+    assert not found, (
+        f"{slug}: {len(found)} value(s) differ from validation/results/{slug}.csv. {REGEN_HINT}.\n  "
+        + "\n  ".join(found[:15])
+    )
+
+
+def test_a_changed_cell_or_point_is_detected() -> None:
+    """The comparison above must fail on a single altered value, a lost point, and a changed column."""
+    slug = "panasonic_wh_uq09he8"
+    committed = _committed(slug)
+    assert _mismatches(committed.copy(), committed, slug) == []
+
+    numeric = committed.select_dtypes("number").columns.drop("point_id")
+    column = next(c for c in numeric if committed[c].notna().all() and (committed[c] != 0).all())
+
+    altered = committed.copy()
+    altered.at[3, column] = altered.at[3, column] * 1.001
+    (found,) = _mismatches(altered, committed, slug)
+    assert f"point {committed.at[3, 'point_id']} {column}" in found
+
+    assert _mismatches(committed.iloc[:-1].reset_index(drop=True), committed, slug)
+    assert _mismatches(committed.drop(columns=column), committed, slug)
+
+
+def _git_tree(path: str) -> str | None:
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", f"HEAD:{path}"], cwd=REPO_ROOT, capture_output=True, text=True, check=True, timeout=30
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None  # no git, or not a checkout: nothing to compare with
+    return out.stdout.strip()
+
+
+def test_manifest_stamp_is_current_or_the_results_still_reproduce() -> None:
+    """``src_tmhp_tree`` is history unless it equals the tree under test.
+
+    Equal: the results came from exactly this code. Different: legitimate for
+    a change that moves no number, and then the full rerun must reproduce
+    every committed point -- otherwise the stamp would vouch for code that no
+    longer produces them (the state #96 found).
+    """
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    stamp = manifest["src_tmhp_tree"]
+    assert re.fullmatch(r"[0-9a-f]{40}", stamp), f"src_tmhp_tree {stamp!r} is not a git tree hash"
+
+    tree = _git_tree("src/tmhp")
+    if tree is None:
+        pytest.skip("not a git checkout; the per-catalogue reruns still guard the results")
+    if stamp == tree:
+        return
+    stale = {slug: found for slug in _slugs() if (found := _mismatches(_rerun(slug), _committed(slug), slug))}
+    assert not stale, (
+        f"manifest.json stamps src/tmhp tree {stamp[:8]} but the tree under test is {tree[:8]}, and the "
+        f"results no longer reproduce ({sum(map(len, stale.values()))} value(s) in {len(stale)} catalogue(s): "
+        f"{', '.join(sorted(stale))}). {REGEN_HINT}."
     )

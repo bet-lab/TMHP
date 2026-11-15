@@ -146,20 +146,24 @@ def test_delivered_callout_quotes_the_trajectory(page: str, trajectory: pd.DataF
 
 
 def test_trajectory_claims_hold(trajectory: pd.DataFrame, band: pd.DataFrame) -> None:
-    """'rises monotonically A -> D and sits inside the certified band at all four points',
-    and where in the band each point sits (the sentence under the table)."""
+    """'rises monotonically A -> D and sits inside the certified band at B, C and D; at A it is 1.5 %
+    above the 90th percentile', and where in the band each point sits (the sentence under the table).
+
+    Until the catalogue default inputs (issue #86) all four points were inside the band. Point A is
+    stated as outside it, not hidden: if it comes back inside, or goes further out, this fails.
+    """
     cop = trajectory.cop
     assert list(cop.index) == ["A", "B", "C", "D"]
     assert cop.is_monotonic_increasing, cop.to_dict()
-    for point in cop.index:
+    for point in ("B", "C", "D"):
         assert band.at[point, "cop_p10"] <= cop[point] <= band.at[point, "cop_p90"], point
-    assert band.at["A", "cop_p75"] < cop["A"] < band.at["A", "cop_p90"]
-    assert band.at["B", "cop_p25"] < cop["B"] < band.at["B", "cop_p75"]
+    assert cop["A"] / band.at["A", "cop_p90"] - 1.0 == pytest.approx(0.015, abs=0.005)
+    assert cop["B"] == pytest.approx(band.at["B", "cop_p75"], abs=0.02)
     for point in ("C", "D"):
-        assert band.at[point, "cop_p25"] < cop[point] < band.at[point, "cop_median"], point
-    # B, C and D deliver more than the point asks for; A modulates to it.
-    assert not trajectory.at["A", "clamped"]
-    assert trajectory.loc[["B", "C", "D"], "clamped"].all()
+        assert band.at[point, "cop_median"] < cop[point] < band.at[point, "cop_p75"], point
+    # C and D deliver more than the point asks for; A and B modulate to it.
+    assert not trajectory.loc[["A", "B"], "clamped"].any()
+    assert trajectory.loc[["C", "D"], "clamped"].all()
 
 
 # ---------------------------------------------------------------------------
@@ -203,12 +207,19 @@ def test_committed_csvs_are_what_the_model_gives(figure) -> None:
     assert not mismatches, f"validation/data/part_load_figure: {HINT}.\n  " + "\n  ".join(mismatches[:15])
 
 
-def test_the_cold_rise_is_the_defrost_adjustment(figure, monkeypatch: pytest.MonkeyPatch) -> None:
-    """'Without it (defrost=False) the same curve is close to flat.'"""
+def test_the_cold_rise_is_the_defrost_adjustment(figure, sweep: pd.DataFrame, monkeypatch: pytest.MonkeyPatch) -> None:
+    """'that easing is most of the rise. Without it the same curve gains 9 % between full load and
+    75 % load ... and stays within 4 % from there to the floor.'"""
+    frosted = _curve(sweep, -7.0, 45.0)
     monkeypatch.setattr(figure, "MODEL_SETTINGS", {**figure.MODEL_SETTINGS, "defrost": False})
-    rows = pd.DataFrame(figure.sweep_fixed_temperatures(conditions=((-7.0, 45.0),), fractions=(1.0, 0.75, 0.296)))
+    floor = frosted["edge_pct"] / 100.0
+    rows = pd.DataFrame(figure.sweep_fixed_temperatures(conditions=((-7.0, 45.0),), fractions=(1.0, 0.75, floor)))
     assert (rows.failure_reason == "none").all()
     assert rows.at_floor.iloc[-1]
     cop = rows.cop.to_numpy()
-    assert abs(cop[-1] / cop[0] - 1.0) < 0.03, f"frost-free -7/45 °C curve is not close to flat: {cop}"
-    assert abs(cop[1] / cop[0] - 1.0) < 0.03, f"frost-free -7/45 °C curve is not close to flat: {cop}"
+    assert cop[1] / cop[0] - 1.0 == pytest.approx(0.09, abs=0.01), f"frost-free -7/45 °C, full load to 75 %: {cop}"
+    assert abs(cop[-1] / cop[1] - 1.0) < 0.04, f"frost-free -7/45 °C curve below 75 % is not close to flat: {cop}"
+    # Full load is at the top of the speed range, past where the efficiency fits reach.
+    assert rows.rps.iloc[0] == pytest.approx(74.0, abs=1.0)
+    # Most of the frosted curve's rise is the adjustment easing, not the frost-free curve.
+    assert cop[-1] / cop[0] - 1.0 < 0.25 * frosted["gain_pct"] / 100.0

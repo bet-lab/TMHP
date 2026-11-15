@@ -107,9 +107,11 @@ The refrigerant cycle
         fits to scroll-compressor calculation data over pressure ratio
         1.50–7.15 and 33.8–72.5 rev/s. Outside that box the fit is held or
         continued, not measured
-      - ``efficiency_extrapolated == True``. A default machine with a
-        refrigerant of low volumetric capacity (R134a, R1234yf) is rated
-        above the box; give it a larger ``V_cmp_ref``
+      - ``efficiency_extrapolated == True``. The default air-source models
+        and ``GroundSourceHeatPump`` are rated inside the box with any
+        refrigerant (their default displacement follows the fluid). The
+        default ground-source boiler is rated above it (78.8 rev/s with
+        R290); give it a larger ``V_cmp_ref``
         (:doc:`refrigerant-and-coolprop`, :doc:`/validation/defaults`)
     * - Adiabatic compressor
       - No shell heat loss: every loss ends up in the discharge gas

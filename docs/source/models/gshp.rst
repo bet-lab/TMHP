@@ -91,10 +91,12 @@ of being solved silently:
   source-side heat (attribute ``q_bhe_rated``).
 
 At the rated duty the default indoor coil (``UA_iu_rated = 0.08 ×
-hp_capacity``) at this airflow needs an indoor approach of 21.6 K: supply air
-at 35 °C and condensing at 41.6 °C in heating from a 20 °C room, supply air
-at 12 °C and evaporating at 5.4 °C in cooling from 27 °C (the coil is dry).
-``indoor_approach_max_K`` therefore defaults to 25 K.
+hp_capacity``) at this airflow needs an indoor approach of 18 K for the
+default 4 kW unit: supply air at 30 °C and condensing at 38 °C in heating
+from a 20 °C room, supply air at 17 °C and evaporating at 8.6 °C in cooling
+from 27 °C (the coil is dry). A larger unit moves less air per kW and needs
+more (20 K at 8 kW: supply air at 33 °C and 14 °C).
+``indoor_approach_max_K`` defaults to 25 K.
 
 The indoor coil takes the density of the room air it draws in, as the coils of
 :doc:`ashp` do (:ref:`ashp-air-density`): ``dV_iu_a [m3/s]`` and the fan
@@ -102,7 +104,8 @@ references and limits are volumes at the coil inlet, and the coil NTU, the fan
 heat, the reported air energy flows and the air exergy all use the mass flow
 ``air_density(T_a_room) * dV_iu_a``. Room air at 20 to 27 °C is 1.7 to 4.0 %
 lighter than the 15 °C standard air (1.225 kg/m³) earlier releases used. For
-the default 4 kW unit: at a 0 °C borehole wall and a 20 °C room the system COP
+the default 4 kW unit as it was then (400 cfm per ton indoors): at a 0 °C
+borehole wall and a 20 °C room the system COP
 is 0.4 % lower at nameplate (3.508 → 3.495) and 0.2 % lower at half load;
 at the ISO 13256-1 cooling point (liquid 25 °C, room 27 °C) the compressor
 runs 1.4 % faster at nameplate.

@@ -86,7 +86,7 @@ delivers exactly ``hp_capacity`` there, whatever the refrigerant.
        print(f"{name:6s} {row['failure_reason']:5s} COP {row['cop_sys [-]']:.2f}")
 
 Each call returns a running point (``failure_reason == "none"``) with a system
-COP of 4.74, 4.86, 3.44, 3.66 and 3.72 respectively. The keys of the result
+COP of 4.91, 5.44, 3.48, 3.66 and 3.72 respectively. The keys of the result
 are listed in :doc:`/concepts/result-keys`. A time series needs the same
 quantities as schedules; see :doc:`first-dynamic-simulation`.
 
@@ -141,7 +141,9 @@ always be read back.
     * - Rated outdoor airflow
       - ASHP: the largest airflow single-split outdoor units of that capacity
         publish, ``0.1084 × kW + 0.1776`` m³/s (573 m³/h per kW at 3.5 kW,
-        470 at 8 kW). ASHPB: 540 m³/h per kW. It is also the fan's maximum;
+        470 at 8 kW). ASHPB: the largest airflow air-to-water outdoor units
+        publish, ``0.0864 × kW + 0.2208`` m³/s (heating-rated; 538 m³/h per
+        kW at 3.5 kW, 410 at 8 kW, 364 at 15 kW). It is also the fan's maximum;
         the fan modulates down to 15 % of it
       - ASHP, ASHPB
       - :doc:`/validation/defaults`, *Maximum fan airflow*

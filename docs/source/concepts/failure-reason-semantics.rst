@@ -717,38 +717,38 @@ magnitude):
       - Construction
       - ``operating_range()``
       - Ratio
-    * - ASHPB (R134a)
+    * - ASHPB (R290)
       - 8
-      - 5.5 ms
-      - 0.30 s
-      - 54 ×
+      - 5.6 ms
+      - 0.036 s
+      - 6 ×
     * - ASHPB, ``ref="R32"``
       - 8
-      - 3.9 ms
-      - 0.53 s
-      - 135 ×
+      - 5.9 ms
+      - 0.41 s
+      - 69 ×
     * - ASHP
       - 5
-      - 2.4 ms
-      - 0.08 s
-      - 33 ×
+      - 3.9 ms
+      - 0.12 s
+      - 30 ×
     * - GSHPB
       - 3
-      - 203 ms
-      - 0.013 s
-      - 0.06 ×
+      - 207 ms
+      - 0.007 s
+      - 0.03 ×
     * - WSHPB
       - 2
-      - 7.2 ms
-      - 0.009 s
-      - 1.2 ×
+      - 6.5 ms
+      - 0.006 s
+      - 0.9 ×
     * - GSHP
       - 2
-      - 193 ms
-      - 0.013 s
+      - 219 ms
+      - 0.015 s
       - 0.07 ×
 
-The air-source models would be built 30 to 140 times more slowly, and a sweep
+The air-source models would be built 6 to 70 times more slowly, and a sweep
 that builds a model per point would pay that every time, for a check most
 callers make once.
 

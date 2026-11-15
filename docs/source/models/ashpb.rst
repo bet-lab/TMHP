@@ -128,10 +128,11 @@ the compressor envelope (:doc:`../developer/reference-operating-limits`)
 refuses the point before ``rps_min`` is reached: first for the discharge
 temperature, which the falling efficiency drives above ``T_dis_max`` even with
 the discharge-temperature control used up, then for the fit's own floor
-(``ETA_ISEN_MIN`` = 0.30). The default 15 kW R134a unit at −7 °C outdoors
-against a 55 °C tank runs down to about 4.7 kW (frost-free, 39 rev/s) and no
-further; R290 at −7 °C against 65 °C to 3.8 kW, R410A at −15 °C against 55 °C
-to 12.7 kW. A request below that duty was answered with the unit switched off
+(``ETA_ISEN_MIN`` = 0.30). The default 15 kW unit (R290) at −7 °C outdoors
+against a 65 °C tank runs down to about 6.4 kW (frost-free, 25 rev/s) and no
+further; with R134a at −7 °C against 55 °C to 6.5 kW (34 rev/s), with R410A at
+−15 °C against 55 °C to 8.6 kW (52 rev/s). (Against a 55 °C tank at −7 °C the
+R290 unit reaches its minimum speed first, at 3.2 kW.) A request below that duty was answered with the unit switched off
 (``failure_reason == "discharge_temp_above_max"`` or ``"eta_isen_below_min"``)
 while a larger one ran. It is met the same way as one below the minimum speed,
 and as :doc:`ashp` does: the unit cycles at the smallest duty the envelope
@@ -146,17 +147,18 @@ that continuous point, which delivers more than the request.
 The smallest duty is used, not a more efficient larger one: the request just
 above it is met in continuous operation there, so the result has no step at
 the boundary, and a unit that cycles runs as long as its protections let it.
-Where that duty is a large share of the nameplate (84 % for R410A above) the
+Where that duty is a large share of the nameplate (57 % for R410A above) the
 unit is off for most of the time at small loads; ``runtime_fraction [-]``
 says how much.
 
 The two reasons remain where no duty runs at all: the limits that refuse the
 duty from above (the pressure ratio, the outdoor coil, the condensing
 temperature, the discharge temperature itself at a larger lift) meet the ones
-from below. The default R32 unit against a 55 °C tank is such a case below
-−6 °C outdoors: its discharge is above 150 °C at every speed (at −7 °C the
-coolest candidate is 163 °C at 16 rev/s and 165 °C at 58 rev/s), so there is
-no duty to cycle at. A dynamic step is not affected: its thermostat runs the
+from below. The default 15 kW unit with R32 against a 55 °C tank is such a case
+from −8 °C outdoors down: its discharge is above 150 °C at every duty, so
+there is no duty to cycle at (at −7.5 °C it still runs, at up to 57 % of its
+nameplate; against a 52.5 °C tank -- leaving water at 55 °C -- down to
+−9.5 °C). A dynamic step is not affected: its thermostat runs the
 compressor at the nameplate duty.
 
 ``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
@@ -253,19 +255,19 @@ The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP
       - −7 °C
       - −15 °C
     * - Frost-free
-      - 4.22
-      - 3.94
-      - 3.74
-      - 3.52
-      - 2.67
-      - 2.08
+      - 3.87
+      - 3.68
+      - 3.56
+      - 3.44
+      - 2.97
+      - 2.28
     * - With frost and defrost
-      - 4.22
-      - 3.85
-      - 3.22
-      - 3.01
-      - 2.27
-      - 1.84
+      - 3.87
+      - 3.61
+      - 3.16
+      - 3.05
+      - 2.65
+      - 2.02
     * - Load ratio ``r``
       - —
       - 0.58
@@ -281,17 +283,17 @@ The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP
       - 0.036
       - 0.018
     * - ``load_weighted=False``
-      - 4.22
-      - 3.67
-      - 2.91
-      - 2.76
-      - 2.18
-      - 1.84
+      - 3.87
+      - 3.47
+      - 2.94
+      - 2.87
+      - 2.57
+      - 2.02
 
-At 4 kW the same unit hardly frosts (``r`` 0.3: 3.57 at 2 °C against 3.61
+At 4 kW the same unit hardly frosts (``r`` 0.3: 3.42 at 2 °C against 3.46
 frost-free). Frost also lowers what the unit can deliver: at A2 against a
-35 °C tank the default unit reaches its speed ceiling at a frost-free 18.6 kW,
-a mean of 14.6 kW for a 15 kW request. In a dynamic run the thermostat asks
+35 °C tank the default unit reaches its speed ceiling at a frost-free 24.2 kW,
+a mean of 19.0 kW -- what a 20 kW request receives. In a dynamic run the thermostat asks
 for ``hp_capacity``, so every running step is at ``r = 1``.
 
 .. note::

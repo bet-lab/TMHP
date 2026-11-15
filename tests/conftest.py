@@ -49,6 +49,9 @@ from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
 from tmhp.compressor_speed import default_displacement
 
 MARKER = "earlier_defaults"
+#: A test of a marked module that compares against committed results, which are made with the
+#: present defaults (it must build no module-scoped model fixture of its own).
+OPT_OUT = "current_defaults"
 
 #: Largest airflow per watt of nameplate capacity the constructors assumed before issue #86 [m3/s per W].
 EARLIER_AIRFLOW_PER_W = {
@@ -84,6 +87,7 @@ def pytest_configure(config: pytest.Config) -> None:
         f"{MARKER}: build models with the default inputs of before issue #86 and the R290 air-source boiler "
         "(tests/conftest.py)",
     )
+    config.addinivalue_line("markers", f"{OPT_OUT}: inside an {MARKER} module, build models with the present defaults")
 
 
 @contextlib.contextmanager
@@ -116,7 +120,7 @@ def pytest_runtest_protocol(item: pytest.Item):
     marked module are built during the set-up of its first test, before any
     function-scoped fixture, and must be built inside as well.
     """
-    if item.get_closest_marker(MARKER) is None:
+    if item.get_closest_marker(MARKER) is None or item.get_closest_marker(OPT_OUT) is not None:
         return (yield)
     with earlier_default_inputs():
         return (yield)

@@ -1,7 +1,7 @@
 {
  "version": "semi-empirical-2026-11-15",
  "status": "fitted and cross-validated; wired into src/tmhp/compressor_efficiency.py (generated block)",
- "revision": "2026-11-16: eta_v form bounded by construction (exp clearance x competing-outflow leakage), rotary eta_v level from the displacement-regression rating points; eta_is/eta_em split as a fixed loss share reaching the gas; default rotary speed shape = the Ossorio-anchored variant b (variant a kept in rotary_speed_variants*)",
+ "revision": "2026-11-16: eta_v form bounded by construction (exp clearance x competing-outflow leakage), rotary eta_v level from the displacement-regression rating points; eta_is/eta_em split as a fixed loss share reaching the gas; default rotary speed shape = the Ossorio-anchored variant b (variant a kept in rotary_speed_variants*); second pass: per-refrigerant rotary levels, eta_v uncertainty above the data; then the default rotary speed shape = the Shao-informed variant a, chosen by the EN 14825 trajectory-shape rule written before the measurement (DESIGN 14: D/A of 30 cases inside the certified p10-p90, a 30 / b 24; b kept in rotary_speed_variants*)",
  "regenerate": "uv run python -m validation.compressor_maps.semi_empirical",
  "inputs": [
   {
@@ -418,25 +418,23 @@
     "losses": "(q0/n + q1 + q2*n)*1e5/MEP_s + cL*(PR-1)/n + qf*n^2*1e4*rho_1/MEP_s + cu*(MEP_s/1e6)/n + cH*(PR^((k-1)/k)-1); terms not listed in parameters are zero",
     "terms": [
      "q2",
-     "cu",
-     "cH",
-     "qf"
+     "cL",
+     "cu"
     ],
     "parameters": {
-     "cu": 0.242992,
-     "cH": 2.408944,
-     "qf": 0.123333
+     "cL": 0.03401,
+     "cu": 0.118791
     },
     "speed_coordinate": "n = N/N_rated",
     "N_rated_default_rps": 60.0,
-    "level_a": 0.52336,
+    "level_a": 1.27097,
     "level": {
      "class": "inverter twin rotaries at 60 rev/s rating points: LG + Mitsubishi SCI (R32, R410A) and Highly 2024 (R290); power read as excluding the inverter (assumed, not printed)",
      "machines": 48,
-     "a_median": 0.52336,
+     "a_median": 1.27097,
      "a_iqr": [
-      0.452322,
-      0.585237
+      1.160931,
+      1.38001
      ],
      "by_refrigerant": {
       "R290": {
@@ -444,10 +442,10 @@
        "sources": [
         "highly_catalogue_2024"
        ],
-       "a_median": 0.790146,
+       "a_median": 1.145152,
        "a_iqr": [
-        0.781726,
-        0.87696
+        1.132948,
+        1.27097
        ],
        "eta_oi_median": 0.743615,
        "eta_oi_iqr": [
@@ -461,10 +459,10 @@
        "sources": [
         "rating_lg_sci_twin"
        ],
-       "a_median": 0.447823,
+       "a_median": 1.316402,
        "a_iqr": [
-        0.434013,
-        0.488581
+        1.275806,
+        1.436211
        ],
        "eta_oi_median": 0.704801,
        "eta_oi_iqr": [
@@ -478,10 +476,10 @@
        "sources": [
         "rating_lg_sci_twin"
        ],
-       "a_median": 0.567186,
+       "a_median": 1.172723,
        "a_iqr": [
-        0.526974,
-        0.589984
+        1.127009,
+        1.219861
        ],
        "eta_oi_median": 0.732608,
        "eta_oi_iqr": [
@@ -493,7 +491,7 @@
      },
      "rule": "level per refrigerant (median over its rating points) where the type has >= 3 rating points of that refrigerant; any other refrigerant takes the pooled level (median over all rating points of the type), an extrapolation in suction pressure / MEP_s. No loss term supported by the shape cross-validation carries the refrigerant dependence with one pooled level (selection.rotary_level_by_refrigerant)."
     },
-    "eta_oi_at_rating_reference": 0.748063,
+    "eta_oi_at_rating_reference": 0.716555,
     "rating_reference": {
      "refrigerant": "R410A",
      "T_evap_C": 7.2,
@@ -738,32 +736,32 @@
     "N15": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.561919
+     "eta_at_PR12": 0.298852
     },
     "N20": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.587078
+     "eta_at_PR12": 0.358694
     },
     "N40": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.621979
+     "eta_at_PR12": 0.502277
     },
     "N60": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.626026
+     "eta_at_PR12": 0.565488
     },
     "N90": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.617289
+     "eta_at_PR12": 0.597407
     },
     "N120": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.602168
+     "eta_at_PR12": 0.596961
     }
    }
   },
@@ -777,29 +775,27 @@
     "losses": "(q0/n + q1 + q2*n)*1e5/MEP_s + cL*(PR-1)/n + qf*n^2*1e4*rho_1/MEP_s + cu*(MEP_s/1e6)/n + cH*(PR^((k-1)/k)-1); terms not listed in parameters are zero",
     "terms": [
      "q2",
-     "cu",
-     "cH",
-     "qf"
+     "cL",
+     "cu"
     ],
     "parameters": {
-     "cu": 0.242992,
-     "cH": 2.408944,
-     "qf": 0.123333
+     "cL": 0.03401,
+     "cu": 0.118791
     },
     "speed_coordinate": "n = N/N_rated",
     "N_rated_default_rps": 50.0,
-    "level_a": 0.790302,
+    "level_a": 1.729347,
     "level": {
      "class": "LG + Panasonic fixed-speed single rotaries at 50 Hz and AREP #26 (R-410A, R-32 units)",
      "machines": 57,
-     "a_median": 0.790302,
+     "a_median": 1.729347,
      "a_iqr": [
-      0.744259,
-      0.83421
+      1.619929,
+      1.85511
      ],
      "arep26_unit_levels": {
-      "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R32 [arep_rpt26_hitachi2013]": 0.631691,
-      "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R410A [arep_rpt26_hitachi2013]": 0.855857
+      "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R32 [arep_rpt26_hitachi2013]": 1.849758,
+      "arep_rpt26_hitachi2013 Shanghai Hitachi hermetic rotary 28.0 cc (R-410A design, ASH280*) R410A [arep_rpt26_hitachi2013]": 1.785611
      },
      "by_refrigerant": {
       "R22": {
@@ -807,10 +803,10 @@
        "sources": [
         "rating_fixed_single"
        ],
-       "a_median": 0.802211,
+       "a_median": 1.790992,
        "a_iqr": [
-        0.776012,
-        0.832957
+        1.732499,
+        1.859633
        ],
        "eta_oi_median": 0.64896,
        "eta_oi_iqr": [
@@ -824,10 +820,10 @@
        "sources": [
         "rating_fixed_single"
        ],
-       "a_median": 0.783514,
+       "a_median": 1.692558,
        "a_iqr": [
-        0.731128,
-        0.840695
+        1.579395,
+        1.816082
        ],
        "eta_oi_median": 0.654651,
        "eta_oi_iqr": [
@@ -839,7 +835,7 @@
      },
      "rule": "level per refrigerant (median over its rating points) where the type has >= 3 rating points of that refrigerant; any other refrigerant takes the pooled level (median over all rating points of the type), an extrapolation in suction pressure / MEP_s. No loss term supported by the shape cross-validation carries the refrigerant dependence with one pooled level (selection.rotary_level_by_refrigerant)."
     },
-    "eta_oi_at_rating_reference": 0.670176,
+    "eta_oi_at_rating_reference": 0.667428,
     "rating_reference": {
      "refrigerant": "R410A",
      "T_evap_C": 7.2,
@@ -1095,32 +1091,32 @@
     "N15": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.476246
+     "eta_at_PR12": 0.271413
     },
     "N20": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.498047
+     "eta_at_PR12": 0.32685
     },
     "N40": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.524973
+     "eta_at_PR12": 0.457015
     },
     "N60": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.523347
+     "eta_at_PR12": 0.508123
     },
     "N90": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.507378
+     "eta_at_PR12": 0.523757
     },
     "N120": {
      "within_0_1": true,
      "decreasing_beyond_data": true,
-     "eta_at_PR12": 0.485999
+     "eta_at_PR12": 0.510442
     }
    }
   }
@@ -1202,11 +1198,11 @@
     "loco_shape_rel": 0.031784,
     "selected": "rel",
     "default_shape": {
-     "variant": "b",
-     "description": "Ossorio-anchored: each Shao speed record carries its own level (Shao informs the PR shape only)",
-     "candidate": "rotary:q2+cu+cH+qf:rel:scaled",
+     "variant": "a",
+     "description": "Shao-informed (the first archive's data arrangement): Shao, Ossorio and AREP #26 inform the shared shape",
+     "candidate": "rotary:q2+cL+cu:rel:scaled",
      "first_archive_selection_on_arrangement_a": "rotary:q2+cL+cu:rel:scaled",
-     "note": "level form and speed coordinate as selected on arrangement a (see the archive README for what the same rules give on arrangement b); kept, because the decision was made on variant b as measured"
+     "note": "level form and speed coordinate as selected on arrangement a (see the archive README for what the same rules give on arrangement b); kept for both variants"
     }
    }
   },
@@ -1306,57 +1302,56 @@
    "own_level_rmse": {
     "R290": 0.026294,
     "R32": 0.021498,
-    "R410A": 0.02164
+    "R410A": 0.021291
    },
    "pooled_only_rmse": {
-    "rmse_R290": 0.092025,
-    "rmse_R32": 0.070911,
-    "rmse_R410A": 0.033708
+    "rmse_R290": 0.026123,
+    "rmse_R32": 0.031226,
+    "rmse_R410A": 0.027916
    },
-   "best_one_term": "pooled level + cL",
+   "best_one_term": "pooled level + cH",
    "best_one_term_rmse": {
-    "rmse_R290": 0.037052,
-    "rmse_R32": 0.030928,
-    "rmse_R410A": 0.027186
+    "rmse_R290": 0.02696,
+    "rmse_R32": 0.031226,
+    "rmse_R410A": 0.022657
    },
-   "verdict": "per-refrigerant levels: no single loss term predicts a held-out refrigerant within the scatter around its own level, and the shapes whose levels agree across refrigerants are rejected by the shape cross-validation"
+   "verdict": "levels per refrigerant by the archive's rule (>= 3 rating points of the refrigerant). Variant a: a pooled level alone predicts the held-out refrigerant with RMSE R290 0.026, R32 0.031, R410A 0.028 against the scatter around each refrigerant's own level R290 0.026, R32 0.021, R410A 0.021; the backward candidate with the most uniform levels (rotary:q0+q1+q2+cL+cu+cH:rel:scaled, spread 1.02) has LOCO shape 0.0319"
   }
  },
  "sensitivity": {
   "shao_as_inverter_input": {
    "parameters": {
-    "cu": 0.246741,
-    "cH": 2.74896,
-    "qf": 0.143064
+    "cL": 0.033178,
+    "cu": 0.095682
    },
-   "twin_level_a_median": 0.466979,
+   "twin_level_a_median": 1.427429,
    "loso": [
     {
      "held_out": "shao_2004",
      "rows": 324,
      "machines": 3,
-     "rmse_shape": 0.024333,
-     "bias_shape": 0.000564,
-     "bias_level": 0.087042,
-     "rmse_total": 0.110014
+     "rmse_shape": 0.040779,
+     "bias_shape": 0.000964,
+     "bias_level": 0.062668,
+     "rmse_total": 0.092739
     },
     {
      "held_out": "ossorio_2019_cnit",
      "rows": 18,
      "machines": 1,
-     "rmse_shape": 0.015898,
-     "bias_shape": 0.000446,
-     "bias_level": -0.014615,
-     "rmse_total": 0.021884
+     "rmse_shape": 0.013161,
+     "bias_shape": 9e-05,
+     "bias_level": -0.081685,
+     "rmse_total": 0.0828
     },
     {
      "held_out": "arep_rpt26_hitachi2013",
      "rows": 48,
      "machines": 1,
-     "rmse_shape": 0.014994,
-     "bias_shape": 0.000205,
-     "bias_level": -0.108779,
-     "rmse_total": 0.11706
+     "rmse_shape": 0.011328,
+     "bias_shape": 1.4e-05,
+     "bias_level": -0.03093,
+     "rmse_total": 0.033271
     }
    ]
   }
@@ -1372,12 +1367,12 @@
     "PR": 2.8,
     "eta_oi_lo": 0.653,
     "eta_oi_hi": 0.669,
-    "model_terminal": 0.741249,
-    "model_x_inverter60": 0.697683,
-    "implied_inverter_eff": 0.891739,
-    "model_terminal_lg_sci_pooled": 0.818726,
-    "model_x_inverter60_lg_sci_pooled": 0.770606,
-    "implied_inverter_eff_lg_sci_pooled": 0.807352,
+    "model_terminal": 0.737843,
+    "model_x_inverter60": 0.694477,
+    "implied_inverter_eff": 0.895855,
+    "model_terminal_lg_sci_pooled": 0.716419,
+    "model_x_inverter60_lg_sci_pooled": 0.674313,
+    "implied_inverter_eff_lg_sci_pooled": 0.922644,
     "measured_inverter_model_at_60rps": 0.941226
    },
    {
@@ -1389,12 +1384,12 @@
     "PR": 4.9,
     "eta_oi_lo": 0.639,
     "eta_oi_hi": 0.639,
-    "model_terminal": 0.712838,
-    "model_x_inverter60": 0.670942,
-    "implied_inverter_eff": 0.896417,
-    "model_terminal_lg_sci_pooled": 0.796487,
-    "model_x_inverter60_lg_sci_pooled": 0.749674,
-    "implied_inverter_eff_lg_sci_pooled": 0.802273,
+    "model_terminal": 0.704882,
+    "model_x_inverter60": 0.663453,
+    "implied_inverter_eff": 0.906535,
+    "model_terminal_lg_sci_pooled": 0.681925,
+    "model_x_inverter60_lg_sci_pooled": 0.641846,
+    "implied_inverter_eff_lg_sci_pooled": 0.937053,
     "measured_inverter_model_at_60rps": 0.941226
    }
   ],
@@ -1409,8 +1404,8 @@
    "twins_lg_sci_pooled": {
     "rows": 7,
     "data_eta_oi_median": 0.743615,
-    "model_median": 0.820555,
-    "ratio_data_model_median": 0.906234
+    "model_median": 0.722485,
+    "ratio_data_model_median": 1.029246
    },
    "single_inverter_r290_level": {
     "rows": 1,
@@ -1421,17 +1416,17 @@
    "single_inverter_lg_sci_pooled": {
     "rows": 1,
     "data_eta_oi_median": 0.7701,
-    "model_median": 0.820555,
-    "ratio_data_model_median": 0.938511
+    "model_median": 0.722485,
+    "ratio_data_model_median": 1.065904
    }
   },
   "single_fixed_r290": {
    "rows": 6,
    "source": "Panasonic fixed-speed single rotaries, R290, 50 Hz (flagged under development; check only)",
-   "level_used": 0.790302,
+   "level_used": 1.729347,
    "data_eta_oi_median": 0.630077,
-   "model_median": 0.743577,
-   "ratio_data_model_median": 0.847359
+   "model_median": 0.657604,
+   "ratio_data_model_median": 0.958141
   },
   "prototype_reproduction": {
    "target": "eta_is (discharge temperature), plain least squares, n = N/50, as p01/p03",

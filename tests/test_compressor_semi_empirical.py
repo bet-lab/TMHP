@@ -153,7 +153,9 @@ def test_split_is_bounded_over_the_envelope(spec):
 def test_split_stays_below_one_where_the_constant_split_did_not():
     """The first archive's constant rotary eta_em (0.858) put eta_oi / eta_em above one at low PR in variant b
     (R1234yf, pooled level, PR 2, 30 rev/s: eta_oi about 0.876)."""
-    comp = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R1234yf", 55.0)
+    comp = SemiEmpiricalCompressor(
+        CompressorSpec("rotary_twin_inverter", rotary_speed_variant="ossorio_anchored"), "R1234yf", 55.0
+    )
     pr, st = state_at_pr("R1234yf", 2.0, 50.0)
     eta_oi = comp.eta_oi(pr, 30.0, st)
     assert eta_oi > 0.858
@@ -252,17 +254,24 @@ def test_eta_v_uncertainty_above_the_data_is_recorded():
         assert lo - 1e-3 <= comp.eta_v(pr, 60.0, st) <= hi + 1e-3
 
 
-def test_default_rotary_speed_shape_is_ossorio_anchored():
+def test_default_rotary_speed_shape_is_shao_informed():
+    """The EN 14825 trajectory-shape rule (archive README) chose variant a; b stays selectable."""
     import json
 
-    assert ROTARY_SPEED_VARIANTS[0] == "ossorio_anchored"
-    assert CompressorSpec().rotary_speed_variant == "ossorio_anchored"
+    assert ROTARY_SPEED_VARIANTS == ("shao_informed", "ossorio_anchored")
+    assert CompressorSpec().rotary_speed_variant == "shao_informed"
     var = json.loads((ARCHIVE / "rotary_speed_variants.json").read_text())
-    assert var["default"] == "b"
-    b = ce.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS["ossorio_anchored"]
+    assert var["default"] == "a"
+    a = ce.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS["shao_informed"]
     for ctype in ("rotary_twin_inverter", "rotary_single_fixed"):
-        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["parameters"] == b["parameters"]
-        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["level"] == b["level"][ctype]
+        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["parameters"] == a["parameters"]
+        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["level"] == a["level"][ctype]
+        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["level_by_refrigerant"] == a["level_by_refrigerant"][ctype]
+    # the alternative is still built when asked for
+    b = SemiEmpiricalCompressor(
+        CompressorSpec("rotary_twin_inverter", rotary_speed_variant="ossorio_anchored"), "R32", 60.0
+    )
+    assert b.parameters == ce.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS["ossorio_anchored"]["parameters"]
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=lambda s: f"{s.compressor_type}-{s.rotary_speed_variant}")

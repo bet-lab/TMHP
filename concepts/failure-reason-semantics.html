@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-15T11:11:41+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:22:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -292,15 +292,20 @@ failure (see <em>A request above a limit</em> below).</p></td>
 <code class="docutils literal notranslate"><span class="pre">T_dis_max=None</span></code> switches the check off) even under the
 discharge-temperature control (suction superheat down to 0 K, then
 wet suction down to <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>, default 0.9), at every duty the
-model tried: the request and, when it is above the limit, smaller
-duties down to the speed floor. A request that a <em>smaller</em> duty meets is
-not a failure: it returns that duty with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span>
-<span class="pre">&quot;max&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;discharge_temperature&quot;</span></code>. A
-dynamic boiler step does the same: it runs at the reduced duty (its
-run time and step-average heat follow from it) and is an off step
-with this reason only when no duty fits. The other limits a smaller
-duty cures are answered the same way (see <em>A request above a limit</em>
-below).</p></td>
+model tried: the request, smaller duties down to the speed floor
+and, for ASHP and the boilers’ <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>, larger ones. A
+request that a <em>smaller</em> duty meets is not a failure: it returns that
+duty with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span>
+<span class="pre">&quot;discharge_temperature&quot;</span></code>. A dynamic boiler step does the same: it
+runs at the reduced duty (its run time and step-average heat follow
+from it) and is an off step with this reason only when no duty fits.
+The other limits a smaller duty cures are answered the same way (see
+<em>A request above a limit</em> below). Nor is a request that is only too
+<em>small</em> a failure (at a large lift the efficiency falls towards low
+speed and the discharge runs hotter there, while a larger duty runs):
+it is met by on/off cycling at the smallest duty the envelope admits
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>; ASHP and the boilers’
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>).</p></td>
 <td><p>No — only off-mode placeholders (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></td>
 </tr>
@@ -331,7 +336,8 @@ efficiencies. ASHP and the boilers (ASHPB, GSHPB, WSHPB:
 <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>) do not report it for a request that is only too
 <em>small</em> (the fit falls below the floor towards low speed while a
 larger duty runs): that request is met by on/off cycling at the
-smallest duty the envelope admits (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>).</p></td>
+smallest duty the envelope admits (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>),
+like one the discharge limit refuses there.</p></td>
 <td><p>No — only off-mode placeholders.</p></td>
 </tr>
 </tbody>
@@ -1136,7 +1142,9 @@ single-stage ratio is acceptable for your compressor.</p>
 <p class="sd-card-text">The solved operating point (boilers) or every candidate the search
 tried (ASHP, GSHP) discharges above <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> even with the suction
 superheat at 0 K and the suction quality at <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>, and no
-smaller duty brings it inside. A point the control <em>does</em> hold runs with
+smaller duty brings it inside – nor a larger one (ASHP and the boilers’
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>: a request refused only at low speed is met by cycling
+at the smallest duty that runs). A point the control <em>does</em> hold runs with
 <code class="docutils literal notranslate"><span class="pre">discharge_control</span> <span class="pre">==</span> <span class="pre">True</span></code>; its <code class="docutils literal notranslate"><span class="pre">dT_ref_superheat</span> <span class="pre">[K]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">x_ref_cmp_in</span> <span class="pre">[-]</span></code> say how. The defaults are compressor protection settings
 (<a class="reference internal" href="../api/support/refrigerant-thermo.html#module-tmhp.compressor_envelope" title="tmhp.compressor_envelope"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_envelope</span></code></a>). With the default efficiency map this

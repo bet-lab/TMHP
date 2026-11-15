@@ -3146,347 +3146,350 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="2959"><span class="sd">              not an operating point, see</span>
 </span><span data-line="2960"><span class="sd">              :func:`tmhp.dynamic_context.unphysical_cycle_detail`),</span>
 </span><span data-line="2961"><span class="sd">              ``&quot;pr_above_max&quot;`` (pressure-ratio ceiling),</span>
-</span><span data-line="2962"><span class="sd">              ``&quot;discharge_temp_above_max&quot;`` (even a reduced duty exceeds</span>
+</span><span data-line="2962"><span class="sd">              ``&quot;discharge_temp_above_max&quot;`` (every duty tried exceeds</span>
 </span><span data-line="2963"><span class="sd">              ``T_dis_max``; a request above the limit that a smaller duty</span>
 </span><span data-line="2964"><span class="sd">              meets returns that duty with ``capacity_clamped=&quot;max&quot;`` and</span>
-</span><span data-line="2965"><span class="sd">              ``capacity_binding=&quot;discharge_temperature&quot;``),</span>
-</span><span data-line="2966"><span class="sd">              ``&quot;condensing_temp_above_max&quot;`` (the same for the condensing</span>
-</span><span data-line="2967"><span class="sd">              limit ``T_cond_max``: the tank is too hot for any duty; a</span>
-</span><span data-line="2968"><span class="sd">              reduced duty reports ``capacity_binding=&quot;condensing_temperature&quot;``),</span>
-</span><span data-line="2969"><span class="sd">              ``&quot;hx_not_converged&quot;`` (the ground heat exchanger cannot</span>
-</span><span data-line="2970"><span class="sd">              carry the duty at any approach), ``&quot;optimizer_failed&quot;`` or</span>
-</span><span data-line="2971"><span class="sd">              ``&quot;source_fluid_freezing&quot;`` (the ground-loop liquid would run</span>
-</span><span data-line="2972"><span class="sd">              below its operating limit, 3 °C for water, at every duty; a</span>
-</span><span data-line="2973"><span class="sd">              request that a smaller duty keeps on the limit returns that</span>
-</span><span data-line="2974"><span class="sd">              duty with ``capacity_clamped=&quot;max&quot;`` and</span>
-</span><span data-line="2975"><span class="sd">              ``capacity_binding=&quot;source_fluid_freezing&quot;``; see</span>
-</span><span data-line="2976"><span class="sd">              :mod:`tmhp.source_fluid`).</span>
-</span><span data-line="2977"><span class="sd">              With the coupled ground-flow controller the reasons of</span>
-</span><span data-line="2978"><span class="sd">              :mod:`tmhp.ground_flow_control` apply.</span>
-</span><span data-line="2979"><span class="sd">            - ``&quot;failure_detail&quot;`` (str, failures only) — which check</span>
-</span><span data-line="2980"><span class="sd">              rejected a ``&quot;cycle_invalid&quot;`` point.</span>
-</span><span data-line="2981"><span class="sd">            - ``&quot;capacity_clamped&quot;``, ``&quot;capacity_binding&quot;``, ``&quot;Q_max [W]&quot;``</span>
-</span><span data-line="2982"><span class="sd">              and ``&quot;Q_request [W]&quot;`` are on every row (``None`` or NaN where</span>
-</span><span data-line="2983"><span class="sd">              they do not apply; ``&quot;Q_request [W]&quot;`` is the ``Q_ref_tank``</span>
-</span><span data-line="2984"><span class="sd">              asked for), and an off or failed row carries every key of a</span>
-</span><span data-line="2985"><span class="sd">              running one (NaN where it has no value): the keys do not depend</span>
-</span><span data-line="2986"><span class="sd">              on the point. ``&quot;T_ref_cond_sat_v [°C]&quot;`` is the dew point of</span>
-</span><span data-line="2987"><span class="sd">              the condensing pressure, above ``&quot;T_ref_cond_sat_l [°C]&quot;`` by</span>
-</span><span data-line="2988"><span class="sd">              the glide for a zeotropic blend.</span>
-</span><span data-line="2989"><span class="sd">            - ``&quot;runtime_fraction [-]&quot;``, ``&quot;capacity_ratio [-]&quot;``,</span>
-</span><span data-line="2990"><span class="sd">              ``&quot;part_load_factor [-]&quot;``, ``&quot;Q_min [W]&quot;`` and</span>
-</span><span data-line="2991"><span class="sd">              ``&quot;E_cycling_loss [W]&quot;`` — on every row. A request below the</span>
-</span><span data-line="2992"><span class="sd">              duty at ``rps_min`` (``capacity_clamped == &quot;min&quot;``) is reported</span>
-</span><span data-line="2993"><span class="sd">              as the mean of on/off cycling: ``Q_ref_tank [W]`` equals the</span>
-</span><span data-line="2994"><span class="sd">              request (``Q_min [W]`` is the continuous duty), heat and</span>
-</span><span data-line="2995"><span class="sd">              refrigerant rates are the running machine&#39;s times</span>
-</span><span data-line="2996"><span class="sd">              ``capacity_ratio [-]`` -- the compressor runs that share of the</span>
-</span><span data-line="2997"><span class="sd">              time, ``runtime_fraction [-]`` -- and the electrical inputs</span>
-</span><span data-line="2998"><span class="sd">              carry the EN 14825 degradation for a unit delivering to water</span>
-</span><span data-line="2999"><span class="sd">              (``Cd_cycling``: the running values times</span>
-</span><span data-line="3000"><span class="sd">              ``capacity_ratio / part_load_factor``), so both COPs are the</span>
-</span><span data-line="3001"><span class="sd">              continuous ones times the part-load factor. Temperatures,</span>
-</span><span data-line="3002"><span class="sd">              pressures and speed are those of the running machine. With</span>
-</span><span data-line="3003"><span class="sd">              ``Cd_cycling=None`` the row is the continuous minimum-speed</span>
-</span><span data-line="3004"><span class="sd">              point and ``Q_ref_tank [W]`` exceeds the request.</span>
-</span><span data-line="3005"><span class="sd">              The loop pump is averaged like the compressor, and</span>
-</span><span data-line="3006"><span class="sd">              ``Q_bhe [W]`` is the mean ground-side heat less that pump power.</span>
-</span><span data-line="3007">
-</span><span data-line="3008"><span class="sd">            Every reason other than ``&quot;none&quot;`` comes with an off-mode state:</span>
-</span><span data-line="3009"><span class="sd">            ``hp_is_on=False``, ``Q_ref_tank [W] = E_cmp [W] = 0`` and NaN</span>
-</span><span data-line="3010"><span class="sd">            COP. No unsolved point is returned with cycle numbers.</span>
-</span><span data-line="3011">
-</span><span data-line="3012"><span class="sd">        Warns</span>
-</span><span data-line="3013"><span class="sd">        -----</span>
-</span><span data-line="3014"><span class="sd">        OperatingLimitWarning</span>
-</span><span data-line="3015"><span class="sd">            Once, when the compressor was asked to run and the result is the</span>
-</span><span data-line="3016"><span class="sd">            off state (``failure_reason`` other than ``&quot;none&quot;``) or a running</span>
-</span><span data-line="3017"><span class="sd">            point that delivers less than the request (``capacity_clamped ==</span>
-</span><span data-line="3018"><span class="sd">            &quot;max&quot;``): the request, what is delivered, the limit in words and</span>
-</span><span data-line="3019"><span class="sd">            what removes it. Issued once per model and limit unless the</span>
-</span><span data-line="3020"><span class="sd">            ``&quot;always&quot;`` filter is set (:mod:`tmhp.operating_limits`).</span>
-</span><span data-line="3021"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="3022">        <span class="n">validate_steady</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
-</span><span data-line="3023">        <span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
-</span><span data-line="3024">        <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-</span><span data-line="3025">
-</span><span data-line="3026">        <span class="c1"># Empty flow state as steady state ignores dynamic withdrawal/refill</span>
-</span><span data-line="3027">        <span class="n">flow_state</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="3028">            <span class="s2">&quot;dV_mix_w_out&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3029">            <span class="s2">&quot;dV_tank_w_out&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3030">            <span class="s2">&quot;dV_tank_w_in&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3031">            <span class="s2">&quot;dV_mix_sup_w_in&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3032">            <span class="s2">&quot;alp&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3033">        <span class="p">}</span>
-</span><span data-line="3034">
-</span><span data-line="3035">        <span class="c1"># Override T_bhe_f_out_K so that _calc_state uses T_source correctly</span>
-</span><span data-line="3036">        <span class="bp">self</span><span class="o">.</span><span class="n">T_bhe_f_out_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_source</span><span class="p">)</span>
+</span><span data-line="2965"><span class="sd">              ``capacity_binding=&quot;discharge_temperature&quot;``, and one refused</span>
+</span><span data-line="2966"><span class="sd">              only at low speed while a larger duty runs is met by on/off</span>
+</span><span data-line="2967"><span class="sd">              cycling at the smallest duty that runs,</span>
+</span><span data-line="2968"><span class="sd">              ``capacity_clamped=&quot;min&quot;``),</span>
+</span><span data-line="2969"><span class="sd">              ``&quot;condensing_temp_above_max&quot;`` (the same for the condensing</span>
+</span><span data-line="2970"><span class="sd">              limit ``T_cond_max``: the tank is too hot for any duty; a</span>
+</span><span data-line="2971"><span class="sd">              reduced duty reports ``capacity_binding=&quot;condensing_temperature&quot;``),</span>
+</span><span data-line="2972"><span class="sd">              ``&quot;hx_not_converged&quot;`` (the ground heat exchanger cannot</span>
+</span><span data-line="2973"><span class="sd">              carry the duty at any approach), ``&quot;optimizer_failed&quot;`` or</span>
+</span><span data-line="2974"><span class="sd">              ``&quot;source_fluid_freezing&quot;`` (the ground-loop liquid would run</span>
+</span><span data-line="2975"><span class="sd">              below its operating limit, 3 °C for water, at every duty; a</span>
+</span><span data-line="2976"><span class="sd">              request that a smaller duty keeps on the limit returns that</span>
+</span><span data-line="2977"><span class="sd">              duty with ``capacity_clamped=&quot;max&quot;`` and</span>
+</span><span data-line="2978"><span class="sd">              ``capacity_binding=&quot;source_fluid_freezing&quot;``; see</span>
+</span><span data-line="2979"><span class="sd">              :mod:`tmhp.source_fluid`).</span>
+</span><span data-line="2980"><span class="sd">              With the coupled ground-flow controller the reasons of</span>
+</span><span data-line="2981"><span class="sd">              :mod:`tmhp.ground_flow_control` apply.</span>
+</span><span data-line="2982"><span class="sd">            - ``&quot;failure_detail&quot;`` (str, failures only) — which check</span>
+</span><span data-line="2983"><span class="sd">              rejected a ``&quot;cycle_invalid&quot;`` point.</span>
+</span><span data-line="2984"><span class="sd">            - ``&quot;capacity_clamped&quot;``, ``&quot;capacity_binding&quot;``, ``&quot;Q_max [W]&quot;``</span>
+</span><span data-line="2985"><span class="sd">              and ``&quot;Q_request [W]&quot;`` are on every row (``None`` or NaN where</span>
+</span><span data-line="2986"><span class="sd">              they do not apply; ``&quot;Q_request [W]&quot;`` is the ``Q_ref_tank``</span>
+</span><span data-line="2987"><span class="sd">              asked for), and an off or failed row carries every key of a</span>
+</span><span data-line="2988"><span class="sd">              running one (NaN where it has no value): the keys do not depend</span>
+</span><span data-line="2989"><span class="sd">              on the point. ``&quot;T_ref_cond_sat_v [°C]&quot;`` is the dew point of</span>
+</span><span data-line="2990"><span class="sd">              the condensing pressure, above ``&quot;T_ref_cond_sat_l [°C]&quot;`` by</span>
+</span><span data-line="2991"><span class="sd">              the glide for a zeotropic blend.</span>
+</span><span data-line="2992"><span class="sd">            - ``&quot;runtime_fraction [-]&quot;``, ``&quot;capacity_ratio [-]&quot;``,</span>
+</span><span data-line="2993"><span class="sd">              ``&quot;part_load_factor [-]&quot;``, ``&quot;Q_min [W]&quot;`` and</span>
+</span><span data-line="2994"><span class="sd">              ``&quot;E_cycling_loss [W]&quot;`` — on every row. A request below the</span>
+</span><span data-line="2995"><span class="sd">              duty at ``rps_min`` (``capacity_clamped == &quot;min&quot;``) is reported</span>
+</span><span data-line="2996"><span class="sd">              as the mean of on/off cycling: ``Q_ref_tank [W]`` equals the</span>
+</span><span data-line="2997"><span class="sd">              request (``Q_min [W]`` is the continuous duty), heat and</span>
+</span><span data-line="2998"><span class="sd">              refrigerant rates are the running machine&#39;s times</span>
+</span><span data-line="2999"><span class="sd">              ``capacity_ratio [-]`` -- the compressor runs that share of the</span>
+</span><span data-line="3000"><span class="sd">              time, ``runtime_fraction [-]`` -- and the electrical inputs</span>
+</span><span data-line="3001"><span class="sd">              carry the EN 14825 degradation for a unit delivering to water</span>
+</span><span data-line="3002"><span class="sd">              (``Cd_cycling``: the running values times</span>
+</span><span data-line="3003"><span class="sd">              ``capacity_ratio / part_load_factor``), so both COPs are the</span>
+</span><span data-line="3004"><span class="sd">              continuous ones times the part-load factor. Temperatures,</span>
+</span><span data-line="3005"><span class="sd">              pressures and speed are those of the running machine. With</span>
+</span><span data-line="3006"><span class="sd">              ``Cd_cycling=None`` the row is the continuous minimum-speed</span>
+</span><span data-line="3007"><span class="sd">              point and ``Q_ref_tank [W]`` exceeds the request.</span>
+</span><span data-line="3008"><span class="sd">              The loop pump is averaged like the compressor, and</span>
+</span><span data-line="3009"><span class="sd">              ``Q_bhe [W]`` is the mean ground-side heat less that pump power.</span>
+</span><span data-line="3010">
+</span><span data-line="3011"><span class="sd">            Every reason other than ``&quot;none&quot;`` comes with an off-mode state:</span>
+</span><span data-line="3012"><span class="sd">            ``hp_is_on=False``, ``Q_ref_tank [W] = E_cmp [W] = 0`` and NaN</span>
+</span><span data-line="3013"><span class="sd">            COP. No unsolved point is returned with cycle numbers.</span>
+</span><span data-line="3014">
+</span><span data-line="3015"><span class="sd">        Warns</span>
+</span><span data-line="3016"><span class="sd">        -----</span>
+</span><span data-line="3017"><span class="sd">        OperatingLimitWarning</span>
+</span><span data-line="3018"><span class="sd">            Once, when the compressor was asked to run and the result is the</span>
+</span><span data-line="3019"><span class="sd">            off state (``failure_reason`` other than ``&quot;none&quot;``) or a running</span>
+</span><span data-line="3020"><span class="sd">            point that delivers less than the request (``capacity_clamped ==</span>
+</span><span data-line="3021"><span class="sd">            &quot;max&quot;``): the request, what is delivered, the limit in words and</span>
+</span><span data-line="3022"><span class="sd">            what removes it. Issued once per model and limit unless the</span>
+</span><span data-line="3023"><span class="sd">            ``&quot;always&quot;`` filter is set (:mod:`tmhp.operating_limits`).</span>
+</span><span data-line="3024"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="3025">        <span class="n">validate_steady</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+</span><span data-line="3026">        <span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+</span><span data-line="3027">        <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+</span><span data-line="3028">
+</span><span data-line="3029">        <span class="c1"># Empty flow state as steady state ignores dynamic withdrawal/refill</span>
+</span><span data-line="3030">        <span class="n">flow_state</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="3031">            <span class="s2">&quot;dV_mix_w_out&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3032">            <span class="s2">&quot;dV_tank_w_out&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3033">            <span class="s2">&quot;dV_tank_w_in&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3034">            <span class="s2">&quot;dV_mix_sup_w_in&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3035">            <span class="s2">&quot;alp&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3036">        <span class="p">}</span>
 </span><span data-line="3037">
-</span><span data-line="3038">        <span class="k">if</span> <span class="n">ground_flow_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ground_flow_lpm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="3039">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Supply ground_flow_lpm or deprecated ground_flow_ratio, not both&quot;</span><span class="p">)</span>
-</span><span data-line="3040">        <span class="k">if</span> <span class="n">ground_flow_lpm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="3041">            <span class="n">ground_flow_ratio</span> <span class="o">=</span> <span class="n">ground_flow_lpm</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ground_flow_ref_lpm</span>
-</span><span data-line="3042">        <span class="k">elif</span> <span class="n">ground_flow_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="3043">            <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-</span><span data-line="3044">
-</span><span data-line="3045">            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-</span><span data-line="3046">                <span class="s2">&quot;ground_flow_ratio is deprecated; use ground_flow_lpm (ratio is always to reference).&quot;</span><span class="p">,</span>
-</span><span data-line="3047">                <span class="ne">DeprecationWarning</span><span class="p">,</span>
-</span><span data-line="3048">                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span data-line="3049">            <span class="p">)</span>
-</span><span data-line="3050">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ground_settings</span><span class="p">[</span><span class="s2">&quot;active&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">ground_flow_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="3051">            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solve_ground_flow</span><span class="p">(</span>
-</span><span data-line="3052">                <span class="n">T_tank_w</span><span class="p">,</span>
-</span><span data-line="3053">                <span class="n">Q_ref_tank</span><span class="p">,</span>
-</span><span data-line="3054">                <span class="n">T0</span><span class="p">,</span>
-</span><span data-line="3055">                <span class="n">flow_state</span><span class="o">=</span><span class="n">flow_state</span><span class="p">,</span>
-</span><span data-line="3056">                <span class="n">ground_flow_ratio</span><span class="o">=</span><span class="n">ground_flow_ratio</span><span class="p">,</span>
-</span><span data-line="3057">                <span class="n">T_bhe_wall</span><span class="o">=</span><span class="n">T_bhe_wall</span><span class="p">,</span>
-</span><span data-line="3058">            <span class="p">)</span>
-</span><span data-line="3059">            <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;Q_tank_loss [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;tank_level [-]&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">})</span>
-</span><span data-line="3060">            <span class="k">return</span> <span class="n">result</span> <span class="k">if</span> <span class="n">return_dict</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span>
-</span><span data-line="3061">
-</span><span data-line="3062">        <span class="k">if</span> <span class="n">Q_ref_tank</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="3063">            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_state</span><span class="p">(</span>
-</span><span data-line="3064">                <span class="n">dT_ref_ground</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-</span><span data-line="3065">                <span class="n">T_tank_w</span><span class="o">=</span><span class="n">T_tank_w</span><span class="p">,</span>
-</span><span data-line="3066">                <span class="n">Q_tank_load</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3067">                <span class="n">T0</span><span class="o">=</span><span class="n">T0</span><span class="p">,</span>
-</span><span data-line="3068">                <span class="n">flow_state</span><span class="o">=</span><span class="n">flow_state</span><span class="p">,</span>
-</span><span data-line="3069">            <span class="p">)</span>
-</span><span data-line="3070">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="3071">            <span class="n">opt_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimize_operation</span><span class="p">(</span>
-</span><span data-line="3072">                <span class="n">T_tank_w</span><span class="o">=</span><span class="n">T_tank_w</span><span class="p">,</span>
-</span><span data-line="3073">                <span class="n">Q_tank_load</span><span class="o">=</span><span class="n">Q_ref_tank</span><span class="p">,</span>
-</span><span data-line="3074">                <span class="n">T0</span><span class="o">=</span><span class="n">T0</span><span class="p">,</span>
-</span><span data-line="3075">                <span class="n">flow_state</span><span class="o">=</span><span class="n">flow_state</span><span class="p">,</span>
-</span><span data-line="3076">            <span class="p">)</span>
-</span><span data-line="3077">            <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="3078">            <span class="k">if</span> <span class="n">opt_result</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
-</span><span data-line="3079">                <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">suppress</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-</span><span data-line="3080">                    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_state</span><span class="p">(</span>
-</span><span data-line="3081">                        <span class="n">dT_ref_ground</span><span class="o">=</span><span class="n">opt_result</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
-</span><span data-line="3082">                        <span class="n">T_tank_w</span><span class="o">=</span><span class="n">T_tank_w</span><span class="p">,</span>
-</span><span data-line="3083">                        <span class="n">Q_tank_load</span><span class="o">=</span><span class="n">Q_ref_tank</span><span class="p">,</span>
-</span><span data-line="3084">                        <span class="n">T0</span><span class="o">=</span><span class="n">T0</span><span class="p">,</span>
-</span><span data-line="3085">                        <span class="n">flow_state</span><span class="o">=</span><span class="n">flow_state</span><span class="p">,</span>
-</span><span data-line="3086">                    <span class="p">)</span>
-</span><span data-line="3087">
-</span><span data-line="3088">            <span class="c1"># A successful search has already checked that the cycle closes</span>
-</span><span data-line="3089">            <span class="c1"># both heat exchangers and is an operating point; anything else is</span>
-</span><span data-line="3090">            <span class="c1"># reported with the search&#39;s own reason and an off-mode state.</span>
-</span><span data-line="3091">            <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="3092">                <span class="n">failure_reason</span> <span class="o">=</span> <span class="n">opt_result</span><span class="o">.</span><span class="n">failure_reason</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">opt_result</span><span class="o">.</span><span class="n">success</span> <span class="k">else</span> <span class="s2">&quot;cycle_invalid&quot;</span>
-</span><span data-line="3093">                <span class="n">detail</span> <span class="o">=</span> <span class="n">opt_result</span><span class="o">.</span><span class="n">detail</span>
-</span><span data-line="3094">                <span class="c1"># Not a warning here: this solve may be a trial of the duty</span>
-</span><span data-line="3095">                <span class="c1"># reduction. The call that owns the result words it</span>
-</span><span data-line="3096">                <span class="c1"># (tmhp.operating_limits.steady_notice).</span>
-</span><span data-line="3097">                <span class="n">pr_event</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_pr_event</span>
-</span><span data-line="3098">                <span class="n">above_ceiling</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="3099">                    <span class="n">failure_reason</span> <span class="o">==</span> <span class="s2">&quot;pr_above_max&quot;</span> <span class="ow">and</span> <span class="n">pr_event</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pr_event</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">failure_reason</span>
-</span><span data-line="3100">                <span class="p">)</span>
-</span><span data-line="3101">                <span class="n">note_refusal</span><span class="p">(</span>
-</span><span data-line="3102">                    <span class="n">failure_reason</span><span class="p">,</span>
-</span><span data-line="3103">                    <span class="n">Q_ref_tank</span><span class="p">,</span>
-</span><span data-line="3104">                    <span class="n">pr_event</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">above_ceiling</span> <span class="ow">and</span> <span class="n">pr_event</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="3105">                    <span class="n">detail</span><span class="p">,</span>
-</span><span data-line="3106">                <span class="p">)</span>
-</span><span data-line="3107">                <span class="k">try</span><span class="p">:</span>
-</span><span data-line="3108">                    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_failed_cycle_result</span><span class="p">(</span><span class="n">T_tank_w</span><span class="p">,</span> <span class="n">T0</span><span class="p">,</span> <span class="n">flow_state</span><span class="p">,</span> <span class="n">failure_reason</span><span class="p">,</span> <span class="n">detail</span><span class="p">)</span>
-</span><span data-line="3109">                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span data-line="3110">                    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="3111">                        <span class="s2">&quot;hp_is_on&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="3112">                        <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="3113">                        <span class="s2">&quot;failure_reason&quot;</span><span class="p">:</span> <span class="n">failure_reason</span><span class="p">,</span>
-</span><span data-line="3114">                        <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3115">                        <span class="s2">&quot;Q_ref_ground [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3116">                        <span class="s2">&quot;Q_bhe [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3117">                        <span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3118">                        <span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3119">                        <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3120">                        <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">:</span> <span class="n">T_tank_w</span><span class="p">,</span>
-</span><span data-line="3121">                        <span class="s2">&quot;T0 [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
-</span><span data-line="3122">                    <span class="p">}</span>
-</span><span data-line="3123">            <span class="k">else</span><span class="p">:</span>
-</span><span data-line="3124">                <span class="n">result</span><span class="p">[</span><span class="s2">&quot;converged&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span data-line="3125">                <span class="n">result</span><span class="p">[</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
-</span><span data-line="3126">
-</span><span data-line="3127">        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="3128">            <span class="c1"># Steady state doesn&#39;t have tank loss because we don&#39;t solve tank mass/energy balance</span>
-</span><span data-line="3129">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;Q_tank_loss [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="3130">            <span class="n">result</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)</span>  <span class="c1"># zero load: a valid off result, not a failure</span>
-</span><span data-line="3131">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;tank_level [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># steady-state: always_full</span>
-</span><span data-line="3132">
-</span><span data-line="3133">        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="3134">            <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span data-line="3135">        <span class="k">if</span> <span class="n">return_dict</span><span class="p">:</span>
-</span><span data-line="3136">            <span class="k">return</span> <span class="n">result</span>
-</span><span data-line="3137">        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span></div>
+</span><span data-line="3038">        <span class="c1"># Override T_bhe_f_out_K so that _calc_state uses T_source correctly</span>
+</span><span data-line="3039">        <span class="bp">self</span><span class="o">.</span><span class="n">T_bhe_f_out_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_source</span><span class="p">)</span>
+</span><span data-line="3040">
+</span><span data-line="3041">        <span class="k">if</span> <span class="n">ground_flow_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ground_flow_lpm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="3042">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Supply ground_flow_lpm or deprecated ground_flow_ratio, not both&quot;</span><span class="p">)</span>
+</span><span data-line="3043">        <span class="k">if</span> <span class="n">ground_flow_lpm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="3044">            <span class="n">ground_flow_ratio</span> <span class="o">=</span> <span class="n">ground_flow_lpm</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ground_flow_ref_lpm</span>
+</span><span data-line="3045">        <span class="k">elif</span> <span class="n">ground_flow_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="3046">            <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+</span><span data-line="3047">
+</span><span data-line="3048">            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+</span><span data-line="3049">                <span class="s2">&quot;ground_flow_ratio is deprecated; use ground_flow_lpm (ratio is always to reference).&quot;</span><span class="p">,</span>
+</span><span data-line="3050">                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+</span><span data-line="3051">                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span data-line="3052">            <span class="p">)</span>
+</span><span data-line="3053">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ground_settings</span><span class="p">[</span><span class="s2">&quot;active&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">ground_flow_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="3054">            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solve_ground_flow</span><span class="p">(</span>
+</span><span data-line="3055">                <span class="n">T_tank_w</span><span class="p">,</span>
+</span><span data-line="3056">                <span class="n">Q_ref_tank</span><span class="p">,</span>
+</span><span data-line="3057">                <span class="n">T0</span><span class="p">,</span>
+</span><span data-line="3058">                <span class="n">flow_state</span><span class="o">=</span><span class="n">flow_state</span><span class="p">,</span>
+</span><span data-line="3059">                <span class="n">ground_flow_ratio</span><span class="o">=</span><span class="n">ground_flow_ratio</span><span class="p">,</span>
+</span><span data-line="3060">                <span class="n">T_bhe_wall</span><span class="o">=</span><span class="n">T_bhe_wall</span><span class="p">,</span>
+</span><span data-line="3061">            <span class="p">)</span>
+</span><span data-line="3062">            <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;Q_tank_loss [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;tank_level [-]&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">})</span>
+</span><span data-line="3063">            <span class="k">return</span> <span class="n">result</span> <span class="k">if</span> <span class="n">return_dict</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span>
+</span><span data-line="3064">
+</span><span data-line="3065">        <span class="k">if</span> <span class="n">Q_ref_tank</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="3066">            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_state</span><span class="p">(</span>
+</span><span data-line="3067">                <span class="n">dT_ref_ground</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+</span><span data-line="3068">                <span class="n">T_tank_w</span><span class="o">=</span><span class="n">T_tank_w</span><span class="p">,</span>
+</span><span data-line="3069">                <span class="n">Q_tank_load</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3070">                <span class="n">T0</span><span class="o">=</span><span class="n">T0</span><span class="p">,</span>
+</span><span data-line="3071">                <span class="n">flow_state</span><span class="o">=</span><span class="n">flow_state</span><span class="p">,</span>
+</span><span data-line="3072">            <span class="p">)</span>
+</span><span data-line="3073">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="3074">            <span class="n">opt_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimize_operation</span><span class="p">(</span>
+</span><span data-line="3075">                <span class="n">T_tank_w</span><span class="o">=</span><span class="n">T_tank_w</span><span class="p">,</span>
+</span><span data-line="3076">                <span class="n">Q_tank_load</span><span class="o">=</span><span class="n">Q_ref_tank</span><span class="p">,</span>
+</span><span data-line="3077">                <span class="n">T0</span><span class="o">=</span><span class="n">T0</span><span class="p">,</span>
+</span><span data-line="3078">                <span class="n">flow_state</span><span class="o">=</span><span class="n">flow_state</span><span class="p">,</span>
+</span><span data-line="3079">            <span class="p">)</span>
+</span><span data-line="3080">            <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="3081">            <span class="k">if</span> <span class="n">opt_result</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+</span><span data-line="3082">                <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">suppress</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+</span><span data-line="3083">                    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_state</span><span class="p">(</span>
+</span><span data-line="3084">                        <span class="n">dT_ref_ground</span><span class="o">=</span><span class="n">opt_result</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+</span><span data-line="3085">                        <span class="n">T_tank_w</span><span class="o">=</span><span class="n">T_tank_w</span><span class="p">,</span>
+</span><span data-line="3086">                        <span class="n">Q_tank_load</span><span class="o">=</span><span class="n">Q_ref_tank</span><span class="p">,</span>
+</span><span data-line="3087">                        <span class="n">T0</span><span class="o">=</span><span class="n">T0</span><span class="p">,</span>
+</span><span data-line="3088">                        <span class="n">flow_state</span><span class="o">=</span><span class="n">flow_state</span><span class="p">,</span>
+</span><span data-line="3089">                    <span class="p">)</span>
+</span><span data-line="3090">
+</span><span data-line="3091">            <span class="c1"># A successful search has already checked that the cycle closes</span>
+</span><span data-line="3092">            <span class="c1"># both heat exchangers and is an operating point; anything else is</span>
+</span><span data-line="3093">            <span class="c1"># reported with the search&#39;s own reason and an off-mode state.</span>
+</span><span data-line="3094">            <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="3095">                <span class="n">failure_reason</span> <span class="o">=</span> <span class="n">opt_result</span><span class="o">.</span><span class="n">failure_reason</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">opt_result</span><span class="o">.</span><span class="n">success</span> <span class="k">else</span> <span class="s2">&quot;cycle_invalid&quot;</span>
+</span><span data-line="3096">                <span class="n">detail</span> <span class="o">=</span> <span class="n">opt_result</span><span class="o">.</span><span class="n">detail</span>
+</span><span data-line="3097">                <span class="c1"># Not a warning here: this solve may be a trial of the duty</span>
+</span><span data-line="3098">                <span class="c1"># reduction. The call that owns the result words it</span>
+</span><span data-line="3099">                <span class="c1"># (tmhp.operating_limits.steady_notice).</span>
+</span><span data-line="3100">                <span class="n">pr_event</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_pr_event</span>
+</span><span data-line="3101">                <span class="n">above_ceiling</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="3102">                    <span class="n">failure_reason</span> <span class="o">==</span> <span class="s2">&quot;pr_above_max&quot;</span> <span class="ow">and</span> <span class="n">pr_event</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pr_event</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">failure_reason</span>
+</span><span data-line="3103">                <span class="p">)</span>
+</span><span data-line="3104">                <span class="n">note_refusal</span><span class="p">(</span>
+</span><span data-line="3105">                    <span class="n">failure_reason</span><span class="p">,</span>
+</span><span data-line="3106">                    <span class="n">Q_ref_tank</span><span class="p">,</span>
+</span><span data-line="3107">                    <span class="n">pr_event</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">above_ceiling</span> <span class="ow">and</span> <span class="n">pr_event</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="3108">                    <span class="n">detail</span><span class="p">,</span>
+</span><span data-line="3109">                <span class="p">)</span>
+</span><span data-line="3110">                <span class="k">try</span><span class="p">:</span>
+</span><span data-line="3111">                    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_failed_cycle_result</span><span class="p">(</span><span class="n">T_tank_w</span><span class="p">,</span> <span class="n">T0</span><span class="p">,</span> <span class="n">flow_state</span><span class="p">,</span> <span class="n">failure_reason</span><span class="p">,</span> <span class="n">detail</span><span class="p">)</span>
+</span><span data-line="3112">                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span data-line="3113">                    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="3114">                        <span class="s2">&quot;hp_is_on&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="3115">                        <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="3116">                        <span class="s2">&quot;failure_reason&quot;</span><span class="p">:</span> <span class="n">failure_reason</span><span class="p">,</span>
+</span><span data-line="3117">                        <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3118">                        <span class="s2">&quot;Q_ref_ground [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3119">                        <span class="s2">&quot;Q_bhe [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3120">                        <span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3121">                        <span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3122">                        <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3123">                        <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">:</span> <span class="n">T_tank_w</span><span class="p">,</span>
+</span><span data-line="3124">                        <span class="s2">&quot;T0 [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
+</span><span data-line="3125">                    <span class="p">}</span>
+</span><span data-line="3126">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="3127">                <span class="n">result</span><span class="p">[</span><span class="s2">&quot;converged&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="3128">                <span class="n">result</span><span class="p">[</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="3129">
+</span><span data-line="3130">        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="3131">            <span class="c1"># Steady state doesn&#39;t have tank loss because we don&#39;t solve tank mass/energy balance</span>
+</span><span data-line="3132">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;Q_tank_loss [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="3133">            <span class="n">result</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)</span>  <span class="c1"># zero load: a valid off result, not a failure</span>
+</span><span data-line="3134">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;tank_level [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># steady-state: always_full</span>
+</span><span data-line="3135">
+</span><span data-line="3136">        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="3137">            <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="3138">        <span class="k">if</span> <span class="n">return_dict</span><span class="p">:</span>
+</span><span data-line="3139">            <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="3140">        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span></div>
 
-</span><span data-line="3138">
+</span><span data-line="3141">
 <div class="viewcode-block" id="GroundSourceHeatPumpBoiler.postprocess_exergy">
 <a class="viewcode-back" href="../../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.postprocess_exergy">[docs]</a>
-</span><span data-line="3139">    <span class="k">def</span><span class="w"> </span><span class="nf">postprocess_exergy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span data-line="3140"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute GSHPB-specific exergy variables.&quot;&quot;&quot;</span>
-</span><span data-line="3141">        <span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span data-line="3142">            <span class="n">calc_energy_flow</span><span class="p">,</span>
-</span><span data-line="3143">            <span class="n">calc_refrigerant_exergy</span><span class="p">,</span>
-</span><span data-line="3144">            <span class="n">convert_electricity_to_exergy</span><span class="p">,</span>
-</span><span data-line="3145">            <span class="n">source_loop_exergy_flows</span><span class="p">,</span>
-</span><span data-line="3146">        <span class="p">)</span>
-</span><span data-line="3147">
-</span><span data-line="3148">        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-</span><span data-line="3149">        <span class="n">T0_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T0 [°C]&quot;</span><span class="p">])</span>
-</span><span data-line="3150">        <span class="n">T_tank_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">])</span>
-</span><span data-line="3151">
-</span><span data-line="3152">        <span class="c1"># Water leaves a multi-node tank at its top (T_tank_w_out), not at the mean.</span>
-</span><span data-line="3153">        <span class="n">T_tank_out_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_tank_w_out [°C]&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="s2">&quot;T_tank_w_out [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">T_tank_K</span>
+</span><span data-line="3142">    <span class="k">def</span><span class="w"> </span><span class="nf">postprocess_exergy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span data-line="3143"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute GSHPB-specific exergy variables.&quot;&quot;&quot;</span>
+</span><span data-line="3144">        <span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="3145">            <span class="n">calc_energy_flow</span><span class="p">,</span>
+</span><span data-line="3146">            <span class="n">calc_refrigerant_exergy</span><span class="p">,</span>
+</span><span data-line="3147">            <span class="n">convert_electricity_to_exergy</span><span class="p">,</span>
+</span><span data-line="3148">            <span class="n">source_loop_exergy_flows</span><span class="p">,</span>
+</span><span data-line="3149">        <span class="p">)</span>
+</span><span data-line="3150">
+</span><span data-line="3151">        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span data-line="3152">        <span class="n">T0_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T0 [°C]&quot;</span><span class="p">])</span>
+</span><span data-line="3153">        <span class="n">T_tank_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">])</span>
 </span><span data-line="3154">
-</span><span data-line="3155">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_tank_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span>
-</span><span data-line="3156">            <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_out [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">T_tank_out_K</span><span class="p">,</span> <span class="n">T0_K</span>
-</span><span data-line="3157">        <span class="p">)</span>
-</span><span data-line="3158">
-</span><span data-line="3159">        <span class="c1"># 1. Refrigerant state points</span>
-</span><span data-line="3160">        <span class="n">df</span> <span class="o">=</span> <span class="n">calc_refrigerant_exergy</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="3161">        <span class="n">df</span> <span class="o">=</span> <span class="n">convert_electricity_to_exergy</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
-</span><span data-line="3162">
-</span><span data-line="3163">        <span class="c1"># 2. Exergy flows of the source loop: evaluated at the running state</span>
-</span><span data-line="3164">        <span class="c1"># and averaged over the step like the heat and power in the row.</span>
-</span><span data-line="3165">        <span class="n">X_bhe_in</span><span class="p">,</span> <span class="n">X_bhe_out</span><span class="p">,</span> <span class="n">X_ground_in</span><span class="p">,</span> <span class="n">X_ground_out</span> <span class="o">=</span> <span class="n">source_loop_exergy_flows</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="3166">        <span class="c1"># Loop boundary flows (step averages) so the source-side balance can be read from the frame.</span>
-</span><span data-line="3167">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_bhe_f_in [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_bhe_in</span>
-</span><span data-line="3168">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_bhe_f_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_bhe_out</span>
-</span><span data-line="3169">
-</span><span data-line="3170">        <span class="n">Q_ref_tank</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="3171">        <span class="n">Q_ref_ground</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_ref_ground [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="3172">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-</span><span data-line="3173">            <span class="n">Q_ref_tank</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
-</span><span data-line="3174">            <span class="c1"># Condenser heat at the bubble-point condensing temperature: the value</span>
-</span><span data-line="3175">            <span class="c1"># T_ref_cond_sat_v repeated before it reported a zeotrope&#39;s dew point.</span>
-</span><span data-line="3176">            <span class="n">Q_ref_tank</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_ref_cond_sat_l [°C]&quot;</span><span class="p">])),</span>
-</span><span data-line="3177">            <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3178">        <span class="p">)</span>
-</span><span data-line="3179">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_ground [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-</span><span data-line="3180">            <span class="n">Q_ref_ground</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
-</span><span data-line="3181">            <span class="n">Q_ref_ground</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_ref_evap_sat [°C]&quot;</span><span class="p">])),</span>
-</span><span data-line="3182">            <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3183">        <span class="p">)</span>
-</span><span data-line="3184">
-</span><span data-line="3185">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_in [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span>
-</span><span data-line="3186">            <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_in [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-</span><span data-line="3187">            <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_tank_w_in [°C]&quot;</span><span class="p">]),</span>
-</span><span data-line="3188">            <span class="n">T0_K</span><span class="p">,</span>
-</span><span data-line="3189">        <span class="p">)</span>
-</span><span data-line="3190">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span>
-</span><span data-line="3191">            <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_out [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">T_tank_out_K</span><span class="p">,</span> <span class="n">T0_K</span>
+</span><span data-line="3155">        <span class="c1"># Water leaves a multi-node tank at its top (T_tank_w_out), not at the mean.</span>
+</span><span data-line="3156">        <span class="n">T_tank_out_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_tank_w_out [°C]&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="s2">&quot;T_tank_w_out [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">T_tank_K</span>
+</span><span data-line="3157">
+</span><span data-line="3158">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_tank_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span>
+</span><span data-line="3159">            <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_out [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">T_tank_out_K</span><span class="p">,</span> <span class="n">T0_K</span>
+</span><span data-line="3160">        <span class="p">)</span>
+</span><span data-line="3161">
+</span><span data-line="3162">        <span class="c1"># 1. Refrigerant state points</span>
+</span><span data-line="3163">        <span class="n">df</span> <span class="o">=</span> <span class="n">calc_refrigerant_exergy</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="3164">        <span class="n">df</span> <span class="o">=</span> <span class="n">convert_electricity_to_exergy</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span><span data-line="3165">
+</span><span data-line="3166">        <span class="c1"># 2. Exergy flows of the source loop: evaluated at the running state</span>
+</span><span data-line="3167">        <span class="c1"># and averaged over the step like the heat and power in the row.</span>
+</span><span data-line="3168">        <span class="n">X_bhe_in</span><span class="p">,</span> <span class="n">X_bhe_out</span><span class="p">,</span> <span class="n">X_ground_in</span><span class="p">,</span> <span class="n">X_ground_out</span> <span class="o">=</span> <span class="n">source_loop_exergy_flows</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="3169">        <span class="c1"># Loop boundary flows (step averages) so the source-side balance can be read from the frame.</span>
+</span><span data-line="3170">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_bhe_f_in [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_bhe_in</span>
+</span><span data-line="3171">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_bhe_f_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_bhe_out</span>
+</span><span data-line="3172">
+</span><span data-line="3173">        <span class="n">Q_ref_tank</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="3174">        <span class="n">Q_ref_ground</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_ref_ground [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="3175">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+</span><span data-line="3176">            <span class="n">Q_ref_tank</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+</span><span data-line="3177">            <span class="c1"># Condenser heat at the bubble-point condensing temperature: the value</span>
+</span><span data-line="3178">            <span class="c1"># T_ref_cond_sat_v repeated before it reported a zeotrope&#39;s dew point.</span>
+</span><span data-line="3179">            <span class="n">Q_ref_tank</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_ref_cond_sat_l [°C]&quot;</span><span class="p">])),</span>
+</span><span data-line="3180">            <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3181">        <span class="p">)</span>
+</span><span data-line="3182">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_ground [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+</span><span data-line="3183">            <span class="n">Q_ref_ground</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+</span><span data-line="3184">            <span class="n">Q_ref_ground</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_ref_evap_sat [°C]&quot;</span><span class="p">])),</span>
+</span><span data-line="3185">            <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3186">        <span class="p">)</span>
+</span><span data-line="3187">
+</span><span data-line="3188">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_in [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span>
+</span><span data-line="3189">            <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_in [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+</span><span data-line="3190">            <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_tank_w_in [°C]&quot;</span><span class="p">]),</span>
+</span><span data-line="3191">            <span class="n">T0_K</span><span class="p">,</span>
 </span><span data-line="3192">        <span class="p">)</span>
-</span><span data-line="3193">
-</span><span data-line="3194">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_mix_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mixed_water_exergy</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="3195">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_mix_sup_w_in [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span>
-</span><span data-line="3196">            <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_mix_sup_w_in [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-</span><span data-line="3197">            <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_tank_w_in [°C]&quot;</span><span class="p">]),</span>
-</span><span data-line="3198">            <span class="n">T0_K</span><span class="p">,</span>
-</span><span data-line="3199">        <span class="p">)</span>
-</span><span data-line="3200">
-</span><span data-line="3201">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_loss [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_tank_loss [W]&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">T_tank_K</span><span class="p">)</span>
-</span><span data-line="3202">
-</span><span data-line="3203">        <span class="n">tank_lvl</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;tank_level [-]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;tank_level [-]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="mf">1.0</span>
-</span><span data-line="3204">        <span class="n">C_tank_actual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span> <span class="o">*</span> <span class="n">tank_lvl</span>
-</span><span data-line="3205">        <span class="n">T_tank_K_prev</span> <span class="o">=</span> <span class="n">T_tank_K</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span data-line="3206">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xst_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">T_tank_K</span><span class="p">)</span> <span class="o">*</span> <span class="n">C_tank_actual</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_tank_K</span> <span class="o">-</span> <span class="n">T_tank_K_prev</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
-</span><span data-line="3207">        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Xst_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="3208">
-</span><span data-line="3209">        <span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
-</span><span data-line="3210">
-</span><span data-line="3211">        <span class="c1"># Subsystems exergy</span>
-</span><span data-line="3212">        <span class="n">X_sub_tot_add</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="3213">        <span class="n">X_sub_in_tank_add</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="3214">        <span class="n">X_sub_out_tank_add</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="3215">
-</span><span data-line="3216">        <span class="k">for</span> <span class="n">_name</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="3217">            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="s2">&quot;calc_exergy&quot;</span><span class="p">):</span>
-</span><span data-line="3218">                <span class="n">ex_res</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">calc_exergy</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="3219">                <span class="k">if</span> <span class="n">ex_res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="3220">                    <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ex_res</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="3221">                        <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span>
-</span><span data-line="3222">                    <span class="n">X_sub_tot_add</span> <span class="o">=</span> <span class="n">X_sub_tot_add</span> <span class="o">+</span> <span class="n">ex_res</span><span class="o">.</span><span class="n">X_tot_add</span>
-</span><span data-line="3223">                    <span class="n">X_sub_in_tank_add</span> <span class="o">=</span> <span class="n">X_sub_in_tank_add</span> <span class="o">+</span> <span class="n">ex_res</span><span class="o">.</span><span class="n">X_in_tank_add</span>
-</span><span data-line="3224">                    <span class="n">X_sub_out_tank_add</span> <span class="o">=</span> <span class="n">X_sub_out_tank_add</span> <span class="o">+</span> <span class="n">ex_res</span><span class="o">.</span><span class="n">X_out_tank_add</span>
-</span><span data-line="3225">
-</span><span data-line="3226">        <span class="c1"># Components Destruction</span>
-</span><span data-line="3227">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tot [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X_uv [W]&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">X_sub_tot_add</span>
+</span><span data-line="3193">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span>
+</span><span data-line="3194">            <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_out [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">T_tank_out_K</span><span class="p">,</span> <span class="n">T0_K</span>
+</span><span data-line="3195">        <span class="p">)</span>
+</span><span data-line="3196">
+</span><span data-line="3197">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_mix_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mixed_water_exergy</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="3198">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_mix_sup_w_in [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span>
+</span><span data-line="3199">            <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_mix_sup_w_in [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+</span><span data-line="3200">            <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_tank_w_in [°C]&quot;</span><span class="p">]),</span>
+</span><span data-line="3201">            <span class="n">T0_K</span><span class="p">,</span>
+</span><span data-line="3202">        <span class="p">)</span>
+</span><span data-line="3203">
+</span><span data-line="3204">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_loss [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_tank_loss [W]&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">T_tank_K</span><span class="p">)</span>
+</span><span data-line="3205">
+</span><span data-line="3206">        <span class="n">tank_lvl</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;tank_level [-]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;tank_level [-]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="mf">1.0</span>
+</span><span data-line="3207">        <span class="n">C_tank_actual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span> <span class="o">*</span> <span class="n">tank_lvl</span>
+</span><span data-line="3208">        <span class="n">T_tank_K_prev</span> <span class="o">=</span> <span class="n">T_tank_K</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span data-line="3209">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xst_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">T_tank_K</span><span class="p">)</span> <span class="o">*</span> <span class="n">C_tank_actual</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_tank_K</span> <span class="o">-</span> <span class="n">T_tank_K_prev</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+</span><span data-line="3210">        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Xst_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="3211">
+</span><span data-line="3212">        <span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+</span><span data-line="3213">
+</span><span data-line="3214">        <span class="c1"># Subsystems exergy</span>
+</span><span data-line="3215">        <span class="n">X_sub_tot_add</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="3216">        <span class="n">X_sub_in_tank_add</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="3217">        <span class="n">X_sub_out_tank_add</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="3218">
+</span><span data-line="3219">        <span class="k">for</span> <span class="n">_name</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="3220">            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="s2">&quot;calc_exergy&quot;</span><span class="p">):</span>
+</span><span data-line="3221">                <span class="n">ex_res</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">calc_exergy</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="3222">                <span class="k">if</span> <span class="n">ex_res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="3223">                    <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ex_res</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="3224">                        <span class="n">df</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span>
+</span><span data-line="3225">                    <span class="n">X_sub_tot_add</span> <span class="o">=</span> <span class="n">X_sub_tot_add</span> <span class="o">+</span> <span class="n">ex_res</span><span class="o">.</span><span class="n">X_tot_add</span>
+</span><span data-line="3226">                    <span class="n">X_sub_in_tank_add</span> <span class="o">=</span> <span class="n">X_sub_in_tank_add</span> <span class="o">+</span> <span class="n">ex_res</span><span class="o">.</span><span class="n">X_in_tank_add</span>
+</span><span data-line="3227">                    <span class="n">X_sub_out_tank_add</span> <span class="o">=</span> <span class="n">X_sub_out_tank_add</span> <span class="o">+</span> <span class="n">ex_res</span><span class="o">.</span><span class="n">X_out_tank_add</span>
 </span><span data-line="3228">
-</span><span data-line="3229">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_cmp [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_cmp [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_cmp_in [W]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_cmp_out [W]&quot;</span><span class="p">]</span>
-</span><span data-line="3230">        <span class="n">ref_tank_active</span> <span class="o">=</span> <span class="n">Q_ref_tank</span> <span class="o">&gt;</span> <span class="mi">0</span>
-</span><span data-line="3231">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_ref_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-</span><span data-line="3232">            <span class="n">ref_tank_active</span><span class="p">,</span>
-</span><span data-line="3233">            <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_cmp_out [W]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_exp_in [W]&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">],</span>
-</span><span data-line="3234">            <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="3235">        <span class="p">)</span>
-</span><span data-line="3236">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_exp [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_exp_in [W]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_exp_out [W]&quot;</span><span class="p">]</span>
-</span><span data-line="3237">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_ground [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">X_ground_in</span> <span class="o">-</span> <span class="n">X_ground_out</span><span class="p">)</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_ground [W]&quot;</span><span class="p">]</span>
-</span><span data-line="3238">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_pmp [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">X_ground_in</span> <span class="o">-</span> <span class="n">X_bhe_out</span><span class="p">)</span>
-</span><span data-line="3239">
-</span><span data-line="3240">        <span class="n">X_in_tank</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="3241">            <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="3242">            <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_in [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="3243">            <span class="o">+</span> <span class="n">df</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X_uv [W]&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="3244">            <span class="o">+</span> <span class="n">X_sub_in_tank_add</span>
-</span><span data-line="3245">        <span class="p">)</span>
-</span><span data-line="3246">        <span class="n">X_out_tank</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xst_tank [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">X_sub_out_tank_add</span>
-</span><span data-line="3247">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_in_tank</span> <span class="o">-</span> <span class="n">X_out_tank</span>
-</span><span data-line="3248">
-</span><span data-line="3249">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_mix [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="3250">            <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_mix_sup_w_in [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_mix_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="3251">        <span class="p">)</span>
-</span><span data-line="3252">
-</span><span data-line="3253">        <span class="c1"># Efficiency</span>
-</span><span data-line="3254">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_eff_ref [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_cmp [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-</span><span data-line="3255">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_eff_sys [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tot [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-</span><span data-line="3256">
-</span><span data-line="3257">        <span class="k">return</span> <span class="n">df</span></div>
+</span><span data-line="3229">        <span class="c1"># Components Destruction</span>
+</span><span data-line="3230">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tot [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X_uv [W]&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">X_sub_tot_add</span>
+</span><span data-line="3231">
+</span><span data-line="3232">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_cmp [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_cmp [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_cmp_in [W]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_cmp_out [W]&quot;</span><span class="p">]</span>
+</span><span data-line="3233">        <span class="n">ref_tank_active</span> <span class="o">=</span> <span class="n">Q_ref_tank</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</span><span data-line="3234">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_ref_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+</span><span data-line="3235">            <span class="n">ref_tank_active</span><span class="p">,</span>
+</span><span data-line="3236">            <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_cmp_out [W]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_exp_in [W]&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">],</span>
+</span><span data-line="3237">            <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="3238">        <span class="p">)</span>
+</span><span data-line="3239">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_exp [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_exp_in [W]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_exp_out [W]&quot;</span><span class="p">]</span>
+</span><span data-line="3240">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_ground [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">X_ground_in</span> <span class="o">-</span> <span class="n">X_ground_out</span><span class="p">)</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_ground [W]&quot;</span><span class="p">]</span>
+</span><span data-line="3241">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_pmp [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">X_ground_in</span> <span class="o">-</span> <span class="n">X_bhe_out</span><span class="p">)</span>
+</span><span data-line="3242">
+</span><span data-line="3243">        <span class="n">X_in_tank</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="3244">            <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="3245">            <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_in [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="3246">            <span class="o">+</span> <span class="n">df</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X_uv [W]&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="3247">            <span class="o">+</span> <span class="n">X_sub_in_tank_add</span>
+</span><span data-line="3248">        <span class="p">)</span>
+</span><span data-line="3249">        <span class="n">X_out_tank</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xst_tank [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">X_sub_out_tank_add</span>
+</span><span data-line="3250">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_in_tank</span> <span class="o">-</span> <span class="n">X_out_tank</span>
+</span><span data-line="3251">
+</span><span data-line="3252">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_mix [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="3253">            <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tank_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_mix_sup_w_in [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_mix_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="3254">        <span class="p">)</span>
+</span><span data-line="3255">
+</span><span data-line="3256">        <span class="c1"># Efficiency</span>
+</span><span data-line="3257">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_eff_ref [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_cmp [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+</span><span data-line="3258">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_eff_sys [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_ref_tank [W]&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tot [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+</span><span data-line="3259">
+</span><span data-line="3260">        <span class="k">return</span> <span class="n">df</span></div>
 
-</span><span data-line="3258">
-</span><span data-line="3259">    <span class="c1"># =============================================================</span>
-</span><span data-line="3260">    <span class="c1"># Standard-condition check</span>
-</span><span data-line="3261">    <span class="c1"># =============================================================</span>
-</span><span data-line="3262">
+</span><span data-line="3261">
+</span><span data-line="3262">    <span class="c1"># =============================================================</span>
+</span><span data-line="3263">    <span class="c1"># Standard-condition check</span>
+</span><span data-line="3264">    <span class="c1"># =============================================================</span>
+</span><span data-line="3265">
 <div class="viewcode-block" id="GroundSourceHeatPumpBoiler.operating_range">
 <a class="viewcode-back" href="../../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.operating_range">[docs]</a>
-</span><span data-line="3263">    <span class="k">def</span><span class="w"> </span><span class="nf">operating_range</span><span class="p">(</span>
-</span><span data-line="3264">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="3265">        <span class="n">conditions</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="3266">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="3267">        <span class="n">sink_offset_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">LEAVING_WATER_TO_TANK_K</span><span class="p">,</span>
-</span><span data-line="3268">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span data-line="3269"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Solve standard rating conditions and tabulate whether the heat pump runs at each.</span>
-</span><span data-line="3270">
-</span><span data-line="3271"><span class="sd">        A check to call before a simulation; it is not made at construction</span>
-</span><span data-line="3272"><span class="sd">        because it solves the cycle at every condition. One row per</span>
-</span><span data-line="3273"><span class="sd">        condition: whether the compressor runs, delivers the request or a</span>
-</span><span data-line="3274"><span class="sd">        reduced duty, or cycles on and off, its ``failure_reason``,</span>
-</span><span data-line="3275"><span class="sd">        ``cop_sys [-]``, and the limit in words. No</span>
-</span><span data-line="3276"><span class="sd">        :class:`~tmhp.OperatingLimitWarning` is issued and the model is not</span>
-</span><span data-line="3277"><span class="sd">        changed.</span>
-</span><span data-line="3278">
-</span><span data-line="3279"><span class="sd">        Parameters</span>
-</span><span data-line="3280"><span class="sd">        ----------</span>
-</span><span data-line="3281"><span class="sd">        conditions : iterable of StandardCondition, optional</span>
-</span><span data-line="3282"><span class="sd">            Conditions to solve; :data:`tmhp.standard_conditions.BRINE_TO_WATER`</span>
-</span><span data-line="3283"><span class="sd">            (B0/W35, B0/W55, B-5/W45 at the nameplate duty) when omitted.</span>
-</span><span data-line="3284"><span class="sd">        sink_offset_K : float</span>
-</span><span data-line="3285"><span class="sd">            The tank is solved this far below each condition&#39;s leaving water</span>
-</span><span data-line="3286"><span class="sd">            [K]: ``T_tank_w = leaving water - sink_offset_K``. The default</span>
-</span><span data-line="3287"><span class="sd">            2.5 K is the offset of the validation catalogues; 0 solves the</span>
-</span><span data-line="3288"><span class="sd">            tank at the named temperature.</span>
-</span><span data-line="3289">
-</span><span data-line="3290"><span class="sd">        Returns</span>
-</span><span data-line="3291"><span class="sd">        -------</span>
-</span><span data-line="3292"><span class="sd">        pd.DataFrame</span>
-</span><span data-line="3293"><span class="sd">            Columns :data:`tmhp.standard_conditions.COLUMNS`; see</span>
-</span><span data-line="3294"><span class="sd">            :func:`tmhp.standard_conditions.operating_range`.</span>
-</span><span data-line="3295"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="3296">        <span class="k">return</span> <span class="n">_operating_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;brine_to_water&quot;</span><span class="p">,</span> <span class="n">conditions</span><span class="p">,</span> <span class="n">sink_offset_K</span><span class="o">=</span><span class="n">sink_offset_K</span><span class="p">)</span></div>
+</span><span data-line="3266">    <span class="k">def</span><span class="w"> </span><span class="nf">operating_range</span><span class="p">(</span>
+</span><span data-line="3267">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="3268">        <span class="n">conditions</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="3269">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="3270">        <span class="n">sink_offset_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">LEAVING_WATER_TO_TANK_K</span><span class="p">,</span>
+</span><span data-line="3271">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span data-line="3272"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Solve standard rating conditions and tabulate whether the heat pump runs at each.</span>
+</span><span data-line="3273">
+</span><span data-line="3274"><span class="sd">        A check to call before a simulation; it is not made at construction</span>
+</span><span data-line="3275"><span class="sd">        because it solves the cycle at every condition. One row per</span>
+</span><span data-line="3276"><span class="sd">        condition: whether the compressor runs, delivers the request or a</span>
+</span><span data-line="3277"><span class="sd">        reduced duty, or cycles on and off, its ``failure_reason``,</span>
+</span><span data-line="3278"><span class="sd">        ``cop_sys [-]``, and the limit in words. No</span>
+</span><span data-line="3279"><span class="sd">        :class:`~tmhp.OperatingLimitWarning` is issued and the model is not</span>
+</span><span data-line="3280"><span class="sd">        changed.</span>
+</span><span data-line="3281">
+</span><span data-line="3282"><span class="sd">        Parameters</span>
+</span><span data-line="3283"><span class="sd">        ----------</span>
+</span><span data-line="3284"><span class="sd">        conditions : iterable of StandardCondition, optional</span>
+</span><span data-line="3285"><span class="sd">            Conditions to solve; :data:`tmhp.standard_conditions.BRINE_TO_WATER`</span>
+</span><span data-line="3286"><span class="sd">            (B0/W35, B0/W55, B-5/W45 at the nameplate duty) when omitted.</span>
+</span><span data-line="3287"><span class="sd">        sink_offset_K : float</span>
+</span><span data-line="3288"><span class="sd">            The tank is solved this far below each condition&#39;s leaving water</span>
+</span><span data-line="3289"><span class="sd">            [K]: ``T_tank_w = leaving water - sink_offset_K``. The default</span>
+</span><span data-line="3290"><span class="sd">            2.5 K is the offset of the validation catalogues; 0 solves the</span>
+</span><span data-line="3291"><span class="sd">            tank at the named temperature.</span>
+</span><span data-line="3292">
+</span><span data-line="3293"><span class="sd">        Returns</span>
+</span><span data-line="3294"><span class="sd">        -------</span>
+</span><span data-line="3295"><span class="sd">        pd.DataFrame</span>
+</span><span data-line="3296"><span class="sd">            Columns :data:`tmhp.standard_conditions.COLUMNS`; see</span>
+</span><span data-line="3297"><span class="sd">            :func:`tmhp.standard_conditions.operating_range`.</span>
+</span><span data-line="3298"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="3299">        <span class="k">return</span> <span class="n">_operating_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;brine_to_water&quot;</span><span class="p">,</span> <span class="n">conditions</span><span class="p">,</span> <span class="n">sink_offset_K</span><span class="o">=</span><span class="n">sink_offset_K</span><span class="p">)</span></div>
 </div>
 
 </span></pre></div>

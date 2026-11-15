@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Source side is a water loop with a prescribed inlet temperature; sink side is the shared DHW tank demand model used by the boiler families. Overview: The class is tmhp.WaterSourceHeatPumpBoiler. Un..." />
 
-    <meta property="article:modified_time" content="2026-11-15T11:11:41+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:22:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -624,10 +624,13 @@ otherwise <code class="docutils literal notranslate"><span class="pre">&quot;cyc
 not an operating point, see
 <code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.unphysical_cycle_detail()</span></code>),
 <code class="docutils literal notranslate"><span class="pre">&quot;pr_above_max&quot;</span></code> (pressure-ratio ceiling),
-<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code> (even a reduced duty exceeds
+<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code> (every duty tried exceeds
 <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>; a request above the limit that a smaller duty
 meets returns that duty with <code class="docutils literal notranslate"><span class="pre">capacity_clamped=&quot;max&quot;</span></code> and
-<code class="docutils literal notranslate"><span class="pre">capacity_binding=&quot;discharge_temperature&quot;</span></code>),
+<code class="docutils literal notranslate"><span class="pre">capacity_binding=&quot;discharge_temperature&quot;</span></code>, and one refused
+only at low speed while a larger duty runs is met by on/off
+cycling at the smallest duty that runs,
+<code class="docutils literal notranslate"><span class="pre">capacity_clamped=&quot;min&quot;</span></code>),
 <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temp_above_max&quot;</span></code> (the same for the condensing
 limit <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>: the tank is too hot for any duty; a
 reduced duty reports <code class="docutils literal notranslate"><span class="pre">capacity_binding=&quot;condensing_temperature&quot;</span></code>),

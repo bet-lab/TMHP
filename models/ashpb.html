@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-15T11:11:41+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:22:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -386,22 +386,39 @@ returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
 outdoor approach with the fan at its lowest flow, a running-machine COP of
 4.27 where the floor offers 5.29.</p>
 <p>The minimum speed is not always the lower end of continuous operation. At a
-large lift the shipped isentropic-efficiency fit, read below its data, falls
-under the envelope’s floor (<code class="docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code> = 0.30,
-<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>) before <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is reached:
-the default 15 kW R290 unit at −7 °C outdoors against a 65 °C tank runs down
-to about 3.8 kW (frost-free) and no further, R134a at −15 °C against 40 °C to
-2.5 kW. A request below that duty was answered with the unit switched off
-(<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;eta_isen_below_min&quot;</span></code>) while a larger one ran. It is now
-met the same way as one below the minimum speed, and as <a class="reference internal" href="ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a> does: the
-unit cycles at the smallest duty the envelope admits. The row has
-<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is that duty (found by bisection
-on the duty, to 0.5 %; the same for every request below it), and the
-compressor speed of the row is above <code class="docutils literal notranslate"><span class="pre">rps_min</span></code>. With <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> the
-row is that continuous point, which delivers more than the request.
-<code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code> remains the reason where no larger duty runs either, or
-another limit refuses a larger duty first. A dynamic step is not affected: its
-thermostat runs the compressor at the nameplate duty.</p>
+large lift the shipped isentropic-efficiency fit falls towards low speed, and
+the compressor envelope (<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>)
+refuses the point before <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is reached: first for the discharge
+temperature, which the falling efficiency drives above <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> even with
+the discharge-temperature control used up, then for the fit’s own floor
+(<code class="docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code> = 0.30). The default 15 kW R134a unit at −7 °C outdoors
+against a 55 °C tank runs down to about 4.7 kW (frost-free, 39 rev/s) and no
+further; R290 at −7 °C against 65 °C to 3.8 kW, R410A at −15 °C against 55 °C
+to 12.7 kW. A request below that duty was answered with the unit switched off
+(<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;discharge_temp_above_max&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;eta_isen_below_min&quot;</span></code>)
+while a larger one ran. It is met the same way as one below the minimum speed,
+and as <a class="reference internal" href="ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a> does: the unit cycles at the smallest duty the envelope
+admits. The row has <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is that duty
+(found by bisection on the duty, to 0.5 %; the same for every request below
+it), and the compressor speed of the row is above <code class="docutils literal notranslate"><span class="pre">rps_min</span></code>. The mean
+carries the EN 14825 degradation like any other cycling row
+(<code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">E_cycling_loss</span> <span class="pre">[W]</span></code>), so its COP is never above
+that of the continuous point it cycles at. With <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> the row is
+that continuous point, which delivers more than the request.</p>
+<p>The smallest duty is used, not a more efficient larger one: the request just
+above it is met in continuous operation there, so the result has no step at
+the boundary, and a unit that cycles runs as long as its protections let it.
+Where that duty is a large share of the nameplate (84 % for R410A above) the
+unit is off for most of the time at small loads; <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>
+says how much.</p>
+<p>The two reasons remain where no duty runs at all: the limits that refuse the
+duty from above (the pressure ratio, the outdoor coil, the condensing
+temperature, the discharge temperature itself at a larger lift) meet the ones
+from below. The default R32 unit against a 55 °C tank is such a case below
+−6 °C outdoors: its discharge is above 150 °C at every speed (at −7 °C the
+coolest candidate is 163 °C at 16 rev/s and 165 °C at 58 rev/s), so there is
+no duty to cycle at. A dynamic step is not affected: its thermostat runs the
+compressor at the nameplate duty.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Cd_cycling</span></code> is the coefficient <code class="docutils literal notranslate"><span class="pre">Cc</span></code>: 0.9 by default (the standard’s value
 for an untested unit), <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">−</span> <span class="pre">P_off</span> <span class="pre">/</span> <span class="pre">P_on</span></code> for a unit with a measured standby
 power, <code class="docutils literal notranslate"><span class="pre">1.0</span></code> for loss-free cycling, and <code class="docutils literal notranslate"><span class="pre">None</span></code> for the continuous
@@ -1595,8 +1612,11 @@ the SciPy optimiser both succeeded.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_reason&quot;</span></code> (str) — one of <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;t_cond_below_t_in&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;pr_above_max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code> (even
-under the discharge-temperature control and at a reduced duty
-the discharge exceeds <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>),
+under the discharge-temperature control the discharge exceeds
+<code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>, at the request and at every smaller and larger
+duty tried: a request that is only too small for the limit,
+refused at low speed while a larger duty runs, is a <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code>
+point, below),
 <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temp_above_max&quot;</span></code> (even a reduced duty condenses
 above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>: the tank is too hot), <code class="docutils literal notranslate"><span class="pre">&quot;eta_isen_below_min&quot;</span></code>
 (the shipped isentropic fit, extrapolated, is below 0.30, and
@@ -1614,10 +1634,10 @@ outdoor coil fails at every approach the cycle reaches
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;capacity_clamped&quot;</span></code> (str | None) — <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when the
 requested duty was below what the compressor delivers at
 <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> and the cycle was solved at that floor instead (or
-below the smallest duty the envelope’s efficiency floor admits,
-where the shipped fit falls under 0.30 before <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is
-reached: the cycle is then solved at that duty, above
-<code class="docutils literal notranslate"><span class="pre">rps_min</span></code>),
+below the smallest duty the compressor envelope admits, where
+the discharge exceeds <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> or the shipped fit falls
+under 0.30 before <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is reached: the cycle is then
+solved at that duty, above <code class="docutils literal notranslate"><span class="pre">rps_min</span></code>),
 <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> for the corresponding ceiling case, <code class="docutils literal notranslate"><span class="pre">None</span></code> when the
 request was met exactly. A clamped point is <strong>converged</strong>: the
 request simply lay outside the machine’s deliverable band, which

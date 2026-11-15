@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="analyze_steady returns a flat dict and analyze_dynamic a pandas.DataFrame whose columns are the same keys, one row per time step. This page lists every key the five released families return with th..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:22:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -293,7 +293,7 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_clamped</span></code></p></td>
 <td><p>all</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the request was met (and on an off or failed row); <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when it was below the minimum-speed duty (the row is then the on/off mean, see <em>Request, capacity and part load</em>; ASHP and the boilers’ <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> also when it was below the smallest duty the envelope’s efficiency floor admits); <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> when the unit delivers less than asked.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the request was met (and on an off or failed row); <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when it was below the minimum-speed duty (the row is then the on/off mean, see <em>Request, capacity and part load</em>; ASHP and the boilers’ <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> also when it was below the smallest duty the compressor envelope admits, where the discharge-temperature limit or the efficiency floor refuses lower speeds); <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> when the unit delivers less than asked.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p></td>
 <td><p>all</p></td>
@@ -367,7 +367,7 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
-<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> row, the duty of continuous operation at the minimum speed (or at the smallest duty the envelope’s efficiency floor admits, where that is larger). NaN otherwise.</p></td>
+<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> row, the duty of continuous operation at the minimum speed (or at the smallest duty the compressor envelope admits, where that is larger: the discharge-temperature limit or the efficiency floor refuses the speeds below it). NaN otherwise.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PLR_request</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHPB (s)</p></td>

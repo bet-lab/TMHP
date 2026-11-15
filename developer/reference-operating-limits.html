@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-11-15T08:54:42+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:22:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -768,7 +768,11 @@ if one carries the duty; otherwise the capacity search returns the largest
 deliverable duty with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and
 <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;discharge_temperature&quot;</span></code>. With no deliverable duty
 the result is the off state with
-<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;discharge_temp_above_max&quot;</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;discharge_temp_above_max&quot;</span></code> – unless (ASHP) the
+request is only too <em>small</em>: refused at low speed, where the efficiency
+falls and the discharge runs hotter, while a larger duty runs. It is then
+met by on/off cycling at the smallest duty that runs
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>), as described for the boilers below.</p>
 <p>ASHP decides both questions at the <strong>least-lift point</strong> of a duty — both
 coils at their largest airflow, the smallest pressure ratio and the coolest
 discharge at which the duty is delivered
@@ -813,20 +817,35 @@ when the returned point already runs at it), then the limit the next larger
 duty ran into (<code class="docutils literal notranslate"><span class="pre">compressor_envelope._reduced_binding</span></code>; see
 <a class="reference internal" href="../concepts/failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>), <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>. If none runs the off state carries the request’s own
-reason – except a request the efficiency floor refuses, which is then tried
-at <em>larger</em> duties (<a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.raise_duty_within_envelope()</span></code></a>:
-5 to 200 % of the nameplate from the bottom, the boundary bisected to
-0.5 %): the fit falls below its floor towards low speed, so the smallest
-duty that runs is the lower end of continuous operation, returned with
-<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code> and averaged over the on/off period like a
-minimum-speed row (<code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is that duty). The search stops, and the
-request keeps its reason, when a larger duty is refused for another limit
-before one runs. The limits are not monotone in the duty together: above the duties
+reason – except a request refused from <em>below</em>, by the discharge limit or
+the efficiency floor, which is then tried at <em>larger</em> duties
+(<a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.raise_duty_within_envelope()</span></code></a>: 5 to 200 % of
+the nameplate from the bottom, the boundary bisected to 0.5 %). At a large
+lift the shipped fit falls towards low speed: the discharge runs hotter
+there, past <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> even at <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>, and further down the
+fit drops below its floor. The smallest duty that runs is then the lower
+end of continuous operation, returned with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>
+and averaged over the on/off period like a minimum-speed row
+(<code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is that duty; the loss is the EN 14825 degradation). The
+climb passes the rungs refused for either of the two reasons and ends at
+the first that is not; if that rung is refused as well, by a limit of the
+other side (the pressure ratio, the heat exchanger, the condensing
+temperature), the duties that run lie between it and the rung below and the
+bisection goes by which side refuses the trial (R407C A-15/W55: 7.2 kW,
+between the discharge limit below and the outdoor coil above). The request
+keeps its reason when no duty runs: the two sides meet, or the discharge
+limit holds at every duty (R32 against a 55 °C tank below -6 °C outdoors –
+the discharge is above 150 °C at every speed). Of the 2026-11-15 sweep
+(5,796 boiler points), 73 requests refused for the discharge temperature
+while a larger one ran became cycling rows, at a <code class="docutils literal notranslate"><span class="pre">Q_min</span></code> of 15–84 % of
+the nameplate (median 38 %); the 3,803 rows that ran before are unchanged.
+The limits are not monotone in the duty together: above the duties
 that run the pressure ratio or the heat exchanger refuses, below them the
 discharge temperature does (at low speed the efficiency falls). So when no
 rung runs, two neighbouring rungs refused for different reasons are
 bisected by reason, which finds a running range narrower than the ladder
-spacing (R1234yf A-15/W65: 4.0–5.7 kW of a 15 kW request). Three short
+spacing (R1234yf A-15/W65: 4.0–5.7 kW of a 15 kW request); a trial
+refused for the efficiency floor counts as the lower side there. Three short
 cuts keep “no duty runs” cheap: a request refused by the pressure ratio,
 or by a coil short at full airflow, has its 10 % rung solved first, and if
 that is refused the same way nothing in between is tried (those limits

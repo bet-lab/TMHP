@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP aims at a useful accuracy from a nameplate ( Minimal input), not at reproducing one machine from its drawings. That bargain has a price: some things are outside the models and are refused, and..." />
 
-    <meta property="article:modified_time" content="2026-11-15T11:11:41+00:00" />
+    <meta property="article:modified_time" content="2026-11-15T11:22:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -260,7 +260,9 @@ reduced (<code class="docutils literal notranslate"><span class="pre">capacity_b
 <tr class="row-odd"><td><p>Operation beyond the compressor envelope</p></td>
 <td><p>Condensing above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>, discharge above <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>, a
 pressure ratio above 11, or the shipped isentropic fit below 0.30:
-reduced duty or the off state, never a running row</p></td>
+reduced duty, on/off cycling at the smallest duty inside the envelope
+(a request refused only at low speed), or the off state – never a
+running row outside it</p></td>
 <td><p><a class="reference internal" href="failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>A source loop colder than its liquid allows</p></td>

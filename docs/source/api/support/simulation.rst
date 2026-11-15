@@ -46,6 +46,14 @@ Operating-limit warnings and summaries
     :undoc-members:
     :show-inheritance:
 
+Standard conditions: ``operating_range()``
+==========================================
+
+.. automodule:: tmhp.standard_conditions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Simulation summary tables
 =========================
 

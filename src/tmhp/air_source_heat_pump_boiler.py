@@ -40,7 +40,7 @@ configured through constructor parameters.
 
 import contextlib
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Literal
 
 import numpy as np
@@ -134,6 +134,8 @@ from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
+from .standard_conditions import LEAVING_WATER_TO_TANK_K, StandardCondition
+from .standard_conditions import operating_range as _operating_range
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector, add_uv_power_to_e_tot
 from .thermodynamics import calc_energy_flow
 
@@ -3191,3 +3193,42 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         df["X_eff_ou_fan [-]"] = 1 - df["Xc_ou_fan [W]"] / X_in_ou_fan.replace(0, np.nan)
 
         return df
+
+    # =============================================================
+    # Standard-condition check
+    # =============================================================
+
+    def operating_range(
+        self,
+        conditions: Iterable[StandardCondition] | None = None,
+        *,
+        sink_offset_K: float = LEAVING_WATER_TO_TANK_K,
+    ) -> pd.DataFrame:
+        """Solve standard rating conditions and tabulate whether the heat pump runs at each.
+
+        A check to call before a simulation; it is not made at construction
+        because it solves the cycle at every condition. One row per
+        condition: whether the compressor runs, delivers the request or a
+        reduced duty, or cycles on and off, its ``failure_reason``,
+        ``cop_sys [-]``, and the limit in words. No
+        :class:`~tmhp.OperatingLimitWarning` is issued and the model is not
+        changed.
+
+        Parameters
+        ----------
+        conditions : iterable of StandardCondition, optional
+            Conditions to solve; :data:`tmhp.standard_conditions.AIR_TO_WATER`
+            (A7/W35 ... A-15/W55 at the nameplate duty) when omitted.
+        sink_offset_K : float
+            The tank is solved this far below each condition's leaving water
+            [K]: ``T_tank_w = leaving water - sink_offset_K``. The default
+            2.5 K is the offset of the validation catalogues; 0 solves the
+            tank at the named temperature.
+
+        Returns
+        -------
+        pd.DataFrame
+            Columns :data:`tmhp.standard_conditions.COLUMNS`; see
+            :func:`tmhp.standard_conditions.operating_range`.
+        """
+        return _operating_range(self, "air_to_water", conditions, sink_offset_K=sink_offset_K)

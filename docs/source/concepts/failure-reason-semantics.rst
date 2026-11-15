@@ -569,6 +569,165 @@ named by ``capacity_binding`` (the quoted values marked *binding*).
         approach temperature the search admits.
       - Reduce the request, or enlarge the borefield or its flow.
 
+.. _operating-range:
+
+Checking the standard conditions first: ``operating_range()``
+=============================================================
+
+Before a simulation is set up, ``operating_range()`` asks a machine the
+standard test conditions of its kind and returns one row per condition:
+whether the compressor runs (``runs``), whether it delivers the nameplate
+duty (``meets_request``) or a reduced one (``capacity_clamped == "max"`` with
+its ``capacity_binding``), whether it cycles on and off
+(``runtime_fraction [-]`` below 1), the ``failure_reason`` of a point it does
+not run, its ``cop_sys [-]``, and the limit in the words of the
+:ref:`warnings <operating-limit-warning>` (``limit``). Every family has the
+method and the table has the same columns for all of them
+(``tmhp.standard_conditions.COLUMNS``).
+
+.. code-block:: python
+
+   import tmhp
+
+   hp = tmhp.AirSourceHeatPumpBoiler(ref="R32")
+   table = hp.operating_range()
+   print(table[["condition", "T_tank_w [°C]", "runs", "meets_request", "capacity_binding", "failure_reason"]])
+   for line in table["limit"].dropna():
+       print(line)
+
+The default conditions follow the names and temperatures of EN 14511-2 (rating
+conditions) and EN 14825 (part-load conditions); the ground-loop cooling point
+follows ISO 13256-1. The source side comes first: ``A`` outdoor air (dry bulb),
+``B`` brine and ``W`` water entering the heat pump; then the water leaving it
+(boilers) or the indoor air (space heat pumps). Each is requested at the
+nameplate duty ``hp_capacity``.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 14 30 56
+
+    * - Family
+      - Conditions
+      - Basis
+    * - ASHPB
+      - A7/W35, A2/W35, A-7/W35, A7/W55, A2/W55, A-7/W55, A-10/W55, A-15/W55
+      - EN 14511-2 standard rating (A7/W35, A7/W55) and application rating
+        conditions; A-7 is EN 14825 condition A, A-10 the operation limit of
+        the average climate (``tmhp.standard_conditions.AIR_TO_WATER``)
+    * - ASHP
+      - A7/20, A2/20, A-7/20, A-15/20 (heating); A35/27 (cooling)
+      - EN 14511-2 standard rating (A7/20, A35/27) and application rating
+        conditions (``AIR_TO_AIR``)
+    * - GSHPB
+      - B0/W35, B0/W55, B-5/W45
+      - EN 14511-2 brine-to-water conditions (``BRINE_TO_WATER``)
+    * - WSHPB
+      - W10/W35, W10/W55
+      - EN 14511-2 water-to-water conditions (``WATER_TO_WATER``)
+    * - GSHP
+      - B0/20 (heating), B25/27 (cooling)
+      - EN 14511-2 brine-to-air heating; ISO 13256-1 ground-loop cooling
+        (``BRINE_TO_AIR``)
+
+**Which model input a standard temperature is.** The outdoor air is ``T0``
+and its standard wet bulb, where one is given, the outdoor humidity
+``RH_out`` (the frost correction). The brine or source water entering the heat
+pump is ``T_source`` of GSHPB and WSHPB; GSHP has no such argument (its source
+is the fluid leaving the borefield, the state ``T_bhe_f_out``), so its
+conditions are solved on a shallow copy with ``T_bhe_f_out`` at the brine
+temperature. The indoor air is ``T_a_room``.
+
+The ``W55`` of a boiler condition is the water *leaving* the heat pump, which
+is not an input of the boiler models: their sink is the tank temperature
+``T_tank_w``. The table solves ``T_tank_w = leaving water - sink_offset_K`` with
+``sink_offset_K = 2.5 K``, the offset every air-to-water catalogue of the
+validation set states for where the manufacturer measures, and prints both
+temperatures (``T_load_side [°C]`` and ``T_tank_w [°C]``). Near a limit those
+2.5 K can decide whether a point runs; ``sink_offset_K=0`` solves the tank at
+the named temperature, the stricter case of a tank held at 55 °C:
+
+.. code-block:: python
+
+   import tmhp
+
+   hp = tmhp.AirSourceHeatPumpBoiler(ref="R32")
+   leaving = hp.operating_range()                 # tank 2.5 K below the leaving water
+   tank = hp.operating_range(sink_offset_K=0.0)   # tank at the named temperature
+   print(leaving[["condition", "T_tank_w [°C]", "runs", "failure_reason"]])
+   print(tank[["condition", "T_tank_w [°C]", "runs", "failure_reason"]])
+
+**Part load and other conditions.** A condition is a
+``tmhp.StandardCondition``; ``at_part_load`` asks it at a share of the
+nameplate duty, and a list of one's own replaces the defaults. The ``inputs``
+column holds the keyword arguments each row was solved with, so a row can be
+reproduced with ``hp.analyze_steady(**row["inputs"])``.
+
+.. code-block:: python
+
+   import tmhp
+   from tmhp.standard_conditions import AIR_TO_WATER
+
+   hp = tmhp.AirSourceHeatPumpBoiler()
+   mine = tmhp.StandardCondition("A-2/W45", "heating", -2.0, 45.0, outdoor_wet_bulb_C=-3.0)
+   table = hp.operating_range([AIR_TO_WATER[0].at_part_load(0.3), mine])
+   row = table.iloc[0]
+   print(row["Q_request [W]"], row["runtime_fraction [-]"], row["cop_sys [-]"])
+
+**Quiet, and the model is unchanged.** The solves issue no
+``OperatingLimitWarning`` (the ``limit`` column is the text a warning would
+carry), they do not use up the once-per-model notice of a later
+``analyze_steady`` call, and they leave the model's state as it was.
+
+**Why it is a method and not part of construction.** It solves the cycle at
+every condition, which costs far more than building an air-source model.
+Measured on an Apple-silicon Mac, each in a fresh process, median of three
+(2026-11-15; other jobs shared the machine, so read them as orders of
+magnitude):
+
+.. list-table::
+    :header-rows: 1
+    :widths: 30 14 20 20 16
+
+    * - Model (default constructor)
+      - Conditions
+      - Construction
+      - ``operating_range()``
+      - Ratio
+    * - ASHPB (R134a)
+      - 8
+      - 5.5 ms
+      - 0.30 s
+      - 54 ×
+    * - ASHPB, ``ref="R32"``
+      - 8
+      - 3.9 ms
+      - 0.53 s
+      - 135 ×
+    * - ASHP
+      - 5
+      - 2.4 ms
+      - 0.08 s
+      - 33 ×
+    * - GSHPB
+      - 3
+      - 203 ms
+      - 0.013 s
+      - 0.06 ×
+    * - WSHPB
+      - 2
+      - 7.2 ms
+      - 0.009 s
+      - 1.2 ×
+    * - GSHP
+      - 2
+      - 193 ms
+      - 0.013 s
+      - 0.07 ×
+
+The air-source models would be built 30 to 140 times more slowly, and a sweep
+that builds a model per point would pay that every time, for a check most
+callers make once.
+
 What triggers each value
 ========================
 

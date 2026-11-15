@@ -83,15 +83,20 @@ Common to all families
         ``T_dis_max=None`` switches the check off) even under the
         discharge-temperature control (suction superheat down to 0 K, then
         wet suction down to ``x_suction_min``, default 0.9), at every duty the
-        model tried: the request and, when it is above the limit, smaller
-        duties down to the speed floor. A request that a *smaller* duty meets is
-        not a failure: it returns that duty with ``capacity_clamped ==
-        "max"`` and ``capacity_binding == "discharge_temperature"``. A
-        dynamic boiler step does the same: it runs at the reduced duty (its
-        run time and step-average heat follow from it) and is an off step
-        with this reason only when no duty fits. The other limits a smaller
-        duty cures are answered the same way (see *A request above a limit*
-        below).
+        model tried: the request, smaller duties down to the speed floor
+        and, for ASHP and the boilers' ``analyze_steady``, larger ones. A
+        request that a *smaller* duty meets is not a failure: it returns that
+        duty with ``capacity_clamped == "max"`` and ``capacity_binding ==
+        "discharge_temperature"``. A dynamic boiler step does the same: it
+        runs at the reduced duty (its run time and step-average heat follow
+        from it) and is an off step with this reason only when no duty fits.
+        The other limits a smaller duty cures are answered the same way (see
+        *A request above a limit* below). Nor is a request that is only too
+        *small* a failure (at a large lift the efficiency falls towards low
+        speed and the discharge runs hotter there, while a larger duty runs):
+        it is met by on/off cycling at the smallest duty the envelope admits
+        (``capacity_clamped == "min"``; ASHP and the boilers'
+        ``analyze_steady``).
       - No — only off-mode placeholders (``E_cmp = 0``,
         ``Q_ref_tank = 0``).
     * - ``condensing_temp_above_max``
@@ -121,7 +126,8 @@ Common to all families
         ``analyze_steady``) do not report it for a request that is only too
         *small* (the fit falls below the floor towards low speed while a
         larger duty runs): that request is met by on/off cycling at the
-        smallest duty the envelope admits (``capacity_clamped == "min"``).
+        smallest duty the envelope admits (``capacity_clamped == "min"``),
+        like one the discharge limit refuses there.
       - No — only off-mode placeholders.
 
 Liquid-source families (GSHP, GSHPB, WSHPB)
@@ -661,7 +667,9 @@ the recommended lever to pull when you hit each one.
     The solved operating point (boilers) or every candidate the search
     tried (ASHP, GSHP) discharges above ``T_dis_max`` even with the suction
     superheat at 0 K and the suction quality at ``x_suction_min``, and no
-    smaller duty brings it inside. A point the control *does* hold runs with
+    smaller duty brings it inside -- nor a larger one (ASHP and the boilers'
+    ``analyze_steady``: a request refused only at low speed is met by cycling
+    at the smallest duty that runs). A point the control *does* hold runs with
     ``discharge_control == True``; its ``dT_ref_superheat [K]`` and
     ``x_ref_cmp_in [-]`` say how. The defaults are compressor protection settings
     (:mod:`tmhp.compressor_envelope`). With the default efficiency map this

@@ -2957,10 +2957,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
               not an operating point, see
               :func:`tmhp.dynamic_context.unphysical_cycle_detail`),
               ``"pr_above_max"`` (pressure-ratio ceiling),
-              ``"discharge_temp_above_max"`` (even a reduced duty exceeds
+              ``"discharge_temp_above_max"`` (every duty tried exceeds
               ``T_dis_max``; a request above the limit that a smaller duty
               meets returns that duty with ``capacity_clamped="max"`` and
-              ``capacity_binding="discharge_temperature"``),
+              ``capacity_binding="discharge_temperature"``, and one refused
+              only at low speed while a larger duty runs is met by on/off
+              cycling at the smallest duty that runs,
+              ``capacity_clamped="min"``),
               ``"condensing_temp_above_max"`` (the same for the condensing
               limit ``T_cond_max``: the tank is too hot for any duty; a
               reduced duty reports ``capacity_binding="condensing_temperature"``),

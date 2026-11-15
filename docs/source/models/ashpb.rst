@@ -123,22 +123,41 @@ outdoor approach with the fan at its lowest flow, a running-machine COP of
 4.27 where the floor offers 5.29.
 
 The minimum speed is not always the lower end of continuous operation. At a
-large lift the shipped isentropic-efficiency fit, read below its data, falls
-under the envelope's floor (``ETA_ISEN_MIN`` = 0.30,
-:doc:`../developer/reference-operating-limits`) before ``rps_min`` is reached:
-the default 15 kW R290 unit at −7 °C outdoors against a 65 °C tank runs down
-to about 3.8 kW (frost-free) and no further, R134a at −15 °C against 40 °C to
-2.5 kW. A request below that duty was answered with the unit switched off
-(``failure_reason == "eta_isen_below_min"``) while a larger one ran. It is now
-met the same way as one below the minimum speed, and as :doc:`ashp` does: the
-unit cycles at the smallest duty the envelope admits. The row has
-``capacity_clamped == "min"``, ``Q_min [W]`` is that duty (found by bisection
-on the duty, to 0.5 %; the same for every request below it), and the
-compressor speed of the row is above ``rps_min``. With ``Cd_cycling=None`` the
-row is that continuous point, which delivers more than the request.
-``eta_isen_below_min`` remains the reason where no larger duty runs either, or
-another limit refuses a larger duty first. A dynamic step is not affected: its
-thermostat runs the compressor at the nameplate duty.
+large lift the shipped isentropic-efficiency fit falls towards low speed, and
+the compressor envelope (:doc:`../developer/reference-operating-limits`)
+refuses the point before ``rps_min`` is reached: first for the discharge
+temperature, which the falling efficiency drives above ``T_dis_max`` even with
+the discharge-temperature control used up, then for the fit's own floor
+(``ETA_ISEN_MIN`` = 0.30). The default 15 kW R134a unit at −7 °C outdoors
+against a 55 °C tank runs down to about 4.7 kW (frost-free, 39 rev/s) and no
+further; R290 at −7 °C against 65 °C to 3.8 kW, R410A at −15 °C against 55 °C
+to 12.7 kW. A request below that duty was answered with the unit switched off
+(``failure_reason == "discharge_temp_above_max"`` or ``"eta_isen_below_min"``)
+while a larger one ran. It is met the same way as one below the minimum speed,
+and as :doc:`ashp` does: the unit cycles at the smallest duty the envelope
+admits. The row has ``capacity_clamped == "min"``, ``Q_min [W]`` is that duty
+(found by bisection on the duty, to 0.5 %; the same for every request below
+it), and the compressor speed of the row is above ``rps_min``. The mean
+carries the EN 14825 degradation like any other cycling row
+(``runtime_fraction [-]``, ``E_cycling_loss [W]``), so its COP is never above
+that of the continuous point it cycles at. With ``Cd_cycling=None`` the row is
+that continuous point, which delivers more than the request.
+
+The smallest duty is used, not a more efficient larger one: the request just
+above it is met in continuous operation there, so the result has no step at
+the boundary, and a unit that cycles runs as long as its protections let it.
+Where that duty is a large share of the nameplate (84 % for R410A above) the
+unit is off for most of the time at small loads; ``runtime_fraction [-]``
+says how much.
+
+The two reasons remain where no duty runs at all: the limits that refuse the
+duty from above (the pressure ratio, the outdoor coil, the condensing
+temperature, the discharge temperature itself at a larger lift) meet the ones
+from below. The default R32 unit against a 55 °C tank is such a case below
+−6 °C outdoors: its discharge is above 150 °C at every speed (at −7 °C the
+coolest candidate is 163 °C at 16 rev/s and 165 °C at 58 rev/s), so there is
+no duty to cycle at. A dynamic step is not affected: its thermostat runs the
+compressor at the nameplate duty.
 
 ``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
 for an untested unit), ``1 − P_off / P_on`` for a unit with a measured standby

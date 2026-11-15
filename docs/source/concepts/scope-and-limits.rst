@@ -61,7 +61,9 @@ named in ``capacity_binding``.
     * - Operation beyond the compressor envelope
       - Condensing above ``T_cond_max``, discharge above ``T_dis_max``, a
         pressure ratio above 11, or the shipped isentropic fit below 0.30:
-        reduced duty or the off state, never a running row
+        reduced duty, on/off cycling at the smallest duty inside the envelope
+        (a request refused only at low speed), or the off state -- never a
+        running row outside it
       - :doc:`failure-reason-semantics`
     * - A source loop colder than its liquid allows
       - The loop liquid is never colder than its freezing point plus 3 K

@@ -556,7 +556,11 @@ How each family answers a point the control cannot hold:
   deliverable duty with ``capacity_clamped == "max"`` and
   ``capacity_binding == "discharge_temperature"``. With no deliverable duty
   the result is the off state with
-  ``failure_reason == "discharge_temp_above_max"``.
+  ``failure_reason == "discharge_temp_above_max"`` -- unless (ASHP) the
+  request is only too *small*: refused at low speed, where the efficiency
+  falls and the discharge runs hotter, while a larger duty runs. It is then
+  met by on/off cycling at the smallest duty that runs
+  (``capacity_clamped == "min"``), as described for the boilers below.
 
   ASHP decides both questions at the **least-lift point** of a duty — both
   coils at their largest airflow, the smallest pressure ratio and the coolest
@@ -598,20 +602,35 @@ How each family answers a point the control cannot hold:
   ``capacity_binding`` naming the limit (see
   :doc:`/concepts/failure-reason-semantics`), ``Q_max [W]`` and
   ``Q_request [W]``. If none runs the off state carries the request's own
-  reason -- except a request the efficiency floor refuses, which is then tried
-  at *larger* duties (:func:`tmhp.compressor_envelope.raise_duty_within_envelope`:
-  5 to 200 % of the nameplate from the bottom, the boundary bisected to
-  0.5 %): the fit falls below its floor towards low speed, so the smallest
-  duty that runs is the lower end of continuous operation, returned with
-  ``capacity_clamped == "min"`` and averaged over the on/off period like a
-  minimum-speed row (``Q_min [W]`` is that duty). The search stops, and the
-  request keeps its reason, when a larger duty is refused for another limit
-  before one runs. The limits are not monotone in the duty together: above the duties
+  reason -- except a request refused from *below*, by the discharge limit or
+  the efficiency floor, which is then tried at *larger* duties
+  (:func:`tmhp.compressor_envelope.raise_duty_within_envelope`: 5 to 200 % of
+  the nameplate from the bottom, the boundary bisected to 0.5 %). At a large
+  lift the shipped fit falls towards low speed: the discharge runs hotter
+  there, past ``T_dis_max`` even at ``x_suction_min``, and further down the
+  fit drops below its floor. The smallest duty that runs is then the lower
+  end of continuous operation, returned with ``capacity_clamped == "min"``
+  and averaged over the on/off period like a minimum-speed row
+  (``Q_min [W]`` is that duty; the loss is the EN 14825 degradation). The
+  climb passes the rungs refused for either of the two reasons and ends at
+  the first that is not; if that rung is refused as well, by a limit of the
+  other side (the pressure ratio, the heat exchanger, the condensing
+  temperature), the duties that run lie between it and the rung below and the
+  bisection goes by which side refuses the trial (R407C A-15/W55: 7.2 kW,
+  between the discharge limit below and the outdoor coil above). The request
+  keeps its reason when no duty runs: the two sides meet, or the discharge
+  limit holds at every duty (R32 against a 55 °C tank below -6 °C outdoors --
+  the discharge is above 150 °C at every speed). Of the 2026-11-15 sweep
+  (5,796 boiler points), 73 requests refused for the discharge temperature
+  while a larger one ran became cycling rows, at a ``Q_min`` of 15--84 % of
+  the nameplate (median 38 %); the 3,803 rows that ran before are unchanged.
+  The limits are not monotone in the duty together: above the duties
   that run the pressure ratio or the heat exchanger refuses, below them the
   discharge temperature does (at low speed the efficiency falls). So when no
   rung runs, two neighbouring rungs refused for different reasons are
   bisected by reason, which finds a running range narrower than the ladder
-  spacing (R1234yf A-15/W65: 4.0--5.7 kW of a 15 kW request). Three short
+  spacing (R1234yf A-15/W65: 4.0--5.7 kW of a 15 kW request); a trial
+  refused for the efficiency floor counts as the lower side there. Three short
   cuts keep "no duty runs" cheap: a request refused by the pressure ratio,
   or by a coil short at full airflow, has its 10 % rung solved first, and if
   that is refused the same way nothing in between is tried (those limits

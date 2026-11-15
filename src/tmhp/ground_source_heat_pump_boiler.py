@@ -2566,7 +2566,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     # =============================================================
 
     def step(self, state, inputs: dict, dt_s: float):
-        """Reject point-state stepping — GSHPB is history-dependent (#165 P0b).
+        """Reject point-state stepping — GSHPB is history-dependent.
 
         ``_compute_bhe_superposition`` reads the *entire* past borehole
         load-pulse history each timestep, so a point-state ``step()`` kernel

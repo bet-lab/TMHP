@@ -35,7 +35,7 @@ import pytest
 from scipy.optimize import bisect, brentq, minimize_scalar
 
 import tmhp
-from tmhp import _opt_utils, heat_exchanger, refrigerant
+from tmhp import compressor_efficiency, heat_exchanger, refrigerant
 from tmhp._opt_utils import efficiency_evaluator
 from tmhp.compressor_efficiency import (
     InvalidCompressorEfficiency,
@@ -227,7 +227,7 @@ def test_the_call_form_of_a_model_is_inspected_once(counted_signatures):
         evaluate = efficiency_evaluator(model)
         assert evaluate(3.0, 40.0) == 0.7
     assert counted_signatures == [model]
-    assert model in _opt_utils._TAKES_SPEED
+    assert model in compressor_efficiency._TAKES_SPEED
 
 
 def test_the_call_form_cache_does_not_keep_a_model_alive():

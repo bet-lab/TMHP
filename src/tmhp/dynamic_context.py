@@ -151,7 +151,7 @@ class ControlState:
 
 @dataclass
 class DynamicState:
-    """Carried state threaded across ``step()`` calls (#165 P0).
+    """Carried state threaded across ``step()`` calls.
 
     This is exactly the state that ``analyze_dynamic`` used to hold in
     loop-locals (``T_tank_w_K``, ``tank_level``, ``is_refilling``,

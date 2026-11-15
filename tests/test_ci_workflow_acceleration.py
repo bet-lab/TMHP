@@ -141,7 +141,7 @@ def test_coverage_job_enforces_a_floor() -> None:
     covered = [command for command in _pytest_options(_job("test")) if command.cov]
     assert len(covered) == 1
     assert covered[0].cov_fail_under is not None
-    assert float(covered[0].cov_fail_under) >= 70
+    assert float(covered[0].cov_fail_under) >= 88
 
 
 def test_local_ci_script_enforces_the_same_coverage_floor() -> None:

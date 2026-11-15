@@ -1,4 +1,4 @@
-"""FMI 2.0 co-simulation FMU wrapping the tmhp ASHPB ``step()`` kernel (#165 P1).
+"""FMI 2.0 co-simulation FMU wrapping the tmhp ASHPB ``step()`` kernel.
 
 The slave advances :class:`~tmhp.AirSourceHeatPumpBoiler` one communication
 step at a time through the public ``step()`` seam, so any FMI master (fmpy,

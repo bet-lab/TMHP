@@ -196,6 +196,7 @@ from scipy.optimize import brentq
 
 from . import calc_util as cu
 from .compressor_efficiency import efficiency_extrapolated
+from .compressor_speed import CAPACITY_CLAMPED_MAX
 from .operating_limits import OperatingLimitWarning
 from .refrigerant import _props
 
@@ -227,6 +228,7 @@ __all__ = [
     "BINDING_HEAT_EXCHANGER",
     "BINDING_EFFICIENCY",
     "BINDING_CYCLE",
+    "BINDING_COMPRESSOR",
     "CYCLE_KEY",
     "duty_reduction_binding",
     "default_discharge_temp_max",
@@ -294,6 +296,8 @@ BINDING_HEAT_EXCHANGER = "source_heat_exchanger"
 BINDING_EFFICIENCY = "compressor_efficiency"
 #: ``capacity_binding``: the next larger duty has no valid cycle, for a reason none of the above names.
 BINDING_CYCLE = "cycle"
+#: ``capacity_binding``: the compressor runs at its speed ceiling (``rps_max``).
+BINDING_COMPRESSOR = "compressor"
 
 #: Default discharge-temperature limit by refrigerant [degC]; see the module docstring.
 DISCHARGE_TEMP_MAX_C: Mapping[str, float] = {"R32": 150.0}
@@ -1233,7 +1237,7 @@ def _annotate(model: Any, result: dict) -> None:
     result.setdefault(CONTROL_KEY, False)
     if _running(result) and result.get("capacity_clamped") == "max" and "capacity_binding" not in result:
         # The boilers reach their ceiling only through the speed bound.
-        result["capacity_binding"] = "compressor"
+        result["capacity_binding"] = BINDING_COMPRESSOR
 
 
 def _reduce_to_envelope(
@@ -1328,6 +1332,36 @@ def _reduce_to_envelope(
     if not (math.isfinite(delivered) and delivered < request):
         return None, None
     return lo_r, hi_r
+
+
+def _reduced_binding(
+    model: Any, reduced: Mapping[str, Any], above: Mapping[str, Any], bindings: Mapping[str, str] | None
+) -> str:
+    """``capacity_binding`` of a reduced point: the limit active *at that point*.
+
+    ``reduced`` is the running point returned, ``above`` the failed trial just
+    above it (or the refused request). The name is what bounds the delivered
+    duty of ``reduced``, not where the duty search stopped, so every request
+    that lands on the same operating point reports the same limit. When more
+    than one limit is active at the point, the first of these names it:
+
+    1. ``"pressure_ratio"`` -- the point sits on ``PR_cycle_max`` (the source
+       heat exchanger may ask for a larger approach than the ceiling leaves,
+       so the next larger duty is refused for the exchanger);
+    2. ``"compressor"`` -- the point's own solve already ran at the speed
+       ceiling (``capacity_clamped='max'``, ``rps_max``): every larger duty
+       asked for delivers this same point, so a refusal further up the duty
+       search is a property of the request, not of the point (the family's
+       own binding is kept when its solve set one);
+    3. the limit the next larger duty ran into
+       (:func:`duty_reduction_binding`, ``"cycle"`` when none names it) --
+       the duty search closed on that limit's boundary.
+    """
+    if _on_pressure_ratio_ceiling(model, reduced):
+        return BINDING_PRESSURE_RATIO
+    if reduced.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
+        return cast(str, reduced.get("capacity_binding") or BINDING_COMPRESSOR)
+    return duty_reduction_binding(above, bindings) or BINDING_CYCLE
 
 
 def _on_pressure_ratio_ceiling(model: Any, result: Mapping[str, Any]) -> bool:
@@ -1491,7 +1525,9 @@ def reduce_duty_within_envelope(
     duties are tried
     (:func:`_reduce_to_envelope`) and the largest that runs is returned with
     ``capacity_clamped='max'``, ``Q_max [W]``, ``Q_request [W]`` and
-    ``capacity_binding`` naming the limit the next larger duty tried ran into;
+    ``capacity_binding`` naming the limit active at that point
+    (:func:`_reduced_binding`: the pressure-ratio ceiling, then the speed
+    ceiling, then the limit the next larger duty tried ran into);
     otherwise ``result`` is returned. The boilers use it for
     ``analyze_steady`` (:func:`steady_envelope`) and for each dynamic step's
     cycle, so a step runs at the same reduced duty as the steady solve -- its
@@ -1565,12 +1601,7 @@ def reduce_duty_within_envelope(
             refused["failure_reason"] = CONDENSING_TEMP_ABOVE_MAX
             return refused
         return result
-    binding = duty_reduction_binding(above if above is not None else result, bindings) or BINDING_CYCLE
-    if _on_pressure_ratio_ceiling(model, reduced):
-        # The source heat exchanger asks for a larger approach than the
-        # pressure-ratio ceiling leaves it: the next larger duty is refused
-        # for the exchanger, but the point returned sits on the ceiling.
-        binding = BINDING_PRESSURE_RATIO
+    binding = _reduced_binding(model, reduced, above if above is not None else result, bindings)
     reduced.update(
         {
             "capacity_clamped": "max",

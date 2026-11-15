@@ -599,7 +599,10 @@ How each family answers a point the control cannot hold:
   (:func:`tmhp.compressor_envelope.duty_reduction_binding`) -- is retried at
   80/60/40/25/10 % and the boundary is bisected to 1 % of the request; the
   largest duty that runs is returned with ``capacity_clamped == "max"``,
-  ``capacity_binding`` naming the limit (see
+  ``capacity_binding`` naming the limit active at that point -- the
+  pressure-ratio ceiling, then the speed ceiling ``rps_max`` (``"compressor"``,
+  when the returned point already runs at it), then the limit the next larger
+  duty ran into (``compressor_envelope._reduced_binding``; see
   :doc:`/concepts/failure-reason-semantics`), ``Q_max [W]`` and
   ``Q_request [W]``. If none runs the off state carries the request's own
   reason -- except a request refused from *below*, by the discharge limit or

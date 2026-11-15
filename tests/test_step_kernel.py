@@ -1,4 +1,4 @@
-"""P0 regression suite for the public step() kernel (#165).
+"""Regression suite for the public ASHPB step() kernel.
 
 Verification strategy (TDD characterization gate):
 

@@ -1,8 +1,8 @@
 {
   "units": 17,
   "points": 757,
-  "points_evaluated": 719,
-  "cop_mape_pct": 15.04,
+  "points_evaluated": 711,
+  "cop_mape_pct": 14.84,
   "refrigerants": [
     "R290",
     "R32",
@@ -24,12 +24,12 @@
       "status": "adopted",
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 72,
-      "points_usable": 71,
-      "cop_MAE": 0.6916367664801335,
-      "cop_MAPE_pct": 13.64149204064468,
-      "cop_max_APE_pct": 23.152410457981254,
-      "power_MAPE_pct": 15.610886395648237,
-      "cop_bias_pct": -10.25458522425776
+      "points_usable": 70,
+      "cop_MAE": 0.5680553111222296,
+      "cop_MAPE_pct": 11.96056282718402,
+      "cop_max_APE_pct": 29.705927167742963,
+      "power_MAPE_pct": 12.842240444823464,
+      "cop_bias_pct": -7.288176720489622
     },
     {
       "slug": "daikin_rxm25a",
@@ -43,11 +43,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 72,
       "points_usable": 72,
-      "cop_MAE": 0.6311075668215919,
-      "cop_MAPE_pct": 12.606092030924152,
-      "cop_max_APE_pct": 21.9311927106794,
-      "power_MAPE_pct": 14.407659417237962,
-      "cop_bias_pct": -9.714414283559108
+      "cop_MAE": 0.5139907123365721,
+      "cop_MAPE_pct": 11.013288749216834,
+      "cop_max_APE_pct": 27.694785427707092,
+      "power_MAPE_pct": 11.760506525238286,
+      "cop_bias_pct": -6.240972282040074
     },
     {
       "slug": "daikin_rxm35a",
@@ -61,11 +61,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 72,
       "points_usable": 72,
-      "cop_MAE": 0.4147111744470125,
-      "cop_MAPE_pct": 8.868618107412622,
-      "cop_max_APE_pct": 17.507969828017767,
-      "power_MAPE_pct": 9.653492318506885,
-      "cop_bias_pct": -6.703144655735382
+      "cop_MAE": 0.3300693593462338,
+      "cop_MAPE_pct": 7.498269221116295,
+      "cop_max_APE_pct": 17.36433324244408,
+      "power_MAPE_pct": 7.64074251403065,
+      "cop_bias_pct": -4.181717992104699
     },
     {
       "slug": "daikin_rxm42a",
@@ -79,11 +79,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 72,
       "points_usable": 72,
-      "cop_MAE": 0.2236662875137959,
-      "cop_MAPE_pct": 5.297222112524799,
-      "cop_max_APE_pct": 12.236296258551835,
-      "power_MAPE_pct": 5.301641924934938,
-      "cop_bias_pct": -3.234016109412766
+      "cop_MAE": 0.1685185871364222,
+      "cop_MAPE_pct": 4.295562905738738,
+      "cop_max_APE_pct": 15.921838336717482,
+      "power_MAPE_pct": 4.127030978857773,
+      "cop_bias_pct": -1.9571900668032176
     },
     {
       "slug": "daikin_rxm50a",
@@ -97,11 +97,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 72,
       "points_usable": 72,
-      "cop_MAE": 0.1037789334685537,
-      "cop_MAPE_pct": 3.0319071084774696,
-      "cop_max_APE_pct": 11.7120588266575,
-      "power_MAPE_pct": 2.999117089769719,
-      "cop_bias_pct": 0.2482434759788211
+      "cop_MAE": 0.1308107623799572,
+      "cop_MAPE_pct": 4.04305378946027,
+      "cop_max_APE_pct": 18.194887174930976,
+      "power_MAPE_pct": 3.8816911863530734,
+      "cop_bias_pct": 2.6022354149066538
     },
     {
       "slug": "fujitsu_asuh09lpas",
@@ -114,12 +114,12 @@
       "status": "hold",
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 122,
-      "points_usable": 112,
-      "cop_MAE": 1.1595702580352687,
-      "cop_MAPE_pct": 29.661865420307688,
-      "cop_max_APE_pct": 76.76918893157654,
-      "power_MAPE_pct": 20.808092208661776,
-      "cop_bias_pct": 27.97133526012586
+      "points_usable": 109,
+      "cop_MAE": 1.1961648062582702,
+      "cop_MAPE_pct": 30.432600895884445,
+      "cop_max_APE_pct": 81.53657237868066,
+      "power_MAPE_pct": 21.2912133499576,
+      "cop_bias_pct": 29.62283356668186
     },
     {
       "slug": "fujitsu_asuh12lpas",
@@ -132,12 +132,12 @@
       "status": "hold",
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 122,
-      "points_usable": 116,
-      "cop_MAE": 1.2984483921428347,
-      "cop_MAPE_pct": 28.162834177757578,
-      "cop_max_APE_pct": 54.5515564651669,
-      "power_MAPE_pct": 21.16199480752747,
-      "cop_bias_pct": 28.00248713681323
+      "points_usable": 112,
+      "cop_MAE": 1.4223883305201692,
+      "cop_MAPE_pct": 30.15439153943473,
+      "cop_max_APE_pct": 61.86437835740244,
+      "power_MAPE_pct": 22.37212397056365,
+      "cop_bias_pct": 29.873789797737807
     },
     {
       "slug": "panasonic_wh_mxc09j3e8",
@@ -313,11 +313,11 @@
       "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
       "points": 15,
       "points_usable": 9,
-      "cop_MAE": 0.5853851007086274,
-      "cop_MAPE_pct": 10.48029590112573,
-      "cop_max_APE_pct": 20.113163669526845,
-      "power_MAPE_pct": 12.188412675210976,
-      "cop_bias_pct": -8.604456411950343
+      "cop_MAE": 0.4366384227320979,
+      "cop_MAPE_pct": 7.571336585506929,
+      "cop_max_APE_pct": 16.36831333447072,
+      "power_MAPE_pct": 8.615305561811226,
+      "cop_bias_pct": -7.161556899825866
     }
   ]
 }

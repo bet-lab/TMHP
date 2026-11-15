@@ -10,7 +10,7 @@
   "docs/source/_static/dynamic_24h_timeseries.svg"
  ],
  "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "git_head": "2c630e9c9111843384b9aad24c0bad58db5fa6f9",
+ "git_head": "ff58ce72ebd553588402e7cf9c6252092ad8c4c5",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -20,17 +20,17 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "2e53cfea907d1e8067dd6a959fc8c34ed023550a",
- "validation_parity_tree": "a1cfee06702656e5516c0d9e9d0ca94a31797e30",
+ "src_tmhp_tree": "59323e093d9e5abe90d87d6dda4726008c70fe54",
+ "validation_parity_tree": "e4b0f338e69b339375ceda59bfc03f99871faa59",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-14T06:44:07+00:00",
+ "run_at": "2026-11-15T12:32:36+00:00",
  "data": {
-  "Q_ref_tank_kWh": 39.805185314162784,
-  "E_cmp_kWh": 14.114113222156075,
-  "E_tot_kWh": 14.652036338418938,
-  "T_tank_w_end_C": 56.75993862155059,
+  "Q_ref_tank_kWh": 39.805185314148524,
+  "E_cmp_kWh": 13.762077187230371,
+  "E_tot_kWh": 14.153848736433943,
+  "T_tank_w_end_C": 56.75993862146089,
   "hp_on_steps": 170
  }
 }

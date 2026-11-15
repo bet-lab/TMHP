@@ -1520,13 +1520,24 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         best_x0 = [de, dc]
 
         # Phase 2: Nelder-Mead refinement from the best candidate found above.
+        #
+        # The iteration cap is a guard against a search that does not end, not
+        # a tolerance: a refinement stopped by it reports ``success=False`` and
+        # the point is then answered as ``optimizer_failed`` with the unit off.
+        # Where the least-power point is the least-lift point itself -- both
+        # fans at their largest airflow, a corner of the feasible set -- the
+        # simplex contracts against the infeasible side and needs 200 to 450
+        # iterations to reach ``xatol``; a cap of 200 switched such a unit off
+        # 5e-5 of its input away from the answer (Daikin RXM42A, 40/32 degC,
+        # 4.49 kW with the catalogue outdoor airflow). A refinement that ends
+        # inside the cap is not affected by its value.
         def refine(x0) -> OptimizeResult:
             return minimize(
                 _objective,
                 x0=x0,
                 bounds=[self.dT_approach_bounds, self.dT_approach_bounds],
                 method="Nelder-Mead",
-                options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
+                options={"maxiter": self._REFINE_MAXITER, "xatol": 1e-3, "fatol": 1e-1},
             )
 
         seed_val = _objective(seed) if seed is not None else OBJ_INFEASIBLE
@@ -1921,6 +1932,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: point replaces the one from the pre-scan (the refinements stop at 0.1 W,
     #: about 2e-4 of a typical input).
     _SEED_GAIN = 1e-3
+    #: Iteration cap of the Nelder-Mead refinement in :meth:`_optimize_operation`.
+    _REFINE_MAXITER = 1000
     #: Starting approaches of :meth:`_largest_airflow_point`, as fractions of the bounds' span.
     _LEAST_LIFT_STARTS: tuple[float, ...] = (0.0, 0.1, 0.2, 0.35, 0.55)
     #: The same for the least-lift point used as a starting point of the search.

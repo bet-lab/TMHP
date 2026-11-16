@@ -37,9 +37,9 @@ rotary discharge temperatures; archive ``split``, form F)::
 ``eta_inv`` is the drive efficiency (Ossorio inverter data) and
 ``eta_em = eta_oi + f (1 - eta_oi)`` the motor and mechanical part, so
 ``eta_cmp_isen * eta_em = eta_oi``. Both lie in (0, 1] for any ``eta_oi`` in
-(0, 1] and ``f`` in [0, 1]: the forms are bounded by construction, and outside
-their data they are followed as they are -- nothing is held, clamped or
-refused there. ``eta_cmp_vol`` is the archive's volumetric form. The three
+(0, 1] and ``f`` in [0, 1]. Outside their data the forms are followed as they
+are -- nothing is held, clamped or refused there; the range rule below is the
+only bound. ``eta_cmp_vol`` is the archive's volumetric form. The three
 quantities share the suction state, which the forms need beyond the pressure
 ratio and the speed (:class:`SuctionState`). :class:`SemiEmpiricalCompressor`
 writes the forms out; :func:`default_efficiencies` returns the three models of

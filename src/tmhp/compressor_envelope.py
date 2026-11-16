@@ -172,9 +172,9 @@ Speed (``rps_min`` / ``rps_max``)
     speed itself is solved over ``[rps_min, RATED_SPEED_SEARCH_MAX]``.
 
 Efficiency domain
-    The default efficiency models are bounded forms that are followed as they
-    are outside their (PR, N) data (:mod:`tmhp.compressor_efficiency`); the
-    envelope sets no limit on an efficiency. Steady results carry
+    The default efficiency models are followed as they are outside their
+    (PR, N) data (:mod:`tmhp.compressor_efficiency`); the envelope sets no
+    limit on an efficiency. Steady results carry
     ``efficiency_extrapolated`` so a caller can see a point evaluated outside
     the data hull of a default model.
 """

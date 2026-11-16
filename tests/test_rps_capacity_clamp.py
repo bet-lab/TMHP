@@ -87,8 +87,10 @@ def hp() -> AirSourceHeatPumpBoiler:
 
 def test_default_speed_floor_is_15_rps(hp):
     assert hp.rps_min == 15.0
-    # Derived from the rated speed: min(2 x 34.5, 120) rev/s for this R32 15 kW unit.
-    assert hp.rps_max == pytest.approx(2.0 * hp.rps_rated)
+    # Derived from the rated speed: max(120, 1.5 x 63.3) rev/s for this R32 15 kW unit
+    # (min(2 x 34.5, 120) with the earlier compressor map and speed-ceiling rule).
+    assert hp.rps_max == pytest.approx(max(120.0, 1.5 * hp.rps_rated))
+    assert hp.rps_max == 120.0
 
 
 def test_duty_below_minimum_capacity_returns_that_minimum(hp):

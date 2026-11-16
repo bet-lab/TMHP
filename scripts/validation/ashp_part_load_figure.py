@@ -6,7 +6,7 @@ one. Reads whatever ``validation.analysis.ashp_trend`` last wrote.
 The horizontal axis is the delivered heat as a share of what the same unit
 delivers at the same temperatures at its top speed (``AirSourceHeatPump.max_capacity``),
 not of the nameplate: the nameplate is a label for one rating point and sits
-at 53-72 % of the top-speed capacity at the conditions drawn, so a curve that
+at 53-71 % of the top-speed capacity at the conditions drawn, so a curve that
 stops there shows only part of the speed range. A marker on each curve is where
 the nameplate duty falls. Requests below the unit's speed floor all resolve to
 one operating point, which is where each curve ends on the left.

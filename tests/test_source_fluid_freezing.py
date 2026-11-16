@@ -559,7 +559,16 @@ def test_default_glycol_rows_report_the_fluid_the_limit_was_checked_with(borehol
     eps = -np.expm1(-model.UA_ground / m_cp)
     pump = (df["E_pmp [W]"] / df["runtime_fraction [-]"]).to_numpy()
     q_hx = eps * m_cp * (entering + pump / m_cp - df["T_ref_evap_sat [°C]"].to_numpy())
-    np.testing.assert_allclose(q_hx, q_run + pump, rtol=2e-3)
+    # A step the compressor ran throughout closes to the solver's tolerance (it used to be held to the 2e-3
+    # of the partial step below). A step it ran part of the time is solved on the fluid of the run-time
+    # fraction expected when the cycle is solved, and reports the fluid of the fraction the step ended with:
+    # 0.008 K on a 4 K approach in the dynamic-borehole run (2.0e-3 with the default rotary speed shape,
+    # 1.8e-3 with ``shao_informed``; the control power does not enter), 0.7e-3 with the steady borehole.
+    # The bound for that step was 2e-3; it is a property of the step accounting, not of the limit.
+    partial = (df["runtime_fraction [-]"] < 1.0).to_numpy()
+    assert partial.sum() == 1 and partial[-1]
+    np.testing.assert_allclose(q_hx[~partial], (q_run + pump)[~partial], rtol=2e-5)
+    np.testing.assert_allclose(q_hx[partial], (q_run + pump)[partial], rtol=2.5e-3)
 
 
 def test_gshp_default_glycol_rows_report_the_fluid_of_their_cycle():

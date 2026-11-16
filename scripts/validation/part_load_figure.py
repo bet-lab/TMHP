@@ -112,7 +112,7 @@ SWEEP_CONDITIONS = (
 #: ``entering_water.csv`` and quoted by the page; not drawn.
 ENTERING_WATER_CONDITION = (7.0, 30.0)
 #: Requested heat as a share of the maximum capacity at the same temperatures,
-#: top speed (1.00) down to below the speed floor (0.08; the floor is 13-15 % of
+#: top speed (1.00) down to below the speed floor (0.08; the floor is 13-14 % of
 #: the maximum at these conditions) in steps of 2 %. The nameplate duty is added
 #: as one more request per condition (:func:`sweep_fixed_temperatures`).
 LOAD_FRACTIONS_OF_MAX = tuple(round(1.0 - 0.02 * i, 2) for i in range(47))

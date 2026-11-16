@@ -22,8 +22,18 @@ on, the controls, sensors and communications are live, and the compressor is
 off. It is therefore a **lower bound proxy** for the parasitic power that does
 not vanish at low load. It is used here only to answer one question -- *is the
 real, measured parasitic level big enough to produce the low-load COP
-behaviour that Appendix D showed a fixed 25-50 W would produce?* -- and is
-never adopted as a TMHP coefficient.
+behaviour that Appendix D showed a fixed 25-50 W would produce?* -- and the
+proxy fitted here (``coefficients.json``) is not a TMHP coefficient.
+
+What the library takes from the extraction (later)
+--------------------------------------------------
+The declarations this module extracts (``validation/data/auxiliary_power/``)
+are where the default fixed control power ``E_ctrl`` of the models comes
+from (:mod:`tmhp.control_power`): the median of the two off/standby
+declarations pooled over the air-to-water certificates (15 W) and the median
+``P_TO`` of the air-to-air certificates (12 W). They are read as the draw of
+the electronics of a running unit, with the reservation stated above: a
+compressor-off declaration is a proxy, not a measured ``P_aux,active``.
 
 Variable identification
 -----------------------

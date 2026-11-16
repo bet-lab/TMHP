@@ -193,8 +193,12 @@ All five heat-pump models resolve ``eta_cmp_isen``, ``eta_cmp_vol`` and
 ``eta_cmp`` set to ``None`` to the default models of their
 ``compressor_type`` in :mod:`tmhp.compressor_efficiency` (coefficient set
 ``semi-empirical-2026-11-15``; ``rotary_twin_inverter`` by default,
-``scroll``, ``rotary_single_fixed``). These represent isentropic, volumetric
-and electro-mechanical efficiency, respectively; ``eta_cmp`` includes the
+``scroll``, ``rotary_single_fixed``; the rotary types with the speed shape
+``rotary_speed_variant="ossorio_anchored"`` by default since November 2026,
+``"shao_informed"`` the default before, selected with
+``compressor_type=CompressorSpec("rotary_twin_inverter",
+rotary_speed_variant="shao_informed")``). These represent isentropic,
+volumetric and electro-mechanical efficiency, respectively; ``eta_cmp`` includes the
 drive, so the compressor input is that at the inverter. The defaults are
 called ``model(PR, rps, state)`` with the suction state
 (:class:`tmhp.compressor_efficiency.SuctionState`). Each input also accepts a
@@ -287,7 +291,7 @@ of it.
       - Single-stage scroll hardware limit. Higher ratios are two-stage or
         injection machines. With the present defaults it binds at high lift
         inside the discharge limit (the 15 kW R32 boiler at −20 °C against a
-        60 °C tank is held at 4.3 kW by it). When it was set (2026-11-13, with
+        60 °C tank is held at 4.1 kW by it). When it was set (2026-11-13, with
         the earlier efficiency map) only R134a / R1234yf boiler points at
         PR 11–15.4 reached it inside the discharge limit.
     * - ``rps_max``
@@ -297,11 +301,11 @@ of it.
         the top of variable-speed scroll and rotary ranges and a property of
         the compressor, not of the nameplate
         (:func:`tmhp.compressor_envelope.default_rps_max`); the adopted
-        catalogues run at up to 2.59 × their rated speed (WH-UQ09HE8 at
-        −15 °C / 55 °C, 118 rev/s). A machine rated above 80 rev/s keeps
+        catalogues run at up to 2.52 × their rated speed (WH-UQ09HE8 at
+        −15 °C / 55 °C, 115 rev/s). A machine rated above 80 rev/s keeps
         1.5 × its rated speed, the catalogue maximum-to-rated capacity ratio:
         the default ground-source boiler, rated at B0/W55, is rated at
-        84 rev/s with R290 and 97 with R134a. The former fixed 150 rev/s let
+        84 rev/s with R290 and 102 with R134a. The former fixed 150 rev/s let
         the compressor alone deliver 2.5–5.9 × nameplate. A user value is
         kept.
     * - ``rps_min``
@@ -435,12 +439,14 @@ So at construction (:func:`tmhp.compressor_envelope.limit_tank_setpoints_to_enve
   on the limit, ``T_cond_max`` (as the cycle's bubble point) less
   ``hp_capacity / K_tank_hx`` (``K_tank_hx``: the heat the tank heat
   exchanger carries per kelvin of condensing temperature above the tank
-  water) -- 59.9 °C for R410A, 60.0 °C for R32, 69.9 °C for R290 with the
-  tank heat exchanger of before November 2026 (a 5 K approach, no circulating
-  water);
+  water) -- 57.9 °C for R410A, 58.0 °C for R32, 68.0 °C for R290 with the
+  default plate condenser; 59.9, 60.0 and 69.9 °C with the tank heat exchanger
+  of before November 2026 (a 5 K approach, no circulating water), the machine
+  of the examples in this section;
 * a ``T_tank_w_upper_bound`` above it is replaced by it, and a
   ``T_tank_w_lower_bound`` that is not below it is moved down to keep the
-  width of the band (the ASHPB's 60–65 °C becomes 54.9–59.9 °C with R410A);
+  width of the band (the ASHPB's 60–65 °C becomes 52.9–57.9 °C with R410A,
+  54.9–59.9 °C with the heat exchanger of before);
 * a ``UserWarning`` says what was changed, and
   ``T_tank_w_setpoints_requested`` keeps the values asked for.
 
@@ -508,14 +514,15 @@ cooler oil and walls (Dutta, Yanagisawa & Fukuta, Int. J. Refrig. 24
 (2001) 577--587, for a scroll). No relation between suction quality and
 isentropic efficiency was found that could be applied to an unspecified
 compressor without a new input, so none is applied. The forms see a wet suction
-only through the suction density and the isentropic work they are handed; with
-the default rotary speed shape that keeps the overall isentropic efficiency
-below 0.77 over a grid of evaporating −30 to 10 °C, condensing 35 to 65 °C,
-suction quality 1 to 0.8 and 15 to 120 rev/s (R32, R410A, R290, R134a,
-R1234yf). The non-default shape ``rotary_speed_variant="ossorio_anchored"``
-rises with a wetter suction on the same grid and exceeds one for R1234yf
+only through the suction density and the isentropic work they are handed.
+With the default rotary speed shape (``ossorio_anchored``) the overall
+isentropic efficiency rises with a wetter suction over a grid of evaporating
+−30 to 10 °C, condensing 35 to 65 °C, suction quality 1 to 0.8 and 15 to
+120 rev/s (R32, R410A, R290, R134a, R1234yf), and exceeds one for R1234yf
 (1.06 to 1.09 at quality 0.8, pressure ratio 5.8, 30 rev/s), where the range
-rule sets it to one.
+rule sets it to one; down to the default quality floor of 0.9 it stays below
+one on that grid (at most 0.97, R1234yf). The other shape, ``rotary_speed_variant="shao_informed"``, keeps
+it at or below 0.77 on the same grid.
 
 The size of what is missing, for the default R32 15 kW boiler, if the
 isentropic efficiency fell with the liquid fraction as
@@ -534,31 +541,32 @@ brackets):
       - ``k = 1``
       - ``k = 2``
     * - A−20, tank 60 °C (pressure ratio)
-      - 1.469 (0.954), 4.3 kW
-      - 1.447 (0.947), 4.3 kW
-      - 1.418 (0.938), 4.3 kW
-      - 1.310 (0.901), 4.4 kW
+      - 1.585 (0.972), 4.1 kW
+      - 1.576 (0.969), 4.1 kW
+      - 1.565 (0.966), 4.1 kW
+      - 1.537 (0.955), 4.3 kW
     * - A−20, tank 55 °C (pressure ratio)
-      - 1.712 (0.981), 7.6 kW
-      - 1.705 (0.979), 7.7 kW
-      - 1.691 (0.976), 7.7 kW
-      - 1.648 (0.964), 7.8 kW
+      - 1.692 (0.978), 7.7 kW
+      - 1.685 (0.976), 7.7 kW
+      - 1.677 (0.973), 7.7 kW
+      - 1.651 (0.965), 7.8 kW
     * - A−15, tank 58 °C (speed ceiling)
-      - 1.728 (0.980), 11.2 kW
-      - 1.717 (0.977), 11.2 kW
-      - 1.703 (0.974), 11.3 kW
-      - 1.654 (0.962), 11.3 kW
+      - 1.671 (0.972), 11.3 kW
+      - 1.663 (0.970), 11.3 kW
+      - 1.652 (0.966), 11.3 kW
+      - 1.618 (0.956), 11.4 kW
     * - A−3, tank 58 °C (speed ceiling)
-      - 1.700 (0.990), 12.2 kW
-      - 1.694 (0.988), 12.2 kW
-      - 1.687 (0.987), 12.2 kW
-      - 1.661 (0.981), 12.2 kW
+      - 1.625 (0.980), 12.2 kW
+      - 1.619 (0.978), 12.2 kW
+      - 1.610 (0.976), 12.2 kW
+      - 1.586 (0.968), 12.2 kW
 
-So the COP of a controlled point is high by a few percent at most (3.5 % at
-A−20 against a 60 °C tank for a 10 % efficiency loss at ``x = 0.9``, 0.8 to
-1.4 % where the suction stays at 0.98 to 0.99), and the same points without a
-discharge limit run at ``cop_ref`` 1.430, 1.703, 1.717 and 1.686: the model
-credits wet suction with up to 2.7 % where a real compressor loses. With the
+So the COP of a controlled point is high by a few percent at most (0.9 to
+1.3 % for a 10 % efficiency loss at ``x = 0.9``, 2.5 to 3.3 % for twice that;
+the suction stays at 0.97 to 0.98), and the same points without a discharge
+limit run at ``cop_ref`` 1.521, 1.640, 1.601 and 1.556 (A−15/58 °C then
+delivers 11.9 kW, held by the pressure ratio): the model credits wet suction
+with up to 4.4 % where a real compressor loses. With the
 present defaults the control acts only at large lifts, where the pressure
 ratio ceiling or the speed ceiling already sets the duty, so the penalty does
 not reduce what runs at these points. (In the previous release -- the BITZER
@@ -591,8 +599,10 @@ How each family answers a point the control cannot hold:
   unit then runs at the largest duty below the request whose least-lift point
   is inside (bisected to 0.1 %), ``capacity_binding`` naming the limit the
   next larger duty runs into — also when a still larger duty would run again,
-  which happens because at mid speed the compressor is less efficient and its
-  discharge hotter than flat out. As for ASHPB below, the control also acts
+  which happens where at mid speed the compressor is less efficient and its
+  discharge hotter than flat out (it did with the efficiency map of before
+  November 2026; the present default unit runs every duty up to its ceiling
+  at −25 °C, :doc:`/models/ashp`). As for ASHPB below, the control also acts
   on a candidate whose coils do not carry the cycle, so the coil margins the
   search reads are those of the controlled cycle.
 * **ASHPB outdoor-approach search** — a candidate outside the envelope (after
@@ -625,9 +635,12 @@ How each family answers a point the control cannot hold:
   reason -- except a request refused from *below*, by the discharge limit,
   which is then tried at *larger* duties
   (:func:`tmhp.compressor_envelope.raise_duty_within_envelope`: 5 to 200 % of
-  the nameplate from the bottom, the boundary bisected to 0.5 %). At a large
-  lift the compressor efficiency falls towards low speed: the discharge runs
-  hotter there, past ``T_dis_max`` even at ``x_suction_min``. The smallest
+  the nameplate from the bottom, the boundary bisected to 0.5 %). Where at a
+  large lift the compressor efficiency falls towards low speed, the discharge
+  runs hotter there, past ``T_dis_max`` even at ``x_suction_min``. That is the
+  case with the ``shao_informed`` rotary shape; with the default shape no
+  default boiler case was found (:doc:`/models/ashpb`), and the examples below
+  are of the ``shao_informed`` machine. The smallest
   duty that runs is then the lower end of continuous operation, returned with
   ``capacity_clamped == "min"`` and averaged over the on/off period like a
   minimum-speed row (``Q_min [W]`` is that duty; the loss is the EN 14825
@@ -637,10 +650,14 @@ How each family answers a point the control cannot hold:
   condensing temperature), the duties that run lie between it and the rung
   below and the bisection goes by which side refuses the trial (the 15 kW R32
   boiler at A−20 against a 60 °C tank: 2.1 to 4.3 kW, between the discharge
-  limit below and the pressure-ratio ceiling above). The request keeps its
+  limit below and the pressure-ratio ceiling above; the default boiler runs
+  there from its speed floor, 1.2 kW, to 4.1 kW). The request keeps its
   reason when no duty runs: the two sides meet (the same boiler at A−25
   against a 55 °C tank: the discharge limit refuses the smallest duties and
-  the pressure-ratio ceiling every larger one). Of the 2026-11-15 sweep
+  the pressure-ratio ceiling every larger one). The default boiler still runs
+  at A−25 against 55 °C, on its speed floor (0.99 kW, pressure ratio 10.98),
+  and from A−25.5 no duty runs: the minimum-speed duty itself is above the
+  pressure-ratio ceiling. Of the 2026-11-15 sweep
   (5,796 boiler points, with the efficiency map of then), 73 requests refused
   for the discharge temperature while a larger one ran became cycling rows,
   at a ``Q_min`` of 15--84 % of the nameplate (median 38 %); the 3,803 rows
@@ -652,13 +669,18 @@ How each family answers a point the control cannot hold:
   bisected by reason, which finds a running range narrower than the ladder
   spacing (with the efficiency map of before November 2026, R1234yf
   A-15/W65: 4.0--5.7 kW of a 15 kW request; with the present defaults that
-  request runs at 3.3 kW, held by the pressure ratio). Three short
+  request runs at 3.0 kW, held by the pressure ratio). Three short
   cuts keep "no duty runs" cheap: a request refused by the pressure ratio,
   or by a coil short at full airflow, has its 10 % rung solved first, and if
   that is refused the same way nothing in between is tried (those limits
   only tighten with the duty); a rung at which every approach has the
   compressor on its speed floor ends the ladder (smaller requests are the
-  same cycles); and a request with no cycle at all is not reduced.
+  same cycles); and a request with no cycle at all is not reduced. Next to
+  the speed floor these cuts can end the search although a smaller duty
+  runs: the default 15 kW R32 boiler at A−25 against a 55 °C tank holds
+  requests of 1 to 4 kW at 0.92–0.99 kW (pressure ratio) and cycles a
+  smaller one on its floor, but refuses a request of 4.5 kW or more with
+  ``pr_above_max``.
 * **Boiler dynamic steps** answer the same way. Each step solves its cycle
   once (at the mean tank temperature of its run, see
   :func:`tmhp.dynamic_context.resolve_step_operation`): held by the control

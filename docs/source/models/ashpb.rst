@@ -67,10 +67,10 @@ power averaged over the step; ``min_on_time_s`` / ``min_off_time_s``
 The upper set point has to lie inside the compressor envelope of the
 refrigerant: the cycle condenses at the tank temperature plus the condenser
 approach, and the envelope ends at ``T_cond_max`` (R134a 80 °C, R290 75 °C;
-R410A, R32 and R407C 65 °C, which reach about 60 °C in the tank; see
+R410A, R32 and R407C 65 °C, which reach about 58 °C in the tank; see
 :doc:`/developer/reference-operating-limits`). A band above that is capped at
 construction with a ``UserWarning`` -- the default 60–65 °C becomes
-55–60 °C with R32 or R410A -- and the thermostat stops the heat pump at the
+53–58 °C with R32 or R410A -- and the thermostat stops the heat pump at the
 cap. ``analyze_steady`` against a hotter tank returns a reduced duty
 (``capacity_binding == "condensing_temperature"``) or the off state with
 ``failure_reason == "condensing_temp_above_max"``.
@@ -84,8 +84,9 @@ normal one (``failure_reason == "none"``) with ``hp_stop_reason ==
 elsewhere. Before, a minimum run time carried the tank past the stop by an
 amount that depended on the step, and the run ended in a
 ``condensing_temp_above_max`` step: R32 with ``min_on_time_s=1800`` peaked at
-62.6 °C with 60 s steps and at 65.1 °C with 600 s steps (1.51 against
-1.95 kWh of heat in 2 h); it now stops at 60.0 °C with both (1.055 kWh).
+62.6 °C with 60 s steps and at 65.1 °C with 600 s steps above its stop of
+then, 60 °C (1.51 against 1.95 kWh of heat in 2 h); it now stops at its stop,
+58.0 °C, with both (1.055 kWh).
 Runs without a minimum run time are unchanged. ``ASHPB_PV_ESS``,
 ``ASHPB_STC_preheat`` and ``ASHPB_STC_tank`` inherit the step and behave the
 same (a collector may still heat the tank beyond the stop, up to its own
@@ -124,21 +125,28 @@ returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
 outdoor approach with the fan at its lowest flow, a running-machine COP of
 4.27 where the floor offered 5.29 (with the compressor defaults of then).
 
-The minimum speed is not always the lower end of continuous operation. At a
-large lift the compressor efficiency falls towards low speed, and the
+The minimum speed is not always the lower end of continuous operation. Where
+the compressor efficiency falls towards low speed at a large lift, the
 compressor envelope (:doc:`../developer/reference-operating-limits`) can
 refuse the point before ``rps_min`` is reached, for the discharge
 temperature, which the falling efficiency drives above ``T_dis_max`` even
-with the discharge-temperature control used up. The default 15 kW unit with
-R32 at −20 °C outdoors against a 60 °C tank runs down to about 2.1 kW
-(24 rev/s, suction quality 0.9 at the 150 °C limit) and no further; at −15 °C
-against 60 °C to 1.9 kW (18 rev/s). With R290 at −7 °C against 55 or 65 °C,
-R134a at −7 °C against 55 °C and R410A at −15 °C against 55 °C it reaches its
-minimum speed first (1.6 to 1.9 kW). A request below that duty was answered
-with the unit switched off (``failure_reason == "discharge_temp_above_max"``)
-while a larger one ran. It is met the same way as one below the minimum speed,
-and as :doc:`ashp` does: the unit cycles at the smallest duty the envelope
-admits. The row has ``capacity_clamped == "min"``, ``Q_min [W]`` is that duty
+with the discharge-temperature control used up. With the default rotary speed
+shape (``ossorio_anchored``) no default case was found: on a grid of R32 and
+R410A at 8 and 15 kW (outdoors −30 to −12 °C, tank 50 to 64 °C) and of six
+other refrigerants at 15 kW (−30 to −10 °C, 45 to 70 °C) every small request
+either reaches the minimum speed or is refused by a limit from above. The
+R32 cases at −20 °C against 60 °C and at −15 °C against 60 °C run down to the
+minimum speed (1.2 and 1.5 kW), and so do R290 at −7 °C against 55 or 65 °C,
+R134a at −7 °C against 55 °C and R410A at −15 °C against 55 °C (1.3 to
+1.8 kW). The other shape shows it: the 15 kW R32 unit built with
+``compressor_type=CompressorSpec("rotary_twin_inverter",
+rotary_speed_variant="shao_informed")`` at −20 °C against a 60 °C tank runs
+down to about 2.1 kW (24 rev/s, suction quality 0.9 at the 150 °C limit) and
+no further, as the default unit did until November 2026. A request below that
+duty was answered with the unit switched off
+(``failure_reason == "discharge_temp_above_max"``) while a larger one ran. It
+is met the same way as one below the minimum speed, and as :doc:`ashp` does:
+the unit cycles at the smallest duty the envelope admits. The row has ``capacity_clamped == "min"``, ``Q_min [W]`` is that duty
 (found by bisection on the duty, to 0.5 %; the same for every request below
 it), and the compressor speed of the row is above ``rps_min``. The mean
 carries the EN 14825 degradation like any other cycling row
@@ -150,25 +158,32 @@ The smallest duty is used, not a more efficient larger one: the request just
 above it is met in continuous operation there, so the result has no step at
 the boundary, and a unit that cycles runs as long as its protections let it.
 Where that duty is a large share of the nameplate the unit is off for most of
-the time at small loads (2.1 kW, 14 % of the nameplate, in the R32 case
-above); ``runtime_fraction [-]`` says how much.
+the time at small loads (2.1 kW, 14 % of the nameplate, in the
+``shao_informed`` R32 case above); ``runtime_fraction [-]`` says how much.
 
 The reason remains where no duty runs at all: the limits that refuse the duty
 from above (the pressure ratio, the outdoor coil, the condensing temperature,
-the discharge temperature itself at a larger lift) meet the one from below.
-The default 15 kW unit with R32 against a 55 °C tank is such a case at −25 °C
-outdoors: the discharge limit refuses the smallest duties and the
-pressure-ratio ceiling every larger one, so there is no duty to cycle at (at
-−24 °C it still runs, at up to 2.9 kW, held by the pressure ratio). A dynamic
-step is not affected: its thermostat runs the compressor at the nameplate
-duty.
+the discharge temperature itself at a larger lift) reach down to the minimum
+speed, or meet one from below. The default 15 kW unit with R32 against a
+55 °C tank is such a case from −25.5 °C outdoors down: the minimum-speed duty
+is above the pressure-ratio ceiling, so there is no duty to cycle at. At
+−25 °C it still runs on the speed floor, at 0.99 kW and a pressure ratio of
+10.98: a smaller request cycles there, requests of 1 to 4 kW are held at 0.92
+to 0.99 kW by the pressure ratio, and a request of 4.5 kW or more is refused
+(``pr_above_max``) although the smaller ones run: the duty search does not
+find the floor from there (:doc:`../developer/reference-operating-limits`,
+the duty ladder). At −24 °C it runs at up to 2.6 to 3.0 kW, held by the pressure ratio. (Until
+November 2026, with the ``shao_informed`` rotary shape, the case was at
+−25 °C: the discharge limit refused the smallest duties and the pressure-ratio
+ceiling every larger one.) A dynamic step is not affected: its thermostat
+runs the compressor at the nameplate duty.
 
 ``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
 for an untested unit), ``1 − P_off / P_on`` for a unit with a measured standby
 power, ``1.0`` for loss-free cycling, and ``None`` for the continuous
 minimum-speed point, which delivers more than the request. An 8 kW R32 unit
-at 7 °C air and a 35 °C tank delivers 1.9 kW at its minimum speed: a 400 W
-request now returns 400 W at 154 W (system COP 2.59 against 3.55 for the
+at 7 °C air and a 35 °C tank delivers 1.8 kW at its minimum speed: a 400 W
+request now returns 400 W at 136 W (system COP 2.94 against 4.00 for the
 running machine). Before the cycling model it returned the minimum-speed duty
 itself (with the defaults of then 3.7 kW at 822 W of input).
 
@@ -258,19 +273,19 @@ The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP
       - −7 °C
       - −15 °C
     * - Frost-free
-      - 3.87
-      - 3.68
-      - 3.56
-      - 3.44
-      - 2.97
-      - 2.28
+      - 3.60
+      - 3.39
+      - 3.26
+      - 3.14
+      - 2.75
+      - 2.35
     * - With frost and defrost
-      - 3.87
-      - 3.61
-      - 3.16
-      - 3.05
-      - 2.65
-      - 2.02
+      - 3.60
+      - 3.32
+      - 2.86
+      - 2.75
+      - 2.42
+      - 2.06
     * - Load ratio ``r``
       - —
       - 0.58
@@ -286,17 +301,17 @@ The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP
       - 0.036
       - 0.018
     * - ``load_weighted=False``
-      - 3.87
-      - 3.47
-      - 2.94
-      - 2.87
+      - 3.60
+      - 3.18
+      - 2.64
       - 2.57
-      - 2.02
+      - 2.35
+      - 2.06
 
-At 4 kW the same unit hardly frosts (``r`` 0.3: 3.42 at 2 °C against 3.46
+At 4 kW the same unit hardly frosts (``r`` 0.3: 3.07 at 2 °C against 3.10
 frost-free). Frost also lowers what the unit can deliver: at A2 against a
-35 °C tank the default unit reaches its speed ceiling at a frost-free 24.2 kW,
-a mean of 19.0 kW -- what a 20 kW request receives. In a dynamic run the thermostat asks
+35 °C tank the default unit reaches its speed ceiling at a frost-free 22.4 kW,
+a mean of 17.6 kW -- what a 20 kW request receives. In a dynamic run the thermostat asks
 for ``hp_capacity``, so every running step is at ``r = 1``.
 
 .. note::
@@ -322,12 +337,21 @@ efficiencies from the semi-empirical models of
 .. code-block:: python
 
    from tmhp import AirSourceHeatPumpBoiler
+   from tmhp.compressor_efficiency import CompressorSpec
 
    AirSourceHeatPumpBoiler()                          # "rotary_twin_inverter", the default
    AirSourceHeatPumpBoiler(compressor_type="scroll")
    AirSourceHeatPumpBoiler(compressor_type="rotary_single_fixed")
+   AirSourceHeatPumpBoiler(                           # the other rotary speed shape
+       compressor_type=CompressorSpec("rotary_twin_inverter", rotary_speed_variant="shao_informed")
+   )
 
-Every family takes the same argument. The forms are fitted to
+Every family takes the same argument. The rotary types have two speed shapes,
+``rotary_speed_variant``: ``"ossorio_anchored"``, the default since November
+2026, and ``"shao_informed"``, the default before; the compressor data do not
+separate them (:doc:`/validation/defaults`). The machine of before is
+``compressor_type=CompressorSpec("rotary_twin_inverter",
+rotary_speed_variant="shao_informed")`` with ``E_ctrl=0.0``. The forms are fitted to
 standalone-compressor data, not to heat-pump catalogues, and are evaluated at
 the pressure ratio, the shaft speed in rev/s and the suction state; ``eta_cmp``
 includes the drive, so ``E_cmp [W]`` is the inverter input (drive loss about
@@ -347,9 +371,9 @@ archive ``validation/coefficients/semi-empirical-2026-11-15/`` (its README,
    pressure ratios of hot water in cold weather (:ref:`high-lift-deficit`).
    The efficiency level is the manufacturers' published level; independent
    compressor measurements sit 5–15 % lower. With R32 the default type gives
-   an isentropic efficiency of 0.76–0.79 at pressure ratios of 7 to 11 and
-   an uncontrolled discharge of up to about 170 °C there (A−15/W65 and
-   A−7/W65); the discharge-temperature control holds ``T_dis_max`` (150 °C)
+   an isentropic efficiency of 0.71–0.75 at pressure ratios of 7 to 11 and
+   an uncontrolled discharge of up to about 176 °C there (A−15/W65); the
+   discharge-temperature control holds ``T_dis_max`` (150 °C)
    by lowering the suction superheat and then letting the suction go wet down
    to ``x_suction_min`` (0.9), and a request it cannot hold runs at the
    largest smaller duty that it can (``capacity_clamped == "max"``), or is
@@ -380,9 +404,10 @@ standard atmosphere (:func:`tmhp.air_properties.air_density`; 1.42 kg/m³ at
 −25 °C, 1.26 at 7 °C, 1.15 at 35 °C). ``NTU_ou [-]``, the outlet temperature
 ``T_ou_a_out`` (fan heat included) and the air exergy flows use that one mass
 flow, so ``c_a * rho(T0) * dV_ou_a * (T_ou_a_out - T0) = E_ou_fan - Q_ref_ou``
-within a row. Against the 15 °C standard air of earlier releases the COP at
-nameplate capacity is 0.2 % higher at A7/W35 and 0.2 to 0.7 % higher at −7 °C;
-from 25 to 45 °C outdoors it is typically 0.2 to 0.5 % lower. See :ref:`ashp-air-density` for what is left on
+within a row. When this replaced the 15 °C standard air of earlier releases
+(November 2026, with the defaults of then), the COP at nameplate capacity was
+0.2 % higher at A7/W35 and 0.2 to 0.7 % higher at −7 °C; from 25 to 45 °C
+outdoors it was typically 0.2 to 0.5 % lower. See :ref:`ashp-air-density` for what is left on
 the volume flow and what is left out.
 
 Sink-side mechanics

@@ -260,10 +260,10 @@ more than one is active, the first of these names it:
 2. ``"compressor"`` -- the point's own solve already runs at the speed ceiling
    ``rps_max``. Every larger duty asked for delivers this same point, so a
    refusal further up the search belongs to the request, not to the point
-   (an 8 kW R290 ASHPB at W55/A-12 delivers 8,998 W at ``rps_max`` for a
-   request of 12, 20 or 40 kW alike, and reports ``"compressor"`` for all
-   three, although the 40 kW search was refused by the outdoor coil above
-   about 33 kW of gross duty);
+   (an 8 kW R290 ASHPB at W55/A-12 delivers 6,205 W at ``rps_max`` for a
+   request of 12, 20, 32 or 40 kW alike, and reports ``"compressor"`` for
+   all of them; when this rule was made, the larger searches were refused by
+   the outdoor coil above about 33 kW of gross duty and named after it);
 3. the limit the next larger duty tried ran into -- the search closed on that
    limit's boundary.
 
@@ -834,16 +834,23 @@ the recommended lever to pull when you hit each one.
     (:mod:`tmhp.compressor_envelope`). The cycle model puts all compressor
     loss into the gas, so the discharge it computes is an upper estimate. With
     the default compressor type the isentropic efficiency at pressure ratios
-    of 7 to 11 is 0.76--0.79 (the rotary forms followed past their data,
+    of 7 to 11 is 0.71--0.75 (the rotary forms followed past their data,
     which end at 6.84), and the default R32 boiler discharges at up to about
-    170 °C uncontrolled there; the control holds 150 °C with a suction quality
-    of 0.98. At low speed the efficiency falls and the discharge runs hotter:
-    the 15 kW R32 boiler at −20 °C against a 60 °C tank holds the limit at
-    suction quality 0.9 down to 2.1 kW (24 rev/s) and not below, and at
-    −25 °C against 55 °C a small request is refused for the discharge
-    temperature while larger ones are refused for the pressure ratio. Real
-    units at such conditions use injection (liquid or vapour) or two-stage
-    compression, which the single-stage cycle does not describe.
+    176 °C uncontrolled there; the control holds 150 °C with a suction quality
+    of 0.97. With the default rotary speed shape (``ossorio_anchored``) the
+    efficiency holds up towards low speed, and no default boiler case was
+    found in which a small request is refused for the discharge temperature:
+    the 15 kW R32 boiler at −20 °C against a 60 °C tank runs down to its
+    minimum speed (1.2 kW), and at −25 °C against 55 °C at 0.99 kW on the
+    speed floor, held there by the pressure ratio. With the other shape
+    (``rotary_speed_variant="shao_informed"``, the default until November
+    2026) the efficiency falls at low speed and the discharge runs hotter: the
+    same boiler at −20 °C against 60 °C holds the limit at suction quality 0.9
+    down to 2.1 kW (24 rev/s) and not below, and at −25 °C against 55 °C a
+    small request is refused for the discharge temperature while larger ones
+    are refused for the pressure ratio. Real units at such conditions use
+    injection (liquid or vapour) or two-stage compression, which the
+    single-stage cycle does not describe.
 
     **What to do.** Treat the point as outside the single-stage envelope.
     For a sensitivity study, ``T_dis_max=None`` removes the discharge limit;

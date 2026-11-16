@@ -41,7 +41,12 @@ Defaults that follow the capacity
 
 ``GroundSourceHeatPump(hp_capacity=..., ref=...)`` is a complete machine.
 Everything on the ground side and the indoor airflow is sized from the
-capacity, so the rating-point COP is the same from 1 to 100 kW:
+capacity, so a 1 kW and a 100 kW unit are built by the same rules. The COP
+still moves with the size: the indoor airflow per kW falls with the capacity,
+as the catalogues publish it, and the fixed control power ``E_ctrl`` (12 W)
+does not scale. The system COP at a 0 °C borehole wall, a 20 °C room and the
+nameplate duty is 4.08 at 1 kW, 3.62 at 4 kW, 3.24 at 30 kW and 3.30 at
+100 kW:
 
 .. list-table::
    :header-rows: 1
@@ -122,10 +127,14 @@ runs 1.4 % faster at nameplate.
    (400 cfm per ton, 773 m³/h for 4 kW). A larger machine then ran on the
    small loop: at 30 kW the system COP of rated heating against a 0 °C
    borehole wall fell from 3.8 to 2.1 and some rating points had no
-   solution; 100 kW could not be constructed. To reproduce
-   results from before, pass ``ground_flow_ref_lpm=20.04, E_pmp=100, N_1=1,
+   solution; 100 kW could not be constructed. To reproduce that sizing,
+   pass ``ground_flow_ref_lpm=20.04, E_pmp=100, N_1=1,
    N_2=1, dV_iu_fan_a_rated=0.0002 * hp_capacity,
-   indoor_approach_max_K=20``. Fan limits given as absolute flows
+   indoor_approach_max_K=20``, and for the machine of before November 2026
+   also ``E_ctrl=0.0`` and
+   ``compressor_type=CompressorSpec("rotary_twin_inverter",
+   rotary_speed_variant="shao_informed")`` (the compressor maps of those
+   releases are kept only as records, ``validation/coefficients/``). Fan limits given as absolute flows
    (``dV_iu_fan_a_min/max``) are read against the new reference airflow
    unless ``dV_iu_fan_a_rated`` is given as well.
 
@@ -164,7 +173,7 @@ the default runs:
 .. code-block:: python
 
    gshp = GroundSourceHeatPump()                                        # 4 kW, 25 % ethylene glycol
-   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)   # leaves at -6.8 °C, system COP 3.70
+   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)   # leaves at -6.8 °C, system COP 3.62
    GroundSourceHeatPump(source_fluid="water").analyze_steady(
        Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0
    )                                                                    # off: source_fluid_freezing
@@ -221,7 +230,12 @@ is the mean over the cycling period (``capacity_clamped == "min"``):
 - Compressor and loop-pump power (``E_cmp``, ``E_pmp``) are the running values
   times the runtime fraction. The pump is taken to run with the compressor —
   the usual interlock of a residential flow centre, and what the model already
-  does in its off state, where ``E_pmp`` is zero. Heat and flow rates
+  does in its off state, where ``E_pmp`` is zero. The fixed control power
+  ``E_ctrl [W]`` is averaged like ``E_cmp [W]``: it is one of the machine's
+  powers, drawn while the compressor runs (:ref:`fixed-control-power`; the
+  12 W default is carried over from the air-to-air family, as no water-to-air
+  declarations are in the archive). ``E_tot [W]`` is ``E_cmp + E_pmp +
+  E_iu_fan + E_ctrl``. Heat and flow rates
   (``Q_ref_iu``, ``Q_ref_ground``, ``Q_a_iu_in``, ``Q_a_iu_out``,
   ``m_dot_ref``, ``dV_iu_a``, ``dV_bhe_f``) are the running values times *CR*,
   and so is the indoor fan's power (``E_iu_fan``): it runs while heat is
@@ -230,17 +244,19 @@ is the mean over the cycling period (``capacity_clamped == "min"``):
   efficiencies are those of the running machine.
 - ``Q_bhe [W]`` is the mean load on the borefield: the mean ground-side duty
   less (heating) or plus (cooling) the mean pump power.
-- ``E_cycling_loss [W]`` is the mean electrical power the compressor and the
-  pump draw beyond *CR* times their continuous power. It is not part of any
+- ``E_cycling_loss [W]`` is the mean electrical power the compressor, the
+  pump and the control power draw beyond *CR* times their continuous power. It is not part of any
   heat flow of the row: the ground-side duty of the mean row is the running
   duty times *CR*.
 
 The default unit running continuously at its minimum speed delivers about
-1.7 kW in heating from a 0 °C borehole wall and 2.4 kW in cooling into a 25 °C
-one — 41 % and 59 % of the nameplate. Until this model every request below
-that was answered with the minimum capacity itself: 8.3 times a 200 W heating
-request and 11.8 times a cooling one, and over a mild 24 h schedule 18 %
-(heating) and 29 % (cooling) more heat than was asked for.
+0.94 kW in heating from a 0 °C borehole wall and 1.5 kW in cooling into a
+25 °C one — 23 % and 38 % of the nameplate. Without the cycling model every
+request below that is answered with the minimum capacity itself: 4.7 times a
+200 W heating request and 7.5 times a cooling one. (When the model was
+introduced, with the defaults of then, those were 8.3 and 11.8 times, and over
+a mild 24 h schedule 18 % (heating) and 29 % (cooling) more heat than was
+asked for.)
 
 .. list-table:: 4 kW R32 unit, heating at 20 °C room and 0 °C borehole wall
    :header-rows: 1
@@ -254,22 +270,22 @@ request and 11.8 times a cooling one, and over a mild 24 h schedule 18 %
      - ``Q_bhe``
    * - 200 W
      - 200 W
-     - 0.155
-     - 66 W
-     - 3.08
-     - 148 W
-   * - 1 000 W
-     - 1 000 W
-     - 0.669
-     - 286 W
-     - 3.54
-     - 749 W
-   * - 1 659 W (``Q_min``)
-     - 1 659 W
+     - 0.266
+     - 68 W
+     - 2.95
+     - 153 W
+   * - 500 W
+     - 500 W
+     - 0.605
+     - 156 W
+     - 3.24
+     - 388 W
+   * - 935 W (``Q_min``)
+     - 935 W
      - 1.000
-     - 430 W
-     - 3.91
-     - 1 252 W
+     - 259 W
+     - 3.64
+     - 737 W
 
 ``Cd_cycling`` sets the coefficient: a number replaces 0.25, ``0`` is
 loss-free cycling, and ``None`` restores the earlier behaviour (continuous

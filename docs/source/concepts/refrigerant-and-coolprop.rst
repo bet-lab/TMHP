@@ -46,10 +46,10 @@ capacity at the catalogue's rating point, with the fluid's own suction density
 and enthalpy rise (:doc:`/validation/defaults`). For the 15 kW default
 ``AirSourceHeatPumpBoiler`` that is 45 cm³/rev with R32, 84 with R290, 110
 with R134a and 203 with R600a, and the rated speed lies between 63 and
-77 rev/s for every one of them, inside the 30–120 rev/s of the default
+81 rev/s for every one of them, inside the 30–120 rev/s of the default
 compressor type's data. The default 8 kW ``GroundSourceHeatPumpBoiler``,
 rated at B0/W55, takes 24 cm³/rev with R32, 45 with R290, 59 with R134a and
-108 with R600a, and is rated at 75 to 97 rev/s (R290 84). (Until November 2026
+108 with R600a, and is rated at 75 to 102 rev/s (R290 84). (Until November 2026
 the default was one displacement for every fluid, 70 cm³/rev at 15 kW: R600a
 could not reach the rated capacity on it and was refused at construction,
 and R134a, R1234yf and R1234ze(E) were rated at about 90, 100 and 121 rev/s.

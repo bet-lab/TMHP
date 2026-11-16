@@ -67,8 +67,11 @@ Default sizing
 machine: every other size follows the capacity, so the rated cycle is the same
 at 1 kW and at 100 kW (B0/W35, water entering at 30 °C and leaving at 35 °C:
 condensing 2.0 K above the leaving water, evaporating 6.8 K below the entering
-fluid, COP of the cycle 4.20 with the default refrigerant, R290, and the
-default compressor type, ``rotary_twin_inverter``). B0 is a brine point: the
+fluid, COP of the cycle 4.21 with the default refrigerant, R290, and the
+default compressor type, ``rotary_twin_inverter``). The system COP moves a
+little with the size, because the fixed control power ``E_ctrl`` (15 W,
+:ref:`fixed-control-power`) does not scale: 3.65 at 1 kW, 3.83 at 8 kW and
+3.86 at 100 kW. B0 is a brine point: the
 loop liquid leaves the heat pump at -3.1 °C. The default loop liquid is
 therefore an antifreeze, 25 % ethylene glycol; a loop declared as water is
 refused there (see :ref:`source-fluid`).
@@ -142,11 +145,11 @@ the limit (``capacity_clamped == "max"``, ``capacity_binding ==
 "condensing_temperature"``), or the off state with
 ``failure_reason == "condensing_temp_above_max"`` when no duty fits. A 65 °C
 set point is inside the envelope of R290 and
-R134a; R410A, R32 and R407C reach about 60 °C. This is why the default
+R134a; R410A, R32 and R407C reach about 58 °C. This is why the default
 refrigerant is R290 (it was R410A): the default machine charges its tank to
-the default 65 °C set point at 70 °C condensing, 5 K inside the limit, at the
-nameplate duty all the way. With ``ref="R410A"`` give
-``T_tank_w_upper_bound=60``.
+the default 65 °C set point at 72 °C condensing, 3 K inside the limit, at the
+nameplate duty all the way (its cut-out is 68.0 °C). With ``ref="R410A"`` give
+``T_tank_w_upper_bound=57``.
 
 Cycle closures
 ==============
@@ -293,7 +296,7 @@ steps the ``failure_reason``, and the warning at the end of the run counts both
 
    water = GroundSourceHeatPumpBoiler(source_fluid="water")
    water.analyze_steady(T_tank_w=45, T_source=10, Q_ref_tank=8000)   # 8.0 kW, leaves at 7.0 °C
-   water.analyze_steady(T_tank_w=45, T_source=5, Q_ref_tank=8000)    # 5.5 kW, leaves at 3.0 °C
+   water.analyze_steady(T_tank_w=45, T_source=5, Q_ref_tank=8000)    # 5.3 kW, leaves at 3.0 °C
    water.analyze_steady(T_tank_w=45, T_source=0, Q_ref_tank=8000)    # off: source_fluid_freezing
 
 **What the loop liquid changes.** Its ``ρ c`` enters the loop temperature
@@ -358,9 +361,13 @@ give a larger ``ground_flow_ref_lpm`` or a smaller pipe.
    3.508, 3.520 before, and 3.495 since its indoor coil takes the room-air
    density; B0/W35 and B0/W55 of this boiler are the same with
    the glycol as they were with water, 3.870 and 2.651 with R290), and a loop
-   declared as water stops at 3 °C. To reproduce the
-   earlier numbers exactly -- the properties of water and no limit to speak
-   of -- pass a hand-built fluid:
+   declared as water stops at 3 °C. To reproduce the loop liquid of then
+   -- the properties of water and no limit to speak of -- pass a hand-built
+   fluid (the numbers above also had the compressor map of then, kept only as
+   a record in ``validation/coefficients/``; ``E_ctrl=0.0`` and
+   ``compressor_type=CompressorSpec("rotary_twin_inverter",
+   rotary_speed_variant="shao_informed")`` give the machine of before
+   November 2026):
 
    .. code-block:: python
 
@@ -440,11 +447,11 @@ request (the behaviour before this report existed).
      - 1.0
 
 The default machine (8 kW, R290) at a 0 °C source and a 35 °C tank delivers
-1.41 kW at its minimum speed. A 400 W request now returns 400 W at 206 W
-(system COP 1.95 against 2.43 for the running machine), and a 1 kW request
-1 kW at 427 W (COP 2.34). Before the cycling model it returned the
+1.39 kW at its minimum speed. A 400 W request now returns 400 W at 200 W
+(system COP 2.00 against 2.49 for the running machine), and a 1 kW request
+1 kW at 417 W (COP 2.40). Before the cycling model it returned the
 minimum-speed duty itself (with the defaults of then 1.81 kW at 574 W of
-input). (With R410A the minimum-speed duty is 1.49 kW.)
+input). (With R410A the minimum-speed duty is 1.45 kW.)
 
 A dynamic run is not affected. There the tank thermostat switches the
 compressor, which runs at ``hp_capacity`` — not at its minimum speed — for
@@ -636,7 +643,8 @@ refrigerant:
   on whenever the tank warmed by more than the coil's approach in it, so a
   long step paid for a hotter condenser than its run had: a coil over the
   whole tank, 55 to 65 °C without a draw, 0.348 kWh at 60 s steps against
-  0.364 kWh at 600 s (+4.7 %; now 0.348 and 0.347, the lumped tank's).
+  0.364 kWh at 600 s (+4.7 %; after the change 0.348 and 0.347, the lumped
+  tank's; electricity with the defaults of then).
 - The condensing temperature a step ends on is not taken above the
   condensing limit. A step whose heat would need more is held instead: the
   heat goes to the coil's nodes below the envelope stop and none is heated
@@ -649,7 +657,7 @@ refrigerant:
   the call ends and the tank cools to the lower bound before the next
   start, as in the lumped tank. The two coincide whenever the set point is
   the envelope's own -- a requested set point above the envelope stop is
-  capped at it (R32: 65 to 60 °C) -- and the coil spans the tank.
+  capped at it (R32: 65 to 58 °C) -- and the coil spans the tank.
 - The water around the coil can reach the envelope stop (the tank
   temperature at which the nameplate duty condenses on ``T_cond_max``,
   above) while the mean the thermostat reads is still below the set point.
@@ -669,14 +677,16 @@ refrigerant:
   ``condensing_temp_above_max`` and two or three cycle solves, and the
   results depended on the step (a top coil, R290, 6 h: 353 of 360 steps at
   60 s, 30 of 36 at 600 s); the heat delivered now agrees from 60 s to 600 s
-  steps (0.2738 kWh in that run), and so does the electricity (0.0899 and
-  0.0897 kWh; 0.0924 and 0.0953 before).
+  steps, and so does the electricity (with the defaults of when this was
+  changed: 0.2738 kWh of heat, 0.0899 and 0.0897 kWh of electricity against
+  0.0924 and 0.0953 before).
 
 Results of a multi-node tank agree between 60 s and 600 s steps within
 about 2 % of heat and 5 % of electricity, the lumped tank's own margin
-(a top coil under a 6 L/min draw that empties the tank in an hour, R290:
-5.93 and 6.05 kWh of heat, 1.90 and 1.95 kWh of electricity; 1.91 and
-2.12 kWh of electricity before). What remains is the node model's time
+(a top coil under a 6 L/min draw that empties the tank in an hour, R290: with
+the present defaults 5.85 and 5.98 kWh of heat, 1.98 and 2.06 kWh of
+electricity; when this was changed 5.93 and 6.05 kWh of heat and 1.90 and
+1.95 kWh of electricity, against 1.91 and 2.12 kWh before). What remains is the node model's time
 resolution: the cold front of a draw smears faster in long steps
 (``docs/tank_backends/tank_backends.md``). The trial steps that read the
 coil's level draw what the step itself does (the mixing valve takes more

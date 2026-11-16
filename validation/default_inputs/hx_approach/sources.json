@@ -16,7 +16,10 @@
   "note": "Wayback Machine copy (archived 2013-05-29) of the AHRI-hosted PDF. Baseline identical to Report #10 (same unit).",
   "worker": "W4-lab",
   "pressure_basis": "absolute",
-  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column"
+  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column",
+  "nas_path": "energy-systems/ahri-arep-004-source/files/source/AHRI-AREP-004.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "AHRI-AREP-032",
@@ -35,7 +38,10 @@
   "note": "Wayback copy (2015-04-05). Baseline R-410A identical in Reports #20 and #23 (same unit SSZ140361BA/ARUF374316).",
   "worker": "W4-lab",
   "pressure_basis": "absolute",
-  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column"
+  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column",
+  "nas_path": "energy-systems/ahri-arep-032-source/files/source/AHRI-AREP-032.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "AHRI-AREP-042",
@@ -54,7 +60,10 @@
   "note": "Wayback copy (2015-09-05).",
   "worker": "W4-lab",
   "pressure_basis": "absolute",
-  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column"
+  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column",
+  "nas_path": "energy-systems/ahri-arep-042-source/files/source/AHRI-AREP-042.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "AHRI-AREP-052",
@@ -73,7 +82,10 @@
   "note": "Wayback copy (2017-06-15). Baseline R-410A repeated for each alternative; first (ARM-71a) section used.",
   "worker": "W4-lab",
   "pressure_basis": "absolute",
-  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column"
+  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column",
+  "nas_path": "energy-systems/ahri-arep-052-source/files/source/AHRI-AREP-052.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "AHRI-AREP-054",
@@ -92,7 +104,10 @@
   "note": "Wayback copy (2017-06-15). Rheem 13PJL30A01 / RHSL-HM3017J, 8.40 kW (2.5 ton).",
   "worker": "W4-lab",
   "pressure_basis": "absolute",
-  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column"
+  "pressure_basis_evidence": "the report forms print every pressure as kPa with psia in the IP column",
+  "nas_path": "energy-systems/ahri-arep-054-source/files/source/AHRI-AREP-054.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "BOSCH-8733852844-2025-06",
@@ -109,7 +124,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Section 24.1, Tables 22-45, pp.49-72: per size, Source EWT x Load EWT x GPM (two values per size), discharge/suction psig, 'Water Temp Rise (Source)', 'Water Temp Drop (Load)'. R-454B. Low-pressure fault 'below 40 PSIG' p.29. AHRI/ISO 13256-2 certified (p.40). Coax: nomenclature p.7.",
   "note": "Heating-table column labels read 'Rise (Source)' / 'Drop (Load)' (contradict the mode); transcribed as printed.",
-  "worker": "W3-liquid"
+  "worker": "W3-liquid",
+  "nas_path": "energy-systems/bosch-8733852844-2025-06-source/files/source/BOSCH-8733852844-2025-06.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "CARRIER-50PS-6SI",
@@ -126,7 +144,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "p.48 Table 18 'Typical Refrigerant Pressure Ranges' (generic, all sizes) by entering fluid temp, fluid TEMP. DIFFERENCE 5/10/15F, and entering air DB columns (cooling 70/75/80, heating 60/70). Note a: rated air flow, 80/67 cooling, 70 db heating, antifreeze below 50F EFT. p.47 Table 17 'Typical Air Temperature Rise/Fall Ranges'.",
   "note": "Fetched from a CloudFront CDN path ('userfiles/inriver') of unconfirmed ownership; treated as third-party host. No copy on a carrier.com domain was found in this session; no cross-check document.",
-  "worker": "W3-liquid"
+  "worker": "W3-liquid",
+  "nas_path": "energy-systems/carrier-50ps-6si-source/files/source/CARRIER-50PS-6SI.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "CARRIER-SVM-12031",
@@ -143,7 +164,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, PDF p.21): cooling indoor 27/19 °C, outdoor 35/-; fans High; connecting piping 5 m; T1 at U-bend centre (thermistor). Spec PDF p.5.",
   "note": "Hosted on Carrier Enterprise / Watsco distributor CDN (resource.carrierenterprise.com). The served file begins with a stray HTML '<meta' line before the '%PDF' header; saved byte-for-byte as served, pdftotext/pdfinfo read it normally. No copy found on a carrier.com domain.",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/carrier-svm-12031-source/files/source/CARRIER-SVM-12031.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "CLIMATEMASTER-97B0075N05",
@@ -160,7 +184,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "pp.47-48 Table 11 'TT Series Typical Unit Operating Pressures and Temperatures (60Hz - I-P Units)', Full Load without HWG; same notes as TR (p.47). Airflow: ECM table p.27, 'All units AHRI/ISO/ASHRAE 13256-1 rated ... CFM Setting 3'; Tap 3 Stage 2 taken as rated (transcriber's mapping).",
   "note": "No ISO capacity table in this IOM. Table pages are printed pages 47-48 (same as PDF index).",
-  "worker": "W3-liquid"
+  "worker": "W3-liquid",
+  "nas_path": "energy-systems/climatemaster-97b0075n05-source/files/source/CLIMATEMASTER-97B0075N05.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "CLIMATEMASTER-97B0075N08",
@@ -177,7 +204,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "pp.77-80 Table 8 'TR Series Typical Unit Operating Pressures and Temperatures' (Full Load, without HWG). Notes p.77: airflow at nominal (rated) conditions; entering air 70F DB heating, 80/67F cooling; subcooling based upon head pressure at compressor service port; cooling air and water values vary with humidity. 30F rows '*Based on 15% Methanol antifreeze solution'. Flow 1.5/2.25/3 gpm per ton. Rated CFM from Blower Performance Data pp.36-46. Coax volume in Physical Data p.6. Table 9 p.81: closed loop 3 gpm/ton -> rise 9-12F cooling, drop 4-8F heating; open loop 1.5 gpm/ton -> 20-26 / 10-17F.",
   "note": "No ISO 13256-1 capacity table in this IOM (nameplate_capacity empty).",
-  "worker": "W3-liquid"
+  "worker": "W3-liquid",
+  "nas_path": "energy-systems/climatemaster-97b0075n08-source/files/source/CLIMATEMASTER-97B0075N08.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "DANFOSS-VIGFI102",
@@ -194,7 +224,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Section 2.3 'Check points' (rendition page 8, printed 7): condensing 0,5 1,5C above supply line; evaporation 7-8C lower than incoming brine; superheat 4-8 K; radiator circuit 5-10 K; brine circuit 2-5 K.",
   "note": "HTML text rendition of the PDF hosted by manualsnet (no PDF download). Same values reported for DHP-H VMBMA602 p.64 (manualslib 403, manualshive page without text). Official Danfoss PDF not found (documentation portal not reachable by search).",
-  "worker": "W3-liquid"
+  "worker": "W3-liquid",
+  "nas_path": "energy-systems/danfoss-vigfi102-source/files/source/DANFOSS-VIGFI102.html",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "GREE-VIREO-GEN3-SM-A",
@@ -211,7 +244,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "§2.3 Cooling and Heating Data Sheet in Rated Frequency (PDF p.18): cooling indoor 80/66.9 °F DB/WB, outdoor 95/- °F; heating indoor 70/- °F, outdoor 19.94/19.04 °F (as printed); indoor fan Super High, outdoor fan High; connection pipe 24.6 ft. Spec sheets PDF p.5-16.",
   "note": "Official US Gree site (greecomfort.com). Revision suffix '-a' in the file name.",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/gree-vireo-gen3-sm-a-source/files/source/GREE-VIREO-GEN3-SM-A.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "KTH-EGI-2015-084MSC",
@@ -228,7 +264,10 @@
   "licence": "No licence statement in the document or found on the DiVA record; open full text in institutional repository",
   "conditions": "Heating mode, desuperheater off, compressor at nominal 50 Hz; Table 5 test matrix (PDF p.29): air 7/6, 2/1, 12/11 °C DB/WB, water in/out 40/45, 28/33, 47/55, 28/36, 32/37, 34/42 or fixed water flow (= flow at 7(6) 45/40) for W45/W55; results Appendix E (PDF p.64-66).",
   "note": "Measured 10 points (tests 1-10, first series) + Alfa Laval and LU-VE selection printouts (scanned images, App. A). Unit ~35-42 kW heating, outside the 5-16 kW target. IMST-ART simulated values in App. E not transcribed (model_output candidates).",
-  "worker": "W4-lab"
+  "worker": "W4-lab",
+  "nas_path": "energy-systems/kth-egi-2015-084msc-source/files/source/KTH-EGI-2015-084MSC.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH498",
@@ -245,7 +284,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 13): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Internet Archive copy of a ManualsOnline upload. Later revisions exist (latest seen: REVISED EDITION-C, 2011, at partstown.com - blocked by a bot challenge, not obtained). No manufacturer-domain copy found.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh498-source/files/source/MITSUBISHI-OBH498.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH502-REVE",
@@ -262,7 +304,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 17): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Manufacturer copy exists at https://www.mitsubishitechinfo.ca/sites/default/files/SH_MU(Y)(Z)-D30_36NA-(1)(U1)(U2)_OBH502E.pdf (Mitsubishi Electric Sales Canada) but the host refused connections on 2026-11-16 and no web-archive snapshot exists, so it could not be compared.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh502-reve-source/files/source/MITSUBISHI-OBH502-REVE.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH543-REVG",
@@ -279,7 +324,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 16): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "No manufacturer-domain copy found (searched enter.mehvac.com, metuspublicassets, archived mitsubishitechinfo.ca list: only the indoor OBH542B is listed there). The MUZ-FD original edition (OBH498) prints the same pressures, condensing temperatures and airflows for the 09/12 sizes, but different total inputs, some rated frequencies and suction temperatures.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh543-revg-source/files/source/MITSUBISHI-OBH543-REVG.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH549-REVH",
@@ -296,7 +344,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 37-39): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Cross-check: distributor copy of REVISED EDITION-F (https://resource.ecmdi.com/is/content/Watscocom/Gemaire/mitsubishi_muz-ge12na-2_article_1410348600832_en_sm.pdf) prints identical values on pp. 37-38 but omits the whole Outdoor unit block (intake DB/WB, fan speed, airflow) for GE24 on p. 39; REVH adds it (95/47 F, 43 F WB, 840/810 rpm, 1,769/1,701 CFM). A 2011 manufacturer extract (enter.mehvac.com 10009/MUZ-MUY-GE09-24NA_Service_OBH549_4-11) prints the same values.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh549-revh-source/files/source/MITSUBISHI-OBH549-REVH.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH684-REVA",
@@ -313,7 +364,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 19): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Superseded revision kept for revision comparison; no manufacturer-domain copy of revision A found. Same values as REVE except the cooling indoor airflow (381/398/411 CFM Wet vs 328/342/354 in REVE). Page footer is misprinted \"OBH584A\".",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh684-reva-source/files/source/MITSUBISHI-OBH684-REVA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH684-REVE",
@@ -330,7 +384,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 24): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Mitsubishi Electric Trans/US document store (s3 bucket enter.mehvac.com, the store behind the former mylinkdrive.com portal). Byte-identical (same SHA-256) to the distributor copy https://resource.gemaire.com/is/content/Watscocom/Gemaire/mitsubishi_muz-fh18na_article_1445502745958_en_sm.pdf?fmt=pdf. Also on the Canadian manufacturer site (mitsubishitechinfo.ca, SH_MUZ-FH06_18NA(H)(1)(2)_OBH684E.pdf, archived) - not fetched.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh684-reve-source/files/source/MITSUBISHI-OBH684-REVE.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH733-REVJ",
@@ -347,7 +404,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 34-36): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "No third-party PDF copy compared (manualmachine.com shows an HTML rendering only).",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh733-revj-source/files/source/MITSUBISHI-OBH733-REVJ.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH747-REVH",
@@ -364,7 +424,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 28-30): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Distributor copy (gemaire mitsubishi_muz-hm09na-u2 ..._en_sm.pdf) seen in search, not fetched.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh747-revh-source/files/source/MITSUBISHI-OBH747-REVH.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH753-REVB",
@@ -381,7 +444,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 18): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Cross-check: distributor copy of REVISED EDITION-A (meiersupply MUFZ-KJ09-18NAHZ-U1_SERVICE_OBH753A_03-16.PDF) prints an identical table.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh753-revb-source/files/source/MITSUBISHI-OBH753-REVB.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH819-REVB",
@@ -398,7 +464,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 22-23): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Byte-identical to the distributor copy https://resource.gemaire.com/is/content/Watscocom/Gemaire/mitsubishi_muz-wr24na-u1_article_680253997332447_en_sm.pdf?fmt=pdf.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh819-revb-source/files/source/MITSUBISHI-OBH819-REVB.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH821-REVA",
@@ -415,7 +484,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 15-16): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Web-archive (Wayback, original bytes via id_) snapshot of the manufacturer Canadian technical-information site; the live host refused connections on 2026-11-16. Treated as third-party host because the bytes were not fetched from the manufacturer domain itself.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh821-reva-source/files/source/MITSUBISHI-OBH821-REVA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH873-REVB",
@@ -432,7 +504,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 20): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Byte-identical to the distributor copy https://meiersupply.com/customer/docs/skudocs/Document_Links/Vendors/106835%20-%20Mitsubishi/MITSU%20FS%20DOCS/FS06NAHMANUAL.pdf.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh873-revb-source/files/source/MITSUBISHI-OBH873-REVB.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH875-REVB",
@@ -449,7 +524,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 45-51): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "The manufacturer file name says OBH875A but the content is REVISED EDITION-B (Oct. 2022). Byte-identical to the distributor copy https://meiersupply.com/customer/docs/skudocs/Document_Links/Vendors/106835%20-%20Mitsubishi/MUZ%20GSNAHZ%20DOCS/GS24NAHZMANUAL.pdf.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh875-revb-source/files/source/MITSUBISHI-OBH875-REVB.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH936-REVA",
@@ -466,7 +544,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 16-18): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Revision A deleted MUZ-FW06-24NAZ and FW15/18/24NAHZ; only the 06/09/12 NAHZ tables remain. The original OBH936 was not found in the bucket.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh936-reva-source/files/source/MITSUBISHI-OBH936-REVA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH946-REVC",
@@ -483,7 +564,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§7-4 STANDARD OPERATION DATA (page 27-32): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Heating-column condensing temperature printed as 37-39 F in every table (document error; see REPORT).",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh946-revc-source/files/source/MITSUBISHI-OBH946-REVC.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH948",
@@ -500,7 +584,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§8-4 STANDARD OPERATION DATA (page 22): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Distributor copy at gotductless.com seen in search, not fetched.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh948-source/files/source/MITSUBISHI-OBH948.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH951-REVC",
@@ -517,7 +604,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§8-4 STANDARD OPERATION DATA (page 42-47): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "Mitsubishi Electric Trane (METUS) public asset bucket. Distributor copy https://gotductless.com/cdn/shop/files/MUZ-GX30NL_Service_Manual.pdf (also REVC) has a different SHA-256 but the transcribed table pages are identical. Section is numbered 8-4 in this manual (also OBH948, OBH953, OBH955).",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh951-revc-source/files/source/MITSUBISHI-OBH951-REVC.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH953-REVA",
@@ -534,7 +624,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§8-4 STANDARD OPERATION DATA (page 28-29): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh953-reva-source/files/source/MITSUBISHI-OBH953-REVA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OBH955-REVA",
@@ -551,7 +644,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "§8-4 STANDARD OPERATION DATA (page 26-27): columns Cooling/Heating per indoor/outdoor pair at rated frequency; indoor intake 80/67 F DB/WB (cooling) and 70/60 F DB/WB (heating); outdoor intake 95 F DB (cooling) and 47/43 F DB/WB (heating); ref. pipe length 25 ft; indoor fan speed High (cooling airflow marked Wet). No measuring point for the pressures is stated.",
   "note": "",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-obh955-reva-source/files/source/MITSUBISHI-OBH955-REVA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OCH439-REVM",
@@ -568,7 +664,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "\"STANDARD OPERATION DATA\": Cooling (A35/W7) outdoor 35/24 °C DB/WB, water outlet 7 °C; Heating (A7/W35) outdoor 7/6 °C, water outlet 35 °C; water flow volume printed; \"tested based on EN 14511\" (stated in OCH465). Water inlet temperature not printed.",
   "note": "Mitsubishi Electric UK document library (manufacturer domain). Pressures in MPa, gauge/absolute not stated.",
-  "worker": "W4-lab"
+  "worker": "W4-lab",
+  "nas_path": "energy-systems/mitsubishi-och439-revm-source/files/source/MITSUBISHI-OCH439-REVM.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OCH465-REVD",
@@ -585,7 +684,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "\"STANDARD OPERATION DATA\": Cooling (A35/W7) outdoor 35/24 °C DB/WB, water outlet 7 °C; Heating (A7/W35) outdoor 7/6 °C, water outlet 35 °C; water flow volume printed; \"tested based on EN 14511\" (stated in OCH465). Water inlet temperature not printed.",
   "note": "Mitsubishi Electric UK document library (manufacturer domain). Pressures in MPa, gauge/absolute not stated.",
-  "worker": "W4-lab"
+  "worker": "W4-lab",
+  "nas_path": "energy-systems/mitsubishi-och465-revd-source/files/source/MITSUBISHI-OCH465-REVD.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OCH467-REVC",
@@ -602,7 +704,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "7 DATA, STANDARD OPERATION DATA (pages 11-12): per 'Representative matching' indoor unit, Cooling/Heating; indoor intake 80/67 F DB/WB (cooling), 70/60 F (heating); outdoor intake 95 F DB in cooling (WB printed 75 F in all OCH699 tables and the TCH022 PEAD/SVZ tables, a dash in OCH467 and the TCH022 SEZ/SLZ tables), 47/43 F heating; ref. pipe length 25 ft. No airflow, fan speed or compressor frequency printed. No measuring point for the pressures is stated.",
   "note": "Tables give no airflows and no rated frequency (only capacity, input, pressures, temperatures). Indoor units SEZ-KD (ducted) and SLZ-KA (4-way cassette). Section is \"7 DATA / STANDARD OPERATION DATA\".",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-och467-revc-source/files/source/MITSUBISHI-OCH467-REVC.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OCH562-REVD",
@@ -619,7 +724,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "\"STANDARD OPERATION DATA\": Cooling (A35/W7) outdoor 35/24 °C DB/WB, water outlet 7 °C; Heating (A7/W35) outdoor 7/6 °C, water outlet 35 °C; water flow volume printed; \"tested based on EN 14511\" (stated in OCH465). Water inlet temperature not printed.",
   "note": "Mitsubishi Electric UK document library (manufacturer domain). Pressures in MPa, gauge/absolute not stated.",
-  "worker": "W4-lab"
+  "worker": "W4-lab",
+  "nas_path": "energy-systems/mitsubishi-och562-revd-source/files/source/MITSUBISHI-OCH562-REVD.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OCH605-REVA",
@@ -636,7 +744,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "\"STANDARD OPERATION DATA\": Cooling (A35/W7) outdoor 35/24 °C DB/WB, water outlet 7 °C; Heating (A7/W35) outdoor 7/6 °C, water outlet 35 °C; water flow volume printed; \"tested based on EN 14511\" (stated in OCH465). Water inlet temperature not printed.",
   "note": "Mitsubishi Electric UK document library (manufacturer domain). Pressures in MPa, gauge/absolute not stated.",
-  "worker": "W4-lab"
+  "worker": "W4-lab",
+  "nas_path": "energy-systems/mitsubishi-och605-reva-source/files/source/MITSUBISHI-OCH605-REVA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OCH699-REVA",
@@ -653,7 +764,10 @@
   "licence": "manufacturer copyright, no redistribution statement (document states \"© Copyright <year> MITSUBISHI ELECTRIC CORPORATION/ENGINEERING CO.\" on the back page)",
   "conditions": "7 DATA, STANDARD OPERATION DATA (pages 10-11): per 'Representative matching' indoor unit, Cooling/Heating; indoor intake 80/67 F DB/WB (cooling), 70/60 F (heating); outdoor intake 95 F DB in cooling (WB printed 75 F in all OCH699 tables and the TCH022 PEAD/SVZ tables, a dash in OCH467 and the TCH022 SEZ/SLZ tables), 47/43 F heating; ref. pipe length 25 ft. No airflow, fan speed or compressor frequency printed. No measuring point for the pressures is stated.",
   "note": "Two tables per page (\"Representative matching\"): SEZ-KD, SLZ-KF, PEAD-A..AA7, SVZ-KP, MLZ-KP. No airflows, no rated frequency, refrigerant charge printed without unit (1.05/1.15). Outdoor intake WB printed 75 F in cooling.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-och699-reva-source/files/source/MITSUBISHI-OCH699-REVA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-OCH748-REVA",
@@ -670,7 +784,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "\"STANDARD OPERATION DATA\": Cooling (A35/W7) outdoor 35/24 °C DB/WB, water outlet 7 °C; Heating (A7/W35) outdoor 7/6 °C, water outlet 35 °C; water flow volume printed; \"tested based on EN 14511\" (stated in OCH465). Water inlet temperature not printed.",
   "note": "Mitsubishi Electric UK document library (manufacturer domain). Pressures in MPa, gauge/absolute not stated.",
-  "worker": "W4-lab"
+  "worker": "W4-lab",
+  "nas_path": "energy-systems/mitsubishi-och748-reva-source/files/source/MITSUBISHI-OCH748-REVA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "MITSUBISHI-TCH022",
@@ -687,7 +804,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "7 DATA, STANDARD OPERATION DATA (pages 11-14): per 'Representative matching' indoor unit, Cooling/Heating; indoor intake 80/67 F DB/WB (cooling), 70/60 F (heating); outdoor intake 95 F DB in cooling (WB printed 75 F in all OCH699 tables and the TCH022 PEAD/SVZ tables, a dash in OCH467 and the TCH022 SEZ/SLZ tables), 47/43 F heating; ref. pipe length 25 ft. No airflow, fan speed or compressor frequency printed. No measuring point for the pressures is stated.",
   "note": "SEZ-KD and SLZ-KA tables are identical to OCH467C (SUZ-KA NA); adds PEAD-A..AA7 and SVZ-KP tables. No airflows, no rated frequency. Distributor copy (gemaire mitsubishi_suz-ka09nar1th ..._en_sm.pdf) seen in search, not fetched.",
-  "worker": "W1-mitsubishi"
+  "worker": "W1-mitsubishi",
+  "nas_path": "energy-systems/mitsubishi-tch022-source/files/source/MITSUBISHI-TCH022.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "ORNL-TM-2015-536",
@@ -704,7 +824,10 @@
   "licence": "\"Approved for public release. Distribution is unlimited.\" (cover)",
   "conditions": "Cooling only. Table 1 (PDF p.25): AHRI B 27.8/26.7/19.4, AHRI A 35.0/26.7/19.4, T3* 46/26.7/19, T3 46/29/19, Hot 52/29/19, Extreme 55/29/19 (outdoor DB / indoor DB / indoor WB, °C). Air-enthalpy method (ASHRAE 37).",
   "note": "Rows: R-410A first runs (Table E.1) and R-22/mineral-oil baseline (Table D.1). Saturation temperatures computed by authors with REFPROP.",
-  "worker": "W4-lab"
+  "worker": "W4-lab",
+  "nas_path": "energy-systems/ornl-tm-2015-536-source/files/source/ORNL-TM-2015-536.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-A06-011",
@@ -721,7 +844,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-a06-011-source/files/source/TOSHIBA-A06-011.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-A07-008",
@@ -738,7 +864,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-a07-008-source/files/source/TOSHIBA-A07-008.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-A08-010",
@@ -755,7 +884,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-a08-010-source/files/source/TOSHIBA-A08-010.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-07036",
@@ -772,7 +904,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-07036-source/files/source/TOSHIBA-SVM-07036.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-09041",
@@ -789,7 +924,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-09041-source/files/source/TOSHIBA-SVM-09041.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-10001-2",
@@ -806,7 +944,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-10001-2-source/files/source/TOSHIBA-SVM-10001-2.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-10029",
@@ -823,7 +964,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-10029-source/files/source/TOSHIBA-SVM-10029.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-11031",
@@ -840,7 +984,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-11031-source/files/source/TOSHIBA-SVM-11031.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-12029",
@@ -857,7 +1004,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-12029-source/files/source/TOSHIBA-SVM-12029.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-12039",
@@ -874,7 +1024,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-12039-source/files/source/TOSHIBA-SVM-12039.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-12057",
@@ -891,7 +1044,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-12057-source/files/source/TOSHIBA-SVM-12057.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-12059-1",
@@ -908,7 +1064,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-12059-1-source/files/source/TOSHIBA-SVM-12059-1.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-12070",
@@ -925,7 +1084,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-12070-source/files/source/TOSHIBA-SVM-12070.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "TOSHIBA-SVM-12071",
@@ -942,7 +1104,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "Operation Data (§7-2, A08-010 §6-2): cooling indoor 27/19 °C, outdoor 35/- (35/24 in SVM-11031, SVM-12071, SVM-12070); heating indoor 20/- (20/15 in SVM-11031, SVM-12071, SVM-12070), outdoor 7/6 °C; indoor and outdoor fan High; connecting piping 5 m (7.5 m for 18/22-class models); T1/T2 measured as HX pipe surface temperature at U-bend centre with thermistor thermometer. Specification table on the pages given in each row's locator.",
   "note": "Russian distributor archive (c-o-k.ru, 'Библиотека СОК'). No copy found on a Toshiba/Toshiba Carrier domain (searches for the FILE NO. on toshiba-aircon.co.uk / toshiba-carrier returned only third-party mirrors: c-o-k.ru, manualshive, manualmachine, scribd). Same table layout also printed in Carrier SVM-12031 (CARRIER-SVM-12031).",
-  "worker": "W2-split-others"
+  "worker": "W2-split-others",
+  "nas_path": "energy-systems/toshiba-svm-12071-source/files/source/TOSHIBA-SVM-12071.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "WATERFURNACE-IM2500AN",
@@ -959,7 +1124,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "p.63 'Operating Parameters - Single Speed Models' and p.64 'Dual Capacity Models - Second Stage Operation' (dated 2/15/12); one table for all sizes; flow 1.5 / 3.0 gpm/ton; note: cooling at 80F DB/67F WB, heating at 70F DB.",
   "note": "Generic (not size-specific). Dual-capacity First Stage (part load) not transcribed.",
-  "worker": "W3-liquid"
+  "worker": "W3-liquid",
+  "nas_path": "energy-systems/waterfurnace-im2500an-source/files/source/WATERFURNACE-IM2500AN.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "WATERFURNACE-IM2508WN",
@@ -976,7 +1144,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "p.35 Heating Mode / p.36 Cooling Mode 'Operating Parameters' (dated 7/8/2014): entering load x entering source temperature, suction/discharge psig, superheat, subcooling; note p.36 'at 3 gpm/ton source and load flow'. No water temperature changes printed.",
   "note": "Water-to-water, generic for all 504W11 sizes.",
-  "worker": "W3-liquid"
+  "worker": "W3-liquid",
+  "nas_path": "energy-systems/waterfurnace-im2508wn-source/files/source/WATERFURNACE-IM2508WN.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "WATERFURNACE-OMW7-0018WA",
@@ -993,7 +1164,10 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "p.21 'Operating Parameters' (dated 6/17/24): cooling blocks at compressor speed 8 (024) or 10 (036/048/060), heating blocks at speed 12; airflow in each block header; flow in gpm. Entering air NOT printed on p.21; p.56 performance-table notes: 80F DB/67F WB cooling, 70F DB heating; 'Entering water temperatures below 40F assumes 15% antifreeze solution' (performance tables). p.19 Heat of Extraction/Rejection (Full Load, dated 1/29/26). p.8 AHRI/ISO 13256-1 data (ECM, 208V).",
   "note": "Heat of extraction at the same EWT and gpm entered as coil_duty on heating liquid rows; HR left in note because the cooling operating rows are part speed.",
-  "worker": "W3-liquid"
+  "worker": "W3-liquid",
+  "nas_path": "energy-systems/waterfurnace-omw7-0018wa-source/files/source/WATERFURNACE-OMW7-0018WA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  },
  {
   "source_id": "WATERFURNACE-OMW7-0022WA",
@@ -1010,6 +1184,9 @@
   "licence": "manufacturer copyright, no redistribution statement",
   "conditions": "p.22 'Unit Operating Parameters' (dated 9/24/24), blocks 'W7S030/042/048 - Comp Speed 9 (cooling) / 12 (heating) - 1600 CFM'. p.20 HE/HR (Full Load), p.9 AHRI data, p.59 performance-table notes (80/67F, 70F).",
   "note": "Indoor split: air coil in a separate matched air handler; all blocks print 1600 CFM regardless of size (transcribed as printed).",
-  "worker": "W3-liquid"
+  "worker": "W3-liquid",
+  "nas_path": "energy-systems/waterfurnace-omw7-0022wa-source/files/source/WATERFURNACE-OMW7-0022WA.pdf",
+  "archive87_dataset_id": null,
+  "nas_note": "Added 2026-11-16 for #115-#118 (not in the #87 ledger); catalogue metadata: bet-lab/dataset-catalog#107"
  }
 ]

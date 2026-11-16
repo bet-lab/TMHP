@@ -1,13 +1,14 @@
 """Check that every archived source original is on the lab NAS with the recorded SHA-256.
 
 Each ``sources.json`` entry carries ``nas_path`` (relative to the NAS dataset root) and
-``archive87_dataset_id`` (the #87 ledger dataset, or null when the file was added only for #86).
+``archive87_dataset_id`` (the #87 ledger dataset, or null when the file was added later: for #86, or for the
+heat-exchanger approach archive of #115-#118).
 A single-file source is compared with its ``sha256``; a folder source with its ``files`` list.
 
     uv run python -m validation.default_inputs.nas_check [--root /mnt/datasets]
 
 Read-only. The NAS is mounted read-only over NFS; uploads go through the lab SMB remote
-(see ``nas-transfer-20261113.json``).
+(see the ``nas-transfer-*.json`` records).
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from pathlib import Path
 from validation.default_inputs.archive import sha
 
 HERE = Path(__file__).parent
-ARCHIVES = ("compressor_displacement", "fan_airflow")
+ARCHIVES = ("compressor_displacement", "fan_airflow", "hx_approach")
 
 
 def check(root: Path) -> dict:

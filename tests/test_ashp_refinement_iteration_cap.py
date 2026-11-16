@@ -10,7 +10,8 @@ refinement stopped 5e-5 of the input away from the answer, reported
 Two things answer such a point. The cap is 1000, which most corners end
 inside. And a refinement the cap still stops (no cap bounds the count: 1137
 iterations at one point below) is replaced by the refinement that starts on
-the least-lift corner itself, where that one ends and is no dearer.
+the least-lift corner itself, where that one ends and is not materially
+dearer (within the spread of two refinements that end in the same place).
 
 Which point needs how many iterations depends on every detail of the cycle,
 so the points below were found again when the default compressor efficiencies
@@ -105,22 +106,18 @@ def test_a_refinement_the_cap_stops_is_answered_from_the_least_lift_point(monkey
     assert row["dV_iu_a [m3/s]"] == pytest.approx(CORNER_UNIT["dV_iu_fan_a_rated"], rel=1e-3)
 
 
-def test_the_cap_is_what_solves_a_corner_the_least_lift_refinement_does_not(monkeypatch):
-    """Cooling at 38/26 degC, 99 % of the nameplate: 407 iterations, and with a cap of 200 the unit is off.
+def test_a_finished_least_lift_refinement_answers_although_a_hair_dearer(monkeypatch):
+    """Cooling at 38/26 degC, 99 % of the nameplate: 407 iterations; with a cap of 200 the fallback answers it.
 
-    Here the refinement from the least-lift point does not answer the point
-    with a cap of 200 either: it ends (33 iterations), but 0.005 W above where
-    the capped one stopped, and the fallback takes a finished refinement only
-    where it is no dearer. The larger cap is not made redundant by the fallback
-    above (nor the fallback by the cap: the point above needs 1137).
-
-    The last assertion therefore pins that rule of the fallback as well as the
-    cap. It is not new: on the machine this test was first written for (the
-    BITZER map and the conductances of then, 216 iterations, COP 3.0023 at
-    -10/20 degC) the least-lift refinement also ends, in 32 iterations, 0.05 W
-    dearer. A fallback that accepts a finished refinement within the
-    refinement's own tolerance (``fatol`` 0.1 W) answers this point with a cap
-    of 200 too; this test is to be revisited with such a change, not loosened.
+    Under a cap of 200 the refinement from the pre-scan is stopped, and the
+    one from the least-lift point ends (33 iterations) 0.005 W -- 1e-5 of the
+    input -- above where the capped one happened to stop. Two refinements
+    that end in the same place differ by as much; the finished one is the
+    answer. The fallback used to take it only where it was no dearer at all,
+    and the unit was answered as switched off (``optimizer_failed``) -- with
+    the cap of 1000 at six of 36 432 cooling points of the two units searched,
+    with a cap of 200 at 135, every one of them a finished least-lift
+    refinement about 1e-5 dearer.
     """
     point = dict(Q_r_iu=4950.0, T0=38.0, T_a_room=26.0, verbose=False)
     unit = AirSourceHeatPump(**CORNER_UNIT)
@@ -129,5 +126,40 @@ def test_the_cap_is_what_solves_a_corner_the_least_lift_refinement_does_not(monk
     assert row["Q_ref_iu [W]"] == pytest.approx(4950.0, rel=1e-9)
     assert row["cop_sys [-]"] == pytest.approx(3.4403, abs=0.001)
 
+    refinements = []
+
+    def counted(fun, x0, **kwargs):
+        result = minimize(fun, x0, **kwargs)
+        refinements.append((int(result.nit), bool(result.success), float(result.fun)))
+        return result
+
     monkeypatch.setattr(AirSourceHeatPump, "_REFINE_MAXITER", 200)
-    assert unit.analyze_steady(**point)["failure_reason"] == "optimizer_failed"
+    monkeypatch.setattr(module, "minimize", counted)
+    capped = unit.analyze_steady(**point)
+    assert refinements[0][:2] == (200, False) and refinements[-1][1]
+    # The finished refinement is the dearer of the two, by less than the band of the fallback.
+    assert 0.0 < refinements[-1][2] / refinements[0][2] - 1.0 < AirSourceHeatPump._SEED_GAIN
+    assert capped["failure_reason"] == "none" and capped["hp_is_on"]
+    assert capped["cop_sys [-]"] == pytest.approx(row["cop_sys [-]"], rel=1e-4)
+
+
+def test_a_point_the_default_cap_stops_runs_when_the_least_lift_refinement_ends_a_hair_dearer():
+    """Daikin RXM50A, 5.3 kW at 32/30 degC: 1000 iterations without ending, least-lift ends 0.023 W dearer.
+
+    One of the six points at which the cap of 1000 itself left the unit
+    switched off under "no dearer at all" (1141.982 W where the capped search
+    stopped, 1142.005 W where the least-lift one ended, 2e-5 apart).
+    """
+    unit = AirSourceHeatPump(
+        ref="R32",
+        defrost=None,
+        hp_capacity=5000.0,
+        V_cmp_ref=1.5065195676511936e-05,
+        dV_ou_fan_a_rated=0.7196365052574172,
+        dV_iu_fan_a_rated=0.2467,
+        dT_approach_bounds=(1.0, 30.0),
+    )
+    row = unit.analyze_steady(Q_r_iu=5300.0, T0=32.0, T_a_room=30.0, verbose=False)
+    assert row["failure_reason"] == "none" and row["hp_is_on"] and row["capacity_clamped"] is None
+    assert row["Q_ref_iu [W]"] == pytest.approx(5300.0, rel=1e-9)
+    assert row["E_tot [W]"] == pytest.approx(1142.0, abs=0.5)

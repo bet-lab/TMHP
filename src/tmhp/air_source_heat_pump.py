@@ -1617,10 +1617,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # 5 kW unit at 46/32 degC), and a refinement the cap stops is a
             # failed search however close it got. The refinement that starts
             # on the corner ends in a few dozen iterations: where it ends and
-            # is no dearer, it is the answer.
+            # is not materially dearer, it is the answer. "Materially" is the
+            # same band as above, the spread of two refinements that end in the
+            # same place: the finished one commonly lies 1e-5 of the input
+            # above where the capped one happened to stop (0.01 to 0.05 W,
+            # under the refinement's own ``fatol``), and held to "no dearer at
+            # all" it was thrown away and the unit answered as switched off.
             from_seed = refine(list(seed))
             cheaper = float(from_seed.fun) < (1.0 - self._SEED_GAIN) * float(result.fun)
-            ended_instead = not result.success and from_seed.success and float(from_seed.fun) <= float(result.fun)
+            ended_instead = (
+                not result.success
+                and from_seed.success
+                and float(from_seed.fun) <= (1.0 + self._SEED_GAIN) * float(result.fun)
+            )
             if cheaper or ended_instead:
                 result = from_seed
         return result

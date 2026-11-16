@@ -3,7 +3,8 @@
 Covers the #96 follow-up for the two boilers:
 
 1. defaults scale with ``hp_capacity`` (UA, source flow, pump, borehole field)
-   and the rated COP does not depend on the capacity;
+   and the rated COP without the fixed control power does not depend on the
+   capacity (the fixed 15 W is a larger share of a small machine's input);
 2. the default machine runs its own default set points;
 3. a compressor on a speed bound closes the tank heat exchanger against the
    heat it actually delivers;
@@ -112,16 +113,34 @@ def test_rated_cop_does_not_depend_on_capacity(machines, family):
     """B0/W35 (GSHPB) and W10/W35 (WSHPB) at the rated duty: the same cycle at every capacity.
 
     W35 is the water leaving at 35 degC: at the rated circulation flow it enters at 30 degC.
+
+    The machine without fixed control power (``E_ctrl=0``) has the same system
+    COP at every size. The default machine runs the same cycle and adds the
+    same 15 W at every size, a larger share of a small machine's input: its
+    system COP is that machine's with ``E_ctrl`` added to the input (B0/W35:
+    3.787 at 3 kW, 3.852 at 30 kW against 3.860 without it, the 15 W being
+    1.9 % and 0.2 % of the input; W10/W35: 4.953 and 5.066 against 5.078).
     """
     cops = []
     for cap in (3e3, 8e3, 3e4):
         m = machines[family, cap]
-        r = _quiet(m.analyze_steady, T_tank_w=30.0, T_source=RATING_SOURCE_C[family], Q_ref_tank=cap)
-        assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
-        assert r["T_ref_cond_sat_l [°C]"] - 30.0 == pytest.approx(cap / m.K_tank_hx, abs=1e-6)
-        cops.append((r["cop_ref [-]"], r["cop_sys [-]"]))
-    ref, sys = np.array(cops).T
-    assert np.ptp(ref) / ref.mean() < 1e-3 and np.ptp(sys) / sys.mean() < 1e-3
+        bare = _quiet(FAMILIES[family], hp_capacity=cap, E_ctrl=0.0)
+        point = dict(T_tank_w=30.0, T_source=RATING_SOURCE_C[family], Q_ref_tank=cap)
+        r, r0 = _quiet(m.analyze_steady, **point), _quiet(bare.analyze_steady, **point)
+        for row in (r, r0):
+            assert row["failure_reason"] == "none" and row["capacity_clamped"] is None
+            assert row["T_ref_cond_sat_l [°C]"] - 30.0 == pytest.approx(cap / m.K_tank_hx, abs=1e-6)
+        # The same cycle, and E_ctrl on top of its input.
+        assert r["E_ctrl [W]"] == 15.0 and r0["E_ctrl [W]"] == 0.0
+        assert r["E_cmp [W]"] == pytest.approx(r0["E_cmp [W]"], rel=1e-12)
+        assert r["E_tot [W]"] - r["E_ctrl [W]"] == pytest.approx(r0["E_tot [W]"], rel=1e-12)
+        heat = r0["cop_sys [-]"] * r0["E_tot [W]"]
+        assert 1.0 / r["cop_sys [-]"] == pytest.approx(1.0 / r0["cop_sys [-]"] + 15.0 / heat, rel=1e-12)
+        cops.append((r["cop_ref [-]"], r0["cop_sys [-]"], r["cop_sys [-]"]))
+    ref, sys_bare, sys = np.array(cops).T
+    assert np.ptp(ref) / ref.mean() < 1e-3 and np.ptp(sys_bare) / sys_bare.mean() < 1e-3
+    # With the fixed power the system COP rises with the size.
+    assert list(sys) == sorted(sys) and sys[0] < sys[-1] < sys_bare.mean()
     # Catalogue ranges are 4.2-4.8 (B0/W35) and 5.5-6.3 (W10/W35). A band, not a regression value: the plate
     # condenser holding its archived leaving approach puts the model at 4.23 and 5.74 (it was 40 degC
     # condensing against a 35 degC tank before, at the low end).

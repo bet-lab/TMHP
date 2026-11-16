@@ -4,9 +4,14 @@ With only ``hp_capacity`` given, the loop flow, pump power and borefield scale
 with it, so the ground side is the same at every size. The indoor airflow is
 the largest fan step water-to-air units of that capacity publish
 (:mod:`tmhp.default_inputs`, #86), which is not proportional to the capacity:
-large units move less air per kW, and the rating-point COP falls by 12 % from
-3 kW to 100 kW for that reason alone -- with an airflow proportional to the
-capacity it does not depend on the capacity at all. A value the caller
+large units move less air per kW, and the rating-point COP of the cycle falls
+by 14 % from 3 kW to 100 kW for that reason alone -- with an airflow
+proportional to the capacity it does not depend on the capacity at all. The
+fixed control power (``E_ctrl``, 12 W for a unit delivering to air,
+:mod:`tmhp.control_power`) does not scale with the size: it is 1.4 % of the
+input at 3 kW and 0.04 % at 100 kW, so the system COP of a default machine
+falls by 13 % between those sizes, and with a proportional airflow it rises by
+1.4 %, by exactly that share. A value the caller
 supplies is used as given, and a loop the caller sized badly is reported, not
 silently solved. The dynamic run closes the ground fluid inside each step (G1).
 """
@@ -183,24 +188,45 @@ def test_every_default_scales_with_the_capacity(by_capacity):
 
 
 def test_with_a_proportional_airflow_the_machine_is_the_same_at_every_size():
-    """What the capacity-based ground side guarantees: one rated speed, one rating-point COP."""
-    models = {
-        cap: build(hp_capacity=cap, Ts=0.0, dV_iu_fan_a_rated=cap * PROPORTIONAL_AIRFLOW_PER_W) for cap in CAPACITIES
+    """What the capacity-based ground side guarantees: one rated speed, one cycle, one COP without the fixed power.
+
+    The machine without fixed control power (``E_ctrl=0``) has one system COP
+    at every size (3.626). The default machine draws the same 12 W at every
+    size on top of the same cycle, so its system COP is that machine's with
+    ``E_ctrl`` added to the input -- 3.574 at 3 kW, 3.624 at 100 kW.
+    """
+    proportional = {
+        cap: dict(hp_capacity=cap, Ts=0.0, dV_iu_fan_a_rated=cap * PROPORTIONAL_AIRFLOW_PER_W) for cap in CAPACITIES
     }
+    models = {cap: build(**kw) for cap, kw in proportional.items()}
+    bare = {cap: build(E_ctrl=0.0, **kw) for cap, kw in proportional.items()}
     base = models[4000.0]
     rows = {cap: model.analyze_steady(Q_r_iu=-cap, T0=0.0, T_a_room=20.0) for cap, model in models.items()}
+    bare_rows = {cap: model.analyze_steady(Q_r_iu=-cap, T0=0.0, T_a_room=20.0) for cap, model in bare.items()}
     for cap, model in models.items():
         assert model.E_iu_fan_rated == pytest.approx(cap / 4000.0 * base.E_iu_fan_rated)
         assert model.rps_rated == pytest.approx(base.rps_rated, rel=1e-6)
-        row = rows[cap]
-        assert row["failure_reason"] == "none" and row["capacity_clamped"] is None, cap
-        for key in ("cop_sys [-]", "cop_ref [-]"):
-            assert row[key] == pytest.approx(rows[4000.0][key], rel=1e-4), (cap, key)
+        assert bare[cap].rps_rated == model.rps_rated
+        row, bare_row = rows[cap], bare_rows[cap]
+        for r in (row, bare_row):
+            assert r["failure_reason"] == "none" and r["capacity_clamped"] is None, cap
+        assert row["cop_ref [-]"] == pytest.approx(rows[4000.0]["cop_ref [-]"], rel=1e-4), cap
+        assert bare_row["cop_sys [-]"] == pytest.approx(bare_rows[4000.0]["cop_sys [-]"], rel=1e-4), cap
+        # The default machine: the same cycle, and E_ctrl on top of its input.
+        assert row["E_ctrl [W]"] == 12.0 and bare_row["E_ctrl [W]"] == 0.0
+        assert row["E_cmp [W]"] == pytest.approx(bare_row["E_cmp [W]"], rel=1e-12)
+        assert row["E_tot [W]"] - row["E_ctrl [W]"] == pytest.approx(bare_row["E_tot [W]"], rel=1e-12)
+        heat = abs(row["Q_a_iu_out [W]"] - row["Q_a_iu_in [W]"])
+        assert 1.0 / row["cop_sys [-]"] == pytest.approx(1.0 / bare_row["cop_sys [-]"] + 12.0 / heat, rel=1e-12)
         loop_dT = row["T_bhe_f_out [°C]"] - row["T_bhe_f_in [°C]"]
         assert loop_dT == pytest.approx(rows[4000.0]["T_bhe_f_out [°C]"] - rows[4000.0]["T_bhe_f_in [°C]"], abs=1e-3)
+    # A constant 12 W is a larger share of a small machine's input: the system COP rises with the size.
+    cops = [rows[cap]["cop_sys [-]"] for cap in CAPACITIES]
+    assert cops == sorted(cops)
+    assert cops[0] == pytest.approx(3.574, abs=1e-3) and cops[-1] == pytest.approx(3.624, abs=1e-3)
 
 
-def test_rating_point_cop_depends_on_the_capacity_through_the_indoor_airflow_only(by_capacity):
+def test_rating_point_cop_depends_on_the_capacity_through_the_indoor_airflow_and_the_fixed_power(by_capacity):
     # Before the capacity-based ground side: 30 kW ran on the 4 kW loop (20 L/min, 100 W) and
     # lost 12 % of the 4 kW system COP at this point; 100 kW could not be constructed at all.
     rows = {
@@ -212,13 +238,22 @@ def test_rating_point_cop_depends_on_the_capacity_through_the_indoor_airflow_onl
         assert row["Q_ref_iu [W]"] == pytest.approx(cap, rel=1e-9)
         assert 2.5 < row["T_bhe_f_out [°C]"] - row["T_bhe_f_in [°C]"] < 3.5
         assert row["E_pmp [W]"] / cap == pytest.approx(75.0 / 3516.853)
-    # What is left between the sizes is the catalogue airflow (the test above): 4.13 at 3 kW,
-    # 4.05 at 4 kW, 3.69 at 30 kW, 3.62 at 100 kW with the rotary-compressor default efficiencies
-    # (4.09, 4.05, 3.82 and 3.77 with the earlier compressor map: a ratio of 0.92, now 0.88).
+    # What is left between the sizes is the catalogue airflow and the fixed control power (the test
+    # above): 4.06 at 3 kW, 3.99 at 4 kW, 3.62 at 30 kW, 3.55 at 100 kW, a ratio of 0.874. Without
+    # the 12 W (E_ctrl=0) the airflow alone gives 4.13, 4.03, 3.62 and 3.55, a ratio of 0.860: the
+    # fixed power costs the small machine more and narrows the spread. With the earlier rotary speed
+    # shape (shao_informed) and no fixed power: 4.13, 4.05, 3.69 and 3.62, a ratio of 0.877.
     cops = [rows[cap]["cop_sys [-]"] for cap in CAPACITIES]
     assert cops == sorted(cops, reverse=True)
     assert 0.85 < cops[-1] / cops[0] < 0.90
-    assert rows[4000.0]["cop_sys [-]"] == pytest.approx(4.053, rel=2e-3)
+    without_ctrl = []
+    for cap in CAPACITIES:
+        row = rows[cap]
+        assert row["E_ctrl [W]"] == 12.0
+        without_ctrl.append(abs(row["Q_a_iu_out [W]"] - row["Q_a_iu_in [W]"]) / (row["E_tot [W]"] - row["E_ctrl [W]"]))
+    assert without_ctrl == sorted(without_ctrl, reverse=True)
+    assert cops[-1] / cops[0] > without_ctrl[-1] / without_ctrl[0] > 0.85
+    assert rows[4000.0]["cop_sys [-]"] == pytest.approx(3.987, rel=2e-3)
     assert 3.2 < rows[4000.0]["cop_sys [-]"] < 4.2
 
 
@@ -417,5 +452,8 @@ def test_ground_closure_at_the_pressure_ratio_floor_closes_every_candidate():
     # default glycol's slightly larger borehole resistance adds 0.8 W; the 27 °C
     # room air, 3.9 % lighter than standard air, another 0.9 W, #96 -- 372.6 W in all).
     # 354.6 W with the catalogue displacement and indoor airflow of a 4 kW R32 unit (#86); 303.3 W
-    # with the rotary-compressor default efficiencies and approach-temperature conductances.
-    assert row["E_tot [W]"] == pytest.approx(303.3, rel=2e-3)
+    # with the rotary-compressor default efficiencies and approach-temperature conductances; 298.3 W
+    # with the default rotary speed shape ossorio_anchored (compressor 213.9 -> 196.9 W) and the
+    # 12 W fixed control power.
+    assert row["E_tot [W]"] == pytest.approx(298.3, rel=2e-3)
+    assert row["E_ctrl [W]"] == 12.0

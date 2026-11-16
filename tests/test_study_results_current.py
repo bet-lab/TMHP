@@ -118,7 +118,13 @@ def test_fixed_boundary_sub_floor_rows_are_the_running_cycle() -> None:
     committed = pd.read_csv(DATA / "fixed_boundary_plr" / "ashpb_sweep.csv")
     floor = committed[committed.capacity_clamped == "min"]
     assert len(floor) > 0
-    assert (floor.q_delivered_W > floor.q_request_W * 1.01).all()
+    # An on/off mean would deliver exactly the request. The running cycle delivers the duty of the speed
+    # floor instead: above every request clamped onto it (by 1 % or more, except where a request of the
+    # 4 % grid happens to lie just under the floor), and the same duty for all of them at one condition.
+    assert (floor.q_delivered_W > floor.q_request_W * 1.005).all()
+    assert (floor.q_delivered_W > floor.q_request_W * 1.01).mean() > 0.8
+    for _, rows in floor.groupby(["refrigerant", "t_outdoor_C", "t_sink_C"]):
+        assert rows.q_delivered_W.to_numpy() == pytest.approx(rows.q_delivered_W.iloc[0], rel=1e-5)
 
 
 def test_ashp_trend_sample_reproduces() -> None:

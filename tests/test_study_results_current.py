@@ -136,7 +136,11 @@ def test_ashp_trend_sample_reproduces() -> None:
     mismatches = []
     sweep = pd.read_csv(DATA / "ashp_part_load_sweep.csv")
     model = AirSourceHeatPump(hp_capacity=capacity, ref=ref, **at.SWEEP_SETTINGS)
-    for fraction in (1.0, 0.4):
+    # Rows from the speed floor (0.4 is above it, 0.12 below), the nameplate, and above it up to the top speed: the
+    # first request at or above the maximum capacity is the last row of the curve, answered at the top speed.
+    q_max = float(model.max_capacity(7.0, at.HEATING.t_room_C, mode="heating")["Q_max [W]"])
+    top = at._above_nameplate(q_max, capacity)[-1]
+    for fraction in (top, 1.0, 0.4, 0.12):
         fresh = at._run(model, at.HEATING, capacity * fraction, 7.0)
         row = sweep[
             (sweep.duty == "heating")
@@ -151,6 +155,19 @@ def test_ashp_trend_sample_reproduces() -> None:
             for k, v in fresh.items()
             if not _same(v, row[k].iat[0])
         ]
+        # The axis columns: the maximum at the condition, the request over it, the delivery over it.
+        fresh_axis = {
+            "q_max_W": q_max,
+            "plr_max": capacity * fraction / q_max,
+            "delivered_fraction_of_max": fresh["q_delivered_W"] / q_max,
+        }
+        mismatches += [
+            f"sweep {fraction} {k}: committed {row[k].iat[0]!r}, now {v!r}"
+            for k, v in fresh_axis.items()
+            if not _same(v, row[k].iat[0])
+        ]
+    assert row.capacity_clamped.iat[0] == "min"
+    assert sweep[sweep.plr_nameplate == top].capacity_clamped.eq("max").any()
     points = pd.read_csv(DATA / "ashp_en14825_points.csv")
     oversizing = at.HEATING.oversizing[1]
     model = AirSourceHeatPump(hp_capacity=capacity, ref=ref, **at.TRAJECTORY_SETTINGS)

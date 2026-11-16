@@ -917,6 +917,23 @@ def test_defaults_ablation_table_matches_the_study(points: pd.DataFrame) -> None
     section = section[: section.index("\nProvenance\n=====")]
     flat = re.sub(r"\s+", " ", section)
     assert "Five compressor descriptions were run through both" in flat
+    # The comparison swaps the efficiencies only: every description carries the default fixed control power.
+    from validation.analysis.en14825_trend import variants
+
+    from tmhp import AirSourceHeatPumpBoiler
+    from tmhp.control_power import CONTROL_POWER_SINK_WATER_W
+
+    described = {v.key: v for v in variants()}
+    assert list(described) == list(ablation.index)
+    for key, description in described.items():
+        assert "E_ctrl" not in description.kwargs, key
+        assert set(description.kwargs) <= {"eta_cmp_isen", "eta_cmp_vol", "eta_cmp"}, key
+        built = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R32", **description.kwargs)
+        assert built.E_ctrl == CONTROL_POWER_SINK_WATER_W, key
+    assert (
+        "every description runs with the fixed control power of the default machine, "
+        f"{CONTROL_POWER_SINK_WATER_W:g} W, in its electrical input"
+    ) in flat
     # The figure does not draw the previous release, and the page says so.
     assert "The figure draws four of the five descriptions" in flat
     for variant in ablation.index:
@@ -945,6 +962,10 @@ def test_defaults_ablation_table_matches_the_study(points: pd.DataFrame) -> None
     ) in ascii_flat
     assert f"the bias is {abs(bias - before.bias_air_to_water_pct):.1f} points more negative" in flat
     assert bias < before.bias_air_to_water_pct
+    # On the catalogues the default is not better than the map it replaced: the error is larger too.
+    assert mape > before.MAPE_air_to_water_pct
+    assert f"The error is {mape - before.MAPE_air_to_water_pct:.1f} points larger" in flat
+    assert "on the catalogues the default is not better than the map it replaced" in flat
     assert f"of the {attempted} points of the ten units, {evaluated} are evaluated with the defaults" in flat
     kinds = points[_ashpb(points)].drop_duplicates("slug").compressor_type.value_counts()
     assert (int(kinds["rotary"]), int(kinds["scroll"])) == (6, 4)
@@ -1031,7 +1052,9 @@ def test_defaults_compressor_forms_quote_the_library() -> None:
 
     from tmhp.compressor_efficiency import (
         COMPRESSOR_TYPES,
+        ROTARY_SPEED_VARIANTS,
         SEMI_EMPIRICAL_DRIVE,
+        SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS,
         SEMI_EMPIRICAL_TYPES,
         CompressorSpec,
         SemiEmpiricalCompressor,
@@ -1055,9 +1078,23 @@ def test_defaults_compressor_forms_quote_the_library() -> None:
     twin = SEMI_EMPIRICAL_TYPES[COMPRESSOR_TYPES[0]]
     p = twin["parameters"]
     cells = _defaults_cells(forms, f"``{COMPRESSOR_TYPES[0]}``")
-    assert cells[0] == f":math:`c_L` = {p['cL']:.4f}, :math:`c_u` = {p['cu']:.4f}"
+    # The default rotary shape: flow loss, copper loss and suction heating (no leakage term).
+    assert sorted(p) == ["cH", "cu", "qf"]
+    assert cells[0] == f":math:`q_f` = {p['qf']:.4f}, :math:`c_u` = {p['cu']:.4f}, :math:`c_H` = {p['cH']:.3f}"
     assert twin["speed"] == "rel" and cells[1] == "``n = N / N_rated`` (relative to the machine's rated speed)"
     assert SEMI_EMPIRICAL_TYPES["rotary_single_fixed"]["parameters"] == p
+    # The table is the default speed shape; the other one is named with its own two coefficients.
+    default_shape, other_shape = ROTARY_SPEED_VARIANTS
+    assert SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS[default_shape]["parameters"] == p
+    other = SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS[other_shape]["parameters"]
+    assert sorted(other) == ["cL", "cu"]
+    assert (
+        f"This rotary form is the default of the two speed shapes the library carries, ``{default_shape}``; the "
+        f"other, ``{other_shape}``, has the leakage term :math:`c_L (PR - 1)/n` in place of the flow-loss and "
+        f"suction-heating terms (:math:`c_L` = {other['cL']:.4f}, :math:`c_u` = {other['cu']:.4f})"
+    ) in flat
+    # Bounded by construction or not: the default rotary form is not, and the page says so where it gives the form.
+    assert "It is not a property of the default rotary form" in flat
 
     start = forms.index(".. list-table:: Level of the rotary types by refrigerant")
     table = forms[start : forms.index("A refrigerant has its own level", start)]
@@ -1186,18 +1223,24 @@ def test_defaults_data_sources_table_matches_the_archive() -> None:
 
 def test_defaults_selection_table_matches_the_archive() -> None:
     """Every cell of the cross-validation table is ``model_selection.csv``'s, the unfavourable ones included."""
-    from tmhp.compressor_efficiency import SEMI_EMPIRICAL_TYPES
+    from tmhp.compressor_efficiency import ROTARY_SPEED_VARIANTS, SEMI_EMPIRICAL_TYPES
 
     selection = pd.read_csv(DEFAULTS_ARCHIVE / "model_selection.csv")
     scroll_speed = SEMI_EMPIRICAL_TYPES["scroll"]["speed"]
+    # The archive's letter of the library's default speed shape: the "Rotary, default" column is that row.
+    letter = {"shao_informed": "a", "ossorio_anchored": "b"}[ROTARY_SPEED_VARIANTS[0]]
+    assert letter == "b"
+    rotary_speed = SEMI_EMPIRICAL_TYPES["rotary_twin_inverter"]["speed"]
     columns = [
         selection[(selection.family == "scroll") & selection.candidate.str.startswith(f"selected-{scroll_speed} ")],
         selection[(selection.family == "scroll") & (selection.role == "baseline")],
-        selection[(selection.family == "rotary") & (selection.role == "default (variant a)")],
+        selection[(selection.family == "rotary") & (selection.role == f"default (variant {letter})")],
         selection[(selection.family == "rotary") & (selection.role == "baseline")],
+        # The other arrangement (variant a), the one the quadratic baseline was scored on.
+        selection[(selection.family == "rotary") & selection.candidate.str.startswith(f"selected-{rotary_speed} ")],
     ]
     assert all(len(frame) == 1 for frame in columns)
-    columns = [frame.iloc[0] for frame in columns]
+    *columns, shared_shape = (frame.iloc[0] for frame in columns)
 
     def signed(value: float) -> str:
         return f"{value:+.3f}".replace("-", "−")
@@ -1229,18 +1272,56 @@ def test_defaults_selection_table_matches_the_archive() -> None:
         f"the quadratic under-predicts by {-scroll_q.edge_bias_PR_top:.3f} and {-rotary_q.edge_bias_PR_top:.3f} "
         f"where the selected forms over-predict by {scroll.edge_bias_PR_top:.3f} and {rotary.edge_bias_PR_top:.3f}"
     ) in flat
-    # ... and so does the sentence that says where the quadratic form scores better.
-    assert rotary_q.loco_shape_all < rotary.loco_shape_all
-    assert f"({rotary_q.loco_shape_all:.4f} against {rotary.loco_shape_all:.4f} with a machine left out)" in flat
+    # The default arrangement and the quadratic were not scored on equal terms, and the page says so: on the
+    # arrangement the quadratic was scored on, the quadratic fits the rotary shape slightly more closely.
+    cv = pd.read_csv(DEFAULTS_ARCHIVE / "rotary_speed_variants_cv.csv")
+    shared = cv[(cv.variant == "a") & (cv.candidate == "selected terms without qf")].iloc[0]
+    assert shared.loco_shape_all == pytest.approx(shared_shape.loco_shape_all, abs=5e-7)
+    assert rotary.loco_shape_all < rotary_q.loco_shape_all < shared_shape.loco_shape_all
+    assert "The two rotary columns are not on equal terms" in flat
+    assert (
+        f"the semi-empirical rotary form has a shape error of {shared_shape.loco_shape_all:.4f} with a machine left "
+        f"out against the quadratic's {rotary_q.loco_shape_all:.4f}"
+    ) in flat
+    edge = pd.read_csv(DEFAULTS_ARCHIVE / "edge_holdout.csv")
+    low_speed = edge[
+        edge.candidate.str.startswith(f"default: variant {letter}")
+        & edge.holdout.str.startswith("lowest speed")
+        & (edge.group == "all")
+    ]
+    assert int(low_speed.rows.iloc[0]) == 2 and "lowest-speed hold-out (two points" in flat
+    # ... and so do the sentences that say where the quadratic form scores better.
     assert rotary_q.loso_level_bias_max_abs < rotary.loso_level_bias_max_abs
     assert (
-        f"falls only half as steeply with the pressure ratio as the rotary data do ({rotary.step_ratio_model_data:.2f})"
-        in flat
-    )
+        f"is larger than the quadratic's ({rotary.loso_level_bias_max_abs:.3f} against "
+        f"{rotary_q.loso_level_bias_max_abs:.3f})"
+    ) in flat
+    assert rotary_q.edge_bias_PR_bottom < rotary.edge_bias_PR_bottom
+    assert "and so is its bias at the bottom fifth of the pressure ratios" in flat
+    assert f"{scroll.loco_total_all:.2f} for the scroll and {rotary.loco_total_all:.2f} for the rotary" in flat
+    assert 0.3 < rotary.step_ratio_model_data < 0.4
+    assert (
+        "falls only a third as steeply with the pressure ratio as the rotary data do "
+        f"({rotary.step_ratio_model_data:.2f})"
+    ) in flat
+    # The terms of the default arrangement: the high-speed (flow-loss) term stays by its own rule.
+    with_qf = cv[(cv.variant == letter) & (cv.candidate == "selected terms with qf")].iloc[0]
+    without_qf = cv[(cv.variant == letter) & (cv.candidate == "selected terms without qf")].iloc[0]
+    assert with_qf.loco_shape_all == pytest.approx(rotary.loco_shape_all, abs=5e-7)
+    assert with_qf.loco_shape_all < without_qf.loco_shape_all
+    assert f"({with_qf.loco_shape_all:.4f} with it, {without_qf.loco_shape_all:.4f} without)" in flat
+    readme = re.sub(r"\s+", " ", (DEFAULTS_ARCHIVE / "README.md").read_text())
+    assert "(LOCO shape 0.0200 against 0.0209 for `b`; a tie within the archive's 0.001 tolerance)" in readme
+    assert f"at a shape error of 0.0200 against {rotary.loco_shape_all:.4f}" in flat
 
 
 def test_defaults_rotary_speed_variant_account_matches_the_archive_and_the_study() -> None:
-    """The one place heat-pump data entered: what was chosen, on what, and that the shape check is not independent."""
+    """The one place heat-pump data entered: what was chosen, on what, and that the comparison is not independent.
+
+    The default is the Ossorio-anchored shape (variant ``b`` of the archive). The page gives the two steps of the
+    choice -- the trajectory-shape rule on a model without the fixed control power, then the level with that power
+    in the model -- with the archive README's numbers and the tables of the study the decision was taken on.
+    """
     import json
 
     from tmhp.compressor_efficiency import ROTARY_SPEED_VARIANTS
@@ -1251,47 +1332,121 @@ def test_defaults_rotary_speed_variant_account_matches_the_archive_and_the_study
     section = _defaults_section("Compressor data, not heat-pump data")
     flat = re.sub(r"\s+", " ", section)
 
-    assert ROTARY_SPEED_VARIANTS == ("shao_informed", "ossorio_anchored") and variants["default"] == "a"
-    assert "The default, ``shao_informed``, was chosen by a rule written down before the measurement it uses" in flat
+    assert ROTARY_SPEED_VARIANTS == ("ossorio_anchored", "shao_informed") and variants["default"] == "b"
+    assert "* ``ossorio_anchored``, the default, gives every speed record of the 2004 machines its own level" in flat
+    assert '``CompressorSpec("rotary_twin_inverter", rotary_speed_variant="shao_informed")``' in flat
     # Speed ratios of the data and of the two variants at 30 rev/s.
     shao = sorted(unit["30"] for unit in variants["data_speed_ratios"]["shao_2004"].values())
     (ossorio,) = (unit["30"] for unit in variants["data_speed_ratios"]["ossorio_2019_cnit"].values())
     assert f"have {shao[0]:.2f}, {shao[1]:.2f} and {shao[2]:.2f} of their efficiency at 60 rev/s" in flat
     assert f"measured in 2019 has {ossorio:.2f}" in flat
-    chosen = cv[(cv.variant == "a") & (cv.candidate == "selected terms without qf")].iloc[0]
-    other = cv[(cv.variant == "b") & (cv.candidate == "selected terms with qf")].iloc[0]
-    assert f"it gives {chosen.ratio_ossorio_30:.3f} at 30 rev/s" in flat
+    default = cv[(cv.variant == "b") & (cv.candidate == "selected terms with qf")].iloc[0]
+    other = cv[(cv.variant == "a") & (cv.candidate == "selected terms without qf")].iloc[0]
+    assert f"At the 2019 test condition it gives {default.ratio_ossorio_30:.3f} at 30 rev/s" in flat
     assert f"It gives {other.ratio_ossorio_30:.3f}." in flat
-    # The rule's result is the README's, and the page repeats it without changing it.
+
+    # First step: the rule's result on the model without the control power is the README's.
     assert "variant `a` 30 / 30, variant `b` 24 / 30; secondary 0.041 against 0.115" in readme
     assert "30 of 30 cases for ``shao_informed`` against 24 of 30 for ``ossorio_anchored``" in flat
     assert "0.041 against 0.115 in logarithm" in flat
+    assert "``shao_informed`` became the default" in flat
+    # Second step: with the fixed control power, as the README and the study's table have it.
+    assert "D/A inside the certified p10–p90 in **30 / 30 cases under both**" in readme
+    assert "27 / 30 cases under `b` against 6 / 30 under `a`**" in readme
+    assert "the ratio lies inside the band in 30 of 30 cases under both" in flat
+    assert "in 27 of the 30 cases under ``ossorio_anchored`` against 6 under ``shao_informed``" in flat
+    study = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "en14825_summary.csv")
+    study = study[study.application == "both"].set_index(["variant", "P_fixed_W", "quantity"]).cases_inside
+    levels = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "fixed_power_levels.csv")
+    water = levels[levels.model_class == "ASHPB"].set_index("level").P_fixed_W
+    assert [water[level] for level in ("none", "certified_median", "certified_upper")] == [0.0, 15.0, 25.0]
+    start = section.index(".. list-table:: Cases of thirty inside the certified p10–p90")
+    table = section[start : section.index("The table is the study the decision was taken on", start)]
+    for variant in ("shao_informed", "ossorio_anchored"):
+        for power in water:
+            expected = [
+                str(int(study[(variant, power, quantity)])) for quantity in ("all four points", "D/A", "B/A", "C/A")
+            ]
+            assert _defaults_cells(table, f"``{variant}``, {power:g} W") == expected, (variant, power)
+    assert int(study[("ossorio_anchored", 15.0, "all four points")]) == 27
+    assert int(study[("shao_informed", 15.0, "all four points")]) == 6
+    scores = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "en14825_scores.csv")
+    without = scores[(scores.variant == "ossorio_anchored") & (scores.level == "none")]
+    assert int((~without.in_D).sum()) == 12 and (without[~without.in_D].cop_D > 8.9).all()
+    assert "point D above the 90th percentile in 12 cases" in flat
+    # The same counts with the power inside the library's own search: the committed verdict of the default.
+    verdict = pd.read_csv(TREND_VERDICT)
+    shipped = verdict[verdict.variant == "defaults"]
+    assert (int(shipped.C2_level.sum()), int(shipped.C3_gradient.sum())) == (27, 30)
+    assert "27 and 30 for the default (the committed ``en14825_trend_verdict.csv``), 6 and 30 for" in flat
+
     # The consequence is stated, in both places the default is judged on the trajectory.
-    assert "no longer independent validation" in readme
-    assert "**the trajectory-shape check is not independent validation**" in flat
+    assert "**Consequence: the EN 14825 part-load comparison (trajectory shape and level) is not independent" in readme
+    assert "**the EN 14825 comparison is not independent validation**" in flat
     assert "were not used and remain independent" in flat
     survive = re.sub(r"\s+", " ", _defaults_section("Does the coefficient set survive both tests?"))
-    assert "The shape half is not an independent test of the default" in survive
-    # The evidence the other way: intermediate ratios and the level check, as the README and the study have them.
-    assert "1.54 / 2.07 under `b` against 1.42 / 1.82 under `a`, population-median ratios 1.52 / 2.06" in readme
+    assert "The population half is not an independent test of the default" in survive
+
+    # What does not support the choice: the independent comparisons, as the study's parity tables have them.
+    parity = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "parity_summary.csv")
+    parity = parity[parity.level == "certified_median"].set_index(["variant", "model_class", "mode"])
+
+    def figures(variant: str, model_class: str, mode: str) -> str:
+        row = parity.loc[(variant, model_class, mode)]
+        return f"{row.MAPE_pct:.2f} % and {row.bias_pct:+.2f} %".replace("-", "−")
+
+    b, a = "ossorio_anchored", "shao_informed"
     assert (
-        "are 1.42 and 1.82 for ``shao_informed`` and 1.54 and 2.07 for ``ossorio_anchored``; the ratios of the "
-        "certified medians are 1.52 and 2.06"
+        f"are {figures(b, 'ASHPB', 'heating')} for the air-to-water units under the default against "
+        f"{figures(a, 'ASHPB', 'heating')} under ``shao_informed``; for the air-to-air units "
+        f"{figures(b, 'ASHP', 'heating')} against {figures(a, 'ASHP', 'heating')} in heating and "
+        f"{figures(b, 'ASHP', 'cooling')} against {figures(a, 'ASHP', 'cooling')} in cooling"
     ) in flat
-    assert "The level check C2 is 16 / 30 under `b` against 9 / 30 under `a`" in readme
-    verdict = pd.read_csv(TREND_VERDICT)
-    passes = int(verdict[verdict.variant == "defaults"].C2_level.sum())
-    assert passes == 9
-    assert f"The level check is passed by {passes} of 30 cases with ``shao_informed`` and by 16 with" in flat
-    low = pd.read_csv(TREND_POINTS).query("variant == 'defaults' and application == 'low'")
-    cop = low.pivot_table(index=["capacity_kW", "refrigerant", "oversizing"], columns="point", values="cop")
-    assert f"{(cop.B / cop.A).median():.2f} and {(cop.C / cop.A).median():.2f} for ``shao_informed``" in flat
-    medians = pd.read_csv(KEYMARK_SUMMARY).query("application == 'low'").set_index("point").cop_median
-    assert f"are {medians.B / medians.A:.2f} and {medians.C / medians.A:.2f}" in flat
+    assert "air-to-water 8.49 / −6.30 % under `b` against 8.51 / −5.36 % under `a`" in readme
+    gate = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "parity_gate.csv")
+    gate = gate[gate.level == "certified_median"].set_index(["variant", "slug"])
+    running = [slug for slug in gate.loc[b].index if gate.loc[(b, slug), "failure_reason"] == "none"]
+    assert running == ["panasonic_wh_uq09he8", "panasonic_wh_uq16he8"]
+    errors = [f"{gate.loc[(v, slug), 'err_pct']:+.1f} %".replace("-", "−") for v in (b, a) for slug in running]
+    assert all(abs(gate.loc[(v, slug), "err_pct"]) < 10.0 for v in (b, a) for slug in running)
+    assert f"read {errors[0]} and {errors[1]} against {errors[2]} and {errors[3]}, all inside the ±10 % gate" in flat
+    # ... and the dependence of the count on the power that is put in.
+    upper = scores[(scores.variant == b) & (scores.level == "certified_upper")]
+    assert int(study[(b, 25.0, "all four points")]) == int(upper.level_all_inside.sum())
+    assert (
+        f"With 25 W in place of 15 W the default passes in {int(upper.level_all_inside.sum())} cases, "
+        f"{int((~upper.in_B).sum())} B points and {int((~upper.in_C).sum())} C points falling below the 10th "
+        "percentile"
+    ) in flat
+    assert (upper[~upper.in_B].cop_B < 4.2).all() and upper.in_A.all() and upper.in_D.all()
+    # The compressor-level check that does not separate the variants.
     assert "implied inverter efficiency of 0.90–0.91 under variant `a` and 0.89–0.90 under `b`" in readme.replace(
         "implies an inverter efficiency", "implied inverter efficiency"
     )
-    assert "0.90–0.91 under ``shao_informed`` and 0.89–0.90 under ``ossorio_anchored``" in flat
+    assert "0.89–0.90 under ``ossorio_anchored`` and 0.90–0.91 under ``shao_informed``" in flat
+
+    # The part-load curve at held temperatures, from the study's curve table (15 W, air-to-water 9 kW R32).
+    curves = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "curve_summary.csv")
+    curves = curves[(curves.model_class == "ASHPB") & (curves.level == "certified_median")]
+    assert set(curves.capacity_W) == {9000.0} and set(curves.refrigerant) == {"R32"}
+    conditions = [(7.0, 35.0), (7.0, 45.0), (-7.0, 45.0)]
+    fall, peak = {}, {}
+    for variant in (b, a):
+        rows = curves[curves.variant == variant].set_index(["t_outdoor_C", "t_sink_C"])
+        fall[variant] = [f"{-rows.floor_vs_nameplate_pct[c]:.1f}" for c in conditions]
+        peak[variant] = (100.0 * rows.plr_peak.min(), 100.0 * rows.plr_peak.max())
+    assert (
+        f"loses {fall[b][0]} % of its nameplate-load COP by the time it reaches its speed floor at +7 °C air and "
+        f"35 °C leaving water, {fall[b][1]} % at +7 / 45 °C and {fall[b][2]} % at −7 / 45 °C under the default, and "
+        f"its curve peaks at {peak[b][0]:.0f} to {peak[b][1]:.0f} % of the nameplate; under ``shao_informed`` it "
+        f"loses {fall[a][0]}, {fall[a][1]} and {fall[a][2]} % and peaks at {peak[a][0]:.0f} to {peak[a][1]:.0f} %"
+    ) in flat
+
+    # The owner's decision, as a fact: implemented as a draft, the merge held -- not adopted, not released.
+    assert "**Owner decision of 2026-11-16, after the measurements for #183:**" in readme
+    assert "regenerated as a draft pull request; the merge is held" in readme
+    assert "regenerated as a draft pull request. The merge is held." in flat
+    assert "adopted" not in flat and "released" not in flat
 
 
 def test_defaults_limits_quote_the_archive_and_the_library() -> None:
@@ -1301,6 +1456,7 @@ def test_defaults_limits_quote_the_archive_and_the_library() -> None:
     import CoolProp.CoolProp as CP
 
     from tmhp.compressor_efficiency import (
+        SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS,
         SEMI_EMPIRICAL_TYPES,
         CompressorSpec,
         SemiEmpiricalCompressor,
@@ -1315,10 +1471,11 @@ def test_defaults_limits_quote_the_archive_and_the_library() -> None:
         "**The power basis of the rating points is assumed.**",
         "**Refrigerants without rating points take the pooled level.**",
         "**The split of the loss is weakly identified**",
-        "**Below 30 rev/s the default is an extrapolation, and a steep one at a high lift.**",
+        "**Below 30 rev/s the default is an extrapolation.**",
         "**The volumetric efficiency of the rotary types above a pressure ratio of 6.8 is an extrapolation.**",
         "**The rotary volumetric efficiency passes one at a low lift and a high speed.**",
-        "**The non-default variant can exceed one.**",
+        "**The default rotary form can exceed one.**",
+        "**The speed shape of the rotary types was chosen on heat-pump data.**",
         "**The scroll type has not been checked on a machine it describes.**",
         "**Sources disagree on the scroll's shape at a high pressure ratio.**",
     ):
@@ -1383,9 +1540,18 @@ def test_defaults_limits_quote_the_archive_and_the_library() -> None:
         twin_model = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), ref, 60.0).eta_oi(pr_r, 60.0, st_r)
         measured_rotary[ref] = (value, 100.0 * (1.0 - value / catalogue), 100.0 * (1.0 - value / twin_model))
     assert f"is at {measured_rotary['R32'][0]:.3f} (R32) and {measured_rotary['R410A'][0]:.3f} (R410A)" in flat
-    assert all(1.5 <= own < 2.5 for _, own, _ in measured_rotary.values())
+    # Against its own class the measured machine is below the catalogue level with R410A, which the fixed-speed
+    # catalogues rate, and above the pooled level with R32, which they do not (the default speed shape; with the
+    # other shape both sat about 2 % below).
+    assert sorted(single["by_refrigerant"]) == ["R22", "R410A"]
+    below_own, above_pooled = measured_rotary["R410A"][1], -measured_rotary["R32"][1]
+    assert 2.5 <= below_own < 3.5 and 8.5 <= above_pooled < 9.5
+    assert (
+        f"With R410A that is {below_own:.0f} % below the catalogue level of its own class; with R32, which the "
+        f"fixed-speed catalogues do not rate, it is {above_pooled:.0f} % above what the pooled level gives"
+    ) in flat
     assert sorted(round(twins) for _, _, twins in measured_rotary.values()) == [11, 12]
-    assert "about 2 % below the catalogue level of its own class and 11 to 12 % below the inverter twins" in flat
+    assert "Both are 11 to 12 % below the inverter twins" in flat
     assert "it holds no independent measurement of the efficiency level of one" in flat
 
     # The same condition in "The forms": what each type gives at its rated speed, by refrigerant.
@@ -1403,20 +1569,38 @@ def test_defaults_limits_quote_the_archive_and_the_library() -> None:
         f"and {at_rating['R290'][1]:.3f} for R290, the single one {single_model:.3f} for R410A, and the scroll "
         f"{default:.3f} for R410A at 60 rev/s"
     ) in forms
+    # A refrigerant on the pooled level, at the same condition: above every refrigerant that has rating points.
+    pr_p, st_p = state("R134a", reference["T_evap_C"], reference["T_cond_C"], reference["superheat_K"])
+    pooled_machine = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R134a", 60.0)
+    assert pooled_machine.level == SEMI_EMPIRICAL_TYPES["rotary_twin_inverter"]["level"]
+    pooled_value = pooled_machine.eta_oi(pr_p, 60.0, st_p)
+    assert pooled_value > max(value for _, value in at_rating.values())
+    assert f"the twin model gives {pooled_value:.3f} for R134a there" in forms
+    assert (
+        f"For R134a it gives an :math:`\\eta_{{oi}}` of {pooled_value:.3f} at the catalogues' rating condition, above "
+        "every refrigerant that has rating points"
+    ) in flat
 
     # The GMCC check, the pooled level and the split.
     implied = sorted(entry["implied_inverter_eff"] for entry in archive["checks"]["gmcc_inverter_input"])
-    assert [f"{value:.2f}" for value in implied] == ["0.90", "0.91"]
-    assert "an inverter efficiency of 0.90–0.91, where the drive model has 0.94 at that speed" in flat
+    assert [f"{value:.2f}" for value in implied] == ["0.89", "0.90"]
+    assert "an inverter efficiency of 0.89–0.90, where the drive model has 0.94 at that speed" in flat
     drive = archive["drive"]["eta_at_60rps"]
-    assert f"{drive:.2f}" == "0.94" and [round(100.0 * (drive / v - 1.0)) for v in implied] == [5, 4]
-    assert "the model's electrical input is 4 to 5 % low" in flat
+    assert f"{drive:.2f}" == "0.94" and [round(100.0 * (drive / v - 1.0)) for v in implied] == [6, 5]
+    assert "the model's electrical input is 5 to 6 % low" in flat
     levels_by_ref = SEMI_EMPIRICAL_TYPES["rotary_twin_inverter"]["level_by_refrigerant"]
     assert sorted(levels_by_ref) == ["R290", "R32", "R410A"]
     assert f"span a factor of {max(levels_by_ref.values()) / min(levels_by_ref.values()):.2f}" in flat
+    efficiencies = sorted(entry["eta_oi_median"] for entry in twin.values())
+    assert f"for rating-point efficiencies of {efficiencies[0]:.3f} to {efficiencies[-1]:.3f}" in flat
+    other_levels = SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS["shao_informed"]["level_by_refrigerant"]["rotary_twin_inverter"]
+    assert f"spans {max(other_levels.values()) / min(other_levels.values()):.2f})" in flat
     check = archive["checks"]["single_fixed_r290"]
-    assert check["rows"] == 6 and f"{100.0 * (1.0 - check['ratio_data_model_median']):.0f}" == "4"
-    assert "six R290 single rotaries" in flat and "sit 4 % below what the pooled level gives" in flat
+    assert check["rows"] == 6 and f"{100.0 * (1.0 - check['ratio_data_model_median']):.0f}" == "15"
+    assert "six R290 single rotaries" in flat and "sit 15 % below what the pooled level gives" in flat
+    readme = re.sub(r"\s+", " ", (DEFAULTS_ARCHIVE / "README.md").read_text())
+    assert "the pooled single level ~15 % optimistic for a refrigerant outside its data (`a`: 4 %)" in readme
+    assert "(4 % under ``shao_informed``)" in flat
     unit_shares = [unit["f_fit"] for unit in archive["types"]["scroll"]["split"]["unit_means"]]
     assert f"run from {min(unit_shares):.2f} to {max(unit_shares):.2f}" in flat
 
@@ -1425,15 +1609,20 @@ def test_defaults_limits_quote_the_archive_and_the_library() -> None:
     assert (min(n for _, n in hull), max(n for _, n in hull)) == (30.0, 120.0)
     assert "the rotary data cover 30 to 120 rev/s" in flat
     rated = SemiEmpiricalCompressor(CompressorSpec(), "R32", 40.0)
-    falls = []
+    steeper = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter", "shao_informed"), "R32", 40.0)
+    falls, steeper_falls = [], []
     for t_evap, t_cond in ((7.0, 35.0), (-12.0, 47.0)):
         pr_s, st_s = state("R32", t_evap, t_cond, 5.0)
         falls.append((pr_s, 100.0 * (1.0 - rated.eta_oi(pr_s, 15.0, st_s) / rated.eta_oi(pr_s, 40.0, st_s))))
+        steeper_falls.append(100.0 * (1.0 - steeper.eta_oi(pr_s, 15.0, st_s) / steeper.eta_oi(pr_s, 40.0, st_s)))
     assert (
-        f"drops by {falls[0][1]:.0f} % between the rated speed and 15 rev/s at a pressure ratio of {falls[0][0]:.1f} "
-        f"and by {falls[1][1]:.0f} % at {falls[1][0]:.1f}"
+        f"drops by {falls[0][1]:.1f} % between the rated speed and 15 rev/s at a pressure ratio of {falls[0][0]:.1f} "
+        f"and by {falls[1][1]:.1f} % at {falls[1][0]:.1f}"
     ) in flat
     assert f"goes from {rated.eta_inverter(40.0):.3f} to {rated.eta_inverter(15.0):.3f}" in flat
+    # The other shape falls about twice and three times as far over the same range: that is the disagreement.
+    assert all(other > 1.5 * default_fall for other, (_, default_fall) in zip(steeper_falls, falls, strict=True))
+    assert f"with ``shao_informed`` the same two drops are {steeper_falls[0]:.1f} and {steeper_falls[1]:.1f} %" in flat
 
     # Above the data in pressure ratio: the archive's three slopes.
     high = pd.read_csv(DEFAULTS_ARCHIVE / "eta_v_high_pr.csv").set_index("variant")
@@ -1480,7 +1669,12 @@ def test_defaults_rated_speed_table_matches_the_constructors() -> None:
         GroundSourceHeatPumpBoiler,
         WaterSourceHeatPumpBoiler,
     )
-    from tmhp.compressor_efficiency import COMPRESSOR_TYPES, SEMI_EMPIRICAL_TYPES
+    from tmhp.compressor_efficiency import (
+        COMPRESSOR_TYPES,
+        ROTARY_SPEED_VARIANTS,
+        SEMI_EMPIRICAL_TYPES,
+        CompressorSpec,
+    )
     from tmhp.compressor_envelope import default_rps_max
     from tmhp.default_inputs import estimate_displacement
     from tmhp.reference_state import ReferenceStateError
@@ -1516,6 +1710,27 @@ def test_defaults_rated_speed_table_matches_the_constructors() -> None:
     flat = re.sub(r"\s+", " ", section)
     assert f"speed range of the rotary efficiency data, {n_low:g} to {n_high:g} rev/s" in flat
     assert "with the constant one was below it and one could not be built" in flat
+    # What the rated speed depends on: the speed shape of the rotary types, a little, for a heating-rated machine;
+    # not the fixed control power.
+    other_shape = CompressorSpec(COMPRESSOR_TYPES[0], ROTARY_SPEED_VARIANTS[1])
+    assert other_shape.rotary_speed_variant == "shao_informed"
+    moves = {}
+    for label, (cls, capacity, ref) in rows.items():
+        model = cls(hp_capacity=capacity, ref=ref)
+        assert cls(hp_capacity=capacity, ref=ref, E_ctrl=0.0).rps_rated == model.rps_rated, label
+        other = cls(hp_capacity=capacity, ref=ref, compressor_type=other_shape)
+        moves[label] = (model.rps_rated - other.rps_rated, other.rps_rated)
+    boilers = [move for label, (move, _) in moves.items() if label.endswith("R290")]
+    assert len(boilers) == 3 and min(boilers) > 0.0
+    r134a_move, r134a_other = moves["``GroundSourceHeatPumpBoiler``, 8 kW, R134a"]
+    assert (
+        f"the R290 boilers of this table differ by {min(boilers):.1f} to {max(boilers):.1f} rev/s and the R134a "
+        f"ground-source boiler by {r134a_move:.0f} rev/s ({r134a_other:.1f} rev/s with ``shao_informed``)"
+    ) in flat
+    cooling_rated = [abs(move) for label, (move, _) in moves.items() if "Boiler" not in label]
+    assert len(cooling_rated) == 2 and max(cooling_rated) < 0.05
+    assert "the two cooling-rated units do not move" in flat
+    assert "does not enter the rated speed" in flat
     # The boilers the constant was removed from last: the default machines, before and after.
     for cls in (GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler):
         assert (cls().hp_capacity, cls().ref) == (8000.0, "R290")
@@ -1594,27 +1809,32 @@ def test_defaults_trend_verdict_prose_matches_the_study() -> None:
     # Level: how many runs pass, which, and where the others are outside.
     flags = outside("defaults")
     inside = (flags == 0).all(axis=1)
-    assert int(inside.sum()) == int(shipped.C2_level.sum()) == 9
+    assert int(inside.sum()) == int(shipped.C2_level.sum()) == 27
     low, medium = by_application(inside)
-    passing = inside[inside].reset_index().groupby(["application", "refrigerant"]).size().to_dict()
-    assert passing == {("low", "R32"): 3, ("low", "R410A"): 3, ("medium", "R290"): 3}
+    assert (low, medium) == (15, 12)
     assert (
-        f"{_NUMBER_WORDS[low + medium].capitalize()} of the thirty runs have all four points inside the certified "
-        f"p10–p90: {_NUMBER_WORDS[low]} of the fifteen low-temperature runs (R32 three of nine, R410A all three) and "
-        f"{_NUMBER_WORDS[medium]} of the medium-temperature ones (the R290 runs)"
+        "Twenty-seven of the thirty runs have all four points inside the certified p10–p90: all "
+        f"{_NUMBER_WORDS[low]} low-temperature runs and {_NUMBER_WORDS[medium]} of the medium-temperature ones"
     ) in flat
-    assert (flags.A == 0).all() and "No run is outside at point A" in flat
+    assert (flags[["A", "D"]] == 0).all().all() and "No run is outside at point A or at point D" in flat
+    # The three that fail are one machine, below the band at C and, in one run, at B.
+    failing = flags[~inside].reset_index()
+    assert set(zip(failing.application, failing.capacity_kW, failing.refrigerant, strict=True)) == {
+        ("medium", 9.0, "R410A")
+    }
     c_low, c_medium = by_application(flags.C < 0)
     b_low, b_medium = by_application(flags.B < 0)
     assert ((flags.B < 0) <= (flags.C < 0)).all() and not (flags[["B", "C"]] > 0).any().any()
+    assert (c_low, c_medium, b_low, b_medium) == (0, 3, 0, 1)
     assert (
-        f"in {c_low + c_medium} runs, {c_low} low- and {c_medium} medium-temperature, and at B (+2 °C, 54 %) in "
-        f"{b_low + b_medium} of those, {b_low} and {b_medium}"
+        f"The {_NUMBER_WORDS[c_medium]} that fail are the medium-temperature runs of the 9 kW R410A machine, below the "
+        f"10th percentile at C (+7 °C, 35 % of the design load) in all {_NUMBER_WORDS[c_medium]} and at B (+2 °C, "
+        f"54 %) in {_NUMBER_WORDS[b_medium]}"
     ) in flat
-    above_d = flags.D > 0
-    assert by_application(above_d) == (3, 0) and set(above_d[above_d].reset_index().refrigerant) == {"R290"}
-    assert not (flags.D < 0).any()
-    assert "except the three low-temperature R290 runs, which are above the 90th percentile at point D" in flat
+    # The criterion was the one the speed shape was chosen on, and the page says so in the paragraph's heading.
+    assert (
+        "**The level sits inside the certified band — which, for the default, was the criterion of a choice.**" in flat
+    )
 
     def percentiles(frame: pd.DataFrame, application: str) -> str:
         row = frame[
@@ -1626,16 +1846,24 @@ def test_defaults_trend_verdict_prose_matches_the_study() -> None:
         return " / ".join(f"{row[f'pct_{point}']:.0f}" for point in "ABCD")
 
     assert f"sits at the {percentiles(shipped, 'low')}rd percentile at points A / B / C / D" in flat
-    assert f"the medium-temperature one at {percentiles(shipped, 'medium')}." in flat
+    assert f"the medium-temperature one at {percentiles(shipped, 'medium')}:" in flat
+    # Below the certified median at the three colder points and above it at D, in both applications.
+    for application in ("low", "medium"):
+        a, b, c, d = (float(value) for value in percentiles(shipped, application).split(" / "))
+        assert max(a, b, c) < 50.0 < d, application
+    assert "below the median at the three colder points and above it at D" in flat
+    # The point nearest the edge of the band: C of the medium-temperature application, only just inside.
     r32 = trend[
         (trend.variant == "defaults")
-        & (trend.application == "low")
+        & (trend.application == "medium")
         & (trend.refrigerant == "R32")
         & (trend.capacity_kW == 9.0)
         & (trend.oversizing == 0.667)
     ].set_index("point")
-    assert f"(a COP of {r32.cop['C']:.2f} against {reference.cop_p10[('low', 'C')]:.2f})" in flat
-    assert r32.cop["C"] < reference.cop_p10[("low", "C")]
+    assert (
+        f"(a COP of {r32.cop['C']:.2f} against a 10th percentile of {reference.cop_p10[('medium', 'C')]:.2f})" in flat
+    )
+    assert reference.cop_p10[("medium", "C")] < r32.cop["C"] < reference.cop_p10[("medium", "C")] + 0.05
 
     # Where the compressor runs at each point, against the data hull of the default type.
     n_low = min(n for _, n in SEMI_EMPIRICAL_TYPES[COMPRESSOR_TYPES[0]]["hull_PR_N"])
@@ -1656,10 +1884,14 @@ def test_defaults_trend_verdict_prose_matches_the_study() -> None:
     assert int(inside_before.sum()) == int(before.C2_level.sum())
     assert f"passes it in {low + medium} ({low} low- and {medium} medium-temperature)" in flat
     assert not (flags_before < 0).any().any()
-    assert by_application(flags_before.A > 0) == (10, 0) and by_application(flags_before.B > 0) == (0, 2)
-    assert (
-        "above the 90th percentile at point A in ten low-temperature runs and at point B in two medium-temperature ones"
-    ) in flat
+    above_before = (flags_before > 0).sum()
+    assert by_application(flags_before.A > 0) == (6, 0) and int(above_before.sum()) == 6
+    assert "failing above the 90th percentile at point A in six low-temperature runs" in flat
+    # The level criterion does not single out the default: two earlier descriptions pass it in most runs too.
+    level = by_variant.C2_level.sum()
+    assert (int(level["legacy-v1"]), int(level["constant"]), int(level["ideal"])) == (26, 0, 0)
+    assert "Nor does the level criterion single out the default" in flat
+    assert f"``legacy-v1`` passes it in {int(level['legacy-v1'])}, ``constant`` and ``ideal`` in none" in flat
     wide = {
         variant: trend[trend.variant == variant].pivot_table(index=key, columns="point", values="cop")
         for variant in ("defaults", "quadratic-2026-10-06")
@@ -1668,16 +1900,28 @@ def test_defaults_trend_verdict_prose_matches_the_study() -> None:
     assert (
         f"the default's COP is {100 * (1 - ratio.A['low']):.0f} % lower at point A of the low-temperature application "
         f"and {100 * (1 - ratio.B['medium']):.0f} and {100 * (1 - ratio.C['medium']):.0f} % lower at points B and C "
-        "of the medium-temperature one"
+        f"of the medium-temperature one, and {100 * (ratio.D['low'] - 1):.0f} % higher at point D of the "
+        "low-temperature application"
     ) in flat
-    assert f"The previous map meets it in {low + medium} runs on the present tree" in flat
-    assert f"and the compressor model for {low + medium} → {int(inside.sum())}" in flat
+    assert f"and meets it in {low + medium} runs on the present tree" in flat
     assert (
         f"puts the R32 9 kW machine at the {percentiles(before, 'medium').split(' / ')[2]}th percentile there" in flat
     )
 
-    # The history of the count: the present value and the previous map's are the committed verdict's.
-    assert f"and {int(inside.sum())} now, with the semi-empirical model" in flat
+    # The history of the count: the present value is the committed verdict's, and the two parts of the last step
+    # are the tables of the study the choice was taken on (fixed power added after the solve).
+    assert f"and {int(inside.sum())} now, with the ``ossorio_anchored`` shape and the fixed control power" in flat
+    study = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "en14825_summary.csv")
+    study = study[(study.application == "both") & (study.quantity == "all four points")]
+    count = {(row.variant, row.P_fixed_W): int(row.cases_inside) for row in study.itertuples()}
+    start, shape_only = count[("shao_informed", 0.0)], count[("ossorio_anchored", 0.0)]
+    power_only, both = count[("shao_informed", 15.0)], count[("ossorio_anchored", 15.0)]
+    assert both == int(inside.sum())
+    assert (
+        f"the speed shape alone takes the count from {start} to {shape_only}, the control power alone from {start} to "
+        f"{power_only}, and the two together to {both}"
+    ) in flat
+    assert "Nothing was fitted to this count; the choice between the two speed shapes was made on it." in flat
 
 
 def test_defaults_figures_measured_on_a_model_are_what_the_library_returns() -> None:
@@ -1709,7 +1953,23 @@ def test_defaults_figures_measured_on_a_model_are_what_the_library_returns() -> 
         f"load and {cold[2]:.2f} at its speed floor ({cold[3]:.0f} % of the nameplate); at +7 °C and 35 °C it has "
         f"{mild[0]:.2f}, {mild[1]:.2f} and {mild[2]:.2f} ({mild[3]:.0f} %)"
     ) in limits
-    assert cold[2] < 0.7 * cold[0]  # "a steep one at a high lift"
+    # With the default speed shape the fall to the floor is moderate, and the curve peaks below full load: the
+    # steep fall of the earlier default (a third of the COP at this cold point) is the other shape's.
+    for full, three_quarters, floor, _ in (cold, mild):
+        assert three_quarters > full > floor > 0.8 * full
+    steeper = AirSourceHeatPumpBoiler(
+        hp_capacity=9000.0,
+        ref="R32",
+        Cd_cycling=None,
+        defrost=False,
+        compressor_type=CompressorSpec("rotary_twin_inverter", "shao_informed"),
+    )
+    steeper_full, _ = solve_at_leaving_water(steeper, -7.0, 45.0, steeper.hp_capacity, flow)
+    steeper_floor, _ = solve_at_leaving_water(steeper, -7.0, 45.0, 0.1 * steeper.hp_capacity, flow)
+    assert float(steeper_floor["cop_sys [-]"]) < 0.7 * float(steeper_full["cop_sys [-]"])
+    assert "Whether real inverter rotaries lose that little at a low speed, or as much as the other shape has it" in (
+        limits
+    )
 
     # The pressure ratio a default split unit reaches heating from -15 degC, in the Summary's pressure-ratio row.
     ratios = []
@@ -1722,22 +1982,56 @@ def test_defaults_figures_measured_on_a_model_are_what_the_library_returns() -> 
     summary = re.sub(r"\s+", " ", _list_table_row(_summary_table(_read(DEFAULTS_PAGE)), "Pressure-ratio limit"))
     assert f"reaches {min(ratios):.1f} to {max(ratios):.1f} at its speed ceiling" in summary
 
-    # The non-default rotary variant above one with wet suction; the default at the same state is not.
+    # The default rotary form above one with wet suction; the other speed shape at the same state is not.
     ref, quality = "R290", 0.7
     p1 = CP.PropsSI("P", "T", 273.15, "Q", 1, ref)
     p2 = CP.PropsSI("P", "T", 65.0 + 273.15, "Q", 1, ref)
     h1 = CP.PropsSI("H", "P", p1, "Q", quality, ref)
     isentropic = CP.PropsSI("H", "P", p2, "S", CP.PropsSI("S", "P", p1, "Q", quality, ref), ref)
     state = suction_state(p1, CP.PropsSI("D", "P", p1, "Q", quality, ref), h1, isentropic)
-    other = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter", "ossorio_anchored"), ref, 60.0)
     default = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), ref, 60.0)
-    value = other.eta_oi(p2 / p1, 60.0, state)
-    assert value > 1.0 > default.eta_oi(p2 / p1, 60.0, state)
+    assert default.spec.rotary_speed_variant == "ossorio_anchored"
+    other = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter", "shao_informed"), ref, 60.0)
+    value = default.eta_oi(p2 / p1, 60.0, state)
+    assert value > 1.0 > other.eta_oi(p2 / p1, 60.0, state)
+    assert "**The default rotary form can exceed one.**" in limits
     assert (
         f"At a pressure ratio of {p2 / p1:.1f} with {ref} and a suction quality of {quality:g} the form gives "
         f":math:`\\eta_{{oi}}` = {value:.2f}"
     ) in limits
-    assert f"gives {default.eta_oi(p2 / p1, 60.0, state):.2f} at that state" in limits
+    assert f"it gives {other.eta_oi(p2 / p1, 60.0, state):.2f} at the state named above" in limits
+    # The grid count is the archive's; the page repeats every part of it.
+    readme = re.sub(r"\s+", " ", (DEFAULTS_ARCHIVE / "README.md").read_text())
+    assert "eta_oi is above one in 292 of 3,500 states" in readme
+    assert "and in 5 states with saturated suction (PR 10, up to 1.08)" in readme
+    assert "it is above one in 292 of 3,500 states" in limits
+    assert "and in 5 states with a saturated suction (at a ratio of 10, up to 1.08)" in limits
+
+    # Does a machine get there? The default air-to-water unit whose discharge-temperature control wets the suction
+    # (R32), at the coldest points it runs at: the suction stays nearly dry and the form well below one.
+    qualities, raw = [], []
+    hot_flow = en14825_water_flow(model.hp_capacity, "medium")  # the flow of the medium-temperature application
+    for t_outdoor, leaving in ((-25.0, 55.0), (-20.0, 55.0), (-15.0, 65.0)):
+        for fraction in (1.0, 0.3):
+            result, _ = solve_at_leaving_water(model, t_outdoor, leaving, model.hp_capacity * fraction, hot_flow)
+            assert result["failure_reason"] == "none", (t_outdoor, leaving, fraction)
+            p_in, p_out = float(result["P_ref_cmp_in [Pa]"]), float(result["P_ref_cmp_out [Pa]"])
+            h_in = float(result["h_ref_cmp_in [J/kg]"])
+            entropy = CP.PropsSI("S", "P", p_in, "H", h_in, "R32")
+            wet = suction_state(
+                p_in,
+                CP.PropsSI("D", "P", p_in, "H", h_in, "R32"),
+                h_in,
+                CP.PropsSI("H", "P", p_out, "S", entropy, "R32"),
+            )
+            qualities.append(CP.PropsSI("Q", "P", p_in, "H", h_in, "R32"))
+            machine = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R32", model.rps_rated)
+            raw.append(machine.eta_oi(p_out / p_in, float(result["cmp_rpm [rpm]"]) / 60.0, wet))
+    assert all(0.95 < quality < 1.0 for quality in qualities)  # wet, and only just
+    assert (
+        "at -25 and -20 °C outdoor air with 55 °C leaving water and at -15 °C with 65 °C, runs with a suction quality "
+        f"above 0.95, and the form gives {min(raw):.2f} to {max(raw):.2f} there"
+    ) in limits, (qualities, raw)
 
 
 _TREND_KEY = ["application", "capacity_kW", "refrigerant", "oversizing"]
@@ -1790,21 +2084,35 @@ def _defaults_count(mask: pd.Series) -> tuple[int, int]:
 
 
 def test_defaults_speed_shape_choice_is_what_the_library_returns() -> None:
-    """The rule that chose the rotary speed shape, run again: both variants on the study's thirty cases."""
+    """Both steps of the choice of the rotary speed shape, run again on the study's thirty cases.
+
+    Without the fixed control power the trajectory-shape rule separates the two shapes: that was the first choice
+    (``shao_informed``). With the power in the model the rule no longer separates them and the level does: that is
+    the present default (``ossorio_anchored``). The page's counts for both steps are what the library returns.
+    """
     import math
 
-    from tmhp.compressor_efficiency import CompressorSpec
+    from tmhp.compressor_efficiency import ROTARY_SPEED_VARIANTS, CompressorSpec
+    from tmhp.control_power import CONTROL_POWER_SINK_WATER_W
 
+    default_shape, other_shape = ROTARY_SPEED_VARIANTS
+    assert (default_shape, other_shape) == ("ossorio_anchored", "shao_informed")
     gradient = pd.read_csv(KEYMARK_GRADIENT).set_index("application")
     committed = pd.read_csv(TREND_POINTS).query("variant == 'defaults'")
+
+    def spec(variant: str) -> CompressorSpec:
+        return CompressorSpec("rotary_twin_inverter", variant)
+
+    with_power = CONTROL_POWER_SINK_WATER_W
     measured = {
-        "shao_informed": committed.pivot_table(index=_TREND_KEY, columns="point", values="cop"),
-        "ossorio_anchored": _defaults_trend_cops(
-            compressor_type=CompressorSpec("rotary_twin_inverter", "ossorio_anchored")
-        ),
+        # The default with the control power is the committed study itself.
+        (default_shape, with_power): committed.pivot_table(index=_TREND_KEY, columns="point", values="cop"),
+        (other_shape, with_power): _defaults_trend_cops(compressor_type=spec(other_shape)),
+        (default_shape, 0.0): _defaults_trend_cops(compressor_type=spec(default_shape), E_ctrl=0.0),
+        (other_shape, 0.0): _defaults_trend_cops(compressor_type=spec(other_shape), E_ctrl=0.0),
     }
     counts = {}
-    for variant, cops in measured.items():
+    for case, cops in measured.items():
         application = cops.index.get_level_values("application")
         ratio = cops.D / cops.A
         low, high, median = (
@@ -1812,7 +2120,7 @@ def test_defaults_speed_shape_choice_is_what_the_library_returns() -> None:
         )
         flags = _defaults_outside_band(cops)
         low_cases = cops.xs("low", level="application")
-        counts[variant] = {
+        counts[case] = {
             "shape": int(((ratio >= low) & (ratio <= high)).sum()),
             "distance": float((ratio / median).map(lambda v: abs(math.log(v))).median()),
             "level": int((flags == 0).all(axis=1).sum()),
@@ -1821,33 +2129,59 @@ def test_defaults_speed_shape_choice_is_what_the_library_returns() -> None:
             "part load below": int(((flags.B < 0) | (flags.C < 0)).sum()),
             "D above": _defaults_count(flags.D > 0),
         }
-    chosen, other = counts["shao_informed"], counts["ossorio_anchored"]
-    # The rule: a difference of three cases or more in the shape count decides.
-    assert chosen["shape"] - other["shape"] >= 3
     choice = re.sub(r"\s+", " ", _defaults_section("Compressor data, not heat-pump data"))
+
+    # First step, on the model without the control power: a difference of three cases or more decides.
+    first, first_other = counts[(other_shape, 0.0)], counts[(default_shape, 0.0)]
+    assert first["shape"] - first_other["shape"] >= 3
     assert (
-        f"{chosen['shape']} of 30 cases for ``shao_informed`` against {other['shape']} of 30 for ``ossorio_anchored``, "
-        f"and a median distance from the certified median ratio of {chosen['distance']:.3f} against "
-        f"{other['distance']:.3f} in logarithm. The present library returns the same counts."
+        f"There the count was {first['shape']} of 30 cases for ``shao_informed`` against {first_other['shape']} of 30 "
+        f"for ``ossorio_anchored``, with a median distance from the certified median ratio of "
+        f"{first['distance']:.3f} against {first_other['distance']:.3f} in logarithm"
     ) in choice
-    # The evidence the other way is measured too, not only quoted from the README.
+    assert first_other["D above"][1] == 0
+    assert f"point D above the 90th percentile in {first_other['D above'][0]} cases" in choice
+
+    # Second step, with the control power: the rule no longer decides, the level does.
+    default, other = counts[(default_shape, with_power)], counts[(other_shape, with_power)]
+    assert abs(default["shape"] - other["shape"]) < 3 and default["shape"] == other["shape"] == 30
+    assert f"the ratio lies inside the band in {default['shape']} of 30 cases under both" in choice
+    assert default["level"] - other["level"] >= 3
     assert (
-        f"are {chosen['B/A']:.2f} and {chosen['C/A']:.2f} for ``shao_informed`` and {other['B/A']:.2f} and "
-        f"{other['C/A']:.2f} for ``ossorio_anchored``"
+        f"in {default['level']} of the 30 cases under ``ossorio_anchored`` against {other['level']} under "
+        "``shao_informed``"
     ) in choice
     assert (
-        f"The level check is passed by {chosen['level']} of 30 cases with ``shao_informed`` and by {other['level']} "
-        "with ``ossorio_anchored``"
+        f"{default['level']} and {default['shape']} for the default (the committed ``en14825_trend_verdict.csv``), "
+        f"{other['level']} and {other['shape']} for ``shao_informed``"
     ) in choice
-    assert other["level"] > chosen["level"]
+    # The study the decision was taken on added the power after the solve; the counts are the same.
+    study = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "en14825_summary.csv")
+    study = study[study.application == "both"].set_index(["variant", "P_fixed_W", "quantity"]).cases_inside
+    for (variant, power), measured_counts in counts.items():
+        assert int(study[(variant, power, "all four points")]) == measured_counts["level"], (variant, power)
+        assert int(study[(variant, power, "D/A")]) == measured_counts["shape"], (variant, power)
+
+    # What does not support the choice is measured too: the rule's second measure still favours the other shape.
+    assert other["distance"] < default["distance"]
+    assert (
+        f"is {other['distance']:.3f} in logarithm for ``shao_informed`` and {default['distance']:.3f} for the default"
+    ) in choice
+    # ... and what agrees with it without having decided it: the intermediate ratios.
+    medians = pd.read_csv(KEYMARK_SUMMARY).query("application == 'low'").set_index("point").cop_median
+    assert (
+        f"are {default['B/A']:.2f} and {default['C/A']:.2f} for the default and {other['B/A']:.2f} and "
+        f"{other['C/A']:.2f} for ``shao_informed``; the ratios of the certified medians are "
+        f"{medians.B / medians.A:.2f} and {medians.C / medians.A:.2f}"
+    ) in choice
     survive = re.sub(r"\s+", " ", _defaults_section("Does the coefficient set survive both tests?"))
     assert f"the variant that was not chosen passes this criterion in {other['level']} runs" in survive
     limits = re.sub(r"\s+", " ", _defaults_section("Limits and provisional items"))
-    assert other["D above"][1] == 0
+    assert default["D above"] == other["D above"] == (0, 0)
     assert (
-        f"the default sits below the certified 10th percentile at a part-load point in {chosen['part load below']} of "
-        f"the 30 cases and the variant with the shallower fall in {other['part load below']}; that variant is instead "
-        f"above the 90th percentile at point D in {other['D above'][0]}"
+        f"the default sits below the certified 10th percentile at a part-load point in {default['part load below']} "
+        f"of the 30 cases and the variant with the steeper fall in {other['part load below']}; neither is above the "
+        "90th percentile at point D"
     ) in limits
 
 
@@ -1866,10 +2200,15 @@ def test_defaults_frost_paragraph_is_what_the_models_return() -> None:
         assert (other[["C", "D"]] - shipped.loc[other.index, ["C", "D"]]).abs().to_numpy().max() < 1e-6
     flags = _defaults_outside_band(without)
     above_a = _defaults_count(flags.A > 0)
-    assert not (flags == 0).all(axis=1).any()
+    passing = (flags == 0).all(axis=1)
+    # Without any frost adjustment point A is too high in every low-temperature run; the runs that still pass are
+    # medium-temperature ones.
+    assert above_a[0] == 15 and _defaults_count(passing)[0] == 0
     assert (
-        f"above the 90th percentile at point A in {above_a[0]} of the 15 low-temperature runs, no run passing" in flat
-    )
+        f"above the 90th percentile at point A in {above_a[0]} of the 15 low-temperature runs and in {above_a[1]} of "
+        f"the medium-temperature ones, {int(passing.sum())} runs passing"
+    ) in flat
+    assert int(passing.sum()) < int((_defaults_outside_band(shipped) == 0).all(axis=1).sum())
     medians = (without.D / without.A).groupby(level="application").median()
     assert f"without it the two medians are {medians['low']:.2f} and {medians['medium']:.2f}" in flat
     flags = _defaults_outside_band(in_full)
@@ -1885,6 +2224,290 @@ def test_defaults_frost_paragraph_is_what_the_models_return() -> None:
     }
     assert kept["A"] > 0.9 and 0.2 < kept["B"] < 0.3
     assert "point A keeps over nine tenths of the correction and point B a quarter of it" in flat
+
+
+def test_defaults_fixed_control_power_matches_the_declarations_and_the_library() -> None:
+    """The fixed control power: declared medians and their counts, the constructor defaults, the shares, the limits."""
+    from validation.analysis.en14825_trend import (
+        CONFIGURATIONS,
+        EN14825_POINTS,
+        OVERSIZING,
+        en14825_water_flow,
+        solve_at_leaving_water,
+    )
+
+    from tmhp import (
+        AirSourceHeatPump,
+        AirSourceHeatPumpBoiler,
+        GroundSourceHeatPump,
+        GroundSourceHeatPumpBoiler,
+        WaterSourceHeatPumpBoiler,
+    )
+    from tmhp.control_power import CONTROL_POWER_SINK_AIR_W, CONTROL_POWER_SINK_WATER_W
+
+    auxiliary = REPO_ROOT / "validation" / "data" / "auxiliary_power"
+    water = pd.read_csv(auxiliary / "keymark_pto_air_to_water.csv")
+    air = pd.read_csv(auxiliary / "keymark_pto_air_to_air.csv")
+    section = _defaults_section("Fixed control power", "=")
+    flat = re.sub(r"\s+", " ", section)
+
+    # The declarations: the statistic each default is, with its counts and quartiles, and the other declaration.
+    pooled = pd.concat([water.P_offsb_a_W, water.P_offsb_b_W])
+    air_standby = pd.concat([air.P_offsb_a_W, air.P_offsb_b_W])
+    assert pooled.median() == CONTROL_POWER_SINK_WATER_W == 15.0
+    assert air.P_TO_W.median() == CONTROL_POWER_SINK_AIR_W == 12.0
+
+    def quartiles(series: pd.Series) -> str:
+        return f"quartiles {series.quantile(0.25):g}–{series.quantile(0.75):g}"
+
+    start = section.index(".. list-table:: Declared compressor-off powers")
+    table = section[start : section.index("The two populations do not use the same declaration", start)]
+    assert _defaults_cells(table, "Air-to-water") == [
+        f"{len(water):,} / {water.outdoor_unit.nunique():,} / {water.manufacturer.nunique()}",
+        f"Median of the two off/standby declarations pooled: {pooled.median():g} W ({quartiles(pooled)})",
+        f"``P_TO``: median {water.P_TO_W.median():g} W ({quartiles(water.P_TO_W)})",
+    ]
+    assert _defaults_cells(table, "Air-to-air") == [
+        f"{len(air)} / {air.outdoor_unit.nunique()} / {air.manufacturer.nunique()}",
+        f"Median ``P_TO``: {air.P_TO_W.median():g} W ({quartiles(air.P_TO_W)})",
+        f"Off/standby: median {air_standby.median():g} W",
+    ]
+    # The record of the levels beside the study that used them says the same.
+    levels = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "fixed_power_levels.csv")
+    levels = levels.set_index(["model_class", "level"])
+    median_water, median_air = levels.loc[("ASHPB", "certified_median")], levels.loc[("ASHP", "certified_median")]
+    assert median_water.statistic == "median of P_offsb_a_W and P_offsb_b_W pooled"
+    assert (median_water.records, median_water.certificates, median_water.outdoor_units) == (
+        len(pooled),
+        len(water),
+        water.outdoor_unit.nunique(),
+    )
+    assert median_water.P_fixed_W == CONTROL_POWER_SINK_WATER_W
+    assert median_air.statistic == "median of P_TO_W" and median_air.P_fixed_W == CONTROL_POWER_SINK_AIR_W
+    assert (median_air.certificates, median_air.outdoor_units) == (len(air), air.outdoor_unit.nunique())
+    upper_water, upper_air = levels.loc[("ASHPB", "certified_upper")], levels.loc[("ASHP", "certified_upper")]
+    assert upper_water.P_fixed_W == water.P_TO_W.quantile(0.75) and upper_air.P_fixed_W == air.P_TO_W.quantile(0.75)
+
+    # The defaults of the constructors, and where each comes from.
+    start = section.index(".. list-table:: Default ``E_ctrl``")
+    table = section[start : section.index("The archive holds no declared population", start)]
+    rows = {
+        "``AirSourceHeatPumpBoiler``": (
+            (AirSourceHeatPumpBoiler,),
+            CONTROL_POWER_SINK_WATER_W,
+            "The air-to-water median",
+        ),
+        "``AirSourceHeatPump``": ((AirSourceHeatPump,), CONTROL_POWER_SINK_AIR_W, "The air-to-air median"),
+        "``GroundSourceHeatPumpBoiler``, ``WaterSourceHeatPumpBoiler``": (
+            (GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler),
+            CONTROL_POWER_SINK_WATER_W,
+            "Carried over from the air-to-water family: a unit delivering to water",
+        ),
+        "``GroundSourceHeatPump``": (
+            (GroundSourceHeatPump,),
+            CONTROL_POWER_SINK_AIR_W,
+            "Carried over from the air-to-air family: a unit delivering to air",
+        ),
+    }
+    for label, (classes, value, basis) in rows.items():
+        assert all(cls().E_ctrl == value for cls in classes), label
+        assert _defaults_cells(table, label) == [f"{value:g} W", basis], label
+    summary = re.sub(
+        r"\s+", " ", _list_table_row(_summary_table(_read(DEFAULTS_PAGE)), "Fixed control power (``E_ctrl``)")
+    )
+    assert (
+        f"{CONTROL_POWER_SINK_WATER_W:g} W for a unit delivering to water, {CONTROL_POWER_SINK_AIR_W:g} W for a unit "
+        "delivering to air"
+    ) in summary
+    assert f"of {len(water):,} air-to-water certificates pooled" in summary
+    assert f"of {len(air)} air-to-air certificates" in summary and "carried over" in summary
+
+    # What it amounts to at a rating condition of each default machine.
+    start = section.index(".. list-table:: Share of ``E_ctrl`` in the electrical input of a default machine")
+    table = section[start : section.index("At a rating point the control power lowers", start)]
+    shares = []
+    for cls, conditions in (
+        (AirSourceHeatPump, ("A7/20", "A35/27")),
+        (AirSourceHeatPumpBoiler, ("A7/W35",)),
+        (GroundSourceHeatPump, ("B0/20", "B25/27")),
+        (GroundSourceHeatPumpBoiler, ("B0/W35",)),
+        (WaterSourceHeatPumpBoiler, ("W10/W35",)),
+    ):
+        machine = cls()
+        ranges = machine.operating_range().set_index("condition")
+        for condition in conditions:
+            row = ranges.loc[condition]
+            assert bool(row["runs"]) and bool(row["meets_request"]) and row["runtime_fraction [-]"] == 1.0
+            e_tot = abs(float(row["Q_delivered [W]"])) / float(row["cop_sys [-]"])
+            share = 100.0 * machine.E_ctrl / e_tot
+            shares.append(share)
+            label = f"``{cls.__name__}`` ({machine.hp_capacity / 1000.0:g} kW, {machine.ref}), {condition}"
+            assert _defaults_cells(table, label) == [f"{e_tot:.0f}", f"{share:.1f} %"], label
+    assert f"between {min(shares):.1f} and {max(shares):.1f} % for the machines of the table" in flat
+
+    # ... and on the EN 14825 trajectory, where the compressor draws little: the thirty cases at points A and D.
+    share, input_d, ratio_d = {"A": [], "D": []}, [], []
+    for application, test_points in EN14825_POINTS.items():
+        for capacity, refrigerant in CONFIGURATIONS:
+            model = AirSourceHeatPumpBoiler(hp_capacity=capacity, ref=refrigerant, Cd_cycling=None)
+            flow = en14825_water_flow(capacity, application)
+            for oversizing in OVERSIZING:
+                for label, t_outdoor, leaving, load_ratio in test_points:
+                    if label not in share:
+                        continue
+                    result, _ = solve_at_leaving_water(
+                        model, t_outdoor, leaving, capacity * oversizing * load_ratio, flow
+                    )
+                    assert result["failure_reason"] == "none" and result["E_ctrl [W]"] == model.E_ctrl
+                    share[label].append(100.0 * result["E_ctrl [W]"] / result["E_tot [W]"])
+                    if label == "D":
+                        assert result["capacity_clamped"] == "min"  # on the speed floor
+                        assert result["cmp_rpm [rpm]"] / 60.0 == pytest.approx(model.rps_min)
+                        input_d.append(float(result["E_tot [W]"]))
+                        ratio_d.append(float(result["P_ref_cmp_out [Pa]"]) / float(result["P_ref_cmp_in [Pa]"]))
+    assert len(share["A"]) == len(share["D"]) == 30
+    a, d = pd.Series(share["A"]), pd.Series(share["D"])
+    (point_d,) = (p for p in EN14825_POINTS["low"] if p[0] == "D")
+    assert (point_d[1], point_d[3]) == (12.0, 0.15)
+    assert (
+        f"{CONTROL_POWER_SINK_WATER_W:g} W is {a.min():.1f} to {a.max():.1f} % of the input at point A and "
+        f"{d.min():.1f} to {d.max():.1f} % at point D, the lightest (12 °C outdoor air, 15 % of the design load, the "
+        f"compressor on its speed floor, an input of {min(input_d):.0f} to {max(input_d):.0f} W); the medians are "
+        f"{a.median():.1f} and {d.median():.1f} %"
+    ) in flat
+    choice = re.sub(r"\s+", " ", _defaults_section("Compressor data, not heat-pump data"))
+    assert f"15 W is about {d.median():.0f} % of the modelled input" in choice
+    # Point D lies below the rotary data in speed and in pressure ratio, whatever the speed shape.
+    from tmhp.compressor_efficiency import COMPRESSOR_TYPES, SEMI_EMPIRICAL_TYPES
+
+    hull = SEMI_EMPIRICAL_TYPES[COMPRESSOR_TYPES[0]]["hull_PR_N"]
+    lowest_ratio, lowest_speed = min(pr for pr, _ in hull), min(n for _, n in hull)
+    assert max(ratio_d) < lowest_ratio and AirSourceHeatPumpBoiler().rps_min == 15.0 < lowest_speed == 30.0
+    assert (
+        "in speed (the data start at 30 rev/s and the machine runs at 15) and in pressure ratio "
+        f"({min(ratio_d):.2f} to {max(ratio_d):.2f}; the data start at {lowest_ratio:.2f})"
+    ) in choice
+
+    # The limits: the spread, the sensitivity of the part-load count, the thin air-to-air population, the capacity.
+    assert (pooled.quantile(0.25), pooled.quantile(0.75)) == (11.0, 21.0)
+    assert (
+        "A quarter of the air-to-water declarations are at or below 11 W and a quarter at or above 21 W, and the "
+        f"upper quartile of ``P_TO`` is {water.P_TO_W.quantile(0.75):g} W ({air.P_TO_W.quantile(0.75):g} W for "
+        "air-to-air)"
+    ) in flat
+    study = pd.read_csv(REPO_ROOT / "validation" / "data" / "rotary_speed_evidence" / "en14825_summary.csv")
+    study = study[(study.application == "both") & (study.quantity == "all four points")]
+    study = study[study.variant == "ossorio_anchored"].set_index("P_fixed_W").cases_inside
+    assert (
+        f"With 25 W in place of 15 W the part-load level check of `Does the coefficient set survive both tests?`_ is "
+        f"passed by {int(study[25.0])} of the 30 cases, not {int(study[15.0])}"
+    ) in flat
+    multi = air[air.is_multi_split]
+    assert set(air.refrigerant) == {"R32"} and air.manufacturer.nunique() == 3
+    assert (
+        f"**The air-to-air value rests on {len(air)} certificates** of three manufacturers, all R32, "
+        f"{air.Q_rated_kW.min():.1f} to {air.Q_rated_kW.max():.1f} kW; {_NUMBER_WORDS[len(multi)]} of them are "
+        f"multi-split outdoor units, which declare {multi.P_TO_W.min():g} to {multi.P_TO_W.max():g} W"
+    ) in flat
+    assert 0.895 < water.Q_rated_kW.between(3.0, 16.0).mean() < 0.905
+
+    def declared(low: float, high: float) -> float:
+        rows = water[(water.Q_rated_kW > low) & (water.Q_rated_kW <= high)]
+        return float(pd.concat([rows.P_offsb_a_W, rows.P_offsb_b_W]).median())
+
+    assert (
+        f"({declared(0.0, 8.0):g} W up to 8 kW, {declared(8.0, 12.0):g} W from 8 to 12 kW, {declared(12.0, 16.0):g} W "
+        f"from 12 to 16 kW). Above 25 kW it does: {declared(25.0, 50.0):g} W from 25 to 50 kW and "
+        f"{declared(50.0, 1e9):g} W above 50 kW"
+    ) in flat
+    # Off rows draw nothing, and the page says where the off time is accounted.
+    off = AirSourceHeatPumpBoiler().analyze_steady(T_tank_w=30.0, T0=7.0, Q_ref_tank=0.0)
+    assert off["hp_is_on"] is False and off["E_ctrl [W]"] == 0.0 and off["E_tot [W]"] == 0.0
+    assert "its row has ``E_ctrl [W]`` = 0" in flat
+    # The owner's decision, as a fact.
+    assert "regenerated as a draft pull request; the merge is held" in flat
+    assert "adopted" not in flat and "released" not in flat
+
+
+def test_defaults_approach_box_note_is_what_the_library_returns() -> None:
+    """The note on the approach-temperature search box: what a default split unit delivers with a 20 K and a 30 K box."""
+    from tmhp import AirSourceHeatPump
+    from tmhp.default_inputs import estimate_max_airflow
+
+    text = _read(DEFAULTS_PAGE)
+    start = text.index(".. admonition:: Where the catalogue airflow meets the dry-coil model")
+    note = re.sub(r"\s+", " ", text[start : text.index("The air-to-water outdoor stratum is the weakest", start)])
+    note = note.replace("−", "-")
+
+    def delivered(model: AirSourceHeatPump, load: float, t_outdoor: float, room: float) -> dict:
+        result = model.analyze_steady(Q_r_iu=load, T0=t_outdoor, T_a_room=room, return_dict=True, verbose=False)
+        assert result["failure_reason"] == "none"
+        return result
+
+    def fraction(capacity: float, bound: float, point: str, unit: str = "wall_mounted") -> float:
+        model = AirSourceHeatPump(
+            hp_capacity=capacity, ref="R32", dT_approach_bounds=(1.0, bound), indoor_unit_type=unit
+        )
+        load, t_outdoor, room = {"T1": (capacity, 35.0, 27.0), "cold": (-capacity, -7.0, 20.0)}[point]
+        return abs(delivered(model, load, t_outdoor, room)["Q_ref_iu [W]"]) / capacity
+
+    # The catalogue indoor airflow per kW, where the box matters.
+    def per_kW(capacity_kW: float, product: str) -> float:
+        law = estimate_max_airflow(capacity_kW * 1000.0, side="indoor", product=product)
+        return law.value * 3600.0 / capacity_kW
+
+    assert (
+        f"no more than {per_kW(9.0, 'wall_mounted'):.0f} m³/h per kW for wall-mounted units of 9 kW and above "
+        f"({per_kW(15.0, 'wall_mounted'):.0f} at 15 kW) and {per_kW(15.0, 'floor_standing'):.0f} for floor-standing "
+        "units of any size"
+    ) in note
+    assert per_kW(50.0, "wall_mounted") < per_kW(9.0, "wall_mounted")
+    assert per_kW(3.0, "floor_standing") == pytest.approx(per_kW(15.0, "floor_standing"))
+
+    # With the 20 K box: the rating point in cooling, and heating from -7 degC.
+    assert fraction(8000.0, 20.0, "T1") == pytest.approx(1.0, abs=1e-6)
+    assert fraction(4000.0, 20.0, "cold") == pytest.approx(1.0, abs=1e-6)
+    assert (
+        f"only up to 8 kW ({100 * fraction(9000.0, 20.0, 'T1'):.0f} % at 9 kW, "
+        f"{100 * fraction(15000.0, 20.0, 'T1'):.0f} % at 15 kW; a floor-standing unit "
+        f"{100 * fraction(9000.0, 20.0, 'T1', 'floor_standing'):.0f} % at any capacity), and in heating at -7 °C "
+        f"outdoors falls short from 5 kW ({100 * fraction(6000.0, 20.0, 'cold'):.0f} % at 6 kW, "
+        f"{100 * fraction(8000.0, 20.0, 'cold'):.0f} % at 8 kW)"
+    ) in note
+    assert fraction(5000.0, 20.0, "cold") < 0.99
+    assert fraction(3000.0, 20.0, "T1", "floor_standing") == pytest.approx(
+        fraction(9000.0, 20.0, "T1", "floor_standing"), abs=1e-3
+    )
+    # With the default 30 K box the same units deliver their nameplate.
+    assert AirSourceHeatPump().dT_approach_bounds == (1.0, 30.0)
+    for capacity, point in ((15000.0, "T1"), (8000.0, "cold")):
+        assert fraction(capacity, 30.0, point) == pytest.approx(1.0, abs=1e-6)
+
+    # The ceiling of the default unit in mild weather: the compressor with the 30 K box, the box at 20 K.
+    ceilings = {}
+    for bound in (30.0, 20.0):
+        model = AirSourceHeatPump(dT_approach_bounds=(1.0, bound))
+        assert model.hp_capacity == 4000.0
+        for point, load, t_outdoor, room in (("H1", -12000.0, 7.0, 20.0), ("T1", 12000.0, 35.0, 27.0)):
+            result = delivered(model, load, t_outdoor, room)
+            assert result["capacity_clamped"] == "max"
+            assert result["capacity_binding"] == ("compressor" if bound == 30.0 else "cycle")
+            ceilings[(bound, point)] = 100.0 * abs(result["Q_ref_iu [W]"]) / model.hp_capacity
+    assert (
+        f"its compressor ({ceilings[(30.0, 'H1')]:.0f} % of the nameplate at 7/20 °C, {ceilings[(30.0, 'T1')]:.0f} % at "
+        f"35/27 °C) rather than the box ({ceilings[(20.0, 'H1')]:.0f} % and {ceilings[(20.0, 'T1')]:.0f} % at 20 K)"
+    ) in note
+
+    # The refrigerant temperatures of a 15 kW unit at its nameplate.
+    large = AirSourceHeatPump(hp_capacity=15000.0, ref="R32")
+    heating = delivered(large, -15000.0, 7.0, 20.0)
+    cooling = delivered(large, 15000.0, 35.0, 27.0)
+    condensing, evaporating = heating["T_ref_cond_sat_v [°C]"], cooling["T_ref_evap_sat [°C]"]
+    assert 20.0 < condensing - 20.0 < 25.0 and 20.0 < 27.0 - evaporating < 25.0
+    assert (
+        f"a 15 kW unit condenses at {condensing:.0f} °C in a 20 °C room and evaporates at {evaporating:.1f} °C in a "
+        "27 °C one"
+    ) in note
 
 
 def test_implied_conductance_table_matches_the_decomposition() -> None:

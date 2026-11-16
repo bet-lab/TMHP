@@ -10,8 +10,8 @@
   "validation/data/refrigerant_matched_point.csv",
   "validation/data/refrigerant_nameplate_sweep.csv"
  ],
- "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "git_head": "ff58ce72ebd553588402e7cf9c6252092ad8c4c5",
+ "coefficient_version": "semi-empirical-2026-11-15",
+ "git_head": "ae8f35b91282ece506ecd59de93f91f84d7b2aee",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -21,10 +21,10 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "59323e093d9e5abe90d87d6dda4726008c70fe54",
- "validation_parity_tree": "e4b0f338e69b339375ceda59bfc03f99871faa59",
+ "src_tmhp_tree": "a1a08c0234a8f42beb5291f69a9560572da34500",
+ "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-15T12:30:53+00:00"
+ "run_at": "2026-11-16T02:17:10+00:00"
 }

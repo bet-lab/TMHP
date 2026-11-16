@@ -11,8 +11,8 @@
  "outputs": [
   "docs/source/_static/pv_ess_energy_balance.svg"
  ],
- "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "git_head": "ff58ce72ebd553588402e7cf9c6252092ad8c4c5",
+ "coefficient_version": "semi-empirical-2026-11-15",
+ "git_head": "ae8f35b91282ece506ecd59de93f91f84d7b2aee",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -22,17 +22,17 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "59323e093d9e5abe90d87d6dda4726008c70fe54",
- "validation_parity_tree": "e4b0f338e69b339375ceda59bfc03f99871faa59",
+ "src_tmhp_tree": "a1a08c0234a8f42beb5291f69a9560572da34500",
+ "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-15T12:32:39+00:00",
+ "run_at": "2026-11-16T02:18:41+00:00",
  "data": {
   "E_pv_out_kWh": 8.869477560809269,
-  "E_cmp_kWh": 13.22075909040071,
-  "E_grid_import_kWh": 7.794336042131294,
-  "E_ess_chg_kWh": 8.302375487571867,
-  "E_ess_dis_kWh": 6.004924144933214
+  "E_cmp_kWh": 14.705506652704203,
+  "E_grid_import_kWh": 9.272690420703187,
+  "E_ess_chg_kWh": 8.304708347533703,
+  "E_ess_dis_kWh": 6.006813761502298
  }
 }

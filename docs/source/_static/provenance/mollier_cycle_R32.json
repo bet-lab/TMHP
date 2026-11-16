@@ -10,8 +10,8 @@
  "outputs": [
   "docs/source/_static/mollier_cycle_R32.svg"
  ],
- "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "git_head": "ff58ce72ebd553588402e7cf9c6252092ad8c4c5",
+ "coefficient_version": "semi-empirical-2026-11-15",
+ "git_head": "ae8f35b91282ece506ecd59de93f91f84d7b2aee",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -21,18 +21,18 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "59323e093d9e5abe90d87d6dda4726008c70fe54",
- "validation_parity_tree": "e4b0f338e69b339375ceda59bfc03f99871faa59",
+ "src_tmhp_tree": "a1a08c0234a8f42beb5291f69a9560572da34500",
+ "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-15T12:32:28+00:00",
+ "run_at": "2026-11-16T02:18:32+00:00",
  "data": {
-  "cop_sys [-]": 2.9916932824219153,
-  "E_cmp [W]": 2598.231666555029,
-  "Q_ref_tank [W]": 7999.9999999999845,
-  "T_ref_evap_sat [°C]": 6.814976036544067,
-  "T_ref_cond_sat_v [°C]": 62.666666666666686,
-  "T_ref_cmp_out [°C]": 133.70210374435936
+  "cop_sys [-]": 2.2484475082796695,
+  "E_cmp [W]": 3500.326444713959,
+  "Q_ref_tank [W]": 8000.000000000001,
+  "T_ref_evap_sat [°C]": 6.43241238827494,
+  "T_ref_cond_sat_v [°C]": 63.73809112941137,
+  "T_ref_cmp_out [°C]": 133.1721532914355
  }
 }

@@ -1,7 +1,7 @@
 {
  "slug": "daikin_rxm42a",
- "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "git_head": "ff58ce72ebd553588402e7cf9c6252092ad8c4c5",
+ "coefficient_version": "semi-empirical-2026-11-15",
+ "git_head": "ae8f35b91282ece506ecd59de93f91f84d7b2aee",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -11,11 +11,11 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "59323e093d9e5abe90d87d6dda4726008c70fe54",
- "validation_parity_tree": "e4b0f338e69b339375ceda59bfc03f99871faa59",
+ "src_tmhp_tree": "a1a08c0234a8f42beb5291f69a9560572da34500",
+ "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "catalog_blob": "9739512558c0612b95cfca2466d2f6c3087df2a6",
- "run_at": "2026-11-15T12:27:28+00:00"
+ "catalog_blob": "fbd49e826ef2d7919fc392983c50f075ed0b4433",
+ "run_at": "2026-11-16T02:14:34+00:00"
 }

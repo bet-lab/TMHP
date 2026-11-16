@@ -1,11 +1,11 @@
 {
   "script": "validation/diagnostics/low_load_fixed_power_sh_sc_once.py",
   "purpose": "one-off low-load sensitivity: fixed electrical power and superheat/subcooling",
-  "started_utc": "2026-11-15T12:31:50.988319+00:00",
-  "finished_utc": "2026-11-15T12:32:11.559638+00:00",
+  "started_utc": "2026-11-16T02:17:58.913679+00:00",
+  "finished_utc": "2026-11-16T02:18:17.040449+00:00",
   "python": "3.14.7",
   "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
-  "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+  "coefficient_version": "semi-empirical-2026-11-15",
   "capacity_W": 3500.0,
   "refrigerant": "R32",
   "plr_fractions": [
@@ -135,7 +135,7 @@
       "E_tot_baseline": 0.0
     },
     "fixed_power_state_invariant": true,
-    "mode_B_points": 659,
+    "mode_B_points": 652,
     "mode_B_SH_not_achieved": 0,
     "mode_B_SC_not_achieved": 0,
     "mode_B_SH_max_shortfall_K": 0.0,
@@ -144,18 +144,18 @@
     "mode_B_bound_violation_cond": 0,
     "points_total": 1380,
     "failures_by_reason": {
-      "none": 1349,
-      "hx_not_converged": 31
+      "none": 1342,
+      "hx_not_converged": 38
     },
     "capacity_clamped_counts": {
-      "none": 1054,
-      "min": 326
+      "none": 1136,
+      "min": 244
     },
     "pr_floor_active_points": 0,
     "fan_flow_floor_hits_ou": 0,
     "fan_flow_floor_hits_iu": 0,
-    "fan_fraction_ou_min": 0.16042758191561005,
-    "fan_fraction_iu_min": 0.3432784218497545,
+    "fan_fraction_ou_min": 0.15353618172757702,
+    "fan_fraction_iu_min": 0.32948101362017035,
     "fan_flow_min_limit_flags": 0
   },
   "outputs": [

@@ -1,4 +1,4 @@
-"""Redraw Shao et al. (2004) Figs. 1-3 with the shipped TMHP compressor block.
+"""Redraw Shao et al. (2004) Figs. 1-3 with the 2026-09-24 TMHP compressor block.
 
 The paper's Figs. 1-3 are the *manufacturer's* calorimeter performance curves of
 one rolling-piston rotary inverter compressor (Mitsubishi RHV207FEM, 20.7 cm3),
@@ -8,7 +8,8 @@ evaporation temperature, for three condensing temperatures and four supply
 frequencies, at the map condition (11 K return-gas superheat, 8.3 K liquid
 subcooling, 35 degC ambient).
 
-This module evaluates the same three quantities from the TMHP defaults --
+This module evaluates the same three quantities from the 2026-09-24 correlations
+(an earlier release, recorded in ``validation/coefficients/recorded_maps``) --
 displacement and rated speed of the same machine, nothing else fitted to it --
 and plots both on the paper's own axes::
 
@@ -58,7 +59,7 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     ticks,
 )
 
-from tmhp.compressor_efficiency_legacy import (  # noqa: E402
+from validation.coefficients.recorded_maps.v2026_09_24 import (  # noqa: E402
     COEFFICIENT_VERSION,
     eta_isen_default,
     make_eta_em,
@@ -90,7 +91,7 @@ LW = -0.5  # one relative width for every curve: manufacturer and model alike
 
 
 def tmhp_point(te_c: float, tc_c: float, rps: float) -> tuple[float, float, float]:
-    """Mass flow [kg/s], electrical power [W] and cooling capacity [W] from the defaults."""
+    """Mass flow [kg/s], electrical power [W] and cooling capacity [W] from the 2026-09-24 correlations."""
     p_suc = CP.PropsSI("P", "T", te_c + 273.15, "Q", 1, FLUID)
     p_dis = CP.PropsSI("P", "T", tc_c + 273.15, "Q", 1, FLUID)
     t_suc = te_c + SH_K + 273.15
@@ -225,7 +226,7 @@ def figure(df: pd.DataFrame, out: Path) -> None:
             color=COLORS["ink"],
             lw=dm.lw(LW),
             ls=MODEL_DASH,
-            label=f"TMHP defaults {COEFFICIENT_VERSION}",
+            label=f"TMHP correlations {COEFFICIENT_VERSION}",
         ),
     ]
     fig.legend(

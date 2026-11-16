@@ -4,7 +4,8 @@ G1  within-machine speed contrasts of the efficiency product against pressure
     ratio, low-speed records, one panel per source -- the evidence for a
     leakage-type (lift x speed) low-speed loss
 G2  the three fitted efficiencies against n* at PR 2 / 3 / 4.5, previous
-    version (frozen v2026-09-15b) against current
+    version (frozen v2026-09-15b) against the refit (v2026-09-24, recorded in
+    ``validation/coefficients/recorded_maps``)
 G3  fixed-boundary PLR-COP, current / heat-exchanger-only / previous, one
     panel per sweep case
 G4  Gate A: rated-point relative error per unit, and catalogue residual
@@ -35,7 +36,7 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     ticks,
 )
 
-from tmhp import compressor_efficiency as cur  # noqa: E402
+from validation.coefficients.recorded_maps import v2026_09_24 as cur  # noqa: E402
 from validation.compressor_maps.schema import DATA_DIR, REPO_ROOT  # noqa: E402
 
 PLR_DIR = REPO_ROOT / "validation" / "data" / "fixed_boundary_plr"
@@ -133,7 +134,7 @@ def g2_shapes(out: Path) -> None:
         loc="lower right",
         frameon=False,
         fontsize=dm.fs(-2.5),
-        title="current (grey: v2026-09-15b)",
+        title=f"{cur.COEFFICIENT_VERSION} (grey: v2026-09-15b)",
         title_fontsize=dm.fs(-3),
     )
     dm.label_axes([a for a, _ in _panels], labels=[l for _, l in _panels])

@@ -1,9 +1,10 @@
 r"""Compressor reference state solved from nominal capacity.
 
-BITZER compressor efficiencies use absolute shaft speed in rev/s. Models
-normalise the ground heat exchanger refrigerant-side UA by a rated mass flow
-(``m_dot_ref / m_dot_ref_rated``). Both denominators belong to one physical
-point -- the *reference state* -- and this module computes that point from the
+The default compressor efficiencies of the rotary types are written in speed
+relative to the machine's rated speed (:mod:`tmhp.compressor_efficiency`).
+Models normalise the ground heat exchanger refrigerant-side UA by a rated mass
+flow (``m_dot_ref / m_dot_ref_rated``). Both denominators belong to one
+physical point -- the *reference state* -- and this module computes that point from the
 same inputs every model already requires:
 
 .. code-block:: text
@@ -512,7 +513,7 @@ def _solve(
     if heating:
         # Parameterize the actual bounded speed, rather than assuming that
         # condenser duty increases from rps_min. This also retains reference
-        # solutions on the descending mass-flow branch of a raw fit.
+        # solutions on the descending mass-flow branch of a caller's fit.
         speed_states: dict[float, dict[str, Any]] = {}
 
         def at_speed(rps: float) -> dict[str, Any]:
@@ -600,7 +601,7 @@ def _evaluable_bracket(
 ) -> tuple[float, float]:
     """Find adjacent actual, evaluable residuals with opposing signs.
 
-    A raw fit can be invalid at an endpoint but valid inside the interval.
+    A caller's fit can be invalid at an endpoint but valid inside the interval.
     Halving that endpoint can jump past a root. Invalid evaluations break a
     bracket instead of contributing a synthetic residual.
     """

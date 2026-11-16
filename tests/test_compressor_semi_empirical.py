@@ -54,7 +54,7 @@ def test_generated_block_equals_the_archive():
     from validation.compressor_maps.semi_empirical.emit import block_data
 
     data = block_data()
-    assert data["SEMI_EMPIRICAL_VERSION"] == ce.SEMI_EMPIRICAL_VERSION
+    assert data["COEFFICIENT_VERSION"] == ce.COEFFICIENT_VERSION == ARCHIVE.name
     assert data["SEMI_EMPIRICAL_TYPES"] == ce.SEMI_EMPIRICAL_TYPES
     assert data["SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS"] == ce.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS
     assert data["SEMI_EMPIRICAL_DRIVE"] == ce.SEMI_EMPIRICAL_DRIVE
@@ -287,30 +287,29 @@ def test_monotone_decreasing_in_pressure_ratio_beyond_the_data(spec):
 
 
 def test_inverter_is_on_the_electrical_side_only():
-    on = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R32", 50.0)
-    off = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter", inverter=False), "R32", 50.0)
+    comp = SemiEmpiricalCompressor(CompressorSpec("rotary_twin_inverter"), "R32", 50.0)
     pr, st = state_at("R32", -2.0, 45.0)
     d = ce.SEMI_EMPIRICAL_DRIVE
     for rps in (20.0, 60.0, 100.0):
         eta_inv = 1.0 - d["lam"] * (1.0 + d["beta"] * (60.0 / rps - 1.0))
-        assert on.eta_em(pr, rps, st) == pytest.approx(off.eta_em(pr, rps, st) * eta_inv)
-        assert on.eta_isen(pr, rps, st) == off.eta_isen(pr, rps, st)
-        assert on.eta_vol(pr, rps, st) == off.eta_vol(pr, rps, st)
-    # eta_isen * eta_cmp without the drive is the terminal-basis eta_oi
-    assert off.eta_isen(pr, 60.0, st) * off.eta_em(pr, 60.0, st) == pytest.approx(off.eta_oi(pr, 60.0, st))
+        assert comp.eta_inverter(rps) == pytest.approx(eta_inv)
+        eta_is, eta_em = comp.split(comp.eta_oi(pr, rps, st))
+        # the drive loss is in eta_cmp and does not reach the gas
+        assert comp.eta_em(pr, rps, st) == pytest.approx(eta_em * eta_inv)
+        assert comp.eta_isen(pr, rps, st) == eta_is
+        # eta_isen * eta_cmp without the drive is the terminal-basis eta_oi
+        overall = comp.eta_isen(pr, rps, st) * comp.eta_em(pr, rps, st) / eta_inv
+        assert overall == pytest.approx(comp.eta_oi(pr, rps, st))
 
 
-def test_eta_oi_scale_scales_the_overall_efficiency_before_the_split():
-    a = SemiEmpiricalCompressor(CompressorSpec("scroll"), "R32", 50.0)
-    b = SemiEmpiricalCompressor(CompressorSpec("scroll", eta_oi_scale=0.9), "R32", 50.0)
-    pr, st = state_at("R32", 0.0, 50.0)
-    inv = b.eta_inverter(40.0)
-    overall_a = a.eta_isen(pr, 40.0, st) * a.eta_em(pr, 40.0, st) / inv
-    overall_b = b.eta_isen(pr, 40.0, st) * b.eta_em(pr, 40.0, st) / inv
-    assert overall_a == pytest.approx(a.eta_oi(pr, 40.0, st))
-    assert overall_b == pytest.approx(0.9 * overall_a)
-    assert b.eta_isen(pr, 40.0, st) < a.eta_isen(pr, 40.0, st)
-    assert b.eta_em(pr, 40.0, st) < a.eta_em(pr, 40.0, st)
+def test_a_spec_has_no_measurement_only_options():
+    """The type and the rotary speed shape are all a spec selects."""
+    import dataclasses
+
+    assert [f.name for f in dataclasses.fields(CompressorSpec)] == ["compressor_type", "rotary_speed_variant"]
+    for removed in ("inverter", "eta_oi_scale"):
+        with pytest.raises(TypeError):
+            CompressorSpec("scroll", **{removed: 1})
 
 
 def test_rotary_speed_is_relative_to_the_machine_rated_speed():

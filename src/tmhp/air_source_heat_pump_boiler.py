@@ -76,7 +76,6 @@ from .compressor_envelope import (
     CONDENSING_TEMP_ABOVE_MAX,
     CYCLE_KEY,
     DISCHARGE_TEMP_ABOVE_MAX,
-    ETA_ISEN_BELOW_MIN,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
@@ -156,8 +155,8 @@ from .thermodynamics import calc_energy_flow
 #: a worse class of candidate, and so that among candidates none of which is an
 #: operating point it returns the one closest to being one.
 #: A solved, physical cycle outside the compressor envelope (discharge above
-#: ``T_dis_max`` even under the discharge-temperature control, or the shipped
-#: isentropic fit extrapolated below ``ETA_ISEN_MIN``); graded by how far
+#: ``T_dis_max`` even under the discharge-temperature control, or condensing
+#: above ``T_cond_max``); graded by how far
 #: outside, so the search moves towards the smaller lift that may be inside.
 #: It is not an operating point, but closer to one than an unphysical state.
 _OBJ_OUTSIDE_ENVELOPE = 2.5 * PENALTY
@@ -337,10 +336,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     default) and the outdoor coil as an evaporator at its rated airflow,
     recorded in ``default_input_estimates``.
 
-    Unless explicitly injected, compressor efficiencies use the
-    shared baseline correlations in :mod:`tmhp.compressor_efficiency`
-    (BITZER 2026-10-06), evaluated at PR and actual shaft speed in rev/s.
-    Scalar and user-supplied callable overrides remain supported.
+    Unless explicitly injected, compressor efficiencies are the default
+    models of ``compressor_type`` in :mod:`tmhp.compressor_efficiency`,
+    evaluated at the pressure ratio, the shaft speed in rev/s and the suction
+    state. A scalar or a callable given for one replaces that model.
 
     **Below the minimum capacity.** ``analyze_steady`` reports a request below
     what the compressor delivers at ``rps_min`` as the mean of on/off cycling
@@ -1367,9 +1366,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     #: Resolution of the edge between approaches with and without a cycle [K].
     _CYCLE_EDGE_TOL_K = 1e-3
     #: In-band candidates are no farther apart than the band width over this.
-    #: The objective is not unimodal in the band -- the guarded efficiency fit
-    #: has kinks (PR 7.15, 33.8 and 72.5 rev/s) and the speed floor another --
-    #: so the minimiser starts from the best of these, not from the band.
+    #: The objective is not unimodal in the band -- the speed floor puts a
+    #: kink in it, and so can an efficiency model the caller supplies -- so the
+    #: minimiser starts from the best of these, not from the band.
     _BAND_SCAN_INTERVALS = 4
     #: Tolerance of the minimisation around the best candidate [K]. Below it
     #: the objective is flat to the inner solvers' noise.
@@ -1844,8 +1843,6 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             return float(refused_state.get("T_ref_cmp_out [°C]", math.nan))
         if failure_reason == CONDENSING_TEMP_ABOVE_MAX:
             return float(getattr(self, "_condensing_refused_C", math.nan))
-        if failure_reason == ETA_ISEN_BELOW_MIN:
-            return float(refused_state.get("eta_cmp_isen [-]", math.nan))
         return None
 
     def _report_part_load(self, result: dict, Q_ref_tank: float) -> None:
@@ -1932,10 +1929,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               refused at low speed while a larger duty runs, is a ``"min"``
               point, below),
               ``"condensing_temp_above_max"`` (even a reduced duty condenses
-              above ``T_cond_max``: the tank is too hot), ``"eta_isen_below_min"``
-              (the shipped isentropic fit, extrapolated, is below 0.30, and
-              no larger duty runs either: a request that is only too small
-              for the floor is a ``"min"`` point, below),
+              above ``T_cond_max``: the tank is too hot),
               ``"hx_not_converged"``, or ``"optimizer_failed"``.
             - ``"failure_detail"`` (str, failures only) — on
               ``"cycle_invalid"``, which check of
@@ -1949,8 +1943,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               requested duty was below what the compressor delivers at
               ``rps_min`` and the cycle was solved at that floor instead (or
               below the smallest duty the compressor envelope admits, where
-              the discharge exceeds ``T_dis_max`` or the shipped fit falls
-              under 0.30 before ``rps_min`` is reached: the cycle is then
+              the discharge exceeds ``T_dis_max`` before ``rps_min`` is
+              reached: the cycle is then
               solved at that duty, above ``rps_min``),
               ``"max"`` for the corresponding ceiling case, ``None`` when the
               request was met exactly. A clamped point is **converged**: the
@@ -1965,9 +1959,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               when a smaller duty runs --
               ``"discharge_temperature"`` (``T_dis_max``),
               ``"condensing_temperature"`` (``T_cond_max``),
-              ``"pressure_ratio"`` (``PR_cycle_max``), ``"outdoor_coil"`` (the
-              coil is short at the fan's largest airflow) or
-              ``"compressor_efficiency"`` (the shipped fit's floor). The
+              ``"pressure_ratio"`` (``PR_cycle_max``) or ``"outdoor_coil"``
+              (the coil is short at the fan's largest airflow). The
               largest duty that runs is then returned, with ``"Q_max [W]"``
               and ``"Q_request [W]"``; see
               :func:`tmhp.compressor_envelope.reduce_duty_within_envelope`.
@@ -1995,7 +1988,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               pressures and speed are those of the running machine. With
               ``Cd_cycling=None`` the row is the continuous minimum-speed
               point and ``Q_ref_tank [W]`` exceeds the request.
-            - ``"efficiency_extrapolated"`` (bool) — a default efficiency fit
+            - ``"efficiency_extrapolated"`` (bool) — a default efficiency model
               is evaluated outside its data at this point.
             - ``"discharge_control"`` (bool), ``"dT_ref_superheat [K]"``,
               ``"x_ref_cmp_in [-]"`` — whether the discharge-temperature

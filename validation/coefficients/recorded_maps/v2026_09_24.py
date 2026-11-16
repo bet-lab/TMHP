@@ -1,4 +1,14 @@
-r"""Default compressor efficiency correlations, and where each one comes from.
+r"""Record of the ``v2026-09-24`` compressor efficiency correlations (an earlier release).
+
+These correlations were the library's defaults before 2026-10-06 and stayed in
+it as ``tmhp.compressor_efficiency_legacy`` until the semi-empirical models
+were adopted. They are **not** a supported default. They are kept here, number
+for number, so that the validation studies that compare against them and the
+tests whose scenarios were recorded on machines built with them can be
+reproduced (#164). The models are plain user-style callables ``model(PR, rps)``
+handed to a heat-pump model as ``eta_cmp_isen`` / ``eta_cmp_vol`` / ``eta_cmp``.
+The fit archive is ``validation/coefficients/v2026-09-24/``. The text below is
+the module's own description, as released.
 
 A variable-speed compressor loses work in three distinguishable places, and
 TMHP keeps them separate because they act on different outputs:
@@ -102,8 +112,6 @@ Copeland LP. Online Product Information, AHRI 540 performance coefficients
 
 from __future__ import annotations
 
-import inspect
-import math
 from collections.abc import Callable
 
 __all__ = [
@@ -371,25 +379,3 @@ def make_eta_em(rps_rated: float) -> Callable[[float, float], float]:
 eta_vol_default = make_eta_vol(RPS_REF)
 eta_isen_default = make_eta_isen(RPS_REF)
 eta_em_default = make_eta_em(RPS_REF)
-
-
-def _eval_eff(model: float | Callable, PR: float, rps: float) -> float:
-    """Evaluate a scalar or PR / PR-speed callable without masking its errors.
-
-    Constructors resolve None to the corresponding baseline factory. Inspect
-    argument binding rather than catching a TypeError raised inside a model.
-    """
-    if callable(model):
-        signature = inspect.signature(model)
-        try:
-            signature.bind(PR, rps)
-        except TypeError:
-            signature.bind(PR)
-            value = float(model(PR))
-        else:
-            value = float(model(PR, rps))
-    else:
-        value = float(model)
-    if not math.isfinite(value) or not 0 < value <= 1:
-        raise ValueError("Compressor efficiencies must be finite and in (0, 1]")
-    return value

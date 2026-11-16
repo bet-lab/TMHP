@@ -1,51 +1,42 @@
-"""Guards on the shared compressor-efficiency defaults.
+"""Part-load behaviour of machines built with the 2026-09-24 correlations (an earlier release).
 
-Two of these are correctness gates rather than characterisation:
+The correlations are a record kept outside the library
+(``validation/coefficients/recorded_maps``); the machines here are given them
+explicitly, with the rated speed and displacement they were examined with.
+What the tests examine is the assembled model, not a default:
 
-* the speed search assumes the delivered duty rises monotonically with speed,
-  and the speed term in the volumetric efficiency is evaluated inside the
-  residual, so it must never bend the duty back down;
-* at fixed temperatures the assembled model's COP is the outcome of heat
-  exchangers unloading against the compressor's measured low-speed losses; the
-  correlations prescribe no COP shape, so the guard is that both effects are
-  present and of the size the compressor data show, not that COP rises.
+* at fixed temperatures the COP is the outcome of heat exchangers unloading
+  against the compressor's low-speed losses; no COP shape is prescribed, so
+  the guard is that both effects are present and of the size the compressor
+  data show, not that COP rises;
+* below the speed floor the search does not starve the outdoor coil;
+* along the EN 14825 points the COP gradient lies inside the certified
+  population (read from the committed Keymark quantiles, which are checked
+  against their provenance here).
 
-The rest pin the frozen coefficient version to its archive and keep the
-fitted shapes where the standalone-compressor data put them.
+The correlations themselves are pinned to their archive in
+``test_recorded_compressor_maps.py``.
 """
 
 from __future__ import annotations
 
-import json
-import math
 from pathlib import Path
 
 import pytest
-
-from tmhp import AirSourceHeatPump as _AirSourceHeatPump
-from tmhp import AirSourceHeatPumpBoiler as _AirSourceHeatPumpBoiler
-from tmhp.compressor_efficiency_legacy import (
-    COEFFICIENT_VERSION,
-    ETA_EM_N0,
-    ETA_EM_REF,
-    ETA_ISEN_FLOOR,
-    ETA_LEAK_C,
-    RPS_REF,
-    coefficients,
-    eta_em_default,
-    eta_isen_default,
+from validation.coefficients.recorded_maps.v2026_09_24 import (
     eta_oi_product,
-    eta_vol_default,
-    leakage_factor,
     make_eta_em,
     make_eta_isen,
     make_eta_vol,
-    speed_factor_em,
 )
 
+from tmhp import AirSourceHeatPump as _AirSourceHeatPump
+from tmhp import AirSourceHeatPumpBoiler as _AirSourceHeatPumpBoiler
 
-# This suite preserves the historical refit's data/shape gates. Production
-# BITZER defaults and physical-N integration are checked in the BITZER suite.
+
+# The machines the historical refit was examined with: 60 rev/s (space
+# conditioning) and 40 rev/s (boilers), the refrigerant-aware displacement of
+# that rating point, and the 2026-09-24 correlations bound to that speed.
 def AirSourceHeatPump(**kwargs):
     from tmhp.compressor_speed import RATED_POINT_AIR_TO_AIR, refrigerant_aware_displacement
 
@@ -74,149 +65,13 @@ def AirSourceHeatPumpBoiler(**kwargs):
 
 
 REPO = Path(__file__).resolve().parents[1]
-SPEEDS = [5.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 70.0, 90.0, 110.0, 130.0, 150.0]
-PRESSURE_RATIOS = [1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0]
 
 
-def test_coefficient_block_matches_the_archive() -> None:
-    """The numbers in the module are the numbers in validation/coefficients/<version>/."""
-    archive = json.loads((REPO / "validation" / "coefficients" / COEFFICIENT_VERSION / "coefficients.json").read_text())
-    c = coefficients()
-    assert archive["version"] == COEFFICIENT_VERSION
-    for k in ("ETA_VOL_A", "ETA_VOL_B", "ETA_VOL_C"):
-        assert c[k] == pytest.approx(archive["eta_vol"][k], abs=5e-6)
-    for k in ("ETA_OI_A", "ETA_OI_B", "ETA_OI_C", "ETA_LEAK_C", "ETA_FLOW_D"):
-        assert c[k] == pytest.approx(archive["eta_oi"][k], abs=5e-6)
-    for k in ("ETA_LEAK_TWO_SIDED", "ETA_FLOW_TWO_SIDED", "ETA_OI_HAS_DRIVE"):
-        assert c[k] == archive["eta_oi"][k]
-    for k in ("ETA_EM_N0", "ETA_EM_P0"):
-        assert c[k] == pytest.approx(archive["split"][k], abs=5e-6)
-    assert c["ETA_EM_REF"] == pytest.approx(archive["split"]["ETA_EM_REF"], abs=5e-5)
-
-
-@pytest.mark.parametrize("pressure_ratio", PRESSURE_RATIOS)
-@pytest.mark.parametrize("rated", [40.0, 50.0, 60.0])
-def test_delivered_duty_is_monotonic_in_speed(pressure_ratio: float, rated: float) -> None:
-    """`solve_compressor_speed` brackets a root, so duty must rise with speed."""
-    eta_vol = make_eta_vol(rated)
-    previous = -math.inf
-    for rps in SPEEDS:
-        duty = rps * eta_vol(pressure_ratio, rps)
-        assert duty > previous, f"duty fell between speeds at rps={rps}"
-        previous = duty
-
-
-def test_volumetric_speed_term_penalises_low_speed_only() -> None:
-    """No bonus above rated speed: that direction is thin in the data."""
-    eta_vol = make_eta_vol(60.0)
-    at_rated = eta_vol(3.0, 60.0)
-    assert eta_vol(3.0, 20.0) < at_rated
-    assert eta_vol(3.0, 90.0) == pytest.approx(at_rated)
-    # a quarter of rated speed costs a few points, as the Copeland set shows (~5-7 pp at n* 0.27)
-    assert 0.02 < at_rated - eta_vol(3.0, 15.0) < 0.12
-
-
-def test_speed_factor_is_one_at_rated_and_saturating() -> None:
-    assert speed_factor_em(1.0) == pytest.approx(1.0)
-    assert speed_factor_em(0.5) < speed_factor_em(0.8) < 1.0
-    # drive-only floor of the electro-mechanical loss (Ossorio & Navarro-Peris 2023):
-    # 4-15 % at a quarter of rated speed, and no less than the drive alone shows
-    drop = 1.0 - speed_factor_em(0.25)
-    assert 0.04 < drop < 0.15, drop
-
-
-def test_speed_factor_is_held_past_twice_rated_speed() -> None:
-    """Above n* = 2 the data end; the factor is held, not followed."""
-    from tmhp.compressor_efficiency_legacy import N_STAR_MAX
-
-    assert N_STAR_MAX == 2.0
-    assert 1.0 < speed_factor_em(1.3) < speed_factor_em(2.0) < 1.0 + ETA_EM_N0
-    assert speed_factor_em(2.5) == pytest.approx(speed_factor_em(2.0))
-
-
-def test_leakage_term_scales_with_lift_and_is_one_sided() -> None:
-    """The low-speed loss of the isentropic efficiency grows with (PR-1)/n* and awards no bonus above rated."""
-    assert ETA_LEAK_C > 0.0
-    assert leakage_factor(2.0, 1.0) == pytest.approx(1.0)
-    assert leakage_factor(2.0, 1.5) == pytest.approx(1.0)
-    assert leakage_factor(4.5, 0.375) < leakage_factor(3.0, 0.375) < leakage_factor(2.0, 0.375) < 1.0
-    # the Copeland median machine: about 8 % of the product at PR 3 and 0.375 n*, 14 % at PR 4.5
-    assert 0.04 < 1.0 - leakage_factor(3.0, 0.375) < 0.12
-    assert 0.08 < 1.0 - leakage_factor(4.5, 0.375) < 0.20
-
-
-def test_electro_mechanical_level_follows_the_machines_rated_speed() -> None:
-    for rated in (35.0, 40.0, 60.0, 80.0):
-        eta = make_eta_em(rated)
-        assert eta(3.0, rated) == pytest.approx(ETA_EM_REF)
-        assert eta(3.0, rated * 0.5) < eta(3.0, rated)
-        # motor load: lower lift, lower torque, lower motor efficiency
-        assert eta(1.5, rated) < eta(3.0, rated) <= eta(5.0, rated) + 1e-9
-    assert eta_em_default(3.0, RPS_REF) == pytest.approx(ETA_EM_REF)
-
-
-def test_isentropic_efficiency_peaks_near_the_built_in_volume_ratio() -> None:
-    """g(PR) = A - B PR - C/PR peaks at sqrt(C/B); for the fitted set that is near PR 2.9."""
-    grid = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 8.0]
-    values = {pr: eta_isen_default(pr) for pr in grid}
-    peak = max(values, key=lambda k: values[k])
-    assert 2.0 <= peak <= 4.0, values
-    assert values[8.0] < values[peak]
-    assert values[1.5] < values[peak]
-    # the split reproduces the fitted product at every (PR, n*)
-    for rated in (40.0, 50.0, 60.0):
-        eta_isen, eta_em = make_eta_isen(rated), make_eta_em(rated)
-        for pr in grid:
-            for n_star in (0.3, 0.5, 1.0, 1.5):
-                isen = eta_isen(pr, rated * n_star)
-                if isen <= ETA_ISEN_FLOOR + 1e-12:  # held, not followed: the product is not reproduced there
-                    continue
-                assert isen * eta_em(pr, rated * n_star) == pytest.approx(eta_oi_product(pr, n_star), rel=1e-9)
-    # with rps omitted the rated speed is assumed
-    assert eta_isen_default(3.0) == pytest.approx(eta_isen_default(3.0, RPS_REF))
-
-
-def test_isentropic_efficiency_carries_the_low_speed_leakage() -> None:
-    """All three efficiencies depend on speed (plan v3); the lift x speed term sits in eta_isen."""
-    eta_isen = make_eta_isen(60.0)
-    assert eta_isen(4.5, 15.0) < eta_isen(4.5, 30.0) < eta_isen(4.5, 60.0)
-    # and the penalty is larger at high lift than at low lift
-    low_lift = eta_isen(2.0, 60.0) - eta_isen(2.0, 15.0)
-    high_lift = eta_isen(4.5, 60.0) - eta_isen(4.5, 15.0)
-    assert high_lift > low_lift > -0.03
-
-
-def test_efficiencies_stay_physical_across_the_envelope() -> None:
-    for pressure_ratio in PRESSURE_RATIOS:
-        assert 0.0 < eta_isen_default(pressure_ratio) <= 1.0
-        for rps in SPEEDS:
-            assert 0.0 < eta_vol_default(pressure_ratio, rps) <= 1.0
-            assert 0.0 < eta_em_default(pressure_ratio, rps) <= 1.0
-            assert 0.0 < eta_isen_default(pressure_ratio, rps) <= 1.0
-
-
-@pytest.mark.parametrize("pressure_ratio", PRESSURE_RATIOS)
-@pytest.mark.parametrize("kappa", [0.1, 0.3, 0.6])
-def test_heating_duty_is_monotonic_in_speed_with_the_speed_dependent_isentropic_efficiency(
-    pressure_ratio: float, kappa: float
-) -> None:
-    """The boiler residual is rps * eta_vol * (dh_liq + dh_is / eta_isen); with eta_isen falling at low speed
-    it must still rise with speed, or the bracketing search loses its root."""
-    rated = 40.0
-    eta_vol, eta_isen = make_eta_vol(rated), make_eta_isen(rated)
-    previous = -math.inf
-    for rps in SPEEDS:
-        duty = rps * eta_vol(pressure_ratio, rps) * (1.0 + kappa / eta_isen(pressure_ratio, rps))
-        assert duty > previous, f"heating duty fell between speeds at rps={rps}"
-        previous = duty
-
-
-def test_ashp_no_longer_defaults_to_an_ideal_compressor() -> None:
+def test_the_wrapped_machine_carries_the_recorded_correlations() -> None:
     model = AirSourceHeatPump(hp_capacity=3500.0, ref="R32")
-    assert callable(model.eta_cmp_isen)
-    assert callable(model.eta_cmp_vol)
-    assert model.eta_cmp_isen(3.0, 40.0) < 1.0
-    assert model.eta_cmp_vol(3.0, 40.0) < 1.0
+    assert model.eta_cmp_isen(3.0, 40.0) == make_eta_isen(60.0)(3.0, 40.0) < 1.0
+    assert model.eta_cmp_vol(3.0, 40.0) == make_eta_vol(60.0)(3.0, 40.0) < 1.0
+    assert model.eta_cmp(3.0, 40.0) == make_eta_em(60.0)(3.0, 40.0) < 1.0
     assert model.rps_rated == pytest.approx(60.0)
 
 
@@ -238,7 +93,7 @@ def test_part_load_cop_is_heat_exchanger_gain_against_compressor_loss() -> None:
 
     Two things must hold while the compressor can still modulate: with the three
     efficiencies frozen at their rated values COP rises as load falls (heat
-    exchangers unload), and with the shipped correlations COP sits below that
+    exchangers unload), and with the correlations COP sits below that
     curve by the compressor's measured low-speed loss -- a few per cent at half
     load, more at the speed floor -- without collapsing.
     """

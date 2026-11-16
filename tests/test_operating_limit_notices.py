@@ -547,7 +547,6 @@ def test_every_reason_and_binding_the_models_name_is_in_the_table():
     for reason in (
         envelope.DISCHARGE_TEMP_ABOVE_MAX,
         envelope.CONDENSING_TEMP_ABOVE_MAX,
-        envelope.ETA_ISEN_BELOW_MIN,
         envelope.PR_ABOVE_MAX,
         SOURCE_FLUID_FREEZING,
         "cycle_invalid",
@@ -561,7 +560,6 @@ def test_every_reason_and_binding_the_models_name_is_in_the_table():
         envelope.BINDING_CONDENSING,
         envelope.BINDING_PRESSURE_RATIO,
         envelope.BINDING_HEAT_EXCHANGER,
-        envelope.BINDING_EFFICIENCY,
         envelope.BINDING_CYCLE,
         "compressor",
         "outdoor_coil",

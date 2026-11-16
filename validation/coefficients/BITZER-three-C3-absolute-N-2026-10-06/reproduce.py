@@ -31,11 +31,10 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 PILOT = ROOT / "validation" / "bitzer_efficiency_pilot"
 sys.path.insert(0, str(PILOT / "scripts"))
-sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT))
 
 from derive import derive  # noqa: E402
-
-from tmhp import compressor_efficiency as shipped  # noqa: E402
+from validation.coefficients.recorded_maps import bitzer_quadratic_2026_10_06 as shipped  # noqa: E402
 
 TOLERANCE = 1e-9  # predicted efficiency, absolute
 

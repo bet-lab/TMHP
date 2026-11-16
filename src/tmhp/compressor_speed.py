@@ -119,9 +119,10 @@ CRITICAL_MARGIN_K = 5.0
 #: * 60 rev/s is neither of the two published figures, nor their mean. It is a
 #:   round number inside the interval they span, and displacement is exactly
 #:   inversely proportional to it -- so the honest bracket is about +/-17 %.
-#: * The same number also sets the peak of the electro-mechanical efficiency
-#:   curve, through ``make_eta_em`` in :mod:`tmhp.compressor_efficiency`. An
-#:   error in it perturbs the displacement and the efficiency shape together.
+#: * A study that also hands this number to an efficiency model written in
+#:   speed relative to the rated speed perturbs the displacement and the
+#:   efficiency shape together. (The heat-pump models do not: they solve their
+#:   own rated speed at the rating condition, :mod:`tmhp.reference_state`.)
 #: * ISO 5151 T1 declares *air* states. The saturation temperatures below are
 #:   that condition seen from the refrigerant side, but the approach
 #:   temperatures used to get there are not derived anywhere.
@@ -307,9 +308,9 @@ def solve_compressor_speed(
         except ValueError:
             bound = rps_min if abs(low) < abs(high) else rps_max
             return bound, False, None
-    # Unguarded fits (user callables, FittedEfficiency.raw) may turn down or
-    # become invalid at high N; the guarded defaults are held above 72.5 rev/s.
-    # Locate the maximum and solve its rising branch, as in the source study.
+    # A caller's efficiency model (a polynomial fit, say) may turn the
+    # delivered duty down or become invalid at high N. Locate the maximum and
+    # solve its rising branch.
     peak = minimize_scalar(lambda rps: -value(rps), bounds=(rps_min, rps_max), method="bounded")
     # ``peak.fun`` is the objective at ``peak.x`` -- minus the residual there --
     # so the residual at the peak is already known.

@@ -37,13 +37,7 @@ from scipy.optimize import bisect, brentq, minimize_scalar
 import tmhp
 from tmhp import compressor_efficiency, heat_exchanger, refrigerant
 from tmhp._opt_utils import efficiency_evaluator
-from tmhp.compressor_efficiency import (
-    InvalidCompressorEfficiency,
-    _eval_eff,
-    make_eta_em,
-    make_eta_isen,
-    make_eta_vol,
-)
+from tmhp.compressor_efficiency import InvalidCompressorEfficiency, _eval_eff
 from tmhp.compressor_speed import CAPACITY_CLAMPED_MAX, CAPACITY_CLAMPED_MIN, solve_compressor_speed
 from tmhp.heat_exchanger import _bisect_fan_flow, calc_HX_perf_for_target_heat
 from tmhp.refrigerant import calc_ref_state, calc_ref_state_without_discharge, with_discharge_state
@@ -164,6 +158,20 @@ class _Curve:
         return 0.9 - 0.02 * pr + 0.0005 * rps
 
 
+class _Surface:
+    """A fitted surface as an object: the speed is optional, and ``raw`` leaves its valid range."""
+
+    def __init__(self, level: float, rps_rated: float) -> None:
+        self.level, self.rps_rated = level, rps_rated
+
+    def __call__(self, pr, rps=None):
+        return min(1.0, max(0.3, self.raw(pr, rps)))
+
+    def raw(self, pr, rps=None):
+        speed = self.rps_rated if rps is None else rps
+        return self.level + 0.17 * pr - 0.029 * pr * pr - 0.00013 * speed * speed + 0.0008 * pr * speed + 0.011 * speed
+
+
 _CURVE = _Curve()
 MODELS = [
     0.7,
@@ -176,10 +184,9 @@ MODELS = [
     _CURVE.one,
     _CURVE.two,
     _Unhashable(),
-    make_eta_vol(60.0),
-    make_eta_isen(60.0),
-    make_eta_em(60.0),
-    make_eta_isen(60.0).raw,
+    _Surface(0.13, 60.0),
+    _Surface(0.75, 60.0),  # reaches one: held there
+    _Surface(0.13, 60.0).raw,  # a bound method that turns negative at high speed
 ]
 POINTS = [(1.2, 15.0), (2.0, 53.0), (3.7, 40.0), (6.5, 72.5), (9.0, 110.0)]
 

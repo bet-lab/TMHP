@@ -4,11 +4,12 @@
     A marker for tests that pin a *scenario* -- a limit reached at a stated
     duty, a number recorded from an earlier commit, a point that lies just
     inside or outside the compressor envelope -- on the machine a bare
-    constructor built before the catalogue default inputs (issue #86) and the
-    R290 default of the air-source boiler. What such a test examines is the
-    mechanism at that scenario, not the default: with another displacement or
-    refrigerant the same request sits somewhere else in the envelope and the
-    test would pass or fail for a reason it was not written for.
+    constructor built before the catalogue default inputs (issue #86), the
+    R290 default of the air-source boiler and the semi-empirical compressor
+    models. What such a test examines is the mechanism at that scenario, not
+    the default: with another displacement, refrigerant or efficiency map the
+    same request sits somewhere else in the envelope and the test would pass
+    or fail for a reason it was not written for.
 
     Under the marker (on a test, or on a module through ``pytestmark``)
     every model is built with the inputs it had then, wherever the test
@@ -32,11 +33,27 @@
       ``GroundSourceHeatPump`` ``UA_ground_rated = 0.18 hp_capacity`` for both
       roles and ``UA_iu_rated = 0.08 hp_capacity``; ``GroundSourceHeatPumpBoiler``
       and ``WaterSourceHeatPumpBoiler`` ``UA_tank_hx = hp_capacity / 5`` without
-      circulating water and a source exchanger of ``0.18 hp_capacity``.
+      circulating water and a source exchanger of ``0.18 hp_capacity``;
+    - the compressor efficiency map of before the semi-empirical models, for
+      whichever of ``eta_cmp_isen`` / ``eta_cmp_vol`` / ``eta_cmp`` the test
+      leaves out: the quadratic map of ``BITZER-three-C3-absolute-N-2026-10-06``
+      with its guard, a record kept outside the library
+      (``validation/coefficients/recorded_maps``, :func:`earlier_efficiencies`).
+      The isentropic-efficiency floor the library applied to that map
+      (``eta_isen_below_min``) left the library with it and is not restored;
+    - the compressor speed ceiling of before the fixed 120 rev/s, where the
+      test gives no ``rps_max``: ``max(min(2 rps_rated, 120), 1.5 rps_rated)``
+      (:func:`earlier_rps_max`).
 
     These are explicit inputs given on the test's behalf -- the constructors
     still take them through ``default_input_estimates`` -- so the scenario
-    survives the next change of a default as well. The default machines
+    survives the next change of a default as well. (The efficiency map and the
+    speed ceiling are given where the constructor resolves its defaults,
+    because both depend on the rated speed the constructor solves.) The
+    reference-state cache of the library does not know which default map
+    solved an entry, so marked tests use a cache of their own
+    (:data:`_EARLIER_REFERENCE_STATES`): a machine built under the marker and
+    one built outside it never share a rated state, in either direction. The default machines
     themselves are examined where they are named: ``test_default_inputs_wiring``,
     ``test_operating_range``, ``test_gshp_capacity_defaults``,
     ``test_ashp_indoor_airflow_default``, the documentation examples and the
@@ -53,6 +70,7 @@ from collections.abc import Callable, Iterator
 from typing import Any
 
 import pytest
+from validation.coefficients.recorded_maps import recorded_efficiencies
 
 import tmhp.reference_state as reference_state
 from tmhp import (
@@ -187,11 +205,37 @@ def _with_earlier_argument(init, name: str, value: Any):
     return constructor
 
 
+#: The efficiency map a bare constructor used before the semi-empirical models (a recorded release).
+EARLIER_EFFICIENCY_MAP = "BITZER-three-C3-absolute-N-2026-10-06"
+#: Reference states solved under the marker. Kept apart from ``reference_state._CACHE``, whose key does not
+#: include the default efficiency map; shared by the marked tests of a process, as the library's is by the others.
+_EARLIER_REFERENCE_STATES: dict[tuple, Any] = {}
+
+
+def earlier_efficiencies(spec: Any, ref: str, rps_rated: float | None) -> dict[str, Callable]:
+    """The recorded quadratic map in place of :func:`tmhp.compressor_efficiency.default_efficiencies`.
+
+    The map reads the absolute shaft speed and no refrigerant, compressor type or suction state; ``rps_rated``
+    (``None`` while the rated speed is being solved) only stands in for a speed a caller omits, which the models
+    never do.
+    """
+    del spec, ref
+    return recorded_efficiencies(EARLIER_EFFICIENCY_MAP, rps_rated)  # type: ignore[arg-type]
+
+
+def earlier_rps_max(rps_rated: float) -> float:
+    """The default speed ceiling of before the fixed 120 rev/s [rev/s].
+
+    Twice the rated speed, capped at 120 rev/s, and at least 1.5 times the rated speed.
+    """
+    return max(min(2.0 * float(rps_rated), 120.0), 1.5 * float(rps_rated))
+
+
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
-        f"{MARKER}: build models with the default inputs of before issue #86 and the R290 air-source boiler "
-        "(tests/conftest.py)",
+        f"{MARKER}: build models with the default inputs of before issue #86, the R290 air-source boiler and the "
+        "semi-empirical compressor models (tests/conftest.py)",
     )
     config.addinivalue_line("markers", f"{OPT_OUT}: inside an {MARKER} module, build models with the present defaults")
 
@@ -213,6 +257,11 @@ def earlier_default_inputs() -> Iterator[None]:
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(reference_state, "estimate_displacement", displacement)
         patch.setattr(reference_state, "estimate_max_airflow", max_airflow)
+        # Resolved inside the constructor (both depend on the rated speed it solves), so they are replaced
+        # where it looks them up; the reference states they produce go to the marker's own cache.
+        patch.setattr(reference_state, "default_efficiencies", earlier_efficiencies)
+        patch.setattr(reference_state, "default_rps_max", earlier_rps_max)
+        patch.setattr(reference_state, "_CACHE", _EARLIER_REFERENCE_STATES)
         for cls, name, value in EARLIER_ARGUMENTS:
             patch.setattr(cls, "__init__", _with_earlier_argument(cls.__init__, name, value))
         for cls, rules in EARLIER_UA_RULES:

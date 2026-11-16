@@ -15,9 +15,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from validation.coefficients.recorded_maps.v2026_09_24 import make_eta_em, make_eta_isen, make_eta_vol
 
 from tmhp import AirSourceHeatPumpBoiler
-from tmhp.compressor_efficiency_legacy import make_eta_em, make_eta_isen, make_eta_vol
 from tmhp.compressor_speed import refrigerant_aware_displacement
 
 PERIOD_S: int = 3 * 86400  # 3-day horizon (spec: >= 3 days)
@@ -30,9 +30,10 @@ DATA_DIR: Path = Path(__file__).parent / "data"
 def make_model() -> AirSourceHeatPumpBoiler:
     """Fixed ASHPB configuration shared by golden generation and tests."""
     # Freeze the archived machine recorded in the goldens: v2026-09-24
-    # efficiencies at 40 rev/s and the A7/W35 refrigerant-aware displacement.
-    # Constructor defaults now use BITZER absolute-speed fits and a different
-    # capacity-based displacement, so leaving either implicit changes the run.
+    # efficiencies at 40 rev/s (an earlier release, recorded in
+    # validation/coefficients/recorded_maps) and the A7/W35 refrigerant-aware
+    # displacement. The constructor's defaults are other models and another
+    # displacement now, so leaving either implicit changes the run.
     return AirSourceHeatPumpBoiler(
         ref="R32",
         V_cmp_ref=refrigerant_aware_displacement(15000, "R32"),

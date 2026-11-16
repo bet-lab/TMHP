@@ -26,7 +26,6 @@ import pytest
 from tmhp import AirSourceHeatPump
 from tmhp.compressor_envelope import (
     BINDING_DISCHARGE,
-    BINDING_EFFICIENCY,
     BINDING_PRESSURE_RATIO,
     DISCHARGE_TOL_K,
 )
@@ -189,8 +188,7 @@ def test_a_condition_without_any_operating_point_names_the_limit_at_the_least_li
     assert ceiling["binding"] == "infeasible" and ceiling["Q_max [W]"] == 0.0
     out = _solve(ammonia, -2000.0, T0=-25.0, T_a_room=20.0)
     assert not out["hp_is_on"] and out["Q_ref_iu [W]"] == 0.0 and out["E_tot [W]"] == 0.0
-    assert out["failure_reason"] in {"discharge_temp_above_max", "eta_isen_below_min"}
-    assert BINDING_EFFICIENCY == "compressor_efficiency"  # the name such a ceiling would carry
+    assert out["failure_reason"] == "discharge_temp_above_max"
 
 
 # ── the least-power search enters a thin feasible set ─────────────────────

@@ -409,13 +409,7 @@ def test_defaults_conductance_table_matches_the_constructors() -> None:
 def test_defaults_summary_states_the_shipped_rules() -> None:
     """The Summary table -- not some historical sentence elsewhere -- states each shipped value."""
     from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
-    from tmhp.compressor_efficiency import (
-        COEFFICIENT_VERSION,
-        PR_FIT_MAX,
-        PR_FIT_MIN,
-        RPS_FIT_MAX,
-        RPS_FIT_MIN,
-    )
+    from tmhp.compressor_efficiency import COEFFICIENT_VERSION, COMPRESSOR_TYPES, SEMI_EMPIRICAL_TYPES
     from tmhp.compressor_speed import DISPLACEMENT_PER_W, default_displacement
     from tmhp.default_inputs import DEFAULT_DISPLACEMENT_BASIS, _artifact
 
@@ -441,6 +435,10 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
     assert f"``{COEFFICIENT_VERSION}``" in efficiency
 
     guards = re.sub(r"\s+", " ", _list_table_row(table, "Efficiency guards"))
+    # The (PR, N) data hull of the default compressor type: what ``efficiency_extrapolated`` reports against.
+    hull = SEMI_EMPIRICAL_TYPES[COMPRESSOR_TYPES[0]]["hull_PR_N"]
+    PR_FIT_MIN, PR_FIT_MAX = min(pr for pr, _ in hull), max(pr for pr, _ in hull)
+    RPS_FIT_MIN, RPS_FIT_MAX = min(n for _, n in hull), max(n for _, n in hull)
     assert f"PR {PR_FIT_MIN:.2f}–{PR_FIT_MAX:.2f}" in guards
     assert f"N {RPS_FIT_MIN:.1f}–{RPS_FIT_MAX:.1f} rev/s" in guards
 
@@ -490,9 +488,11 @@ def test_defaults_airflow_table_matches_the_constructors() -> None:
 
 def test_scope_page_states_the_high_lift_gate_as_the_results_have_it() -> None:
     """The deficit table and the reported injection points are the committed results, row for row."""
+    # The page explains the deficit with the efficiency map the committed results were made with.
+    from validation.coefficients.recorded_maps.bitzer_quadratic_2026_10_06 import PR_FIT_MAX, make_eta_isen
     from validation.gate.evaluate import catalogue_point, load_gate
 
-    from tmhp.compressor_efficiency import PR_FIT_MAX, _eval_eff, make_eta_isen
+    from tmhp.compressor_efficiency import _eval_eff
 
     text = _read("docs/source/concepts/scope-and-limits.rst")
     start = text.index("Known deficit: hot water in cold weather")

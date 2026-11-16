@@ -14,7 +14,7 @@ from tmhp import (
     WaterSourceHeatPumpBoiler,
 )
 from tmhp.ashpb_stc_preheat import ASHPB_STC_preheat
-from tmhp.compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
+from tmhp.compressor_efficiency import SuctionState, default_efficiencies, suction_state
 from tmhp.compressor_speed import default_displacement
 from tmhp.default_inputs import estimate_displacement
 from tmhp.gshpb_stc_ground import GSHPB_STC_ground
@@ -22,6 +22,9 @@ from tmhp.reference_state import REFERENCE_CAPACITY_INCONSISTENT, ReferenceState
 from tmhp.subsystems import SolarThermalCollector
 
 GROUND = {"R_b": 0.2, "t_max_s": 3600}
+EFFICIENCIES = ("eta_cmp_vol", "eta_cmp_isen", "eta_cmp")
+#: A suction state to compare two models at (R32-like: 8 bar, 22 kg/m3, 50 kJ/kg isentropic rise).
+PROBE = SuctionState(p_suc=8.0e5, rho_suc=22.0, dh_isen=5.0e4)
 FAMILIES = {
     AirSourceHeatPump: ({}, "ISO 5151", "cooling"),
     GroundSourceHeatPump: (GROUND, "ISO 13256-1", "cooling"),
@@ -88,9 +91,14 @@ def test_reference_state_closes_cycle_and_both_heat_exchangers(cls):
     P_cond = CP.PropsSI("P", "T", T_cond_K, "Q", 0, hp.ref)
     assert state.pressure_ratio == pytest.approx(P_cond / P_evap, rel=1e-6)
     pr, rps = state.pressure_ratio, hp.rps_rated
-    for name, factory in (("eta_cmp_vol", make_eta_vol), ("eta_cmp_isen", make_eta_isen), ("eta_cmp", make_eta_em)):
-        assert getattr(state, name) == pytest.approx(getattr(hp, name)(pr, rps))
-        assert getattr(hp, name)(pr, rps) == pytest.approx(factory(hp.rps_rated)(pr, rps))
+    # The suction state of the reference cycle: the model's superheat above the dew point.
+    T_suc = T_evap_K + hp.dT_superheat
+    h_suc, s_suc, rho_suc = (CP.PropsSI(k, "P", P_evap, "T", T_suc, hp.ref) for k in ("H", "S", "D"))
+    suction = suction_state(P_evap, rho_suc, h_suc, CP.PropsSI("H", "P", P_cond, "S", s_suc, hp.ref))
+    defaults = default_efficiencies(hp.compressor_type, hp.ref, hp.rps_rated)
+    for name in EFFICIENCIES:
+        assert getattr(state, name) == pytest.approx(getattr(hp, name)(pr, rps, suction), rel=1e-6)
+        assert getattr(hp, name)(pr, rps, suction) == defaults[name](pr, rps, suction)
     # Energy balance of each heat exchanger at rated UA and reference flow.
     heating = cond.mode == "heating"
     evap_side, cond_side = (cond.source, cond.load) if heating else (cond.load, cond.source)
@@ -140,9 +148,11 @@ def test_explicit_inputs_override_solved_values(cls):
     hp = build(cls, V_cmp_ref=8e-5, rps_rated=55.0, m_dot_ref_rated=0.03)
     assert (hp.V_cmp_ref, hp.rps_rated, hp.m_dot_ref_rated) == (8e-5, 55.0, 0.03)
     assert hp.reference_state is None  # nothing left to solve
-    assert hp.eta_cmp_vol(3.0, 40.0) == pytest.approx(make_eta_vol(55.0)(3.0, 40.0))
-    assert hp.eta_cmp_isen(3.0, 40.0) == pytest.approx(make_eta_isen(55.0)(3.0, 40.0))
-    assert hp.eta_cmp(3.0, 40.0) == pytest.approx(make_eta_em(55.0)(3.0, 40.0))
+    # The default models are those of the machine's type, bound to the speed the caller gave.
+    defaults = default_efficiencies(hp.compressor_type, hp.ref, 55.0)
+    for name in EFFICIENCIES:
+        assert getattr(hp, name).rps_rated == 55.0
+        assert getattr(hp, name)(3.0, 40.0, PROBE) == defaults[name](3.0, 40.0, PROBE)
 
     only_speed = build(cls, rps_rated=55.0)
     assert only_speed.rps_rated == 55.0 and not only_speed.reference_state.rps_rated_solved
@@ -160,14 +170,10 @@ def test_both_explicit_skips_the_solver(monkeypatch):
 
 @pytest.mark.parametrize("cls", ALL)
 def test_explicit_rated_speed_keeps_former_results(cls):
-    # Former behaviour: rps_rated fixed, baseline correlations built from it.
+    # Former behaviour: rps_rated fixed, the default models built from it.
     fixed = 60.0 if cls in (AirSourceHeatPump, GroundSourceHeatPump) else 40.0
-    legacy = dict(
-        eta_cmp_isen=make_eta_isen(fixed),
-        eta_cmp_vol=make_eta_vol(fixed),
-        eta_cmp=make_eta_em(fixed),
-        rps_rated=fixed,
-    )
+    spec, ref = build(cls).compressor_type, build(cls).ref
+    legacy = dict(**default_efficiencies(spec, ref, fixed), rps_rated=fixed)
     # The fixed speed is below the default boilers' rated speed (57 rev/s for the
     # R290 air-source unit; 90 for the R134a one this was written for), so the
     # derived ceiling (2 x 40) could not deliver hp_capacity; this test is about

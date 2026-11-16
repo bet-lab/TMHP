@@ -59,6 +59,26 @@ def test_root_exactly_on_a_bound_is_not_reported_as_clamped(bound):
     assert clamped is None
 
 
+def test_speed_solver_finds_lower_branch_with_invalid_high_endpoint():
+    """A caller's efficiency fit may be invalid at the upper speed bound; the root on the rising branch is found."""
+
+    def residual(n):
+        if n > 100:
+            raise ValueError("invalid extrapolation")
+        return n * (100 - n) - 1600
+
+    n, ok, clamp = solve_compressor_speed(residual, 5, 150)
+    assert n == pytest.approx(20)
+    assert ok and clamp is None
+
+
+def test_unattainable_polynomial_load_clamps_at_capacity_peak():
+    """A duty that turns down with speed (a polynomial fit) is clamped at its peak, not at the speed bound."""
+    n, ok, clamp = solve_compressor_speed(lambda n: n * (100 - n) - 3000, 5, 95)
+    assert n == pytest.approx(50)
+    assert ok and clamp == "max"
+
+
 def test_solver_breakdown_inside_a_valid_bracket_reports_non_convergence():
     """The residual changes sign, so a root exists; failing to find it is real."""
 

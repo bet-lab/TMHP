@@ -48,15 +48,19 @@ def test_ashpb_analyze_steady():
 def test_ashpb_default_compressor_efficiencies():
     ashpb = AirSourceHeatPumpBoiler()
 
-    from tmhp.compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
+    from tmhp.compressor_efficiency import SuctionState, default_efficiencies
 
     # The rated speed is solved at the rating condition, not a fixed default.
     rated = ashpb.rps_rated
     assert rated == ashpb.reference_state.rps_rated
     assert ashpb.rps_min < rated < ashpb.rps_max
-    assert ashpb.eta_cmp_vol(4.0, 55.0) == pytest.approx(make_eta_vol(rated)(4.0, 55.0))
-    assert ashpb.eta_cmp_isen(4.0, 55.0) == pytest.approx(make_eta_isen(rated)(4.0, 55.0))
-    assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(make_eta_em(rated)(4.0, 55.0))
+    # The three models are the defaults of the machine's compressor type, bound to that rated speed.
+    expected = default_efficiencies(ashpb.compressor_type, ashpb.ref, rated)
+    state = SuctionState(p_suc=4.0e5, rho_suc=9.0, dh_isen=6.0e4)
+    for name in ("eta_cmp_vol", "eta_cmp_isen", "eta_cmp"):
+        model = getattr(ashpb, name)
+        assert model.rps_rated == rated
+        assert model(4.0, 55.0, state) == expected[name](4.0, 55.0, state)
 
 
 def test_ashpb_default_heat_exchanger_uas_follow_the_approach_archive():
@@ -419,12 +423,14 @@ def test_wshpb_pr_ceiling_rejects():
 
 
 def test_non_air_source_boiler_common_eta_defaults():
-    from tmhp.compressor_efficiency import make_eta_isen
+    from tmhp.compressor_efficiency import SuctionState, default_efficiencies
 
+    state = SuctionState(p_suc=8.0e5, rho_suc=22.0, dh_isen=5.0e4)
     for cls in (GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler):
         m = cls(ref="R32")
         assert m.rps_min < m.rps_rated < m.rps_max
-        assert m.eta_cmp_isen(3, 40) == pytest.approx(make_eta_isen(m.rps_rated)(3, 40))
+        expected = default_efficiencies(m.compressor_type, m.ref, m.rps_rated)
+        assert m.eta_cmp_isen(3, 40, state) == expected["eta_cmp_isen"](3, 40, state)
         assert callable(m.eta_cmp_vol) and callable(m.eta_cmp)
 
 

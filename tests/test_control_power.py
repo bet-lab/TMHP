@@ -105,6 +105,33 @@ def test_defaults_are_the_medians_of_the_certified_declarations():
     assert float(a2a.P_TO_W.dropna().median()) == CONTROL_POWER_SINK_AIR_W == 12.0
 
 
+def test_one_default_for_every_capacity_is_stated_with_where_it_stops_fitting():
+    """Owner decision of 2026-11-16: the default stays a constant; where the declarations outgrow it is written down.
+
+    By rated heating capacity the pooled off/standby median of the air-to-water certificates is 14 / 15 / 17 W up
+    to 16 kW (nine tenths of the certificates lie between 3 and 16 kW) and 22 W / 110 W for 25-50 kW / above 50 kW.
+    """
+    a2w = pd.read_csv(AUXILIARY / "keymark_pto_air_to_water.csv")
+
+    def median(low: float, high: float) -> float:
+        rows = a2w[(a2w.Q_rated_kW > low) & (a2w.Q_rated_kW <= high)]
+        return float(pd.concat([rows.P_offsb_a_W, rows.P_offsb_b_W]).dropna().median())
+
+    assert [median(0, 8), median(8, 12), median(12, 16)] == [14.0, 15.0, 17.0]
+    assert [median(25, 50), median(50, math.inf)] == [22.0, 110.0]
+    assert 0.89 < ((a2w.Q_rated_kW >= 3) & (a2w.Q_rated_kW <= 16)).mean() < 0.91
+    stated = (
+        "14 W up to 8 kW, 15 W from 8 to 12 kW",
+        "17 W from 12 to 16 kW",
+        "22 W from 25 to 50 kW and 110 W above 50 kW",
+    )
+    module = " ".join((REPO_ROOT / "src" / "tmhp" / "control_power.py").read_text().split())
+    page = " ".join((REPO_ROOT / "docs" / "source" / "concepts" / "cycle-architecture.rst").read_text().split())
+    for text in (module, page):
+        for phrase in stated:
+            assert phrase in text, phrase
+
+
 @pytest.mark.parametrize("name", sorted(FAMILIES))
 def test_constructor_default_follows_the_sink(name):
     cls, default = FAMILIES[name]

@@ -329,6 +329,15 @@ electronics; no certificate states the electronics of a running unit
 separately. The extraction is ``validation/data/auxiliary_power/``; a value
 for the actual unit takes precedence over the default.
 
+The default does not follow the capacity. The standard declares this power per
+unit in watts and it does not scale with the load; over the sizes most
+certificates cover it barely moves (air-to-water, by rated heating capacity:
+median 14 W up to 8 kW, 15 W from 8 to 12 kW, 17 W from 12 to 16 kW; nine
+tenths of the certificates lie between 3 and 16 kW). For a large machine the
+default is low: the median is 22 W from 25 to 50 kW and 110 W above 50 kW, so
+give ``E_ctrl`` of the actual unit there
+(:doc:`../validation/defaults`, *Fixed control power*).
+
 ``E_ctrl`` is the power of the unit *in operation*. What the unit draws while
 its compressor is off is accounted where the off time is, once:
 

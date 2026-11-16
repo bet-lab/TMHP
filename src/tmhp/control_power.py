@@ -65,6 +65,15 @@ The defaults are medians of what Heat Pump Keymark certificates declare
   (their off/standby declarations are about 1 W, the ecodesign standby cap,
   not a controls-live power).
 
+The default is one value for every capacity. That follows how the power is
+declared and used -- EN 14825 declares it per unit in watts, and it does not
+scale with the load -- and it fits the sizes the certificates cover: nine
+tenths of the air-to-water certificates are rated between 3 and 16 kW, where
+the median of the declarations is 14 W up to 8 kW, 15 W from 8 to 12 kW and
+17 W from 12 to 16 kW. It does not fit a large machine: the median is 22 W
+from 25 to 50 kW and 110 W above 50 kW. Give ``E_ctrl`` of the actual unit
+there.
+
 Both are compressor-off declarations read as the power of the electronics; no
 certificate states the electronics' draw of a running unit separately. The
 brine- and water-source families have no declared population in the

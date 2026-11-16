@@ -1,0 +1,127 @@
+{
+ "script": "validation/analysis/rotary_speed_evidence.py",
+ "command": "python -m validation.analysis.rotary_speed_evidence --jobs 8",
+ "question": "rotary speed shape at the device level (#183): EN 14825, catalogue parity and fixed-temperature curves, with and without a certified fixed power",
+ "model_settings": {
+  "variants": [
+   "shao_informed",
+   "ossorio_anchored"
+  ],
+  "en14825": {
+   "Cd_cycling": null,
+   "CONFIGURATIONS": [
+    [
+     9000.0,
+     "R32"
+    ],
+    [
+     9000.0,
+     "R410A"
+    ],
+    [
+     9000.0,
+     "R290"
+    ],
+    [
+     12000.0,
+     "R32"
+    ],
+    [
+     16000.0,
+     "R32"
+    ]
+   ],
+   "OVERSIZING": [
+    0.55,
+    0.667,
+    0.75
+   ]
+  },
+  "curves": {
+   "Cd_cycling": null,
+   "defrost": false,
+   "AIR_TO_WATER_CURVES": [
+    [
+     9000.0,
+     "R32",
+     7.0,
+     35.0
+    ],
+    [
+     9000.0,
+     "R32",
+     7.0,
+     45.0
+    ],
+    [
+     9000.0,
+     "R32",
+     -7.0,
+     45.0
+    ]
+   ],
+   "AIR_TO_AIR_CURVES": [
+    [
+     3500.0,
+     "R32",
+     "heating",
+     7.0,
+     20.0
+    ],
+    [
+     3500.0,
+     "R32",
+     "cooling",
+     35.0,
+     27.0
+    ]
+   ],
+   "water_flow": "en14825_trend.en14825_water_flow(capacity, 'low')",
+   "fractions": [
+    0.04,
+    2.6,
+    0.02
+   ],
+   "floor_request": 0.01,
+   "ceiling_request": 5.0
+  },
+  "parity": "validation.parity.run.run_catalog on the adopted catalogues; rotary compressor_type set to the variant",
+  "fixed_power_W": {
+   "none/ASHPB": 0.0,
+   "certified_median/ASHPB": 15.0,
+   "certified_upper/ASHPB": 25.0,
+   "none/ASHP": 0.0,
+   "certified_median/ASHP": 12.0,
+   "certified_upper/ASHP": 21.5
+  }
+ },
+ "outputs": [
+  "validation/data/rotary_speed_evidence/certified_bands.csv",
+  "validation/data/rotary_speed_evidence/curve_summary.csv",
+  "validation/data/rotary_speed_evidence/curves.csv",
+  "validation/data/rotary_speed_evidence/en14825_points.csv",
+  "validation/data/rotary_speed_evidence/en14825_scores.csv",
+  "validation/data/rotary_speed_evidence/en14825_summary.csv",
+  "validation/data/rotary_speed_evidence/fixed_power_levels.csv",
+  "validation/data/rotary_speed_evidence/parity_gate.csv",
+  "validation/data/rotary_speed_evidence/parity_points.csv",
+  "validation/data/rotary_speed_evidence/parity_summary.csv"
+ ],
+ "coefficient_version": "semi-empirical-2026-11-15",
+ "git_head": "f8399632eeede03ba41961bfe7eeb5f3820577c6",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
+ "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-16T06:29:34+00:00"
+}

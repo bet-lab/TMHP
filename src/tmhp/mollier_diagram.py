@@ -7,11 +7,22 @@ from typing import cast
 
 import CoolProp.CoolProp as CP
 import dartwork_mpl as dm
+import matplotlib as mpl
 import matplotlib.axes as maxes
 import matplotlib.figure as mfigure
 import numpy as np
 
 from . import calc_util as cu
+
+# Saturation-line colours (Tailwind teal 500 / fuchsia 500). Blue and red read as cold and hot refrigerant, so a
+# state on the vapour line such as cmp,in (cold suction gas) looked like the hot side of the cycle.
+SAT_LIQUID_COLOR = "tw.teal500"
+SAT_VAPOR_COLOR = "tw.fuchsia500"
+
+
+def _dotted_lw() -> float:
+    """Line width of the dotted guide lines (cycle segments, bound lines): the axes spine width."""
+    return float(mpl.rcParams["axes.linewidth"])
 
 
 def _draw_cycle_lines_and_annotations(
@@ -58,7 +69,7 @@ def _draw_cycle_lines_and_annotations(
                     [pts_x[k1], pts_x[k2]],
                     [pts_y[k1], pts_y[k2]],
                     color=line_color,
-                    linewidth=dm.lw(0),
+                    linewidth=_dotted_lw(),
                     linestyle=":",
                     zorder=1,
                 )
@@ -225,7 +236,7 @@ def plot_th_diagram(
     point_labels: dict[str, str] | None = None,
 ) -> None:
     """Plot T-h diagram on given axis."""
-    color1, color2, color3, color4, line_color = "oc.blue5", "oc.red5", "black", "oc.gray6", "oc.gray5"
+    color1, color2, color3, color4, line_color = SAT_LIQUID_COLOR, SAT_VAPOR_COLOR, "black", "oc.gray6", "oc.gray5"
     limits = REF_LIMITS.get(refrigerant, {"th": {"xmin": 200.0, "xmax": 750.0, "ymin": -40.0, "ymax": 160.0}})["th"]
 
     temps, h_liq, h_vap, _, _, _ = _get_saturation_curves(refrigerant)
@@ -287,7 +298,7 @@ def plot_th_diagram(
             val = float(val)  # type: ignore
             dy = float(T_cond_bound.get("dy", 2.0))
             va = T_cond_bound.get("va", "bottom")
-            ax.axhline(y=val, color="oc.red5", linestyle=":", linewidth=dm.lw(0))
+            ax.axhline(y=val, color="oc.red5", linestyle=":", linewidth=_dotted_lw())
             offset = dm.make_offset(4, float(dy), cast(mfigure.Figure, ax.figure)) if ax.figure else None
             transform = trans + offset if offset else trans
             ax.text(
@@ -308,7 +319,7 @@ def plot_th_diagram(
             val = float(val)  # type: ignore
             dy = float(T_evap_bound.get("dy", -2.0))
             va = T_evap_bound.get("va", "top")
-            ax.axhline(y=val, color="oc.orange5", linestyle=":", linewidth=dm.lw(0))
+            ax.axhline(y=val, color="oc.orange5", linestyle=":", linewidth=_dotted_lw())
             offset = dm.make_offset(4, float(dy), cast(mfigure.Figure, ax.figure)) if ax.figure else None
             transform = trans + offset if offset else trans
             ax.text(
@@ -339,7 +350,7 @@ def plot_th_diagram(
             [],
             [],
             color=line_color,
-            linewidth=dm.lw(0),
+            linewidth=_dotted_lw(),
             marker="o",
             linestyle=":",
             markersize=2.5,
@@ -372,7 +383,7 @@ def plot_ph_diagram(
     point_labels: dict[str, str] | None = None,
 ) -> None:
     """Plot P-h diagram on given axis."""
-    color1, color2, color3, color4, line_color = "oc.blue5", "oc.red5", "black", "oc.gray6", "oc.gray4"
+    color1, color2, color3, color4, line_color = SAT_LIQUID_COLOR, SAT_VAPOR_COLOR, "black", "oc.gray6", "oc.gray4"
     limits = REF_LIMITS.get(refrigerant, {"ph": {"xmin": 200.0, "xmax": 750.0, "ymin": 100.0, "ymax": 10000.0}})["ph"]
 
     temps, h_liq, h_vap, _, _, _ = _get_saturation_curves(refrigerant)
@@ -433,7 +444,7 @@ def plot_ph_diagram(
             [],
             [],
             color=line_color,
-            linewidth=dm.lw(0),
+            linewidth=_dotted_lw(),
             marker="o",
             linestyle=":",
             markersize=2.5,
@@ -466,7 +477,7 @@ def plot_ts_diagram(
     point_labels: dict[str, str] | None = None,
 ) -> None:
     """Plot T-s diagram on given axis with super heating/cooling considered."""
-    color1, color2, color3, color4, line_color = "oc.blue5", "oc.red5", "black", "oc.gray6", "oc.gray5"
+    color1, color2, color3, color4, line_color = SAT_LIQUID_COLOR, SAT_VAPOR_COLOR, "black", "oc.gray6", "oc.gray5"
     limits = REF_LIMITS.get(refrigerant, {"ts": {"xmin": 1.0, "xmax": 3.0, "ymin": -40.0, "ymax": 160.0}})["ts"]
 
     temps, _, _, _, s_liq, s_vap = _get_saturation_curves(refrigerant)
@@ -522,7 +533,7 @@ def plot_ts_diagram(
             val = float(val)  # type: ignore
             dy = float(T_cond_bound.get("dy", 2.0))
             va = T_cond_bound.get("va", "bottom")
-            ax.axhline(y=val, color="oc.red5", linestyle=":", linewidth=dm.lw(0))
+            ax.axhline(y=val, color="oc.red5", linestyle=":", linewidth=_dotted_lw())
             offset = dm.make_offset(4, float(dy), cast(mfigure.Figure, ax.figure)) if ax.figure else None
             transform = trans + offset if offset else trans
             ax.text(
@@ -543,7 +554,7 @@ def plot_ts_diagram(
             val = float(val)  # type: ignore
             dy = float(T_evap_bound.get("dy", -2.0))
             va = T_evap_bound.get("va", "top")
-            ax.axhline(y=val, color="oc.orange5", linestyle=":", linewidth=dm.lw(0))
+            ax.axhline(y=val, color="oc.orange5", linestyle=":", linewidth=_dotted_lw())
             offset = dm.make_offset(4, float(dy), cast(mfigure.Figure, ax.figure)) if ax.figure else None
             transform = trans + offset if offset else trans
             ax.text(
@@ -575,7 +586,7 @@ def plot_ts_diagram(
             [],
             [],
             color=line_color,
-            linewidth=dm.lw(0),
+            linewidth=_dotted_lw(),
             marker="o",
             linestyle=":",
             markersize=2.5,

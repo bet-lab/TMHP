@@ -15,7 +15,7 @@ Figures
 ``{tag}1``  COP vs PLR, compressor and system            (plan Fig. 1 + 2)
 ``{tag}2``  normalised COP vs PLR, compressor and system (plan Fig. 3)
 ``{tag}3``  n* and r_p vs PLR                            (plan Fig. 4)
-``{tag}4``  three efficiency heatmaps + trajectories     (plan Fig. 5)
+``{tag}4``  efficiencies along the (n*, r_p) trajectories   (plan Fig. 5)
 ``{tag}5``  stacked compressor + fan power, fan fraction (plan Fig. 6)
 ``S1``      low-load shape summary across cases          (plan Fig. 7)
 ``S2``      control: same machine vs machine sized per fluid
@@ -55,8 +55,6 @@ from validation.refrigerant_only_plr_cop.simulate import (  # noqa: E402
     CASE_LABEL,
     CASE_TAG,
     CSV_NAME,
-    FIT_DOMAIN_N_STAR,
-    FIT_DOMAIN_PR,
     METRICS_NAME,
     OUT_DIR,
     REFRIGERANTS,
@@ -325,122 +323,84 @@ def fig3(d, case: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# {tag}4  efficiency surfaces + trajectories             (plan Fig. 5)
+# {tag}4  efficiencies along the trajectories            (plan Fig. 5)
 # ---------------------------------------------------------------------------
-def _surfaces(n_grid, p_grid):
-    """The three efficiency laws of :data:`SURFACE_RELEASE` on an (n*, r_p) grid.
-
-    That release (the quadratic map, recorded in
-    ``validation/coefficients/recorded_maps``) is written in terms of ``n*``
-    and the pressure ratio only, so the background is the same for every case
-    and every refrigerant -- the whole point of the figure is that only the
-    trajectory moves. The default models of the library also read the suction
-    state, so this background does not describe runs made with them
-    (:func:`fig4` refuses those).
-    """
-    from validation.coefficients.recorded_maps.bitzer_quadratic_2026_10_06 import (
-        RPS_REF,
-        make_eta_em,
-        make_eta_isen,
-        make_eta_vol,
-    )
-
-    ev, ei, ee = make_eta_vol(RPS_REF), make_eta_isen(RPS_REF), make_eta_em(RPS_REF)
-    N, P = np.meshgrid(n_grid, p_grid)
-    out = {}
-    for name, fn in (("eta_v", ev), ("eta_is", ei), ("eta_em", ee)):
-        out[name] = np.vectorize(lambda p, n, f=fn: f(p, n * RPS_REF))(P, N)
-    return N, P, out
-
-
 ETA_TITLE = {
     "eta_v": "Volumetric  $\\eta_v$",
     "eta_is": "Isentropic  $\\eta_{is}$",
-    "eta_em": "Electro-mechanical  $\\eta_{em}$",
+    "eta_em": "Electro-mechanical and drive  $\\eta_{em}$",
 }
 PLR_MARKS = (1.00, 0.76, 0.52, 0.28)
 
 
-#: Release whose efficiency laws :func:`_surfaces` draws (a function of n* and r_p alone).
-SURFACE_RELEASE = "BITZER-three-C3-absolute-N-2026-10-06"
-
-
 def fig4(d, case: str) -> None:
+    """Each fluid's sweep in the (n*, r_p) plane, coloured by the efficiency the model evaluated there.
+
+    The plan drew the trajectories over one efficiency surface per quantity.
+    That presumes a map written in ``n*`` and the pressure ratio alone, as the
+    quadratic map of the earlier release was. The type-specific default models
+    also read the refrigerant and the suction state, so there is no single
+    surface behind the fluids: what is drawn is the value on each trajectory
+    itself (``eta_v``, ``eta_is``, ``eta_em`` of the solved rows). Rows at the
+    compressor speed floor are drawn with open markers.
+    """
     tag = CASE_TAG[case]
     sub = d[(d["pass"] == "fixed_disp") & (d.case == case) & (d.failure_reason == "none")]
-    versions = set(sub.coefficient_version.astype(str))
-    if versions != {SURFACE_RELEASE}:
-        raise SystemExit(
-            f"{tag}4: the efficiency background is the map of {SURFACE_RELEASE}, but the runs were made with "
-            f"{sorted(versions)}. Redraw the background for those models before drawing this figure."
-        )
     n_lo = max(0.0, float(sub.n_star.min()) - 0.15)
     n_hi = float(sub.n_star.max()) + 0.15
     p_lo = max(1.0, float(sub.r_p.min()) - 0.2)
     p_hi = float(sub.r_p.max()) + 0.2
-    n_grid = np.linspace(n_lo, n_hi, 160)
-    p_grid = np.linspace(p_lo, p_hi, 160)
-    N, P, surf = _surfaces(n_grid, p_grid)
 
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("16cm", 0.34), gridspec_kw={"wspace": 0.34})
     for ax, key in zip(axes, ("eta_v", "eta_is", "eta_em"), strict=True):
-        z = surf[key]
-        cf = ax.contourf(N, P, z, levels=14, cmap="viridis", alpha=0.85)
-        cb = fig.colorbar(cf, ax=ax, pad=0.03, fraction=0.05)
-        cb.set_ticks(_span_ticks(float(z.min()), float(z.max()), 5))
-        cb.ax.tick_params(labelsize=dm.fs(-3))
-        cb.outline.set_linewidth(HAIRLINE)
-        # outside the compressor-map fitting domain the laws extrapolate
-        for lo, hi, vertical in (
-            (n_lo, FIT_DOMAIN_N_STAR[0], True),
-            (FIT_DOMAIN_N_STAR[1], n_hi, True),
-            (p_lo, FIT_DOMAIN_PR[0], False),
-            (FIT_DOMAIN_PR[1], p_hi, False),
-        ):
-            if hi <= lo:
-                continue
-            if vertical:
-                ax.axvspan(
-                    lo,
-                    hi,
-                    facecolor="white",
-                    alpha=0.45,
-                    hatch="////",
-                    edgecolor=COLORS["muted"],
-                    linewidth=0.0,
-                    zorder=2,
-                )
-            else:
-                ax.axhspan(
-                    lo,
-                    hi,
-                    facecolor="white",
-                    alpha=0.45,
-                    hatch="////",
-                    edgecolor=COLORS["muted"],
-                    linewidth=0.0,
-                    zorder=2,
-                )
+        z_lo, z_hi = float(sub[key].min()), float(sub[key].max())
+        sc = None
         for ref in _refs_present(d, "fixed_disp", case):
             g = _rows(d, "fixed_disp", case, ref)
             mod, floor = _split(g)
-            ax.plot(
-                mod.n_star, mod.r_p, lw=dm.lw(0), color=REF_COLOR[ref], zorder=4, label=ref if key == "eta_v" else None
+            ax.plot(g.n_star, g.r_p, lw=HAIRLINE, color=REF_COLOR[ref], zorder=3, label=ref if key == "eta_v" else None)
+            sc = ax.scatter(
+                mod.n_star,
+                mod.r_p,
+                c=mod[key],
+                cmap="viridis",
+                vmin=z_lo,
+                vmax=z_hi,
+                s=MS**2 * 1.6,
+                linewidths=0,
+                zorder=4,
             )
             if len(floor):
-                ax.plot(floor.n_star, floor.r_p, lw=dm.lw(0), ls=":", color=REF_COLOR[ref], zorder=4)
+                ax.scatter(
+                    floor.n_star,
+                    floor.r_p,
+                    c=floor[key],
+                    cmap="viridis",
+                    vmin=z_lo,
+                    vmax=z_hi,
+                    s=MS**2 * 1.6,
+                    marker="s",
+                    edgecolors=REF_COLOR[ref],
+                    linewidths=HAIRLINE,
+                    zorder=4,
+                )
             marks = mod[mod.PLR_requested.isin(PLR_MARKS)]
             ax.plot(
                 marks.n_star,
                 marks.r_p,
                 ls="none",
                 marker="o",
-                ms=MS,
-                mfc="white",
+                ms=MS * 1.5,
+                mfc="none",
                 mec=REF_COLOR[ref],
                 mew=HAIRLINE,
                 zorder=5,
             )
+        if sc is not None:
+            cb = fig.colorbar(sc, ax=ax, pad=0.03, fraction=0.05)
+            cb.set_ticks(_span_ticks(z_lo, z_hi, 5))
+            cb.ax.tick_params(labelsize=dm.fs(-3))
+            cb.outline.set_linewidth(HAIRLINE)
         ax.set_xlim(n_lo, n_hi)
         ax.set_ylim(p_lo, p_hi)
         # Limits come from the sweep, so the default locator is free to put
@@ -467,7 +427,7 @@ def fig4(d, case: str) -> None:
         axes[0], frameon=False, fontsize=dm.fs(-3), ncol=2, handlelength=1.2, columnspacing=0.8, labelspacing=0.25
     )
     fig.suptitle(
-        f"{CASE_LABEL[case]} — hatched: outside the compressor-map fitting domain",
+        f"{CASE_LABEL[case]} — colour: the efficiency evaluated on each row; squares: compressor at its speed floor",
         fontsize=dm.fs(-2),
         x=0.01,
         ha="left",

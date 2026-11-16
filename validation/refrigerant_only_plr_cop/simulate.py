@@ -37,11 +37,14 @@ Passes
 Pass 1 with ``R32`` must reproduce a default-constructed model bit for bit;
 that regression gate runs before anything is written.
 
-Since the library sizes the compressor by capacity alone
-(:func:`tmhp.compressor_speed.default_displacement`) and lets the refrigerant
-set the rated speed instead, the displacement "the library derives for" a
-fluid is the same for every fluid, and the two passes coincide; both are kept
-so the comparison reads the same as before.
+The library takes the default displacement from compressor catalogues, per
+refrigerant (:func:`tmhp.default_inputs.estimate_displacement`), so the two
+passes differ: in ``own_disp`` every fluid is rated near the same speed, in
+``fixed_disp`` a low volumetric-capacity fluid runs the R32 machine's small
+compressor fast. Where it would have to run faster than the rated-speed search
+allows (R134a and R1234yf in the air-to-water case), the library cannot rate
+the machine (``ReferenceStateError``); those rows are kept with the failure
+reason ``model_not_built: ...`` rather than stopping the sweep.
 
 Every model is the running cycle (:data:`CYCLE_SETTINGS`): no on-off
 averaging below the speed floor (``Cd_cycling=None``) and no frost
@@ -137,11 +140,34 @@ def _num(r: dict, key: str) -> float:
 # ---------------------------------------------------------------------------
 def run_point(task: dict) -> dict:
     from tmhp.compressor_efficiency import COEFFICIENT_VERSION
+    from tmhp.reference_state import ReferenceStateError
 
     ashpb = task["model_class"] == "ASHPB"
     heating = task["duty"] == "heating"
-    m = _model(task["model_class"], task["capacity_W"], task["refrigerant"], task["V_cmp_ref"])
     q_req = task["capacity_W"] * task["plr_request"]
+    try:
+        m = _model(task["model_class"], task["capacity_W"], task["refrigerant"], task["V_cmp_ref"])
+    except ReferenceStateError as exc:
+        # The fluid cannot deliver the nameplate in this machine at any speed the rated-speed search allows.
+        v_cmp = task["V_cmp_ref"]
+        return {
+            "pass": task["pass"],
+            "case": task["case"],
+            "model_class": task["model_class"],
+            "duty": task["duty"],
+            "refrigerant": task["refrigerant"],
+            "capacity_W": task["capacity_W"],
+            "t_outdoor_C": task["t_outdoor_C"],
+            "t_sink_C": task["t_sink_C"],
+            "V_cmp_ref_m3": float("nan") if v_cmp is None else float(v_cmp),
+            "V_cmp_ref_cm3": float("nan") if v_cmp is None else float(v_cmp) * 1e6,
+            "PLR_requested": task["plr_request"],
+            "Q_requested": q_req,
+            "converged": False,
+            "converged_rps": False,
+            "failure_reason": f"model_not_built: {str(exc).split(':', 1)[0]}",
+            "coefficient_version": COEFFICIENT_VERSION,
+        }
 
     if ashpb:
         r = m.analyze_steady(T_tank_w=task["t_sink_C"], T0=task["t_outdoor_C"], Q_ref_tank=q_req, return_dict=True)

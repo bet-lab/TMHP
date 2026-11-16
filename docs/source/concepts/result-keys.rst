@@ -53,8 +53,8 @@ dynamic only; ``all`` is all five families in both. The families are ASHP
    row["failure_reason"]      # "none": the unit runs
    row["capacity_clamped"]    # "max": it delivers less than the 9 kW asked for
    row["capacity_binding"]    # "compressor": the speed ceiling stops it
-   row["Q_ref_iu [W]"]        # heat delivered, about 3.5 kW
-   row["Q_unmet [W]"]         # the rest of the request, about 5.5 kW
+   row["Q_ref_iu [W]"]        # heat delivered, about 3.8 kW
+   row["Q_unmet [W]"]         # the rest of the request, about 5.2 kW
 
 Status and flags
 ================

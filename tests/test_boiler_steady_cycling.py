@@ -193,10 +193,10 @@ def test_en14825_trend_harness_compares_the_running_machine():
     calculation. The harness therefore solves the running machine
     (``Cd_cycling=None``), and its points C and D -- below the minimum-speed
     duty -- are the ones committed in ``validation/data``. With the default
-    report they would read 6.06 / 6.63 instead of 6.27 / 8.35. (Point B, at
+    report they would read 5.35 / 7.06 instead of 5.36 / 8.28. (Point B, at
     54 % of the design load, was below the minimum-speed duty too until the
     catalogue displacement of issue #86: an R32 unit of this size now turns
-    down to 31 % of its nameplate at 7 degC instead of 47 %.)
+    down to 2.15 kW at point C's condition, 24 % of its nameplate.)
     """
     pd = pytest.importorskip("pandas")
     from pathlib import Path

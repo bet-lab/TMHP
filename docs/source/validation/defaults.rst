@@ -1330,6 +1330,23 @@ records it and so does this page:
   of a manufacturer whose specification states the power at the inverter
   input imply an inverter efficiency of 0.90–0.91 under ``shao_informed`` and
   0.89–0.90 under ``ossorio_anchored``.
+* The part-load curve at held temperatures, measured after the choice. With
+  frost left out, the default 9 kW R32 air-to-water unit loses 16.7 % of its
+  full-load COP by the time it reaches its speed floor at +7 °C air and 35 °C
+  leaving water, 27.0 % at +7 / 45 °C and 34.0 % at −7 / 45 °C under
+  ``shao_informed``; under ``ossorio_anchored`` it loses 3.9, 12.7 and
+  14.5 %, and its curve peaks at 56 to 74 % of the nameplate instead of 78 to
+  96 %. With R290 the falls are 5.0, 16.4 and 22.9 % against 1.5, 11.4 and
+  10.6 %. Published part-load curves of inverter air-to-water units peak near
+  half of the maximum frequency, or rise all the way to the lowest speed. In
+  return ``ossorio_anchored`` matches the air-to-air catalogues less well
+  (COP MAPE 9.37 % against 8.52 %).
+
+The default was left as the rule chose it for this release (owner decision of
+2026-11-16, taken with these numbers), and the choice between the two shapes
+is to be reopened with the co-author's review. Until then a study of
+part-load or seasonal performance should be run with both variants: where
+they differ, the difference is the uncertainty of the rotary shape.
 
 Limits and provisional items
 ----------------------------
@@ -1417,12 +1434,16 @@ speed.** Its level :math:`c_0` is 1.13, so for R32 the form exceeds one above
 to one, by the rule of the `Summary`_.
 
 **The non-default variant can exceed one.** ``ossorio_anchored`` has a term in
-:math:`PR^{(k-1)/k} - 1`, which turns negative when the suction is wet enough
-for the effective exponent to fall below one. At a pressure ratio of 4.9 with
-R290 and a suction quality of 0.7 the form gives :math:`\eta_{oi}` = 1.04; it
-stayed below one (at most 0.89) at every state with a quality of 0.9 or more
-that was tried, and with superheated suction. The default variant has no such
-term and gives 0.71 at that state.
+:math:`PR^{(k-1)/k} - 1`, which turns negative when the effective exponent
+falls below one: with a wet suction, and at a high pressure ratio with a
+saturated one as well. At a pressure ratio of 4.9 with R290 and a suction
+quality of 0.7 the form gives :math:`\eta_{oi}` = 1.04. Over a grid of five
+refrigerants (suction saturated at −25 to 7 °C, quality 0.7 to 1.0, pressure
+ratio 3 to 10, 30 to 120 rev/s for a machine rated at 60) it is above one in
+292 of 3,500 states: from a pressure ratio of 6 at a quality of 0.9 (up to
+1.24 at a ratio of 10) and up to 1.87 at a quality of 0.7. The isentropic
+efficiency is then set to one. The default variant has no such term: it
+gives 0.71 at that state, and its largest value on the grid is 0.76.
 
 **The scroll type has not been checked on a machine it describes.** No unit of
 the validation set has a scroll without injection: the four air-to-water units

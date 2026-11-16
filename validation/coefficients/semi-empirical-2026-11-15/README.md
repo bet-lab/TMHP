@@ -278,9 +278,12 @@ archive's 0.001 tolerance). `b` is kept as measured.
   rated speed the form exceeds one (twin, rated 60 rev/s, R32: 1.02 at 90 rev/s and 1.04 at 120 rev/s, PR 1.5;
   the largest value found, 1.08, at PR 1.2 and 150 rev/s for a machine rated at 40). The library sets a value above
   one to one, which leaves a kink in eta_v there.
-* **Variant `b` with wet suction.** With a two-phase suction (the discharge-temperature control) the effective
-  exponent falls below one and the `cH` term turns negative: eta_oi 1.105 for R290 at PR 8, quality 0.9,
-  120 rev/s. The library sets the resulting eta_is to one. Variant `a` has no `cH` term (largest eta_oi found 0.78).
+* **Variant `b` above one.** Where the effective exponent falls below one -- a two-phase suction (the
+  discharge-temperature control), and at a high pressure ratio a saturated one too -- the `cH` term turns negative.
+  Over a grid of five refrigerants (suction saturated at −25 to 7 °C, quality 0.7 to 1.0, PR 3 to 10, 30 to
+  120 rev/s, rated 60) eta_oi is above one in 292 of 3,500 states: from PR 6 at a quality of 0.9 (up to 1.24 at
+  PR 10), up to 1.87 at a quality of 0.7, and in 5 states with saturated suction (PR 10, up to 1.08). The library
+  sets the resulting eta_is to one. Variant `a` has no `cH` term (largest eta_oi on that grid 0.76).
 * **The default speed floor lies below the rotary data.** The models' `rps_min` is 15 rev/s; the rotary sources
   start at 30 rev/s. Every point between is an extrapolation of the speed terms (the fixed-temperature curves
   above are read there).

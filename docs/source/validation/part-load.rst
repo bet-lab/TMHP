@@ -84,39 +84,136 @@ Two different curves
 ====================
 
 .. figure:: ../_static/validation_part_load.svg
-    :alt: Left, system COP against part load at fixed source and sink
-        temperatures for three conditions, peaking between full load and half
-        load and falling towards the compressor's speed floor. Right, the EN
-        14825 test-point trajectory against the certified Keymark band.
+    :alt: Left, system COP against the heat delivered as a share of the
+        maximum at the same temperatures, for three conditions, from the
+        compressor's top speed (left) to its speed floor (right). Each curve
+        rises from the top speed to a peak and falls again towards the floor,
+        and a diamond on each marks where the 9 kW nameplate duty falls. Right,
+        the EN 14825 test-point trajectory against the certified Keymark band.
     :align: center
     :width: 100%
 
-    **(a)** Load falls, temperatures held. **(b)** Load and flow temperature
-    fall together, as the certification standard specifies. These are not the
-    same question and they do not have the same answer.
+    **(a)** Load falls, temperatures held; the horizontal axis is the heat
+    delivered over the maximum the same machine delivers at those temperatures,
+    and the diamonds mark the 9 kW nameplate. **(b)** Load and flow temperature
+    fall together, as the certification standard specifies, over the design
+    heating demand. These are not the same question and they do not have the
+    same answer.
 
 Panel (a) — fixed temperatures
 ------------------------------
 
-Hold the source and sink where they are and take load away. With the shipped
-compressor efficiencies (the default ``rotary_twin_inverter`` type) the 9 kW
-air-to-water model loses 16.7 % between full load and the speed floor
-(reached at 23 % load) at 7 °C air / 35 °C water, and 27.0 % at 7/45 °C. At
-−7/45 °C it loses 21.2 % (COP 2.30 at full load, 2.37 at 75 % load, 1.81 at
-the floor, reached at 16 % load). Each curve peaks above the floor and falls
-before the compressor reaches it: at 7/35 °C the peak is COP 4.53 at 79 %
-load (45 rev/s), at −7/45 °C 2.40 at 47 % load (47 rev/s).
+Hold the source and sink where they are and move the load over the machine's
+whole speed range, from the compressor's speed floor (15 rev/s) to its top speed
+(120 rev/s). The horizontal axis is the heat the machine delivers as a share of
+what it delivers *at the same temperatures at its top speed* (``Q_max [W]``).
+That is a different denominator from the 9 kW nameplate, and at these conditions
+the two are far apart: the nameplate is a label attached to one rating point,
+not a ceiling. A diamond on each curve marks where 9 kW falls. An earlier
+version of this figure stopped at the nameplate and so showed only the part of
+each curve at or below the 9 kW duty. With the shipped compressor efficiencies
+(the default ``rotary_twin_inverter`` type) the 9 kW air-to-water model covers
+these ranges:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 28 24 24 24
+
+    * - Air / water
+      - Minimum capacity (15 rev/s)
+      - Maximum capacity (120 rev/s)
+      - 9 kW as a share of the maximum
+    * - +7 °C / 35 °C
+      - 2.12 kW
+      - 16.10 kW
+      - 56 %
+    * - +7 °C / 45 °C
+      - 2.09 kW
+      - 15.68 kW
+      - 57 %
+    * - −7 °C / 45 °C
+      - 1.43 kW
+      - 9.38 kW
+      - 96 %
+
+Frost and defrost are on, as shipped, so the heat is the mean over the frost
+and defrost cycle (:ref:`ashpb-frost`). The maximum is the heat of the top speed;
+asking for more returns the same point. At −7 °C the maximum is 9.38 kW against
+15.68 kW at +7 °C and the same water temperature, so there the nameplate is
+nearly the maximum.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 16 10 30 18 18 8
+
+    * - Air / water
+      - Peak COP
+      - Peak at
+      - COP at maximum (change from peak)
+      - COP at minimum (change from peak)
+      - COP at 9 kW
+    * - +7 °C / 35 °C
+      - 4.53
+      - 44 % of maximum, 79 % of nameplate, 45 rev/s
+      - 3.79 (−16.5 %)
+      - 3.72 (−18.0 %)
+      - 4.46
+    * - +7 °C / 45 °C
+      - 3.51
+      - 54 % of maximum, 94 % of nameplate, 56 rev/s
+      - 3.20 (−8.9 %)
+      - 2.56 (−27.1 %)
+      - 3.51
+    * - −7 °C / 45 °C
+      - 2.40
+      - 46 % of maximum, 48 % of nameplate, 48 rev/s
+      - 2.28 (−4.9 %)
+      - 1.81 (−24.5 %)
+      - 2.30
+
+Each curve rises from the speed floor to a peak and falls again towards the top
+speed: higher COP at an intermediate speed than at either end, with the peak a
+little under half of the maximum at 7/35 °C and −7/45 °C and a little over half
+at 7/45 °C. The peak positions are grid values (the sweep steps the request by
+2 % of the maximum), and on the nameplate axis they sit at different places —
+79 %, 94 % and 48 % — because the nameplate is a different fraction of the
+maximum at each condition. The COP at the 9 kW duty is 1.7 %, 0.1 % and 4.2 %
+below the peak. Both ends fall: from the peak to the top speed COP falls by
+16.5 %, 8.9 % and 4.9 %, and from the peak to the speed floor by 18.0 %, 27.1 %
+and 24.5 %.
+
+The same numbers on the nameplate axis, the way this page used to give them:
+the model loses 16.7 % between the 9 kW duty and the speed floor (which delivers
+2.12 kW, 24 % of the nameplate) at 7 °C air / 35 °C water, and 27.0 % at 7/45 °C.
+At −7/45 °C it loses 21.2 % (COP 2.30 at the nameplate duty, 2.37 at 75 % of it,
+1.81 at the floor, which delivers 1.43 kW, 16 % of the nameplate).
+
+.. admonition:: Getting the maximum capacity of a machine
+    :class: note
+
+    A request above what the machine can deliver is answered at the top speed
+    rather than refused. ``AirSourceHeatPumpBoiler.analyze_steady`` then returns
+    the heat of the top speed with ``capacity_clamped == "max"`` and
+    ``capacity_binding == "compressor"``, that heat as ``Q_max [W]``, and the
+    request as ``Q_request [W]``; a larger request gives the same point. Below
+    the ceiling ``Q_max [W]`` is NaN, so the maximum at a condition is read from
+    a deliberately large request (the figure uses three times the nameplate,
+    ``scripts.validation.part_load_figure.maximum_capacity``). When another
+    limit binds before the compressor's top speed, ``capacity_binding`` names it
+    (``discharge_temperature`` or ``condensing_temperature``, for example) and
+    the heat is that limit's. The air-to-air ``AirSourceHeatPump`` has the
+    same ceiling as a method: ``max_capacity(T0, T_a_room, mode=...)["Q_max [W]"]``.
 
 The −7/45 °C curve carries the frost and defrost adjustment, which is on by
 default (:ref:`ashpb-frost`) and follows the load on the outdoor coil
-(:ref:`frost at part load <ashp-frost-load>`): it costs the most at full load
-and eases as the load falls, and that easing is the rise to 75 % load.
-Without it (``defrost=False``) the same curve reads COP 2.75 at full load
-(91 rev/s), 2.76 at 75 % load and 1.81 at the speed floor (16 % load): flat
-to 75 % load and falling below it. The fall at the low-load end is the
+(:ref:`frost at part load <ashp-frost-load>`): it costs more at a higher load and
+eases as the load falls, and that easing is the rise from the nameplate duty to
+75 % of it. Without it (``defrost=False``) the same curve reads COP 2.75 at the
+nameplate duty (91 rev/s), 2.76 at 75 % of it and 1.81 at the speed floor (16 %
+of the nameplate): flat to 75 % of the nameplate and falling below it. The fall at the low-load end is the
 compressor model's: at the floor the frosted point runs at 15 rev/s and a
-pressure ratio of 4.7, with isentropic efficiency 0.553 against 0.793 at full
-load. That is an extrapolation of a provisional shape -- the rotary data end at
+pressure ratio of 4.7, with isentropic efficiency 0.553 against 0.793 at the
+nameplate duty. That is an extrapolation of a provisional shape -- the rotary data end at
 30 rev/s, and the speed shape below it is the form followed past its data
 (``efficiency_extrapolated``; :doc:`defaults`). Read the low-load end of these
 curves accordingly.
@@ -132,8 +229,9 @@ values the same model gains 22.0 % between full load and the speed floor (R32,
 load, keeps +33 to +40 % with the shipped efficiencies. None of these shapes is
 prescribed.
 
-Below the floor the curves are flat: every request there resolves to the same
-operating point (see the note below). The fall above the floor is the
+Below the floor the curves end: every request there resolves to the same
+operating point (see the note below), which is the one point the curve reaches at
+its low end. The fall above the floor is the
 compressor efficiencies' -- an earlier page stated that the efficiency
 correlations were not the cause of a turn-over, which held for the efficiency
 map of then and does not hold now.
@@ -269,6 +367,95 @@ it. No coefficient is adjusted to move any of this; the load term has none.
     from the speed floor alone; nothing was added to produce it.
 
 
+Air-to-air — fixed temperatures
+-------------------------------
+
+.. figure:: ../_static/validation_ashp_part_load.svg
+    :alt: System COP (heating, left) and EER (cooling, right) of the 3.5 kW
+        air-to-air model against the heat delivered as a share of the maximum at
+        the same temperatures, at three outdoor temperatures each, with a diamond
+        on each curve where the 3.5 kW nameplate falls.
+    :align: center
+    :width: 100%
+
+    The 3.5 kW R32 air-to-air model at fixed temperatures, heating (indoor air
+    20 °C) and cooling (27 °C), from the top speed (right) to the speed floor
+    (left end of each curve). Diamonds mark the 3.5 kW nameplate.
+
+The air-to-air model (``AirSourceHeatPump``, 3.5 kW R32) is swept the same way by
+``validation.analysis.ashp_trend``, with the running machine and frost and
+defrost off (the sweep isolates what the correlations and heat exchangers do as
+the load moves), from the top speed down to below the speed floor. The
+horizontal axis is again the heat delivered over the maximum at the same
+temperatures (``AirSourceHeatPump.max_capacity``), and the nameplate is the
+3.5 kW cooling capacity for both duties.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 20 14 14 16 12 16 8
+
+    * - Condition
+      - Minimum capacity
+      - Maximum capacity
+      - 3.5 kW as a share of the maximum
+      - COP at minimum
+      - Peak COP (at share of maximum, speed)
+      - COP at maximum
+    * - Heating, −7 °C
+      - 0.63 kW
+      - 4.86 kW
+      - 72 %
+      - 3.85
+      - 4.13 (26 %, 28 rev/s)
+      - 2.89
+    * - Heating, +2 °C
+      - 0.81 kW
+      - 5.96 kW
+      - 59 %
+      - 5.21
+      - 5.29 (19 %, 20 rev/s)
+      - 3.11
+    * - Heating, +7 °C
+      - 0.92 kW
+      - 6.60 kW
+      - 53 %
+      - 6.31
+      - 6.31 (15 %, 16 rev/s)
+      - 3.21
+    * - Cooling, 35 °C
+      - 1.29 kW
+      - 5.90 kW
+      - 59 %
+      - 6.26
+      - 6.26 (22 %, 15 rev/s)
+      - 2.60
+    * - Cooling, 30 °C
+      - 1.30 kW
+      - 6.10 kW
+      - 57 %
+      - 8.46
+      - 8.46 (21 %, 15 rev/s)
+      - 2.89
+    * - Cooling, 25 °C
+      - 1.19 kW
+      - 6.30 kW
+      - 56 %
+      - 9.55
+      - 9.85 (27 %, 19 rev/s)
+      - 3.22
+
+Three of the six curves have no peak above the speed floor: heating at +7 °C and
+cooling at 35 °C and 30 °C rise as the load falls all the way to the minimum
+capacity (at +7 °C the highest COP is 0.02 % above the value at the floor, a flat
+end rather than a turn-over; the two cooling curves rise at every step). At 3.5
+kW, heating at +7 °C goes from COP 3.21 at the maximum to 4.74 at the nameplate
+and 6.31 at the minimum, and cooling at 35 °C from 2.60 to 4.41 and 6.26. The
+other three peak above the floor, shallowly: the floor is 6.7 % below the peak
+for heating at −7 °C, 1.5 % below at +2 °C and 3.1 % below for cooling at 25 °C.
+This is a different shape from the air-to-water curves above, all three of which
+fall by 18 to 27 % between the peak and the floor.
+
+
 What is not modelled
 ====================
 
@@ -315,6 +502,10 @@ the full-load capacity at the same temperature, which does. The two differ by
 roughly a factor of 1.44 over the −7 to +12 °C range, so plotting both on one
 axis produces a figure that means nothing. Panel (a) and panel (b) above use
 different denominators for exactly this reason, and are labelled accordingly.
+Panel (a)'s denominator is the maximum capacity at the same temperatures, which
+is not the nameplate either: the nameplate is 56 %, 57 % and 96 % of it at the
+three conditions of panel (a), so "full load" on a nameplate axis is not the top
+of the machine's range.
 
 
 Reproduce
@@ -324,6 +515,8 @@ Reproduce
 
     uv run python -m validation.extraction.keymark_declared     # the certified band
     uv run python -m scripts.validation.part_load_figure        # both panels, and validation/data/part_load_figure/
+    uv run python -m validation.analysis.ashp_trend             # air-to-air sweep, validation/data/ashp_part_load_sweep.csv
+    uv run python -m scripts.validation.ashp_part_load_figure   # the air-to-air figure
     uv run python -m validation.fixed_boundary_plr.sweep        # internal-state sweep, both models
     uv run python -m validation.fixed_boundary_plr.figure
 

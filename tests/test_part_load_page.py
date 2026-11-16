@@ -6,8 +6,16 @@ record. Two links are checked here, the same chain the parity pages have:
 
 * prose -> CSV: every figure the page quotes is recomputed from the committed
   CSVs and looked for in the sentence or table row that states it;
-* CSV -> code: the committed CSVs are rerun in full (78 sweep points and the
-  four EN 14825 points, a few seconds) and must match at ``rel=1e-6``.
+* CSV -> code: the committed CSVs are rerun in full (the fixed-temperature
+  sweep, 144 points from the speed floor to the top speed, and the four EN 14825
+  points) and must match at ``rel=1e-6``.
+
+The page's horizontal axis in panel (a) is the heat delivered over the maximum
+capacity at the same temperatures, and its tables quote the capacity range, the
+peak on both the maximum and the nameplate axis, and the fall from the peak at
+both ends. The air-to-air section quotes ``validation/data/ashp_part_load_sweep.csv``
+the same way; its rerun against the model is a sample, in
+``tests/test_study_results_current.py::test_ashp_trend_sample_reproduces``.
 
 Before this the page had neither link, and its −7/45 °C sentence kept describing
 the frost-free model ("flat", COP 2.73) after frost and defrost became the
@@ -28,6 +36,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PAGE = REPO_ROOT / "docs" / "source" / "validation" / "part-load.rst"
 DATA = REPO_ROOT / "validation" / "data" / "part_load_figure"
 KEYMARK = REPO_ROOT / "validation" / "data" / "keymark_en14825_summary.csv"
+ASHP_SWEEP = REPO_ROOT / "validation" / "data" / "ashp_part_load_sweep.csv"
+NAMEPLATE_W = 9000.0
 
 HINT = "모델 동작이 바뀌었다. python -m scripts.validation.part_load_figure 로 다시 만들고 part-load.rst 를 고쳐라"
 
@@ -73,26 +83,41 @@ def band() -> pd.DataFrame:
 
 
 def _curve(sweep: pd.DataFrame, t_outdoor: float, lwt: float) -> dict[str, float]:
-    """Full-load COP, COP nearest 75 % load, the speed-floor edge and its COP, the gain to it [%], the peak."""
-    rows = sweep[(sweep.t_outdoor_C == t_outdoor) & (sweep.lwt_C == lwt)].sort_values("plr", ascending=False)
+    """One sweep curve: its capacity range, the peak on both axes, and the fall from the peak at both ends."""
+    rows = sweep[(sweep.t_outdoor_C == t_outdoor) & (sweep.lwt_C == lwt)]
     assert (rows.failure_reason == "none").all(), f"{t_outdoor}/{lwt}: a sweep point did not converge"
-    full = rows.iloc[0]
-    assert full.plr == 1.0
+    q_max = float(rows.q_max_W.iloc[0])
+    assert (rows.q_max_W == q_max).all()
+    nameplate = rows[rows.is_nameplate]
+    assert len(nameplate) == 1 and nameplate.plr.iloc[0] == 1.0 and nameplate.q_request_W.iloc[0] == NAMEPLATE_W
+    nameplate = nameplate.iloc[0]
+    # Every request below the speed floor resolves to one operating point.
     floor = rows[rows.at_floor]
-    edge = floor.loc[floor.plr.idxmax()]
-    near_75 = rows.loc[(rows.plr - 0.75).abs().idxmin()]
+    assert len(floor) >= 2 and floor.q_delivered_W.max() == pytest.approx(floor.q_delivered_W.min(), rel=1e-5)
+    low = floor.loc[floor.delivered_fraction_of_max.idxmax()]
+    top = rows.loc[rows.delivered_fraction_of_max.idxmax()]
+    assert top.delivered_fraction_of_max == pytest.approx(1.0, rel=1e-3) and top.rps == pytest.approx(120.0)
     peak = rows.loc[rows.cop.idxmax()]
+    near_75 = rows.loc[(rows.plr - 0.75).abs().idxmin()]
     return {
-        "full": float(full.cop),
-        "full_rps": float(full.rps),
+        "q_max": q_max,
+        "q_min": float(low.q_delivered_W),
+        "nameplate_of_max_pct": NAMEPLATE_W / q_max * 100.0,
+        "floor_of_nameplate_pct": float(low.q_delivered_W) / NAMEPLATE_W * 100.0,
+        "at_nameplate": float(nameplate.cop),
         "at_75": float(near_75.cop),
-        "edge_pct": float(edge.plr) * 100.0,
-        "floor": float(edge.cop),
-        "gain_pct": (float(edge.cop) / float(full.cop) - 1.0) * 100.0,
+        "plr_75": float(near_75.plr),
+        "floor": float(low.cop),
+        "top": float(top.cop),
         "peak": float(peak.cop),
-        "peak_pct": float(peak.plr) * 100.0,
+        "peak_of_max_pct": float(peak.delivered_fraction_of_max) * 100.0,
+        "peak_of_nameplate_pct": float(peak.q_delivered_W) / NAMEPLATE_W * 100.0,
         "peak_rps": float(peak.rps),
         "peak_at_floor": bool(peak.at_floor),
+        "gain_pct": (float(low.cop) / float(nameplate.cop) - 1.0) * 100.0,  # nameplate duty -> speed floor
+        "to_top_pct": (float(top.cop) / float(peak.cop) - 1.0) * 100.0,
+        "to_floor_pct": (float(low.cop) / float(peak.cop) - 1.0) * 100.0,
+        "nameplate_vs_peak_pct": (float(nameplate.cop) / float(peak.cop) - 1.0) * 100.0,
     }
 
 
@@ -105,32 +130,114 @@ def _bare(gain_pct: float) -> str:
     return f"{abs(gain_pct):.1f} %"
 
 
+def _condition(t_outdoor: float, lwt: float) -> str:
+    """'+7 °C / 35 °C' as the page's tables label a sweep condition (a true minus sign)."""
+    return f"{t_outdoor:+.0f} °C / {lwt:.0f} °C".replace("-", "−")
+
+
+CONDITIONS = ((7.0, 35.0), (7.0, 45.0), (-7.0, 45.0))
+
+
 # ---------------------------------------------------------------------------
 # prose -> CSV
 # ---------------------------------------------------------------------------
-def test_panel_a_sentence_quotes_the_sweep(page: str, sweep: pd.DataFrame) -> None:
-    w35 = _curve(sweep, 7.0, 35.0)
-    w45 = _curve(sweep, 7.0, 45.0)
-    cold = _curve(sweep, -7.0, 45.0)
+def test_sweep_columns_are_the_two_axes(sweep: pd.DataFrame) -> None:
+    """``plr`` stays the request over the nameplate; the new columns are the request and the delivery over the maximum."""
+    assert sweep.plr.to_numpy() == pytest.approx((sweep.q_request_W / NAMEPLATE_W).to_numpy())
+    assert sweep.plr_max.to_numpy() == pytest.approx((sweep.q_request_W / sweep.q_max_W).to_numpy())
+    assert sweep.delivered_fraction_of_max.to_numpy() == pytest.approx((sweep.q_delivered_W / sweep.q_max_W).to_numpy())
+    for t_outdoor, lwt in CONDITIONS:
+        rows = sweep[(sweep.t_outdoor_C == t_outdoor) & (sweep.lwt_C == lwt)]
+        # Above the floor the machine delivers what is asked, so the two maximum-based columns agree there.
+        above = rows[~rows.at_floor & (rows.capacity_clamped != "max")]
+        assert above.q_delivered_W.to_numpy() == pytest.approx(above.q_request_W.to_numpy(), rel=1e-6)
+        assert (rows.q_request_W.max() <= rows.q_max_W.iloc[0] * (1 + 1e-9)) and rows.plr.max() > 1.0
+        # Below it the delivery is the floor's, above every such request.
+        assert (rows[rows.at_floor].q_delivered_W >= rows[rows.at_floor].q_request_W * (1 - 1e-9)).all()
+
+
+def test_panel_a_tables_quote_the_sweep(page: str, sweep: pd.DataFrame) -> None:
+    """The capacity-range table and the peak table, row by row."""
+    ranges = _section(page, "these ranges:", "Frost and defrost are on")
+    peaks = _section(page, "Frost and defrost are on", "Each curve rises from the speed floor")
+    for t_outdoor, lwt in CONDITIONS:
+        c = _curve(sweep, t_outdoor, lwt)
+        label = _condition(t_outdoor, lwt)
+        cells = _list_table_row(ranges, label)
+        for expected in (
+            f"{c['q_min'] / 1000:.2f} kW",
+            f"{c['q_max'] / 1000:.2f} kW",
+            f"{c['nameplate_of_max_pct']:.0f} %",
+        ):
+            assert expected in cells, f"capacity range {label}: {cells!r} lacks {expected!r}. {HINT}."
+        cells = _list_table_row(peaks, label)
+        for expected in (
+            f"{c['peak']:.2f}",
+            f"{c['peak_of_max_pct']:.0f} % of maximum, {c['peak_of_nameplate_pct']:.0f} % of nameplate, "
+            f"{c['peak_rps']:.0f} rev/s",
+            f"{c['top']:.2f} ({c['to_top_pct']:+.1f} %)",
+            f"{c['floor']:.2f} ({c['to_floor_pct']:+.1f} %)",
+            f"{c['at_nameplate']:.2f}",
+        ):
+            assert expected in _flat(cells), f"peak table {label}: {cells!r} lacks {expected!r}. {HINT}."
     text = _flat(page)
-    # The three curves fall from full load to the floor; the page words them as losses, so a sign change fails here.
-    assert w35["gain_pct"] < 0 and w45["gain_pct"] < 0 and cold["gain_pct"] < 0
-    expected = (
-        f"{_change(w35['gain_pct'])} between full load and the speed floor "
-        f"(reached at {w35['edge_pct']:.0f} % load) at 7 °C air / 35 °C water, and "
-        f"{_bare(w45['gain_pct'])} at 7/45 °C. At -7/45 °C it {_change(cold['gain_pct'])} "
-        f"(COP {cold['full']:.2f} at full load, {cold['at_75']:.2f} at 75 % load, "
-        f"{cold['floor']:.2f} at the floor, reached at {cold['edge_pct']:.0f} % load)"
-    )
-    assert expected in text, f"part-load.rst panel (a) should read {expected!r}. {HINT}."
-    # "Each curve peaks above the floor and falls before the compressor reaches it".
+    w45, cold = _curve(sweep, 7.0, 45.0), _curve(sweep, -7.0, 45.0)
+    assert (
+        f"At -7 °C the maximum is {cold['q_max'] / 1000:.2f} kW against {w45['q_max'] / 1000:.2f} kW at +7 °C "
+        "and the same water temperature"
+    ) in text, HINT
+
+
+def test_panel_a_peak_prose_quotes_the_sweep(page: str, sweep: pd.DataFrame) -> None:
+    w35, w45, cold = (_curve(sweep, t, lwt) for t, lwt in CONDITIONS)
+    text = _flat(page)
+    # "Each curve rises from the speed floor to a peak and falls again": an interior peak on every curve.
     for curve in (w35, w45, cold):
-        assert not curve["peak_at_floor"] and curve["peak"] > curve["floor"]
+        assert not curve["peak_at_floor"] and curve["peak"] > curve["floor"] and curve["peak"] > curve["top"]
+    # "a little under half of the maximum at 7/35 and -7/45, a little over half at 7/45".
+    assert 40 < w35["peak_of_max_pct"] < 50 and 40 < cold["peak_of_max_pct"] < 50 and 50 < w45["peak_of_max_pct"] < 60
+    assert "a little under half of the maximum at 7/35 °C and -7/45 °C and a little over half at 7/45 °C" in text
     expected = (
-        f"at 7/35 °C the peak is COP {w35['peak']:.2f} at {w35['peak_pct']:.0f} % load ({w35['peak_rps']:.0f} rev/s), "
-        f"at -7/45 °C {cold['peak']:.2f} at {cold['peak_pct']:.0f} % load ({cold['peak_rps']:.0f} rev/s)"
+        f"{w35['peak_of_nameplate_pct']:.0f} %, {w45['peak_of_nameplate_pct']:.0f} % and "
+        f"{cold['peak_of_nameplate_pct']:.0f} % — because the nameplate"
     )
-    assert expected in text, f"part-load.rst should read {expected!r}. {HINT}."
+    assert expected in text, f"{expected!r}. {HINT}."
+    expected = (
+        f"The COP at the 9 kW duty is {-w35['nameplate_vs_peak_pct']:.1f} %, {-w45['nameplate_vs_peak_pct']:.1f} % "
+        f"and {-cold['nameplate_vs_peak_pct']:.1f} % below the peak"
+    )
+    assert expected in text, f"{expected!r}. {HINT}."
+    expected = (
+        f"from the peak to the top speed COP falls by {-w35['to_top_pct']:.1f} %, {-w45['to_top_pct']:.1f} % and "
+        f"{-cold['to_top_pct']:.1f} %, and from the peak to the speed floor by {-w35['to_floor_pct']:.1f} %, "
+        f"{-w45['to_floor_pct']:.1f} % and {-cold['to_floor_pct']:.1f} %"
+    )
+    assert expected in text, f"{expected!r}. {HINT}."
+
+
+def test_panel_a_nameplate_axis_sentence(page: str, sweep: pd.DataFrame) -> None:
+    """The nameplate-axis numbers the page used to give, recomputed from the nameplate and floor rows."""
+    w35, w45, cold = (_curve(sweep, t, lwt) for t, lwt in CONDITIONS)
+    assert w35["gain_pct"] < 0 and w45["gain_pct"] < 0 and cold["gain_pct"] < 0
+    assert abs(cold["plr_75"] - 0.75) < 0.011, "the sweep grid no longer has a request near 75 % of the nameplate"
+    expected = (
+        f"the model {_change(w35['gain_pct'])} between the 9 kW duty and the speed floor "
+        f"(which delivers {w35['q_min'] / 1000:.2f} kW, {w35['floor_of_nameplate_pct']:.0f} % of the nameplate) at "
+        f"7 °C air / 35 °C water, and {_bare(w45['gain_pct'])} at 7/45 °C. At -7/45 °C it {_change(cold['gain_pct'])} "
+        f"(COP {cold['at_nameplate']:.2f} at the nameplate duty, {cold['at_75']:.2f} at 75 % of it, "
+        f"{cold['floor']:.2f} at the floor, which delivers {cold['q_min'] / 1000:.2f} kW, "
+        f"{cold['floor_of_nameplate_pct']:.0f} % of the nameplate)"
+    )
+    assert expected in _flat(page), f"part-load.rst panel (a) should read {expected!r}. {HINT}."
+
+
+def test_denominator_paragraph_quotes_the_nameplate_share(page: str, sweep: pd.DataFrame) -> None:
+    w35, w45, cold = (_curve(sweep, t, lwt) for t, lwt in CONDITIONS)
+    expected = (
+        f"the nameplate is {w35['nameplate_of_max_pct']:.0f} %, {w45['nameplate_of_max_pct']:.0f} % and "
+        f"{cold['nameplate_of_max_pct']:.0f} % of it at the three conditions of panel (a)"
+    )
+    assert expected in _flat(page), f"{expected!r}. {HINT}."
 
 
 def test_panel_a_decomposition_quotes_the_study(page: str) -> None:
@@ -165,7 +272,7 @@ def test_panel_a_decomposition_quotes_the_study(page: str) -> None:
 
 def test_floor_note_quotes_the_cold_floor(page: str, sweep: pd.DataFrame) -> None:
     cold = _curve(sweep, -7.0, 45.0)
-    expected = f"(COP {cold['floor']:.2f} at the floor, reached at {cold['edge_pct']:.0f} % load)"
+    expected = f"(COP {cold['floor']:.2f} at the floor, reached at {cold['floor_of_nameplate_pct']:.0f} % load)"
     note = _flat(_section(page, "Below the speed floor the model delivers", "Panel (b)"))
     assert expected in note, f"the speed-floor note should read {expected!r}. {HINT}."
 
@@ -291,33 +398,36 @@ def test_committed_csvs_are_what_the_model_gives(figure) -> None:
 def test_the_cold_rise_is_the_defrost_adjustment(
     page: str, figure, sweep: pd.DataFrame, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """'that easing is the rise to 75 % load. Without it (defrost=False) the same curve reads COP 2.75 at full
-    load (90 rev/s), 2.76 at 75 % load and 1.81 at the speed floor (16 % load): flat to 75 % load and falling
-    below it.' and the floor point it names (15 rev/s, its pressure ratio and isentropic efficiency)."""
+    """'that easing is the rise from the nameplate duty to 75 % of it. Without it (defrost=False) the same curve
+    reads COP 2.75 at the nameplate duty (91 rev/s), 2.76 at 75 % of it and 1.81 at the speed floor (16 % of the
+    nameplate): flat to 75 % of the nameplate and falling below it.' and the floor point it names (15 rev/s, its
+    pressure ratio and isentropic efficiency)."""
     frosted = _curve(sweep, -7.0, 45.0)
     monkeypatch.setattr(figure, "MODEL_SETTINGS", {**figure.MODEL_SETTINGS, "defrost": False})
-    floor = frosted["edge_pct"] / 100.0
-    rows = pd.DataFrame(figure.sweep_fixed_temperatures(conditions=((-7.0, 45.0),), fractions=(1.0, 0.75, floor)))
+    model = figure._model()
+    # The sub-floor request is half the floor's heat: any request below the floor resolves to the floor point.
+    requests = (figure.NOMINAL_W, 0.75 * figure.NOMINAL_W, 0.5 * frosted["q_min"])
+    rows = pd.DataFrame([figure._sweep_row(model, -7.0, 45.0, q, frosted["q_max"], nameplate=False) for q in requests])
     assert (rows.failure_reason == "none").all()
     assert rows.at_floor.iloc[-1]
     cop = rows.cop.to_numpy()
     text = _flat(page)
     assert (
-        f"the same curve reads COP {cop[0]:.2f} at full load ({rows.rps.iloc[0]:.0f} rev/s), {cop[1]:.2f} at 75 % "
-        f"load and {cop[2]:.2f} at the speed floor ({frosted['edge_pct']:.0f} % load)"
+        f"the same curve reads COP {cop[0]:.2f} at the nameplate duty ({rows.rps.iloc[0]:.0f} rev/s), {cop[1]:.2f} at "
+        f"75 % of it and {cop[2]:.2f} at the speed floor ({frosted['floor_of_nameplate_pct']:.0f} % of the nameplate)"
     ) in text, f"frost-free -7/45 °C: {cop}. {HINT}."
-    # "flat to 75 % load and falling below it"; the frosted curve's rise to 75 % is the adjustment easing.
+    # "flat to 75 % of the nameplate and falling below it"; the frosted curve's rise to 75 % is the adjustment easing.
     assert abs(cop[1] / cop[0] - 1.0) < 0.01, cop
     assert cop[2] < 0.75 * cop[1], cop
-    assert frosted["at_75"] / frosted["full"] - 1.0 > 0.02 + (cop[1] / cop[0] - 1.0)
+    assert frosted["at_75"] / frosted["at_nameplate"] - 1.0 > 0.02 + (cop[1] / cop[0] - 1.0)
     # The floor point: below the rotary data in speed, its efficiency as the page states it.
     monkeypatch.setattr(figure, "MODEL_SETTINGS", {**figure.MODEL_SETTINGS, "defrost": True})
     model = figure._model()
     from tmhp.compressor_efficiency import COMPRESSOR_TYPES, SEMI_EMPIRICAL_TYPES
 
     results = [
-        figure.solve_at_leaving_water(model, -7.0, 45.0, figure.NOMINAL_W * f, figure.WATER_FLOW_KG_S)[0]
-        for f in (1.0, floor)
+        figure.solve_at_leaving_water(model, -7.0, 45.0, q, figure.WATER_FLOW_KG_S)[0]
+        for q in (figure.NOMINAL_W, 0.5 * frosted["q_min"])
     ]
     full, low = results
     speed_floor = min(n for _, n in SEMI_EMPIRICAL_TYPES[COMPRESSOR_TYPES[0]]["hull_PR_N"])
@@ -325,6 +435,151 @@ def test_the_cold_rise_is_the_defrost_adjustment(
     assert low["efficiency_extrapolated"] and not full["efficiency_extrapolated"]
     assert (
         f"runs at {model.rps_min:.0f} rev/s and a pressure ratio of {low['pr_cmp [-]']:.1f}, with isentropic "
-        f"efficiency {low['eta_cmp_isen [-]']:.3f} against {full['eta_cmp_isen [-]']:.3f} at full load"
+        f"efficiency {low['eta_cmp_isen [-]']:.3f} against {full['eta_cmp_isen [-]']:.3f} at the nameplate duty"
     ) in text
     assert f"the rotary data end at {speed_floor:.0f} rev/s" in text
+
+
+def test_max_capacity_paragraph_describes_the_model(page: str, figure, sweep: pd.DataFrame) -> None:
+    """'A request above what the machine can deliver is answered at the top speed ... capacity_clamped == "max" ...
+    Q_max [W] ... Q_request [W]; a larger request gives the same point. Below the ceiling Q_max [W] is NaN ...
+    three times the nameplate ... AirSourceHeatPump has the same ceiling as a method'."""
+    import warnings
+
+    from tmhp import AirSourceHeatPump, OperatingLimitWarning
+
+    w35 = _curve(sweep, 7.0, 35.0)
+    model = figure._model()
+    assert figure.MAX_PROBE_W == 3.0 * figure.NOMINAL_W
+    assert figure.maximum_capacity(model, 7.0, 35.0) == pytest.approx(w35["q_max"], rel=1e-9)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", OperatingLimitWarning)
+        for request in (2.0 * figure.NOMINAL_W, 3.0 * figure.NOMINAL_W):
+            result, _ = figure.solve_at_leaving_water(model, 7.0, 35.0, request, figure.WATER_FLOW_KG_S)
+            assert result["capacity_clamped"] == "max" and result["capacity_binding"] == "compressor"
+            assert result["cmp_rpm [rpm]"] / 60.0 == pytest.approx(model.rps_max)
+            assert result["Q_max [W]"] == pytest.approx(w35["q_max"], rel=1e-4)  # a larger request, the same point
+            assert result["Q_request [W]"] == pytest.approx(request)
+        below, _ = figure.solve_at_leaving_water(model, 7.0, 35.0, figure.NOMINAL_W, figure.WATER_FLOW_KG_S)
+    assert below["capacity_clamped"] is None and math.isnan(below["Q_max [W]"])
+    # The air-to-air method returns the ceiling the sweep's maximum column holds.
+    from validation.analysis import ashp_trend as at
+
+    ashp = pd.read_csv(ASHP_SWEEP)
+    row = ashp[
+        (ashp.duty == "heating") & (ashp.capacity_kW == 3.5) & (ashp.refrigerant == "R32") & (ashp.t_outdoor_C == 7.0)
+    ]
+    unit = AirSourceHeatPump(hp_capacity=3500.0, ref="R32", **at.SWEEP_SETTINGS)
+    assert unit.max_capacity(7.0, 20.0, mode="heating")["Q_max [W]"] == pytest.approx(row.q_max_W.iloc[0], rel=1e-9)
+    text = _flat(page)
+    for phrase in (
+        'capacity_clamped == "max"',
+        'capacity_binding == "compressor"',
+        "that heat as ``Q_max [W]``",
+        "and the request as ``Q_request [W]``",
+        "a larger request gives the same point",
+        "the figure uses three times the nameplate",
+        'max_capacity(T0, T_a_room, mode=...)["Q_max [W]"]',
+    ):
+        assert phrase in text, phrase
+
+
+# ---------------------------------------------------------------------------
+# air-to-air section: prose -> CSV (the rerun against the model is a sample, in test_study_results_current)
+# ---------------------------------------------------------------------------
+A2A_CONDITIONS = (
+    ("heating", -7.0, "Heating, −7 °C"),
+    ("heating", 2.0, "Heating, +2 °C"),
+    ("heating", 7.0, "Heating, +7 °C"),
+    ("cooling", 35.0, "Cooling, 35 °C"),
+    ("cooling", 30.0, "Cooling, 30 °C"),
+    ("cooling", 25.0, "Cooling, 25 °C"),
+)
+A2A_NAMEPLATE_W = 3500.0
+
+
+@pytest.fixture(scope="module")
+def ashp() -> pd.DataFrame:
+    sweep = pd.read_csv(ASHP_SWEEP, float_precision="round_trip")
+    return sweep[(sweep.capacity_kW == 3.5) & (sweep.refrigerant == "R32")]
+
+
+def _a2a_curve(ashp: pd.DataFrame, duty: str, t_outdoor: float) -> dict[str, float]:
+    rows = ashp[(ashp.duty == duty) & (ashp.t_outdoor_C == t_outdoor)].sort_values(
+        ["delivered_fraction_of_max", "plr_nameplate"]
+    )
+    q_max = float(rows.q_max_W.iloc[0])
+    assert (rows.q_max_W == q_max).all()
+    low, top = rows.iloc[0], rows.iloc[-1]
+    assert top.delivered_fraction_of_max == pytest.approx(1.0, rel=1e-3) and top.capacity_clamped == "max"
+    assert low.capacity_clamped == "min" and low.rps == pytest.approx(15.0)
+    nameplate = rows[rows.plr_nameplate == 1.0].iloc[0]
+    peak = rows.loc[rows.cop_sys.idxmax()]
+    distinct = rows.drop_duplicates("delivered_fraction_of_max")
+    return {
+        "q_min": float(low.q_delivered_W),
+        "q_max": q_max,
+        "nameplate_of_max_pct": A2A_NAMEPLATE_W / q_max * 100.0,
+        "floor": float(low.cop_sys),
+        "peak": float(peak.cop_sys),
+        "peak_of_max_pct": float(peak.delivered_fraction_of_max) * 100.0,
+        "peak_rps": float(peak.rps),
+        "top": float(top.cop_sys),
+        "at_nameplate": float(nameplate.cop_sys),
+        "peak_over_floor_pct": (float(peak.cop_sys) / float(low.cop_sys) - 1.0) * 100.0,
+        "floor_below_peak_pct": (1.0 - float(low.cop_sys) / float(peak.cop_sys)) * 100.0,
+        "rises_every_step": bool((distinct.cop_sys.diff().iloc[1:] <= 1e-9).all()),  # COP up as the heat falls
+    }
+
+
+def test_air_to_air_table_quotes_the_sweep(page: str, ashp: pd.DataFrame) -> None:
+    table = _section(page, "3.5 kW as a share of the maximum", "Three of the six curves")
+    for duty, t_outdoor, label in A2A_CONDITIONS:
+        c = _a2a_curve(ashp, duty, t_outdoor)
+        cells = _flat(_list_table_row(table, label))
+        for expected in (
+            f"{c['q_min'] / 1000:.2f} kW",
+            f"{c['q_max'] / 1000:.2f} kW",
+            f"{c['nameplate_of_max_pct']:.0f} %",
+            f"- {c['floor']:.2f} -",
+            f"{c['peak']:.2f} ({c['peak_of_max_pct']:.0f} %, {c['peak_rps']:.0f} rev/s)",
+            f"- {c['top']:.2f}",
+        ):
+            assert expected in cells + " -", f"air-to-air {label}: {cells!r} lacks {expected!r}. {HINT}."
+
+
+def test_air_to_air_prose_quotes_the_sweep(page: str, ashp: pd.DataFrame) -> None:
+    """'Three of the six curves have no peak above the speed floor ... the other three peak above the floor,
+    shallowly', the three numbers it gives for the shallow peaks, and the comparison with air-to-water."""
+    c = {(duty, t): _a2a_curve(ashp, duty, t) for duty, t, _ in A2A_CONDITIONS}
+    text = _flat(page)
+    # No interior peak: heating +7 (flat end, 0.02 % above the floor value) and both warm cooling curves (every step).
+    assert c["cooling", 35.0]["rises_every_step"] and c["cooling", 30.0]["rises_every_step"]
+    flat_end = c["heating", 7.0]
+    assert 0.0 < flat_end["peak_over_floor_pct"] < 0.05 and flat_end["peak_rps"] < 16.0
+    assert (
+        "Three of the six curves have no peak above the speed floor: heating at +7 °C and cooling at 35 °C and 30 °C "
+        "rise as the load falls all the way to the minimum capacity (at +7 °C the highest COP is "
+        f"{flat_end['peak_over_floor_pct']:.2f} % above the value at the floor"
+    ) in text, HINT
+    # The other three do peak above the floor.
+    for key in (("heating", -7.0), ("heating", 2.0), ("cooling", 25.0)):
+        assert not c[key]["rises_every_step"] and c[key]["peak_over_floor_pct"] > 1.0 and c[key]["peak_rps"] > 16.0
+    expected = (
+        f"the floor is {c['heating', -7.0]['floor_below_peak_pct']:.1f} % below the peak for heating at -7 °C, "
+        f"{c['heating', 2.0]['floor_below_peak_pct']:.1f} % below at +2 °C and "
+        f"{c['cooling', 25.0]['floor_below_peak_pct']:.1f} % below for cooling at 25 °C"
+    )
+    assert expected in text, f"{expected!r}. {HINT}."
+    h7, c35 = c["heating", 7.0], c["cooling", 35.0]
+    expected = (
+        f"heating at +7 °C goes from COP {h7['top']:.2f} at the maximum to {h7['at_nameplate']:.2f} at the nameplate "
+        f"and {h7['floor']:.2f} at the minimum, and cooling at 35 °C from {c35['top']:.2f} to "
+        f"{c35['at_nameplate']:.2f} and {c35['floor']:.2f}"
+    )
+    assert expected in text, f"{expected!r}. {HINT}."
+    # "all three of which fall by 18 to 27 % between the peak and the floor" (the air-to-water curves).
+    # (the sweep file of panel (a) is read here directly)
+    water = pd.read_csv(DATA / "sweep.csv", float_precision="round_trip")
+    falls = [-_curve(water, t, lwt)["to_floor_pct"] for t, lwt in CONDITIONS]
+    assert f"all three of which fall by {min(falls):.0f} to {max(falls):.0f} % between the peak and the floor" in text

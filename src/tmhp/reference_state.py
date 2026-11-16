@@ -75,6 +75,7 @@ from .compressor_efficiency import (
     SuctionState,
     _eval_eff,
     default_efficiencies,
+    drive_model_zero_speed,
 )
 from .compressor_envelope import RATED_SPEED_SEARCH_MAX, check_rated_condensing, default_rps_max
 from .compressor_speed import solve_compressor_speed
@@ -780,6 +781,14 @@ class ReferenceStateMixin:
         speed_search_max = RATED_SPEED_SEARCH_MAX if derive_rps_max else self.rps_max
         if not 0 < self.rps_min < speed_search_max or not math.isfinite(speed_search_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
+        if efficiencies.get("eta_cmp") is None and self.rps_min <= drive_model_zero_speed():
+            # The speed solve evaluates the floor; a default model that is not
+            # positive there fails every point, whatever speed its answer lies at.
+            raise ValueError(
+                f"rps_min={self.rps_min:g} rev/s is at or below the speed where the default drive (inverter) model "
+                f"gives no positive efficiency ({drive_model_zero_speed():.1f} rev/s; its data start at 20 rev/s). "
+                "Give a higher rps_min, or your own eta_cmp."
+            )
         condition = rating_condition(
             self._RATING_FAMILY,
             source=lambda mode, T: self._rating_side("source", mode, T),

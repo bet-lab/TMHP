@@ -439,6 +439,17 @@ class SemiEmpiricalCompressor:
         return float(1.0 - d["lam"] * (1.0 + d["beta"] * (d["N_ref_rps"] / rps - 1.0)))
 
 
+def drive_model_zero_speed() -> float:
+    """Shaft speed at and below which the default drive model gives no positive efficiency [rev/s].
+
+    ``eta_inv = 1 - lam (1 + beta (60/N - 1))`` falls as 1/N and crosses zero
+    at about 2.2 rev/s, far below the 20 rev/s its data start at. A machine
+    whose speed floor lies there has no default ``eta_cmp`` to evaluate.
+    """
+    d = SEMI_EMPIRICAL_DRIVE
+    return float(d["N_ref_rps"] / ((1.0 / d["lam"] - 1.0) / d["beta"] + 1.0))
+
+
 class SemiEmpiricalEfficiency:
     """One of the package's three quantities of a :class:`SemiEmpiricalCompressor`.
 

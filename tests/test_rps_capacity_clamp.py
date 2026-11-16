@@ -154,3 +154,19 @@ def test_any_request_below_the_floor_runs_at_the_floor_speed(hp):
     assert b["cmp_rpm [rpm]"] == pytest.approx(60.0 * hp.rps_min, rel=1e-9)
     assert a["Q_min [W]"] == pytest.approx(b["Q_min [W]"], rel=1e-3)
     assert (a["Q_ref_tank [W]"], b["Q_ref_tank [W]"]) == pytest.approx((50.0, 200.0), rel=1e-12)
+
+
+def test_a_speed_floor_where_the_default_drive_model_is_not_positive_is_refused_at_construction():
+    """The drive model falls as 1/N and is zero at 2.2 rev/s; the speed solve evaluates the floor.
+
+    With such a floor every point failed (``cycle_invalid``), also one whose answer lies at an ordinary
+    speed. The constructor says so instead; a caller's own ``eta_cmp`` is the caller's statement.
+    """
+    from tmhp import AirSourceHeatPumpBoiler
+    from tmhp.compressor_efficiency import drive_model_zero_speed
+
+    assert drive_model_zero_speed() == pytest.approx(2.23, abs=0.01)
+    with pytest.raises(ValueError, match="default drive"):
+        AirSourceHeatPumpBoiler(rps_min=2.0)
+    assert AirSourceHeatPumpBoiler(rps_min=2.0, eta_cmp=0.9).rps_min == 2.0
+    assert AirSourceHeatPumpBoiler(rps_min=5.0).rps_min == 5.0

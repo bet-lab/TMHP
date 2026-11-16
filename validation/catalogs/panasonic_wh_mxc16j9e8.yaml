@@ -10,6 +10,18 @@
 # air flow is likewise read verbatim from the service manual. Both are inputs,
 # not tuning -- every efficiency coefficient and conductance comes from the
 # library defaults.
+#
+# Compressor kind and injection: this file's record (above, from the
+# transcription of 2026-09) names 9JD650XAA22, a JD-series machine like the
+# 9JD420XBA22 of the 9 and 12 kW units, which Panasonic's industrial
+# compressor site lists as a "J2P" variable-speed R32 rotary. The 2026-11
+# review of the validation machines' compressors read the parts lists of the
+# 9 and 12 kW units directly but not this unit's again, so the model number
+# stands on the earlier transcription alone (compressor_model: unconfirmed
+# below). The kind is taken from the JD family designation and the circuit
+# from the series: the same generation and refrigerant circuit as MXC09/12 --
+# the bypass expansion valve outlet returns to the accumulator (suction), no
+# injection port. Hence compressor_type: rotary, injection: none.
 slug: panasonic_wh_mxc16j9e8
 name: WH-MXC16J9E8
 manufacturer: Panasonic
@@ -20,9 +32,13 @@ cop_definition: "Q_cond / (E_cmp + E_fan), heating"
 source:
   document: "Panasonic Aquarea WH-MXC series service manual / 2025 catalogue"
   table: "references/Panasonic_R32_9-12-16 kW.png (heating performance table)"
+  compressor: "9JD650XAA22 per the 2026-09 transcription of the parts list (not re-read in 2026-11); JD-series rotary as MXC09/12; refrigerant circuit of the series, no injection port"
+  compressor_model: unconfirmed
 published_inputs:
   displacement_cc: 65.0
   rated_air_flow_m3_s: 1.585
+  compressor_type: rotary
+  injection: none
 points:
   - id: 1
     t_source_C: -15

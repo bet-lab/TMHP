@@ -21,12 +21,6 @@ from validation.parity.spec import (
 
 from tmhp.compressor_efficiency import COMPRESSOR_TYPES
 
-#: Catalogues whose compressor evidence disagrees with the file's existing text
-#: and so were left for the owner (the 16 kW MXC unit: its comment says the
-#: parts list names 9JD650XAA22, while no parts list for it was at hand).
-#: Remove a slug here once its file declares both inputs.
-PENDING = frozenset({"panasonic_wh_mxc16j9e8"})
-
 
 def _catalog(model_class: str = "ASHPB", **published) -> Catalog:
     return Catalog(
@@ -101,13 +95,9 @@ def test_build_model_hands_the_mapped_type_to_the_model(slug, expected):
 
 def test_every_catalogue_declares_both_inputs():
     catalogs = {c.slug: c for c in load_all()}
-    assert set(catalogs) >= PENDING
+    assert len(catalogs) >= 17
     for slug, catalog in catalogs.items():
-        declared = {"compressor_type", "injection"} & set(catalog.published_inputs)
-        if slug in PENDING:
-            assert not declared, f"{slug} now declares its compressor; drop it from PENDING"
-        else:
-            assert declared == {"compressor_type", "injection"}, slug
+        assert {"compressor_type", "injection"} <= set(catalog.published_inputs), slug
 
 
 @pytest.mark.parametrize("model_class", ["ASHPB", "ASHP"])

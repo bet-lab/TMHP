@@ -40,20 +40,21 @@ the box:
 The compressor's rated speed is solved for each fluid at the model's rating
 condition (:doc:`/models/reference-state`), so swapping the fluid keeps the
 rated capacity. A fluid with a low volumetric capacity needs a larger
-compressor for the same duty, and the default displacement of the air-source
-models and of ``GroundSourceHeatPump`` follows the fluid: it is the
-displacement a compressor catalogue gives for the capacity at the catalogue's
-rating point, with the fluid's own suction density and enthalpy rise
-(:doc:`/validation/defaults`). For the 15 kW default that is 45 cm³/rev with
-R32, 84 with R290, 110 with R134a and 203 with R600a, and the rated speed
-lies between 52 and 61 rev/s for every one of them, inside the 33.8–72.5 rev/s
-range the default compressor efficiency was fitted on. (Until November 2026
+compressor for the same duty, and the default displacement of every family
+follows the fluid: it is the displacement a compressor catalogue gives for the
+capacity at the catalogue's rating point, with the fluid's own suction density
+and enthalpy rise (:doc:`/validation/defaults`). For the 15 kW default
+``AirSourceHeatPumpBoiler`` that is 45 cm³/rev with R32, 84 with R290, 110
+with R134a and 203 with R600a, and the rated speed lies between 63 and
+77 rev/s for every one of them, inside the 30–120 rev/s of the default
+compressor type's data. The default 8 kW ``GroundSourceHeatPumpBoiler``,
+rated at B0/W55, takes 24 cm³/rev with R32, 45 with R290, 59 with R134a and
+108 with R600a, and is rated at 75 to 97 rev/s (R290 84). (Until November 2026
 the default was one displacement for every fluid, 70 cm³/rev at 15 kW: R600a
 could not reach the rated capacity on it and was refused at construction,
-and R134a, R1234yf and R1234ze(E) were rated at about 90, 100 and 121 rev/s.)
-``GroundSourceHeatPumpBoiler`` and ``WaterSourceHeatPumpBoiler`` still use
-that one displacement (37 cm³/rev at their default 8 kW); give them a
-``V_cmp_ref`` when comparing fluids of very different volumetric capacity.
+and R134a, R1234yf and R1234ze(E) were rated at about 90, 100 and 121 rev/s.
+The ground- and water-source boilers kept that constant, 37 cm³/rev at 8 kW,
+until the same month.)
 
 Not supported
 -------------

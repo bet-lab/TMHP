@@ -164,7 +164,7 @@ the default runs:
 .. code-block:: python
 
    gshp = GroundSourceHeatPump()                                        # 4 kW, 25 % ethylene glycol
-   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)   # leaves at -6.3 °C, system COP 3.50
+   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)   # leaves at -6.8 °C, system COP 3.70
    GroundSourceHeatPump(source_fluid="water").analyze_steady(
        Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0
    )                                                                    # off: source_fluid_freezing

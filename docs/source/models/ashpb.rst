@@ -120,20 +120,20 @@ The running machine of the row is the most efficient of them (the least
 power instead, which at the floor is nearly flat in the outdoor approach and
 returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
 outdoor approach with the fan at its lowest flow, a running-machine COP of
-4.27 where the floor offers 5.29.
+4.27 where the floor offered 5.29 (with the compressor defaults of then).
 
 The minimum speed is not always the lower end of continuous operation. At a
-large lift the shipped isentropic-efficiency fit falls towards low speed, and
-the compressor envelope (:doc:`../developer/reference-operating-limits`)
-refuses the point before ``rps_min`` is reached: first for the discharge
-temperature, which the falling efficiency drives above ``T_dis_max`` even with
-the discharge-temperature control used up, then for the fit's own floor
-(``ETA_ISEN_MIN`` = 0.30). The default 15 kW unit (R290) at −7 °C outdoors
-against a 65 °C tank runs down to about 6.4 kW (frost-free, 25 rev/s) and no
-further; with R134a at −7 °C against 55 °C to 6.5 kW (34 rev/s), with R410A at
-−15 °C against 55 °C to 8.6 kW (52 rev/s). (Against a 55 °C tank at −7 °C the
-R290 unit reaches its minimum speed first, at 3.2 kW.) A request below that duty was answered with the unit switched off
-(``failure_reason == "discharge_temp_above_max"`` or ``"eta_isen_below_min"``)
+large lift the compressor efficiency falls towards low speed, and the
+compressor envelope (:doc:`../developer/reference-operating-limits`) can
+refuse the point before ``rps_min`` is reached, for the discharge
+temperature, which the falling efficiency drives above ``T_dis_max`` even
+with the discharge-temperature control used up. The default 15 kW unit with
+R32 at −20 °C outdoors against a 60 °C tank runs down to about 2.1 kW
+(24 rev/s, suction quality 0.9 at the 150 °C limit) and no further; at −15 °C
+against 60 °C to 1.9 kW (18 rev/s). With R290 at −7 °C against 55 or 65 °C,
+R134a at −7 °C against 55 °C and R410A at −15 °C against 55 °C it reaches its
+minimum speed first (1.6 to 1.9 kW). A request below that duty was answered
+with the unit switched off (``failure_reason == "discharge_temp_above_max"``)
 while a larger one ran. It is met the same way as one below the minimum speed,
 and as :doc:`ashp` does: the unit cycles at the smallest duty the envelope
 admits. The row has ``capacity_clamped == "min"``, ``Q_min [W]`` is that duty
@@ -147,27 +147,28 @@ that continuous point, which delivers more than the request.
 The smallest duty is used, not a more efficient larger one: the request just
 above it is met in continuous operation there, so the result has no step at
 the boundary, and a unit that cycles runs as long as its protections let it.
-Where that duty is a large share of the nameplate (57 % for R410A above) the
-unit is off for most of the time at small loads; ``runtime_fraction [-]``
-says how much.
+Where that duty is a large share of the nameplate the unit is off for most of
+the time at small loads (2.1 kW, 14 % of the nameplate, in the R32 case
+above); ``runtime_fraction [-]`` says how much.
 
-The two reasons remain where no duty runs at all: the limits that refuse the
-duty from above (the pressure ratio, the outdoor coil, the condensing
-temperature, the discharge temperature itself at a larger lift) meet the ones
-from below. The default 15 kW unit with R32 against a 55 °C tank is such a case
-from −8 °C outdoors down: its discharge is above 150 °C at every duty, so
-there is no duty to cycle at (at −7.5 °C it still runs, at up to 57 % of its
-nameplate; against a 52.5 °C tank -- leaving water at 55 °C -- down to
-−9.5 °C). A dynamic step is not affected: its thermostat runs the
-compressor at the nameplate duty.
+The reason remains where no duty runs at all: the limits that refuse the duty
+from above (the pressure ratio, the outdoor coil, the condensing temperature,
+the discharge temperature itself at a larger lift) meet the one from below.
+The default 15 kW unit with R32 against a 55 °C tank is such a case at −25 °C
+outdoors: the discharge limit refuses the smallest duties and the
+pressure-ratio ceiling every larger one, so there is no duty to cycle at (at
+−24 °C it still runs, at up to 2.9 kW, held by the pressure ratio). A dynamic
+step is not affected: its thermostat runs the compressor at the nameplate
+duty.
 
 ``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
 for an untested unit), ``1 − P_off / P_on`` for a unit with a measured standby
 power, ``1.0`` for loss-free cycling, and ``None`` for the continuous
 minimum-speed point, which delivers more than the request. An 8 kW R32 unit
-at 7 °C air and a 35 °C tank delivers 3.7 kW at its minimum speed: a 400 W
-request used to return those 3.7 kW at 822 W of input and now returns 400 W
-at 162 W (system COP 2.47 against 4.49 for the running machine).
+at 7 °C air and a 35 °C tank delivers 1.9 kW at its minimum speed: a 400 W
+request now returns 400 W at 154 W (system COP 2.59 against 3.55 for the
+running machine). Before the cycling model it returned the minimum-speed duty
+itself (with the defaults of then 3.7 kW at 822 W of input).
 
 .. note::
 
@@ -309,46 +310,58 @@ for ``hp_capacity``, so every running step is at ``r = 1``.
 Default compressor efficiencies
 ===============================
 
-A bare ``AirSourceHeatPumpBoiler`` evaluates three independent
-second-order polynomials from :mod:`tmhp.compressor_efficiency`
-(coefficient set ``BITZER-three-C3-absolute-N-2026-10-06``, a scroll-compressor
-fit to manufacturer calculation data):
+A bare ``AirSourceHeatPumpBoiler`` takes its volumetric (``eta_cmp_vol``),
+isentropic (``eta_cmp_isen``) and electro-mechanical (``eta_cmp``)
+efficiencies from the semi-empirical models of
+:mod:`tmhp.compressor_efficiency` (coefficient set
+``semi-empirical-2026-11-15``), one set per compressor type, chosen with the
+``compressor_type`` argument:
 
-.. math::
+.. code-block:: python
 
-   \eta = b_0 + b_1\,PR + b_2\,N + b_3\,PR^2 + b_4\,N^2 + b_5\,PR\,N
+   from tmhp import AirSourceHeatPumpBoiler
 
-Here :math:`PR` is the pressure ratio and :math:`N` is the physical shaft
-speed in rev/s (``rps``); there is no relative-speed normalisation. The
-same form is used for the volumetric (``eta_cmp_vol``), isentropic
-(``eta_cmp_isen``) and effective electromechanical (``eta_cmp``)
-efficiencies, each with its own coefficients, which are listed in
-``validation/coefficients/BITZER-three-C3-absolute-N-2026-10-06/coefficients.csv``
-and in the tuple constants of the module. The design notes are in
-``docs/notes/compressor-bitzer-defaults.md``.
+   AirSourceHeatPumpBoiler()                          # "rotary_twin_inverter", the default
+   AirSourceHeatPumpBoiler(compressor_type="scroll")
+   AirSourceHeatPumpBoiler(compressor_type="rotary_single_fixed")
+
+Every family takes the same argument. The forms are fitted to
+standalone-compressor data, not to heat-pump catalogues, and are evaluated at
+the pressure ratio, the shaft speed in rev/s and the suction state; ``eta_cmp``
+includes the drive, so ``E_cmp [W]`` is the inverter input (drive loss about
+6 % at 60 rev/s, more at low speed). The forms, their data and what in them is
+provisional are described in :doc:`/validation/defaults` and in the coefficient
+archive ``validation/coefficients/semi-empirical-2026-11-15/`` (its README,
+*Limits*).
 
 .. warning::
 
-   The fit covers pressure ratio 1.50–7.15 and shaft speed
-   33.8–72.5 rev/s (the convex hull of 3,899 scroll data points). The
-   model's operating range (``rps_min`` = 15 rev/s, ``rps_max`` up to
-   ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``, ``PR_cycle_max`` = 11) reaches outside
-   it. Outside the box the guarded fit holds the boundary value (high PR,
-   high speed) or continues the boundary slope downward (low PR, low speed),
-   and steady results report ``efficiency_extrapolated``. At PR above 7 the
-   fitted isentropic efficiency is 0.37–0.45, which drives the computed
-   discharge temperature of R32 to 200–290 °C. The discharge-temperature
-   control holds ``T_dis_max`` by lowering the suction superheat and then
-   letting the suction go wet down to ``x_suction_min`` (0.9); a request it
-   cannot hold -- R32 above roughly 220 °C dry -- runs at the largest smaller
-   duty that it can hold (``capacity_clamped == "max"``), or is refused when
-   there is none (see :doc:`/developer/reference-operating-limits`).
+   The rotary types are provisional: their data span pressure ratio
+   1.94–6.84 and 30–120 rev/s. The model's operating range (``rps_min`` =
+   15 rev/s, ``rps_max`` = ``max(120, 1.5 × rps_rated)``, ``PR_cycle_max`` =
+   11) reaches outside it, and outside it the forms are followed as they are
+   -- nothing is held -- with ``efficiency_extrapolated`` set on steady
+   results. That is the case at every speed below 30 rev/s and at the
+   pressure ratios of hot water in cold weather (:ref:`high-lift-deficit`).
+   The efficiency level is the manufacturers' published level; independent
+   compressor measurements sit 5–15 % lower. With R32 the default type gives
+   an isentropic efficiency of 0.76–0.79 at pressure ratios of 7 to 11 and
+   an uncontrolled discharge of up to about 170 °C there (A−15/W65 and
+   A−7/W65); the discharge-temperature control holds ``T_dis_max`` (150 °C)
+   by lowering the suction superheat and then letting the suction go wet down
+   to ``x_suction_min`` (0.9), and a request it cannot hold runs at the
+   largest smaller duty that it can (``capacity_clamped == "max"``), or is
+   refused when there is none (see
+   :doc:`/developer/reference-operating-limits`).
 
-An explicitly supplied float or callable for the corresponding constructor
-argument overrides these defaults. The earlier linear correlations
-(``1.0 - 0.020 * (r_p - 1.0)`` and similar) survive only as
-``tmhp.compressor_efficiency_legacy`` and in the
-``equipment_presets`` module; they are not the default.
+An explicitly supplied float or callable for one of the three constructor
+arguments replaces that model (``model(PR)`` or ``model(PR, rps)``). The
+earlier default maps -- the BITZER quadratic map of the 2026-10-06 release and
+the correlations before it -- are no longer in the library; they are kept as
+records with the code that evaluates them in ``validation/coefficients/``
+(``recorded_maps/``, ``README.md``). The linear correlations of
+:mod:`tmhp.equipment_presets` (``1.0 - 0.020 * (r_p - 1.0)`` and similar) are
+presets, not defaults.
 
 Source-side mechanics
 =====================

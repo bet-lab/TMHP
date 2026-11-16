@@ -45,9 +45,16 @@ def _fujitsu(df: pd.DataFrame) -> pd.Series:
     return (df.model_class == "ASHP") & (df.manufacturer == "Fujitsu")
 
 
+def _injected(df: pd.DataFrame) -> pd.Series:
+    """The published injection circuit (``injection`` column of the results): anything but ``none``."""
+    return df.injection.fillna("none") != "none"
+
+
 #: Row label in the residuals table of validation/index.rst -> its points.
 INDEX_ROWS: dict[str, Selector] = {
     "Air-to-water, 10 units": _ashpb,
+    "Air-to-water, no injection, 6 units": lambda df: _ashpb(df) & ~_injected(df),
+    "Air-to-water, injection, 4 units": lambda df: _ashpb(df) & _injected(df),
     "Air-to-air, Daikin, 5 units": _daikin,
     "Daikin cooling": lambda df: _daikin(df) & (df["mode"] == "cooling"),
     "Daikin heating": lambda df: _daikin(df) & (df["mode"] == "heating"),
@@ -159,23 +166,45 @@ def test_readme_family_figures_match_the_harness(points: pd.DataFrame, lead: str
 
 
 def test_readme_quotes_the_stated_biases(points: pd.DataFrame) -> None:
-    """The sentence that names each known bias carries the harness value."""
+    """The sentence that names each known bias carries the harness value, and the direction it states holds."""
     text = _flat("README.md")
     daikin = points[_daikin(points)]
-    cooling = _stats(daikin[daikin["mode"] == "cooling"])[1]
-    cold = _stats(daikin[(daikin["mode"] == "heating") & (daikin.t_source_C <= -7.0)])[1]
+    cooling = daikin[daikin["mode"] == "cooling"]
+    heating = daikin[daikin["mode"] == "heating"]
+    by_t = {t: _stats(heating[heating.t_source_C == t])[1] for t in sorted(heating.t_source_C.unique())}
+    cool_bias = _stats(cooling)[1]
+    heat_bias, heat_n = _stats(heating)[1], _stats(heating)[2]
+    lo, hi = cooling.t_source_C.min(), cooling.t_source_C.max()
+    cool_lo = _stats(cooling[cooling.t_source_C == lo])[1]
+    cool_hi = _stats(cooling[cooling.t_source_C == hi])[1]
+    assert (
+        f"Air-to-air cooling is centred ({_signed(cool_bias)} %; from {_signed(cool_lo)} % at {lo:g} °C "
+        f"to {_signed(cool_hi)} % at {hi:g} °C outdoor"
+    ) in text
+    assert abs(cool_bias) < 3.0, "cooling is no longer centred"
+    assert (
+        f"runs low ({_signed(heat_bias)} % over its {heat_n} points; {_signed(by_t[-10.0])} % at -10 °C, "
+        f"{_signed(by_t[0.0])} % at 0 °C, and {_signed(by_t[6.0])} % at +6 °C, where the coil does not frost), "
+        f"except at -15 °C ({_signed(by_t[-15.0])} %)"
+    ) in text
+    assert all(by_t[t] < 0 for t in by_t if t != -15.0) and by_t[-15.0] > 0, by_t
     ashpb = points[_ashpb(points)]
     frost_free = _stats(ashpb[ashpb.t_source_C >= 7.0])[1]
     plus_two = _stats(ashpb[ashpb.t_source_C == 2.0])[1]
     minus_seven = _stats(ashpb[ashpb.t_source_C == -7.0])[1]
     below = _stats(ashpb[ashpb.t_source_C < -7.0])[1]
-    assert f"cooling runs low ({_signed(cooling)} %" in text
-    assert f"-7 °C outdoor runs high ({_signed(cold)} %" in text
-    assert f"centred at +7 °C outdoor and above ({_signed(frost_free)} %)" in text
+    assert f"it runs low at +7 °C outdoor and above ({_signed(frost_free)} %)" in text
     assert (
-        f"runs low where the adjustment applies ({round(plus_two):+d} % at +2 °C, "
+        f"where the adjustment applies ({round(plus_two):+d} % at +2 °C, "
         f"{round(minus_seven):+d} % at -7 °C, {round(below):+d} % below;"
     ) in text
+    for injected, words in ((False, "six rotaries without injection"), (True, "four injection scrolls")):
+        rows = ashpb[_injected(ashpb) == injected]
+        mape, bias, evaluated, attempted = _stats(rows)
+        assert f"{words}" in text and f"{mape:.1f} % / {_signed(bias)} % ({evaluated}/{attempted}" in text, words
+    bad = ashpb[~ashpb.usable]
+    assert f"The {len(bad)} air-to-water points not evaluated all run below the published duty" in text
+    assert set(bad.failure_reason) == {"capacity_short"}
 
 
 def test_index_prose_figures_match_the_harness(points: pd.DataFrame) -> None:
@@ -200,7 +229,105 @@ def test_index_prose_figures_match_the_harness(points: pd.DataFrame) -> None:
     r410a = [per_unit[s][0] for s in per_unit if ashpb[ashpb.slug == s].refrigerant.iat[0] == "R410A"]
     assert f"R-410A air-to-water units sit at {min(r410a):.1f} to {max(r410a):.1f} % MAPE" in text
     spread = [m for m, *_ in per_unit.values()]
-    assert f"inside the {min(spread):.1f} to {max(spread):.1f} % spread" in text
+    assert f"the lowest of the {min(spread):.1f} to {max(spread):.1f} % spread" in text
+    # "the lowest": no other air-to-water unit is as tight as the worst R-410A one.
+    others = [per_unit[s][0] for s in per_unit if ashpb[ashpb.slug == s].refrigerant.iat[0] != "R410A"]
+    assert max(r410a) < min(others), (r410a, others)
+
+
+def test_index_air_to_water_unit_table_matches_the_harness(points: pd.DataFrame) -> None:
+    """One row per adopted air-to-water unit: its published compressor and injection, the library type, its figures."""
+    from validation.parity.spec import MODEL_COMPRESSOR_TYPE
+
+    raw = _read("docs/source/validation/index.rst")
+    start = raw.index("The air-to-water headline by unit")
+    table = raw[start : raw.index("No validation machine has a scroll without injection", start)]
+    ashpb = points[_ashpb(points)]
+    assert len(re.findall(r"^\s*\* - (?!Unit$)\S", table, flags=re.MULTILINE)) == ashpb.slug.nunique()
+    for _, unit in ashpb.groupby("slug"):
+        first = unit.iloc[0]
+        cells = [
+            c.strip()
+            for c in re.sub(r"\s+", " ", _list_table_row(table, first.unit)).replace("−", "-").split(" - ")[1:]
+        ]
+        mape, bias, evaluated, attempted = _stats(unit)
+        assert cells == [
+            first.refrigerant,
+            f"{first.compressor_type} (``{MODEL_COMPRESSOR_TYPE[first.compressor_type]}``)",
+            first.injection,
+            f"{mape:.1f} %",
+            f"{_signed(bias)} %",
+            f"{evaluated} / {attempted}",
+        ], (first.unit, cells)
+
+
+def test_index_prose_states_the_unevaluated_points_and_the_strata(points: pd.DataFrame) -> None:
+    """The unevaluated air-to-water points, the frost split by injection and the held units, as the results have them."""
+    text = _flat("docs/source/validation/index.rst")
+    ashpb = points[_ashpb(points)]
+    bad = ashpb[~ashpb.usable]
+    assert set(bad.failure_reason) == {"capacity_short"}
+    assert f"**{len(bad)} air-to-water points are not evaluated, all of them because the model delivers" in text
+    at_ceiling = bad[bad.rps >= 120.0 - 1e-6]
+    samsung = bad[bad.slug == "samsung_ehs_mono_ht_r32_14kw"]
+    assert len(at_ceiling) + len(samsung) == len(bad)
+    assert (samsung.t_sink_C == 65.0).all()
+    words = {12: "Twelve", 5: "five"}
+    assert f"{words[len(at_ceiling)]} run at the 120 rev/s speed ceiling" in text
+    cold = at_ceiling[at_ceiling.t_source_C == -15.0]
+    assert f"{len(cold)} at -15 °C outdoor" in text.replace("eleven", "11")
+    assert f"The other {words[len(samsung)]} are the Samsung unit at 65 °C leaving water" in text
+    assert "**Every air-to-air point is evaluated**" in text
+    assert points[points.model_class == "ASHP"].usable.all()
+
+    injected, single = ashpb[_injected(ashpb)], ashpb[~_injected(ashpb)]
+
+    def by_outdoor(rows: pd.DataFrame) -> list[str]:
+        sel = (rows.t_source_C >= 7.0, rows.t_source_C == 2.0, rows.t_source_C == -7.0, rows.t_source_C < -7.0)
+        return [f"{_signed(_stats(rows[s])[1])} %" for s in sel]
+
+    a, b, c, d = by_outdoor(single)
+    assert f"the machines without it run {a} frost-free, {b} at +2 °C, {c} at -7 °C and {d} below" in text
+    a, b, c, d = by_outdoor(injected)
+    assert f"the injection machines {a}, {b}, {c} and {d}".replace("+", "") in text.replace("+", "")
+
+    fujitsu = _stats(points[_fujitsu(points)])
+    assert f"to {_signed(fujitsu[1])} % (all {fujitsu[3]})" in text and fujitsu[2] == fujitsu[3]
+
+    daikin = points[_daikin(points)]
+    cooling = daikin[daikin["mode"] == "cooling"]
+    lo, hi = cooling.t_source_C.min(), cooling.t_source_C.max()
+    assert (
+        f"from {_signed(_stats(cooling[cooling.t_source_C == lo])[1])} % at {lo:g} °C to "
+        f"{_signed(_stats(cooling[cooling.t_source_C == hi])[1])} % at {hi:g} °C outdoor"
+    ) in text
+    heating = daikin[daikin["mode"] == "heating"]
+    temps = {t: _signed(_stats(heating[heating.t_source_C == t])[1]) for t in sorted(heating.t_source_C.unique())}
+    assert (
+        f"the bias is {temps[0.0]} % at 0 °C, {temps[-5.0]} % at -5 °C, {temps[-10.0]} % at -10 °C and "
+        f"{temps[-15.0]} % at -15 °C outdoor, against {temps[6.0]} % and {temps[10.0]} % at 6 and 10 °C"
+    ).replace("+", "") in text.replace("+", "")
+
+
+def test_result_keys_state_the_data_hull_of_each_type() -> None:
+    """``efficiency_extrapolated`` is described against the data hull the library carries, per type."""
+    from tmhp.compressor_efficiency import SEMI_EMPIRICAL_TYPES
+
+    text = _flat("docs/source/concepts/result-keys.rst")
+    start = text.index("* - ``efficiency_extrapolated``")
+    row = text[start : text.index("* - ``discharge_control``", start)]
+
+    def span(compressor_type: str) -> str:
+        hull = SEMI_EMPIRICAL_TYPES[compressor_type]["hull_PR_N"]
+        prs, speeds = [pr for pr, _ in hull], [n for _, n in hull]
+        return f"PR {min(prs):.2f}–{max(prs):.2f}", f"{min(speeds):g}–{max(speeds):g} rev/s"
+
+    rotary = span("rotary_twin_inverter")
+    assert rotary == span("rotary_single_fixed")
+    assert f"``rotary_twin_inverter`` and ``rotary_single_fixed``: {rotary[0]}, {rotary[1]}" in row
+    scroll = span("scroll")
+    assert f"``scroll``: within {scroll[0]} and {scroll[1].replace(' rev/s', '')} rev/s" in row
+    assert f"every rotary speed below {rotary[1].split('–')[0]} rev/s" in row
 
 
 def test_coverage_claims_match_the_catalogues(summary: pd.DataFrame) -> None:
@@ -489,16 +616,20 @@ def test_defaults_airflow_table_matches_the_constructors() -> None:
         assert cells == expected, f"{label}: {cells}"
 
 
-def test_scope_page_states_the_high_lift_gate_as_the_results_have_it() -> None:
-    """The deficit table and the reported injection points are the committed results, row for row."""
-    # The page explains the deficit with the efficiency map the committed results were made with.
-    from validation.coefficients.recorded_maps.bitzer_quadratic_2026_10_06 import PR_FIT_MAX, make_eta_isen
-    from validation.gate.evaluate import catalogue_point, load_gate
+def test_scope_page_states_the_high_lift_gate_as_the_results_have_it(points: pd.DataFrame) -> None:
+    """The gate table and the reported injection points are the committed results, row for row.
 
-    from tmhp.compressor_efficiency import _eval_eff
+    A gate point the harness does not score (``capacity_short``) is stated as not evaluated, with the
+    share of the duty it delivers at the speed ceiling and the speed it needs; the two are re-solved here.
+    """
+    from validation.gate.evaluate import catalogue_point, load_gate
+    from validation.parity.run import _build_model, _run_point
+
+    from tmhp.compressor_efficiency import COMPRESSOR_TYPES, SEMI_EMPIRICAL_TYPES
 
     text = _read("docs/source/concepts/scope-and-limits.rst")
-    start = text.index("Known deficit: hot water in cold weather")
+    start = text.index("High lift: hot water in cold weather")
+    assert text[:start].rstrip().endswith(".. _high-lift-deficit:")  # other pages link to the label
     section = text[start : text.index("A short checklist for any result", start)]
     flat = re.sub(r"\s+", " ", section)
     gate = load_gate()
@@ -506,34 +637,68 @@ def test_scope_page_states_the_high_lift_gate_as_the_results_have_it() -> None:
     def stored(entry):
         catalog, point = catalogue_point(entry)
         row = pd.read_csv(RESULTS / f"{catalog.slug}.csv").set_index("point_id").loc[point.id]
-        return catalog, row
+        return catalog, point, row
 
+    hull = SEMI_EMPIRICAL_TYPES[COMPRESSOR_TYPES[0]]["hull_PR_N"]
+    pr_top = max(pr for pr, _ in hull)
+    within, short = 0, 0
     for entry in gate["gate"]["catalogue_points"]:
-        catalog, row = stored(entry)
+        catalog, point, row = stored(entry)
+        assert catalog.model_compressor_type == COMPRESSOR_TYPES[0] and not catalog.injected
+        assert row.pr_cmp > pr_top, (catalog.name, row.pr_cmp)  # solved past the rotary data
         label = f"{catalog.name} ({catalog.refrigerant}, {catalog.nominal_capacity_kW:g} kW)"
         cells = [c.strip() for c in re.sub(r"\s+", " ", _list_table_row(section, label)).split(" - ")[1:]]
+        if row.usable:
+            within += abs(row.cop_pred / row.cop_target - 1) <= gate["gate"]["tolerance_rel"]
+            assert cells == [
+                f"{row.cop_target:.2f}",
+                f"{row.cop_pred:.3f}",
+                f"{100 * (row.cop_pred / row.cop_target - 1):+.1f} %".replace("-", "−"),
+                f"pressure ratio {row.pr_cmp:.1f}, {row.rps:.0f} rev/s, isentropic efficiency {row.eta_cmp_isen:.3f}",
+            ], (catalog.name, cells)
+            continue
+        short += 1
+        assert row.failure_reason == "capacity_short"
+        model = _build_model(catalog)
+        ceiling = _run_point(model, catalog, point)
+        share = ceiling["Q_ref_tank [W]"] / (point.q_kW * 1000.0)
+        assert ceiling["capacity_binding"] == "compressor" and ceiling["cmp_rpm [rpm]"] / 60.0 == pytest.approx(
+            model.rps_max
+        )
         assert cells == [
             f"{row.cop_target:.2f}",
-            f"{row.cop_pred:.3f}",
-            f"{100 * (row.cop_pred / row.cop_target - 1):+.1f} %".replace("-", "−"),
-            f"pressure ratio {row.pr_cmp:.1f}, isentropic efficiency {row.eta_cmp_isen:.3f}",
+            "not evaluated",
+            "capacity short",
+            f"pressure ratio {row.pr_cmp:.1f}, at the {model.rps_max:.0f} rev/s ceiling: {100 * share:.0f} % of the duty",
         ], (catalog.name, cells)
+        raised = _run_point(_build_model(catalog, {"rps_max": 1.5 * model.rps_max}), catalog, point)
+        assert raised["capacity_clamped"] is None
+        assert f"the model meets the duty at {raised['cmp_rpm [rpm]'] / 60.0:.0f} rev/s" in flat
+        assert f"the default ceiling is {model.rps_max:.0f} rev/s" in flat
+    assert (within, short) == (2, 1)
+    assert "two of the three points are within it and the third is not evaluated" in flat
+    assert f"data up to a pressure ratio of {pr_top:.2f}" in flat
 
     injection = gate["reported"]["vapour_injection"]["catalogue_points"]
     by_unit: dict[str, list[str]] = {}
     for entry in injection:
-        catalog, row = stored(entry)
+        catalog, _, row = stored(entry)
         by_unit.setdefault(f"{catalog.nominal_capacity_kW:g} kW", []).append(
             f"{100 * (row.cop_pred / row.cop_target - 1):+.1f}".replace("-", "−")
         )
     for size, (w55, w65) in by_unit.items():
         assert f"{w55} and {w65} % at {size}" in flat, (size, w55, w65)
 
-    fit = make_eta_isen(45.0)
-    assert f"the fitted range ends at {PR_FIT_MAX:.2f}" in flat
-    for pr, words in ((4.3, "at a pressure ratio of 4.3"), (6.0, "at 6.0"), (PR_FIT_MAX, f"at {PR_FIT_MAX:.2f}")):
-        assert f"{float(_eval_eff(fit, pr, 45.0)):.3f} {words}" in flat, pr
-    assert float(_eval_eff(fit, 9.0, 45.0)) == pytest.approx(float(_eval_eff(fit, PR_FIT_MAX, 45.0)))
+    ashpb = points[_ashpb(points)]
+    single = ashpb[~_injected(ashpb)]
+    cold = single[single.t_source_C == -7.0]
+    mape, bias, evaluated, _ = _stats(cold)
+    assert f"the {evaluated} points evaluated at −7 °C run {_signed(bias)} % on average" in flat
+    assert f"run {_signed(_stats(ashpb[_injected(ashpb)])[1]).replace('-', '−')} % on average and the six" in flat
+    assert f"without injection {_signed(_stats(single)[1]).replace('-', '−')} %" in flat
+
+    archive = pd.read_csv(REPO_ROOT / "validation/coefficients/semi-empirical-2026-11-15/eta_v_high_pr.csv")
+    assert f"{archive.eta_v_PR8.min():.3f} to {archive.eta_v_PR8.max():.3f} for R32 at 60 rev/s" in flat
 
 
 def test_defaults_air_to_water_airflow_law_matches_the_packaged_stratum() -> None:
@@ -599,9 +764,19 @@ def test_implied_conductance_table_matches_the_decomposition() -> None:
     text = _read("docs/source/validation/index.rst")
     start = text.index("Where each machine sits in the measured band")
     section = text[start : text.index(".. figure::", start)]
+    from validation.analysis.residual_decomposition import measured_band
+
+    low, high = measured_band()
+    assert f"The band is **Q/{low:.1f} to Q/{high:.1f}**" in re.sub(r"\s+", " ", section)
     for _, machine in decomposition.iterrows():
         row = re.sub(r"\s+", " ", _list_table_row(section, machine.unit))
         divisor = machine.implied_ua_divisor
         expected = "none in Q/2–Q/16" if pd.isna(divisor) else f"Q/{divisor:.1f}"
         assert f"{machine.nameplate_EER:.2f}" in row, f"{machine.unit}: EER, row {row.strip()!r}"
         assert expected in row, f"{machine.unit}: row {row.strip()!r}, decomposition says {expected!r}"
+        # In the band or outside it, and on which side, as the back-out has it.
+        if low <= divisor <= high:
+            assert row.strip().endswith("inside"), (machine.unit, row)
+        else:
+            side = "low end" if divisor > high else "high end"
+            assert f"**outside** ({side})" in row, (machine.unit, row)

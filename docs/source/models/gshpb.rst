@@ -64,10 +64,11 @@ Default sizing
 
 ``hp_capacity`` (default 8 kW) and the refrigerant are enough to build a
 machine: every other size follows the capacity, so the rated cycle is the same
-at 1 kW and at 100 kW (B0/W35: condensing 5 K above the tank, evaporating about
-6 K below the entering fluid, COP of the cycle 4.2 with the default
-refrigerant, R290, and the default efficiency map). B0 is a brine point: the
-loop liquid leaves the heat pump at -3 °C. The default loop liquid is
+at 1 kW and at 100 kW (B0/W35, water entering at 30 °C and leaving at 35 °C:
+condensing 2.0 K above the leaving water, evaporating 6.8 K below the entering
+fluid, COP of the cycle 4.20 with the default refrigerant, R290, and the
+default compressor type, ``rotary_twin_inverter``). B0 is a brine point: the
+loop liquid leaves the heat pump at -3.1 °C. The default loop liquid is
 therefore an antifreeze, 25 % ethylene glycol; a loop declared as water is
 refused there (see :ref:`source-fluid`).
 
@@ -438,10 +439,11 @@ request (the behaviour before this report existed).
      - 1.0
 
 The default machine (8 kW, R290) at a 0 °C source and a 35 °C tank delivers
-1.81 kW at its minimum speed. A 400 W request used to return those 1.81 kW at
-574 W of input; it now returns 400 W at 171 W (system COP 2.34 against 3.16
-for the running machine), and a 1 kW request 1 kW at 342 W (COP 2.92). (With
-R410A, whose rated speed is lower, the minimum-speed duty is 3.05 kW.)
+1.41 kW at its minimum speed. A 400 W request now returns 400 W at 206 W
+(system COP 1.95 against 2.43 for the running machine), and a 1 kW request
+1 kW at 427 W (COP 2.34). Before the cycling model it returned the
+minimum-speed duty itself (with the defaults of then 1.81 kW at 574 W of
+input). (With R410A the minimum-speed duty is 1.49 kW.)
 
 A dynamic run is not affected. There the tank thermostat switches the
 compressor, which runs at ``hp_capacity`` — not at its minimum speed — for

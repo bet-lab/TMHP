@@ -86,7 +86,7 @@ delivers exactly ``hp_capacity`` there, whatever the refrigerant.
        print(f"{name:6s} {row['failure_reason']:5s} COP {row['cop_sys [-]']:.2f}")
 
 Each call returns a running point (``failure_reason == "none"``) with a system
-COP of 4.91, 5.44, 3.48, 3.66 and 3.72 respectively. The keys of the result
+COP of 4.50, 6.26, 3.05, 3.13 and 3.24 respectively. The keys of the result
 are listed in :doc:`/concepts/result-keys`. A time series needs the same
 quantities as schedules; see :doc:`first-dynamic-simulation`.
 
@@ -109,12 +109,12 @@ always be read back.
     * - Compressor displacement ``V_cmp_ref``
       - ``hp_capacity / (ρ₁ · Δh · 53.2 rev/s)`` at the compressor catalogues'
         rating point: 3.01 cm³/rev per kW for R32, 5.62 for R290, 7.31 for
-        R134a. GSHPB, WSHPB: 4.67 cm³/rev per kW, any refrigerant
+        R134a, in every family
       - all
       - :doc:`/validation/defaults`, *Compressor displacement*
     * - Compressor speed range
       - ``rps_rated`` solved at the rating point; ``rps_min`` 15 rev/s;
-        ``rps_max`` = ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``
+        ``rps_max`` = ``max(120, 1.5 × rps_rated)``
       - all
       - :doc:`/models/reference-state`,
         :doc:`/developer/reference-operating-limits`
@@ -219,11 +219,11 @@ What follows the refrigerant
       - Where it comes from
     * - Rated compressor speed
       - Solved for the fluid at the rating point, so the nameplate capacity
-        is kept when the refrigerant is swapped. Where the displacement
-        follows the refrigerant (ASHP, GSHP, ASHPB) the rated speed stays
-        near 45 to 60 rev/s; with the fixed constant of GSHPB and WSHPB a
-        fluid of low volumetric capacity (R134a, R1234yf, R600a) runs fast and
-        may need a larger ``V_cmp_ref``
+        is kept when the refrigerant is swapped. The displacement follows the
+        refrigerant in every family, so the rated speed moves little with the
+        fluid: over R32, R290, R410A, R134a, R600a, R1234yf and R1234ze(E)
+        36–38 rev/s for the default GSHP, 48–50 ASHP, 54–64 WSHPB, 63–79
+        ASHPB and 75–101 GSHPB (its rating point is B0/W55)
       - :doc:`/concepts/refrigerant-and-coolprop`
     * - Discharge-temperature limit ``T_dis_max``
       - 150 °C for R32, 135 °C for every other refrigerant
@@ -233,9 +233,9 @@ What follows the refrigerant
         70 °C; otherwise the dew point at 0.9 of the critical pressure
       - :doc:`/developer/reference-operating-limits`, *Condensing limit*
     * - Highest tank set point (boilers)
-      - ``T_cond_max`` less the 5 K condenser approach: a
-        ``T_tank_w_upper_bound`` above it is capped with a ``UserWarning``
-        (about 60 °C for R410A and R32, 70 °C for R290)
+      - ``T_cond_max`` less the tank heat-exchanger approach at the nameplate
+        duty (7.0 K): a ``T_tank_w_upper_bound`` above it is capped with a
+        ``UserWarning`` (58 °C for R410A and R32, 68 °C for R290)
       - :doc:`/models/gshpb`, *Default sizing*
 
 The default refrigerants are chosen so the default machine runs inside these
@@ -260,8 +260,8 @@ Each can be switched off to see the bare cycle.
     * - Compressor envelope
       - A point outside it is not returned as running: pressure ratio above
         11, discharge above ``T_dis_max`` (after suction control down to
-        quality 0.9), condensing above ``T_cond_max``, isentropic fit below
-        0.30. A request that a smaller duty meets runs at that duty
+        quality 0.9) or condensing above ``T_cond_max``. A request that a
+        smaller duty meets runs at that duty
       - ``PR_cycle_max``, ``T_dis_max=None``, ``x_suction_min``,
         ``T_cond_max=None``
         (:doc:`/developer/reference-operating-limits`)

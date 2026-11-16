@@ -44,8 +44,9 @@ the 3.47 K leaving-end approach of coaxial evaporators at the rated source
 flow (:doc:`/validation/defaults`, *Heat-exchanger conductance*), source-loop
 flow ``dV_b_f_lpm = 0.75 × hp_capacity / (ρ c · 3 K)`` (3.58 L/min
 per kW) and ``E_pmp = 75 W/ton × hp_capacity`` (21.3 W per kW). The rated cycle
-is then the same at every capacity (W10/W35: COP of the cycle 5.5 with the
-default refrigerant, R290, and the default efficiency map). The submerged source-water coil is ``H_b``
+is then the same at every capacity (W10/W35: COP of the cycle 5.64 with the
+default refrigerant, R290, and the default compressor type,
+``rotary_twin_inverter``). The submerged source-water coil is ``H_b``
 metres long: with none of ``N_1``, ``N_2``, ``H_b`` given it is 200 m, or as
 long as the rated source-side heat (``0.75 × hp_capacity``) needs at 50 W/m.
 Values you pass are used as given; the constructor warns (``UserWarning``) for
@@ -70,8 +71,8 @@ of the time the compressor runs, and ``E_cmp``, ``E_pmp`` and ``E_tot`` carry
 the EN 14825 degradation for a unit delivering to water (``Cd_cycling``, the
 standard's ``Cc``, 0.9 by default; ``None`` returns the continuous
 minimum-speed point). The default machine at 10 °C source water and a 35 °C
-tank delivers 2.4 kW at its minimum speed; a 400 W request returns 400 W at
-147 W of input (system COP 2.73 against 4.08 for the running machine).
+tank delivers 2.1 kW at its minimum speed; a 400 W request returns 400 W at
+151 W of input (system COP 2.64 against 3.76 for the running machine).
 Dynamic runs are not affected.
 
 Loop liquid and its freezing limit

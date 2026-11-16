@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This procedure is fixed. Follow it and the documentation site picks the new unit up on the next push to main — parity plot, error table and summary, all of it. The design goal is that adding a mach..." />
 
-    <meta property="article:modified_time" content="2026-11-12T18:11:42+00:00" />
+    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -245,27 +245,70 @@ from <code class="docutils literal notranslate"><span class="pre">validation/res
 </span><span data-line="10"><span class="w">  </span><span class="nt">table</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Capacity</span><span class="nv"> </span><span class="s">tables,</span><span class="nv"> </span><span class="s">cooling</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">heating</span><span class="nv"> </span><span class="s">at</span><span class="nv"> </span><span class="s">nominal</span><span class="nv"> </span><span class="s">frequency&quot;</span>
 </span><span data-line="11"><span class="nt">published_inputs</span><span class="p">:</span>
 </span><span data-line="12"><span class="w">  </span><span class="nt">rated_indoor_air_flow_m3_s</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2067</span>
-</span><span data-line="13"><span class="nt">points</span><span class="p">:</span>
-</span><span data-line="14"><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="nt"> t_source_C</span><span class="p">:</span><span class="w"> </span><span class="nv">35</span><span class="p p-Indicator">,</span><span class="nt"> t_sink_C</span><span class="p">:</span><span class="w"> </span><span class="nv">27</span><span class="p p-Indicator">,</span><span class="nt"> q_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">3.28</span><span class="p p-Indicator">,</span><span class="nt"> power_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">1.04</span><span class="p p-Indicator">,</span><span class="nt"> mode</span><span class="p">:</span><span class="w"> </span><span class="nv">cooling</span><span class="p p-Indicator">}</span>
-</span><span data-line="15"><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">,</span><span class="nt"> t_source_C</span><span class="p">:</span><span class="w"> </span><span class="nv">7</span><span class="p p-Indicator">,</span><span class="nt">  t_sink_C</span><span class="p">:</span><span class="w"> </span><span class="nv">20</span><span class="p p-Indicator">,</span><span class="nt"> q_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">4.38</span><span class="p p-Indicator">,</span><span class="nt"> power_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">0.98</span><span class="p p-Indicator">,</span><span class="nt"> mode</span><span class="p">:</span><span class="w"> </span><span class="nv">heating</span><span class="p p-Indicator">}</span>
+</span><span data-line="13"><span class="w">  </span><span class="nt">compressor_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">swing</span><span class="w">         </span><span class="c1"># rotary | scroll | swing</span>
+</span><span data-line="14"><span class="w">  </span><span class="nt">injection</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">none</span><span class="w">                </span><span class="c1"># none | vapor | flash</span>
+</span><span data-line="15"><span class="nt">points</span><span class="p">:</span>
+</span><span data-line="16"><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="nt"> t_source_C</span><span class="p">:</span><span class="w"> </span><span class="nv">35</span><span class="p p-Indicator">,</span><span class="nt"> t_sink_C</span><span class="p">:</span><span class="w"> </span><span class="nv">27</span><span class="p p-Indicator">,</span><span class="nt"> q_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">3.28</span><span class="p p-Indicator">,</span><span class="nt"> power_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">1.04</span><span class="p p-Indicator">,</span><span class="nt"> mode</span><span class="p">:</span><span class="w"> </span><span class="nv">cooling</span><span class="p p-Indicator">}</span>
+</span><span data-line="17"><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">,</span><span class="nt"> t_source_C</span><span class="p">:</span><span class="w"> </span><span class="nv">7</span><span class="p p-Indicator">,</span><span class="nt">  t_sink_C</span><span class="p">:</span><span class="w"> </span><span class="nv">20</span><span class="p p-Indicator">,</span><span class="nt"> q_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">4.38</span><span class="p p-Indicator">,</span><span class="nt"> power_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">0.98</span><span class="p p-Indicator">,</span><span class="nt"> mode</span><span class="p">:</span><span class="w"> </span><span class="nv">heating</span><span class="p p-Indicator">}</span>
 </span></pre></div>
 </div>
-<dl class="simple">
+<dl>
 <dt><code class="docutils literal notranslate"><span class="pre">model_class</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">ASHPB</span></code> means the nameplate is a heating capacity and <code class="docutils literal notranslate"><span class="pre">t_sink_C</span></code> is
 leaving water temperature; <code class="docutils literal notranslate"><span class="pre">ASHP</span></code> means the nameplate is a cooling
 capacity and <code class="docutils literal notranslate"><span class="pre">t_sink_C</span></code> is indoor dry bulb.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">published_inputs</span></code></dt><dd><p>Values the manufacturer publishes <em>about this machine</em>. Only three keys are
-accepted — <code class="docutils literal notranslate"><span class="pre">displacement_cc</span></code>, <code class="docutils literal notranslate"><span class="pre">rated_air_flow_m3_s</span></code> and
-<code class="docutils literal notranslate"><span class="pre">rated_indoor_air_flow_m3_s</span></code> — and the loader raises on anything else.
-These have the same status as the nameplate capacity: specification, not
-tuning. Anything you omit falls back to the library default, which is the
-case <a class="reference internal" href="defaults.html"><span class="doc">the derivation work</span></a> is really about.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">published_inputs</span></code></dt><dd><p>Values the manufacturer publishes <em>about this machine</em>. The accepted keys
+are <code class="docutils literal notranslate"><span class="pre">displacement_cc</span></code>, <code class="docutils literal notranslate"><span class="pre">rated_air_flow_m3_s</span></code>,
+<code class="docutils literal notranslate"><span class="pre">rated_indoor_air_flow_m3_s</span></code>, <code class="docutils literal notranslate"><span class="pre">rated_indoor_air_flow_heating_m3_s</span></code>,
+<code class="docutils literal notranslate"><span class="pre">compressor_type</span></code> and <code class="docutils literal notranslate"><span class="pre">injection</span></code>, and the loader raises on anything
+else. These have the same status as the nameplate capacity: specification,
+not tuning. Anything you omit falls back to the library default, which is
+the case <a class="reference internal" href="defaults.html"><span class="doc">the derivation work</span></a> is really about.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">sink_offset_K</span></code></dt><dd><p>Air-to-water only: how far the tank temperature sits below the catalogue’s
-leaving water temperature. A statement about where the manufacturer
-measures.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">compressor_type</span></code> and <code class="docutils literal notranslate"><span class="pre">injection</span></code></dt><dd><p>The compressor kind and the injection circuit, as the service manual or
+parts list states them; write the evidence in the file’s comment or under
+<code class="docutils literal notranslate"><span class="pre">source</span></code>. <code class="docutils literal notranslate"><span class="pre">compressor_type</span></code> is <code class="docutils literal notranslate"><span class="pre">rotary</span></code>, <code class="docutils literal notranslate"><span class="pre">scroll</span></code> or <code class="docutils literal notranslate"><span class="pre">swing</span></code> and
+selects one of the library’s type-specific default efficiency models — it
+carries no coefficient:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>published</p></th>
+<th class="head"><p>library <code class="docutils literal notranslate"><span class="pre">compressor_type</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>rotary</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>swing</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>scroll</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scroll</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Every validation machine is inverter driven, and the documents do not say
+whether a rotary is single or twin, so both rotary kinds run on the
+library’s one inverter rotary type. <code class="docutils literal notranslate"><span class="pre">injection</span></code> is <code class="docutils literal notranslate"><span class="pre">none</span></code>, <code class="docutils literal notranslate"><span class="pre">vapor</span></code> or
+<code class="docutils literal notranslate"><span class="pre">flash</span></code>. It is never passed to the model — the cycle is single-stage —
+and only splits the air-to-water headline into the machines the cycle
+represents and those it does not; injection machines stay in the parity
+set and in the pooled figure.</p>
 </dd>
+</dl>
+<p>Air-to-water points need no sink field. The harness runs each one as EN 14511
+states the rating: the water enters at <code class="docutils literal notranslate"><span class="pre">t_sink_C</span></code> less the standard’s rise
+(5 K up to 45 °C leaving, 8 K at 55 °C, 10 K at 65 °C) and leaves at
+<code class="docutils literal notranslate"><span class="pre">t_sink_C</span></code>, at the flow that carries <code class="docutils literal notranslate"><span class="pre">q_kW</span></code> at that rise
+(<a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.en14511_condenser_water" title="tmhp.standard_conditions.en14511_condenser_water"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.standard_conditions.en14511_condenser_water()</span></code></a>). Until November
+2026 a catalogue could carry a <code class="docutils literal notranslate"><span class="pre">sink_offset_K</span></code> field and the harness held
+the tank water that far below the leaving water (2.5 K by default); the field
+and the convention are gone, and a file that still has the field does not
+load.</p>
+<dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">points</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cop</span></code> or <code class="docutils literal notranslate"><span class="pre">power_kW</span></code>; give either and the other is derived.</p>
 </dd>
 </dl>
@@ -350,7 +393,7 @@ drop them.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 12, 2026
+  Last updated Nov 16, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

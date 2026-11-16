@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-11-15T11:22:41+00:00" />
+    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -202,7 +202,6 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_CONDENSING"><code class="docutils literal notranslate"><span class="pre">BINDING_CONDENSING</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_PRESSURE_RATIO"><code class="docutils literal notranslate"><span class="pre">BINDING_PRESSURE_RATIO</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_HEAT_EXCHANGER"><code class="docutils literal notranslate"><span class="pre">BINDING_HEAT_EXCHANGER</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_EFFICIENCY"><code class="docutils literal notranslate"><span class="pre">BINDING_EFFICIENCY</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_CYCLE"><code class="docutils literal notranslate"><span class="pre">BINDING_CYCLE</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_COMPRESSOR"><code class="docutils literal notranslate"><span class="pre">BINDING_COMPRESSOR</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.CYCLE_KEY"><code class="docutils literal notranslate"><span class="pre">CYCLE_KEY</span></code></a></li>
@@ -211,12 +210,8 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.compressor_envelope.resolve_discharge_temp_max"><code class="docutils literal notranslate"><span class="pre">resolve_discharge_temp_max()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.discharge_temp_exceeded"><code class="docutils literal notranslate"><span class="pre">discharge_temp_exceeded()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.discharge_violation"><code class="docutils literal notranslate"><span class="pre">discharge_violation()</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN"><code class="docutils literal notranslate"><span class="pre">ETA_ISEN_BELOW_MIN</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.envelope_violation"><code class="docutils literal notranslate"><span class="pre">envelope_violation()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.envelope_excess"><code class="docutils literal notranslate"><span class="pre">envelope_excess()</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.compressor_envelope.efficiency_below_floor"><code class="docutils literal notranslate"><span class="pre">efficiency_below_floor()</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.compressor_envelope.RPS_MAX_PER_RATED"><code class="docutils literal notranslate"><span class="pre">RPS_MAX_PER_RATED</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.RPS_MAX_ABSOLUTE"><code class="docutils literal notranslate"><span class="pre">RPS_MAX_ABSOLUTE</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED"><code class="docutils literal notranslate"><span class="pre">RPS_MAX_MIN_PER_RATED</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.RATED_SPEED_SEARCH_MAX"><code class="docutils literal notranslate"><span class="pre">RATED_SPEED_SEARCH_MAX</span></code></a></li>
@@ -244,6 +239,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.reference_state.ReferenceStateMixin.dT_hx_min"><code class="docutils literal notranslate">dT_hx_min</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.reference_state.ReferenceStateMixin.rps_min"><code class="docutils literal notranslate">rps_min</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.reference_state.ReferenceStateMixin.rps_max"><code class="docutils literal notranslate">rps_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.reference_state.ReferenceStateMixin.default_input_estimates"><code class="docutils literal notranslate">default_input_estimates</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#tmhp.reference_state.RATING_STANDARDS"><code class="docutils literal notranslate"><span class="pre">RATING_STANDARDS</span></code></a></li>
@@ -834,10 +830,15 @@ discharge temperature exceeds the limit is <strong>not an operating point</stron
 (<a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX" title="tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_ABOVE_MAX</span></code></a>). The defaults
 (<a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C" title="tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_MAX_C</span></code></a>, <a class="reference internal" href="#tmhp.compressor_envelope.default_discharge_temp_max" title="tmhp.compressor_envelope.default_discharge_temp_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_discharge_temp_max()</span></code></a>) are the
 <em>protection</em> values – R32 150 degC, every other fluid 135 degC – not the
-controllers’ earlier set points, because the cycle model has no shell heat
-loss and puts every compressor loss into the gas (the default
-electro-mechanical efficiency is about 1), so its discharge temperature is
-an upper estimate of the machine’s.</p>
+controllers’ earlier set points: the cycle’s discharge state is the gas
+leaving the compression (the default models send the share of the loss
+work to the gas that measured discharge temperatures give, 0.58 for the
+rotary types and 0.77 for the scroll,
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_efficiency</span></code>), with no shell or pipe heat loss
+after it, which is the temperature the protection values refer to; a
+controller’s pipe sensor reads lower. With a caller’s efficiencies that
+put every loss into the gas (<code class="docutils literal notranslate"><span class="pre">eta_cmp</span></code> near 1) it is an upper estimate
+of the machine’s.</p>
 <p>Discharge-temperature control comes first (<a class="reference internal" href="#tmhp.compressor_envelope.discharge_controlled" title="tmhp.compressor_envelope.discharge_controlled"><code class="xref py py-func docutils literal notranslate"><span class="pre">discharge_controlled()</span></code></a>,
 <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>). A unit whose discharge runs hot does not stop: its
 controller opens the expansion valve, so the suction superheat falls, and
@@ -869,12 +870,12 @@ exceeds it. A dynamic boiler step does the same with its one cycle solve
 per step (<a class="reference internal" href="#tmhp.compressor_envelope.reduce_duty_within_envelope" title="tmhp.compressor_envelope.reduce_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_duty_within_envelope()</span></code></a>): it runs at the reduced
 duty, or is an off step with that reason when no duty fits. The boilers
 answer every limit a smaller duty cures this way – the pressure-ratio
-ceiling, the source heat exchanger’s range and the efficiency floor as
-well (<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>); <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names the
-limit. The envelope also has a lower side: at a large lift the shipped
-isentropic fit falls towards low speed, so the discharge runs hotter there
-(past the limit even with the control used up) and, further down, the fit
-drops below its floor – while larger duties run. A boiler’s
+ceiling and the source heat exchanger’s range as well
+(<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>); <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> names the limit.
+The envelope also has a lower side: at a large lift the isentropic
+efficiency falls towards low speed, so the discharge runs hotter there
+(past the limit even with the control used up) – while larger duties
+run. A boiler’s
 <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> answers a request refused there with the smallest duty
 that runs (<a class="reference internal" href="#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">raise_duty_within_envelope()</span></code></a>, <code class="docutils literal notranslate"><span class="pre">capacity_clamped='min'</span></code>),
 which is then reported as the mean of on/off cycling like a request below
@@ -992,17 +993,15 @@ temperature at which the heat pump stopped depended on the step.</p>
 </dd>
 <dt>Speed (<code class="docutils literal notranslate"><span class="pre">rps_min</span></code> / <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>)</dt><dd><p><code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is the inverter’s floor (15 rev/s). <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> defaults to
 <a class="reference internal" href="#tmhp.compressor_envelope.default_rps_max" title="tmhp.compressor_envelope.default_rps_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_rps_max()</span></code></a> of the rated speed the model solves at its rating
-point: twice the rated speed, at most <a class="reference internal" href="#tmhp.compressor_envelope.RPS_MAX_ABSOLUTE" title="tmhp.compressor_envelope.RPS_MAX_ABSOLUTE"><code class="xref py py-data docutils literal notranslate"><span class="pre">RPS_MAX_ABSOLUTE</span></code></a>, at least
-1.5 times the rated speed. The rated
+point: <a class="reference internal" href="#tmhp.compressor_envelope.RPS_MAX_ABSOLUTE" title="tmhp.compressor_envelope.RPS_MAX_ABSOLUTE"><code class="xref py py-data docutils literal notranslate"><span class="pre">RPS_MAX_ABSOLUTE</span></code></a> (120 rev/s), or 1.5 times the rated speed
+where that is higher. The rated
 speed itself is solved over <code class="docutils literal notranslate"><span class="pre">[rps_min,</span> <span class="pre">RATED_SPEED_SEARCH_MAX]</span></code>.</p>
 </dd>
-<dt>Efficiency domain</dt><dd><p>The default efficiency fits are guarded outside their (PR, N) data
-(<code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_efficiency</span></code>). Steady results carry
+<dt>Efficiency domain</dt><dd><p>The default efficiency models are followed as they are outside their
+(PR, N) data (<code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_efficiency</span></code>); the envelope sets no
+limit on an efficiency. Steady results carry
 <code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code> so a caller can see a point evaluated outside
-the fitted data. At low speed and high pressure ratio the guard’s
-first-order continuation reaches eta_is 0.14; no separate speed floor is
-imposed there because every such point already exceeds the discharge
-limit (85 of 85 running points of the 2026-11-13 sweep, at 191–348 degC).</p>
+the data hull of a default model.</p>
 </dd>
 </dl>
 <dl class="py function">
@@ -1129,7 +1128,7 @@ limit has, and it keeps the verdict the same on every platform.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.ENVELOPE_REJECTIONS">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ENVELOPE_REJECTIONS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({'condensing_temp_above_max',</span> <span class="pre">'discharge_temp_above_max',</span> <span class="pre">'eta_isen_below_min'})</span></span><a class="headerlink" href="#tmhp.compressor_envelope.ENVELOPE_REJECTIONS" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ENVELOPE_REJECTIONS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({'condensing_temp_above_max',</span> <span class="pre">'discharge_temp_above_max'})</span></span><a class="headerlink" href="#tmhp.compressor_envelope.ENVELOPE_REJECTIONS" title="Link to this definition">¶</a></dt>
 <dd><p>Reasons with which the envelope rejects a candidate of the space-conditioning
 searches (<code class="docutils literal notranslate"><span class="pre">_last_pr_event[0]</span></code>); they are reported as the <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>.</p>
 </dd></dl>
@@ -1255,9 +1254,10 @@ reads it (<code class="xref py py-func docutils literal notranslate"><span class
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">condensing_tank_cutout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#condensing_tank_cutout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.condensing_tank_cutout" title="Link to this definition">¶</a></dt>
 <dd><p>Highest tank temperature a boiler heats at its nameplate duty inside the condensing limit [degC].</p>
 <p>The cycle condenses at the tank temperature plus the tank heat exchanger’s
-approach, <code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code> at the nameplate duty, and the
-hottest it may condense is the bubble point of the limit pressure. <code class="docutils literal notranslate"><span class="pre">None</span></code>
-without a limit.</p>
+approach, <code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">K_tank_hx</span></code> at the nameplate duty (<code class="docutils literal notranslate"><span class="pre">K_tank_hx</span></code>:
+the heat the exchanger carries per kelvin above the tank water, the
+water entering a plate condenser), and the hottest it may condense is the
+bubble point of the limit pressure. <code class="docutils literal notranslate"><span class="pre">None</span></code> without a limit.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
@@ -1338,17 +1338,6 @@ time takes past it.</p>
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_HEAT_EXCHANGER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'source_heat_exchanger'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_HEAT_EXCHANGER" title="Link to this definition">¶</a></dt>
 <dd><p>the duty was reduced to what the source heat exchanger
 carries within its flow range (ASHPB reports <code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code>).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="tmhp.compressor_envelope.BINDING_EFFICIENCY">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">BINDING_EFFICIENCY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'compressor_efficiency'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.BINDING_EFFICIENCY" title="Link to this definition">¶</a></dt>
-<dd><p>the duty was reduced to keep the shipped isentropic fit above <a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p>
@@ -1472,39 +1461,14 @@ switches the check off.</p>
 </dl>
 </dd></dl>
 
-<dl class="py data">
-<dt class="sig sig-object py" id="tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ETA_ISEN_BELOW_MIN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'eta_isen_below_min'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN" title="Link to this definition">¶</a></dt>
-<dd><p>the default isentropic-efficiency fit, extrapolated, is below <a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="tmhp.compressor_envelope.ETA_ISEN_MIN">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">ETA_ISEN_MIN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.3</span></span><a class="headerlink" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="Link to this definition">¶</a></dt>
-<dd><p>Lowest isentropic efficiency of the default fit accepted outside its data [-].</p>
-<p>Inside the convex hull of its 3899 data points the default scroll fit never
-goes below 0.336 (at PR 7.13, 38.6 rev/s), and its lowest value over the
-whole (PR, N) box is 0.297 (corner PR 7.15, 33.8 rev/s). Below that the
-value comes only from the guard’s first-order continuation towards 15 rev/s
-(down to 0.14) – a compressor wasting more than 70 % of its work with no
-datum behind it. Such a point is outside the envelope. The rule applies only
-to the shipped fits (which carry a validity domain) and only where they are
-extrapolated; a scalar or a user model is the caller’s statement.</p>
-</dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.envelope_violation">
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">envelope_violation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#envelope_violation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.envelope_violation" title="Link to this definition">¶</a></dt>
 <dd><p>Why a solved running state is outside the compressor envelope, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
-<p><a class="reference internal" href="#tmhp.compressor_envelope.CONDENSING_TEMP_ABOVE_MAX" title="tmhp.compressor_envelope.CONDENSING_TEMP_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">CONDENSING_TEMP_ABOVE_MAX</span></code></a>, <a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX" title="tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_ABOVE_MAX</span></code></a> (after
-the discharge-temperature control) or <a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN" title="tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_BELOW_MIN</span></code></a>. The
-condensing pressure is judged first: it does not depend on the efficiency
-model or on the control, and a smaller duty always lowers it.</p>
+<p><a class="reference internal" href="#tmhp.compressor_envelope.CONDENSING_TEMP_ABOVE_MAX" title="tmhp.compressor_envelope.CONDENSING_TEMP_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">CONDENSING_TEMP_ABOVE_MAX</span></code></a> or <a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX" title="tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_ABOVE_MAX</span></code></a>
+(after the discharge-temperature control). The condensing pressure is
+judged first: it does not depend on the efficiency model or on the
+control, and a smaller duty always lowers it.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1525,9 +1489,8 @@ model or on the control, and a smaller duty always lowers it.</p>
 <p>0 inside. 1000 per kelvin of discharge above <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> (beyond
 <a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TOL_K" title="tmhp.compressor_envelope.DISCHARGE_TOL_K"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TOL_K</span></code></a>; an undefined discharge state counts as very far)
 and per kelvin of condensing above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> (beyond
-<a class="reference internal" href="#tmhp.compressor_envelope.CONDENSING_TOL_K" title="tmhp.compressor_envelope.CONDENSING_TOL_K"><code class="xref py py-data docutils literal notranslate"><span class="pre">CONDENSING_TOL_K</span></code></a>), plus 1e6 per unit of isentropic efficiency
-below <a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a> where the floor applies. Used by searches to
-rank candidates outside the envelope among themselves.</p>
+<a class="reference internal" href="#tmhp.compressor_envelope.CONDENSING_TOL_K" title="tmhp.compressor_envelope.CONDENSING_TOL_K"><code class="xref py py-data docutils literal notranslate"><span class="pre">CONDENSING_TOL_K</span></code></a>). Used by searches to rank candidates outside the
+envelope among themselves.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1541,38 +1504,16 @@ rank candidates outside the envelope among themselves.</p>
 </dl>
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="tmhp.compressor_envelope.efficiency_below_floor">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">efficiency_below_floor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#efficiency_below_floor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.efficiency_below_floor" title="Link to this definition">¶</a></dt>
-<dd><p>The shipped isentropic fit, evaluated outside its data, is below <a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
-<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="tmhp.compressor_envelope.RPS_MAX_PER_RATED">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RPS_MAX_PER_RATED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></span><a class="headerlink" href="#tmhp.compressor_envelope.RPS_MAX_PER_RATED" title="Link to this definition">¶</a></dt>
-<dd><p>this multiple of the rated speed …</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">rps_max</span></code> default</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.RPS_MAX_ABSOLUTE">
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">RPS_MAX_ABSOLUTE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">120.0</span></span><a class="headerlink" href="#tmhp.compressor_envelope.RPS_MAX_ABSOLUTE" title="Link to this definition">¶</a></dt>
-<dd><p>… but no more than this [rev/s] (7200 rpm, the top of variable-speed scroll and rotary ranges) …</p>
+<dd><p>7200 rpm, the upper end of the speed ranges inverter rotary compressors
+of heat-pump size are specified for (see <a class="reference internal" href="#tmhp.compressor_envelope.default_rps_max" title="tmhp.compressor_envelope.default_rps_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_rps_max()</span></code></a>) …</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">rps_max</span></code> default [rev/s]</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py data">
@@ -1591,19 +1532,25 @@ rank candidates outside the envelope among themselves.</p>
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.default_rps_max">
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">default_rps_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rps_rated</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#default_rps_max"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.default_rps_max" title="Link to this definition">¶</a></dt>
 <dd><p>Default upper speed bound from the rated speed [rev/s].</p>
-<p><code class="docutils literal notranslate"><span class="pre">max(min(2</span> <span class="pre">*</span> <span class="pre">rps_rated,</span> <span class="pre">120),</span> <span class="pre">1.5</span> <span class="pre">*</span> <span class="pre">rps_rated)</span></code>. Inverter heat pumps
-reach their published maximum capacity at 1.0–1.52 times the nameplate
-(the adopted validation catalogues); the model needs at most 1.66 times
-the rated speed for those points (Daikin RXM20A heating). Twice the rated
-speed keeps them all with margin while refusing the 2.5–5.9 times
-nameplate compressor capacity the former fixed 150 rev/s allowed, and
-120 rev/s (7200 rpm) is the top of the variable-speed scroll and rotary
-ranges. A machine whose <em>rated</em> speed is already high – a
-low-volumetric-capacity fluid with the refrigerant-independent default
-displacement, e.g. R134a at 90 rev/s (#86) – keeps at least
-<a class="reference internal" href="#tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED" title="tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED"><code class="xref py py-data docutils literal notranslate"><span class="pre">RPS_MAX_MIN_PER_RATED</span></code></a> times its rated speed, so it can still reach
-the catalogue maximum-to-rated ratio; such a machine should be given its
-real <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">max(120,</span> <span class="pre">1.5</span> <span class="pre">*</span> <span class="pre">rps_rated)</span></code>: <a class="reference internal" href="#tmhp.compressor_envelope.RPS_MAX_ABSOLUTE" title="tmhp.compressor_envelope.RPS_MAX_ABSOLUTE"><code class="xref py py-data docutils literal notranslate"><span class="pre">RPS_MAX_ABSOLUTE</span></code></a> for every machine
+rated at 80 rev/s or below.</p>
+<p>The ceiling is a property of the compressor, not of the nameplate.
+Manufacturer documents specify inverter rotary compressors of heat-pump
+size for 12–120 rev/s (8.9–21 cm3/rev), 12–110 (57.9 cm3/rev), 15–100
+(44 cm3/rev class) and 10–130 (small twins); an air-to-air outdoor unit’s
+service manual gives 110 rev/s in heating. 120 rev/s (7200 rpm) is the
+upper end of that range for the 40–65 cm3/rev machines of the validation
+catalogues, whose own documents print no maximum speed (they limit the
+frequency by running current). The former bound <code class="docutils literal notranslate"><span class="pre">min(2</span> <span class="pre">*</span> <span class="pre">rps_rated,</span>
+<span class="pre">120)</span></code> tied the ceiling to the nameplate, so two units that share one
+compressor had different ceilings (91 and 120 rev/s for the 9 and 12 kW
+units on a 42 cm3/rev compressor). A machine whose compressor is known
+should be given its documented <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>.</p>
+<p>A machine whose <em>rated</em> speed is already high – a low-volumetric-capacity
+fluid with a default displacement that does not follow the refrigerant
+(#86) – keeps at least <a class="reference internal" href="#tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED" title="tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED"><code class="xref py py-data docutils literal notranslate"><span class="pre">RPS_MAX_MIN_PER_RATED</span></code></a> times its rated
+speed, so it can still reach the catalogue maximum-to-rated ratio; such a
+machine should be given its real <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>rps_rated</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
@@ -1617,7 +1564,7 @@ real <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</spa
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.efficiency_extrapolated_at">
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">efficiency_extrapolated_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#efficiency_extrapolated_at"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.efficiency_extrapolated_at" title="Link to this definition">¶</a></dt>
-<dd><p>Whether any default efficiency fit is evaluated outside its data at this state.</p>
+<dd><p>Whether any default efficiency model is evaluated outside its data at this state.</p>
 <p>Pressure ratio and speed are read from the result row
 (<code class="docutils literal notranslate"><span class="pre">P_ref_cmp_out</span> <span class="pre">/</span> <span class="pre">P_ref_cmp_in</span></code> and <code class="docutils literal notranslate"><span class="pre">cmp_rpm</span> <span class="pre">/</span> <span class="pre">60</span></code>). False for a state
 that does not run, and for scalar or user-supplied efficiencies.</p>
@@ -1644,7 +1591,7 @@ smaller duty can cure (<a class="reference internal" href="#tmhp.compressor_enve
 smaller duties; the largest one with an operating point is returned with
 <code class="docutils literal notranslate"><span class="pre">capacity_clamped='max'</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit,
 <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (the caller’s request). If no smaller duty runs, the original off-state
-result stands – unless the discharge limit or the efficiency floor refused
+result stands – unless the discharge limit refused
 the request and a larger duty runs: the smallest such duty is then returned with
 <code class="docutils literal notranslate"><span class="pre">capacity_clamped='min'</span></code> (<a class="reference internal" href="#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">raise_duty_within_envelope()</span></code></a>), for the
 cycling decorator outside this one to average. The trial solves run
@@ -1672,8 +1619,7 @@ silently. <code class="docutils literal notranslate"><span class="pre">bindings<
 point at duty <code class="docutils literal notranslate"><span class="pre">q</span></code>. When <code class="docutils literal notranslate"><span class="pre">result</span></code> failed on a limit a smaller duty can
 cure (<a class="reference internal" href="#tmhp.compressor_envelope.duty_reduction_binding" title="tmhp.compressor_envelope.duty_reduction_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">duty_reduction_binding()</span></code></a>: the condensing limit, the
 discharge-temperature limit even under its control, the pressure-ratio
-ceiling, the source heat exchanger’s range, the efficiency floor), smaller
-duties are tried
+ceiling, the source heat exchanger’s range), smaller duties are tried
 (<code class="xref py py-func docutils literal notranslate"><span class="pre">_reduce_to_envelope()</span></code>) and the largest that runs is returned with
 <code class="docutils literal notranslate"><span class="pre">capacity_clamped='max'</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit active at that point
@@ -1716,12 +1662,11 @@ tried is refused by the limit.</p>
 <dd><p>The smallest duty with an operating point when the envelope refuses the request from below.</p>
 <p>The counterpart of <a class="reference internal" href="#tmhp.compressor_envelope.reduce_duty_within_envelope" title="tmhp.compressor_envelope.reduce_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_duty_within_envelope()</span></code></a>. The compressor’s
 speed floor is not the only lower end of continuous operation. At a large
-lift the shipped isentropic fit falls towards low speed, and before
-<code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is reached the envelope refuses the point: first for the
-discharge temperature, which the falling efficiency drives above
-<code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> even with the discharge-temperature control used up, then
-for the fit’s own floor (<a class="reference internal" href="#tmhp.compressor_envelope.ETA_ISEN_MIN" title="tmhp.compressor_envelope.ETA_ISEN_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code></a>). Every duty below the one
-at which the last of the two lets go is refused, while larger duties run.
+lift the isentropic efficiency falls towards low speed, and before
+<code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is reached the envelope refuses the point for the discharge
+temperature, which the falling efficiency drives above <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> even
+with the discharge-temperature control used up. Every duty below the one
+at which that limit lets go is refused, while larger duties run.
 A unit does not stay off there: it runs at the smallest duty the envelope
 admits and switches off when the tank has had enough, exactly as it does
 below its minimum speed. (Variable-speed compressors are sold with that
@@ -1733,8 +1678,8 @@ just above that duty is met in continuous operation at it, so cycling at
 any other duty would make the result jump at the boundary – and a
 controller that cycles runs as long as it can, at the lowest frequency its
 protections allow.</p>
-<p><code class="docutils literal notranslate"><span class="pre">result</span></code> is the solve at <code class="docutils literal notranslate"><span class="pre">request</span></code>, refused for one of
-<code class="xref py py-data docutils literal notranslate"><span class="pre">_RAISED_OVER</span></code> after no smaller duty ran; <code class="docutils literal notranslate"><span class="pre">solve(q)</span></code> solves the
+<p><code class="docutils literal notranslate"><span class="pre">result</span></code> is the solve at <code class="docutils literal notranslate"><span class="pre">request</span></code>, refused for the discharge limit
+(<code class="xref py py-data docutils literal notranslate"><span class="pre">_RAISED_OVER</span></code>) after no smaller duty ran; <code class="docutils literal notranslate"><span class="pre">solve(q)</span></code> solves the
 same point at duty <code class="docutils literal notranslate"><span class="pre">q</span></code>. A ladder of duties above the request
 (<code class="xref py py-data docutils literal notranslate"><span class="pre">_RAISE_LADDER</span></code>, fractions of <code class="docutils literal notranslate"><span class="pre">model.hp_capacity</span></code>) is climbed
 past the rungs refused the same way to the first that is not; a bisection
@@ -1876,18 +1821,22 @@ after the control, so that the state they judge has a discharge state.</p>
 <section id="module-tmhp.reference_state">
 <span id="compressor-reference-state"></span><h2>Compressor reference state<a class="headerlink" href="#module-tmhp.reference_state" title="Link to this heading">¶</a></h2>
 <p>Compressor reference state solved from nominal capacity.</p>
-<p>BITZER compressor efficiencies use absolute shaft speed in rev/s. Models
-normalise the ground heat exchanger refrigerant-side UA by a rated mass flow
-(<code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">/</span> <span class="pre">m_dot_ref_rated</span></code>). Both denominators belong to one physical
-point – the <em>reference state</em> – and this module computes that point from the
+<p>The default compressor efficiencies of the rotary types are written in speed
+relative to the machine’s rated speed (<code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_efficiency</span></code>).
+Models normalise the ground heat exchanger refrigerant-side UA by a rated mass
+flow (<code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">/</span> <span class="pre">m_dot_ref_rated</span></code>). Both denominators belong to one
+physical point – the <em>reference state</em> – and this module computes that point from the
 same inputs every model already requires:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span><span data-line="1">hp_capacity -&gt; V_cmp_ref -&gt; rating condition -&gt; rps_rated -&gt; m_dot_ref_rated
 </span></pre></div>
 </div>
 <dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code></dt><dd><p>Swept displacement. When the caller gives none, the models use
-<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_speed.default_displacement()</span></code>, a capacity-scaled
-reduced-order default, not an identification of a real compressor.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code></dt><dd><p>Swept displacement. When the caller gives none, the air-source and
+ground-source space-conditioning models and the air-source boiler use
+<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.default_inputs.estimate_displacement()</span></code> – the displacement an
+inverter twin-rotary compressor catalogue gives for that capacity and
+refrigerant – and record it in <code class="docutils literal notranslate"><span class="pre">default_input_estimates</span></code>. It is a
+representative compressor, not an identification of a real one.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">rating</span> <span class="pre">condition</span></code></dt><dd><p>A standard (or manufacturer/user) rating point for the model family:
 mode, source- and load-side inlet temperatures, the model’s reference
@@ -1990,6 +1939,19 @@ limits are known – and before anything that needs <code class="docutils litera
 replaces it with <code class="docutils literal notranslate"><span class="pre">default_rps_max(rps_rated)</span></code> (when <code class="docutils literal notranslate"><span class="pre">_rps_max_derived</span></code>).</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="tmhp.reference_state.ReferenceStateMixin.default_input_estimates">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">default_input_estimates</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DefaultInputEstimate</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#tmhp.reference_state.ReferenceStateMixin.default_input_estimates" title="Link to this definition">¶</a></dt>
+<dd><p>Catalogue estimates behind the inputs the caller left out, by constructor argument name.</p>
+<p>An input the caller supplied has no entry; a model built entirely from
+supplied inputs gives an empty mapping. Each
+<code class="xref py py-class docutils literal notranslate"><span class="pre">DefaultInputEstimate</span></code> carries the value,
+the release and stratum it came from, the capacity range the
+catalogues cover, <code class="docutils literal notranslate"><span class="pre">extrapolated</span></code> (the capacity lies outside that
+range), the source documents, the assumptions, and <code class="docutils literal notranslate"><span class="pre">status</span></code>
+(<code class="docutils literal notranslate"><span class="pre">&quot;provisional&quot;</span></code>, with its reason, where the evidence is weak).</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py data">
@@ -1998,8 +1960,11 @@ replaces it with <code class="docutils literal notranslate"><span class="pre">de
 <dd><p>Standard rating points per model family and mode.</p>
 <p><code class="docutils literal notranslate"><span class="pre">source_T_C</span></code> / <code class="docutils literal notranslate"><span class="pre">load_T_C</span></code> are the secondary-fluid inlet temperatures.
 TMHP’s air coils are dry (sensible only), so wet-bulb conditions of the
-standards are not used. The boiler models’ condenser is immersed in a
-lumped tank; the tank temperature is set to the standard’s water outlet
+standards are not used. The boilers’ <code class="docutils literal notranslate"><span class="pre">load_T_C</span></code> is the standard’s water
+outlet temperature: a plate condenser with circulating water is rated with
+water entering at the outlet less the rise its rated flow takes at
+<code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> (<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.heat_exchanger.tank_hx_rating_side()</span></code>); a
+condenser without circulating water works against a tank at the outlet
 temperature, the conservative end of the condenser water range.</p>
 </dd></dl>
 
@@ -2010,8 +1975,8 @@ temperature, the conservative end of the condenser water range.</p>
 <p>Secondary side of one refrigerant heat exchanger at the rating point.</p>
 <p><code class="docutils literal notranslate"><span class="pre">fluid</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;air&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;water&quot;</span></code> for a single-phase stream crossing a
 constant-saturation-temperature surface (<code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">=</span> <span class="pre">eps</span> <span class="pre">C</span> <span class="pre">dT</span></code>,
-<code class="docutils literal notranslate"><span class="pre">eps</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">exp(-UA</span> <span class="pre">/</span> <span class="pre">C)</span></code>), or <code class="docutils literal notranslate"><span class="pre">&quot;tank&quot;</span></code> for the boiler condenser
-immersed in a lumped tank (<code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">=</span> <span class="pre">UA</span> <span class="pre">dT</span></code>), as in the models’ own cycles.</p>
+<code class="docutils literal notranslate"><span class="pre">eps</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">exp(-UA</span> <span class="pre">/</span> <span class="pre">C)</span></code>), or <code class="docutils literal notranslate"><span class="pre">&quot;tank&quot;</span></code> for a boiler condenser without
+circulating water (<code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">=</span> <span class="pre">UA</span> <span class="pre">dT</span></code>), as in the models’ own cycles.</p>
 <p><code class="docutils literal notranslate"><span class="pre">rho_cp</span></code> is the stream’s volumetric heat capacity <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">c_p</span></code>
 [J/(m³ K)]. Left out, the stream is standard air or water (the constants
 of <a class="reference internal" href="utilities.html#module-tmhp.constants" title="tmhp.constants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.constants</span></code></a>). A source loop filled with an antifreeze
@@ -2365,7 +2330,7 @@ process-wide cache, so identical constructions solve once.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 15, 2026
+  Last updated Nov 16, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

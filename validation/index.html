@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it is meant to describe. This page is that check. The harder question is whether it keeps landin..." />
 
-    <meta property="article:modified_time" content="2026-11-15T11:11:44+00:00" />
+    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -208,7 +208,12 @@ counts below distinguish points attempted from points evaluated, and the
 interactive table shows each unevaluated point with its reason. A point at
 which the model runs but delivers more than 1 % less than the published
 duty (a capacity ceiling) is not scored either, with the reason
-<code class="docutils literal notranslate"><span class="pre">capacity_short</span></code>: its COP belongs to a different operating point.</p>
+<code class="docutils literal notranslate"><span class="pre">capacity_short</span></code>: its COP belongs to a different operating point. The
+same holds at the other end: a published duty below the smallest one the
+model runs continuously is reported as the mean of on/off cycling
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>), which is not what a catalogue row is, and
+is left out with the reason <code class="docutils literal notranslate"><span class="pre">cycling_mean</span></code>. No point of the present
+catalogues is in that case.</p>
 </div>
 <div class="toctree-wrapper compound">
 </div>
@@ -252,7 +257,7 @@ hollow grey rings and not scored.</span><a class="headerlink" href="#id1" title=
 <td><p>Panasonic, Samsung, Daikin, Fujitsu</p></td>
 </tr>
 <tr class="row-even"><td><p>Points</p></td>
-<td><p>757 attempted, 719 evaluated</p></td>
+<td><p>757 attempted, 740 evaluated</p></td>
 </tr>
 <tr class="row-odd"><td><p>Modes</p></td>
 <td><p>Heating and cooling</p></td>
@@ -281,31 +286,44 @@ questions, and the set mixes rating standards (EN 14511 and AHRI 210/240) that
 define COP differently, so each family is reported on its own and nothing is
 pooled across standards. The two held catalogues are run and written but never
 enter a headline. The compressor efficiencies are the shipped
-<code class="docutils literal notranslate"><span class="pre">BITZER-three-C3-absolute-N-2026-10-06</span></code> fits with their range and
-validity-domain guards (<a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>), applied here unchanged, inside the
-compressor operating envelope (<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>).</p>
-<p><strong>21 air-to-water points are not evaluated, all of them R32.</strong> Nine (outdoor
-−15 to −7 °C, leaving water 55 to 60 °C) stay above the R32 discharge limit of
-150 °C even with the discharge-temperature control: at that pressure ratio the
-default efficiency map’s isentropic efficiency is near 0.4, and holding the
-limit would take a wetter suction than the quality of 0.9 the model allows
-(<code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>). Two, at 65 °C leaving water, condense above
-the 65 °C condensing limit of R32 (<code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code>). The other
-ten run, but only at a duty more than 1 % below the published one (the largest
-the operating envelope allows); their COP belongs to a smaller operating point
-and is not compared with the catalogue’s full-load COP (<code class="docutils literal notranslate"><span class="pre">capacity_short</span></code>).
-Four of the ten, at −15 to −7 °C outdoor, met the published duty before the
-frost and defrost adjustment (<a class="reference internal" href="../models/ashpb.html#ashpb-frost"><span class="std std-ref">Frost and defrost</span></a>): the mean over frosting and
-defrost needs a larger frost-free duty, and that duty is outside the envelope.
-Other air-to-water points are evaluated under the control, with wet suction
-or reduced superheat.</p>
-<p><strong>17 air-to-air heating points are not evaluated, 16 of them on the held
-Fujitsu grids.</strong> All lie at or below 0 °C outdoor, where the frost and defrost
-adjustment (<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>) lowers the mean heating capacity to 0.77–0.86
-of the frost-free capacity. The Fujitsu heating grid is published at maximum
-capacity (③ below), and at those points the mean the model can deliver falls
-more than 1 % short of the published duty (<code class="docutils literal notranslate"><span class="pre">capacity_short</span></code>); the one Daikin
-point is the smallest unit at 0 °C.</p>
+<code class="docutils literal notranslate"><span class="pre">semi-empirical-2026-11-15</span></code> models (<a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>), one per compressor
+type: each unit runs with the type its catalogue publishes (<code class="docutils literal notranslate"><span class="pre">rotary</span></code> and
+<code class="docutils literal notranslate"><span class="pre">swing</span></code> on the library’s <code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code>, <code class="docutils literal notranslate"><span class="pre">scroll</span></code> on
+<code class="docutils literal notranslate"><span class="pre">scroll</span></code>), applied unchanged, inside the compressor operating envelope
+(<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>). Three properties of those
+models are read with every figure below:</p>
+<ul class="simple">
+<li><p><strong>The rotary types are provisional.</strong> Their efficiency shape rests on five
+machines, with no rotary data above a pressure ratio of 6.8 and none below
+30 rev/s; outside that hull the forms are followed as they are
+(<code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code>).</p></li>
+<li><p><strong>The efficiency level is the manufacturers’ published level.</strong> Independent
+measurements of compressors sit 5–15 % lower; none of a modern inverter
+compressor exists to decide between them.</p></li>
+<li><p><strong>The electrical input is taken at the inverter input</strong>, drive loss
+included (about 6 % at 60 rev/s, more at low speed). Run with the drive
+efficiency set to one – input at the compressor terminals, everything else
+as shipped – the air-to-water bias is +1.1 % and the air-to-air (Daikin)
+bias +0.5 %; with the drive loss they are −5.0 % and −5.1 %.</p></li>
+</ul>
+<p>The previous release (the BITZER quadratic map, committed results of before
+November 2026) gave the air-to-air set 7.7 % MAPE and −3.4 % bias, and the
+air-to-water set 8.2 % and −4.3 %.</p>
+<p><strong>17 air-to-water points are not evaluated, all of them because the model
+delivers more than 1 % less than the published duty</strong> (<code class="docutils literal notranslate"><span class="pre">capacity_short</span></code>);
+their COP belongs to a smaller operating point and is not compared with the
+catalogue’s full-load COP. Twelve run at the 120 rev/s speed ceiling and
+deliver 81 to 99 % of the duty: eleven at −15 °C outdoor (WH-UQ12, WH-UQ16,
+WH-MXC12 and WH-WXG16) and WH-UQ12 at −7 °C / 55 °C. Nine of the twelve meet
+the published duty with the frost and defrost adjustment switched off
+(<a class="reference internal" href="../models/ashpb.html#ashpb-frost"><span class="std std-ref">Frost and defrost</span></a>): the mean over frosting and defrost needs a larger
+frost-free duty than the ceiling allows. The other five are the Samsung unit
+at 65 °C leaving water, held at 72 to 88 % of the duty by the 65 °C condensing
+limit of R32 (<code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;condensing_temperature&quot;</span></code>). No point
+stops on the discharge-temperature limit; other air-to-water points are
+evaluated under the discharge-temperature control, with wet suction or
+reduced superheat where it acts.</p>
+<p><strong>Every air-to-air point is evaluated</strong>, the held Fujitsu grids included.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -325,72 +343,201 @@ point is the smallest unit at 0 °C.</p>
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Air-to-water, 10 units</p></td>
-<td><p>8.4 %</p></td>
-<td><p>−4.4 %</p></td>
-<td><p>132 / 153</p></td>
-<td><p>Centred where the coil does not frost; low at and below +2 °C, frost
-and defrost adjusted</p></td>
+<td><p>8.3 %</p></td>
+<td><p>−5.0 %</p></td>
+<td><p>136 / 153</p></td>
+<td><p>Low at every outdoor temperature, most at +2 °C; frost and defrost
+adjusted at and below +2 °C</p></td>
+</tr>
+<tr class="row-odd"><td><p>Air-to-water, no injection, 6 units</p></td>
+<td><p>7.0 %</p></td>
+<td><p>−2.2 %</p></td>
+<td><p>84 / 93</p></td>
+<td><p>Rotary compressors without injection: the machines the single-stage
+cycle represents</p></td>
+</tr>
+<tr class="row-even"><td><p>Air-to-water, injection, 4 units</p></td>
+<td><p>10.5 %</p></td>
+<td><p>−9.6 %</p></td>
+<td><p>52 / 60</p></td>
+<td><p>Scroll compressors with vapour or flash injection, which the
+single-stage cycle does not represent; reported, not corrected</p></td>
 </tr>
 <tr class="row-odd"><td><p>Air-to-air, Daikin, 5 units</p></td>
-<td><p>8.7 %</p></td>
-<td><p>−5.9 %</p></td>
-<td><p>359 / 360</p></td>
-<td><p>EN 14511; heating centred, cooling low</p></td>
+<td><p>8.5 %</p></td>
+<td><p>−5.1 %</p></td>
+<td><p>360 / 360</p></td>
+<td><p>EN 14511; cooling centred, heating low</p></td>
 </tr>
 <tr class="row-even"><td><p>Daikin cooling</p></td>
-<td><p>11.6 %</p></td>
-<td><p>−11.4 %</p></td>
+<td><p>6.3 %</p></td>
+<td><p>−1.8 %</p></td>
 <td><p>180 / 180</p></td>
-<td><p>Pessimistic, growing with outdoor temperature</p></td>
+<td><p>Optimistic at 20 °C, pessimistic at 40 °C outdoor</p></td>
 </tr>
 <tr class="row-odd"><td><p>Daikin heating</p></td>
-<td><p>5.8 %</p></td>
-<td><p>−0.5 %</p></td>
-<td><p>179 / 180</p></td>
-<td><p>Centred; frost and defrost adjusted at and below 0 °C</p></td>
+<td><p>10.7 %</p></td>
+<td><p>−8.4 %</p></td>
+<td><p>180 / 180</p></td>
+<td><p>Low at every outdoor temperature but −15 °C, frosting or not</p></td>
 </tr>
 <tr class="row-even"><td><p>Daikin heating at or below −7 °C</p></td>
-<td><p>7.2 %</p></td>
-<td><p>+6.4 %</p></td>
+<td><p>7.9 %</p></td>
+<td><p>−0.9 %</p></td>
 <td><p>60 / 60</p></td>
-<td><p>Centred at −10 °C, optimistic at −15 °C</p></td>
+<td><p>Low at −10 °C, optimistic at −15 °C</p></td>
 </tr>
 <tr class="row-odd"><td><p>Air-to-air, Fujitsu, 2 units</p></td>
-<td><p>28.9 %</p></td>
-<td><p><strong>+28.0 %</strong></p></td>
-<td><p>228 / 244</p></td>
+<td><p>33.8 %</p></td>
+<td><p><strong>+33.6 %</strong></p></td>
+<td><p>244 / 244</p></td>
 <td><p>Held: AHRI 210/240, COP boundary not stated — a uniform offset</p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>The biases are stated here, not corrected. <strong>Air-to-air cooling runs low</strong>,
-from −7 % at 20 °C to −14 % at 40 °C outdoor, and the dry indoor coil (see
-<a class="reference internal" href="#cooling-and-latent-load">Cooling and latent load</a>) is not the cause: the cooling rows with no latent
-load (sensible heat ratio 0.95 or above) are the most pessimistic, at −19 %,
-and those with the most latent load the least, at −5 %. The dry-coil
-idealisation pushes the other way (② below). What the low rows share is the
-most efficient hardware: at the rating point the smallest Daikin units, with
-the highest nameplate EER, sit 18 to 20 % low (①). <strong>Air-to-air heating is
-centred once frost is accounted for.</strong> With the frost and defrost adjustment
-(the EnergyPlus DX heating-coil model, its constants unchanged;
-<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>) the bias is −7.8 % at 0 °C, −5.1 % at −5 °C, +0.3 % at
-−10 °C and +12.4 % at −15 °C outdoor, against 0 to −3 % at 6 and 10 °C, where
-the coil does not frost. Without the adjustment the same rows ran +17 % from 0
-to −10 °C and +28 % at −15 °C. <strong>Air-to-water carries the same adjustment
-and runs low where it applies</strong> (<a class="reference internal" href="../models/ashpb.html#ashpb-frost"><span class="std std-ref">Frost and defrost</span></a>): the bias is +0.4 % over
-the 63 points at +7 °C outdoor and above, where the coil does not frost,
-−6.3 % at +2 °C, −8.8 % at −7 °C and −12.5 % below −7 °C. Without the
-adjustment the same rows ran +21.6 % at +2 °C, +10.1 % at −7 °C and +0.1 %
-below: it removes the excess at the condition at which an outdoor coil frosts
-most, and takes a tenth too much in cold, dry air, where little frost forms
-but the correlation’s capacity multiplier (0.875) still applies in full.
-The adjustment follows the load on the coil (<a class="reference internal" href="../models/ashp.html#ashp-frost-load"><span class="std std-ref">frost at part load</span></a>), but
-these catalogues do not test that: every air-to-water point at or below +2 °C,
-and all but four of the air-to-air ones (at −15 °C, +0.2 to +1.1 % in COP),
-is at or above the capacity the adjustment’s correlation is written for, so
-the figures on this page are those of the full correction. What the load term
-changes is the part-load trajectory of <a class="reference internal" href="part-load.html"><span class="doc">Part-load behaviour</span></a> and <a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>.</p>
+<p>The air-to-water headline by unit, with the compressor each catalogue
+publishes (<code class="docutils literal notranslate"><span class="pre">compressor_type</span></code>, <code class="docutils literal notranslate"><span class="pre">injection</span></code>; <a class="reference internal" href="adding-a-catalogue.html"><span class="doc">Adding a catalogue</span></a>) and
+the library type it runs on:</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 9.0%" />
+<col style="width: 24.0%" />
+<col style="width: 13.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Unit</p></th>
+<th class="head"><p>Refrigerant</p></th>
+<th class="head"><p>Compressor (library type)</p></th>
+<th class="head"><p>Injection</p></th>
+<th class="head"><p>COP MAPE</p></th>
+<th class="head"><p>Bias</p></th>
+<th class="head"><p>Evaluated</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>WH-MXC09J3E8</p></td>
+<td><p>R32</p></td>
+<td><p>rotary (<code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code>)</p></td>
+<td><p>none</p></td>
+<td><p>9.7 %</p></td>
+<td><p>−8.9 %</p></td>
+<td><p>15 / 15</p></td>
+</tr>
+<tr class="row-odd"><td><p>WH-MXC12J9E8</p></td>
+<td><p>R32</p></td>
+<td><p>rotary (<code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code>)</p></td>
+<td><p>none</p></td>
+<td><p>9.0 %</p></td>
+<td><p>−4.4 %</p></td>
+<td><p>13 / 15</p></td>
+</tr>
+<tr class="row-even"><td><p>WH-MXC16J9E8</p></td>
+<td><p>R32</p></td>
+<td><p>rotary (<code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code>)</p></td>
+<td><p>none</p></td>
+<td><p>8.5 %</p></td>
+<td><p>+6.4 %</p></td>
+<td><p>15 / 15</p></td>
+</tr>
+<tr class="row-odd"><td><p>WH-UQ09HE8</p></td>
+<td><p>R410A</p></td>
+<td><p>rotary (<code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code>)</p></td>
+<td><p>none</p></td>
+<td><p>5.6 %</p></td>
+<td><p>−4.6 %</p></td>
+<td><p>15 / 15</p></td>
+</tr>
+<tr class="row-even"><td><p>WH-UQ12HE8</p></td>
+<td><p>R410A</p></td>
+<td><p>rotary (<code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code>)</p></td>
+<td><p>none</p></td>
+<td><p>4.6 %</p></td>
+<td><p>−2.9 %</p></td>
+<td><p>11 / 15</p></td>
+</tr>
+<tr class="row-odd"><td><p>WH-UQ16HE8</p></td>
+<td><p>R410A</p></td>
+<td><p>rotary (<code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code>)</p></td>
+<td><p>none</p></td>
+<td><p>4.2 %</p></td>
+<td><p>+0.7 %</p></td>
+<td><p>15 / 18</p></td>
+</tr>
+<tr class="row-even"><td><p>WH-WXG09ME8</p></td>
+<td><p>R290</p></td>
+<td><p>scroll (<code class="docutils literal notranslate"><span class="pre">scroll</span></code>)</p></td>
+<td><p>vapor</p></td>
+<td><p>14.0 %</p></td>
+<td><p>−13.4 %</p></td>
+<td><p>15 / 15</p></td>
+</tr>
+<tr class="row-odd"><td><p>WH-WXG12ME8</p></td>
+<td><p>R290</p></td>
+<td><p>scroll (<code class="docutils literal notranslate"><span class="pre">scroll</span></code>)</p></td>
+<td><p>vapor</p></td>
+<td><p>10.9 %</p></td>
+<td><p>−10.9 %</p></td>
+<td><p>15 / 15</p></td>
+</tr>
+<tr class="row-even"><td><p>WH-WXG16ME8</p></td>
+<td><p>R290</p></td>
+<td><p>scroll (<code class="docutils literal notranslate"><span class="pre">scroll</span></code>)</p></td>
+<td><p>vapor</p></td>
+<td><p>8.4 %</p></td>
+<td><p>−5.5 %</p></td>
+<td><p>12 / 15</p></td>
+</tr>
+<tr class="row-odd"><td><p>Samsung EHS Mono HT Quiet R32 14 kW</p></td>
+<td><p>R32</p></td>
+<td><p>scroll (<code class="docutils literal notranslate"><span class="pre">scroll</span></code>)</p></td>
+<td><p>flash</p></td>
+<td><p>7.3 %</p></td>
+<td><p>−6.9 %</p></td>
+<td><p>10 / 15</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>No validation machine has a scroll without injection, so the <code class="docutils literal notranslate"><span class="pre">scroll</span></code> type
+is checked here only on machines the single-stage cycle does not represent.
+The held Fujitsu units publish a rotary compressor and run on the same
+<code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code> type as the Panasonic rotaries; their offset grew
+from +29.8 % (221 of 244 points evaluated) in the previous release to +33.6 %
+(all 244). The Daikin units publish a swing compressor.</p>
+<p>The biases are stated here, not corrected. <strong>Air-to-air cooling is centred
+overall and moves with outdoor temperature</strong>, from +7.6 % at 20 °C to −9.1 %
+at 40 °C outdoor. The dry indoor coil (see <a class="reference internal" href="#cooling-and-latent-load">Cooling and latent load</a>) does
+not make it optimistic: the cooling rows with no latent load (sensible heat
+ratio 0.95 or above, 25 rows) are the most pessimistic, at −7.5 %, and those
+with the most latent load (below 0.75, 79 rows) the least, at +1.1 %. The
+dry-coil idealisation pushes the other way (② below). At the rating point the
+three smallest Daikin units, with the highest nameplate EER, sit 6 to 7 % low
+(①). <strong>Air-to-air heating runs low at every outdoor temperature but the
+coldest</strong>, the frost-free ones included: with the frost and defrost
+adjustment (the EnergyPlus DX heating-coil model, its constants unchanged;
+<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>) the bias is −17.4 % at 0 °C, −14.4 % at −5 °C, −8.3 % at
+−10 °C and +6.5 % at −15 °C outdoor, against −7.7 % and −8.9 % at 6 and
+10 °C, where the coil does not frost. Without the adjustment the same rows run
++8.7 %, +6.2 %, +9.1 % and +22.3 %. <strong>Air-to-water carries the same
+adjustment and runs low where it applies</strong> (<a class="reference internal" href="../models/ashpb.html#ashpb-frost"><span class="std std-ref">Frost and defrost</span></a>): the bias is
+−4.1 % over the 63 points at +7 °C outdoor and above, where the coil does not
+frost, −10.4 % at +2 °C, −3.4 % at −7 °C and −2.2 % below −7 °C. Without the
+adjustment the same rows run +15.4 % at +2 °C, +15.9 % at −7 °C and +12.3 %
+below. Split by injection, the machines without it run −4.1 % frost-free,
+−7.8 % at +2 °C, +2.6 % at −7 °C and +7.0 % below, the injection machines
+−4.0 %, −14.6 %, −14.8 % and −13.5 %. The adjustment follows the load on the
+coil (<a class="reference internal" href="../models/ashp.html#ashp-frost-load"><span class="std std-ref">frost at part load</span></a>), but these catalogues do
+not test that: every air-to-water point at or below +2 °C, and all but four
+of the air-to-air ones (at −15 °C, +0.2 to +1.2 % in COP), is at or above the
+capacity the adjustment’s correlation is written for, so the figures on this
+page are those of the full correction. What the load term changes is the
+part-load trajectory of <a class="reference internal" href="part-load.html"><span class="doc">Part-load behaviour</span></a> and <a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>.</p>
 <p>A bias equal to the error is the signature of a systematic cause, so the
 Fujitsu result was checked before being published rather than after.</p>
 <div class="important admonition">
@@ -400,13 +547,13 @@ efficiency. That was one of three causes presented as the explanation, and
 this is the correction. Comparing each machine at its own <strong>nominal</strong>
 rating point – no latent load, no forced maximum output, the cleanest
 comparison available – separates them.</p>
-<p><strong>① Residual hardware efficiency (~20 points).</strong> At the nominal heating
-rating point Daikin lands between −2 and +8 % and Fujitsu at +24 %;
-at the cooling rating point Daikin spans −20 to +1 %, falling with
-nameplate EER, and Fujitsu +12 to +22 %. That part is
-real and it is the defaults’ responsibility: the two product lines are
-built to different efficiency targets and a rule written per kilowatt
-cannot tell which one it is looking at.</p>
+<p><strong>① Residual hardware efficiency (about 25 points at the heating rating point).</strong> At the nominal
+heating rating point Daikin lands between −8 and −4 % and Fujitsu at +18
+to +20 %; at the cooling rating point Daikin spans −7 to +3 %, falling
+with nameplate EER, and Fujitsu +28 to +34 %. That part is real and it is
+the defaults’ responsibility: the two product lines are built to different
+efficiency targets and a rule written per kilowatt cannot tell which one
+it is looking at.</p>
 <p><strong>② Dehumidification, cooling half.</strong> TMHP’s indoor coil is a dry sensible
 exchanger. A real machine removing moisture must hold its coil below the
 dew point, far colder than a sensible-only coil needs to move the same
@@ -414,12 +561,12 @@ total heat — and a colder coil means more lift and less COP. At its rating
 point the Fujitsu removes 34 % of its duty as latent heat (SHR 0.66)
 against the Daikin’s 2 % (SHR 0.98). Within the Daikin set alone, the bias
 of the 180 cooling points correlates with their sensible heat ratio at
-<em>r</em> = −0.81: the more latent load, the more optimistic the model.</p>
+<em>r</em> = −0.40: the more latent load, the more optimistic the model.</p>
 <p><strong>③ Maximum-capacity tables, heating half.</strong> Fujitsu’s heating grid is
 published at maximum capacity, with the compressor pinned at full speed
 where its efficiency is worst. The harness asks for that same duty and the
-model meets it at about half the available speed range. Different operating
-point; the comparison flatters the model.</p>
+model meets it well below its speed ceiling (median 76 and 80 rev/s of
+120). Different operating point; the comparison flatters the model.</p>
 <p>Only ① is a property of the defaults. ② is a stated model boundary and ③ is
 a property of the source document.</p>
 </div>
@@ -427,7 +574,11 @@ a property of the source document.</p>
 <p class="admonition-title">Where each machine sits in the measured band</p>
 <p>Backing the conductance out of each machine’s own rating point — “if the
 whole residual were conductance, how much would it be?” — places each one
-against the population the default came from.</p>
+against the population the default came from. The population and the
+<code class="docutils literal notranslate"><span class="pre">Q/x</span></code> rules below are those of the outdoor-coil default before November
+2026 (<code class="docutils literal notranslate"><span class="pre">Q/5</span></code> from component-coil catalogues, <a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>The
+previous rule</em>); the shipped default is now an approach temperature, and
+this back-out is regenerated with it.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -446,23 +597,23 @@ against the population the default came from.</p>
 <tbody>
 <tr class="row-even"><td><p>FTXM20A / RXM20A</p></td>
 <td><p>5.41</p></td>
-<td><p>none in Q/2–Q/16</p></td>
-<td><p><strong>outside</strong> (high end)</p></td>
+<td><p>Q/3.6</p></td>
+<td><p>inside</p></td>
 </tr>
 <tr class="row-odd"><td><p>FTXM25A / RXM25A</p></td>
 <td><p>5.21</p></td>
-<td><p>none in Q/2–Q/16</p></td>
-<td><p><strong>outside</strong> (high end)</p></td>
+<td><p>Q/3.7</p></td>
+<td><p>inside</p></td>
 </tr>
 <tr class="row-even"><td><p>FTXM35A / RXM35A</p></td>
 <td><p>4.61</p></td>
-<td><p>none in Q/2–Q/16</p></td>
-<td><p><strong>outside</strong> (high end)</p></td>
+<td><p>Q/3.7</p></td>
+<td><p>inside</p></td>
 </tr>
 <tr class="row-odd"><td><p>FTXM42A / RXM42A</p></td>
 <td><p>4.20</p></td>
-<td><p>Q/3.4</p></td>
-<td><p>inside, at the high end</p></td>
+<td><p>Q/4.3</p></td>
+<td><p>inside</p></td>
 </tr>
 <tr class="row-even"><td><p>FTXM50A / RXM50A</p></td>
 <td><p>3.68</p></td>
@@ -471,8 +622,8 @@ against the population the default came from.</p>
 </tr>
 <tr class="row-odd"><td><p>ASUH09LPAS</p></td>
 <td><p>3.67</p></td>
-<td><p>Q/6.9</p></td>
-<td><p>inside, at the low end</p></td>
+<td><p>Q/7.6</p></td>
+<td><p><strong>outside</strong> (low end)</p></td>
 </tr>
 <tr class="row-even"><td><p>ASUH12LPAS</p></td>
 <td><p>3.23</p></td>
@@ -483,14 +634,19 @@ against the population the default came from.</p>
 </table>
 </div>
 <p>The band is <strong>Q/3.3 to Q/7.1</strong> at p10–p90 of 1,414 component coils, on the
-nameplate-capacity basis, and the default <code class="docutils literal notranslate"><span class="pre">Q/5.0</span></code> sits inside it. The
-machines now split at both ends. The three most efficient Daikin units
-would need more conductance than 90 % of the component population — more
-than even <code class="docutils literal notranslate"><span class="pre">Q/2</span></code> gives, so no conductance alone closes their cooling
-gap — while the larger ASUH12LPAS behaves like a machine with less coil
-per kilowatt than 90 % of it and ASUH09LPAS sits just inside that edge
-(Q/6.87 against Q/7.08). A median default under-predicts the first group
-and over-predicts the second, which is the residual pattern above.</p>
+nameplate-capacity basis, and the previous default <code class="docutils literal notranslate"><span class="pre">Q/5.0</span></code> sits inside it.
+All five Daikin units now lie inside it (Q/3.6 to Q/5.3), while both
+Fujitsu units behave like machines with less coil per kilowatt than 90 %
+of it (Q/7.6 and Q/8.4 against Q/7.08). In the previous release the three
+most efficient Daikin units were outside the high end (Q/2.4, Q/2.6 and
+Q/3.26 against the band’s Q/3.32); with the present defaults the
+back-out places them inside. A median default under-predicts the most
+efficient machines and over-predicts the Fujitsu pair, which is the
+residual pattern above. (Until the catalogue default inputs of November
+2026 no conductance in Q/2–Q/16 closed the cooling gap of the three Daikin
+units at all: with the constants of then – a larger displacement, run
+below the speed range the efficiency fits of then covered, and a larger
+outdoor airflow – the gap was 5 to 6 points wider.)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The band must be quoted on the same basis as the rule. Component
@@ -511,32 +667,36 @@ and <code class="docutils literal notranslate"><span class="pre">uv</span> <span
 </figure>
 <div class="note admonition">
 <p class="admonition-title">Why the default was not moved</p>
-<p>Moving the conductance away from <code class="docutils literal notranslate"><span class="pre">Q/5</span></code> would improve the numbers on this
-page for the machines at one end of the band at the cost of the other. It
-was not done. The value was derived from
+<p>Moving the conductance away from <code class="docutils literal notranslate"><span class="pre">Q/5</span></code> would have improved the numbers on
+this page for the machines at one end of the band at the cost of the other.
+It was not done. The value was derived from
 the catalogue population before any parity result existed, and changing it
 afterwards to improve a parity plot is calibration wearing validation’s
 clothes — the exact thing this harness is built to prevent. The spread is
-reported instead.</p>
+reported instead. The approach-temperature defaults that replaced <code class="docutils literal notranslate"><span class="pre">Q/5</span></code>
+in November 2026 were fixed the same way, from an archive of machine data
+and a hold-out rule, before the parity results were read.</p>
 </div>
 <p>Three smaller patterns, also named rather than left for a reader to find:</p>
-<p><strong>The air-to-water set is the tighter one.</strong> Those units publish compressor
-displacement, which no air-to-air unit in the set does — neither Daikin nor
-Fujitsu prints one, and a search of five data books, three service manuals and
-two specification sheets found no displacement for any of them. So the
-air-to-air panel is also a test of the library’s <em>default</em> displacement rather
-than of a specification input.</p>
+<p><strong>The air-to-water set rests on published displacements; the air-to-air set
+does not.</strong> Those units publish compressor displacement, which no air-to-air
+unit in the set does — neither Daikin nor Fujitsu prints one, and a search of
+five data books, three service manuals and two specification sheets found no
+displacement for any of them. So the air-to-air panel is also a test of the
+library’s <em>default</em> displacement rather than of a specification input.</p>
 <p><strong>Both air-to-air refrigerants are present for a reason.</strong> Daikin’s
 pair-application range is entirely R-32. Without the Fujitsu R-410A units that
 panel would say nothing about whether the physics carries across working
 fluids. It is worth being explicit that the offset above is <em>not</em> a refrigerant
-effect: the three R-410A air-to-water units sit at 7.7 to 9.3 % MAPE,
-inside the 6.3 to 10.7 % spread of the air-to-water set.</p>
+effect: the three R-410A air-to-water units sit at 4.2 to 5.6 % MAPE, the
+lowest of the 4.2 to 14.0 % spread of the air-to-water set.</p>
 <p><strong>The one air-to-water outlier turns out to be the same story.</strong> The 16 kW R32
-unit runs +7.1 % optimistic where the set runs −4.4 % (its 9 and 12 kW
-siblings −8.6 and −3.3 %). Neither of its published inputs explains it:
-substituting its 12 kW sibling’s rated air flow moves the bias by 2.0 points,
-and dropping its published displacement for the library default by 1.6.
+unit runs +6.4 % optimistic where the set runs −5.0 % (its 9 and 12 kW
+siblings −8.9 and −4.4 %). Neither of its published inputs explains it: on
+the points both runs evaluate, substituting its 12 kW sibling’s rated air
+flow moves the bias by 2.4 points (13 points), and replacing its published
+displacement with the library default by 1.2 points (11 points; four more
+fall short of the duty with it).
 What explains it is the catalogue itself. At every one of the fifteen
 conditions, the 16 kW machine’s <em>published</em> COP is 8 to 22 % below the 9 kW
 machine’s from the same product line:</p>
@@ -590,11 +750,12 @@ unusual product line, it is capacity-normalised scaling itself.</strong> The def
 describe a typical machine of a given size; they do not know that a
 manufacturer’s 16 kW model is built to a different cost target than its 9 kW
 model.</p>
-<p><strong>The Samsung high-temperature unit is genuinely outside the model boundary.</strong>
-It publishes no displacement and reaches 65 °C leaving water at −10 °C outdoor
-air — a pressure ratio around 16, which real machines achieve with vapour
-injection and TMHP does not model as a single-stage cycle. Stated rather than
-corrected for.</p>
+<p><strong>The Samsung high-temperature unit is outside the model boundary.</strong> Its
+catalogue names a scroll compressor with flash injection, which the
+single-stage cycle does not model, and it publishes no displacement. Its five
+points at 65 °C leaving water are not evaluated: the 65 °C condensing limit
+of R32 holds them at 72 to 88 % of the published duty. It is reported in the
+injection stratum above, stated rather than corrected for.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>An earlier published figure for the Samsung unit — MAE 0.35, MAPE 10.1 % —
@@ -780,7 +941,8 @@ table is kept only as the historical record.</p>
 <p>LWT is leaving-water temperature and T0 the outdoor (dead-state)
 temperature; AE and APE are the absolute and absolute percentage error.
 That comparison set the tank temperature 2.5 K below LWT up to 60 °C and
-5 K below it above 60 °C.</p>
+5 K below it above 60 °C; the harness now hands the model the EN 14511
+entering and leaving water instead (<a class="reference internal" href="adding-a-catalogue.html"><span class="doc">Adding a catalogue</span></a>).</p>
 <p>Physics-based space-conditioning ASHP/GSHP outputs through commit
 <code class="docutils literal notranslate"><span class="pre">c5d673e</span></code> used coil-duty COP (<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">/</span> <span class="pre">E_tot</span></code>); results on this page
 use final indoor-air delivery with fan heat counted once
@@ -810,13 +972,14 @@ operating point (<code class="docutils literal notranslate"><span class="pre">te
 each boiler, a heating and a cooling point for the ground-source unit; each
 must converge and deliver the requested duty). That shows they run, not that
 their numbers are right: none has been compared against unit-specific
-data. The conductance rule derived here is for air coils and does not
-transfer to a water- or brine-coupled face, which is different physics.</p>
-<p>Every family’s default compressor displacement is the fixed
-42 cm³ per 9 kW of nameplate (<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_speed.default_displacement()</span></code>);
-the refrigerant-aware rule of <a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a> is available as
-<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_speed.refrigerant_aware_displacement()</span></code> but is not
-the default.</p>
+data. Their liquid-coupled faces take the approach temperatures of the
+coaxial and plate exchangers of real machines (<a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>), not the
+air-coil values.</p>
+<p>The default compressor displacement of every family, the ground- and
+water-source boilers included, is the one a compressor catalogue gives for
+the capacity and the refrigerant
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.default_inputs.estimate_displacement()</span></code>, <a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>). For
+the liquid-source families no unit data exist to judge it.</p>
 </div>
 </section>
 <section id="reproduce">
@@ -852,7 +1015,7 @@ catalogues</em> (2025).</p></li>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 15, 2026
+  Last updated Nov 16, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

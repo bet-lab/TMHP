@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="analyze_steady returns a flat dict and analyze_dynamic a pandas.DataFrame whose columns are the same keys, one row per time step. This page lists every key the five released families return with th..." />
 
-    <meta property="article:modified_time" content="2026-11-15T11:22:41+00:00" />
+    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -293,15 +293,15 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_clamped</span></code></p></td>
 <td><p>all</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the request was met (and on an off or failed row); <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when it was below the minimum-speed duty (the row is then the on/off mean, see <em>Request, capacity and part load</em>; ASHP and the boilers’ <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> also when it was below the smallest duty the compressor envelope admits, where the discharge-temperature limit or the efficiency floor refuses lower speeds); <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> when the unit delivers less than asked.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the request was met (and on an off or failed row); <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when it was below the minimum-speed duty (the row is then the on/off mean, see <em>Request, capacity and part load</em>; ASHP and the boilers’ <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> also when it was below the smallest duty the compressor envelope admits, where the discharge-temperature limit refuses lower speeds); <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> when the unit delivers less than asked.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code></p></td>
 <td><p>all</p></td>
-<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row, the limit the next larger duty runs into: <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> (ASHP, GSHP: a coil at the edge of the approach search), <code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code> (ASHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_heat_exchanger&quot;</span></code> (GSHPB, WSHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_fluid_freezing&quot;</span></code> (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). <code class="docutils literal notranslate"><span class="pre">None</span></code> on every other row.</p></td>
+<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row, the limit the next larger duty runs into: <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temperature&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> (ASHP, GSHP: a coil at the edge of the approach search), <code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code> (ASHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_heat_exchanger&quot;</span></code> (GSHPB, WSHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_fluid_freezing&quot;</span></code> (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). <code class="docutils literal notranslate"><span class="pre">None</span></code> on every other row.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code></p></td>
 <td><p>ASHP, GSHP (s), ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
-<td><p>A default compressor-efficiency fit is read outside its data box (PR 1.50–7.15, 33.8–72.5 rev/s) at this point. Scalar and user efficiencies give <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></td>
+<td><p>A default compressor efficiency is evaluated outside the (PR, N) hull of its compressor type’s data at this point (<code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code> and <code class="docutils literal notranslate"><span class="pre">rotary_single_fixed</span></code>: PR 1.94–6.84, 30–120 rev/s; <code class="docutils literal notranslate"><span class="pre">scroll</span></code>: within PR 1.46–8.76 and 20–90 rev/s). Outside it the forms are followed as they are, nothing is held, so the flag is common at ordinary points: every rotary speed below 30 rev/s, and the pressure ratios of hot water in cold weather. Scalar and user efficiencies give <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">discharge_control</span></code></p></td>
 <td><p>all</p></td>
@@ -367,7 +367,7 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
-<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> row, the duty of continuous operation at the minimum speed (or at the smallest duty the compressor envelope admits, where that is larger: the discharge-temperature limit or the efficiency floor refuses the speeds below it). NaN otherwise.</p></td>
+<td><p>On a <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> row, the duty of continuous operation at the minimum speed (or at the smallest duty the compressor envelope admits, where that is larger: the discharge-temperature limit refuses the speeds below it). NaN otherwise.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PLR_request</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHPB (s)</p></td>
@@ -512,7 +512,7 @@ temperature of the row and can be negative; only their differences are heat rate
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code></p></td>
 <td><p>all</p></td>
-<td><p>Compressor electrical input (refrigerant work over the electro-mechanical efficiency; on a cycling or frosting row, the mean including that loss).</p></td>
+<td><p>Compressor electrical input (refrigerant work over <code class="docutils literal notranslate"><span class="pre">eta_cmp</span> <span class="pre">[-]</span></code>; with the default efficiencies the inverter input, drive loss included; on a cycling or frosting row, the mean including that loss).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">E_cmp_ref</span> <span class="pre">[W]</span></code></p></td>
 <td><p>GSHP</p></td>
@@ -650,7 +650,7 @@ temperature of the row and can be negative; only their differences are heat rate
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">eta_cmp</span> <span class="pre">[-]</span></code></p></td>
 <td><p>all</p></td>
-<td><p>Electro-mechanical efficiency at this point.</p></td>
+<td><p>Motor, mechanical and drive efficiency at this point: refrigerant work over <code class="docutils literal notranslate"><span class="pre">eta_cmp</span></code> is <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code>. With the default efficiencies it includes the inverter, so <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code> is the inverter input.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">[kg/s]</span></code></p></td>
 <td><p>all</p></td>
@@ -1655,7 +1655,7 @@ carries a key this page does not name.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 15, 2026
+  Last updated Nov 16, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

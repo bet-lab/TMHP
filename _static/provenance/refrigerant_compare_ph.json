@@ -14,8 +14,8 @@
  "outputs": [
   "docs/source/_static/refrigerant_compare_ph.svg"
  ],
- "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "git_head": "2c630e9c9111843384b9aad24c0bad58db5fa6f9",
+ "coefficient_version": "semi-empirical-2026-11-15",
+ "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -25,36 +25,36 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "2e53cfea907d1e8067dd6a959fc8c34ed023550a",
- "validation_parity_tree": "a1cfee06702656e5516c0d9e9d0ca94a31797e30",
+ "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
+ "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-14T06:43:50+00:00",
+ "run_at": "2026-11-16T03:05:39+00:00",
  "data": {
   "R32": {
-   "cop_sys [-]": 2.8888185133235127,
-   "E_cmp [W]": 2687.991908514477,
-   "Q_ref_tank [W]": 7999.999999999998,
-   "T_ref_evap_sat [°C]": 2.3003935365048847,
-   "T_ref_cond_sat_v [°C]": 57.666666666666686,
-   "T_ref_cmp_out [°C]": 136.9474951311538
+   "cop_sys [-]": 2.3978870869456728,
+   "E_cmp [W]": 3276.337182135427,
+   "Q_ref_tank [W]": 7999.999999999999,
+   "T_ref_evap_sat [°C]": 1.4427413730431908,
+   "T_ref_cond_sat_v [°C]": 58.73809112941137,
+   "T_ref_cmp_out [°C]": 128.1450290132301
   },
   "R290": {
-   "cop_sys [-]": 3.285026036842546,
-   "E_cmp [W]": 2373.639432767779,
-   "Q_ref_tank [W]": 8000.0,
-   "T_ref_evap_sat [°C]": 1.6175750327623746,
-   "T_ref_cond_sat_v [°C]": 57.666666666666686,
-   "T_ref_cmp_out [°C]": 79.99950256476382
+   "cop_sys [-]": 2.8023139506015933,
+   "E_cmp [W]": 2782.9884510553843,
+   "Q_ref_tank [W]": 7999.999999999999,
+   "T_ref_evap_sat [°C]": 1.499988343948587,
+   "T_ref_cond_sat_v [°C]": 58.73809112941137,
+   "T_ref_cmp_out [°C]": 76.8288827192784
   },
   "R134a": {
-   "cop_sys [-]": 3.2972261856167884,
-   "E_cmp [W]": 2338.08679545967,
-   "Q_ref_tank [W]": 8000.000000000022,
-   "T_ref_evap_sat [°C]": 2.104631183977233,
-   "T_ref_cond_sat_v [°C]": 57.666666666666686,
-   "T_ref_cmp_out [°C]": 81.01637502477195
+   "cop_sys [-]": 2.686948800506896,
+   "E_cmp [W]": 2902.037614568173,
+   "Q_ref_tank [W]": 7999.999999999997,
+   "T_ref_evap_sat [°C]": 1.6169477830193841,
+   "T_ref_cond_sat_v [°C]": 58.73809112941137,
+   "T_ref_cmp_out [°C]": 79.59345984960265
   }
  }
 }

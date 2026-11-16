@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP is meant to run from a nameplate, not from a component datasheet. For every released family three statements describe a machine: which family — the class says what the heat comes from and wher..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -235,7 +235,7 @@ you, what it fills in, and where each rule comes from.</p>
 <code class="docutils literal notranslate"><span class="pre">T_bhe_wall</span></code> is given</p></td>
 </tr>
 <tr class="row-even"><td><p>ASHPB — air to hot-water tank</p></td>
-<td><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> (15 kW, R134a)</p></td>
+<td><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> (15 kW, R290)</p></td>
 <td><p>EN 14511 A7/W55</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code>, <code class="docutils literal notranslate"><span class="pre">T0</span></code> (outdoor air), <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code> (heat to the tank)</p></td>
 </tr>
@@ -286,7 +286,7 @@ delivers exactly <code class="docutils literal notranslate"><span class="pre">hp
 </span></pre></div>
 </div>
 <p>Each call returns a running point (<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;none&quot;</span></code>) with a system
-COP of 4.74, 4.86, 3.44, 3.66 and 3.72 respectively. The keys of the result
+COP of 4.50, 6.26, 3.05, 3.13 and 3.24 respectively. The keys of the result
 are listed in <a class="reference internal" href="../concepts/result-keys.html"><span class="doc">Result keys</span></a>. A time series needs the same
 quantities as schedules; see <a class="reference internal" href="first-dynamic-simulation.html"><span class="doc">Your first dynamic simulation</span></a>.</p>
 </section>
@@ -313,57 +313,73 @@ always be read back.</p>
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Compressor displacement <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code></p></td>
-<td><p>42 cm³/rev per 9 kW of nameplate (4.67 cm³/rev per kW), any
-refrigerant</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">(ρ₁</span> <span class="pre">·</span> <span class="pre">Δh</span> <span class="pre">·</span> <span class="pre">53.2</span> <span class="pre">rev/s)</span></code> at the compressor catalogues’
+rating point: 3.01 cm³/rev per kW for R32, 5.62 for R290, 7.31 for
+R134a, in every family</p></td>
 <td><p>all</p></td>
 <td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>Compressor displacement</em></p></td>
 </tr>
 <tr class="row-odd"><td><p>Compressor speed range</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> solved at the rating point; <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> 15 rev/s;
-<code class="docutils literal notranslate"><span class="pre">rps_max</span></code> = <code class="docutils literal notranslate"><span class="pre">max(min(2</span> <span class="pre">×</span> <span class="pre">rps_rated,</span> <span class="pre">120),</span> <span class="pre">1.5</span> <span class="pre">×</span> <span class="pre">rps_rated)</span></code></p></td>
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code> = <code class="docutils literal notranslate"><span class="pre">max(120,</span> <span class="pre">1.5</span> <span class="pre">×</span> <span class="pre">rps_rated)</span></code></p></td>
 <td><p>all</p></td>
 <td><p><a class="reference internal" href="../models/reference-state.html"><span class="doc">Compressor reference state</span></a>,
 <a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>Outdoor-coil conductance</p></td>
-<td><p>ASHP: <code class="docutils literal notranslate"><span class="pre">UA_ou_rated</span> <span class="pre">=</span> <span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">5</span></code> [W/K]. ASHPB:
-<code class="docutils literal notranslate"><span class="pre">0.7</span> <span class="pre">×</span> <span class="pre">UA_tank_hx</span></code> = <code class="docutils literal notranslate"><span class="pre">0.14</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code></p></td>
+<td><p>The effective <code class="docutils literal notranslate"><span class="pre">UA</span></code> [W/K] that reproduces the leaving-end approach
+real outdoor coils print at their rating point, at the rated outdoor
+airflow: 2.73 K as a condenser (ASHP <code class="docutils literal notranslate"><span class="pre">UA_ou_rated</span></code>), 2.82 K as an
+evaporator (ASHP <code class="docutils literal notranslate"><span class="pre">UA_ou_evap_rated</span></code>, ASHPB <code class="docutils literal notranslate"><span class="pre">UA_ou_rated</span></code>)</p></td>
 <td><p>ASHP, ASHPB</p></td>
 <td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>Heat-exchanger conductance</em></p></td>
 </tr>
 <tr class="row-odd"><td><p>Indoor-coil conductance</p></td>
-<td><p>ASHP: <code class="docutils literal notranslate"><span class="pre">UA_iu_rated</span> <span class="pre">=</span> <span class="pre">0.8</span> <span class="pre">×</span> <span class="pre">UA_ou_rated</span></code> = <code class="docutils literal notranslate"><span class="pre">0.16</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code>.
-GSHP: <code class="docutils literal notranslate"><span class="pre">0.08</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code></p></td>
+<td><p>ASHP: <code class="docutils literal notranslate"><span class="pre">UA_iu_rated</span> <span class="pre">=</span> <span class="pre">0.16</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code>, the earlier rule, kept as
+provisional (no wall-mounted value ships). GSHP: leaving-end approach
+2.79 K at the rated indoor airflow</p></td>
 <td><p>ASHP, GSHP</p></td>
 <td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>; <a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>Tank heat exchanger <code class="docutils literal notranslate"><span class="pre">UA_tank_hx</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">5</span></code> [W/K]: a 5 K condensing approach at the nameplate
-duty</p></td>
+<td><p>A plate condenser with circulating water at
+<code class="docutils literal notranslate"><span class="pre">m_dot_w_rated</span> <span class="pre">=</span> <span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">(c_w</span> <span class="pre">·</span> <span class="pre">dT_w_rated)</span></code>, <code class="docutils literal notranslate"><span class="pre">dT_w_rated</span></code>
+5 K; <code class="docutils literal notranslate"><span class="pre">UA_tank_hx</span></code> reproduces a leaving-end approach of 2.01 K there.
+<code class="docutils literal notranslate"><span class="pre">m_dot_w_rated=0</span></code> selects a coil without circulating water, whose
+<code class="docutils literal notranslate"><span class="pre">UA_tank_hx</span></code> you give</p></td>
 <td><p>ASHPB, GSHPB, WSHPB</p></td>
 <td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>; <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>, <em>Default sizing</em></p></td>
 </tr>
 <tr class="row-odd"><td><p>Source-side heat exchanger (liquid to refrigerant)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">0.18</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code> [W/K] (<code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span></code>, <code class="docutils literal notranslate"><span class="pre">UA_ground</span></code>,
-<code class="docutils literal notranslate"><span class="pre">UA_water</span></code>)</p></td>
+<td><p>Leaving-end approach at the rated loop flow: 3.47 K as an evaporator
+(GSHP <code class="docutils literal notranslate"><span class="pre">UA_ground_evap_rated</span></code>, GSHPB <code class="docutils literal notranslate"><span class="pre">UA_ground</span></code>, WSHPB
+<code class="docutils literal notranslate"><span class="pre">UA_water</span></code>), 4.06 K as a condenser (GSHP <code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span></code>)</p></td>
 <td><p>GSHP, GSHPB, WSHPB</p></td>
 <td><p><a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a>, <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>, <a class="reference internal" href="../models/wshpb.html"><span class="doc">Water-source heat pump boiler (WSHPB)</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>Rated outdoor airflow</p></td>
-<td><p>ASHP: 720 m³/h per kW. ASHPB: 540 m³/h per kW. The fan modulates down
-to 15 % of it</p></td>
+<td><p>ASHP: the largest airflow single-split outdoor units of that capacity
+publish, <code class="docutils literal notranslate"><span class="pre">0.1084</span> <span class="pre">×</span> <span class="pre">kW</span> <span class="pre">+</span> <span class="pre">0.1776</span></code> m³/s (573 m³/h per kW at 3.5 kW,
+470 at 8 kW). ASHPB: the largest airflow air-to-water outdoor units
+publish, <code class="docutils literal notranslate"><span class="pre">0.0864</span> <span class="pre">×</span> <span class="pre">kW</span> <span class="pre">+</span> <span class="pre">0.2208</span></code> m³/s (heating-rated; 538 m³/h per
+kW at 3.5 kW, 410 at 8 kW, 364 at 15 kW). It is also the fan’s maximum;
+the fan modulates down to 15 % of it</p></td>
 <td><p>ASHP, ASHPB</p></td>
-<td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>Summary</em></p></td>
+<td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>Maximum fan airflow</em></p></td>
 </tr>
 <tr class="row-odd"><td><p>Rated indoor airflow</p></td>
-<td><p>193 m³/h per kW (400 cfm per ton), modulating down to 15 %</p></td>
+<td><p>ASHP: the largest airflow wall-mounted indoor units publish,
+<code class="docutils literal notranslate"><span class="pre">0.0320</span> <span class="pre">×</span> <span class="pre">kW</span> <span class="pre">+</span> <span class="pre">0.1035</span></code> m³/s (222 m³/h per kW at 3.5 kW, 162 at
+8 kW); <code class="docutils literal notranslate"><span class="pre">indoor_unit_type=&quot;floor_standing&quot;</span></code> selects that class.
+GSHP: of water-to-air units, <code class="docutils literal notranslate"><span class="pre">0.0491</span> <span class="pre">×</span> <span class="pre">kW</span> <span class="pre">+</span> <span class="pre">0.1305</span></code> m³/s.
+Modulating down to 15 %</p></td>
 <td><p>ASHP, GSHP</p></td>
-<td><p><a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <em>Indoor airflow</em></p></td>
+<td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>Maximum fan airflow</em></p></td>
 </tr>
 <tr class="row-even"><td><p>Fan power</p></td>
-<td><p>From the airflow at 60 Pa and 60 % fan efficiency: outdoor fan 2.0 %
-(ASHP) or 1.5 % (ASHPB) of the nameplate at rated flow, indoor fan
-0.5 %</p></td>
+<td><p>From the airflow at 60 Pa and 60 % fan efficiency: at rated flow the
+ASHP outdoor fan draws 1.6 % of the nameplate at 3.5 kW and 1.2 % at
+15 kW, its indoor fan 0.6 % and 0.4 %; the ASHPB outdoor fan 1.5 %</p></td>
 <td><p>ASHP, GSHP, ASHPB</p></td>
 <td><p><a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <em>Indoor airflow</em></p></td>
 </tr>
@@ -403,7 +419,7 @@ GSHP, 200 m for GSHPB</p></td>
 </span><span data-line="5"><span class="nb">print</span><span class="p">(</span><span class="n">gshp</span><span class="o">.</span><span class="n">N_1</span><span class="p">,</span> <span class="n">gshp</span><span class="o">.</span><span class="n">N_2</span><span class="p">,</span> <span class="n">gshp</span><span class="o">.</span><span class="n">H_b</span><span class="p">)</span>   <span class="c1"># 3 2 100.0  -&gt; six 100 m boreholes</span>
 </span><span data-line="6"><span class="nb">print</span><span class="p">(</span><span class="n">gshp</span><span class="o">.</span><span class="n">ground_flow_ref_lpm</span><span class="p">)</span>       <span class="c1"># 115.3 L/min of 25 % ethylene glycol</span>
 </span><span data-line="7"><span class="nb">print</span><span class="p">(</span><span class="n">gshp</span><span class="o">.</span><span class="n">E_pmp</span><span class="p">)</span>                     <span class="c1"># 640 W</span>
-</span><span data-line="8"><span class="nb">print</span><span class="p">(</span><span class="n">gshp</span><span class="o">.</span><span class="n">UA_ground_rated</span><span class="p">)</span>           <span class="c1"># 5400 W/K</span>
+</span><span data-line="8"><span class="nb">print</span><span class="p">(</span><span class="n">gshp</span><span class="o">.</span><span class="n">UA_ground_rated</span><span class="p">)</span>           <span class="c1"># 5845 W/K (condensing; 4927 W/K evaporating)</span>
 </span></pre></div>
 </div>
 <p>The constructor warns (<code class="docutils literal notranslate"><span class="pre">UserWarning</span></code>) when a size you give contradicts the
@@ -428,9 +444,11 @@ tank set point the refrigerant cannot reach — instead of solving it silently.<
 <tbody>
 <tr class="row-even"><td><p>Rated compressor speed</p></td>
 <td><p>Solved for the fluid at the rating point, so the nameplate capacity
-is kept when the refrigerant is swapped. A fluid of low volumetric
-capacity (R134a, R1234yf, R600a) then runs fast and may need a larger
-<code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code></p></td>
+is kept when the refrigerant is swapped. The displacement follows the
+refrigerant in every family, so the rated speed moves little with the
+fluid: over R32, R290, R410A, R134a, R600a, R1234yf and R1234ze(E)
+36–38 rev/s for the default GSHP, 48–50 ASHP, 54–64 WSHPB, 63–79
+ASHPB and 75–101 GSHPB (its rating point is B0/W55)</p></td>
 <td><p><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>Discharge-temperature limit <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code></p></td>
@@ -443,17 +461,19 @@ capacity (R134a, R1234yf, R600a) then runs fast and may need a larger
 <td><p><a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>, <em>Condensing limit</em></p></td>
 </tr>
 <tr class="row-odd"><td><p>Highest tank set point (boilers)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> less the 5 K condenser approach: a
-<code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code> above it is capped with a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code>
-(about 60 °C for R410A and R32, 70 °C for R290)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> less the tank heat-exchanger approach at the nameplate
+duty (7.0 K): a <code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code> above it is capped with a
+<code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> (58 °C for R410A and R32, 68 °C for R290)</p></td>
 <td><p><a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>, <em>Default sizing</em></p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <p>The default refrigerants are chosen so the default machine runs inside these
-limits: R32 for the space-conditioning families, R134a for ASHPB (60–65 °C
-tank) and R290 for GSHPB and WSHPB (55–65 °C tank).</p>
+limits: R32 for the space-conditioning families and R290 for the three
+water-heating families (ASHPB with a 60–65 °C tank band, GSHPB and WSHPB with
+55–65 °C). ASHPB was R134a until the 6th round (2026-11): a fluid being phased
+out, and the one whose default machine was rated above the fitted speed range.</p>
 </section>
 <section id="what-is-on-by-default">
 <h2>What is on by default<a class="headerlink" href="#what-is-on-by-default" title="Link to this heading">¶</a></h2>
@@ -476,8 +496,8 @@ Each can be switched off to see the bare cycle.</p>
 <tr class="row-even"><td><p>Compressor envelope</p></td>
 <td><p>A point outside it is not returned as running: pressure ratio above
 11, discharge above <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> (after suction control down to
-quality 0.9), condensing above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>, isentropic fit below
-0.30. A request that a smaller duty meets runs at that duty</p></td>
+quality 0.9) or condensing above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>. A request that a
+smaller duty meets runs at that duty</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>, <code class="docutils literal notranslate"><span class="pre">T_dis_max=None</span></code>, <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>,
 <code class="docutils literal notranslate"><span class="pre">T_cond_max=None</span></code>
 (<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>)</p></td>
@@ -580,7 +600,7 @@ the pattern. What the models leave out altogether is listed in
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 15, 2026
+  Last updated Nov 16, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

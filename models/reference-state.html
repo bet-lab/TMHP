@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every compressor-based model – tmhp.AirSourceHeatPump, tmhp.GroundSourceHeatPump, tmhp.AirSourceHeatPumpBoiler, tmhp.GroundSourceHeatPumpBoiler, tmhp.WaterSourceHeatPumpBoiler and the composed vari..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -196,8 +196,10 @@ and the composed variants built on them – derives rated speed and refrigerant
 mass flow from one physical <em>reference state</em>:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> identifies the nominal-capacity operating point and the reported
-speed ratio, <code class="docutils literal notranslate"><span class="pre">n*</span> <span class="pre">=</span> <span class="pre">rps</span> <span class="pre">/</span> <span class="pre">rps_rated</span></code>. BITZER efficiencies use actual shaft
-speed in rev/s, without relative-speed normalization;</p></li>
+speed ratio, <code class="docutils literal notranslate"><span class="pre">n*</span> <span class="pre">=</span> <span class="pre">rps</span> <span class="pre">/</span> <span class="pre">rps_rated</span></code>. The default efficiency models take
+the shaft speed in rev/s; the rotary types read it relative to the machine’s
+<code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> (so their level sits at the rated point whatever the rated
+speed), the scroll type relative to a fixed 50 rev/s;</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code> normalizes the refrigerant-side ground-HX resistance,
 <code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">/</span> <span class="pre">m_dot_ref_rated</span></code> (<code class="docutils literal notranslate"><span class="pre">variable_ground_hx_UA=True</span></code>).</p></li>
 </ul>
@@ -223,8 +225,9 @@ so <code class="docutils literal notranslate"><span class="pre">hp_capacity</spa
 <p>Capacity-only initialization constructs a representative compressor; it does
 not identify the exact manufacturer compressor.</p>
 <p>When manufacturer compressor data are unavailable, <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code> is estimated
-from nominal heat-pump capacity
-(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_speed.default_displacement()</span></code>). The rated compressor
+from the nominal heat-pump capacity and the refrigerant
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.default_inputs.estimate_displacement()</span></code>, every family), and the
+estimate is kept in <code class="docutils literal notranslate"><span class="pre">default_input_estimates</span></code>. The rated compressor
 speed and reference refrigerant mass flow are then solved self-consistently at
 the model’s standard/reference rating condition.</p>
 <section id="what-each-symbol-means">
@@ -253,8 +256,8 @@ the model’s standard/reference rating condition.</p>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rps_min</span></code> / <code class="docutils literal notranslate"><span class="pre">rps_max</span></code></p></td>
 <td><p>Hardware/control speed limits. <code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> is generally <em>not</em>
 <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>: rated capacity is not maximum capacity. An omitted
-<code class="docutils literal notranslate"><span class="pre">rps_max</span></code> is <code class="docutils literal notranslate"><span class="pre">max(min(2</span> <span class="pre">×</span> <span class="pre">rps_rated,</span> <span class="pre">120),</span> <span class="pre">1.5</span> <span class="pre">×</span> <span class="pre">rps_rated)</span></code>
-rev/s, set once the rated speed is solved; the rated speed itself is
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code> is <code class="docutils literal notranslate"><span class="pre">max(120,</span> <span class="pre">1.5</span> <span class="pre">×</span> <span class="pre">rps_rated)</span></code> rev/s, set once the
+rated speed is solved; the rated speed itself is
 searched up to 150 rev/s.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code></p></td>
@@ -417,7 +420,7 @@ the <code class="docutils literal notranslate"><span class="pre">T_cond_max</spa
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 15, 2026
+  Last updated Nov 16, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

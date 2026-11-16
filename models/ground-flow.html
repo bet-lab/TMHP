@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
 
-    <meta property="article:modified_time" content="2026-11-12T18:58:41+00:00" />
+    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -227,12 +227,19 @@ or validated refrigerant correlations. Supply values appropriate to the case.</p
 </section>
 <section id="physical-hx-sizing-and-compressor-efficiencies">
 <h2>Physical HX sizing and compressor efficiencies<a class="headerlink" href="#physical-hx-sizing-and-compressor-efficiencies" title="Link to this heading">¶</a></h2>
-<p>GSHP sizes its physical ground HX with
-<code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span> <span class="pre">=</span> <span class="pre">ground_hx_ua_per_capacity</span> <span class="pre">*</span> <span class="pre">hp_capacity</span></code>. The default
-coefficient is 0.18 K^-1: an 8 kW unit therefore uses 1440 W/K. An explicit
-<code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span></code> overrides this sizing rule. The independent air-side
-<code class="docutils literal notranslate"><span class="pre">UA_iu_rated</span></code> defaults to 0.08 times rated capacity, or 640 W/K at 8 kW.
-Both physical UAs remain attached to the same hardware in cooling and heating.
+<p>GSHP sizes its physical ground HX from the leaving-end approach of the coaxial
+exchangers of water-to-air units at the rated loop flow
+(<a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>Heat-exchanger conductance</em>): one value as a
+condenser (<code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span></code>, cooling, 4.06 K) and one as an evaporator
+(<code class="docutils literal notranslate"><span class="pre">UA_ground_evap_rated</span></code>, heating, 3.47 K) — 1559 and 1314 W/K for an 8 kW
+unit. <code class="docutils literal notranslate"><span class="pre">ground_hx_ua_per_capacity</span></code> selects the proportional rule
+<code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span> <span class="pre">=</span> <span class="pre">ground_hx_ua_per_capacity</span> <span class="pre">*</span> <span class="pre">hp_capacity</span></code> for both roles
+instead (the rule before November 2026 was 0.18 K^-1), and an explicit
+<code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span></code> overrides either; given without <code class="docutils literal notranslate"><span class="pre">UA_ground_evap_rated</span></code>
+it serves both roles. The independent air-side <code class="docutils literal notranslate"><span class="pre">UA_iu_rated</span></code> reproduces the
+2.79 K leaving-end approach of water-to-air indoor coils at the rated indoor
+airflow, 1082 W/K at 8 kW. The physical UAs remain attached to the same
+hardware in cooling and heating.
 The deprecated <code class="docutils literal notranslate"><span class="pre">UA_cond</span></code>/<code class="docutils literal notranslate"><span class="pre">UA_evap</span></code> inputs retain their historical cycle-role
 mapping only when explicitly supplied; physical inputs take precedence.</p>
 <p>The 0.18 coefficient is a reduced-order engineering sizing assumption, not
@@ -421,7 +428,7 @@ reference flow, heat-exchanger UA or the electrical pump performance map.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 12, 2026
+  Last updated Nov 16, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

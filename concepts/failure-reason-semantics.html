@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-15T11:22:41+00:00" />
+    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -327,19 +327,6 @@ condensing temperature would be above the critical point (formerly
 <td><p>No — only off-mode placeholders (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code></p></td>
-<td><p>The shipped isentropic-efficiency fit, read outside its data (the
-low-speed continuation), is below <code class="docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code> = 0.30 at the
-solved point (ASHP, GSHP: at every candidate). The fit never goes
-below 0.336 inside its data. Not checked for scalar or user
-efficiencies. ASHP and the boilers (ASHPB, GSHPB, WSHPB:
-<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>) do not report it for a request that is only too
-<em>small</em> (the fit falls below the floor towards low speed while a
-larger duty runs): that request is met by on/off cycling at the
-smallest duty the envelope admits (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>),
-like one the discharge limit refuses there.</p></td>
-<td><p>No — only off-mode placeholders.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -434,8 +421,7 @@ also appear).</p>
 <td><p>The cycle was invalid and the last pressure-ratio check hit
 <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> or <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>. It replaces <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>
 in this path. (An envelope rejection keeps its own reason:
-<code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>, <code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code> or
-<code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code>.)</p></td>
+<code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code> or <code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code>.)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code></p></td>
 <td><p>The requested duty is below what the compressor delivers at
@@ -517,10 +503,6 @@ approach, so the pressure ratio falls.</p></td>
 <td><p>The source heat exchanger has less heat to absorb. Not tried when
 <code class="docutils literal notranslate"><span class="pre">failure_detail</span> <span class="pre">==</span> <span class="pre">&quot;outdoor_coil_excess_at_min_airflow&quot;</span></code>: a
 smaller duty makes that worse.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code></p></td>
-<td><p>A lower pressure ratio moves the shipped fit back above its floor.</p></td>
 </tr>
 </tbody>
 </table>
@@ -785,49 +767,42 @@ limit.</p></td>
 warmer source). PR_cycle_max=&lt;ratio&gt; sets the limit of another
 compressor.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code> (binding)</p></td>
-<td><p>The shipped compressor efficiency map, read outside its data, is below
-its floor (isentropic efficiency 0.30).</p></td>
-<td><p>Reduce the temperature lift (a lower tank or supply temperature, or a
-warmer source), or give the efficiency map of the actual compressor
-(eta_cmp_isen).</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">source_fluid_freezing</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source_fluid_freezing</span></code></p></td>
 <td><p>The source-loop liquid would run below its operating limit, its
 freezing point plus 3 K.</p></td>
 <td><p>Fill the loop with an antifreeze mixture, or a stronger one
 (source_fluid=’MEG-30%’), or take less heat from the source.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code></p></td>
 <td><p>A heat exchanger cannot carry the duty inside its flow range and the
 approach temperatures the search admits.</p></td>
 <td><p>Reduce the request, or enlarge the heat exchanger that is short (its
 UA or its largest flow); failure_detail names the fan limit on the
 air-source boiler.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code> (binding)</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code> (binding)</p></td>
 <td><p>The outdoor coil is short of the evaporator duty at the fan’s largest
 airflow.</p></td>
 <td><p>Reduce the request, or give the outdoor coil and fan of the actual
 unit (UA_ou_rated, dV_fan_a_max).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;source_heat_exchanger&quot;</span></code> (binding)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;source_heat_exchanger&quot;</span></code> (binding)</p></td>
 <td><p>The source heat exchanger cannot absorb the evaporator duty at the
 approach temperatures the search admits.</p></td>
 <td><p>Reduce the request, raise the source temperature or flow, or enlarge
 the source heat exchanger.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> (binding)</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> (binding)</p></td>
 <td><p>A coil is at its largest airflow and the widest approach temperature
 the search admits.</p></td>
 <td><p>Reduce the request, or size the machine for it (hp_capacity scales the
 coils and the compressor).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_max_speed</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> (binding)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_max_speed</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> (binding)</p></td>
 <td><p>The compressor is at its maximum speed (rps_max).</p></td>
 <td><p>Size the machine for the load (hp_capacity), or reduce the request.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code></p></td>
 <td><p>No refrigerant cycle closes at this condition (for example a
 condensing temperature at or above the critical point), or the solved
 cycle is not an operating point.</p></td>
@@ -835,44 +810,44 @@ cycle is not an operating point.</p></td>
 lift or the request; failure_detail names the check where there is
 one.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">t_cond_below_t_in</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">t_cond_below_t_in</span></code></p></td>
 <td><p>The condensing temperature is at or below the water entering the
 condenser, so no heat can flow to the water.</p></td>
 <td><p>Check the tank and water-loop temperatures given for this point.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code></p></td>
 <td><p>The operating-point search did not settle: a numerical failure, not a
 limit of the machine.</p></td>
 <td><p>Treat the point as unsolved (a neighbouring condition usually solves),
 and report a condition that fails repeatedly.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pressure_ratio_limit</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pressure_ratio_limit</span></code></p></td>
 <td><p>The cycle is invalid and its pressure ratio is at PR_cycle_min or
 PR_cycle_max (ground-coupled solve).</p></td>
 <td><p>Reduce the temperature lift (a lower tank or supply temperature, or a
 warmer source).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code></p></td>
 <td><p>The request is below what the compressor delivers at its minimum
 speed, and on/off cycling is switched off (Cd_cycling=None).</p></td>
 <td><p>Leave on/off cycling on (the default Cd_cycling), or lower rps_min.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_capacity_limit</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_capacity_limit</span></code></p></td>
 <td><p>The delivered duty differs from the request for another reason than
 the compressor’s speed limits (ground-coupled solve).</p></td>
 <td><p>Reduce the request, or check the compressor’s speed range against it.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_speed_limit</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_speed_limit</span></code></p></td>
 <td><p>The compressor-speed solve did not converge (ground-coupled solve).</p></td>
 <td><p>Treat the point as unsolved (a neighbouring condition usually solves),
 and report a condition that fails repeatedly.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">load_hx_capacity_insufficient</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">load_hx_capacity_insufficient</span></code></p></td>
 <td><p>The load-side heat exchanger (indoor coil or tank condenser) cannot
 transfer the duty.</p></td>
 <td><p>Reduce the request, or enlarge the load-side heat exchanger.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ground_hx_capacity_insufficient</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ground_hx_capacity_insufficient</span></code></p></td>
 <td><p>The ground heat exchanger cannot supply the evaporator duty at any
 approach temperature the search admits.</p></td>
 <td><p>Reduce the request, or enlarge the borefield or its flow.</p></td>
@@ -961,18 +936,23 @@ no brine temperature can be imposed and <code class="docutils literal notranslat
 (<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>) rather than report a condition it did not solve. The indoor
 air is <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code>.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">W55</span></code> of a boiler condition is the water <em>leaving</em> the heat pump, which
-is not an input of the boiler models: their sink is the tank temperature
-<code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code>. The table solves <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">=</span> <span class="pre">leaving</span> <span class="pre">water</span> <span class="pre">-</span> <span class="pre">sink_offset_K</span></code> with
-<code class="docutils literal notranslate"><span class="pre">sink_offset_K</span> <span class="pre">=</span> <span class="pre">2.5</span> <span class="pre">K</span></code>, the offset every air-to-water catalogue of the
-validation set states for where the manufacturer measures, and prints both
-temperatures (<code class="docutils literal notranslate"><span class="pre">T_load_side</span> <span class="pre">[°C]</span></code> and <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>). Near a limit those
-2.5 K can decide whether a point runs; <code class="docutils literal notranslate"><span class="pre">sink_offset_K=0</span></code> solves the tank at
-the named temperature, the stricter case of a tank held at 55 °C:</p>
+is not an input of the boiler models: their sink is the tank water
+<code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code> entering the plate condenser. The table hands a boiler the water
+EN 14511 enters with — the leaving water less the standard’s rise, 5 K up to
+45 °C, 8 K at 55 °C, 10 K at 65 °C
+(<a class="reference internal" href="../api/support/simulation.html#tmhp.standard_conditions.en14511_water_rise" title="tmhp.standard_conditions.en14511_water_rise"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.standard_conditions.en14511_water_rise()</span></code></a>) — and, for
+<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>, the flow that carries the duty at that rise; the
+liquid-source boilers run at their rated circulation flow. It prints both
+temperatures (<code class="docutils literal notranslate"><span class="pre">T_load_side</span> <span class="pre">[°C]</span></code> and <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>). Near a limit the
+rise can decide whether a point runs. <code class="docutils literal notranslate"><span class="pre">sink_offset_K</span></code> replaces it: the
+water enters that much below the leaving water at the rated circulation flow,
+and <code class="docutils literal notranslate"><span class="pre">sink_offset_K=0</span></code> solves the tank water at the named temperature, the
+stricter case of a tank held at 55 °C:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">tmhp</span>
 </span><span data-line="2">
 </span><span data-line="3"><span class="n">hp</span> <span class="o">=</span> <span class="n">tmhp</span><span class="o">.</span><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
-</span><span data-line="4"><span class="n">leaving</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">operating_range</span><span class="p">()</span>                 <span class="c1"># tank 2.5 K below the leaving water</span>
-</span><span data-line="5"><span class="n">tank</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">operating_range</span><span class="p">(</span><span class="n">sink_offset_K</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>   <span class="c1"># tank at the named temperature</span>
+</span><span data-line="4"><span class="n">leaving</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">operating_range</span><span class="p">()</span>                 <span class="c1"># EN 14511: water enters the rise below the leaving water</span>
+</span><span data-line="5"><span class="n">tank</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">operating_range</span><span class="p">(</span><span class="n">sink_offset_K</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>   <span class="c1"># tank water at the named temperature</span>
 </span><span data-line="6"><span class="nb">print</span><span class="p">(</span><span class="n">leaving</span><span class="p">[[</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="s2">&quot;failure_reason&quot;</span><span class="p">]])</span>
 </span><span data-line="7"><span class="nb">print</span><span class="p">(</span><span class="n">tank</span><span class="p">[[</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="s2">&quot;failure_reason&quot;</span><span class="p">]])</span>
 </span></pre></div>
@@ -1020,46 +1000,46 @@ magnitude):</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>ASHPB (R134a)</p></td>
+<tr class="row-even"><td><p>ASHPB (R290)</p></td>
 <td><p>8</p></td>
-<td><p>5.5 ms</p></td>
-<td><p>0.30 s</p></td>
-<td><p>54 ×</p></td>
+<td><p>5.6 ms</p></td>
+<td><p>0.036 s</p></td>
+<td><p>6 ×</p></td>
 </tr>
 <tr class="row-odd"><td><p>ASHPB, <code class="docutils literal notranslate"><span class="pre">ref=&quot;R32&quot;</span></code></p></td>
 <td><p>8</p></td>
-<td><p>3.9 ms</p></td>
-<td><p>0.53 s</p></td>
-<td><p>135 ×</p></td>
+<td><p>5.9 ms</p></td>
+<td><p>0.41 s</p></td>
+<td><p>69 ×</p></td>
 </tr>
 <tr class="row-even"><td><p>ASHP</p></td>
 <td><p>5</p></td>
-<td><p>2.4 ms</p></td>
-<td><p>0.08 s</p></td>
-<td><p>33 ×</p></td>
+<td><p>3.9 ms</p></td>
+<td><p>0.12 s</p></td>
+<td><p>30 ×</p></td>
 </tr>
 <tr class="row-odd"><td><p>GSHPB</p></td>
 <td><p>3</p></td>
-<td><p>203 ms</p></td>
-<td><p>0.013 s</p></td>
-<td><p>0.06 ×</p></td>
+<td><p>207 ms</p></td>
+<td><p>0.007 s</p></td>
+<td><p>0.03 ×</p></td>
 </tr>
 <tr class="row-even"><td><p>WSHPB</p></td>
 <td><p>2</p></td>
-<td><p>7.2 ms</p></td>
-<td><p>0.009 s</p></td>
-<td><p>1.2 ×</p></td>
+<td><p>6.5 ms</p></td>
+<td><p>0.006 s</p></td>
+<td><p>0.9 ×</p></td>
 </tr>
 <tr class="row-odd"><td><p>GSHP</p></td>
 <td><p>2</p></td>
-<td><p>193 ms</p></td>
-<td><p>0.013 s</p></td>
+<td><p>219 ms</p></td>
+<td><p>0.015 s</p></td>
 <td><p>0.07 ×</p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>The air-source models would be built 30 to 140 times more slowly, and a sweep
+<p>The air-source models would be built 6 to 70 times more slowly, and a sweep
 that builds a model per point would pay that every time, for a check most
 callers make once.</p>
 </section>
@@ -1147,16 +1127,22 @@ smaller duty brings it inside – nor a larger one (ASHP and the boilers’
 at the smallest duty that runs). A point the control <em>does</em> hold runs with
 <code class="docutils literal notranslate"><span class="pre">discharge_control</span> <span class="pre">==</span> <span class="pre">True</span></code>; its <code class="docutils literal notranslate"><span class="pre">dT_ref_superheat</span> <span class="pre">[K]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">x_ref_cmp_in</span> <span class="pre">[-]</span></code> say how. The defaults are compressor protection settings
-(<a class="reference internal" href="../api/support/refrigerant-thermo.html#module-tmhp.compressor_envelope" title="tmhp.compressor_envelope"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_envelope</span></code></a>). With the default efficiency map this
-is chiefly high-pressure-ratio operation of R32: at <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">&gt;</span> <span class="pre">7</span></code> the
-fitted isentropic efficiency is 0.37–0.45 and the cycle model puts all
-compressor loss into the gas, so the computed discharge reaches
-200–290 °C. Real units at those conditions use injection (liquid or
-vapour) or two-stage compression, which the single-stage cycle does not
-describe.</p>
+(<a class="reference internal" href="../api/support/refrigerant-thermo.html#module-tmhp.compressor_envelope" title="tmhp.compressor_envelope"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_envelope</span></code></a>). The cycle model puts all compressor
+loss into the gas, so the discharge it computes is an upper estimate. With
+the default compressor type the isentropic efficiency at pressure ratios
+of 7 to 11 is 0.76–0.79 (the rotary forms followed past their data,
+which end at 6.84), and the default R32 boiler discharges at up to about
+170 °C uncontrolled there; the control holds 150 °C with a suction quality
+of 0.98. At low speed the efficiency falls and the discharge runs hotter:
+the 15 kW R32 boiler at −20 °C against a 60 °C tank holds the limit at
+suction quality 0.9 down to 2.1 kW (24 rev/s) and not below, and at
+−25 °C against 55 °C a small request is refused for the discharge
+temperature while larger ones are refused for the pressure ratio. Real
+units at such conditions use injection (liquid or vapour) or two-stage
+compression, which the single-stage cycle does not describe.</p>
 <p class="sd-card-text"><strong>What to do.</strong> Treat the point as outside the single-stage envelope.
-For a sensitivity study, <code class="docutils literal notranslate"><span class="pre">T_dis_max=None</span></code> removes the discharge limit
-(the efficiency floor stays); a different protection setting is <code class="docutils literal notranslate"><span class="pre">T_dis_max=&lt;°C&gt;</span></code>, a wetter
+For a sensitivity study, <code class="docutils literal notranslate"><span class="pre">T_dis_max=None</span></code> removes the discharge limit;
+a different protection setting is <code class="docutils literal notranslate"><span class="pre">T_dis_max=&lt;°C&gt;</span></code>, a wetter
 allowed suction <code class="docutils literal notranslate"><span class="pre">x_suction_min=&lt;x&gt;</span></code> (<code class="docutils literal notranslate"><span class="pre">None</span></code> switches the control off).</p>
 </div>
 </details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
@@ -1178,7 +1164,7 @@ minimum run time – runs at the reduced duty or is an off row with this
 reason.</p>
 <p class="sd-card-text"><strong>What to do.</strong> Choose an upper set point the refrigerant reaches
 (<code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> less the condenser approach at the nameplate duty,
-<code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code>), or a refrigerant with a higher limit (R290, R134a). For a
+<code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">K_tank_hx</span></code>), or a refrigerant with a higher limit (R290, R134a). For a
 compressor with a different high-pressure rating give its own
 <code class="docutils literal notranslate"><span class="pre">T_cond_max=&lt;°C&gt;</span></code>; <code class="docutils literal notranslate"><span class="pre">None</span></code> removes the limit for a sensitivity
 study. A zeotropic blend is judged at its dew point: R407C reaches the
@@ -1214,8 +1200,7 @@ the name points at (<code class="docutils literal notranslate"><span class="pre"
 <section id="off-mode-fallback">
 <h2>Off-mode fallback<a class="headerlink" href="#off-mode-fallback" title="Link to this heading">¶</a></h2>
 <p>When <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;pr_above_max&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temp_above_max&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">&quot;eta_isen_below_min&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temp_above_max&quot;</span></code> or
 <code class="docutils literal notranslate"><span class="pre">&quot;t_cond_below_t_in&quot;</span></code> — and, for WSHPB and for GSHPB outside the
 ground-coupled path, for every reason other than <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> — the
 steady-state path
@@ -1243,7 +1228,7 @@ and WSHPB. See the docstrings under:</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 15, 2026
+  Last updated Nov 16, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

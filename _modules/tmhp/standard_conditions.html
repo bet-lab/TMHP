@@ -222,460 +222,540 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="48"><span class="sd">  cannot be imposed: ``operating_range()`` refuses it (``ValueError``) rather</span>
 </span><span data-line="49"><span class="sd">  than report a condition it did not solve.</span>
 </span><span data-line="50"><span class="sd">- **Leaving water** (the ``W35`` of ``A7/W35``) is not an input of the boiler</span>
-</span><span data-line="51"><span class="sd">  models: their sink is the tank temperature ``T_tank_w``. The table solves</span>
-</span><span data-line="52"><span class="sd">  ``T_tank_w = leaving water - sink_offset_K`` with ``sink_offset_K = 2.5 K``</span>
-</span><span data-line="53"><span class="sd">  (:data:`LEAVING_WATER_TO_TANK_K`), the offset every air-to-water catalogue</span>
-</span><span data-line="54"><span class="sd">  of the validation set states for where the manufacturer measures</span>
-</span><span data-line="55"><span class="sd">  (``sink_offset_K`` in ``validation/catalogs``). ``sink_offset_K=0`` solves</span>
-</span><span data-line="56"><span class="sd">  the tank at the named temperature instead -- a stricter point, since the</span>
-</span><span data-line="57"><span class="sd">  water around the condenser is then as hot as the standard&#39;s leaving water.</span>
-</span><span data-line="58"><span class="sd">  The table prints both temperatures.</span>
-</span><span data-line="59"><span class="sd">- **Indoor air** is ``T_a_room`` (ASHP, GSHP).</span>
-</span><span data-line="60"><span class="sd">- ``T0`` of GSHP, GSHPB and WSHPB is the dead state of the exergy columns</span>
-</span><span data-line="61"><span class="sd">  only; the table gives it the source-side temperature.</span>
-</span><span data-line="62">
-</span><span data-line="63"><span class="sd">Silence and state</span>
-</span><span data-line="64"><span class="sd">-----------------</span>
-</span><span data-line="65"><span class="sd">The solves make no :class:`~tmhp.OperatingLimitWarning`: what a warning would</span>
-</span><span data-line="66"><span class="sd">say is the ``limit`` column, worded by the same generator</span>
-</span><span data-line="67"><span class="sd">(:func:`tmhp.operating_limits.steady_message`). They do not count as the</span>
-</span><span data-line="68"><span class="sd">&quot;reported once per model and limit&quot; of a later ``analyze_steady`` call. Each</span>
-</span><span data-line="69"><span class="sd">condition is solved on a shallow copy of the model, so what a solve writes</span>
-</span><span data-line="70"><span class="sd">on the model (GSHPB&#39;s ``analyze_steady`` sets ``T_bhe_f_out_K`` to its</span>
-</span><span data-line="71"><span class="sd">``T_source``, for one) stays on the copy.</span>
-</span><span data-line="72"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="73">
-</span><span data-line="74"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-</span><span data-line="75">
-</span><span data-line="76"><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
-</span><span data-line="77"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
-</span><span data-line="78"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
-</span><span data-line="79"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">replace</span>
-</span><span data-line="80"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span data-line="51"><span class="sd">  models: their sink is the tank water ``T_tank_w`` that enters the plate</span>
+</span><span data-line="52"><span class="sd">  condenser. The table hands them the water EN 14511 enters with: the leaving</span>
+</span><span data-line="53"><span class="sd">  water less the standard&#39;s temperature rise (:func:`en14511_water_rise`:</span>
+</span><span data-line="54"><span class="sd">  5 K up to 45 °C leaving, 8 K at 55 °C, 10 K at 65 °C). The air-source</span>
+</span><span data-line="55"><span class="sd">  boiler takes the flow that carries the requested duty at that rise</span>
+</span><span data-line="56"><span class="sd">  (``m_dot_w``, :func:`en14511_condenser_water`); the liquid-source boilers</span>
+</span><span data-line="57"><span class="sd">  have no per-call flow, so their water enters at the leaving water less the</span>
+</span><span data-line="58"><span class="sd">  rise of their own rated circulation flow (``m_dot_w_rated``). A boiler built</span>
+</span><span data-line="59"><span class="sd">  without circulating water (``m_dot_w_rated=0``) is solved with its tank at</span>
+</span><span data-line="60"><span class="sd">  the leaving water. ``sink_offset_K`` replaces the rise: the water enters</span>
+</span><span data-line="61"><span class="sd">  that much below the leaving water at the boiler&#39;s rated circulation flow</span>
+</span><span data-line="62"><span class="sd">  (``sink_offset_K=0`` solves the tank water at the named temperature -- a</span>
+</span><span data-line="63"><span class="sd">  stricter point, since the water then leaves hotter than the standard&#39;s).</span>
+</span><span data-line="64"><span class="sd">  The table prints both temperatures.</span>
+</span><span data-line="65"><span class="sd">- **Indoor air** is ``T_a_room`` (ASHP, GSHP).</span>
+</span><span data-line="66"><span class="sd">- ``T0`` of GSHP, GSHPB and WSHPB is the dead state of the exergy columns</span>
+</span><span data-line="67"><span class="sd">  only; the table gives it the source-side temperature.</span>
+</span><span data-line="68">
+</span><span data-line="69"><span class="sd">Silence and state</span>
+</span><span data-line="70"><span class="sd">-----------------</span>
+</span><span data-line="71"><span class="sd">The solves make no :class:`~tmhp.OperatingLimitWarning`: what a warning would</span>
+</span><span data-line="72"><span class="sd">say is the ``limit`` column, worded by the same generator</span>
+</span><span data-line="73"><span class="sd">(:func:`tmhp.operating_limits.steady_message`). They do not count as the</span>
+</span><span data-line="74"><span class="sd">&quot;reported once per model and limit&quot; of a later ``analyze_steady`` call. Each</span>
+</span><span data-line="75"><span class="sd">condition is solved on a shallow copy of the model, so what a solve writes</span>
+</span><span data-line="76"><span class="sd">on the model (GSHPB&#39;s ``analyze_steady`` sets ``T_bhe_f_out_K`` to its</span>
+</span><span data-line="77"><span class="sd">``T_source``, for one) stays on the copy.</span>
+</span><span data-line="78"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="79">
+</span><span data-line="80"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 </span><span data-line="81">
-</span><span data-line="82"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-</span><span data-line="83">
-</span><span data-line="84"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">operating_limits</span>
-</span><span data-line="85">
-</span><span data-line="86"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="87">    <span class="s2">&quot;AIR_TO_AIR&quot;</span><span class="p">,</span>
-</span><span data-line="88">    <span class="s2">&quot;AIR_TO_WATER&quot;</span><span class="p">,</span>
-</span><span data-line="89">    <span class="s2">&quot;BRINE_TO_AIR&quot;</span><span class="p">,</span>
-</span><span data-line="90">    <span class="s2">&quot;BRINE_TO_WATER&quot;</span><span class="p">,</span>
-</span><span data-line="91">    <span class="s2">&quot;COLUMNS&quot;</span><span class="p">,</span>
-</span><span data-line="92">    <span class="s2">&quot;LEAVING_WATER_TO_TANK_K&quot;</span><span class="p">,</span>
-</span><span data-line="93">    <span class="s2">&quot;StandardCondition&quot;</span><span class="p">,</span>
-</span><span data-line="94">    <span class="s2">&quot;WATER_TO_WATER&quot;</span><span class="p">,</span>
-</span><span data-line="95">    <span class="s2">&quot;operating_range&quot;</span><span class="p">,</span>
-</span><span data-line="96"><span class="p">]</span>
-</span><span data-line="97">
-</span><span data-line="98"><span class="n">LEAVING_WATER_TO_TANK_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.5</span>
-</span><span data-line="99"><span class="sd">&quot;&quot;&quot;How far a boiler&#39;s tank temperature sits below the leaving water of a standard name [K].</span>
-</span><span data-line="100">
-</span><span data-line="101"><span class="sd">The value every air-to-water catalogue of the validation set gives as</span>
-</span><span data-line="102"><span class="sd">``sink_offset_K`` (the validation harness solves ``T_tank_w`` at the</span>
-</span><span data-line="103"><span class="sd">catalogue&#39;s leaving water less this offset).</span>
-</span><span data-line="104"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="105">
-</span><span data-line="106"><span class="c1">#: Pressure at which a wet-bulb temperature is turned into a relative humidity [Pa].</span>
-</span><span data-line="107"><span class="n">_P_ATM</span> <span class="o">=</span> <span class="mf">101325.0</span>
-</span><span data-line="108">
+</span><span data-line="82"><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+</span><span data-line="83"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="84"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
+</span><span data-line="85"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">replace</span>
+</span><span data-line="86"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span data-line="87">
+</span><span data-line="88"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="89">
+</span><span data-line="90"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">operating_limits</span>
+</span><span data-line="91"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_w</span>
+</span><span data-line="92">
+</span><span data-line="93"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="94">    <span class="s2">&quot;AIR_TO_AIR&quot;</span><span class="p">,</span>
+</span><span data-line="95">    <span class="s2">&quot;AIR_TO_WATER&quot;</span><span class="p">,</span>
+</span><span data-line="96">    <span class="s2">&quot;BRINE_TO_AIR&quot;</span><span class="p">,</span>
+</span><span data-line="97">    <span class="s2">&quot;BRINE_TO_WATER&quot;</span><span class="p">,</span>
+</span><span data-line="98">    <span class="s2">&quot;COLUMNS&quot;</span><span class="p">,</span>
+</span><span data-line="99">    <span class="s2">&quot;EN14511_WATER_RISE_K&quot;</span><span class="p">,</span>
+</span><span data-line="100">    <span class="s2">&quot;StandardCondition&quot;</span><span class="p">,</span>
+</span><span data-line="101">    <span class="s2">&quot;WATER_TO_WATER&quot;</span><span class="p">,</span>
+</span><span data-line="102">    <span class="s2">&quot;en14511_condenser_water&quot;</span><span class="p">,</span>
+</span><span data-line="103">    <span class="s2">&quot;en14511_water_rise&quot;</span><span class="p">,</span>
+</span><span data-line="104">    <span class="s2">&quot;operating_range&quot;</span><span class="p">,</span>
+</span><span data-line="105"><span class="p">]</span>
+</span><span data-line="106">
+</span><span data-line="107"><span class="n">EN14511_WATER_RISE_K</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="mf">45.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">55.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">65.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">))</span>
+</span><span data-line="108"><span class="sd">&quot;&quot;&quot;Water temperature rise across the condenser of an EN 14511 rating [K] at a leaving-water temperature [°C].</span>
 </span><span data-line="109">
+</span><span data-line="110"><span class="sd">The low-, medium-, high- and very-high-temperature applications: 30/35 and</span>
+</span><span data-line="111"><span class="sd">40/45 °C (5 K), 47/55 °C (8 K) and 55/65 °C (10 K); :func:`en14511_water_rise`</span>
+</span><span data-line="112"><span class="sd">interpolates linearly between them and holds the ends.</span>
+</span><span data-line="113"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="114">
+</span><span data-line="115">
+<div class="viewcode-block" id="en14511_water_rise">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.standard_conditions.en14511_water_rise">[docs]</a>
+</span><span data-line="116"><span class="k">def</span><span class="w"> </span><span class="nf">en14511_water_rise</span><span class="p">(</span><span class="n">T_leaving_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="117"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Water temperature rise across a boiler&#39;s condenser at an EN 14511 leaving-water temperature [K].</span>
+</span><span data-line="118">
+</span><span data-line="119"><span class="sd">    5 K up to 45 °C leaving, 8 K at 55 °C, 10 K at 65 °C, linear in between</span>
+</span><span data-line="120"><span class="sd">    (:data:`EN14511_WATER_RISE_K`): the water enters at</span>
+</span><span data-line="121"><span class="sd">    ``T_leaving_C - en14511_water_rise(T_leaving_C)``.</span>
+</span><span data-line="122"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="123">    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">T_leaving_C</span><span class="p">):</span>
+</span><span data-line="124">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;T_leaving_C must be finite, got </span><span class="si">{</span><span class="n">T_leaving_C</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="125">    <span class="n">points</span> <span class="o">=</span> <span class="n">EN14511_WATER_RISE_K</span>
+</span><span data-line="126">    <span class="k">if</span> <span class="n">T_leaving_C</span> <span class="o">&lt;=</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>
+</span><span data-line="127">        <span class="k">return</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+</span><span data-line="128">    <span class="k">for</span> <span class="p">(</span><span class="n">T_low</span><span class="p">,</span> <span class="n">rise_low</span><span class="p">),</span> <span class="p">(</span><span class="n">T_high</span><span class="p">,</span> <span class="n">rise_high</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+</span><span data-line="129">        <span class="k">if</span> <span class="n">T_leaving_C</span> <span class="o">&lt;=</span> <span class="n">T_high</span><span class="p">:</span>
+</span><span data-line="130">            <span class="k">return</span> <span class="n">rise_low</span> <span class="o">+</span> <span class="p">(</span><span class="n">rise_high</span> <span class="o">-</span> <span class="n">rise_low</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_leaving_C</span> <span class="o">-</span> <span class="n">T_low</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">T_high</span> <span class="o">-</span> <span class="n">T_low</span><span class="p">)</span>
+</span><span data-line="131">    <span class="k">return</span> <span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span></div>
+
+</span><span data-line="132">
+</span><span data-line="133">
+<div class="viewcode-block" id="en14511_condenser_water">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.standard_conditions.en14511_condenser_water">[docs]</a>
+</span><span data-line="134"><span class="k">def</span><span class="w"> </span><span class="nf">en14511_condenser_water</span><span class="p">(</span><span class="n">T_leaving_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="135"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Water entering a condenser [°C] and its flow [kg/s] at an EN 14511 leaving-water temperature.</span>
+</span><span data-line="136">
+</span><span data-line="137"><span class="sd">    The flow carries ``duty`` [W] at the standard&#39;s rise</span>
+</span><span data-line="138"><span class="sd">    (:func:`en14511_water_rise`): ``m_dot_w = duty / (c_w rise)``, and the water</span>
+</span><span data-line="139"><span class="sd">    enters at ``T_leaving_C - rise``. These are the ``T_tank_w`` and ``m_dot_w``</span>
+</span><span data-line="140"><span class="sd">    of :meth:`tmhp.AirSourceHeatPumpBoiler.analyze_steady`.</span>
+</span><span data-line="141"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="142">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">duty</span><span class="p">)</span> <span class="ow">and</span> <span class="n">duty</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="143">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;duty must be positive and finite [W], got </span><span class="si">{</span><span class="n">duty</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="144">    <span class="n">rise</span> <span class="o">=</span> <span class="n">en14511_water_rise</span><span class="p">(</span><span class="n">T_leaving_C</span><span class="p">)</span>
+</span><span data-line="145">    <span class="k">return</span> <span class="n">T_leaving_C</span> <span class="o">-</span> <span class="n">rise</span><span class="p">,</span> <span class="n">duty</span> <span class="o">/</span> <span class="p">(</span><span class="n">c_w</span> <span class="o">*</span> <span class="n">rise</span><span class="p">)</span></div>
+
+</span><span data-line="146">
+</span><span data-line="147">
+</span><span data-line="148"><span class="c1">#: Pressure at which a wet-bulb temperature is turned into a relative humidity [Pa].</span>
+</span><span data-line="149"><span class="n">_P_ATM</span> <span class="o">=</span> <span class="mf">101325.0</span>
+</span><span data-line="150">
+</span><span data-line="151">
 <div class="viewcode-block" id="StandardCondition">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.standard_conditions.StandardCondition">[docs]</a>
-</span><span data-line="110"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="111"><span class="k">class</span><span class="w"> </span><span class="nc">StandardCondition</span><span class="p">:</span>
-</span><span data-line="112"><span class="w">    </span><span class="sd">&quot;&quot;&quot;One test condition: temperatures, mode and requested part load.</span>
-</span><span data-line="113">
-</span><span data-line="114"><span class="sd">    Parameters</span>
-</span><span data-line="115"><span class="sd">    ----------</span>
-</span><span data-line="116"><span class="sd">    name : str</span>
-</span><span data-line="117"><span class="sd">        Condition name in the standards&#39; notation, source side first:</span>
-</span><span data-line="118"><span class="sd">        ``&quot;A-7/W55&quot;``, ``&quot;B0/W35&quot;``, ``&quot;A7/20&quot;``.</span>
-</span><span data-line="119"><span class="sd">    mode : {&quot;heating&quot;, &quot;cooling&quot;}</span>
-</span><span data-line="120"><span class="sd">        Heating for every boiler condition; the space heat pumps have both.</span>
-</span><span data-line="121"><span class="sd">    source_side_C : float</span>
-</span><span data-line="122"><span class="sd">        Outdoor-air dry bulb (``A``), or brine or water entering the source</span>
-</span><span data-line="123"><span class="sd">        heat exchanger (``B``, ``W``) [°C]. In cooling it is the side the</span>
-</span><span data-line="124"><span class="sd">        heat is rejected to.</span>
-</span><span data-line="125"><span class="sd">    load_side_C : float</span>
-</span><span data-line="126"><span class="sd">        Water leaving the heat pump (boilers; the tank is solved</span>
-</span><span data-line="127"><span class="sd">        ``sink_offset_K`` below it) or the indoor air (space heat pumps) [°C].</span>
-</span><span data-line="128"><span class="sd">    outdoor_wet_bulb_C : float | None</span>
-</span><span data-line="129"><span class="sd">        Outdoor wet bulb [°C] of an air-source heating condition, passed to</span>
-</span><span data-line="130"><span class="sd">        the model as ``RH_out``. ``None``: the standard gives none, or the</span>
-</span><span data-line="131"><span class="sd">        model does not use it; the model&#39;s default humidity applies.</span>
-</span><span data-line="132"><span class="sd">    part_load : float</span>
-</span><span data-line="133"><span class="sd">        Requested duty as a share of the nameplate ``hp_capacity`` (&gt; 0).</span>
-</span><span data-line="134"><span class="sd">    basis : str</span>
-</span><span data-line="135"><span class="sd">        Where the condition comes from.</span>
-</span><span data-line="136"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="137">
-</span><span data-line="138">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="139">    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="140">    <span class="n">source_side_C</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="141">    <span class="n">load_side_C</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="142">    <span class="n">outdoor_wet_bulb_C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="143">    <span class="n">part_load</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
-</span><span data-line="144">    <span class="n">basis</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-</span><span data-line="145">
-</span><span data-line="146">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="147">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="s2">&quot;cooling&quot;</span><span class="p">):</span>
-</span><span data-line="148">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;StandardCondition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: mode must be &#39;heating&#39; or &#39;cooling&#39;, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="149">        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;source_side_C&quot;</span><span class="p">,</span> <span class="s2">&quot;load_side_C&quot;</span><span class="p">,</span> <span class="s2">&quot;part_load&quot;</span><span class="p">):</span>
-</span><span data-line="150">            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
-</span><span data-line="151">            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)):</span>
-</span><span data-line="152">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;StandardCondition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> must be a finite number, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="153">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_load</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span data-line="154">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;StandardCondition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: part_load must be above 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">part_load</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="155">        <span class="n">wet_bulb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdoor_wet_bulb_C</span>
-</span><span data-line="156">        <span class="k">if</span> <span class="n">wet_bulb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">wet_bulb</span><span class="p">)</span> <span class="ow">and</span> <span class="n">wet_bulb</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">):</span>
-</span><span data-line="157">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="158">                <span class="sa">f</span><span class="s2">&quot;StandardCondition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: outdoor_wet_bulb_C must be finite and not above the dry bulb &quot;</span>
-</span><span data-line="159">                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">source_side_C</span><span class="si">!r}</span><span class="s2">, got </span><span class="si">{</span><span class="n">wet_bulb</span><span class="si">!r}</span><span class="s2">&quot;</span>
-</span><span data-line="160">            <span class="p">)</span>
-</span><span data-line="161">
+</span><span data-line="152"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="153"><span class="k">class</span><span class="w"> </span><span class="nc">StandardCondition</span><span class="p">:</span>
+</span><span data-line="154"><span class="w">    </span><span class="sd">&quot;&quot;&quot;One test condition: temperatures, mode and requested part load.</span>
+</span><span data-line="155">
+</span><span data-line="156"><span class="sd">    Parameters</span>
+</span><span data-line="157"><span class="sd">    ----------</span>
+</span><span data-line="158"><span class="sd">    name : str</span>
+</span><span data-line="159"><span class="sd">        Condition name in the standards&#39; notation, source side first:</span>
+</span><span data-line="160"><span class="sd">        ``&quot;A-7/W55&quot;``, ``&quot;B0/W35&quot;``, ``&quot;A7/20&quot;``.</span>
+</span><span data-line="161"><span class="sd">    mode : {&quot;heating&quot;, &quot;cooling&quot;}</span>
+</span><span data-line="162"><span class="sd">        Heating for every boiler condition; the space heat pumps have both.</span>
+</span><span data-line="163"><span class="sd">    source_side_C : float</span>
+</span><span data-line="164"><span class="sd">        Outdoor-air dry bulb (``A``), or brine or water entering the source</span>
+</span><span data-line="165"><span class="sd">        heat exchanger (``B``, ``W``) [°C]. In cooling it is the side the</span>
+</span><span data-line="166"><span class="sd">        heat is rejected to.</span>
+</span><span data-line="167"><span class="sd">    load_side_C : float</span>
+</span><span data-line="168"><span class="sd">        Water leaving the heat pump (boilers; the water entering it is solved</span>
+</span><span data-line="169"><span class="sd">        the EN 14511 rise below it) or the indoor air (space heat pumps) [°C].</span>
+</span><span data-line="170"><span class="sd">    outdoor_wet_bulb_C : float | None</span>
+</span><span data-line="171"><span class="sd">        Outdoor wet bulb [°C] of an air-source heating condition, passed to</span>
+</span><span data-line="172"><span class="sd">        the model as ``RH_out``. ``None``: the standard gives none, or the</span>
+</span><span data-line="173"><span class="sd">        model does not use it; the model&#39;s default humidity applies.</span>
+</span><span data-line="174"><span class="sd">    part_load : float</span>
+</span><span data-line="175"><span class="sd">        Requested duty as a share of the nameplate ``hp_capacity`` (&gt; 0).</span>
+</span><span data-line="176"><span class="sd">    basis : str</span>
+</span><span data-line="177"><span class="sd">        Where the condition comes from.</span>
+</span><span data-line="178"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="179">
+</span><span data-line="180">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="181">    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="182">    <span class="n">source_side_C</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="183">    <span class="n">load_side_C</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="184">    <span class="n">outdoor_wet_bulb_C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="185">    <span class="n">part_load</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span data-line="186">    <span class="n">basis</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+</span><span data-line="187">
+</span><span data-line="188">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="189">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="s2">&quot;cooling&quot;</span><span class="p">):</span>
+</span><span data-line="190">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;StandardCondition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: mode must be &#39;heating&#39; or &#39;cooling&#39;, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="191">        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;source_side_C&quot;</span><span class="p">,</span> <span class="s2">&quot;load_side_C&quot;</span><span class="p">,</span> <span class="s2">&quot;part_load&quot;</span><span class="p">):</span>
+</span><span data-line="192">            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+</span><span data-line="193">            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)):</span>
+</span><span data-line="194">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;StandardCondition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> must be a finite number, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="195">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_load</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="196">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;StandardCondition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: part_load must be above 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">part_load</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="197">        <span class="n">wet_bulb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdoor_wet_bulb_C</span>
+</span><span data-line="198">        <span class="k">if</span> <span class="n">wet_bulb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">wet_bulb</span><span class="p">)</span> <span class="ow">and</span> <span class="n">wet_bulb</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">):</span>
+</span><span data-line="199">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="200">                <span class="sa">f</span><span class="s2">&quot;StandardCondition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: outdoor_wet_bulb_C must be finite and not above the dry bulb &quot;</span>
+</span><span data-line="201">                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">source_side_C</span><span class="si">!r}</span><span class="s2">, got </span><span class="si">{</span><span class="n">wet_bulb</span><span class="si">!r}</span><span class="s2">&quot;</span>
+</span><span data-line="202">            <span class="p">)</span>
+</span><span data-line="203">
 <div class="viewcode-block" id="StandardCondition.at_part_load">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.standard_conditions.StandardCondition.at_part_load">[docs]</a>
-</span><span data-line="162">    <span class="k">def</span><span class="w"> </span><span class="nf">at_part_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_load</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StandardCondition</span><span class="p">:</span>
-</span><span data-line="163"><span class="w">        </span><span class="sd">&quot;&quot;&quot;The same condition with the request at ``part_load`` of the nameplate duty.&quot;&quot;&quot;</span>
-</span><span data-line="164">        <span class="k">return</span> <span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_load</span><span class="o">=</span><span class="n">part_load</span><span class="p">)</span></div>
+</span><span data-line="204">    <span class="k">def</span><span class="w"> </span><span class="nf">at_part_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_load</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StandardCondition</span><span class="p">:</span>
+</span><span data-line="205"><span class="w">        </span><span class="sd">&quot;&quot;&quot;The same condition with the request at ``part_load`` of the nameplate duty.&quot;&quot;&quot;</span>
+</span><span data-line="206">        <span class="k">return</span> <span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_load</span><span class="o">=</span><span class="n">part_load</span><span class="p">)</span></div>
 
-</span><span data-line="165">
-</span><span data-line="166">    <span class="nd">@property</span>
-</span><span data-line="167">    <span class="k">def</span><span class="w"> </span><span class="nf">outdoor_humidity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="168"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Outdoor relative humidity (0-1) of the dry and wet bulb at 101325 Pa; ``None`` without a wet bulb.&quot;&quot;&quot;</span>
-</span><span data-line="169">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdoor_wet_bulb_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="170">            <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="171">        <span class="kn">from</span><span class="w"> </span><span class="nn">CoolProp.HumidAirProp</span><span class="w"> </span><span class="kn">import</span> <span class="n">HAPropsSI</span>
-</span><span data-line="172">
-</span><span data-line="173">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span>
-</span><span data-line="174">            <span class="n">HAPropsSI</span><span class="p">(</span><span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_side_C</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdoor_wet_bulb_C</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">_P_ATM</span><span class="p">)</span>
-</span><span data-line="175">        <span class="p">)</span></div>
+</span><span data-line="207">
+</span><span data-line="208">    <span class="nd">@property</span>
+</span><span data-line="209">    <span class="k">def</span><span class="w"> </span><span class="nf">outdoor_humidity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="210"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Outdoor relative humidity (0-1) of the dry and wet bulb at 101325 Pa; ``None`` without a wet bulb.&quot;&quot;&quot;</span>
+</span><span data-line="211">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdoor_wet_bulb_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="212">            <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="213">        <span class="kn">from</span><span class="w"> </span><span class="nn">CoolProp.HumidAirProp</span><span class="w"> </span><span class="kn">import</span> <span class="n">HAPropsSI</span>
+</span><span data-line="214">
+</span><span data-line="215">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span>
+</span><span data-line="216">            <span class="n">HAPropsSI</span><span class="p">(</span><span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_side_C</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdoor_wet_bulb_C</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">_P_ATM</span><span class="p">)</span>
+</span><span data-line="217">        <span class="p">)</span></div>
 
-</span><span data-line="176">
-</span><span data-line="177">
-</span><span data-line="178"><span class="n">_EN14511</span> <span class="o">=</span> <span class="s2">&quot;EN 14511-2 standard rating condition&quot;</span>
-</span><span data-line="179"><span class="n">_EN14511_APP</span> <span class="o">=</span> <span class="s2">&quot;EN 14511-2 application rating condition&quot;</span>
-</span><span data-line="180">
-</span><span data-line="181"><span class="n">AIR_TO_WATER</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="182">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A7/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, low-temperature application (30/35 °C)&quot;</span><span class="p">),</span>
-</span><span data-line="183">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A2/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">_EN14511_APP</span><span class="p">),</span>
-</span><span data-line="184">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A-7/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">7.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2">; EN 14825 condition A (-7 °C)&quot;</span><span class="p">),</span>
-</span><span data-line="185">    <span class="n">StandardCondition</span><span class="p">(</span>
-</span><span data-line="186">        <span class="s2">&quot;A7/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, medium-temperature application (47/55 °C)&quot;</span>
-</span><span data-line="187">    <span class="p">),</span>
-</span><span data-line="188">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A2/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">_EN14511_APP</span><span class="p">),</span>
-</span><span data-line="189">    <span class="n">StandardCondition</span><span class="p">(</span>
-</span><span data-line="190">        <span class="s2">&quot;A-7/W55&quot;</span><span class="p">,</span>
-</span><span data-line="191">        <span class="s2">&quot;heating&quot;</span><span class="p">,</span>
-</span><span data-line="192">        <span class="o">-</span><span class="mf">7.0</span><span class="p">,</span>
-</span><span data-line="193">        <span class="mf">55.0</span><span class="p">,</span>
-</span><span data-line="194">        <span class="o">-</span><span class="mf">8.0</span><span class="p">,</span>
-</span><span data-line="195">        <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2">; EN 14825 condition A (-7 °C), fixed outlet&quot;</span><span class="p">,</span>
-</span><span data-line="196">    <span class="p">),</span>
-</span><span data-line="197">    <span class="n">StandardCondition</span><span class="p">(</span>
-</span><span data-line="198">        <span class="s2">&quot;A-10/W55&quot;</span><span class="p">,</span>
-</span><span data-line="199">        <span class="s2">&quot;heating&quot;</span><span class="p">,</span>
-</span><span data-line="200">        <span class="o">-</span><span class="mf">10.0</span><span class="p">,</span>
-</span><span data-line="201">        <span class="mf">55.0</span><span class="p">,</span>
-</span><span data-line="202">        <span class="o">-</span><span class="mf">11.0</span><span class="p">,</span>
-</span><span data-line="203">        <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;EN 14825 operation limit TOL of the average climate (-10 °C), fixed outlet&quot;</span><span class="p">,</span>
-</span><span data-line="204">    <span class="p">),</span>
-</span><span data-line="205">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A-15/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2"> (no wet bulb given)&quot;</span><span class="p">),</span>
-</span><span data-line="206"><span class="p">)</span>
-</span><span data-line="207"><span class="sd">&quot;&quot;&quot;Air-to-water heating conditions (ASHPB): outdoor dry bulb (wet bulb) / leaving water.&quot;&quot;&quot;</span>
-</span><span data-line="208">
-</span><span data-line="209"><span class="n">AIR_TO_AIR</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="210">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A7/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, heating (indoor 20 °C)&quot;</span><span class="p">),</span>
-</span><span data-line="211">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A2/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2">; EN 14825 condition B (+2 °C)&quot;</span><span class="p">),</span>
-</span><span data-line="212">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A-7/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">7.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2">; EN 14825 condition A (-7 °C)&quot;</span><span class="p">),</span>
-</span><span data-line="213">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A-15/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2"> (no wet bulb given)&quot;</span><span class="p">),</span>
-</span><span data-line="214">    <span class="n">StandardCondition</span><span class="p">(</span>
-</span><span data-line="215">        <span class="s2">&quot;A35/27&quot;</span><span class="p">,</span>
-</span><span data-line="216">        <span class="s2">&quot;cooling&quot;</span><span class="p">,</span>
-</span><span data-line="217">        <span class="mf">35.0</span><span class="p">,</span>
-</span><span data-line="218">        <span class="mf">27.0</span><span class="p">,</span>
-</span><span data-line="219">        <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="220">        <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, cooling: outdoor 35 °C (24 °C wet bulb), indoor 27 °C (19 °C wet bulb); &quot;</span>
-</span><span data-line="221">        <span class="s2">&quot;the model is sensible-only, so the wet bulbs are not inputs&quot;</span><span class="p">,</span>
-</span><span data-line="222">    <span class="p">),</span>
-</span><span data-line="223"><span class="p">)</span>
-</span><span data-line="224"><span class="sd">&quot;&quot;&quot;Air-to-air conditions (ASHP): outdoor dry bulb / indoor dry bulb.&quot;&quot;&quot;</span>
-</span><span data-line="225">
-</span><span data-line="226"><span class="n">BRINE_TO_WATER</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="227">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;B0/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, low-temperature application (brine 0/-3 °C)&quot;</span><span class="p">),</span>
-</span><span data-line="228">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;B0/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, medium-temperature application (47/55 °C)&quot;</span><span class="p">),</span>
-</span><span data-line="229">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;B-5/W45&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">_EN14511_APP</span><span class="p">),</span>
-</span><span data-line="230"><span class="p">)</span>
-</span><span data-line="231"><span class="sd">&quot;&quot;&quot;Brine-to-water heating conditions (GSHPB): brine entering / leaving water.&quot;&quot;&quot;</span>
-</span><span data-line="232">
-</span><span data-line="233"><span class="n">WATER_TO_WATER</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="234">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;W10/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, low-temperature application (10/7 °C)&quot;</span><span class="p">),</span>
-</span><span data-line="235">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;W10/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, medium-temperature application (47/55 °C)&quot;</span><span class="p">),</span>
-</span><span data-line="236"><span class="p">)</span>
-</span><span data-line="237"><span class="sd">&quot;&quot;&quot;Water-to-water heating conditions (WSHPB): source water entering / leaving water.&quot;&quot;&quot;</span>
-</span><span data-line="238">
-</span><span data-line="239"><span class="n">BRINE_TO_AIR</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="240">    <span class="n">StandardCondition</span><span class="p">(</span>
-</span><span data-line="241">        <span class="s2">&quot;B0/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, brine-to-air heating; ISO 13256-1 ground loop&quot;</span>
-</span><span data-line="242">    <span class="p">),</span>
-</span><span data-line="243">    <span class="n">StandardCondition</span><span class="p">(</span>
-</span><span data-line="244">        <span class="s2">&quot;B25/27&quot;</span><span class="p">,</span>
-</span><span data-line="245">        <span class="s2">&quot;cooling&quot;</span><span class="p">,</span>
-</span><span data-line="246">        <span class="mf">25.0</span><span class="p">,</span>
-</span><span data-line="247">        <span class="mf">27.0</span><span class="p">,</span>
-</span><span data-line="248">        <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;ISO 13256-1 ground-loop cooling (liquid entering 25 °C, indoor 27 °C)&quot;</span><span class="p">,</span>
-</span><span data-line="249">    <span class="p">),</span>
-</span><span data-line="250"><span class="p">)</span>
-</span><span data-line="251"><span class="sd">&quot;&quot;&quot;Brine-to-air conditions (GSHP): brine leaving the borefield / indoor dry bulb.&quot;&quot;&quot;</span>
-</span><span data-line="252">
-</span><span data-line="253"><span class="n">COLUMNS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="254">    <span class="s2">&quot;condition&quot;</span><span class="p">,</span>
-</span><span data-line="255">    <span class="s2">&quot;mode&quot;</span><span class="p">,</span>
-</span><span data-line="256">    <span class="s2">&quot;basis&quot;</span><span class="p">,</span>
-</span><span data-line="257">    <span class="s2">&quot;part_load [-]&quot;</span><span class="p">,</span>
-</span><span data-line="258">    <span class="s2">&quot;T_source_side [°C]&quot;</span><span class="p">,</span>
-</span><span data-line="259">    <span class="s2">&quot;T_load_side [°C]&quot;</span><span class="p">,</span>
-</span><span data-line="260">    <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">,</span>
-</span><span data-line="261">    <span class="s2">&quot;RH_out [-]&quot;</span><span class="p">,</span>
-</span><span data-line="262">    <span class="s2">&quot;inputs&quot;</span><span class="p">,</span>
-</span><span data-line="263">    <span class="s2">&quot;runs&quot;</span><span class="p">,</span>
-</span><span data-line="264">    <span class="s2">&quot;meets_request&quot;</span><span class="p">,</span>
-</span><span data-line="265">    <span class="s2">&quot;Q_request [W]&quot;</span><span class="p">,</span>
-</span><span data-line="266">    <span class="s2">&quot;Q_delivered [W]&quot;</span><span class="p">,</span>
-</span><span data-line="267">    <span class="s2">&quot;Q_max [W]&quot;</span><span class="p">,</span>
-</span><span data-line="268">    <span class="s2">&quot;Q_min [W]&quot;</span><span class="p">,</span>
-</span><span data-line="269">    <span class="s2">&quot;capacity_clamped&quot;</span><span class="p">,</span>
-</span><span data-line="270">    <span class="s2">&quot;capacity_binding&quot;</span><span class="p">,</span>
-</span><span data-line="271">    <span class="s2">&quot;runtime_fraction [-]&quot;</span><span class="p">,</span>
-</span><span data-line="272">    <span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">,</span>
-</span><span data-line="273">    <span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span>
-</span><span data-line="274">    <span class="s2">&quot;failure_detail&quot;</span><span class="p">,</span>
-</span><span data-line="275">    <span class="s2">&quot;limit&quot;</span><span class="p">,</span>
-</span><span data-line="276"><span class="p">)</span>
-</span><span data-line="277"><span class="sd">&quot;&quot;&quot;Columns of an ``operating_range()`` table, the same for every family.&quot;&quot;&quot;</span>
-</span><span data-line="278">
-</span><span data-line="279"><span class="n">_TEXT_COLUMNS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">,</span> <span class="s2">&quot;capacity_binding&quot;</span><span class="p">,</span> <span class="s2">&quot;failure_detail&quot;</span><span class="p">,</span> <span class="s2">&quot;limit&quot;</span><span class="p">)</span>
+</span><span data-line="218">
+</span><span data-line="219">
+</span><span data-line="220"><span class="n">_EN14511</span> <span class="o">=</span> <span class="s2">&quot;EN 14511-2 standard rating condition&quot;</span>
+</span><span data-line="221"><span class="n">_EN14511_APP</span> <span class="o">=</span> <span class="s2">&quot;EN 14511-2 application rating condition&quot;</span>
+</span><span data-line="222">
+</span><span data-line="223"><span class="n">AIR_TO_WATER</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="224">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A7/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, low-temperature application (30/35 °C)&quot;</span><span class="p">),</span>
+</span><span data-line="225">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A2/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">_EN14511_APP</span><span class="p">),</span>
+</span><span data-line="226">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A-7/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">7.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2">; EN 14825 condition A (-7 °C)&quot;</span><span class="p">),</span>
+</span><span data-line="227">    <span class="n">StandardCondition</span><span class="p">(</span>
+</span><span data-line="228">        <span class="s2">&quot;A7/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, medium-temperature application (47/55 °C)&quot;</span>
+</span><span data-line="229">    <span class="p">),</span>
+</span><span data-line="230">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A2/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">_EN14511_APP</span><span class="p">),</span>
+</span><span data-line="231">    <span class="n">StandardCondition</span><span class="p">(</span>
+</span><span data-line="232">        <span class="s2">&quot;A-7/W55&quot;</span><span class="p">,</span>
+</span><span data-line="233">        <span class="s2">&quot;heating&quot;</span><span class="p">,</span>
+</span><span data-line="234">        <span class="o">-</span><span class="mf">7.0</span><span class="p">,</span>
+</span><span data-line="235">        <span class="mf">55.0</span><span class="p">,</span>
+</span><span data-line="236">        <span class="o">-</span><span class="mf">8.0</span><span class="p">,</span>
+</span><span data-line="237">        <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2">; EN 14825 condition A (-7 °C), fixed outlet&quot;</span><span class="p">,</span>
+</span><span data-line="238">    <span class="p">),</span>
+</span><span data-line="239">    <span class="n">StandardCondition</span><span class="p">(</span>
+</span><span data-line="240">        <span class="s2">&quot;A-10/W55&quot;</span><span class="p">,</span>
+</span><span data-line="241">        <span class="s2">&quot;heating&quot;</span><span class="p">,</span>
+</span><span data-line="242">        <span class="o">-</span><span class="mf">10.0</span><span class="p">,</span>
+</span><span data-line="243">        <span class="mf">55.0</span><span class="p">,</span>
+</span><span data-line="244">        <span class="o">-</span><span class="mf">11.0</span><span class="p">,</span>
+</span><span data-line="245">        <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;EN 14825 operation limit TOL of the average climate (-10 °C), fixed outlet&quot;</span><span class="p">,</span>
+</span><span data-line="246">    <span class="p">),</span>
+</span><span data-line="247">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A-15/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2"> (no wet bulb given)&quot;</span><span class="p">),</span>
+</span><span data-line="248"><span class="p">)</span>
+</span><span data-line="249"><span class="sd">&quot;&quot;&quot;Air-to-water heating conditions (ASHPB): outdoor dry bulb (wet bulb) / leaving water.&quot;&quot;&quot;</span>
+</span><span data-line="250">
+</span><span data-line="251"><span class="n">AIR_TO_AIR</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="252">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A7/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, heating (indoor 20 °C)&quot;</span><span class="p">),</span>
+</span><span data-line="253">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A2/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2">; EN 14825 condition B (+2 °C)&quot;</span><span class="p">),</span>
+</span><span data-line="254">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A-7/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">7.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2">; EN 14825 condition A (-7 °C)&quot;</span><span class="p">),</span>
+</span><span data-line="255">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;A-15/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511_APP</span><span class="si">}</span><span class="s2"> (no wet bulb given)&quot;</span><span class="p">),</span>
+</span><span data-line="256">    <span class="n">StandardCondition</span><span class="p">(</span>
+</span><span data-line="257">        <span class="s2">&quot;A35/27&quot;</span><span class="p">,</span>
+</span><span data-line="258">        <span class="s2">&quot;cooling&quot;</span><span class="p">,</span>
+</span><span data-line="259">        <span class="mf">35.0</span><span class="p">,</span>
+</span><span data-line="260">        <span class="mf">27.0</span><span class="p">,</span>
+</span><span data-line="261">        <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="262">        <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, cooling: outdoor 35 °C (24 °C wet bulb), indoor 27 °C (19 °C wet bulb); &quot;</span>
+</span><span data-line="263">        <span class="s2">&quot;the model is sensible-only, so the wet bulbs are not inputs&quot;</span><span class="p">,</span>
+</span><span data-line="264">    <span class="p">),</span>
+</span><span data-line="265"><span class="p">)</span>
+</span><span data-line="266"><span class="sd">&quot;&quot;&quot;Air-to-air conditions (ASHP): outdoor dry bulb / indoor dry bulb.&quot;&quot;&quot;</span>
+</span><span data-line="267">
+</span><span data-line="268"><span class="n">BRINE_TO_WATER</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="269">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;B0/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, low-temperature application (brine 0/-3 °C)&quot;</span><span class="p">),</span>
+</span><span data-line="270">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;B0/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, medium-temperature application (47/55 °C)&quot;</span><span class="p">),</span>
+</span><span data-line="271">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;B-5/W45&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">_EN14511_APP</span><span class="p">),</span>
+</span><span data-line="272"><span class="p">)</span>
+</span><span data-line="273"><span class="sd">&quot;&quot;&quot;Brine-to-water heating conditions (GSHPB): brine entering / leaving water.&quot;&quot;&quot;</span>
+</span><span data-line="274">
+</span><span data-line="275"><span class="n">WATER_TO_WATER</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="276">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;W10/W35&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, low-temperature application (10/7 °C)&quot;</span><span class="p">),</span>
+</span><span data-line="277">    <span class="n">StandardCondition</span><span class="p">(</span><span class="s2">&quot;W10/W55&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, medium-temperature application (47/55 °C)&quot;</span><span class="p">),</span>
+</span><span data-line="278"><span class="p">)</span>
+</span><span data-line="279"><span class="sd">&quot;&quot;&quot;Water-to-water heating conditions (WSHPB): source water entering / leaving water.&quot;&quot;&quot;</span>
 </span><span data-line="280">
-</span><span data-line="281">
-</span><span data-line="282"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="283"><span class="k">class</span><span class="w"> </span><span class="nc">_Family</span><span class="p">:</span>
-</span><span data-line="284"><span class="w">    </span><span class="sd">&quot;&quot;&quot;How one family is asked a condition: its default list and its ``analyze_steady`` arguments.&quot;&quot;&quot;</span>
-</span><span data-line="285">
-</span><span data-line="286">    <span class="n">conditions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-</span><span data-line="287">    <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="288">    <span class="n">boiler</span><span class="p">:</span> <span class="nb">bool</span>
-</span><span data-line="289">    <span class="n">arguments</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
-</span><span data-line="290">    <span class="n">brine_from_borefield</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="291">
-</span><span data-line="292">
-</span><span data-line="293"><span class="k">def</span><span class="w"> </span><span class="nf">_air_to_water</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">humidity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span data-line="294">    <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;T_tank_w&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank&quot;</span><span class="p">:</span> <span class="n">duty</span><span class="p">}</span>
-</span><span data-line="295">    <span class="k">if</span> <span class="n">humidity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="296">        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;RH_out&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">humidity</span>
-</span><span data-line="297">    <span class="k">return</span> <span class="n">kwargs</span>
-</span><span data-line="298">
-</span><span data-line="299">
-</span><span data-line="300"><span class="k">def</span><span class="w"> </span><span class="nf">_source_to_water</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">humidity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span data-line="301">    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;T_tank_w&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="s2">&quot;T_source&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank&quot;</span><span class="p">:</span> <span class="n">duty</span><span class="p">,</span> <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">}</span>
-</span><span data-line="302">
-</span><span data-line="303">
-</span><span data-line="304"><span class="k">def</span><span class="w"> </span><span class="nf">_space_load</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="305">    <span class="k">return</span> <span class="o">-</span><span class="n">duty</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span> <span class="k">else</span> <span class="n">duty</span>  <span class="c1"># the space models&#39; sign: heating below zero</span>
-</span><span data-line="306">
-</span><span data-line="307">
-</span><span data-line="308"><span class="k">def</span><span class="w"> </span><span class="nf">_air_to_air</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">humidity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span data-line="309">    <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Q_r_iu&quot;</span><span class="p">:</span> <span class="n">_space_load</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">duty</span><span class="p">),</span> <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span> <span class="s2">&quot;T_a_room&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span><span class="p">}</span>
-</span><span data-line="310">    <span class="k">if</span> <span class="n">humidity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">c</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span>
-</span><span data-line="311">        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;RH_out&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">humidity</span>
-</span><span data-line="312">    <span class="k">return</span> <span class="n">kwargs</span>
-</span><span data-line="313">
-</span><span data-line="314">
-</span><span data-line="315"><span class="k">def</span><span class="w"> </span><span class="nf">_brine_to_air</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">humidity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span data-line="316">    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;Q_r_iu&quot;</span><span class="p">:</span> <span class="n">_space_load</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">duty</span><span class="p">),</span> <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span> <span class="s2">&quot;T_a_room&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span><span class="p">}</span>
-</span><span data-line="317">
-</span><span data-line="318">
-</span><span data-line="319"><span class="n">_FAMILIES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_Family</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="320">    <span class="s2">&quot;air_to_water&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">AIR_TO_WATER</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">_air_to_water</span><span class="p">),</span>
-</span><span data-line="321">    <span class="s2">&quot;brine_to_water&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">BRINE_TO_WATER</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">_source_to_water</span><span class="p">),</span>
-</span><span data-line="322">    <span class="s2">&quot;water_to_water&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">WATER_TO_WATER</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">_source_to_water</span><span class="p">),</span>
-</span><span data-line="323">    <span class="s2">&quot;air_to_air&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">AIR_TO_AIR</span><span class="p">,</span> <span class="s2">&quot;Q_ref_iu [W]&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">_air_to_air</span><span class="p">),</span>
-</span><span data-line="324">    <span class="s2">&quot;brine_to_air&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">BRINE_TO_AIR</span><span class="p">,</span> <span class="s2">&quot;Q_ref_iu [W]&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">_brine_to_air</span><span class="p">,</span> <span class="n">brine_from_borefield</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-</span><span data-line="325"><span class="p">}</span>
-</span><span data-line="326">
+</span><span data-line="281"><span class="n">BRINE_TO_AIR</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="282">    <span class="n">StandardCondition</span><span class="p">(</span>
+</span><span data-line="283">        <span class="s2">&quot;B0/20&quot;</span><span class="p">,</span> <span class="s2">&quot;heating&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_EN14511</span><span class="si">}</span><span class="s2">, brine-to-air heating; ISO 13256-1 ground loop&quot;</span>
+</span><span data-line="284">    <span class="p">),</span>
+</span><span data-line="285">    <span class="n">StandardCondition</span><span class="p">(</span>
+</span><span data-line="286">        <span class="s2">&quot;B25/27&quot;</span><span class="p">,</span>
+</span><span data-line="287">        <span class="s2">&quot;cooling&quot;</span><span class="p">,</span>
+</span><span data-line="288">        <span class="mf">25.0</span><span class="p">,</span>
+</span><span data-line="289">        <span class="mf">27.0</span><span class="p">,</span>
+</span><span data-line="290">        <span class="n">basis</span><span class="o">=</span><span class="s2">&quot;ISO 13256-1 ground-loop cooling (liquid entering 25 °C, indoor 27 °C)&quot;</span><span class="p">,</span>
+</span><span data-line="291">    <span class="p">),</span>
+</span><span data-line="292"><span class="p">)</span>
+</span><span data-line="293"><span class="sd">&quot;&quot;&quot;Brine-to-air conditions (GSHP): brine leaving the borefield / indoor dry bulb.&quot;&quot;&quot;</span>
+</span><span data-line="294">
+</span><span data-line="295"><span class="n">COLUMNS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="296">    <span class="s2">&quot;condition&quot;</span><span class="p">,</span>
+</span><span data-line="297">    <span class="s2">&quot;mode&quot;</span><span class="p">,</span>
+</span><span data-line="298">    <span class="s2">&quot;basis&quot;</span><span class="p">,</span>
+</span><span data-line="299">    <span class="s2">&quot;part_load [-]&quot;</span><span class="p">,</span>
+</span><span data-line="300">    <span class="s2">&quot;T_source_side [°C]&quot;</span><span class="p">,</span>
+</span><span data-line="301">    <span class="s2">&quot;T_load_side [°C]&quot;</span><span class="p">,</span>
+</span><span data-line="302">    <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">,</span>
+</span><span data-line="303">    <span class="s2">&quot;RH_out [-]&quot;</span><span class="p">,</span>
+</span><span data-line="304">    <span class="s2">&quot;inputs&quot;</span><span class="p">,</span>
+</span><span data-line="305">    <span class="s2">&quot;runs&quot;</span><span class="p">,</span>
+</span><span data-line="306">    <span class="s2">&quot;meets_request&quot;</span><span class="p">,</span>
+</span><span data-line="307">    <span class="s2">&quot;Q_request [W]&quot;</span><span class="p">,</span>
+</span><span data-line="308">    <span class="s2">&quot;Q_delivered [W]&quot;</span><span class="p">,</span>
+</span><span data-line="309">    <span class="s2">&quot;Q_max [W]&quot;</span><span class="p">,</span>
+</span><span data-line="310">    <span class="s2">&quot;Q_min [W]&quot;</span><span class="p">,</span>
+</span><span data-line="311">    <span class="s2">&quot;capacity_clamped&quot;</span><span class="p">,</span>
+</span><span data-line="312">    <span class="s2">&quot;capacity_binding&quot;</span><span class="p">,</span>
+</span><span data-line="313">    <span class="s2">&quot;runtime_fraction [-]&quot;</span><span class="p">,</span>
+</span><span data-line="314">    <span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">,</span>
+</span><span data-line="315">    <span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span>
+</span><span data-line="316">    <span class="s2">&quot;failure_detail&quot;</span><span class="p">,</span>
+</span><span data-line="317">    <span class="s2">&quot;limit&quot;</span><span class="p">,</span>
+</span><span data-line="318"><span class="p">)</span>
+</span><span data-line="319"><span class="sd">&quot;&quot;&quot;Columns of an ``operating_range()`` table, the same for every family.&quot;&quot;&quot;</span>
+</span><span data-line="320">
+</span><span data-line="321"><span class="n">_TEXT_COLUMNS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">,</span> <span class="s2">&quot;capacity_binding&quot;</span><span class="p">,</span> <span class="s2">&quot;failure_detail&quot;</span><span class="p">,</span> <span class="s2">&quot;limit&quot;</span><span class="p">)</span>
+</span><span data-line="322">
+</span><span data-line="323">
+</span><span data-line="324"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="325"><span class="k">class</span><span class="w"> </span><span class="nc">_Family</span><span class="p">:</span>
+</span><span data-line="326"><span class="w">    </span><span class="sd">&quot;&quot;&quot;How one family is asked a condition: its default list and its ``analyze_steady`` arguments.&quot;&quot;&quot;</span>
 </span><span data-line="327">
-</span><span data-line="328"><span class="k">def</span><span class="w"> </span><span class="nf">_target</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">family</span><span class="p">:</span> <span class="n">_Family</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span data-line="329"><span class="w">    </span><span class="sd">&quot;&quot;&quot;The shallow copy a condition is solved on (GSHP: with its borefield-outlet fluid at the brine temperature).&quot;&quot;&quot;</span>
-</span><span data-line="330">    <span class="n">target</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-</span><span data-line="331">    <span class="k">if</span> <span class="n">family</span><span class="o">.</span><span class="n">brine_from_borefield</span><span class="p">:</span>
-</span><span data-line="332">        <span class="n">target</span><span class="o">.</span><span class="n">T_bhe_f_out</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">source_side_C</span>
-</span><span data-line="333">        <span class="n">target</span><span class="o">.</span><span class="n">T_bhe_f_out_K</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">source_side_C</span> <span class="o">+</span> <span class="mf">273.15</span>
-</span><span data-line="334">    <span class="k">return</span> <span class="n">target</span>
-</span><span data-line="335">
-</span><span data-line="336">
-</span><span data-line="337"><span class="k">def</span><span class="w"> </span><span class="nf">_check_brine_is_settable</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="338"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Refuse a GSHP whose coupled ground-flow solve takes its source from the borehole wall.&quot;&quot;&quot;</span>
-</span><span data-line="339">    <span class="n">settings</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;_ground_settings&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-</span><span data-line="340">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)</span> <span class="ow">and</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;active&quot;</span><span class="p">):</span>
-</span><span data-line="341">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="342">            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.operating_range: with ground-flow control the source is solved from the &quot;</span>
-</span><span data-line="343">            <span class="s2">&quot;borehole wall, so the brine temperature of a standard condition cannot be imposed. Build the model &quot;</span>
-</span><span data-line="344">            <span class="s2">&quot;with constant ground flow (the default ground_flow_control) to check the standard conditions.&quot;</span>
-</span><span data-line="345">        <span class="p">)</span>
-</span><span data-line="346">
-</span><span data-line="347">
-</span><span data-line="348"><span class="k">def</span><span class="w"> </span><span class="nf">_number</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="349">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="350">        <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>
-</span><span data-line="351">    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-</span><span data-line="352">        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="353">    <span class="k">return</span> <span class="n">value</span>
-</span><span data-line="354">
-</span><span data-line="355">
-</span><span data-line="356"><span class="k">def</span><span class="w"> </span><span class="nf">_label</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="357">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">value</span><span class="p">)):</span>
-</span><span data-line="358">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="359">    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-</span><span data-line="360">
-</span><span data-line="361">
-</span><span data-line="362"><span class="k">def</span><span class="w"> </span><span class="nf">_solve</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">family</span><span class="p">:</span> <span class="n">_Family</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">sink_offset_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span data-line="363"><span class="w">    </span><span class="sd">&quot;&quot;&quot;One table row: the condition, what was solved, and what came out.&quot;&quot;&quot;</span>
-</span><span data-line="364">    <span class="n">duty</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">part_load</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">hp_capacity</span><span class="p">)</span>
-</span><span data-line="365">    <span class="n">humidity</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">outdoor_humidity</span>
-</span><span data-line="366">    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">family</span><span class="o">.</span><span class="n">arguments</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">duty</span><span class="p">,</span> <span class="n">humidity</span><span class="p">,</span> <span class="n">sink_offset_K</span><span class="p">)</span>
-</span><span data-line="367">    <span class="n">target</span> <span class="o">=</span> <span class="n">_target</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">family</span><span class="p">,</span> <span class="n">condition</span><span class="p">)</span>
-</span><span data-line="368">    <span class="c1"># A scope of our own: the analyze_steady call issues nothing and leaves</span>
-</span><span data-line="369">    <span class="c1"># what its refusals knew (the refused discharge temperature, ...) for the</span>
-</span><span data-line="370">    <span class="c1"># limit text below, worded by the generator of the warnings.</span>
-</span><span data-line="371">    <span class="n">scope</span> <span class="o">=</span> <span class="n">operating_limits</span><span class="o">.</span><span class="n">_Scope</span><span class="p">()</span>
-</span><span data-line="372">    <span class="n">token</span> <span class="o">=</span> <span class="n">operating_limits</span><span class="o">.</span><span class="n">_SCOPE</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
-</span><span data-line="373">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="374">        <span class="n">result</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="375">    <span class="k">finally</span><span class="p">:</span>
-</span><span data-line="376">        <span class="n">operating_limits</span><span class="o">.</span><span class="n">_SCOPE</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
-</span><span data-line="377">    <span class="n">row</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+</span><span data-line="328">    <span class="n">conditions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+</span><span data-line="329">    <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="330">    <span class="n">boiler</span><span class="p">:</span> <span class="nb">bool</span>
+</span><span data-line="331">    <span class="n">arguments</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+</span><span data-line="332">    <span class="n">brine_from_borefield</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="333">
+</span><span data-line="334">
+</span><span data-line="335"><span class="k">def</span><span class="w"> </span><span class="nf">_circulates</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="336"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Whether a boiler&#39;s tank heat exchanger has circulating water (``m_dot_w_rated &gt; 0``).&quot;&quot;&quot;</span>
+</span><span data-line="337">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;m_dot_w_rated&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+</span><span data-line="338">
+</span><span data-line="339">
+</span><span data-line="340"><span class="k">def</span><span class="w"> </span><span class="nf">_air_to_water</span><span class="p">(</span>
+</span><span data-line="341">    <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">humidity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span data-line="342"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="343">    <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;T_tank_w&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span><span class="p">,</span> <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank&quot;</span><span class="p">:</span> <span class="n">duty</span><span class="p">}</span>
+</span><span data-line="344">    <span class="k">if</span> <span class="n">offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="345">        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;T_tank_w&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span> <span class="o">-</span> <span class="n">offset</span>
+</span><span data-line="346">    <span class="k">elif</span> <span class="n">_circulates</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+</span><span data-line="347">        <span class="c1"># EN 14511: the water enters the rise below the leaving water, at the flow that carries the duty.</span>
+</span><span data-line="348">        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;T_tank_w&quot;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;m_dot_w&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">en14511_condenser_water</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span><span class="p">,</span> <span class="n">duty</span><span class="p">)</span>
+</span><span data-line="349">    <span class="k">if</span> <span class="n">humidity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="350">        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;RH_out&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">humidity</span>
+</span><span data-line="351">    <span class="k">return</span> <span class="n">kwargs</span>
+</span><span data-line="352">
+</span><span data-line="353">
+</span><span data-line="354"><span class="k">def</span><span class="w"> </span><span class="nf">_source_to_water</span><span class="p">(</span>
+</span><span data-line="355">    <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">humidity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span data-line="356"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="357">    <span class="k">if</span> <span class="n">offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="358">        <span class="n">T_in</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span> <span class="o">-</span> <span class="n">offset</span>
+</span><span data-line="359">    <span class="k">elif</span> <span class="n">_circulates</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+</span><span data-line="360">        <span class="c1"># No per-call flow: the water enters the rise of the rated circulation flow below the leaving water.</span>
+</span><span data-line="361">        <span class="n">T_in</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span> <span class="o">-</span> <span class="n">duty</span> <span class="o">/</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">m_dot_w_rated</span><span class="p">)</span> <span class="o">*</span> <span class="n">c_w</span><span class="p">)</span>
+</span><span data-line="362">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="363">        <span class="n">T_in</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span>
+</span><span data-line="364">    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;T_tank_w&quot;</span><span class="p">:</span> <span class="n">T_in</span><span class="p">,</span> <span class="s2">&quot;T_source&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank&quot;</span><span class="p">:</span> <span class="n">duty</span><span class="p">,</span> <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">}</span>
+</span><span data-line="365">
+</span><span data-line="366">
+</span><span data-line="367"><span class="k">def</span><span class="w"> </span><span class="nf">_space_load</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="368">    <span class="k">return</span> <span class="o">-</span><span class="n">duty</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span> <span class="k">else</span> <span class="n">duty</span>  <span class="c1"># the space models&#39; sign: heating below zero</span>
+</span><span data-line="369">
+</span><span data-line="370">
+</span><span data-line="371"><span class="k">def</span><span class="w"> </span><span class="nf">_air_to_air</span><span class="p">(</span>
+</span><span data-line="372">    <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">humidity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span data-line="373"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="374">    <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Q_r_iu&quot;</span><span class="p">:</span> <span class="n">_space_load</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">duty</span><span class="p">),</span> <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span> <span class="s2">&quot;T_a_room&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span><span class="p">}</span>
+</span><span data-line="375">    <span class="k">if</span> <span class="n">humidity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">c</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span>
+</span><span data-line="376">        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;RH_out&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">humidity</span>
+</span><span data-line="377">    <span class="k">return</span> <span class="n">kwargs</span>
 </span><span data-line="378">
-</span><span data-line="379">    <span class="n">reason</span> <span class="o">=</span> <span class="n">_label</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span>
-</span><span data-line="380">    <span class="n">runs</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span> <span class="ow">and</span> <span class="n">reason</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
-</span><span data-line="381">    <span class="n">request</span> <span class="o">=</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;Q_request [W]&quot;</span><span class="p">)</span>
-</span><span data-line="382">    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-</span><span data-line="383">        <span class="n">request</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_ref_tank&quot;</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_r_iu&quot;</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>
-</span><span data-line="384">    <span class="n">delivered</span> <span class="o">=</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">delivered_key</span><span class="p">)</span>
-</span><span data-line="385">    <span class="n">delivered</span> <span class="o">=</span> <span class="n">delivered</span> <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">delivered</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="386">    <span class="n">meets</span> <span class="o">=</span> <span class="n">runs</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">delivered</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">operating_limits</span><span class="o">.</span><span class="n">SHORTFALL_REL_TOL</span><span class="p">)</span>
-</span><span data-line="387">    <span class="n">message</span> <span class="o">=</span> <span class="n">operating_limits</span><span class="o">.</span><span class="n">steady_message</span><span class="p">(</span>
-</span><span data-line="388">        <span class="n">target</span><span class="p">,</span>
-</span><span data-line="389">        <span class="n">row</span><span class="p">,</span>
-</span><span data-line="390">        <span class="n">operating_limits</span><span class="o">.</span><span class="n">_echo</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;analyze_steady&quot;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">),</span>
-</span><span data-line="391">        <span class="n">family</span><span class="o">.</span><span class="n">delivered_key</span><span class="p">,</span>
-</span><span data-line="392">        <span class="n">scope</span><span class="o">.</span><span class="n">notes</span><span class="p">,</span>
-</span><span data-line="393">    <span class="p">)</span>
-</span><span data-line="394">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="395">        <span class="s2">&quot;condition&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span data-line="396">        <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
-</span><span data-line="397">        <span class="s2">&quot;basis&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">basis</span><span class="p">,</span>
-</span><span data-line="398">        <span class="s2">&quot;part_load [-]&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">part_load</span><span class="p">,</span>
-</span><span data-line="399">        <span class="s2">&quot;T_source_side [°C]&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span>
-</span><span data-line="400">        <span class="s2">&quot;T_load_side [°C]&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">load_side_C</span><span class="p">,</span>
-</span><span data-line="401">        <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;T_tank_w&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">family</span><span class="o">.</span><span class="n">boiler</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="402">        <span class="s2">&quot;RH_out [-]&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;RH_out&quot;</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="403">        <span class="s2">&quot;inputs&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">,</span>
-</span><span data-line="404">        <span class="s2">&quot;runs&quot;</span><span class="p">:</span> <span class="n">runs</span><span class="p">,</span>
-</span><span data-line="405">        <span class="s2">&quot;meets_request&quot;</span><span class="p">:</span> <span class="n">meets</span><span class="p">,</span>
-</span><span data-line="406">        <span class="s2">&quot;Q_request [W]&quot;</span><span class="p">:</span> <span class="n">request</span><span class="p">,</span>
-</span><span data-line="407">        <span class="s2">&quot;Q_delivered [W]&quot;</span><span class="p">:</span> <span class="n">delivered</span><span class="p">,</span>
-</span><span data-line="408">        <span class="s2">&quot;Q_max [W]&quot;</span><span class="p">:</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;Q_max [W]&quot;</span><span class="p">),</span>
-</span><span data-line="409">        <span class="s2">&quot;Q_min [W]&quot;</span><span class="p">:</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;Q_min [W]&quot;</span><span class="p">),</span>
-</span><span data-line="410">        <span class="s2">&quot;capacity_clamped&quot;</span><span class="p">:</span> <span class="n">_label</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">)),</span>
-</span><span data-line="411">        <span class="s2">&quot;capacity_binding&quot;</span><span class="p">:</span> <span class="n">_label</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_binding&quot;</span><span class="p">)),</span>
-</span><span data-line="412">        <span class="s2">&quot;runtime_fraction [-]&quot;</span><span class="p">:</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;runtime_fraction [-]&quot;</span><span class="p">),</span>
-</span><span data-line="413">        <span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">:</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">),</span>
-</span><span data-line="414">        <span class="s2">&quot;failure_reason&quot;</span><span class="p">:</span> <span class="n">reason</span><span class="p">,</span>
-</span><span data-line="415">        <span class="s2">&quot;failure_detail&quot;</span><span class="p">:</span> <span class="n">_label</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_detail&quot;</span><span class="p">)),</span>
-</span><span data-line="416">        <span class="s2">&quot;limit&quot;</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">message</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-</span><span data-line="417">    <span class="p">}</span>
-</span><span data-line="418">
-</span><span data-line="419">
+</span><span data-line="379">
+</span><span data-line="380"><span class="k">def</span><span class="w"> </span><span class="nf">_brine_to_air</span><span class="p">(</span>
+</span><span data-line="381">    <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">humidity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span data-line="382"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="383">    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;Q_r_iu&quot;</span><span class="p">:</span> <span class="n">_space_load</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">duty</span><span class="p">),</span> <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span> <span class="s2">&quot;T_a_room&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">load_side_C</span><span class="p">}</span>
+</span><span data-line="384">
+</span><span data-line="385">
+</span><span data-line="386"><span class="n">_FAMILIES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_Family</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="387">    <span class="s2">&quot;air_to_water&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">AIR_TO_WATER</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">_air_to_water</span><span class="p">),</span>
+</span><span data-line="388">    <span class="s2">&quot;brine_to_water&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">BRINE_TO_WATER</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">_source_to_water</span><span class="p">),</span>
+</span><span data-line="389">    <span class="s2">&quot;water_to_water&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">WATER_TO_WATER</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">_source_to_water</span><span class="p">),</span>
+</span><span data-line="390">    <span class="s2">&quot;air_to_air&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">AIR_TO_AIR</span><span class="p">,</span> <span class="s2">&quot;Q_ref_iu [W]&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">_air_to_air</span><span class="p">),</span>
+</span><span data-line="391">    <span class="s2">&quot;brine_to_air&quot;</span><span class="p">:</span> <span class="n">_Family</span><span class="p">(</span><span class="n">BRINE_TO_AIR</span><span class="p">,</span> <span class="s2">&quot;Q_ref_iu [W]&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">_brine_to_air</span><span class="p">,</span> <span class="n">brine_from_borefield</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+</span><span data-line="392"><span class="p">}</span>
+</span><span data-line="393">
+</span><span data-line="394">
+</span><span data-line="395"><span class="k">def</span><span class="w"> </span><span class="nf">_target</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">family</span><span class="p">:</span> <span class="n">_Family</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="396"><span class="w">    </span><span class="sd">&quot;&quot;&quot;The shallow copy a condition is solved on (GSHP: with its borefield-outlet fluid at the brine temperature).&quot;&quot;&quot;</span>
+</span><span data-line="397">    <span class="n">target</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</span><span data-line="398">    <span class="k">if</span> <span class="n">family</span><span class="o">.</span><span class="n">brine_from_borefield</span><span class="p">:</span>
+</span><span data-line="399">        <span class="n">target</span><span class="o">.</span><span class="n">T_bhe_f_out</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">source_side_C</span>
+</span><span data-line="400">        <span class="n">target</span><span class="o">.</span><span class="n">T_bhe_f_out_K</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">source_side_C</span> <span class="o">+</span> <span class="mf">273.15</span>
+</span><span data-line="401">    <span class="k">return</span> <span class="n">target</span>
+</span><span data-line="402">
+</span><span data-line="403">
+</span><span data-line="404"><span class="k">def</span><span class="w"> </span><span class="nf">_check_brine_is_settable</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="405"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Refuse a GSHP whose coupled ground-flow solve takes its source from the borehole wall.&quot;&quot;&quot;</span>
+</span><span data-line="406">    <span class="n">settings</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;_ground_settings&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="407">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)</span> <span class="ow">and</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;active&quot;</span><span class="p">):</span>
+</span><span data-line="408">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="409">            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.operating_range: with ground-flow control the source is solved from the &quot;</span>
+</span><span data-line="410">            <span class="s2">&quot;borehole wall, so the brine temperature of a standard condition cannot be imposed. Build the model &quot;</span>
+</span><span data-line="411">            <span class="s2">&quot;with constant ground flow (the default ground_flow_control) to check the standard conditions.&quot;</span>
+</span><span data-line="412">        <span class="p">)</span>
+</span><span data-line="413">
+</span><span data-line="414">
+</span><span data-line="415"><span class="k">def</span><span class="w"> </span><span class="nf">_number</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="416">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="417">        <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>
+</span><span data-line="418">    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="419">        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="420">    <span class="k">return</span> <span class="n">value</span>
+</span><span data-line="421">
+</span><span data-line="422">
+</span><span data-line="423"><span class="k">def</span><span class="w"> </span><span class="nf">_label</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="424">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">value</span><span class="p">)):</span>
+</span><span data-line="425">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="426">    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span data-line="427">
+</span><span data-line="428">
+</span><span data-line="429"><span class="k">def</span><span class="w"> </span><span class="nf">_solve</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">family</span><span class="p">:</span> <span class="n">_Family</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="n">StandardCondition</span><span class="p">,</span> <span class="n">sink_offset_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="430"><span class="w">    </span><span class="sd">&quot;&quot;&quot;One table row: the condition, what was solved, and what came out.&quot;&quot;&quot;</span>
+</span><span data-line="431">    <span class="n">duty</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">part_load</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">hp_capacity</span><span class="p">)</span>
+</span><span data-line="432">    <span class="n">humidity</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">outdoor_humidity</span>
+</span><span data-line="433">    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">family</span><span class="o">.</span><span class="n">arguments</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">duty</span><span class="p">,</span> <span class="n">humidity</span><span class="p">,</span> <span class="n">sink_offset_K</span><span class="p">)</span>
+</span><span data-line="434">    <span class="n">target</span> <span class="o">=</span> <span class="n">_target</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">family</span><span class="p">,</span> <span class="n">condition</span><span class="p">)</span>
+</span><span data-line="435">    <span class="c1"># A scope of our own: the analyze_steady call issues nothing and leaves</span>
+</span><span data-line="436">    <span class="c1"># what its refusals knew (the refused discharge temperature, ...) for the</span>
+</span><span data-line="437">    <span class="c1"># limit text below, worded by the generator of the warnings.</span>
+</span><span data-line="438">    <span class="n">scope</span> <span class="o">=</span> <span class="n">operating_limits</span><span class="o">.</span><span class="n">_Scope</span><span class="p">()</span>
+</span><span data-line="439">    <span class="n">token</span> <span class="o">=</span> <span class="n">operating_limits</span><span class="o">.</span><span class="n">_SCOPE</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
+</span><span data-line="440">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="441">        <span class="n">result</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="442">    <span class="k">finally</span><span class="p">:</span>
+</span><span data-line="443">        <span class="n">operating_limits</span><span class="o">.</span><span class="n">_SCOPE</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</span><span data-line="444">    <span class="n">row</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+</span><span data-line="445">
+</span><span data-line="446">    <span class="n">reason</span> <span class="o">=</span> <span class="n">_label</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="447">    <span class="n">runs</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span> <span class="ow">and</span> <span class="n">reason</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="448">    <span class="n">request</span> <span class="o">=</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;Q_request [W]&quot;</span><span class="p">)</span>
+</span><span data-line="449">    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+</span><span data-line="450">        <span class="n">request</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_ref_tank&quot;</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_r_iu&quot;</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>
+</span><span data-line="451">    <span class="n">delivered</span> <span class="o">=</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">delivered_key</span><span class="p">)</span>
+</span><span data-line="452">    <span class="n">delivered</span> <span class="o">=</span> <span class="n">delivered</span> <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">delivered</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="453">    <span class="n">meets</span> <span class="o">=</span> <span class="n">runs</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">delivered</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">operating_limits</span><span class="o">.</span><span class="n">SHORTFALL_REL_TOL</span><span class="p">)</span>
+</span><span data-line="454">    <span class="n">message</span> <span class="o">=</span> <span class="n">operating_limits</span><span class="o">.</span><span class="n">steady_message</span><span class="p">(</span>
+</span><span data-line="455">        <span class="n">target</span><span class="p">,</span>
+</span><span data-line="456">        <span class="n">row</span><span class="p">,</span>
+</span><span data-line="457">        <span class="n">operating_limits</span><span class="o">.</span><span class="n">_echo</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;analyze_steady&quot;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">),</span>
+</span><span data-line="458">        <span class="n">family</span><span class="o">.</span><span class="n">delivered_key</span><span class="p">,</span>
+</span><span data-line="459">        <span class="n">scope</span><span class="o">.</span><span class="n">notes</span><span class="p">,</span>
+</span><span data-line="460">    <span class="p">)</span>
+</span><span data-line="461">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="462">        <span class="s2">&quot;condition&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span data-line="463">        <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
+</span><span data-line="464">        <span class="s2">&quot;basis&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">basis</span><span class="p">,</span>
+</span><span data-line="465">        <span class="s2">&quot;part_load [-]&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">part_load</span><span class="p">,</span>
+</span><span data-line="466">        <span class="s2">&quot;T_source_side [°C]&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">source_side_C</span><span class="p">,</span>
+</span><span data-line="467">        <span class="s2">&quot;T_load_side [°C]&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">load_side_C</span><span class="p">,</span>
+</span><span data-line="468">        <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;T_tank_w&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">family</span><span class="o">.</span><span class="n">boiler</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="469">        <span class="s2">&quot;RH_out [-]&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;RH_out&quot;</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="470">        <span class="s2">&quot;inputs&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">,</span>
+</span><span data-line="471">        <span class="s2">&quot;runs&quot;</span><span class="p">:</span> <span class="n">runs</span><span class="p">,</span>
+</span><span data-line="472">        <span class="s2">&quot;meets_request&quot;</span><span class="p">:</span> <span class="n">meets</span><span class="p">,</span>
+</span><span data-line="473">        <span class="s2">&quot;Q_request [W]&quot;</span><span class="p">:</span> <span class="n">request</span><span class="p">,</span>
+</span><span data-line="474">        <span class="s2">&quot;Q_delivered [W]&quot;</span><span class="p">:</span> <span class="n">delivered</span><span class="p">,</span>
+</span><span data-line="475">        <span class="s2">&quot;Q_max [W]&quot;</span><span class="p">:</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;Q_max [W]&quot;</span><span class="p">),</span>
+</span><span data-line="476">        <span class="s2">&quot;Q_min [W]&quot;</span><span class="p">:</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;Q_min [W]&quot;</span><span class="p">),</span>
+</span><span data-line="477">        <span class="s2">&quot;capacity_clamped&quot;</span><span class="p">:</span> <span class="n">_label</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">)),</span>
+</span><span data-line="478">        <span class="s2">&quot;capacity_binding&quot;</span><span class="p">:</span> <span class="n">_label</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_binding&quot;</span><span class="p">)),</span>
+</span><span data-line="479">        <span class="s2">&quot;runtime_fraction [-]&quot;</span><span class="p">:</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;runtime_fraction [-]&quot;</span><span class="p">),</span>
+</span><span data-line="480">        <span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">:</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">),</span>
+</span><span data-line="481">        <span class="s2">&quot;failure_reason&quot;</span><span class="p">:</span> <span class="n">reason</span><span class="p">,</span>
+</span><span data-line="482">        <span class="s2">&quot;failure_detail&quot;</span><span class="p">:</span> <span class="n">_label</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_detail&quot;</span><span class="p">)),</span>
+</span><span data-line="483">        <span class="s2">&quot;limit&quot;</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">message</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+</span><span data-line="484">    <span class="p">}</span>
+</span><span data-line="485">
+</span><span data-line="486">
 <div class="viewcode-block" id="operating_range">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.standard_conditions.operating_range">[docs]</a>
-</span><span data-line="420"><span class="k">def</span><span class="w"> </span><span class="nf">operating_range</span><span class="p">(</span>
-</span><span data-line="421">    <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-</span><span data-line="422">    <span class="n">family</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="423">    <span class="n">conditions</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="424">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="425">    <span class="n">sink_offset_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">LEAVING_WATER_TO_TANK_K</span><span class="p">,</span>
-</span><span data-line="426"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span data-line="427"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Solve rating conditions with ``model.analyze_steady`` and tabulate whether the machine runs at each.</span>
-</span><span data-line="428">
-</span><span data-line="429"><span class="sd">    The implementation behind every model&#39;s ``operating_range()`` method;</span>
-</span><span data-line="430"><span class="sd">    call the method.</span>
-</span><span data-line="431">
-</span><span data-line="432"><span class="sd">    Parameters</span>
-</span><span data-line="433"><span class="sd">    ----------</span>
-</span><span data-line="434"><span class="sd">    model : object</span>
-</span><span data-line="435"><span class="sd">        A system model (ASHP, GSHP, ASHPB, GSHPB, WSHPB).</span>
-</span><span data-line="436"><span class="sd">    family : {&quot;air_to_water&quot;, &quot;brine_to_water&quot;, &quot;water_to_water&quot;, &quot;air_to_air&quot;, &quot;brine_to_air&quot;}</span>
-</span><span data-line="437"><span class="sd">        The model&#39;s kind, which selects the default conditions and how a</span>
-</span><span data-line="438"><span class="sd">        condition becomes ``analyze_steady`` arguments.</span>
-</span><span data-line="439"><span class="sd">    conditions : iterable of StandardCondition, optional</span>
-</span><span data-line="440"><span class="sd">        Conditions to solve; the family&#39;s default list</span>
-</span><span data-line="441"><span class="sd">        (:data:`AIR_TO_WATER`, ...) when omitted.</span>
-</span><span data-line="442"><span class="sd">    sink_offset_K : float</span>
-</span><span data-line="443"><span class="sd">        Boilers: the tank is solved this far below the condition&#39;s leaving</span>
-</span><span data-line="444"><span class="sd">        water [K] (:data:`LEAVING_WATER_TO_TANK_K`; 0 solves the tank at the</span>
-</span><span data-line="445"><span class="sd">        named temperature). Not used by the space heat pumps.</span>
-</span><span data-line="446">
-</span><span data-line="447"><span class="sd">    Returns</span>
-</span><span data-line="448"><span class="sd">    -------</span>
-</span><span data-line="449"><span class="sd">    pd.DataFrame</span>
-</span><span data-line="450"><span class="sd">        One row per condition, in order, with the columns :data:`COLUMNS`:</span>
-</span><span data-line="451">
-</span><span data-line="452"><span class="sd">        - ``condition``, ``mode``, ``basis``, ``part_load [-]``: the condition.</span>
-</span><span data-line="453"><span class="sd">        - ``T_source_side [°C]``, ``T_load_side [°C]``: its temperatures as</span>
-</span><span data-line="454"><span class="sd">          named (leaving water for a boiler, indoor air for a space heat pump).</span>
-</span><span data-line="455"><span class="sd">        - ``T_tank_w [°C]``: the tank temperature a boiler was solved at</span>
-</span><span data-line="456"><span class="sd">          (``T_load_side - sink_offset_K``; NaN for a space heat pump).</span>
-</span><span data-line="457"><span class="sd">        - ``RH_out [-]``: the outdoor humidity passed (NaN: the model default).</span>
-</span><span data-line="458"><span class="sd">        - ``inputs``: the keyword arguments given to ``analyze_steady``</span>
-</span><span data-line="459"><span class="sd">          (on a shallow copy of the model; GSHP: with ``T_bhe_f_out`` at</span>
-</span><span data-line="460"><span class="sd">          ``T_source_side``).</span>
-</span><span data-line="461"><span class="sd">        - ``runs``: the compressor runs (``hp_is_on`` and ``failure_reason ==</span>
-</span><span data-line="462"><span class="sd">          &quot;none&quot;``).</span>
-</span><span data-line="463"><span class="sd">        - ``meets_request``: it runs and delivers the request (within 0.1 %).</span>
-</span><span data-line="464"><span class="sd">        - ``Q_request [W]``, ``Q_delivered [W]``: requested and delivered duty,</span>
-</span><span data-line="465"><span class="sd">          signed as the model signs them (a space heat pump&#39;s heating is</span>
-</span><span data-line="466"><span class="sd">          below zero); ``Q_delivered`` is ``Q_ref_tank [W]`` or</span>
-</span><span data-line="467"><span class="sd">          ``Q_ref_iu [W]`` of the row.</span>
-</span><span data-line="468"><span class="sd">        - ``Q_max [W]``, ``Q_min [W]``, ``capacity_clamped``,</span>
-</span><span data-line="469"><span class="sd">          ``capacity_binding``, ``runtime_fraction [-]``, ``cop_sys [-]``,</span>
-</span><span data-line="470"><span class="sd">          ``failure_reason``, ``failure_detail``: the result keys of the row</span>
-</span><span data-line="471"><span class="sd">          (see *Result keys*). ``capacity_clamped == &quot;max&quot;`` is a reduced</span>
-</span><span data-line="472"><span class="sd">          duty, ``&quot;min&quot;`` an on/off mean (``runtime_fraction [-]`` below 1).</span>
-</span><span data-line="473"><span class="sd">        - ``limit``: what an :class:`~tmhp.OperatingLimitWarning` would say</span>
-</span><span data-line="474"><span class="sd">          about the point -- the call, the limit in words with its value, and</span>
-</span><span data-line="475"><span class="sd">          what removes it -- or ``None`` when the point meets its request or</span>
-</span><span data-line="476"><span class="sd">          is an on/off mean.</span>
-</span><span data-line="477"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="478">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="479">        <span class="n">spec</span> <span class="o">=</span> <span class="n">_FAMILIES</span><span class="p">[</span><span class="n">family</span><span class="p">]</span>
-</span><span data-line="480">    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-</span><span data-line="481">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown family </span><span class="si">{</span><span class="n">family</span><span class="si">!r}</span><span class="s2">; one of </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">_FAMILIES</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
-</span><span data-line="482">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">sink_offset_K</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">sink_offset_K</span><span class="p">)</span> <span class="ow">and</span> <span class="n">sink_offset_K</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">):</span>
-</span><span data-line="483">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sink_offset_K must be a finite number &gt;= 0 [K], got </span><span class="si">{</span><span class="n">sink_offset_K</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="484">    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">brine_from_borefield</span><span class="p">:</span>
-</span><span data-line="485">        <span class="n">_check_brine_is_settable</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-</span><span data-line="486">    <span class="n">chosen</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">conditions</span> <span class="k">if</span> <span class="n">conditions</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">conditions</span><span class="p">)</span>
-</span><span data-line="487">    <span class="k">for</span> <span class="n">condition</span> <span class="ow">in</span> <span class="n">chosen</span><span class="p">:</span>
-</span><span data-line="488">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">StandardCondition</span><span class="p">):</span>
-</span><span data-line="489">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;conditions must be StandardCondition instances, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="490">        <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">boiler</span> <span class="ow">and</span> <span class="n">condition</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span>
-</span><span data-line="491">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> heats water only; condition </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> is cooling&quot;</span><span class="p">)</span>
-</span><span data-line="492">    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">_solve</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">spec</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">sink_offset_K</span><span class="p">))</span> <span class="k">for</span> <span class="n">condition</span> <span class="ow">in</span> <span class="n">chosen</span><span class="p">]</span>
-</span><span data-line="493">    <span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">COLUMNS</span><span class="p">))</span>
-</span><span data-line="494">    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">_TEXT_COLUMNS</span><span class="p">:</span>  <span class="c1"># a missing label is None in every row, not NaN in some</span>
-</span><span data-line="495">        <span class="n">table</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">row</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
-</span><span data-line="496">    <span class="k">return</span> <span class="n">table</span></div>
+</span><span data-line="487"><span class="k">def</span><span class="w"> </span><span class="nf">operating_range</span><span class="p">(</span>
+</span><span data-line="488">    <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="489">    <span class="n">family</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="490">    <span class="n">conditions</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">StandardCondition</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="491">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="492">    <span class="n">sink_offset_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="493"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span data-line="494"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Solve rating conditions with ``model.analyze_steady`` and tabulate whether the machine runs at each.</span>
+</span><span data-line="495">
+</span><span data-line="496"><span class="sd">    The implementation behind every model&#39;s ``operating_range()`` method;</span>
+</span><span data-line="497"><span class="sd">    call the method.</span>
+</span><span data-line="498">
+</span><span data-line="499"><span class="sd">    Parameters</span>
+</span><span data-line="500"><span class="sd">    ----------</span>
+</span><span data-line="501"><span class="sd">    model : object</span>
+</span><span data-line="502"><span class="sd">        A system model (ASHP, GSHP, ASHPB, GSHPB, WSHPB).</span>
+</span><span data-line="503"><span class="sd">    family : {&quot;air_to_water&quot;, &quot;brine_to_water&quot;, &quot;water_to_water&quot;, &quot;air_to_air&quot;, &quot;brine_to_air&quot;}</span>
+</span><span data-line="504"><span class="sd">        The model&#39;s kind, which selects the default conditions and how a</span>
+</span><span data-line="505"><span class="sd">        condition becomes ``analyze_steady`` arguments.</span>
+</span><span data-line="506"><span class="sd">    conditions : iterable of StandardCondition, optional</span>
+</span><span data-line="507"><span class="sd">        Conditions to solve; the family&#39;s default list</span>
+</span><span data-line="508"><span class="sd">        (:data:`AIR_TO_WATER`, ...) when omitted.</span>
+</span><span data-line="509"><span class="sd">    sink_offset_K : float, optional</span>
+</span><span data-line="510"><span class="sd">        Boilers: the water enters the condenser this far below the</span>
+</span><span data-line="511"><span class="sd">        condition&#39;s leaving water [K], at the boiler&#39;s rated circulation flow</span>
+</span><span data-line="512"><span class="sd">        (0 solves the tank water at the named temperature). ``None`` (default)</span>
+</span><span data-line="513"><span class="sd">        is the EN 14511 rise (:func:`en14511_water_rise`; the air-source</span>
+</span><span data-line="514"><span class="sd">        boiler at the flow that carries the duty at it). Not used by the space</span>
+</span><span data-line="515"><span class="sd">        heat pumps.</span>
+</span><span data-line="516">
+</span><span data-line="517"><span class="sd">    Returns</span>
+</span><span data-line="518"><span class="sd">    -------</span>
+</span><span data-line="519"><span class="sd">    pd.DataFrame</span>
+</span><span data-line="520"><span class="sd">        One row per condition, in order, with the columns :data:`COLUMNS`:</span>
+</span><span data-line="521">
+</span><span data-line="522"><span class="sd">        - ``condition``, ``mode``, ``basis``, ``part_load [-]``: the condition.</span>
+</span><span data-line="523"><span class="sd">        - ``T_source_side [°C]``, ``T_load_side [°C]``: its temperatures as</span>
+</span><span data-line="524"><span class="sd">          named (leaving water for a boiler, indoor air for a space heat pump).</span>
+</span><span data-line="525"><span class="sd">        - ``T_tank_w [°C]``: the tank water a boiler was solved with, the</span>
+</span><span data-line="526"><span class="sd">          water entering its condenser (``T_load_side`` less the EN 14511 rise</span>
+</span><span data-line="527"><span class="sd">          or ``sink_offset_K``, see the module notes; NaN for a space heat pump).</span>
+</span><span data-line="528"><span class="sd">        - ``RH_out [-]``: the outdoor humidity passed (NaN: the model default).</span>
+</span><span data-line="529"><span class="sd">        - ``inputs``: the keyword arguments given to ``analyze_steady``</span>
+</span><span data-line="530"><span class="sd">          (on a shallow copy of the model; GSHP: with ``T_bhe_f_out`` at</span>
+</span><span data-line="531"><span class="sd">          ``T_source_side``).</span>
+</span><span data-line="532"><span class="sd">        - ``runs``: the compressor runs (``hp_is_on`` and ``failure_reason ==</span>
+</span><span data-line="533"><span class="sd">          &quot;none&quot;``).</span>
+</span><span data-line="534"><span class="sd">        - ``meets_request``: it runs and delivers the request (within 0.1 %).</span>
+</span><span data-line="535"><span class="sd">        - ``Q_request [W]``, ``Q_delivered [W]``: requested and delivered duty,</span>
+</span><span data-line="536"><span class="sd">          signed as the model signs them (a space heat pump&#39;s heating is</span>
+</span><span data-line="537"><span class="sd">          below zero); ``Q_delivered`` is ``Q_ref_tank [W]`` or</span>
+</span><span data-line="538"><span class="sd">          ``Q_ref_iu [W]`` of the row.</span>
+</span><span data-line="539"><span class="sd">        - ``Q_max [W]``, ``Q_min [W]``, ``capacity_clamped``,</span>
+</span><span data-line="540"><span class="sd">          ``capacity_binding``, ``runtime_fraction [-]``, ``cop_sys [-]``,</span>
+</span><span data-line="541"><span class="sd">          ``failure_reason``, ``failure_detail``: the result keys of the row</span>
+</span><span data-line="542"><span class="sd">          (see *Result keys*). ``capacity_clamped == &quot;max&quot;`` is a reduced</span>
+</span><span data-line="543"><span class="sd">          duty, ``&quot;min&quot;`` an on/off mean (``runtime_fraction [-]`` below 1).</span>
+</span><span data-line="544"><span class="sd">        - ``limit``: what an :class:`~tmhp.OperatingLimitWarning` would say</span>
+</span><span data-line="545"><span class="sd">          about the point -- the call, the limit in words with its value, and</span>
+</span><span data-line="546"><span class="sd">          what removes it -- or ``None`` when the point meets its request or</span>
+</span><span data-line="547"><span class="sd">          is an on/off mean.</span>
+</span><span data-line="548"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="549">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="550">        <span class="n">spec</span> <span class="o">=</span> <span class="n">_FAMILIES</span><span class="p">[</span><span class="n">family</span><span class="p">]</span>
+</span><span data-line="551">    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+</span><span data-line="552">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown family </span><span class="si">{</span><span class="n">family</span><span class="si">!r}</span><span class="s2">; one of </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">_FAMILIES</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+</span><span data-line="553">    <span class="k">if</span> <span class="n">sink_offset_K</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span>
+</span><span data-line="554">        <span class="nb">isinstance</span><span class="p">(</span><span class="n">sink_offset_K</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">sink_offset_K</span><span class="p">)</span> <span class="ow">and</span> <span class="n">sink_offset_K</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
+</span><span data-line="555">    <span class="p">):</span>
+</span><span data-line="556">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sink_offset_K must be None or a finite number &gt;= 0 [K], got </span><span class="si">{</span><span class="n">sink_offset_K</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="557">    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">brine_from_borefield</span><span class="p">:</span>
+</span><span data-line="558">        <span class="n">_check_brine_is_settable</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</span><span data-line="559">    <span class="n">chosen</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">conditions</span> <span class="k">if</span> <span class="n">conditions</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">conditions</span><span class="p">)</span>
+</span><span data-line="560">    <span class="k">for</span> <span class="n">condition</span> <span class="ow">in</span> <span class="n">chosen</span><span class="p">:</span>
+</span><span data-line="561">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">StandardCondition</span><span class="p">):</span>
+</span><span data-line="562">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;conditions must be StandardCondition instances, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="563">        <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">boiler</span> <span class="ow">and</span> <span class="n">condition</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span>
+</span><span data-line="564">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> heats water only; condition </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> is cooling&quot;</span><span class="p">)</span>
+</span><span data-line="565">    <span class="n">offset</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">sink_offset_K</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">sink_offset_K</span><span class="p">)</span>
+</span><span data-line="566">    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">_solve</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">spec</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span> <span class="k">for</span> <span class="n">condition</span> <span class="ow">in</span> <span class="n">chosen</span><span class="p">]</span>
+</span><span data-line="567">    <span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">COLUMNS</span><span class="p">))</span>
+</span><span data-line="568">    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">_TEXT_COLUMNS</span><span class="p">:</span>  <span class="c1"># a missing label is None in every row, not NaN in some</span>
+</span><span data-line="569">        <span class="n">table</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">row</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+</span><span data-line="570">    <span class="k">return</span> <span class="n">table</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

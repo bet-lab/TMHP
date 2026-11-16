@@ -229,10 +229,13 @@ def test_index_prose_figures_match_the_harness(points: pd.DataFrame) -> None:
     r410a = [per_unit[s][0] for s in per_unit if ashpb[ashpb.slug == s].refrigerant.iat[0] == "R410A"]
     assert f"R-410A air-to-water units sit at {min(r410a):.1f} to {max(r410a):.1f} % MAPE" in text
     spread = [m for m, *_ in per_unit.values()]
-    assert f"the lowest of the {min(spread):.1f} to {max(spread):.1f} % spread" in text
-    # "the lowest": no other air-to-water unit is as tight as the worst R-410A one.
+    assert f"three of the four lowest in the {min(spread):.1f} to {max(spread):.1f} % spread" in text
+    # "three of the four lowest": one other air-to-water unit (the 16 kW R32 one, with the default rotary speed
+    # shape) is tighter than the widest R-410A unit, and no second one is. Until the default speed shape of
+    # November 2026 the three were the lowest outright.
     others = [per_unit[s][0] for s in per_unit if ashpb[ashpb.slug == s].refrigerant.iat[0] != "R410A"]
-    assert max(r410a) < min(others), (r410a, others)
+    assert len(r410a) == 3 and sum(m < max(r410a) for m in others) == 1, (r410a, others)
+    assert min(r410a) == min(spread)
 
 
 def test_index_air_to_water_unit_table_matches_the_harness(points: pd.DataFrame) -> None:
@@ -272,13 +275,45 @@ def test_index_prose_states_the_unevaluated_points_and_the_strata(points: pd.Dat
     samsung = bad[bad.slug == "samsung_ehs_mono_ht_r32_14kw"]
     assert len(at_ceiling) + len(samsung) == len(bad)
     assert (samsung.t_sink_C == 65.0).all()
-    words = {12: "Twelve", 5: "five"}
-    assert f"{words[len(at_ceiling)]} run at the 120 rev/s speed ceiling" in text
+    assert f"{_NUMBER_WORDS[len(at_ceiling)].capitalize()} run at the 120 rev/s speed ceiling" in text
     cold = at_ceiling[at_ceiling.t_source_C == -15.0]
-    assert f"{len(cold)} at -15 °C outdoor" in text.replace("eleven", "11")
-    assert f"The other {words[len(samsung)]} are the Samsung unit at 65 °C leaving water" in text
+    assert f"{_NUMBER_WORDS[len(cold)]} at -15 °C outdoor" in text
+    assert len(at_ceiling) - len(cold) == 1 and "and WH-UQ12 at -7 °C / 55 °C." in text
+    rest = at_ceiling[at_ceiling.t_source_C != -15.0].iloc[0]
+    assert (rest.slug, rest.t_source_C, rest.t_sink_C) == ("panasonic_wh_uq12he8", -7.0, 55.0)
+    assert f"The other {_NUMBER_WORDS[len(samsung)]} are the Samsung unit at 65 °C leaving water" in text
     assert "**Every air-to-air point is evaluated**" in text
     assert points[points.model_class == "ASHP"].usable.all()
+
+    # The point the default rotary speed shape brought below the ceiling: evaluated, at the speed the page quotes;
+    # with the other shape it is re-solved here, at the ceiling and with the ceiling raised.
+    import warnings
+
+    from validation.parity.run import _build_model, _run_point
+    from validation.parity.spec import load_all
+
+    from tmhp.compressor_efficiency import CompressorSpec
+
+    mxc12 = ashpb[(ashpb.slug == "panasonic_wh_mxc12j9e8") & (ashpb.t_source_C == -15.0) & (ashpb.t_sink_C == 55.0)]
+    (row,) = mxc12.itertuples()
+    assert row.usable and row.rps < 120.0
+    (catalog,) = [c for c in load_all() if c.slug == row.slug]
+    (point,) = [p for p in catalog.points if p.id == row.point_id]
+    other = {"compressor_type": CompressorSpec(catalog.model_compressor_type, rotary_speed_variant="shao_informed")}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        ceiling = _run_point(_build_model(catalog, other), catalog, point)
+        raised = _run_point(_build_model(catalog, {**other, "rps_max": 140.0}), catalog, point)
+    assert ceiling["capacity_binding"] == "compressor" and raised["capacity_clamped"] is None
+    share = ceiling["Q_ref_tank [W]"] / (point.q_kW * 1000.0)
+    assert (
+        f"WH-MXC12 at -15 °C / 55 °C delivered {100 * share:.1f} % of the duty at 120 rev/s with "
+        f"``shao_informed`` (it needed {raised['cmp_rpm [rpm]'] / 60.0:.1f} rev/s) and meets it at "
+        f"{row.rps:.1f} rev/s with the default shape"
+    ) in text
+    assert (
+        f"The isentropic efficiency there is lower ({row.eta_cmp_isen:.2f} against {ceiling['eta_cmp_isen [-]']:.2f})"
+    ) in text
 
     injected, single = ashpb[_injected(ashpb)], ashpb[~_injected(ashpb)]
 
@@ -307,6 +342,57 @@ def test_index_prose_states_the_unevaluated_points_and_the_strata(points: pd.Dat
         f"the bias is {temps[0.0]} % at 0 °C, {temps[-5.0]} % at -5 °C, {temps[-10.0]} % at -10 °C and "
         f"{temps[-15.0]} % at -15 °C outdoor, against {temps[6.0]} % and {temps[10.0]} % at 6 and 10 °C"
     ).replace("+", "") in text.replace("+", "")
+
+
+def test_pages_state_the_cop_boundary_and_how_the_rotary_speed_shape_was_chosen() -> None:
+    """The fixed control power in the compared COP and the choice of the default speed shape, as the code has them.
+
+    The figures of the non-default shape are those the coefficient archive records
+    (``README.md``, "Rotary speed-shape variants"); each one quoted on a page must be in that record.
+    """
+    from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
+    from tmhp.compressor_efficiency import ROTARY_SPEED_VARIANTS
+    from tmhp.control_power import CONTROL_POWER_SINK_AIR_W, CONTROL_POWER_SINK_WATER_W
+
+    default, other = ROTARY_SPEED_VARIANTS
+    assert (AirSourceHeatPumpBoiler().E_ctrl, AirSourceHeatPump().E_ctrl) == (
+        CONTROL_POWER_SINK_WATER_W,
+        CONTROL_POWER_SINK_AIR_W,
+    )
+    powers = f"{CONTROL_POWER_SINK_WATER_W:g} W air-to-water, {CONTROL_POWER_SINK_AIR_W:g} W air-to-air"
+    index = _flat("docs/source/validation/index.rst")
+    readme = _flat("README.md")
+    scope = _flat("docs/source/concepts/scope-and-limits.rst")
+    for name, text in (("index.rst", index), ("README.md", readme)):
+        assert powers in text, name
+        assert "EN 14511-3" in text and "all control and safety devices" in text, name
+    for name, text in (("index.rst", index), ("scope-and-limits.rst", scope)):
+        assert ":ref:`fixed-control-power`" in text, name
+    for name, text in (("index.rst", index), ("README.md", readme), ("scope-and-limits.rst", scope)):
+        assert f"`{default}`" in text and f"`{other}`" in text, name
+        assert "EN 14825 part-load comparison" in text, name
+        assert "not independent validation of the rotary types" in text, name
+        assert "shape chosen by the trajectory" not in text and "C2 9" not in text, name
+
+    archive = re.sub(
+        r"\s+", " ", _read("validation/coefficients/semi-empirical-2026-11-15/README.md").replace("−", "-")
+    )
+    record = archive[archive.index("**What this costs.**") : archive.index("**How the third pass had chosen")]
+    for quoted in (
+        "8.49 / -6.30 % under `b` against 8.51 / -5.36 % under `a`",
+        "heating 12.51 / -11.52 % against 11.48 / -9.71 %",
+        "cooling 6.91 / -1.12 % against 6.82 / -3.73 %",
+    ):
+        assert quoted in record, quoted
+    assert (
+        "air-to-water set reads 8.51 % MAPE and -5.36 % bias against 8.49 % and -6.30 %, air-to-air heating "
+        "11.48 % and -9.71 % against 12.51 % and -11.52 %, and air-to-air cooling 6.82 % and -3.73 % against "
+        "6.91 % and -1.12 %"
+    ) in index
+    assert (
+        "air-to-water reads 8.51 % / -5.36 %, air-to-air heating 11.48 % / -9.71 % against 12.51 % / -11.52 %, "
+        "and cooling 6.82 % / -3.73 % against 6.91 % / -1.12 %"
+    ) in readme
 
 
 def test_result_keys_state_the_data_hull_of_each_type() -> None:
@@ -663,7 +749,12 @@ def test_scope_page_states_the_high_lift_gate_as_the_results_have_it(points: pd.
     from validation.gate.evaluate import catalogue_point, load_gate
     from validation.parity.run import _build_model, _run_point
 
-    from tmhp.compressor_efficiency import COMPRESSOR_TYPES, SEMI_EMPIRICAL_TYPES
+    from tmhp.compressor_efficiency import (
+        COMPRESSOR_TYPES,
+        ROTARY_SPEED_VARIANTS,
+        SEMI_EMPIRICAL_TYPES,
+        CompressorSpec,
+    )
 
     text = _read("docs/source/concepts/scope-and-limits.rst")
     start = text.index("High lift: hot water in cold weather")
@@ -680,6 +771,10 @@ def test_scope_page_states_the_high_lift_gate_as_the_results_have_it(points: pd.
     hull = SEMI_EMPIRICAL_TYPES[COMPRESSOR_TYPES[0]]["hull_PR_N"]
     pr_top = max(pr for pr, _ in hull)
     within, short = 0, 0
+    # The evaluated gate points under the other machines the page compares them with (re-solved here).
+    other_shape = CompressorSpec(COMPRESSOR_TYPES[0], rotary_speed_variant="shao_informed")
+    assert ROTARY_SPEED_VARIANTS[0] == "ossorio_anchored"
+    compared: dict[str, list[tuple[float, float]]] = {"before": [], "no_ctrl": [], "other_shape": [], "now": []}
     for entry in gate["gate"]["catalogue_points"]:
         catalog, point, row = stored(entry)
         assert catalog.model_compressor_type == COMPRESSOR_TYPES[0] and not catalog.injected
@@ -694,6 +789,15 @@ def test_scope_page_states_the_high_lift_gate_as_the_results_have_it(points: pd.
                 f"{100 * (row.cop_pred / row.cop_target - 1):+.1f} %".replace("-", "−"),
                 f"pressure ratio {row.pr_cmp:.1f}, {row.rps:.0f} rev/s, isentropic efficiency {row.eta_cmp_isen:.3f}",
             ], (catalog.name, cells)
+            compared["now"].append((100 * (row.cop_pred / row.cop_target - 1), row.eta_cmp_isen))
+            for name, overrides in (
+                ("before", {"E_ctrl": 0.0, "compressor_type": other_shape}),
+                ("no_ctrl", {"E_ctrl": 0.0}),
+                ("other_shape", {"compressor_type": other_shape}),
+            ):
+                solved = _run_point(_build_model(catalog, overrides), catalog, point)
+                assert solved["capacity_clamped"] is None and solved["failure_reason"] == "none"
+                compared[name].append((100 * (solved["cop_sys [-]"] / row.cop_target - 1), solved["eta_cmp_isen [-]"]))
             continue
         short += 1
         assert row.failure_reason == "capacity_short"
@@ -717,6 +821,26 @@ def test_scope_page_states_the_high_lift_gate_as_the_results_have_it(points: pd.
     assert "two of the three points are within it and the third is not evaluated" in flat
     assert f"data up to a pressure ratio of {pr_top:.2f}" in flat
 
+    # What moved the two evaluated points: the fixed control power and the default rotary speed shape.
+    def pct(values: list[tuple[float, float]]) -> str:
+        return " and ".join(f"{v:+.1f} %".replace("-", "−") for v, _ in values)
+
+    def eta(values: list[tuple[float, float]]) -> str:
+        return " and ".join(f"{e:.3f}" for _, e in values)
+
+    assert f"read lower than with the defaults of before ({pct(compared['before'])}," in flat
+    assert all(now < before for (now, _), (before, _) in zip(compared["now"], compared["before"], strict=True))
+    by_power = [no_ctrl - now for (now, _), (no_ctrl, _) in zip(compared["now"], compared["no_ctrl"], strict=True)]
+    assert f"The control power takes {by_power[0]:.1f} and {by_power[1]:.1f} points of that" in flat
+    assert f"is lower ({eta(compared['now'])} against {eta(compared['before'])})" in flat
+    assert f"with the other shape and the control power the two points read {pct(compared['other_shape'])}" in flat
+    tolerance = 100 * gate["gate"]["tolerance_rel"]
+    assert all(abs(v) <= tolerance for name in ("now", "other_shape") for v, _ in compared[name])
+    assert f"the gate points are inside the {tolerance:g} % under either shape" in flat
+    assert "(15 W; :ref:`fixed-control-power`)" in flat
+    assert _build_model(catalog).E_ctrl == 15.0
+    assert "not independent validation of the rotary types" in flat
+
     injection = gate["reported"]["vapour_injection"]["catalogue_points"]
     by_unit: dict[str, list[str]] = {}
     for entry in injection:
@@ -731,7 +855,7 @@ def test_scope_page_states_the_high_lift_gate_as_the_results_have_it(points: pd.
     single = ashpb[~_injected(ashpb)]
     cold = single[single.t_source_C == -7.0]
     mape, bias, evaluated, _ = _stats(cold)
-    assert f"the {evaluated} points evaluated at −7 °C run {_signed(bias)} % on average" in flat
+    assert f"the {evaluated} points evaluated at −7 °C run {_signed(bias).replace('-', '−')} % on average" in flat
     assert f"run {_signed(_stats(ashpb[_injected(ashpb)])[1]).replace('-', '−')} % on average and the six" in flat
     assert f"without injection {_signed(_stats(single)[1]).replace('-', '−')} %" in flat
 

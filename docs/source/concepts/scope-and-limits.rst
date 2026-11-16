@@ -58,7 +58,8 @@ named in ``capacity_binding``.
         ``"pr_above_max"`` or ``"discharge_temp_above_max"``), the duty is
         reduced (``capacity_binding``), or the point runs and reports the
         single-stage COP: the injection machines of the validation set run
-        10 to 23 % below their catalogues at −7 °C (:ref:`high-lift-deficit`)
+        10 to 23 % below their catalogues at −7 °C outdoor and 55 or 65 °C
+        leaving water (:ref:`high-lift-deficit`)
       - :doc:`/developer/reference-operating-limits`
     * - Operation beyond the compressor envelope
       - Condensing above ``T_cond_max``, discharge above ``T_dis_max`` or a
@@ -110,15 +111,22 @@ The refrigerant cycle
         ``rotary_single_fixed``). The level is the manufacturers' published
         level; independent compressor measurements sit 5–15 % lower. The
         rotary types are provisional: their data span pressure ratio
-        1.94–6.84 and 30–120 rev/s. The electrical input is that of the
+        1.94–6.84 and 30–120 rev/s, and the data do not decide between two
+        speed shapes. The default one (``ossorio_anchored``; the other is
+        ``rotary_speed_variant="shao_informed"``) was chosen on the EN 14825
+        part-load comparison, which is therefore not independent validation
+        of the rotary types. The electrical input is that of the
         inverter input (drive loss about 6 % at 60 rev/s, more at low speed).
         Outside the data the forms are followed as they are, not held
       - ``efficiency_extrapolated == True`` outside the data hull of the type,
         often at ordinary points: every speed below 30 rev/s, and pressure
         ratios above 6.84 (hot water in cold weather) or below 1.94. The
-        default air-source models and boilers are rated inside the hull with
-        every refrigerant; the default ``GroundSourceHeatPump`` is rated below
-        it (pressure ratio 1.6–1.8). :doc:`/validation/defaults`
+        default air-source models and the water-source boiler are rated
+        inside the hull with every refrigerant that has a default envelope.
+        ``GroundSourceHeatPump`` is rated below it (pressure ratio 1.6–1.8;
+        with R407C at 2.0, inside), and ``GroundSourceHeatPumpBoiler`` above
+        it with R407C, R1234ze(E) and R717 (6.9–7.1), inside with the others.
+        :doc:`/validation/defaults`
     * - Adiabatic compressor
       - No shell heat loss: every loss ends up in the discharge gas
       - ``T_ref_cmp_out [°C]`` is an upper estimate, so the discharge limit
@@ -318,26 +326,40 @@ the three points are within it and the third is not evaluated:
       - At the solved point
     * - WH-UQ09HE8 (R410A, 9 kW)
       - 2.02
-      - 1.962
-      - −2.9 %
-      - pressure ratio 7.4, 90 rev/s, isentropic efficiency 0.806
+      - 1.877
+      - −7.1 %
+      - pressure ratio 7.4, 89 rev/s, isentropic efficiency 0.776
     * - WH-UQ12HE8 (R410A, 12 kW)
       - 1.92
       - not evaluated
       - capacity short
-      - pressure ratio 7.6, at the 120 rev/s ceiling: 96 % of the duty
+      - pressure ratio 7.6, at the 120 rev/s ceiling: 98 % of the duty
     * - WH-UQ16HE8 (R410A, 16 kW)
       - 1.86
-      - 1.890
-      - +1.6 %
-      - pressure ratio 8.3, 119 rev/s, isentropic efficiency 0.797
+      - 1.809
+      - −2.7 %
+      - pressure ratio 8.2, 116 rev/s, isentropic efficiency 0.766
 
-WH-UQ12HE8 runs at its speed ceiling and delivers 96 % of the published duty,
+WH-UQ12HE8 runs at its speed ceiling and delivers 98 % of the published duty,
 so its COP is not compared (``capacity_short``, :doc:`/validation/index`).
-With the ceiling raised the model meets the duty at 126 rev/s; the default
+With the ceiling raised the model meets the duty at 124 rev/s; the default
 ceiling is 120 rev/s (:doc:`/developer/reference-operating-limits`). The gate
 is therefore not met as it is written: one of its three points has no
 comparable COP.
+
+The catalogue COP is compared with ``cop_sys [-]``, the heat over
+``E_tot [W]``, which contains the fixed control power of the unit (15 W;
+:ref:`fixed-control-power`), as the effective power input of EN 14511-3
+does. Both evaluated points read lower than with the defaults of before
+(−2.9 % and +1.6 %, without the control power and with the rotary speed shape
+``shao_informed``). The control power takes 0.3 and 0.2 points of that. The
+rest is the default speed shape, ``ossorio_anchored``, whose isentropic
+efficiency at these speeds is lower (0.776 and 0.766 against 0.806 and
+0.797): with the other shape and the control power the two points read
+−3.2 % and +1.4 %. The gate was not used to choose the shape. That was done
+on the EN 14825 part-load comparison (:doc:`/validation/defaults`), which is
+therefore not independent validation of the rotary types; the gate points
+are inside the 10 % under either shape.
 
 All three points are solved above the rotary data: the rotary forms rest on
 data up to a pressure ratio of 6.84 (``efficiency_extrapolated`` is true at
@@ -351,17 +373,17 @@ In the previous release, with the BITZER quadratic map, the three points ran
 −19.9, −15.6 and −12.9 % below the catalogue; that map held its isentropic
 efficiency at 0.371 beyond a pressure ratio of 7.15. Of the machines without
 injection, the six rotaries of the parity set, the 17 points evaluated at −7 °C run
-+2.6 % on average (:doc:`/validation/index`).
+−2.7 % on average (:doc:`/validation/index`).
 
 **Vapour injection, which the model does not have.** The Panasonic T-CAP M
 units (WH-WXG09/12/16, R290) are sold with an injection scroll; a
 single-stage cycle (`Refused: outside the models`_) cannot hold their
 efficiency or their discharge temperature at these pressure ratios. Their
-A−7/W55 and A−7/W65 points (−22.7 and −20.8 % at 9 kW, −16.6 and −15.8 % at
-12 kW, −9.7 and −10.9 % at 16 kW) are therefore reported beside the gate, not
+A−7/W55 and A−7/W65 points (−22.9 and −21.0 % at 9 kW, −16.8 and −16.0 % at
+12 kW, −9.8 and −11.0 % at 16 kW) are therefore reported beside the gate, not
 part of it. They stay in the parity results of :doc:`/validation/index`,
 where the four injection machines (with the Samsung flash-injection unit) run
-−9.6 % on average and the six without injection −2.2 %.
+−9.9 % on average and the six without injection −4.1 %.
 
 For a result: at outdoor temperatures below about 2 °C and leaving water at
 55 °C or more, a single-stage machine is read from compressor forms past

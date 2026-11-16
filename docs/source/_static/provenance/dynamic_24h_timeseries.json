@@ -10,7 +10,7 @@
   "docs/source/_static/dynamic_24h_timeseries.svg"
  ],
  "coefficient_version": "semi-empirical-2026-11-15",
- "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
+ "git_head": "0942fc6179ee27ab4d5f269a8daca335cf86d2f1",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -20,17 +20,17 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
+ "src_tmhp_tree": "119fcb6b55254ff5af1e71d891442f1954c41371",
+ "validation_parity_tree": "e39e67b644c02c85f5ce2eec7b15686bb0ec271e",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-16T03:05:42+00:00",
+ "run_at": "2026-11-16T08:29:07+00:00",
  "data": {
-  "Q_ref_tank_kWh": 39.42936555699025,
-  "E_cmp_kWh": 15.101205626372174,
-  "E_tot_kWh": 15.486240704733012,
-  "T_tank_w_end_C": 54.93458508078021,
+  "Q_ref_tank_kWh": 39.42936556247292,
+  "E_cmp_kWh": 15.34664512722998,
+  "E_tot_kWh": 15.77115286034597,
+  "T_tank_w_end_C": 54.93458511201345,
   "hp_on_steps": 169
  }
 }

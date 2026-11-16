@@ -12,7 +12,7 @@
   "docs/source/_static/pv_ess_energy_balance.svg"
  ],
  "coefficient_version": "semi-empirical-2026-11-15",
- "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
+ "git_head": "0942fc6179ee27ab4d5f269a8daca335cf86d2f1",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -22,17 +22,17 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
+ "src_tmhp_tree": "119fcb6b55254ff5af1e71d891442f1954c41371",
+ "validation_parity_tree": "e39e67b644c02c85f5ce2eec7b15686bb0ec271e",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-16T03:05:44+00:00",
+ "run_at": "2026-11-16T08:29:10+00:00",
  "data": {
   "E_pv_out_kWh": 8.869477560809269,
-  "E_cmp_kWh": 14.705506652704203,
-  "E_grid_import_kWh": 9.272690420703187,
+  "E_cmp_kWh": 14.869695319825007,
+  "E_grid_import_kWh": 9.476335867093264,
   "E_ess_chg_kWh": 8.304708347533703,
-  "E_ess_dis_kWh": 6.006813761502298
+  "E_ess_dis_kWh": 6.006813761502297
  }
 }

@@ -248,9 +248,10 @@ def _hx_stratum(stratum: str) -> tuple[dict[str, Any], dict[str, Any]]:
 def hx_duty_per_nameplate(stratum: str, nameplate_mode: str) -> float:
     """Median duty of the exchangers of ``stratum`` per watt of their units' ``nameplate_mode`` nameplate.
 
-    The outdoor coil of a split unit rejects 1.26 W per watt of cooling nameplate (the nameplate plus the
-    compressor work); as an evaporator in heating it absorbs 0.84 W per watt of the same nameplate. A default
-    conductance is sized for that duty, not for the nameplate.
+    The outdoor coil of a split unit rejects more than its cooling nameplate (the nameplate plus the compressor
+    work), and as an evaporator in heating it absorbs less than that nameplate; the ratios are those of the
+    archive's rows and move with its releases. A default conductance is sized for that duty, not for the
+    nameplate.
     """
     _, entry = _hx_stratum(stratum)
     ratios = entry["duty_per_nameplate_p10_p50_p90"]

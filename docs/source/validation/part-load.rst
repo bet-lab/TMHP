@@ -188,6 +188,19 @@ the model loses 16.7 % between the 9 kW duty and the speed floor (which delivers
 At −7/45 °C it loses 21.2 % (COP 2.30 at the nameplate duty, 2.37 at 75 % of it,
 1.81 at the floor, which delivers 1.43 kW, 16 % of the nameplate).
 
+Which water temperature is held matters as much as the denominator. The curves
+above hold the *leaving* water, so the water temperature the refrigerant has to
+exceed does not move with the load. Holding the *entering* water instead (7 °C
+air, water entering at 30 °C at the same flow, which is the 7/35 °C point at the
+9 kW duty) lets the rise across the condenser shrink with the load. The peak is
+then COP 4.80 at 53 % of the nameplate (30 % of the maximum, 31 rev/s), 7.6 %
+above the 9 kW duty against 1.7 % with the leaving water held, and the speed
+floor is 1.7 % below the 9 kW duty against 16.7 % below. The entering side is
+also what the air-to-air model holds (the indoor air entering the coil), which
+is why its curves, further down this page, keep rising much closer to the speed
+floor. These rows are in ``validation/data/part_load_figure/entering_water.csv``
+and are not drawn.
+
 .. admonition:: Getting the maximum capacity of a machine
     :class: note
 

@@ -25,6 +25,10 @@
     45.0
    ]
   ],
+  "entering_water_condition": [
+   7.0,
+   30.0
+  ],
   "load_fractions_of_max": [
    1.0,
    0.98,
@@ -105,11 +109,12 @@
  },
  "outputs": [
   "docs/source/_static/validation_part_load.svg",
+  "validation/data/part_load_figure/entering_water.csv",
   "validation/data/part_load_figure/sweep.csv",
   "validation/data/part_load_figure/trajectory.csv"
  ],
  "coefficient_version": "semi-empirical-2026-11-15",
- "git_head": "85d710c68cc64bb812cea9f8d517e99a7689d1c5",
+ "git_head": "cfff1bb44dbda5d24dc2b7ded0b7b5858b7fe2cf",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -124,5 +129,5 @@
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-16T06:25:34+00:00"
+ "run_at": "2026-11-16T06:30:47+00:00"
 }

@@ -235,7 +235,12 @@ Revision A of the MUZ-FH manual (OBH684) is transcribed beside revision E to rec
 ## Evidence types and third-party copies
 
 59 sources: 30 manufacturer PDFs from a manufacturer domain, 22 manufacturer PDFs from a third-party host, 7
-public reports. The rule of the parent README applies to third-party copies: a third-party copy is recorded as
+public reports. Only the transcribed values, the source record and the SHA-256 are in Git. The 59 originals were
+taken to the lab NAS on 2026-11-16 as research input, with the owner's approval of that day, third-party copies
+included ([../nas-transfer-20261116.json](../nas-transfer-20261116.json): 59/59 SHA-256 matched on SMB read-back,
+on the NAS shell and over NFS). None of them is in the #87 ledger, so `archive87_dataset_id` is null; their catalogue
+metadata is bet-lab/dataset-catalog#107. Manufacturer manuals are copyrighted and kept for internal use only: the
+NAS records each file's `licence` and `evidence_type` as written here. The rule of the parent README applies to third-party copies: a third-party copy is recorded as
 `manufacturer_pdf_third_party_host` and enters a fit only once the owner has accepted the source against
 manufacturer-domain documents that print the same values (`owner_accepted`, `owner_acceptance`). Since release
 `hx-approach-2026-11-16.1` the build enforces it: rows of a third-party source without `owner_accepted: true` carry
@@ -301,13 +306,16 @@ handled by the exclusion rules or `errata.csv`, never by editing a value.
 ## Running it
 
 From the repository root. `audit` needs the evidence files under `validation/evidence/default_inputs/hx_approach/`
-(not in Git); `build` and `export` do not.
+(not in Git); `build` and `export` do not. The originals are on the lab NAS, one dataset per source
+(`energy-systems/<source-id>-source/files/source/`; `nas_path` in `sources.json`); copy them from there to run the
+audit on another machine. `nas_check` reads the NAS copies and compares their SHA-256 with `sources.json`.
 
 ```bash
 uv run python -m validation.default_inputs.hx_approach.build            # prints changes since the latest release
 uv run --with pymupdf python -m validation.default_inputs.hx_approach.audit
 uv run python -m validation.default_inputs.hx_approach.build --release hx-approach-YYYY-MM-DD --note "..."
 uv run python -m validation.default_inputs.hx_approach.export           # latest release -> src/tmhp/data/hx_approach_regression.json
+uv run python -m validation.default_inputs.nas_check                    # all three archives; --root /Volumes/datasets on a Mac
 ```
 
 `export` refuses a `regression.json` that is not the latest release. The runtime reads the exported file through

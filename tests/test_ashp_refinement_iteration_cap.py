@@ -109,9 +109,18 @@ def test_the_cap_is_what_solves_a_corner_the_least_lift_refinement_does_not(monk
     """Cooling at 38/26 degC, 99 % of the nameplate: 407 iterations, and with a cap of 200 the unit is off.
 
     Here the refinement from the least-lift point does not answer the point
-    with a cap of 200 either: it ends, but 0.005 W above where the capped one
-    stopped, so it does not replace it. The larger cap is not made redundant by
-    the fallback above (nor the fallback by the cap: the point above needs 1137).
+    with a cap of 200 either: it ends (33 iterations), but 0.005 W above where
+    the capped one stopped, and the fallback takes a finished refinement only
+    where it is no dearer. The larger cap is not made redundant by the fallback
+    above (nor the fallback by the cap: the point above needs 1137).
+
+    The last assertion therefore pins that rule of the fallback as well as the
+    cap. It is not new: on the machine this test was first written for (the
+    BITZER map and the conductances of then, 216 iterations, COP 3.0023 at
+    -10/20 degC) the least-lift refinement also ends, in 32 iterations, 0.05 W
+    dearer. A fallback that accepts a finished refinement within the
+    refinement's own tolerance (``fatol`` 0.1 W) answers this point with a cap
+    of 200 too; this test is to be revisited with such a change, not loosened.
     """
     point = dict(Q_r_iu=4950.0, T0=38.0, T_a_room=26.0, verbose=False)
     unit = AirSourceHeatPump(**CORNER_UNIT)

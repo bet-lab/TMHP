@@ -228,6 +228,24 @@ set and the A-7/W55 gate were not used in the choice and remain independent.
   the speed and PR terms, and the choice rests on how each extrapolates.
 - With the per-refrigerant R290 level the GMCC inverter-input check gives 0.90–0.91 (`a`) against 0.89–0.90 (`b`)
   (table above) — no separation; the 0.92–0.94 against 0.80–0.81 contrast holds only with the pooled LG/SCI level.
+- **The part-load curve at fixed temperatures** (measured after the choice, on the tree that carries the
+  regenerated results; default 9 kW R32 air-to-water machine, frost-free, EN 14511 water flow, load reduced at held
+  air and leaving-water temperatures down to the 15 rev/s speed floor). COP at the speed floor against full load,
+  A7/W35 / A7/W45 / A−7/W45: `a` −16.7 / −27.0 / −34.0 %, `b` −3.9 / −12.7 / −14.5 %; the quadratic map of the
+  previous release −0.9 / −3.9 / −1.3 %. Peak of the curve (load fraction, gain over full load): `a` 0.78 / 0.96 /
+  0.82 with +1.7 / +0.1 / +0.6 %, `b` 0.56 / 0.74 / 0.62 with +4.9 / +1.9 / +2.9 %. For R290 the fall is smaller
+  (`a` −5.0 / −16.4 / −22.9 %, `b` −1.5 / −11.4 / −10.6 %): the level `a` multiplies the speed-dependent loss terms
+  and is largest for R32. The literature the project collected for this question puts the peak of an inverter
+  air-to-water unit near a capacity ratio of 0.5–0.6 (or finds the COP rising monotonically towards low speed) and
+  estimates the compressor-plus-inverter fall at the lowest speed at about −10 to −15 % (one measured scroll; low
+  confidence). Under `b` the catalogue parity of the air-to-air units is worse (COP MAPE 9.37 % against 8.52 %,
+  heating bias −10.2 % against −8.4 %) and the air-to-water set about the same (8.31 % / −5.97 % against 8.34 % /
+  −5.02 %); the A−7/W55 gate points read −6.8 % and −2.6 % against −2.9 % and +1.6 %.
+  If the Shao 2004 powers include the inverter (the basis is not stated), variant `a` with the separate drive model
+  counts the low-speed drive loss twice.
+
+**Owner decision of 2026-11-16, after that measurement:** the default stays `a` for this release, as the rule
+chose it; the choice between the two shapes is reopened as a follow-up issue, with the co-author's review.
 
 Model eta(N)/eta(60) at Ossorio's condition, 30 / 90 / 120 rev/s: `a` 0.905 / 0.980 / 0.932, `b`
 0.968 / 0.962 / 0.908, data 0.980 / 0.978 / 0.914. Model eta(N)/eta(60) at Ossorio's condition, 30 / 90 / 120 rev/s: `a` 0.905 / 0.980 / 0.932, `b`
@@ -257,4 +275,14 @@ archive's 0.001 tolerance). `b` is kept as measured.
 * **The split is weakly identified.** Scroll: four measured machines; rotary: one machine, four R-410A points.
 * **Rotary eta_v** shape: three machines, two speed sources that disagree (above); level from 139 rating points at
   one condition per protocol (PR about 3.4).
+* **eta_v above one.** The rotary level `c0` is 1.13 (twin) and 1.10 (single), so at a low lift and above the
+  rated speed the form exceeds one (twin, rated 60 rev/s, R32: 1.02 at 90 rev/s and 1.04 at 120 rev/s, PR 1.5;
+  the largest value found, 1.08, at PR 1.2 and 150 rev/s for a machine rated at 40). The library sets a value above
+  one to one, which leaves a kink in eta_v there.
+* **Variant `b` with wet suction.** With a two-phase suction (the discharge-temperature control) the effective
+  exponent falls below one and the `cH` term turns negative: eta_oi 1.105 for R290 at PR 8, quality 0.9,
+  120 rev/s. The library sets the resulting eta_is to one. Variant `a` has no `cH` term (largest eta_oi found 0.78).
+* **The default speed floor lies below the rotary data.** The models' `rps_min` is 15 rev/s; the rotary sources
+  start at 30 rev/s. Every point between is an extrapolation of the speed terms (the fixed-temperature curves
+  above are read there).
 * Out of range the forms are followed as they are; `hull_PR_N` is for an `efficiency_extrapolated` flag only.

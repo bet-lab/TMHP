@@ -451,8 +451,10 @@ def test_air_to_air_ceiling_names_the_condensing_limit():
     assert _running(r) and _inside(hp, r)
     assert r["capacity_clamped"] == "max" and r["capacity_binding"] == BINDING_CONDENSING
     assert 0.0 < abs(r["Q_ref_iu [W]"]) < 3000.0
-    # No duty heats a 20 degC room from a 25 degC condenser through this coil: off, with the reason.
-    hp.T_cond_max = 25.0
+    # No duty the compressor delivers heats a 20 degC room from a 23 degC condenser through this coil:
+    # off, with the reason. (At 25 degC, the limit of before the rotary-compressor default
+    # efficiencies, the coil now carries 1.26 kW and the unit runs reduced; at 24 degC it is off.)
+    hp.T_cond_max = 23.0
     off = _quiet(hp.analyze_steady, Q_r_iu=-3000.0, T0=7.0, T_a_room=20.0, verbose=False)
     assert off["failure_reason"] == CONDENSING_TEMP_ABOVE_MAX and off["E_cmp [W]"] == 0.0
 

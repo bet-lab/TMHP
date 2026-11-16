@@ -124,7 +124,10 @@ def test_off_and_failed_points_have_no_compressor_loss_or_work():
 
 @pytest.mark.parametrize("name", ["eta_cmp_vol", "eta_cmp_isen", "eta_cmp"])
 def test_efficiency_above_one_reaches_cycle_as_one(name):
-    hp = model(rps_min=1, **{name: 1.1})
+    # A low speed floor (5 rev/s), not 1 rev/s: below about 3 rev/s the inverter and mechanical
+    # losses of the default rotary-compressor model exceed the shaft power, so with the scalar
+    # given for only one of the three efficiencies no cycle is evaluable down there.
+    hp = model(rps_min=5, **{name: 1.1})
     row = hp._calc_state(10, 10, 4000, 26, 26)
     assert row is not None
     key = {"eta_cmp_vol": "eta_cmp_vol [-]", "eta_cmp_isen": "eta_cmp_isen [-]", "eta_cmp": "eta_cmp [-]"}[name]

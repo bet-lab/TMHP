@@ -71,7 +71,10 @@ def gshp_rows(gshp):
         "freeze-off": _quiet(water.analyze_steady, Q_r_iu=-4000.0, T0=0.0, T_a_room=20.0, T_bhe_wall=2.0),
         "cooling": gshp.analyze_steady(Q_r_iu=2500.0, T0=30.0, T_a_room=27.0, T_bhe_wall=20.0),
         "off": gshp.analyze_steady(Q_r_iu=0.0, T0=0.0, T_a_room=20.0),
-        "failed": _quiet(gshp.analyze_steady, Q_r_iu=-2500.0, T0=0.0, T_a_room=20.0, T_bhe_wall=-40.0),
+        # A -50 °C wall: the cycle needs a pressure ratio above PR_cycle_max (11). From a -40 °C wall, the
+        # point of before the approach-temperature conductances and the rotary-compressor efficiencies,
+        # the cycle now stays below it and the point is refused by the glycol's freezing limit instead.
+        "failed": _quiet(gshp.analyze_steady, Q_r_iu=-2500.0, T0=0.0, T_a_room=20.0, T_bhe_wall=-50.0),
     }
 
 

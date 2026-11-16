@@ -216,7 +216,9 @@ def test_condensing_level_skips_nodes_hotter_than_the_refrigerant():
 
 @pytest.mark.parametrize("model", NODAL)
 def test_cycle_sink_temperature_of_a_stratified_tank_is_below_its_mean(model):
-    hp = _gshpb(tank_model=model, n_tank_nodes=4, UA_tank_hx=2000.0)
+    # A 2000 W/K coil without circulating water: it carries UA_tank_hx per kelvin above the water
+    # around it (K_tank_hx; with the default plate condenser and its water loop K_tank_hx is smaller).
+    hp = _gshpb(tank_model=model, n_tank_nodes=4, UA_tank_hx=2000.0, m_dot_w_rated=0.0)
     assert hp._tank is not None
     hp._tank.reset(np.array([60.0, 60.0, 20.0, 20.0]))
     # No run time: the level of the profile as it stands.
@@ -385,7 +387,9 @@ def test_top_coil_holds_its_water_at_the_envelope_stop(top_coil):
     """
     hp, df, record = top_coil
     cutout = condensing_tank_cutout(hp)
-    level_max = cutout + hp.hp_capacity / hp.UA_tank_hx
+    # The cycle condenses at the tank water plus q / K_tank_hx (with the default plate condenser and
+    # its water loop K_tank_hx is below UA_tank_hx: 1141 against 1999 W/K here).
+    level_max = cutout + hp.hp_capacity / hp.K_tank_hx
     ran = df["runtime_fraction [-]"] > 0.0
     assert ran.sum() >= 4 and (df["failure_reason"] == "none").all()
     held = df["hp_stop_reason"] == "condensing_limit"
@@ -434,9 +438,10 @@ def test_bottom_coil_mixes_instead_of_inverting(model):
 def test_condenser_node_concentrates_vs_spreads(day_runs, top_coil):
     """condenser_node=None spreads the coil over the tank; a fixed node concentrates it."""
     spread, concen = day_runs["stratified"][0], top_coil[0]
-    # UA_tank_hx follows hp_capacity (hp_capacity / 5): the whole coil, on ten nodes or on one.
-    assert spread._condenser_ua().tolist() == pytest.approx([spread.UA_tank_hx / 10.0] * 10)
-    assert concen._condenser_ua().tolist() == pytest.approx([concen.UA_tank_hx] + [0.0] * 7)
+    # K_tank_hx, the heat the tank exchanger carries per kelvin above the tank water: the whole
+    # exchanger, on ten nodes or on one.
+    assert spread._condenser_ua().tolist() == pytest.approx([spread.K_tank_hx / 10.0] * 10)
+    assert concen._condenser_ua().tolist() == pytest.approx([concen.K_tank_hx] + [0.0] * 7)
     assert spread._tank.T[-1] > 40.0 > concen._tank.T[-1]
 
 
@@ -445,7 +450,8 @@ def test_tight_coil_under_a_heavy_draw_leaves_the_hot_top_unheated(model):
     """A coil with a 2.7 K approach under a 6 L/min draw: the cycle condenses near the cold bottom
     water, below the 60 °C top, which then receives nothing; no step is cut short."""
     dt, n = 300.0, 7
-    hp = _gshpb(tank_model=model, UA_tank_hx=3000.0, dt_s=dt)
+    # A 3000 W/K coil without circulating water (K_tank_hx = UA_tank_hx).
+    hp = _gshpb(tank_model=model, UA_tank_hx=3000.0, m_dot_w_rated=0.0, dt_s=dt)
     draw = np.zeros(n)
     draw[:4] = 6.0 / 60000.0
 

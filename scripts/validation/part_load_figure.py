@@ -245,7 +245,9 @@ def sweep_entering_water(fractions: tuple[float, ...] | None = None) -> list[dic
     rows = []
     requests = [(q_max * float(f), False) for f in (fractions or LOAD_FRACTIONS_OF_MAX)] + [(NOMINAL_W, True)]
     for q_request, nameplate in requests:
-        result = solve(q_request)
+        # The request equal to the maximum is the probe itself: solved again at exactly ``q_max`` it is met or
+        # clamped by a rounding error (the flag differed between macOS arm64 and Linux x86-64).
+        result = top if q_request == q_max and not nameplate else solve(q_request)
         failure = result.get("failure_reason", "none")
         rps = float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0
         q_delivered = float(result["Q_ref_tank [W]"]) if failure == "none" else np.nan

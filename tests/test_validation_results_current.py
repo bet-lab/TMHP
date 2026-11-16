@@ -120,9 +120,30 @@ def _mismatches(fresh: pd.DataFrame, committed: pd.DataFrame, slug: str) -> list
     for i in range(len(fresh)):
         for column in fresh.columns:
             new, old = fresh.at[i, column], committed.at[i, column]
-            if not _same(new, old):
+            if not _same(new, old) and not _same_error(column, new, old, committed.at[i, "cop_target"]):
                 found.append(f"point {fresh.at[i, 'point_id']} {column}: committed {old!r}, now {new!r}")
     return found
+
+
+#: Columns that are the difference of the predicted and the published COP, with the tolerance the prediction is
+#: held to (``rel=1e-6`` of the COP) written for the difference: 1e-6 of the published COP, and 1e-4 points of percent.
+_ERROR_COLUMNS = {"abs_error": lambda cop_target: 1e-6 * abs(cop_target), "abs_pct_error": lambda cop_target: 1e-4}
+
+
+def _same_error(column: str, new, old, cop_target) -> bool:
+    """The error columns within the tolerance of the prediction they are computed from.
+
+    ``abs_error = |cop_pred - cop_target|`` is a difference of two nearly equal numbers where the model is close to
+    the catalogue, so a relative tolerance on the error is much tighter than the same tolerance on the COP: Fujitsu
+    ASUH12 point 6 is 0.4 % from the catalogue, and a platform difference of 4e-9 of its COP (macOS arm64 against
+    Linux x86-64, ``cop_pred`` itself well inside ``rel=1e-6``) is 1.07e-6 of its error. The prediction keeps its
+    tolerance in ``cop_pred``; the error columns are held to the same absolute amount.
+    """
+    if column not in _ERROR_COLUMNS or not all(
+        isinstance(x, float) and math.isfinite(x) for x in (new, old, cop_target)
+    ):
+        return False
+    return abs(new - old) <= _ERROR_COLUMNS[column](cop_target)
 
 
 @functools.cache

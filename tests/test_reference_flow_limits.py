@@ -40,7 +40,10 @@ def ground_model(cls=GroundSourceHeatPump, maximum=36, constant=24, control="con
     params.update(
         dict(UA_ground_rated=2000, UA_iu_rated=2000, PR_cycle_max=8)
         if cls is GroundSourceHeatPump
-        else dict(UA_tank_hx=2000, UA_ground=2000)
+        # The boiler condenses against the water entering its plate condenser: 12 cm3/rev cannot deliver
+        # its B0/W55 rating point below 150 rev/s with the rotary-compressor default efficiencies, so it
+        # takes the displacement of before the catalogue default (42 cm3/rev per 9 kW).
+        else dict(UA_tank_hx=2000, UA_ground=2000, V_cmp_ref=8000 * 42e-6 / 9000)
     )
     return cls(**params)
 

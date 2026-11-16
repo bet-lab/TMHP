@@ -16,7 +16,8 @@ import math
 import pandas as pd
 import pytest
 from validation.gate.evaluate import GATE_FILE, catalogue_point, evaluate_all, gate_call, load_gate, parity_layers
-from validation.parity.run import RESULTS_DIR
+from validation.parity.run import RESULTS_DIR, STRATUM_INJECTION, STRATUM_NO_INJECTION, injection_strata
+from validation.parity.spec import load_all
 
 from tmhp.constants import c_w
 
@@ -71,7 +72,15 @@ def test_vapour_injection_units_are_reported_with_their_reason_and_stay_in_the_p
     # Reported is not removed: the layers add up to the headline, point for point.
     layers = parity_layers().set_index("layer")
     whole, rest, injected = (layers.loc[name] for name in layers.index)
-    assert (rest.units, injected.units) == (whole.units - 3, 3)
+    # The layers are the catalogues' published injection: the three T-CAP M units reported here and the
+    # Samsung unit (flash injection); the six rotaries without injection are the layer the gate is judged on.
+    assert (rest.units, injected.units) == (6, 4)
+    published = {c.slug for c in load_all() if c.model_class == "ASHPB" and c.status == "adopted" and c.injected}
+    assert set(INJECTION_CATALOGS) < published and len(published) == 4
+    strata = injection_strata(pd.read_csv(RESULTS_DIR / "summary.csv")).set_index("stratum")
+    assert injected.evaluated == strata.loc[STRATUM_INJECTION].points_usable
+    assert injected.cop_MAPE_pct == pytest.approx(strata.loc[STRATUM_INJECTION].cop_MAPE_pct, rel=1e-9)
+    assert rest.cop_bias_pct == pytest.approx(strata.loc[STRATUM_NO_INJECTION].cop_bias_pct, rel=1e-9)
     assert rest.points + injected.points == whole.points
     assert rest.evaluated + injected.evaluated == whole.evaluated
     summary = pd.read_csv(RESULTS_DIR / "summary.csv")

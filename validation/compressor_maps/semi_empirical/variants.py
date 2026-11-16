@@ -1,6 +1,6 @@
 """Rotary speed-shape variants (DESIGN 11.3 item 2): which sources inform the rotary speed terms.
 
-Variant ``a`` (Shao-informed) is the archive's default rotary shape since the second 2026-11-16 revision: the
+Variant ``a`` (Shao-informed) is the archive's default rotary shape since the third 2026-11-16 revision: the
 compressor data cannot separate the two variants, so the rule written down before the device measurement (DESIGN 14:
 the EN 14825 trajectory shape of the certified population, D/A inside p10-p90 over 30 cases) chose it; variant ``b``
 (Ossorio-anchored, the default of the first revision) is the documented alternative. The first archive's rotary

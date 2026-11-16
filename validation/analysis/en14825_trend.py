@@ -534,7 +534,7 @@ def _main() -> None:
         ].to_string(index=False, float_format=lambda v: f"{v:.2f}")
     )
 
-    print("\n=== the same four descriptions against the catalogue parity set ===")
+    print("\n=== the same five descriptions against the catalogue parity set ===")
     parity = pd.DataFrame([parity_under(v) for v in variants()])
     parity.to_csv(OUT_PARITY, index=False)
     print(parity.to_string(index=False, float_format=lambda v: f"{v:.2f}"))

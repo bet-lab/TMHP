@@ -248,7 +248,6 @@ set and the A-7/W55 gate were not used in the choice and remain independent.
 chose it; the choice between the two shapes is reopened as a follow-up issue, with the co-author's review.
 
 Model eta(N)/eta(60) at Ossorio's condition, 30 / 90 / 120 rev/s: `a` 0.905 / 0.980 / 0.932, `b`
-0.968 / 0.962 / 0.908, data 0.980 / 0.978 / 0.914. Model eta(N)/eta(60) at Ossorio's condition, 30 / 90 / 120 rev/s: `a` 0.905 / 0.980 / 0.932, `b`
 0.968 / 0.962 / 0.908, data 0.980 / 0.978 / 0.914. The level form (scaled) and the speed coordinate (relative) were
 selected on arrangement `a` and are kept for `b`; on arrangement `b` the same rules would keep the additive level
 form with the absolute coordinate and terms `q2, cH` (LOCO shape 0.0200 against 0.0209 for `b`; a tie within the

@@ -133,22 +133,29 @@ def evaluate_all() -> dict[str, list[dict[str, Any]]]:
 
 
 def parity_layers(results_dir: Path = RESULTS_DIR) -> pd.DataFrame:
-    """The committed air-to-water parity results, whole and split by the vapour-injection layer.
+    """The committed air-to-water parity results, whole and split by the published injection.
 
     One row per layer: units, points attempted and evaluated, point-weighted
     COP MAPE and bias [%]. ``all`` is the headline the validation pages carry;
     the two layers below it add up to it, point for point. Adopted units only.
+    The split is the catalogues' own ``published_inputs.injection``
+    (:attr:`validation.parity.spec.Catalog.injected`), the same one the parity
+    harness reports (:func:`validation.parity.run.injection_strata`): the
+    machines the single-stage cycle represents, which the gate is judged on,
+    and the injection machines -- the T-CAP M units whose A-7 points this file
+    reports, and the Samsung unit (flash injection).
     """
-    injected = set(load_gate()["reported"]["vapour_injection"]["catalogs"])
-    frames = []
+    frames, injected = [], set()
     for catalog in load_all():
         if catalog.model_class == "ASHPB" and catalog.status == "adopted":
             frames.append(pd.read_csv(results_dir / f"{catalog.slug}.csv"))
+            if catalog.injected:
+                injected.add(catalog.slug)
     points = pd.concat(frames, ignore_index=True)
     layers = {
         "all": points,
-        "other units (gate layer)": points[~points.slug.isin(injected)],
-        "T-CAP M, vapour injection (reported)": points[points.slug.isin(injected)],
+        "no injection (gate layer)": points[~points.slug.isin(injected)],
+        "injection (reported)": points[points.slug.isin(injected)],
     }
     rows = []
     for name, frame in layers.items():

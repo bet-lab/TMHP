@@ -212,6 +212,82 @@ def test_refrigerant_only_sample_reproduces() -> None:
     assert not mismatches, f"validation/results/refrigerant_only_plr_cop: {HINT}.\n  " + "\n  ".join(mismatches[:15])
 
 
+ROTARY_EVIDENCE = DATA / "rotary_speed_evidence"
+
+
+def _committed(name: str) -> pd.DataFrame:
+    return pd.read_csv(ROTARY_EVIDENCE / f"{name}.csv", float_precision="round_trip")
+
+
+def _aligned(fresh: pd.DataFrame, committed: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
+    return fresh[keys].merge(committed, on=keys, how="left")[committed.columns]
+
+
+def test_rotary_speed_evidence_sample_reproduces() -> None:
+    """Both rotary speed shapes: one EN 14825 case, the UQ09 catalogue, and the ends of two fixed-temperature curves."""
+    from validation.analysis import rotary_speed_evidence as rse
+
+    mismatches = []
+    points = _committed("en14825_points")
+    parity = _committed("parity_points")
+    curves = _committed("curves")
+    ends = [("floor", rse.FLOOR_REQUEST), ("grid", 1.0), ("ceiling", rse.CEILING_REQUEST)]
+    for variant in rse.VARIANTS:
+        fresh = pd.DataFrame(rse.en14825_case(variant, 9000.0, "R32", "low", 0.667))
+        keys = ["variant", "application", "capacity_kW", "refrigerant", "oversizing", "point"]
+        mismatches += _frame_mismatches(fresh, _aligned(fresh, points, keys), f"en14825_points {variant}")
+        fresh = rse.parity_catalog(variant, "panasonic_wh_uq09he8").reset_index(drop=True)
+        keys = ["variant", "slug", "point_id", "mode"]
+        mismatches += _frame_mismatches(fresh, _aligned(fresh, parity, keys), f"parity_points {variant}")
+        fresh = pd.DataFrame(
+            rse.curve_air_to_water(variant, rse.AIR_TO_WATER_CURVES[0], ends)
+            + rse.curve_air_to_air(variant, rse.AIR_TO_AIR_CURVES[1], ends)
+        )
+        keys = ["variant", "model_class", "duty", "t_outdoor_C", "t_sink_C", "kind", "plr_request"]
+        mismatches += _frame_mismatches(fresh, _aligned(fresh, curves, keys), f"curves {variant}")
+    assert not mismatches, f"validation/data/rotary_speed_evidence: {HINT}.\n  " + "\n  ".join(mismatches[:15])
+
+
+def test_rotary_speed_evidence_tables_follow_from_the_committed_points() -> None:
+    """The fixed powers come from the Keymark declarations, and the parity and curve tables from the committed points."""
+    from validation.analysis import rotary_speed_evidence as rse
+
+    levels = rse.fixed_power_levels()
+    mismatches = _frame_mismatches(levels, _committed("fixed_power_levels"), "fixed_power_levels")
+    parity = _committed("parity_points")
+    curves = _committed("curves")
+    for name, fresh in (
+        ("parity_summary", rse.parity_summary(parity, levels)),
+        ("parity_gate", rse.parity_gate(parity, levels)),
+        ("curve_summary", rse.curve_summary(curves, levels)),
+    ):
+        mismatches += _frame_mismatches(fresh, _committed(name), name)
+    assert not mismatches, "rerun `python -m validation.analysis.rotary_speed_evidence`.\n  " + "\n  ".join(
+        mismatches[:15]
+    )
+
+
+@pytest.mark.skipif(
+    not (DATA / "keymark_en14825_declared.csv").exists(),
+    reason="the per-model Keymark table has not been extracted here",
+)
+def test_rotary_speed_evidence_en14825_scores_follow_from_the_points() -> None:
+    from validation.analysis import rotary_speed_evidence as rse
+
+    bands = rse.certified_bands()
+    scores = rse.en14825_scores(_committed("en14825_points"), bands, rse.fixed_power_levels())
+    mismatches = []
+    for name, fresh in (
+        ("certified_bands", bands),
+        ("en14825_scores", scores),
+        ("en14825_summary", rse.en14825_summary(scores, bands)),
+    ):
+        mismatches += _frame_mismatches(fresh, _committed(name), name)
+    assert not mismatches, "rerun `python -m validation.analysis.rotary_speed_evidence`.\n  " + "\n  ".join(
+        mismatches[:15]
+    )
+
+
 # ---------------------------------------------------------------------------
 # Docs figures: the recorded values, recomputed
 # ---------------------------------------------------------------------------
@@ -301,6 +377,7 @@ STUDY_RECORDS = {
     "validation/data/power_cop/": "validation/data/provenance/power_cop.json",
     "validation/data/professor_summary/": "validation/data/provenance/professor_summary.json",
     "validation/data/compressor_maps/": "validation/data/provenance/compressor_maps.json",
+    "validation/data/rotary_speed_evidence/": "validation/data/provenance/rotary_speed_evidence.json",
     "validation/results/hx_ua_sensitivity_once/": "validation/results/hx_ua_sensitivity_once/provenance.json",
     "validation/results/refrigerant_only_plr_cop/": "validation/results/refrigerant_only_plr_cop/provenance.json",
     "validation/results/refrigerant_ua_sensitivity_once/": "validation/results/refrigerant_ua_sensitivity_once/provenance.json",

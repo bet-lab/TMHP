@@ -631,15 +631,16 @@ def test_defaults_ablation_table_matches_the_study(points: pd.DataFrame) -> None
     # The figure does not draw the previous release, and the page says so.
     assert "The figure draws four of the five descriptions" in flat
     for variant in ablation.index:
-        shipped = variant == "defaults"
-        row = re.sub(r"\s+", " ", _list_table_row(section, f"**``{variant}``**" if shipped else f"``{variant}``"))
-        cells = [cell.strip().strip("*") for cell in row.split(" - ")[1:]]
+        # Plain cells: reStructuredText does not nest a literal inside bold, so the shipped row is not set in bold.
+        row = re.sub(r"\s+", " ", _list_table_row(section, f"``{variant}``"))
+        assert "**" not in row, variant
+        cells = [cell.strip() for cell in row.split(" - ")[1:]]
         mape = ablation.at[variant, "MAPE_air_to_water_pct"]
         bias = ablation.at[variant, "bias_air_to_water_pct"]
         expected = [f"{mape:.1f} %", f"{_signed(bias)} %".replace("-", "−"), str(int(ablation.at[variant, "points"]))]
         assert cells[1:] == expected, f"{variant}: row {cells!r}, study says {expected!r}"
-        if shipped:
-            assert f"``{COEFFICIENT_VERSION}``" in cells[0]
+        if variant == "defaults":
+            assert cells[0].startswith("what TMHP ships") and f"``{COEFFICIENT_VERSION}``" in cells[0]
 
     # The ``defaults`` row is the harness output the index page quotes, and the prose gives it to two decimals.
     mape, bias, evaluated, attempted = _stats(points[_ashpb(points)])
@@ -1447,6 +1448,154 @@ def test_defaults_figures_measured_on_a_model_are_what_the_library_returns() -> 
         f"At a pressure ratio of {p2 / p1:.1f} with {ref} and a suction quality of {quality:g} the form gives "
         f":math:`\\eta_{{oi}}` = {value:.2f}"
     ) in limits
+    assert f"gives {default.eta_oi(p2 / p1, 60.0, state):.2f} at that state" in limits
+
+
+_TREND_KEY = ["application", "capacity_kW", "refrigerant", "oversizing"]
+
+
+def _defaults_trend_cops(**model_settings) -> pd.DataFrame:
+    """COP at the four EN 14825 points of the study's thirty cases, for a boiler built with ``model_settings``."""
+    from validation.analysis.en14825_trend import (
+        CONFIGURATIONS,
+        EN14825_POINTS,
+        OVERSIZING,
+        en14825_water_flow,
+        solve_at_leaving_water,
+    )
+
+    from tmhp import AirSourceHeatPumpBoiler
+
+    rows = []
+    for application, test_points in EN14825_POINTS.items():
+        for capacity, refrigerant in CONFIGURATIONS:
+            model = AirSourceHeatPumpBoiler(hp_capacity=capacity, ref=refrigerant, Cd_cycling=None, **model_settings)
+            flow = en14825_water_flow(capacity, application)
+            for oversizing in OVERSIZING:
+                row = dict(zip(_TREND_KEY, (application, capacity / 1000.0, refrigerant, oversizing), strict=True))
+                for label, t_outdoor, leaving, load_ratio in test_points:
+                    result, _ = solve_at_leaving_water(
+                        model, t_outdoor, leaving, capacity * oversizing * load_ratio, flow
+                    )
+                    assert result["failure_reason"] == "none", (application, refrigerant, label)
+                    row[label] = float(result["cop_sys [-]"])
+                rows.append(row)
+    return pd.DataFrame(rows).set_index(_TREND_KEY)
+
+
+def _defaults_outside_band(cops: pd.DataFrame) -> pd.DataFrame:
+    """Per case and point: -1 below the certified p10, +1 above the p90, 0 inside (``keymark_en14825_summary.csv``)."""
+    reference = pd.read_csv(KEYMARK_SUMMARY).set_index(["application", "point"])
+    application = cops.index.get_level_values("application")
+    flags = pd.DataFrame(index=cops.index)
+    for point in "ABCD":
+        p10 = application.map(lambda a, p=point: reference.cop_p10[(a, p)]).to_numpy()
+        p90 = application.map(lambda a, p=point: reference.cop_p90[(a, p)]).to_numpy()
+        flags[point] = (cops[point].to_numpy() > p90).astype(int) - (cops[point].to_numpy() < p10).astype(int)
+    return flags
+
+
+def _defaults_count(mask: pd.Series) -> tuple[int, int]:
+    counts = mask.groupby(level="application").sum()
+    return int(counts.get("low", 0)), int(counts.get("medium", 0))
+
+
+def test_defaults_speed_shape_choice_is_what_the_library_returns() -> None:
+    """The rule that chose the rotary speed shape, run again: both variants on the study's thirty cases."""
+    import math
+
+    from tmhp.compressor_efficiency import CompressorSpec
+
+    gradient = pd.read_csv(KEYMARK_GRADIENT).set_index("application")
+    committed = pd.read_csv(TREND_POINTS).query("variant == 'defaults'")
+    measured = {
+        "shao_informed": committed.pivot_table(index=_TREND_KEY, columns="point", values="cop"),
+        "ossorio_anchored": _defaults_trend_cops(
+            compressor_type=CompressorSpec("rotary_twin_inverter", "ossorio_anchored")
+        ),
+    }
+    counts = {}
+    for variant, cops in measured.items():
+        application = cops.index.get_level_values("application")
+        ratio = cops.D / cops.A
+        low, high, median = (
+            application.map(gradient[c]).to_numpy() for c in ("ratio_p10", "ratio_p90", "ratio_median")
+        )
+        flags = _defaults_outside_band(cops)
+        low_cases = cops.xs("low", level="application")
+        counts[variant] = {
+            "shape": int(((ratio >= low) & (ratio <= high)).sum()),
+            "distance": float((ratio / median).map(lambda v: abs(math.log(v))).median()),
+            "level": int((flags == 0).all(axis=1).sum()),
+            "B/A": float((low_cases.B / low_cases.A).median()),
+            "C/A": float((low_cases.C / low_cases.A).median()),
+            "part load below": int(((flags.B < 0) | (flags.C < 0)).sum()),
+            "D above": _defaults_count(flags.D > 0),
+        }
+    chosen, other = counts["shao_informed"], counts["ossorio_anchored"]
+    # The rule: a difference of three cases or more in the shape count decides.
+    assert chosen["shape"] - other["shape"] >= 3
+    choice = re.sub(r"\s+", " ", _defaults_section("Compressor data, not heat-pump data"))
+    assert (
+        f"{chosen['shape']} of 30 cases for ``shao_informed`` against {other['shape']} of 30 for ``ossorio_anchored``, "
+        f"and a median distance from the certified median ratio of {chosen['distance']:.3f} against "
+        f"{other['distance']:.3f} in logarithm. The present library returns the same counts."
+    ) in choice
+    # The evidence the other way is measured too, not only quoted from the README.
+    assert (
+        f"are {chosen['B/A']:.2f} and {chosen['C/A']:.2f} for ``shao_informed`` and {other['B/A']:.2f} and "
+        f"{other['C/A']:.2f} for ``ossorio_anchored``"
+    ) in choice
+    assert (
+        f"The level check is passed by {chosen['level']} of 30 cases with ``shao_informed`` and by {other['level']} "
+        "with ``ossorio_anchored``"
+    ) in choice
+    assert other["level"] > chosen["level"]
+    survive = re.sub(r"\s+", " ", _defaults_section("Does the coefficient set survive both tests?"))
+    assert f"the variant that was not chosen passes this criterion in {other['level']} runs" in survive
+    limits = re.sub(r"\s+", " ", _defaults_section("Limits and provisional items"))
+    assert other["D above"][1] == 0
+    assert (
+        f"the default sits below the certified 10th percentile at a part-load point in {chosen['part load below']} of "
+        f"the 30 cases and the variant with the shallower fall in {other['part load below']}; that variant is instead "
+        f"above the 90th percentile at point D in {other['D above'][0]}"
+    ) in limits
+
+
+def test_defaults_frost_paragraph_is_what_the_models_return() -> None:
+    """The trajectory without the frost adjustment and with it in full at every load, on the study's thirty cases."""
+    from tmhp.defrost import DefrostModel
+
+    committed = pd.read_csv(TREND_POINTS).query("variant == 'defaults'")
+    shipped = committed.pivot_table(index=_TREND_KEY, columns="point", values="cop")
+    without = _defaults_trend_cops(defrost=False)
+    in_full = _defaults_trend_cops(defrost=DefrostModel(load_weighted=False))
+    flat = re.sub(r"\s+", " ", _defaults_section("Does the coefficient set survive both tests?"))
+
+    # Frost acts on the two cold points only.
+    for other in (without, in_full):
+        assert (other[["C", "D"]] - shipped.loc[other.index, ["C", "D"]]).abs().to_numpy().max() < 1e-6
+    flags = _defaults_outside_band(without)
+    above_a = _defaults_count(flags.A > 0)
+    assert not (flags == 0).all(axis=1).any()
+    assert (
+        f"above the 90th percentile at point A in {above_a[0]} of the 15 low-temperature runs, no run passing" in flat
+    )
+    medians = (without.D / without.A).groupby(level="application").median()
+    assert f"without it the two medians are {medians['low']:.2f} and {medians['medium']:.2f}" in flat
+    flags = _defaults_outside_band(in_full)
+    assert not (flags == 0).all(axis=1).any()
+    assert int((flags.B < 0).sum()) == 30
+    assert "point B below the 10th percentile in all 30 runs, no run passing" in flat
+    # How much of the full correction the shipped, load-weighted adjustment keeps at each cold point.
+    case = ("low", 9.0, "R32", 0.667)
+    kept = {
+        point: (without.loc[case, point] - shipped.loc[case, point])
+        / (without.loc[case, point] - in_full.loc[case, point])
+        for point in "AB"
+    }
+    assert kept["A"] > 0.9 and 0.2 < kept["B"] < 0.3
+    assert "point A keeps over nine tenths of the correction and point B a quarter of it" in flat
 
 
 def test_implied_conductance_table_matches_the_decomposition() -> None:

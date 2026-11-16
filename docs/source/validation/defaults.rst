@@ -1398,8 +1398,9 @@ water has a COP of 2.75 at full load, 2.76 at 75 % load and 1.81 at its speed
 floor (16 % of the nameplate); at +7 °C and 35 °C it has 4.46, 4.53 and 3.72
 (24 %). Whether real inverter rotaries lose that much is exactly what the two
 speed sources disagree on. On the EN 14825 trajectory the default sits below
-the certified 10th percentile at the part-load points in most cases (next
-subsection), which is evidence that the fall is too steep.
+the certified 10th percentile at a part-load point in 18 of the 30 cases and
+the variant with the shallower fall in 2; that variant is instead above the
+90th percentile at point D in 12 (next subsection).
 
 **The volumetric efficiency of the rotary types above a pressure ratio of 6.8
 is an extrapolation.** Its fall with the pressure ratio comes mostly from the
@@ -1546,12 +1547,12 @@ is the "before" of the change of compressor model.
       - −2.1 %
       - 736
 
-    * - **``defaults``**
-      - **what TMHP ships — the models ``semi-empirical-2026-11-15``, each
-        unit with the compressor type its manufacturer documents**
-      - **8.3 %**
-      - **−5.0 %**
-      - **740**
+    * - ``defaults``
+      - what TMHP ships: the models ``semi-empirical-2026-11-15``, each unit
+        with the compressor type its manufacturer documents
+      - 8.3 %
+      - −5.0 %
+      - 740
 
 Parity figures are the ten adopted air-to-water units; the held Fujitsu
 catalogues are excluded from every headline. The ``defaults`` row is the

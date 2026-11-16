@@ -501,6 +501,18 @@ STRATUM_POOLED = "pooled"
 STRATUM_NO_INJECTION = "no injection (single-stage, what the model represents)"
 STRATUM_INJECTION = "injection (reported, not represented by the single-stage cycle)"
 STRATUM_UNPUBLISHED = "injection not published"
+#: Columns of :func:`injection_strata`; kept when there is no adopted air-to-water unit.
+STRATA_COLUMNS = (
+    "model_class",
+    "rating_standard",
+    "stratum",
+    "units",
+    "slugs",
+    "points",
+    "points_usable",
+    "cop_MAPE_pct",
+    "cop_bias_pct",
+)
 
 
 def injection_strata(summary: pd.DataFrame, catalogs: list[Catalog] | None = None) -> pd.DataFrame:
@@ -547,7 +559,7 @@ def injection_strata(summary: pd.DataFrame, catalogs: list[Catalog] | None = Non
                     else float("nan"),
                 }
             )
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=STRATA_COLUMNS)
 
 
 def _print_summary(summary: pd.DataFrame) -> None:

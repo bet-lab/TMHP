@@ -197,3 +197,27 @@ def test_injection_strata_split_the_pooled_headline():
         (none.cop_MAPE_pct * none.points_usable + inj.cop_MAPE_pct * inj.points_usable) / pooled.points_usable
     )
     assert run.STRATUM_UNPUBLISHED not in strata.index
+
+
+def test_strata_and_summary_print_without_air_to_water_units(capsys):
+    summary = pd.DataFrame(
+        [
+            {
+                "slug": "air",
+                "unit": "air",
+                "model_class": "ASHP",
+                "refrigerant": "R32",
+                "rating_standard": "EN 14511",
+                "status": "adopted",
+                "points": 4,
+                "points_usable": 4,
+                "cop_MAE": 0.1,
+                "cop_MAPE_pct": 5.0,
+                "cop_bias_pct": -1.0,
+            }
+        ]
+    )
+    strata = run.injection_strata(summary, [])
+    assert strata.empty and list(strata.columns) == list(run.STRATA_COLUMNS)
+    run._print_summary(summary)
+    assert "by injection" not in capsys.readouterr().out

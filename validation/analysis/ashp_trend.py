@@ -108,6 +108,12 @@ CONFIGURATIONS = (
 
 #: Part loads for the fixed-temperature sweep, nameplate as the denominator.
 SWEEP_FRACTIONS = tuple(round(1.0 - 0.04 * i, 2) for i in range(23))  # 1.00 .. 0.12
+#: The sweep goes on above the nameplate, in the same steps, up to the first
+#: request at or above the unit's maximum capacity at the condition
+#: (``AirSourceHeatPump.max_capacity``): that request is answered at the top
+#: speed (``capacity_clamped == "max"``). The nameplate rows are what the sweep
+#: held before; the verdict (:func:`score`) reads the trajectory only.
+SWEEP_STEP = 0.04
 
 #: Model settings, chosen for the question rather than left to the defaults.
 #: Both curves are the *running* machine: the declared COP of a part-load
@@ -150,14 +156,27 @@ def _run(model: AirSourceHeatPump, duty: Duty, load_w: float, t_outdoor: float) 
     }
 
 
+def _above_nameplate(q_max_w: float, capacity_w: float) -> list[float]:
+    """Request fractions of the nameplate above 1: the grid steps up to the first one at or above the maximum."""
+    fractions = []
+    k = 1
+    while True:
+        fraction = round(1.0 + SWEEP_STEP * k, 2)
+        fractions.append(fraction)
+        if fraction * capacity_w >= q_max_w:
+            return fractions
+        k += 1
+
+
 def sweep() -> pd.DataFrame:
-    """Fixed-temperature part-load sweep: both air temperatures held."""
+    """Fixed-temperature part-load sweep: both air temperatures held, from the speed floor to the top speed."""
     rows = []
     for capacity_w, refrigerant in CONFIGURATIONS:
         for duty in DUTIES:
             model = AirSourceHeatPump(hp_capacity=capacity_w, ref=refrigerant, **SWEEP_SETTINGS)
             for t_outdoor in duty.sweep_outdoor_C:
-                for fraction in SWEEP_FRACTIONS:
+                q_max = float(model.max_capacity(t_outdoor, duty.t_room_C, mode=duty.name)["Q_max [W]"])
+                for fraction in (*_above_nameplate(q_max, capacity_w)[::-1], *SWEEP_FRACTIONS):
                     point = _run(model, duty, capacity_w * fraction, t_outdoor)
                     if point is None:
                         continue
@@ -170,6 +189,9 @@ def sweep() -> pd.DataFrame:
                             "t_room_C": duty.t_room_C,
                             "plr_nameplate": fraction,
                             **point,
+                            "q_max_W": q_max,
+                            "plr_max": capacity_w * fraction / q_max,
+                            "delivered_fraction_of_max": point["q_delivered_W"] / q_max,
                         }
                     )
     return pd.DataFrame(rows)
@@ -301,8 +323,11 @@ def main() -> None:
         part = sweep_df[sweep_df.duty == duty.name]
         if part.empty:
             continue
-        clamped = part.capacity_clamped.notna().mean() * 100.0
-        print(f"    {duty.name:8s} {len(part):4d} points, {clamped:5.1f} % at a speed clamp")
+        floor = (part.capacity_clamped == "min").mean() * 100.0
+        top = (part.capacity_clamped == "max").mean() * 100.0
+        print(
+            f"    {duty.name:8s} {len(part):4d} points, {floor:5.1f} % at the speed floor, {top:4.1f} % at the top speed"
+        )
     print()
 
     if args.reuse and OUT_POINTS.exists():

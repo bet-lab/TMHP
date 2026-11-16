@@ -43,12 +43,10 @@ from .compressor_envelope import (
     BINDING_CONDENSING,
     BINDING_CYCLE,
     BINDING_DISCHARGE,
-    BINDING_EFFICIENCY,
     BINDING_PRESSURE_RATIO,
     CONDENSING_TEMP_ABOVE_MAX,
     CYCLE_KEY,
     DISCHARGE_TEMP_ABOVE_MAX,
-    ETA_ISEN_BELOW_MIN,
     PR_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
@@ -528,10 +526,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
     14825 degradation (``Cd_cycling``), and ``runtime_fraction [-]`` is the
     share of the time the compressor runs (:mod:`tmhp.cycling`). The same
     holds where the envelope ends continuous operation above the minimum
-    speed: at a large lift the shipped isentropic fit falls towards low
+    speed: at a large lift the isentropic efficiency falls towards low
     speed, the discharge runs above its limit there
-    (``discharge_temp_above_max``) or the fit drops below its floor
-    (``eta_isen_below_min``), and a request below the smallest duty that
+    (``discharge_temp_above_max``), and a request below the smallest duty that
     stays inside is met by cycling at that duty (``Q_min [W]``), not answered
     with the unit switched off.
     """
@@ -2019,7 +2016,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
         PR_ABOVE_MAX: BINDING_PRESSURE_RATIO,
         CONDENSING_TEMP_ABOVE_MAX: BINDING_CONDENSING,
         DISCHARGE_TEMP_ABOVE_MAX: BINDING_DISCHARGE,
-        ETA_ISEN_BELOW_MIN: BINDING_EFFICIENCY,
     }
     #: Why :meth:`_largest_airflow_point` has no state although the cycle exists:
     #: a coil cannot carry its duty inside the approach bounds.
@@ -2131,8 +2127,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         whether the compressor met the duty) and ``reason`` is ``None``; or
         ``state`` is ``None`` and ``reason`` says why: the envelope limit the
         cycle ran into (``"pr_above_max"``, ``"discharge_temp_above_max"``,
-        ``"eta_isen_below_min"``), :attr:`_AIR_SIDE` when a coil cannot carry
-        its duty inside the approach bounds, or ``"cycle_invalid"``.
+        ``"condensing_temp_above_max"``), :attr:`_AIR_SIDE` when a coil cannot
+        carry its duty inside the approach bounds, or ``"cycle_invalid"``.
         """
         lo, hi = self.dT_approach_bounds
         heating = Q_r_iu < 0
@@ -2356,7 +2352,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         lift at which that speed's duty is delivered
         (:meth:`_largest_airflow_point`). Where that point is outside the
         compressor envelope (pressure ratio, discharge temperature even under
-        its control, the efficiency floor) or beyond what a coil carries
+        its control, condensing temperature) or beyond what a coil carries
         inside the approach bounds, the ceiling is the largest duty whose
         least-lift point is an operating point -- a unit's controller holds
         the compressor back to it -- found by bisection on the duty.
@@ -2404,10 +2400,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
             approach temperatures there, the electrical input and system COP at
             that point, and ``binding`` naming what stopped it:
             ``"compressor"`` (the speed range), ``"pressure_ratio"``,
-            ``"discharge_temperature"`` or ``"compressor_efficiency"`` (the
+            ``"discharge_temperature"`` or ``"condensing_temperature"`` (the
             compressor envelope: the next larger duty exceeds ``PR_cycle_max``,
-            ``T_dis_max`` under its control, or falls below the efficiency
-            floor), ``"cycle"`` (a coil at its largest airflow and the widest
+            ``T_dis_max`` under its control, or ``T_cond_max``),
+            ``"cycle"`` (a coil at its largest airflow and the widest
             approach the search admits), ``"cycle_invalid"`` (the next larger
             duty has no cycle the model can represent -- a condensing
             temperature at the critical point; :meth:`analyze_steady` does not
@@ -2528,7 +2524,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
             BINDING_CONDENSING,
             BINDING_DISCHARGE,
             BINDING_PRESSURE_RATIO,
-            BINDING_EFFICIENCY,
         }
     )
 
@@ -2601,25 +2596,23 @@ class AirSourceHeatPump(ReferenceStateMixin):
     _FLOOR_LADDER: tuple[float, ...] = (0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0)
     #: Relative width at which the bisection for the smallest continuous duty stops.
     _FLOOR_REL_TOL = 5e-3
-    #: Refusals a larger duty leaves behind: the two limits the compressor
-    #: meets towards low speed at a large lift, where the shipped isentropic
-    #: fit falls (:func:`~tmhp.compressor_envelope.raise_duty_within_envelope`
+    #: Refusals a larger duty leaves behind: the limit the compressor meets
+    #: towards low speed at a large lift, where the isentropic efficiency
+    #: falls (:func:`~tmhp.compressor_envelope.raise_duty_within_envelope`
     #: is the boilers' counterpart).
-    _REFUSED_FROM_BELOW = frozenset({ETA_ISEN_BELOW_MIN, DISCHARGE_TEMP_ABOVE_MAX})
+    _REFUSED_FROM_BELOW = frozenset({DISCHARGE_TEMP_ABOVE_MAX})
 
     def _smallest_continuous_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
         """The smallest duty above a request the envelope refuses from below, as a continuous state.
 
         The compressor's speed floor is not the only lower end of continuous
         operation. At a large lift (a low-pressure refrigerant in severe cold)
-        the shipped isentropic fit falls towards low speed, and before
-        ``rps_min`` is reached the envelope refuses the point: first for the
+        the isentropic efficiency falls towards low speed, and before
+        ``rps_min`` is reached the envelope refuses the point for the
         discharge temperature, which the falling efficiency drives above
-        ``T_dis_max`` even with the discharge-temperature control used up,
-        then for the fit's own floor
-        (:data:`~tmhp.compressor_envelope.ETA_ISEN_MIN`). Every duty below the
-        one at which the last of the two lets go is refused -- while larger
-        duties run. A unit does not stay off there: it runs at the smallest
+        ``T_dis_max`` even with the discharge-temperature control used up.
+        Every duty below the one at which that limit lets go is refused --
+        while larger duties run. A unit does not stay off there: it runs at the smallest
         duty the envelope admits and switches off when the room has had
         enough, exactly as it does below its minimum speed.
 
@@ -2752,15 +2745,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
               and the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``, ``"cycle_invalid"``
               (the refrigerant cycle itself was infeasible), ``"pr_above_max"``,
-              ``"discharge_temp_above_max"``, ``"condensing_temp_above_max"``,
-              ``"eta_isen_below_min"`` (the
+              ``"discharge_temp_above_max"``, ``"condensing_temp_above_max"``
+              (the
               compressor envelope refuses the request where it is easiest to
               meet -- at its least-lift point -- and no smaller duty runs
               either; a request that a smaller duty meets returns that duty
               with ``capacity_clamped="max"`` and ``capacity_binding`` naming
               the limit: ``"discharge_temperature"``,
-              ``"condensing_temperature"`` for ``T_cond_max``,
-              ``"compressor_efficiency"``), ``"hx_not_converged"`` (cycle OK
+              ``"condensing_temperature"`` for ``T_cond_max``),
+              ``"hx_not_converged"`` (cycle OK
               but a coil cannot carry the duty inside the approach bounds), or
               ``"optimizer_failed"`` (SciPy reported ``success=False``).
 
@@ -2784,8 +2777,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             the running machine (:mod:`tmhp.cycling`). A request above
             the ceiling (``capacity_clamped == "max"``) adds ``Q_max [W]``
             and ``capacity_binding`` (``"compressor"``,
-            ``"discharge_temperature"``, ``"pressure_ratio"``,
-            ``"compressor_efficiency"`` or ``"cycle"``; see
+            ``"discharge_temperature"``, ``"condensing_temperature"``,
+            ``"pressure_ratio"`` or ``"cycle"``; see
             :meth:`max_capacity`).
 
             Heating below the frost model's outdoor limit (5 degC; the
@@ -2908,8 +2901,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         failure_reason = "none"
 
             if failure_reason in self._REFUSED_FROM_BELOW:
-                # Refused at low speed -- the discharge temperature or the
-                # efficiency floor -- while larger duties run: the unit's
+                # Refused at low speed -- the discharge temperature -- while
+                # larger duties run: the unit's
                 # smallest continuous duty lies above the request, and the
                 # request is met by cycling at it.
                 with contextlib.suppress(Exception):

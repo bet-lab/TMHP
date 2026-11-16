@@ -193,7 +193,9 @@ def test_overloaded_field_laminar_flow_and_unreachable_set_point_warn():
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_min_speed_clamp_closes_tank_hx_on_delivered_heat(machines, family):
     m = machines[family, 8e3]
-    requests = (400.0, 800.0, 2000.0)
+    # Below the speed-floor duty of the default 8 kW machine at 10/50 degC: 1.71 kW (GSHPB) and
+    # 1.89 kW (WSHPB) with the rotary-compressor efficiencies and the catalogue displacement.
+    requests = (400.0, 800.0, 1500.0)
     results = [_quiet(m.analyze_steady, T_tank_w=50.0, T_source=10.0, Q_ref_tank=q, T0=10.0) for q in requests]
     for request, r in zip(requests, results, strict=True):
         assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
@@ -202,7 +204,7 @@ def test_min_speed_clamp_closes_tank_hx_on_delivered_heat(machines, family):
         # ``Q_min [W]`` is what the running machine delivers.
         assert r["Q_ref_tank [W]"] == pytest.approx(request, rel=1e-12)
         delivered = r["Q_min [W]"]
-        assert delivered > 2000.0  # more than any of the requests
+        assert delivered > max(requests)
         # The condenser runs at the approach of the heat it delivers, not of the request.
         assert r["T_ref_cond_sat_l [°C]"] - 50.0 == pytest.approx(delivered / m.K_tank_hx, abs=1e-5)
         assert r["dT_ref_tank [K]"] == pytest.approx(delivered / m.K_tank_hx, abs=1e-5)
@@ -236,21 +238,24 @@ def test_request_below_the_speed_floor_runs_at_the_floor_capacity(family, ref, T
 
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_speed_floor_closure_lifts_a_small_lift_cycle_off_the_pressure_ratio_floor(family):
-    """R32 from a 20 °C source into a 30 °C tank, far below the floor capacity.
+    """R32 from a 20 °C source into a 33 °C tank, far below the floor capacity.
 
     At the approach of the 400 W request the pressure ratio is below
-    ``PR_cycle_min``; at the approach of the 5.5 kW the compressor delivers at
-    its speed floor it is not. The closure is tried before the floor is taken
-    as binding, so the point is one closed operating point (it used to fall
-    between the two formulations and fail the source balance).
+    ``PR_cycle_min`` (about 1.43); at the approach of the 2.6 kW (WSHPB 2.8 kW)
+    the compressor delivers at its speed floor it is not (1.60, 1.62). The
+    closure is tried before the floor is taken as binding, so the point is one
+    closed operating point (it used to fall between the two formulations and
+    fail the source balance). Into a 30 °C tank, the point of before the
+    rotary-compressor default efficiencies (5.5 kW at the speed floor), the
+    floor duty is too small to lift the cycle off ``PR_cycle_min``.
     """
     m = _quiet(FAMILIES[family], ref="R32")
-    r = _quiet(m.analyze_steady, T_tank_w=30.0, T_source=20.0, Q_ref_tank=400.0, T0=10.0)
+    r = _quiet(m.analyze_steady, T_tank_w=33.0, T_source=20.0, Q_ref_tank=400.0, T0=10.0)
     assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
     ratio = r["P_ref_cmp_out [Pa]"] / r["P_ref_cmp_in [Pa]"]
     assert ratio > m.PR_cycle_min + 0.05
     delivered = r["Q_min [W]"]  # the running machine; the row's heat is the cycling mean
-    assert r["T_ref_cond_sat_l [°C]"] - 30.0 == pytest.approx(delivered / m.K_tank_hx, abs=1e-4)
+    assert r["T_ref_cond_sat_l [°C]"] - 33.0 == pytest.approx(delivered / m.K_tank_hx, abs=1e-4)
     assert abs(r["tank_hx_residual [W]"]) < 1e-2
 
 
@@ -285,13 +290,15 @@ def test_superheat_is_untouched_where_the_approach_allows_it(machines):
 
 
 def test_low_speed_balance_below_1_K_approach_is_solved():
-    """R134a at 25 % against the capacity-scaled evaporator balances at 0.97 K.
+    """R134a at 15 % against the capacity-scaled evaporator balances at 0.78 K.
 
     The approach search started at 1 K, reported ``hx_not_converged`` and took
-    its 1024-point scan to say so.
+    its 1024-point scan to say so. (At 25 %, the point of before the
+    rotary-compressor default efficiencies and the approach-temperature
+    conductances, the evaporator now balances at 1.37 K.)
     """
     m = _quiet(GroundSourceHeatPumpBoiler, ref="R134a", t_max_s=86400.0)
-    r = _quiet(m.analyze_steady, T_tank_w=55.0, T_source=-5.0, Q_ref_tank=2000.0)
+    r = _quiet(m.analyze_steady, T_tank_w=55.0, T_source=-5.0, Q_ref_tank=1200.0)
     assert r["failure_reason"] == "none"
     rho_c = m.source_fluid.rho * m.source_fluid.cp
     approach = r["T_bhe_f_out [°C]"] + r["E_pmp [W]"] / (m.dV_b_f_m3s * rho_c) - r["T_ref_evap_sat [°C]"]

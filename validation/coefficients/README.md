@@ -1,18 +1,33 @@
 # Compressor efficiency coefficient archive
 
-`BITZER-three-C3-absolute-N-2026-10-06/` is the fit behind the coefficients
-shipped in `src/tmhp/compressor_efficiency.py`
-(`COEFFICIENT_VERSION = "BITZER-three-C3-absolute-N-2026-10-06"`). Its
-`reproduce.py` refits the three quadratics from the tracked raw points -- the
-pilot's 2,467 scroll points and the 1,432 low-lift points of
-`fit_input_lowlift_raw.csv` -- and writes `reproduction.json` (largest
-difference in predicted efficiency against the shipped coefficients: 3e-13).
+One folder per release of the library's default compressor efficiency models.
 
-`v2026-09-24/` is the fit behind the previous coefficients, kept in
-`src/tmhp/compressor_efficiency_legacy.py`
-(`COEFFICIENT_VERSION = "v2026-09-24"`). Those constants are the fitted values
-rounded for publication (largest relative difference ~1e-4). The table and the
-paragraphs below describe that archive.
+`semi-empirical-2026-11-15/` is the fit behind the models the library ships
+(`src/tmhp/compressor_efficiency.py`,
+`COEFFICIENT_VERSION = "semi-empirical-2026-11-15"`): compressor-type-specific
+semi-empirical forms. Its README describes the data, the fit and what is
+provisional; `validation/compressor_maps/semi_empirical/emit.py` writes the
+constants of the library module from it.
+
+The earlier releases are records. Their maps are no longer in the library; the
+code that evaluates them is kept, number for number, in `recorded_maps/` for
+the validation studies that compare against them and for the tests whose
+scenarios were recorded on machines built with them (#164):
+
+- `BITZER-three-C3-absolute-N-2026-10-06/` -- three quadratics in the pressure
+  ratio and the shaft speed, fitted to BITZER scroll data
+  (`recorded_maps/bitzer_quadratic_2026_10_06.py`). Its `reproduce.py` refits
+  them from the tracked raw points -- the pilot's 2,467 scroll points and the
+  1,432 low-lift points of `fit_input_lowlift_raw.csv` -- and writes
+  `reproduction.json` (largest difference in predicted efficiency against the
+  released coefficients: 3e-13).
+- `v2026-09-24/` -- the correlations before that
+  (`recorded_maps/v2026_09_24.py`). The constants there are the fitted values
+  rounded for publication (largest relative difference ~1e-4). The table and
+  the paragraphs below describe that archive.
+- `v2026-09-15/`, `v2026-09-15b/`, `v1-legacy/` -- older sets. The studies
+  that compare against them load `v2026-09-15b/frozen_forms.py` and
+  `v1-legacy/legacy_forms.py` from those folders.
 
 | file | content |
 | --- | --- |

@@ -301,10 +301,9 @@ def main(argv: list[str] | None = None) -> int:
     }
 
     # ---- grid vs shipped -----------------------------------------------------------------------------------
-    import sys  # noqa: PLC0415
-
-    sys.path.insert(0, str(REPO_ROOT / "src"))
-    from tmhp import compressor_efficiency as shipped  # noqa: PLC0415
+    # "Shipped" is the map the library shipped when this archive was made: the quadratic map of
+    # BITZER-three-C3-absolute-N-2026-10-06, now a record of an earlier release. The column keeps its name.
+    from validation.coefficients.recorded_maps import bitzer_quadratic_2026_10_06 as shipped  # noqa: PLC0415
 
     f_is, f_em = shipped.make_eta_isen(50.0), shipped.make_eta_em(50.0)
     grid = []

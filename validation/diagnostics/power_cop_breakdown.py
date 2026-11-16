@@ -50,7 +50,8 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     ticks,
 )
 
-from tmhp import compressor_efficiency as ce  # noqa: E402
+# These pages belong to the v2026-09-24 coefficients (an earlier release, recorded outside the library).
+from validation.coefficients.recorded_maps import v2026_09_24 as ce  # noqa: E402
 from validation.compressor_maps.schema import REPO_ROOT  # noqa: E402
 
 # The legend/title headroom measurement is shared with the narrative page's

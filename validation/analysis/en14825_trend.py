@@ -31,8 +31,9 @@ compressor descriptions are therefore run through the identical trajectory:
     All three efficiencies pinned at 1.0 -- what TMHP's ASHP did before this
     work.
 ``constant``
-    The three correlations frozen at their rated-point values, so the machine
-    has realistic losses but no speed dependence at all.
+    The three 2026-09-24 correlations (an earlier release, recorded in
+    ``validation/coefficients/recorded_maps``) frozen at their rated-point
+    values, so the machine has realistic losses but no speed dependence at all.
 ``legacy-v1``
     The correlations TMHP shipped before the standalone-compressor refit
     (Guth shape, Cuevas leakage term, ``0.90 - 0.02 PR``), frozen under
@@ -92,10 +93,11 @@ from pathlib import Path
 import pandas as pd
 
 from tmhp import AirSourceHeatPumpBoiler
-from tmhp.compressor_efficiency_legacy import ETA_EM_REF, eta_isen_default, make_eta_vol
+from tmhp.compressor_efficiency import COEFFICIENT_VERSION
 from tmhp.compressor_speed import RATED_POINT_AIR_TO_WATER
 from tmhp.constants import c_w
 from tmhp.standard_conditions import en14511_water_rise
+from validation.coefficients.recorded_maps.v2026_09_24 import ETA_EM_REF, eta_isen_default, make_eta_vol
 
 # The pre-refit correlations (Guth shape, Cuevas leakage term, 0.90 - 0.02 PR) are frozen
 # verbatim under validation/coefficients/v1-legacy/ so the ablation can still run them.
@@ -257,7 +259,7 @@ class Variant:
 
 
 def _rated_constants() -> dict:
-    """The three correlations evaluated once, at the air-to-water rated point."""
+    """The three 2026-09-24 correlations (record) evaluated once, at the air-to-water rated point."""
     rated = RATED_POINT_AIR_TO_WATER
     # A representative lift for A7/W35; the frozen variant is meant to be the
     # same machine without speed dependence, not a different machine.
@@ -299,7 +301,7 @@ def variants() -> tuple[Variant, ...]:
         Variant(
             "defaults",
             "TMHP defaults",
-            "eta_isen_default, make_eta_vol(rps_rated), make_eta_em(rps_rated) -- compressor_efficiency COEFFICIENT_VERSION",
+            f"the default models of the compressor type -- compressor_efficiency {COEFFICIENT_VERSION}",
             {},
         ),
     )

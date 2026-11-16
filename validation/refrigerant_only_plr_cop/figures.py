@@ -328,13 +328,22 @@ def fig3(d, case: str) -> None:
 # {tag}4  efficiency surfaces + trajectories             (plan Fig. 5)
 # ---------------------------------------------------------------------------
 def _surfaces(n_grid, p_grid):
-    """The three shipped efficiency laws on an (n*, r_p) grid.
+    """The three efficiency laws of :data:`SURFACE_RELEASE` on an (n*, r_p) grid.
 
-    They are written in terms of ``n*`` and the pressure ratio only, so the
-    background is the same for every case and every refrigerant -- the whole
-    point of the figure is that only the trajectory moves.
+    That release (the quadratic map, recorded in
+    ``validation/coefficients/recorded_maps``) is written in terms of ``n*``
+    and the pressure ratio only, so the background is the same for every case
+    and every refrigerant -- the whole point of the figure is that only the
+    trajectory moves. The default models of the library also read the suction
+    state, so this background does not describe runs made with them
+    (:func:`fig4` refuses those).
     """
-    from tmhp.compressor_efficiency import RPS_REF, make_eta_em, make_eta_isen, make_eta_vol
+    from validation.coefficients.recorded_maps.bitzer_quadratic_2026_10_06 import (
+        RPS_REF,
+        make_eta_em,
+        make_eta_isen,
+        make_eta_vol,
+    )
 
     ev, ei, ee = make_eta_vol(RPS_REF), make_eta_isen(RPS_REF), make_eta_em(RPS_REF)
     N, P = np.meshgrid(n_grid, p_grid)
@@ -352,9 +361,19 @@ ETA_TITLE = {
 PLR_MARKS = (1.00, 0.76, 0.52, 0.28)
 
 
+#: Release whose efficiency laws :func:`_surfaces` draws (a function of n* and r_p alone).
+SURFACE_RELEASE = "BITZER-three-C3-absolute-N-2026-10-06"
+
+
 def fig4(d, case: str) -> None:
     tag = CASE_TAG[case]
     sub = d[(d["pass"] == "fixed_disp") & (d.case == case) & (d.failure_reason == "none")]
+    versions = set(sub.coefficient_version.astype(str))
+    if versions != {SURFACE_RELEASE}:
+        raise SystemExit(
+            f"{tag}4: the efficiency background is the map of {SURFACE_RELEASE}, but the runs were made with "
+            f"{sorted(versions)}. Redraw the background for those models before drawing this figure."
+        )
     n_lo = max(0.0, float(sub.n_star.min()) - 0.15)
     n_hi = float(sub.n_star.max()) + 0.15
     p_lo = max(1.0, float(sub.r_p.min()) - 0.2)

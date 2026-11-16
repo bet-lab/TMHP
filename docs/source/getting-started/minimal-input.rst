@@ -260,8 +260,8 @@ Each can be switched off to see the bare cycle.
     * - Compressor envelope
       - A point outside it is not returned as running: pressure ratio above
         11, discharge above ``T_dis_max`` (after suction control down to
-        quality 0.9), condensing above ``T_cond_max``, isentropic fit below
-        0.30. A request that a smaller duty meets runs at that duty
+        quality 0.9) or condensing above ``T_cond_max``. A request that a
+        smaller duty meets runs at that duty
       - ``PR_cycle_max``, ``T_dis_max=None``, ``x_suction_min``,
         ``T_cond_max=None``
         (:doc:`/developer/reference-operating-limits`)

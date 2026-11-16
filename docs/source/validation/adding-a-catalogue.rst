@@ -119,9 +119,11 @@ Air-to-water points need no sink field. The harness runs each one as EN 14511
 states the rating: the water enters at ``t_sink_C`` less the standard's rise
 (5 K up to 45 °C leaving, 8 K at 55 °C, 10 K at 65 °C) and leaves at
 ``t_sink_C``, at the flow that carries ``q_kW`` at that rise
-(:func:`tmhp.standard_conditions.en14511_condenser_water`). The former
-``sink_offset_K`` field, a fixed tank temperature 2.5 K below the leaving
-water, is gone.
+(:func:`tmhp.standard_conditions.en14511_condenser_water`). Until November
+2026 a catalogue could carry a ``sink_offset_K`` field and the harness held
+the tank water that far below the leaving water (2.5 K by default); the field
+and the convention are gone, and a file that still has the field does not
+load.
 
 ``points``
     ``cop`` or ``power_kW``; give either and the other is derived.

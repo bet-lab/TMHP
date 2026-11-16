@@ -439,10 +439,11 @@ request (the behaviour before this report existed).
      - 1.0
 
 The default machine (8 kW, R290) at a 0 °C source and a 35 °C tank delivers
-1.81 kW at its minimum speed. A 400 W request used to return those 1.81 kW at
-574 W of input; it now returns 400 W at 171 W (system COP 2.34 against 3.16
-for the running machine), and a 1 kW request 1 kW at 342 W (COP 2.92). (With
-R410A, whose rated speed is lower, the minimum-speed duty is 3.05 kW.)
+1.41 kW at its minimum speed. A 400 W request now returns 400 W at 206 W
+(system COP 1.95 against 2.43 for the running machine), and a 1 kW request
+1 kW at 427 W (COP 2.34). Before the cycling model it returned the
+minimum-speed duty itself (with the defaults of then 1.81 kW at 574 W of
+input). (With R410A the minimum-speed duty is 1.49 kW.)
 
 A dynamic run is not affected. There the tank thermostat switches the
 compressor, which runs at ``hp_capacity`` — not at its minimum speed — for

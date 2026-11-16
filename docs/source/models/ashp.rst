@@ -309,21 +309,19 @@ water-heating models use (:doc:`/concepts/failure-reason-semantics`):
        envelope (:doc:`/developer/reference-operating-limits`).
    * - ``"pressure_ratio"``
      - ``PR_cycle_max``.
-   * - ``"compressor_efficiency"``
-     - The floor of the shipped isentropic fit outside its data.
    * - ``"cycle"``
      - A coil at its largest airflow and the widest approach the search
        admits (``dT_approach_bounds``). The compressor is clear of its own
        limits and the other fan still has a range, so the row is the
        least-power point at that duty.
 
-The same holds below the ceiling. The envelope is not monotone in the duty: at
-mid speed the compressor is less efficient and its discharge hotter than flat
-out, so a duty can be refused although a larger one runs (the 4 kW R32 unit as
-a bare constructor built it until November 2026 -- 18.7 cm³/rev, 0.8 m³/s
-outdoors -- at −25 °C outdoor / 24 °C room: 2.3 kW had no operating point,
-3.6 kW had; the present default unit runs at every duty up to its 3.5 kW
-ceiling there). Such a
+The same holds below the ceiling. The envelope need not be monotone in the
+duty: where the compressor is less efficient and its discharge hotter at mid
+speed than flat out, a duty can be refused although a larger one runs (the
+4 kW R32 unit as a bare constructor built it until November 2026 --
+18.7 cm³/rev, 0.8 m³/s outdoors, the efficiency map of then -- at −25 °C
+outdoor / 24 °C room: 2.3 kW had no operating point, 3.6 kW had; the present
+default unit runs at every duty up to its 2.8 kW ceiling there). Such a
 request runs at the largest duty below it that has one, again with
 ``capacity_clamped == "max"`` and the binding that names the limit, as the
 water-heating models do. A request is switched off (``failure_reason``) only

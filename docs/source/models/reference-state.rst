@@ -66,8 +66,8 @@ What each symbol means
     * - ``rps_min`` / ``rps_max``
       - Hardware/control speed limits. ``rps_rated`` is generally *not*
         ``rps_max``: rated capacity is not maximum capacity. An omitted
-        ``rps_max`` is ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``
-        rev/s, set once the rated speed is solved; the rated speed itself is
+        ``rps_max`` is ``max(120, 1.5 × rps_rated)`` rev/s, set once the
+        rated speed is solved; the rated speed itself is
         searched up to 150 rev/s.
     * - ``m_dot_ref_rated``
       - Refrigerant mass flow of the same reference state.

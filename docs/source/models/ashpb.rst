@@ -120,7 +120,7 @@ The running machine of the row is the most efficient of them (the least
 power instead, which at the floor is nearly flat in the outdoor approach and
 returned a starved coil: R290 at 45 °C air against a 65 °C tank ran at 16 K of
 outdoor approach with the fan at its lowest flow, a running-machine COP of
-4.27 where the floor offers 5.29.
+4.27 where the floor offered 5.29 (with the compressor defaults of then).
 
 The minimum speed is not always the lower end of continuous operation. At a
 large lift the compressor efficiency falls towards low speed, and the
@@ -147,27 +147,28 @@ that continuous point, which delivers more than the request.
 The smallest duty is used, not a more efficient larger one: the request just
 above it is met in continuous operation there, so the result has no step at
 the boundary, and a unit that cycles runs as long as its protections let it.
-Where that duty is a large share of the nameplate (57 % for R410A above) the
-unit is off for most of the time at small loads; ``runtime_fraction [-]``
-says how much.
+Where that duty is a large share of the nameplate the unit is off for most of
+the time at small loads (2.1 kW, 14 % of the nameplate, in the R32 case
+above); ``runtime_fraction [-]`` says how much.
 
-The two reasons remain where no duty runs at all: the limits that refuse the
-duty from above (the pressure ratio, the outdoor coil, the condensing
-temperature, the discharge temperature itself at a larger lift) meet the ones
-from below. The default 15 kW unit with R32 against a 55 °C tank is such a case
-from −8 °C outdoors down: its discharge is above 150 °C at every duty, so
-there is no duty to cycle at (at −7.5 °C it still runs, at up to 57 % of its
-nameplate; against a 52.5 °C tank -- leaving water at 55 °C -- down to
-−9.5 °C). A dynamic step is not affected: its thermostat runs the
-compressor at the nameplate duty.
+The reason remains where no duty runs at all: the limits that refuse the duty
+from above (the pressure ratio, the outdoor coil, the condensing temperature,
+the discharge temperature itself at a larger lift) meet the one from below.
+The default 15 kW unit with R32 against a 55 °C tank is such a case at −25 °C
+outdoors: the discharge limit refuses the smallest duties and the
+pressure-ratio ceiling every larger one, so there is no duty to cycle at (at
+−24 °C it still runs, at up to 2.9 kW, held by the pressure ratio). A dynamic
+step is not affected: its thermostat runs the compressor at the nameplate
+duty.
 
 ``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
 for an untested unit), ``1 − P_off / P_on`` for a unit with a measured standby
 power, ``1.0`` for loss-free cycling, and ``None`` for the continuous
 minimum-speed point, which delivers more than the request. An 8 kW R32 unit
-at 7 °C air and a 35 °C tank delivers 3.7 kW at its minimum speed: a 400 W
-request used to return those 3.7 kW at 822 W of input and now returns 400 W
-at 162 W (system COP 2.47 against 4.49 for the running machine).
+at 7 °C air and a 35 °C tank delivers 1.9 kW at its minimum speed: a 400 W
+request now returns 400 W at 154 W (system COP 2.59 against 3.55 for the
+running machine). Before the cycling model it returned the minimum-speed duty
+itself (with the defaults of then 3.7 kW at 822 W of input).
 
 .. note::
 

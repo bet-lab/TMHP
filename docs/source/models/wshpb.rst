@@ -71,8 +71,8 @@ of the time the compressor runs, and ``E_cmp``, ``E_pmp`` and ``E_tot`` carry
 the EN 14825 degradation for a unit delivering to water (``Cd_cycling``, the
 standard's ``Cc``, 0.9 by default; ``None`` returns the continuous
 minimum-speed point). The default machine at 10 °C source water and a 35 °C
-tank delivers 2.4 kW at its minimum speed; a 400 W request returns 400 W at
-147 W of input (system COP 2.73 against 4.08 for the running machine).
+tank delivers 2.1 kW at its minimum speed; a 400 W request returns 400 W at
+151 W of input (system COP 2.64 against 3.76 for the running machine).
 Dynamic runs are not affected.
 
 Loop liquid and its freezing limit

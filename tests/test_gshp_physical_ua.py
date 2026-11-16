@@ -16,9 +16,15 @@ def model(**kwargs):
 
 @pytest.mark.parametrize("capacity,expected", [(4000, 720), (8000, 1440), (10000, 1800), (12000, 2160)])
 def test_ground_UA_capacity_scaling(capacity, expected):
+    """The proportional rule, selected by ``ground_hx_ua_per_capacity``, for both refrigerant roles.
+
+    The default is the approach-temperature estimate (tests/test_hx_ua_defaults.py).
+    """
     assert calc_ground_hx_UA_from_capacity(capacity) == pytest.approx(expected)
-    hp = GroundSourceHeatPump(hp_capacity=capacity, R_b=0.2, t_max_s=3600)
+    hp = GroundSourceHeatPump(hp_capacity=capacity, R_b=0.2, t_max_s=3600, ground_hx_ua_per_capacity=0.18)
     assert hp.UA_ground_rated == pytest.approx(expected)
+    assert hp.UA_ground_evap_rated == hp.UA_ground_rated
+    assert not {"UA_ground_rated", "UA_ground_evap_rated"} & set(hp.default_input_estimates)
     assert calc_ground_hx_UA_from_capacity(2 * capacity) == pytest.approx(2 * expected)
 
 
@@ -46,7 +52,8 @@ def test_explicit_ground_UA_and_air_UA_are_independent():
     assert automatic.UA_ground_rated == 1600
     overridden = model(UA_ground_rated=2300, ground_hx_ua_per_capacity=0.2)
     assert overridden.UA_ground_rated == 2300
-    assert automatic.UA_iu_rated == overridden.UA_iu_rated == 640
+    # The indoor coil keeps its own default (the water-to-air indoor-coil estimate) whatever the ground side.
+    assert automatic.UA_iu_rated == overridden.UA_iu_rated == automatic.default_input_estimates["UA_iu_rated"].value
     assert model(UA_ground_rated=2300, UA_iu_rated=900).UA_iu_rated == 900
 
 
@@ -117,7 +124,10 @@ def test_off_and_failed_points_have_no_compressor_loss_or_work():
 
 @pytest.mark.parametrize("name", ["eta_cmp_vol", "eta_cmp_isen", "eta_cmp"])
 def test_efficiency_above_one_reaches_cycle_as_one(name):
-    hp = model(rps_min=1, **{name: 1.1})
+    # A low speed floor (5 rev/s), not 1 rev/s: below about 3 rev/s the inverter and mechanical
+    # losses of the default rotary-compressor model exceed the shaft power, so with the scalar
+    # given for only one of the three efficiencies no cycle is evaluable down there.
+    hp = model(rps_min=5, **{name: 1.1})
     row = hp._calc_state(10, 10, 4000, 26, 26)
     assert row is not None
     key = {"eta_cmp_vol": "eta_cmp_vol [-]", "eta_cmp_isen": "eta_cmp_isen [-]", "eta_cmp": "eta_cmp [-]"}[name]

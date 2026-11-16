@@ -128,12 +128,6 @@ LIMITS: tuple[Limit, ...] = (
         f"Reduce the temperature lift ({_LIFT}). PR_cycle_max=<ratio> sets the limit of another compressor.",
     ),
     Limit(
-        "eta_isen_below_min",
-        "compressor_efficiency",
-        "the shipped compressor efficiency map, read outside its data, is below its floor (isentropic efficiency 0.30)",
-        f"Reduce the temperature lift ({_LIFT}), or give the efficiency map of the actual compressor (eta_cmp_isen).",
-    ),
-    Limit(
         "source_fluid_freezing",
         "source_fluid_freezing",
         "the source-loop liquid would run below its operating limit, its freezing point plus 3 K",
@@ -285,9 +279,6 @@ def _numbers(model: Any, limit: Limit, note: _Note | None, where: str = "at this
             parts.append(f"PR_cycle_max = {bound:g}")
         if here is not None:
             parts.append(f"{here:.1f} {where}")
-    elif key == "eta_isen_below_min":
-        if here is not None:
-            parts.append(f"{here:.2f} {where}")
     elif key == "source_fluid_freezing":
         fluid = getattr(model, "source_fluid", None)
         name, bound = getattr(fluid, "name", None), getattr(fluid, "limit_C", None)

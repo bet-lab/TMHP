@@ -32,6 +32,8 @@ import pytest
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.defrost import T_RATING_HEATING_C, DefrostModel, humidity_ratio, saturation_humidity_ratio
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 ENERGYPLUS = DefrostModel(load_weighted=False)
 LOAD_WEIGHTED = DefrostModel()  # the default
 LOADS = np.round(np.arange(1.0, 0.195, -0.01), 2)

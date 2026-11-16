@@ -16,7 +16,7 @@ import pytest
 
 import tmhp
 from tests._fluids import ANTIFREEZE_WITH_WATER_PROPERTIES
-from tmhp.compressor_envelope import RATED_SPEED_SEARCH_MAX
+from tmhp.compressor_envelope import DISCHARGE_TOL_K, RATED_SPEED_SEARCH_MAX
 from tmhp.constants import c_w, rho_w
 
 from ._checks import KnownDefectObserved, check_running_cycle, expect
@@ -53,14 +53,18 @@ def _quiet():
 # ---------------------------------------------------------------------------
 
 
-# C1 fixed by the 0 < eta <= 1 and validity-domain guard (#101).
+# C1 fixed by the 0 < eta <= 1 rule (#101). The default models are bounded semi-empirical forms now.
 def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
     """Every default efficiency evaluated where the solver searches is in (0, 1] or rejected.
 
     The solvers evaluate efficiencies through ``_eval_eff``; a value it
     rejects (``InvalidCompressorEfficiency``) never reaches a cycle, so a
-    guard that rejects instead of clamping also satisfies this test.
+    rule that rejects instead of clamping also satisfies this test. The
+    default models read the suction state, so the range is searched at
+    saturated-suction states of three refrigerants from -25 to 15 degC.
     """
+    import CoolProp.CoolProp as CP
+
     from tmhp import compressor_efficiency as ce
 
     rps_lo = min(f.cls.__init__.__kwdefaults__.get("rps_min", 15.0) for f in FAMILIES.values())
@@ -68,24 +72,38 @@ def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
     # search itself evaluates the efficiencies up to RATED_SPEED_SEARCH_MAX.
     rps_hi = max(f.cls.__init__.__kwdefaults__.get("rps_max") or RATED_SPEED_SEARCH_MAX for f in FAMILIES.values())
     pr_hi = max(f.cls.__init__.__kwdefaults__.get("PR_cycle_max", 20.0) for f in FAMILIES.values())
-    functions = {
-        "eta_vol_default": ce.eta_vol_default,
-        "eta_isen_default": ce.eta_isen_default,
-        "eta_em_default": ce.eta_em_default,
-        "make_eta_vol(35)": ce.make_eta_vol(35.0),
-        "make_eta_isen(35)": ce.make_eta_isen(35.0),
-        "make_eta_em(35)": ce.make_eta_em(35.0),
-    }
-    bad = []
-    for name, fn in functions.items():
-        for pr in np.linspace(1.5, pr_hi, 25):
-            for rps in np.linspace(rps_lo, rps_hi, 28):
+    specs = [
+        ce.CompressorSpec(ctype, variant)
+        for ctype in ce.COMPRESSOR_TYPES
+        for variant in (ce.ROTARY_SPEED_VARIANTS if ctype != "scroll" else ce.ROTARY_SPEED_VARIANTS[:1])
+    ]
+    states = []
+    for ref in ("R32", "R290", "R410A"):
+        for T_evap_C in (-25.0, 0.0, 15.0):
+            p_suc = CP.PropsSI("P", "T", T_evap_C + 273.15, "Q", 1, ref)
+            h_suc, s_suc, rho_suc = (CP.PropsSI(k, "P", p_suc, "T", T_evap_C + 278.15, ref) for k in ("H", "S", "D"))
+            for pr in np.linspace(1.5, pr_hi, 13):
                 try:
-                    value = ce._eval_eff(fn, float(pr), float(rps))
-                except ce.InvalidCompressorEfficiency:
+                    h_isen = CP.PropsSI("H", "P", p_suc * pr, "S", s_suc, ref)
+                except ValueError:  # beyond the fluid's equation of state: no cycle either
                     continue
-                if not 0.0 < value <= 1.0:
-                    bad.append((name, round(float(pr), 2), round(float(rps), 1), round(value, 4)))
+                states.append((ref, float(pr), ce.suction_state(p_suc, rho_suc, h_suc, h_isen)))
+    require(len(states) > 100, f"only {len(states)} suction states")
+    bad, evaluated = [], 0
+    for spec in specs:
+        for rated in (35.0, 60.0, None):  # None: the model used while the rated speed is solved
+            for ref, pr, state in states:
+                models = ce.default_efficiencies(spec, ref, rated)
+                for name, fn in models.items():
+                    for rps in np.linspace(rps_lo, rps_hi, 10):
+                        try:
+                            value = ce._eval_eff(fn, pr, float(rps), state)
+                        except ce.InvalidCompressorEfficiency:
+                            continue
+                        evaluated += 1
+                        if not 0.0 < value <= 1.0:
+                            bad.append((spec, rated, ref, name, round(pr, 2), round(float(rps), 1), round(value, 4)))
+    require(evaluated > 10_000, f"only {evaluated} efficiencies were evaluated")
     expect(not bad, f"{len(bad)} efficiency values outside (0, 1], e.g. {bad[:5]}")
 
 
@@ -114,11 +132,15 @@ def test_c5_wshpb_does_not_report_degenerate_efficiency_as_success():
 
 
 # C6 fixed by the compressor operating envelope (T_dis_max, R32 150 °C): the point
-# discharged at 201.6 °C and is now discharge_temp_above_max (no smaller duty runs).
+# discharged at 201.6 °C and was then discharge_temp_above_max (no smaller duty ran).
+# With the catalogue displacement and outdoor airflow (#86) the discharge-temperature
+# control holds it on the limit (wet suction, x = 0.93): the check is the limit with the
+# tolerance the control closes to.
 def test_c6_ashpb_discharge_temperature_limit():
     _, r = FAMILIES["ASHPB"].run("R32", SteadyCase(T_source=0.0, T_demand=60.0, load_W=15000.0))
     T_dis = num(r, "T_ref_cmp_out [°C]")
-    expect((not is_reported_running(r)) or T_dis <= 150.0, f"T_cmp_out={T_dis:.1f} °C reported as success")
+    limit = 150.0 + DISCHARGE_TOL_K
+    expect((not is_reported_running(r)) or T_dis <= limit, f"T_cmp_out={T_dis:.3f} °C reported as success")
 
 
 # C11 fixed: the GSHPB/WSHPB suction superheat is capped at the evaporator approach
@@ -534,6 +556,7 @@ def test_t6_multi_node_tank_time_step_independence(case):
 # 30 min, 2 h without a draw: 1.51 vs 1.95 kWh and a 62.6 / 65.05 degC peak at 60 / 600 s with
 # the band at the stop, 1.82 vs 2.50 kWh and 62.4 / 66.2 degC with a 53-58 degC band, each with a
 # condensing_temp_above_max step. Now the protection stop outranks the minimum run time.
+@pytest.mark.earlier_defaults  # the R32 machine with the 60 degC envelope stop: tests/conftest.py
 @pytest.mark.parametrize(
     "band, T_init",
     [pytest.param(None, 54.0, id="band-at-the-stop"), pytest.param((53.0, 58.0), 52.0, id="band-below-the-stop")],

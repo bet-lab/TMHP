@@ -15,8 +15,10 @@ integrated model, its physical calculations represent the behavior of:
    refrigerant from the condensing pressure down to the evaporating pressure.
 4. **Heat Exchangers (Condenser & Evaporator):**
 
-   - **Condenser:** Placed inside the hot-water tank (hydronic), utilizing a static
-     overall heat transfer coefficient (UA_tank_hx).
+   - **Condenser:** An external plate condenser the tank water is pumped through
+     (circulation flow ``m_dot_w_rated``, conductance ``UA_tank_hx``); the tank
+     temperature is the water entering it. ``m_dot_w_rated=0`` selects a coil
+     without circulating water, ``UA_tank_hx`` working against the tank temperature.
    - **Evaporator:** Coupled to a borehole heat exchanger (BHE) fluid loop, acting as
      a secondary heat exchanger to absorb heat from the circulating ground fluid.
 5. **Thermal Storage Tank:**
@@ -68,6 +70,7 @@ from ._source_boiler import (
     default_source_flow_lpm,
     default_source_hx_UA,
     default_tank_hx_UA,
+    rated_circulation_flow,
     rated_source_heat,
     warn_if_field_overloaded,
     warn_if_laminar,
@@ -76,7 +79,15 @@ from ._source_boiler import (
 from ._tank_solve import solve_lumped_tank
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .borehole_capacity import configure_borehole_dynamics
-from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
+from .compressor_efficiency import (
+    COMPRESSOR_TYPES,
+    CompressorSpec,
+    InvalidCompressorEfficiency,
+    _eval_eff,
+    reject_invalid_efficiency,
+    resolve_compressor_type,
+    suction_state,
+)
 from .compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
@@ -92,7 +103,7 @@ from .compressor_envelope import (
     resolve_x_suction_min,
     steady_envelope,
 )
-from .compressor_speed import default_displacement, solve_compressor_speed
+from .compressor_speed import solve_compressor_speed
 from .constants import c_w, rho_w
 from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
@@ -144,7 +155,7 @@ from .ground_loop import (
     ground_result_diagnostics,
     resolve_ground_flow_rates,
 )
-from .heat_exchanger import calc_phase_change_hx_effectiveness
+from .heat_exchanger import calc_phase_change_hx_effectiveness, calc_tank_hx_conductance, tank_hx_rating_side
 from .heat_transfer import calc_simple_tank_UA
 from .hybrid_tank import HybridStratifiedTank
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
@@ -160,7 +171,7 @@ from .source_fluid import (
     source_freeze_limited,
     warn_if_loop_modelled_as_water,
 )
-from .standard_conditions import LEAVING_WATER_TO_TANK_K, StandardCondition
+from .standard_conditions import StandardCondition
 from .standard_conditions import operating_range as _operating_range
 from .stratified_tank import StratifiedTank
 from .subsystems import add_uv_power_to_e_tot
@@ -229,8 +240,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     as ``None`` follow the capacity (:mod:`tmhp._source_boiler`), so the rated
     cycle is the same at every capacity:
 
-    - ``UA_tank_hx = hp_capacity / 5`` [W/K] (5 K condensing approach);
-    - ``UA_ground = 0.18 * hp_capacity`` [W/K];
+    - ``UA_tank_hx``: a plate condenser at the rated circulation flow
+      ``m_dot_w_rated = hp_capacity / (c_w dT_w_rated)`` (5 K rise), the tank
+      water entering it, sized to the leaving-end approach of real plate
+      condensers (:func:`tmhp.default_inputs.estimate_hx_UA`);
+    - ``UA_ground``: the leaving-end approach of real brine-to-refrigerant
+      evaporators at the rated loop flow (both recorded in
+      ``default_input_estimates``);
     - source-loop flow ``ground_flow_ref_lpm = 0.75 * hp_capacity / (rho c * 3 K)``
       (3.84 L/min per kW of the default glycol, 3.58 of water);
     - ``E_pmp = 75 W/ton * hp_capacity`` (21.3 W per kW, ASHRAE pumping grade B
@@ -242,7 +258,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     A value the caller gives is used as given. ``UserWarning`` is raised for a
     caller's field above 80 W/m, for a laminar default flow in the U-tubes, and
     for an upper tank set point whose condensing temperature
-    (``T_tank_w_upper_bound + hp_capacity / UA_tank_hx``) is at or above the
+    (``T_tank_w_upper_bound + hp_capacity / K_tank_hx``) is at or above the
     refrigerant's critical temperature.
 
     In every running result the suction superheat is at most the evaporator
@@ -437,6 +453,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         ground_flow_max_ratio: float | None = None,
         m_dot_ref_rated: float | None = None,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
+        # Tank heat exchanger: an external plate condenser fed with tank water
+        # by a circulation pump. dT_w_rated [K] is the water temperature rise
+        # across it at hp_capacity (EN 14511 30/35 degC rating), m_dot_w_rated
+        # [kg/s] the circulation flow (None: hp_capacity / (c_w dT_w_rated);
+        # 0.0: no flow, a coil working against the tank temperature, whose
+        # UA_tank_hx must then be given).
+        dT_w_rated: float = 5.0,
+        m_dot_w_rated: float | None = None,
         ground_hx_fluid_fraction: float = 0.5,
         ground_hx_refrigerant_fraction: float = 0.3,
         ground_hx_constant_fraction: float = 0.2,
@@ -447,8 +471,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # (None: no cycling, the row over-delivers at the minimum speed).
         Cd_cycling: CyclingDegradation | float | None = CC_WATER_DEFAULT,
         source_fluid: str | SourceFluid | None = None,
+        # Compressor type whose default efficiency models are used where
+        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
+        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
     ) -> None:
         validate_ctor("GSHPB", locals())
+        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
         # Liquid of the ground loop: its properties enter the source-side
@@ -496,17 +524,25 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
+            # No displacement given: the one a compressor catalogue gives for this capacity
+            # and refrigerant (tmhp.default_inputs), recorded in default_input_estimates.
+            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else self._default_displacement(hp_capacity, ref)
         if eta_cmp is None:
             eta_cmp = eta_cmp_mech
         if UA_tank_hx is None:
-            UA_tank_hx = (
-                UA_tank
-                if UA_tank is not None
-                else (UA_cond_design if UA_cond_design is not None else default_tank_hx_UA(hp_capacity))
-            )
+            UA_tank_hx = UA_tank if UA_tank is not None else UA_cond_design
+        # Tank heat exchanger: the plate condenser at the rated circulation flow
+        # (tmhp._source_boiler); the tank water entering it is the tank temperature.
+        self.dT_w_rated: float = float(dT_w_rated)
+        self.m_dot_w_rated: float = rated_circulation_flow(hp_capacity, self.dT_w_rated, m_dot_w_rated)
+        if UA_tank_hx is None:
+            UA_tank_hx = self._use_default_input("UA_tank_hx", default_tank_hx_UA(hp_capacity, self.m_dot_w_rated))
         if UA_ground is None:
-            UA_ground = UA_evap_design if UA_evap_design is not None else default_source_hx_UA(hp_capacity)
+            UA_ground = UA_evap_design
+        if UA_ground is None:
+            # The source evaporator at the rated loop flow of the loop liquid.
+            C_source = dV_b_f_lpm / 60000 * fluid.rho * fluid.cp
+            UA_ground = self._use_default_input("UA_ground", default_source_hx_UA(hp_capacity, C_source))
 
         self.tank_physical = {
             "r0": r0,
@@ -645,7 +681,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             ref=ref,
             T_tank_w_upper_bound=T_tank_w_upper_bound,
             hp_capacity=hp_capacity,
-            UA_tank_hx=self.UA_tank_hx,
+            K_tank_hx=self.K_tank_hx,
         )
         if not 0 < self.rps_min < self.rps_max or not np.isfinite(self.rps_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
@@ -659,6 +695,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 "eta_cmp_vol": eta_cmp_vol,
                 "eta_cmp": eta_cmp,
             },
+            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
@@ -729,8 +766,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # single-node path (self._tank stays None). "stratified" (multi-node
         # finite volume, sub-stepped to Courant <= 1) and "hybrid" (the same
         # with a tracked thermocline) build a multi-node tank from the same
-        # geometry for the always-full buffer-tank case. The condenser is a
-        # coil immersed in the tank: UA_tank_hx spread over the nodes
+        # geometry for the always-full buffer-tank case. The condenser acts as a
+        # coil in the tank: its K_tank_hx spread over the nodes
         # (condenser_node=None) or at one node; it heats only nodes colder
         # than the condensing temperature (see _solve_nodal_tank). The
         # thermostat reads the volume-average temperature, the hot draw leaves
@@ -847,13 +884,23 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             "dV_mix_sup_w_in": flows["dV_cold_in"],
         }
 
+    @property
+    def K_tank_hx(self) -> float:
+        """Heat the tank heat exchanger carries per kelvin of condensing temperature above the tank water [W/K].
+
+        ``C_w (1 - exp(-UA_tank_hx / C_w))`` with ``C_w = m_dot_w_rated c_w`` (the
+        plate condenser at its rated circulation flow, the tank water entering
+        it), or ``UA_tank_hx`` without circulating water (``m_dot_w_rated = 0``).
+        """
+        return calc_tank_hx_conductance(self.UA_tank_hx, self.m_dot_w_rated)
+
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
-        """Ground-loop evaporator (source) and tank-immersed condenser (load)."""
+        """Ground-loop evaporator (source) and the tank heat exchanger (load, rated at the standard's water outlet)."""
         if role == "source":
             return HXSide(
                 "water", T_in_C, self.UA_ground, self.dV_b_f_m3s, self.source_fluid.rho * self.source_fluid.cp
             )
-        return HXSide("tank", T_in_C, self.UA_tank_hx)
+        return tank_hx_rating_side(T_in_C, self.UA_tank_hx, self.m_dot_w_rated, self.hp_capacity)
 
     @discharge_controlled(reject=False)
     @reject_invalid_efficiency
@@ -873,7 +920,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         is_active = Q_tank_load > 0
 
         # 1. Analytical Condenser Approach Temperature
-        dT_ref_tank = Q_tank_load / self.UA_tank_hx if is_active else 0.0
+        dT_ref_tank = Q_tank_load / self.K_tank_hx if is_active else 0.0
         T_tank_w_K = cu.C2K(T_tank_w)
         _t_bhe = getattr(self, "T_bhe_f_out_K", None)
         T_b_out_K = float(_t_bhe) if _t_bhe is not None else cu.C2K(15.0)
@@ -1037,10 +1084,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 h_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
             except ValueError:
                 h_cmp_out_isen = h_cmp_in
+            # Suction state for the efficiency models that need it (a failed
+            # isentropic flash leaves dh_isen 0: such a model reports the point infeasible).
+            suction = suction_state(cs_i["P_ref_cmp_in [Pa]"], rho_cmp_in, h_cmp_in, h_cmp_out_isen)
 
             def _residual_rps(rps):
-                eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps)
-                eta_isen_r = _eval_eff(self.eta_cmp_isen, ratio, rps)
+                eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps, suction)
+                eta_isen_r = _eval_eff(self.eta_cmp_isen, ratio, rps, suction)
                 h_cmp_out_local = h_cmp_in + (h_cmp_out_isen - h_cmp_in) / eta_isen_r
                 dh_cond_local = h_cmp_out_local - h_exp_in
                 m_dot = self.V_cmp_ref * rho_cmp_in * eta_vol_r * rps
@@ -1051,9 +1101,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             else:
                 rps_i, converged_i, clamped_i = rps_fixed, True, None
 
-            eta_vol_i = _eval_eff(self.eta_cmp_vol, ratio, rps_i)
-            eta_isen_i = _eval_eff(self.eta_cmp_isen, ratio, rps_i)
-            eta_em_i = _eval_eff(self.eta_cmp, ratio, rps_i)
+            eta_vol_i = _eval_eff(self.eta_cmp_vol, ratio, rps_i, suction)
+            eta_isen_i = _eval_eff(self.eta_cmp_isen, ratio, rps_i, suction)
+            eta_em_i = _eval_eff(self.eta_cmp, ratio, rps_i, suction)
 
             cs_i = calc_ref_state(
                 T_evap_K=T_ground_sat_K,
@@ -1105,7 +1155,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             # it actually delivers (tmhp._source_boiler.close_tank_hx). When
             # the balance cannot be bracketed the request-based state stands
             # and `tank_hx_residual [W]` reports the open balance.
-            closed_state = close_tank_hx(_cycle, state, dT_ref_tank, self.UA_tank_hx)
+            closed_state = close_tank_hx(_cycle, state, dT_ref_tank, self.K_tank_hx)
             if closed_state is not None:
                 state = closed_state
         self._last_pr_event = state["pr_event"]
@@ -1126,7 +1176,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         h_ref_exp_in = cs["h_ref_exp_in [J/kg]"]
         # Residual of the tank-side closure: zero wherever the compressor meets
         # the request, and driven to zero on a speed bound.
-        tank_hx_residual = Q_ref_tank - self.UA_tank_hx * dT_ref_tank
+        tank_hx_residual = Q_ref_tank - self.K_tank_hx * dT_ref_tank
 
         UA_ground_actual = ground_hx_UA(self._ground_settings, self.UA_ground, ground_flow_ratio, m_dot_ref)
 
@@ -1999,17 +2049,20 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         return isinstance(self._tank, StratifiedTank) and self._tank.n == 1
 
     def _condenser_ua(self) -> np.ndarray:
-        """Conductance of the immersed condenser coil in each tank node [W/K].
+        """Conductance of the condenser in each tank node [W/K].
 
-        ``UA_tank_hx`` spread evenly over the nodes (a coil spanning the
-        tank), or all of it at ``condenser_node``.
+        ``K_tank_hx`` (the heat the tank heat exchanger carries per kelvin
+        above the tank water) spread evenly over the nodes (a coil spanning
+        the tank), or all of it at ``condenser_node``. With circulating water
+        this lumps the plate condenser's water loop into the nodes it would
+        draw from: the multi-node tank does not model the loop itself.
         """
         assert self._tank is not None
         n = self._tank.n
         if self.condenser_node is None:
-            return np.full(n, self.UA_tank_hx / n)
+            return np.full(n, self.K_tank_hx / n)
         ua = np.zeros(n)
-        ua[self.condenser_node] = self.UA_tank_hx
+        ua[self.condenser_node] = self.K_tank_hx
         return ua
 
     @staticmethod
@@ -2048,7 +2101,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         The level is that mean tank temperature plus how far the coil's level
         lies above the tank's mean, and that distance is what the node
-        profile adds: ``q / UA_tank_hx`` in a mixed tank, less with cold water
+        profile adds: ``q / K_tank_hx`` in a mixed tank, less with cold water
         around the coil, more with a coil in hot water (a top coil). It is
         read from trial tank steps (:meth:`StratifiedTank.preview`) that run
         the coil at ``q`` from the tank as it stands, with the step's draw:
@@ -2058,10 +2111,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         parts, which the thermostat's events resolve and one trial run does
         not.) The run time past the envelope stop (:meth:`_envelope_stop`) is
         not such a run: the compressor then holds the coil's water at the
-        cut-out, where duty ``q`` condenses at ``cutout + q / UA_tank_hx``.
+        cut-out, where duty ``q`` condenses at ``cutout + q / K_tank_hx``.
 
         No level is taken above the condensing limit
-        (``cutout + hp_capacity / UA_tank_hx``): the in-step thermostat stops
+        (``cutout + hp_capacity / K_tank_hx``): the in-step thermostat stops
         the run, or holds it, when the water around the coil gets there. The
         highest level is the mean raised by the trial run's own rise above its
         mean; it is the envelope's concern, the mean is the power's.
@@ -2070,7 +2123,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         assert tank is not None
         ua = self._condenser_ua()
         cutout = self._envelope_cutout
-        level_max = math.inf if cutout is None else cutout + self.hp_capacity / self.UA_tank_hx
+        level_max = math.inf if cutout is None else cutout + self.hp_capacity / self.K_tank_hx
         trial = dict(draw_flow=draw_flow, T_makeup=T_makeup_C, T_amb=cu.K2C(self.T_sur_K))
         start = self._condensing_level(tank.T, ua, q)
         above = start - float(np.mean(tank.T))  # the level above the tank's mean temperature
@@ -2093,7 +2146,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             mean = min(T_mean_C + simpson(aboves), level_max)
             peak = min(mean + max(levels) - simpson(levels), level_max)
         if full_s < run_s and cutout is not None:
-            hold = min(cutout + q / self.UA_tank_hx, level_max)
+            hold = min(cutout + q / self.K_tank_hx, level_max)
             # The end of a hold the compressor could not keep up with: it runs
             # flat out while the coil's water cools from the cut-out.
             tail_s, tail_end = self._hold_tail
@@ -2115,9 +2168,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         """Tank-side temperature [°C] the cycle condenses against for duty ``q`` [W].
 
         The cycle model takes one tank temperature ``T`` and condenses at
-        ``T + q / UA_tank_hx``. For a multi-node tank the condensing
+        ``T + q / K_tank_hx``. For a multi-node tank the condensing
         temperature the coil needs is its level ``L``
-        (:meth:`_condensing_level`), so the cycle is given ``L − q / UA_tank_hx``
+        (:meth:`_condensing_level`), so the cycle is given ``L − q / K_tank_hx``
         and condenses exactly at ``L``: the mean level of the step's run
         (:meth:`_coil_run_levels`), so that the step's power is that of the
         condensing temperatures the run passes through, whatever the step
@@ -2130,7 +2183,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         if self._tank_is_one_mixed_node():
             return T_mean_C
         fraction = min(1.0, max(0.0, runtime_fraction))
-        return self._coil_run_levels(T_mean_C, q, fraction * dt_s, draw_flow, T_makeup_C)[0] - q / self.UA_tank_hx
+        return self._coil_run_levels(T_mean_C, q, fraction * dt_s, draw_flow, T_makeup_C)[0] - q / self.K_tank_hx
 
     def _envelope_stop(self, ctx: StepContext, cutout: float | None, dt_s: float) -> tuple[float, float, float]:
         """Envelope stop of this step: ``(T_limit_C, run_limit_s, Q_hold)`` of the in-step thermostat.
@@ -2151,7 +2204,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         warms while the mean falls, so the stop is not a mean temperature. It
         is a run time: how long the compressor runs at the nameplate duty from
         the start of the step before the coil's condensing level
-        (:meth:`_condensing_level`) reaches ``cutout + hp_capacity / UA_tank_hx``
+        (:meth:`_condensing_level`) reaches ``cutout + hp_capacity / K_tank_hx``
         -- found on trial tank steps (:meth:`StratifiedTank.preview`); 0 if the
         coil's water is already there, ``inf`` if it does not get there within
         the step. While the thermostat still calls, the compressor then holds
@@ -2184,7 +2237,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         ua = self._condenser_ua()
         q = float(self.hp_capacity)
-        level_max = cutout + q / self.UA_tank_hx
+        level_max = cutout + q / self.K_tank_hx
         draw_flow = self._trial_draw_flow(ctx, dt_s)
         trial = dict(draw_flow=draw_flow, T_makeup=cu.K2C(ctx.T_sup_w_K), T_amb=cu.K2C(self.T_sur_K))
 
@@ -2333,14 +2386,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     def _coil_level_max(self) -> float:
         """Highest condensing level the coil may reach [°C].
 
-        The envelope's (``cutout + hp_capacity / UA_tank_hx``: the nameplate
+        The envelope's (``cutout + hp_capacity / K_tank_hx``: the nameplate
         duty on ``T_cond_max``), and never above the tank's boiling limit:
         the coil heats no liquid water past it.
         """
         tank = self._tank
         assert tank is not None
         cutout = self._envelope_cutout
-        return tank.T_boil if cutout is None else min(tank.T_boil, cutout + self.hp_capacity / self.UA_tank_hx)
+        return tank.T_boil if cutout is None else min(tank.T_boil, cutout + self.hp_capacity / self.K_tank_hx)
 
     def _coil_water_max(self) -> float:
         """Hottest the compressor may leave the water around the coil [°C].
@@ -2453,7 +2506,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         def solve(fraction_seen: float) -> dict:
             def at_duty(q: float) -> dict:
                 mean, peak = self._coil_run_levels(T_C, q, fraction_seen * dt_s, draw_flow, T_makeup_C)
-                T_sink = T_C if one_node else mean - q / self.UA_tank_hx
+                T_sink = T_C if one_node else mean - q / self.K_tank_hx
                 result = self._solve_cycle_at_duty(ctx, T_sink, q, runtime_fraction)
                 if delivered_tank_heat(result) > 0.0:
                     T_cond = min(float(result["T_ref_cond_sat_v [°C]"]), float(result["T_ref_cond_sat_l [°C]"]))
@@ -2489,7 +2542,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         highest level.
 
         ``T_end`` is not taken above the condensing limit
-        (``cutout + hp_capacity / UA_tank_hx``, :meth:`_envelope_stop`; without
+        (``cutout + hp_capacity / K_tank_hx``, :meth:`_envelope_stop`; without
         one, the tank's boiling limit). A step whose heat would need more is
         held instead (:meth:`_coil_step`): the heat goes to the coil's nodes
         below the envelope stop, none heated past it; if they cannot take all
@@ -3267,7 +3320,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self,
         conditions: Iterable[StandardCondition] | None = None,
         *,
-        sink_offset_K: float = LEAVING_WATER_TO_TANK_K,
+        sink_offset_K: float | None = None,
     ) -> pd.DataFrame:
         """Solve standard rating conditions and tabulate whether the heat pump runs at each.
 
@@ -3284,11 +3337,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         conditions : iterable of StandardCondition, optional
             Conditions to solve; :data:`tmhp.standard_conditions.BRINE_TO_WATER`
             (B0/W35, B0/W55, B-5/W45 at the nameplate duty) when omitted.
-        sink_offset_K : float
-            The tank is solved this far below each condition's leaving water
-            [K]: ``T_tank_w = leaving water - sink_offset_K``. The default
-            2.5 K is the offset of the validation catalogues; 0 solves the
-            tank at the named temperature.
+            A condition names the water leaving the heat pump; it is solved with
+            the water entering the condenser below it by the temperature rise of
+            the rating (:mod:`tmhp.standard_conditions`), the table's ``T_tank_w [°C]``.
+        sink_offset_K : float, optional
+            The water enters this far below each condition's leaving water [K],
+            at the rated circulation flow, instead (0: the tank water at the
+            named temperature, a stricter point). ``None``: the EN 14511 rise.
 
         Returns
         -------

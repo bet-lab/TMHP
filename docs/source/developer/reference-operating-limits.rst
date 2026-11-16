@@ -131,7 +131,7 @@ seed the ordinary one whenever the coarse pre-scan finds no operating point.
 .. note::
 
    With a constant-speed fan the approach-temperature search domain
-   (``dT_approach_bounds``, 1--20 K by default) is the only freedom the coil
+   (``dT_approach_bounds``, 1--30 K by default) is the only freedom the coil
    has, so it can become the capacity limit: the largest duty is then what the
    coil carries at the upper bound, reported with ``capacity_clamped == "max"``
    and ``capacity_binding == "cycle"``. The ceiling is one least-lift solve
@@ -190,33 +190,36 @@ Compressor efficiency baseline and speed
 ----------------------------------------
 
 All five heat-pump models resolve ``eta_cmp_isen``, ``eta_cmp_vol`` and
-``eta_cmp`` set to ``None`` to the shared factories in
-:mod:`tmhp.compressor_efficiency` (frozen coefficients
-``BITZER-three-C3-absolute-N-2026-10-06``).
-These represent isentropic, volumetric and electro-mechanical efficiency,
-respectively. Each input also accepts a scalar, a ``function(PR)`` or a
-``function(PR, rps)``. Every evaluated value must satisfy ``0 < eta <= 1``:
-a value above one is set to one, a nonpositive or nonfinite value makes the
-operating point infeasible, and exceptions raised inside a user function are
-preserved.
+``eta_cmp`` set to ``None`` to the default models of their
+``compressor_type`` in :mod:`tmhp.compressor_efficiency` (coefficient set
+``semi-empirical-2026-11-15``; ``rotary_twin_inverter`` by default,
+``scroll``, ``rotary_single_fixed``). These represent isentropic, volumetric
+and electro-mechanical efficiency, respectively; ``eta_cmp`` includes the
+drive, so the compressor input is that at the inverter. The defaults are
+called ``model(PR, rps, state)`` with the suction state
+(:class:`tmhp.compressor_efficiency.SuctionState`). Each input also accepts a
+scalar, a ``function(PR)`` or a ``function(PR, rps)``. Every evaluated value
+must satisfy ``0 < eta <= 1``: a value above one is set to one, a nonpositive
+or nonfinite value makes the operating point infeasible, and exceptions raised
+inside a user function are preserved.
 
-The BITZER defaults evaluate physical shaft speed ``N = rps`` [rev/s]
-directly; ``n_star`` does not normalize the efficiency inputs. ``rps_rated``
-is used as a fallback only when a callable is invoked without its speed.
-When omitted, the reference state solves the speed delivering ``hp_capacity``
-and its ``m_dot_ref_rated`` at the family's rating condition
+The defaults take the shaft speed ``rps`` [rev/s]; the rotary types read it
+relative to the machine's ``rps_rated``, the scroll type relative to a fixed
+50 rev/s. When omitted, the reference state solves the speed delivering
+``hp_capacity`` and its ``m_dot_ref_rated`` at the family's rating condition
 (:doc:`/models/reference-state`). Explicit rated speed and refrigerant flow
 remain available. The reference solve does not change ``rps_min``; an
 omitted ``rps_max`` is derived from the rated speed it finds (see the
 operating envelope below).
 
-The default polynomials carry their fitting-data box
-(``VALIDITY_DOMAIN``: PR 1.50-7.15, N 33.8-72.5 rev/s, from the scroll hull
-in the coefficient archive). Above it in PR or speed they hold the boundary
-value; below it (PR down to 1, speed down to 15 rev/s) they continue along the
-boundary slope only where that lowers the efficiency.
-``efficiency_extrapolated(model, PR, rps)`` reports whether a point lies
-outside the box; ``model.raw(PR, rps)`` is the unguarded polynomial.
+Each default type carries the convex (PR, N) hull of its fitting data
+(``validity_domain``; rotary PR 1.94–6.84 and 30–120 rev/s). Outside it the
+forms are followed as they are -- nothing is held, clamped or refused there --
+and ``efficiency_extrapolated(model, PR, rps)`` reports whether a point lies
+outside the hull. The earlier default maps (the BITZER quadratic map of
+2026-10-06 with its validity-domain guard, and the correlations before it) are
+no longer in the library; the code that evaluates them is kept as records in
+``validation/coefficients/recorded_maps/``.
 
 GSHP now solves speed using ``m_dot = V_cmp_ref * rho_suction * eta_v * rps``
 at each speed candidate, and evaluates isentropic efficiency before calculating
@@ -233,9 +236,9 @@ uses the same capacity-based default as the other models; explicitly supplied
 displacement is unchanged. Deprecated GSHP ``eta_v`` / ``eta_em`` scalar inputs
 map to the new interface, with explicit new inputs taking precedence.
 
-The source module SHA, original checkout commit, Notion report and unchanged
-coefficient snapshot are recorded under ``docs/audits/compressor-efficiency-*``.
-The report's tuned low-speed penalties are not used. This baseline models
+The audit of the efficiency baseline of 2026-10 (source module SHA, original
+checkout commit and coefficient snapshot) is recorded under
+``docs/audits/compressor-efficiency-*``. The efficiency models describe
 compressor modulation, not cycling losses or on-off duty averaging.
 
 At the pressure-ratio floor, GSHP recomputes permitted subcooling from the
@@ -281,20 +284,26 @@ of it.
         into the gas. A point above the limit is not an operating point.
     * - ``PR_cycle_max``
       - 11 for every family (was 20 for the boilers, 5 for GSHP).
-      - Single-stage scroll hardware limit. With the discharge limit in
-        force it is a sanity bound: inside the discharge limit only R134a /
-        R1234yf boiler points at PR 11–15.4 used it, every one outside the
-        efficiency fit in both pressure ratio and speed. Higher ratios are
-        two-stage or injection machines.
+      - Single-stage scroll hardware limit. Higher ratios are two-stage or
+        injection machines. With the present defaults it binds at high lift
+        inside the discharge limit (the 15 kW R32 boiler at −20 °C against a
+        60 °C tank is held at 4.3 kW by it). When it was set (2026-11-13, with
+        the earlier efficiency map) only R134a / R1234yf boiler points at
+        PR 11–15.4 reached it inside the discharge limit.
     * - ``rps_max``
-      - ``None``: ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``.
-      - The rated speed is solved first over ``[rps_min, 150]``. The adopted
-        catalogues need at most 1.66 × the rated speed; the former fixed
-        150 rev/s let the compressor alone deliver 2.5–5.9 × nameplate.
-        120 rev/s is the top of variable-speed scroll and rotary ranges; a
-        machine rated above 80 rev/s (R134a with the default displacement,
-        #86) keeps 1.5 × its rated speed, the catalogue maximum-to-rated
-        capacity ratio. A user value is kept.
+      - ``None``: ``max(120, 1.5 × rps_rated)`` (until November 2026
+        ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``).
+      - The rated speed is solved first over ``[rps_min, 150]``. 120 rev/s is
+        the top of variable-speed scroll and rotary ranges and a property of
+        the compressor, not of the nameplate
+        (:func:`tmhp.compressor_envelope.default_rps_max`); the adopted
+        catalogues run at up to 2.59 × their rated speed (WH-UQ09HE8 at
+        −15 °C / 55 °C, 118 rev/s). A machine rated above 80 rev/s keeps
+        1.5 × its rated speed, the catalogue maximum-to-rated capacity ratio:
+        the default ground-source boiler, rated at B0/W55, is rated at
+        84 rev/s with R290 and 97 with R134a. The former fixed 150 rev/s let
+        the compressor alone deliver 2.5–5.9 × nameplate. A user value is
+        kept.
     * - ``rps_min``
       - 15 rev/s
       - Unchanged.
@@ -424,8 +433,11 @@ So at construction (:func:`tmhp.compressor_envelope.limit_tank_setpoints_to_enve
 
 * the cut-out is the tank temperature at which the nameplate duty condenses
   on the limit, ``T_cond_max`` (as the cycle's bubble point) less
-  ``hp_capacity / UA_tank_hx`` -- 59.9 °C for R410A with the default 5 K
-  approach, 60.0 °C for R32, 69.9 °C for R290;
+  ``hp_capacity / K_tank_hx`` (``K_tank_hx``: the heat the tank heat
+  exchanger carries per kelvin of condensing temperature above the tank
+  water) -- 59.9 °C for R410A, 60.0 °C for R32, 69.9 °C for R290 with the
+  tank heat exchanger of before November 2026 (a 5 K approach, no circulating
+  water);
 * a ``T_tank_w_upper_bound`` above it is replaced by it, and a
   ``T_tank_w_lower_bound`` that is not below it is moved down to keep the
   width of the band (the ASHPB's 60–65 °C becomes 54.9–59.9 °C with R410A);
@@ -437,7 +449,7 @@ ends the run inside the step, as at any set point: the same machine, one hour
 from 50 °C, takes 1.165 kWh and stops at 59.9 °C with 60 s and with 600 s
 steps alike. A set point
 inside the envelope is untouched and nothing warns -- 65 °C with R290 or
-R134a, which is why GSHPB and WSHPB default to R290. The duty reduction above
+R134a, which is why ASHPB, GSHPB and WSHPB default to R290. The duty reduction above
 then serves ``analyze_steady`` and the steps that go past the cut-out all the
 same: a stratified tank whose coil-side water is hotter than the sensor, a
 minimum run time, a set point moved after construction.
@@ -463,8 +475,8 @@ is two-phase, so the evaporator duty is ``m_dot (h_1 - h_4)`` with the wet
 ``h_1``; the swept mass flow uses the homogeneous density
 ``1 / (x v_g + (1 - x) v_l)``; the isentropic work is that of the two-phase
 state. The cycle balance (condenser = evaporator + refrigerant work) closes
-exactly. The efficiency maps were fitted to dry suction; using them for wet
-suction is an approximation (its size is discussed below). The quality floor 0.9 is a conservative default
+exactly. The default efficiency forms were fitted to dry-suction data; using
+them for wet suction is an approximation (its size is discussed below). The quality floor 0.9 is a conservative default
 without a quantitative basis, and ``x_suction_min`` overrides it: two-phase
 suction is an experimentally used way to hold R32 scroll discharge temperature
 (Wang et al., ICEC 2014, paper 1595; Yang et al., Int. J. Refrig. 2015), but no
@@ -488,65 +500,71 @@ cycle solves is kept as the fallback for a fluid without a property state or
 a candidate where a proposed suction state has no cycle.
 
 Known limit: no efficiency penalty for wet suction. A controlled point uses
-the dry-suction efficiency maps unchanged, which is optimistic. Liquid in a
-scroll's suction or compression pockets raises the compression power and
+the default efficiency forms unchanged, which is optimistic. Liquid in a
+compressor's suction or compression chambers raises the compression power and
 lowers the compressor efficiency, by an amount that depends on the heat
 exchanged with the liquid and that is partly recovered in practice through
-cooler oil and scroll walls (Dutta, Yanagisawa & Fukuta, Int. J. Refrig. 24
-(2001) 577--587). No relation between suction quality and isentropic
-efficiency was found that could be applied to an unspecified compressor
-without a new input, so none is applied. The size of what is missing, for the
-default R32 15 kW boiler, if the isentropic efficiency fell with the liquid
-fraction as ``eta_is (1 - k (1 - x))``:
+cooler oil and walls (Dutta, Yanagisawa & Fukuta, Int. J. Refrig. 24
+(2001) 577--587, for a scroll). No relation between suction quality and
+isentropic efficiency was found that could be applied to an unspecified
+compressor without a new input, so none is applied. The forms see a wet suction
+only through the suction density and the isentropic work they are handed; with
+the default rotary speed shape that keeps the overall isentropic efficiency
+below 0.77 over a grid of evaporating −30 to 10 °C, condensing 35 to 65 °C,
+suction quality 1 to 0.8 and 15 to 120 rev/s (R32, R410A, R290, R134a,
+R1234yf). The non-default shape ``rotary_speed_variant="ossorio_anchored"``
+rises with a wetter suction on the same grid and exceeds one for R1234yf
+(1.06 to 1.09 at quality 0.8, pressure ratio 5.8, 30 rev/s), where the range
+rule sets it to one.
+
+The size of what is missing, for the default R32 15 kW boiler, if the
+isentropic efficiency fell with the liquid fraction as
+``eta_is (1 - k (1 - x))``, at the points where the control goes to wet suction
+with the present defaults (the tank temperature is the water entering the
+condenser; every point runs at a reduced duty, ``capacity_binding`` in
+brackets):
 
 .. list-table::
     :header-rows: 1
     :widths: 34 16 16 16 18
 
-    * - Quantity
+    * - ``cop_ref`` (suction quality), duty delivered of 15 kW
       - ``k = 0`` (model)
       - ``k = 0.5``
       - ``k = 1``
       - ``k = 2``
-    * - ``eta_is`` at ``x = 0.9``
-      - unchanged
-      - −5 %
-      - −10 %
-      - −20 %
-    * - A7/W65 15 kW: ``cop_ref`` (suction quality)
-      - 2.307 (0.961)
-      - 2.278 (0.956)
-      - 2.241 (0.949)
-      - 2.096 (0.920)
-    * - A2/W60 15 kW: ``cop_ref`` (suction quality)
-      - 2.283 (0.952)
-      - 2.250 (0.946)
-      - 2.205 (0.937)
-      - 2.037 at 14.3 kW (0.900)
-    * - A0/W60: duty delivered of 15 kW
-      - 15.0 kW
-      - 15.0 kW
-      - 13.3 kW
-      - none (off)
-    * - A−3/W58: duty delivered of 15 kW
-      - 12.6 kW
-      - 8.3 kW
-      - none (off)
-      - none (off)
-    * - Mild day (A1–13, 21 of 144 steps controlled): daily COP
-      - 2.484
-      - 2.474
-      - 2.461
-      - 2.451
+    * - A−20, tank 60 °C (pressure ratio)
+      - 1.469 (0.954), 4.3 kW
+      - 1.447 (0.947), 4.3 kW
+      - 1.418 (0.938), 4.3 kW
+      - 1.310 (0.901), 4.4 kW
+    * - A−20, tank 55 °C (pressure ratio)
+      - 1.712 (0.981), 7.6 kW
+      - 1.705 (0.979), 7.7 kW
+      - 1.691 (0.976), 7.7 kW
+      - 1.648 (0.964), 7.8 kW
+    * - A−15, tank 58 °C (speed ceiling)
+      - 1.728 (0.980), 11.2 kW
+      - 1.717 (0.977), 11.2 kW
+      - 1.703 (0.974), 11.3 kW
+      - 1.654 (0.962), 11.3 kW
+    * - A−3, tank 58 °C (speed ceiling)
+      - 1.700 (0.990), 12.2 kW
+      - 1.694 (0.988), 12.2 kW
+      - 1.687 (0.987), 12.2 kW
+      - 1.661 (0.981), 12.2 kW
 
-So the COP of a controlled point is high by a few percent at most (2.8 % at
-A7/W65 for a 10 % efficiency loss at ``x = 0.9``; 0.9 % over the mild day),
-and the same point uncontrolled, without a discharge limit, is 2.288: the
-model credits wet suction with 0.8 % where a real compressor loses. The
-larger effect is on what runs. A less efficient wet compression discharges
-hotter, so the control needs a wetter suction and reaches ``x_suction_min``
-sooner; the duty the model reports at the edge of the discharge limit, more
-than its COP, is an upper estimate.
+So the COP of a controlled point is high by a few percent at most (3.5 % at
+A−20 against a 60 °C tank for a 10 % efficiency loss at ``x = 0.9``, 0.8 to
+1.4 % where the suction stays at 0.98 to 0.99), and the same points without a
+discharge limit run at ``cop_ref`` 1.430, 1.703, 1.717 and 1.686: the model
+credits wet suction with up to 2.7 % where a real compressor loses. With the
+present defaults the control acts only at large lifts, where the pressure
+ratio ceiling or the speed ceiling already sets the duty, so the penalty does
+not reduce what runs at these points. (In the previous release -- the BITZER
+map and the conductances and tank convention of then -- the control acted
+already at A7/W65 and A2/W60, and the penalty took duty away: A−3/W58
+delivered 12.6 kW with ``k = 0`` and 8.3 kW with ``k = 0.5``.)
 
 How each family answers a point the control cannot hold:
 
@@ -595,8 +613,7 @@ How each family answers a point the control cannot hold:
   checked after :func:`tmhp.dynamic_context.unphysical_cycle_detail`. A
   request with no operating point for a reason a smaller duty cures -- the
   discharge limit, the pressure-ratio ceiling, the source heat exchanger's
-  range, the efficiency floor
-  (:func:`tmhp.compressor_envelope.duty_reduction_binding`) -- is retried at
+  range (:func:`tmhp.compressor_envelope.duty_reduction_binding`) -- is retried at
   80/60/40/25/10 % and the boundary is bisected to 1 % of the request; the
   largest duty that runs is returned with ``capacity_clamped == "max"``,
   ``capacity_binding`` naming the limit active at that point -- the
@@ -605,35 +622,37 @@ How each family answers a point the control cannot hold:
   duty ran into (``compressor_envelope._reduced_binding``; see
   :doc:`/concepts/failure-reason-semantics`), ``Q_max [W]`` and
   ``Q_request [W]``. If none runs the off state carries the request's own
-  reason -- except a request refused from *below*, by the discharge limit or
-  the efficiency floor, which is then tried at *larger* duties
+  reason -- except a request refused from *below*, by the discharge limit,
+  which is then tried at *larger* duties
   (:func:`tmhp.compressor_envelope.raise_duty_within_envelope`: 5 to 200 % of
   the nameplate from the bottom, the boundary bisected to 0.5 %). At a large
-  lift the shipped fit falls towards low speed: the discharge runs hotter
-  there, past ``T_dis_max`` even at ``x_suction_min``, and further down the
-  fit drops below its floor. The smallest duty that runs is then the lower
-  end of continuous operation, returned with ``capacity_clamped == "min"``
-  and averaged over the on/off period like a minimum-speed row
-  (``Q_min [W]`` is that duty; the loss is the EN 14825 degradation). The
-  climb passes the rungs refused for either of the two reasons and ends at
-  the first that is not; if that rung is refused as well, by a limit of the
-  other side (the pressure ratio, the heat exchanger, the condensing
-  temperature), the duties that run lie between it and the rung below and the
-  bisection goes by which side refuses the trial (R407C A-15/W55: 7.2 kW,
-  between the discharge limit below and the outdoor coil above). The request
-  keeps its reason when no duty runs: the two sides meet, or the discharge
-  limit holds at every duty (R32 against a 55 °C tank below -6 °C outdoors --
-  the discharge is above 150 °C at every speed). Of the 2026-11-15 sweep
-  (5,796 boiler points), 73 requests refused for the discharge temperature
-  while a larger one ran became cycling rows, at a ``Q_min`` of 15--84 % of
-  the nameplate (median 38 %); the 3,803 rows that ran before are unchanged.
+  lift the compressor efficiency falls towards low speed: the discharge runs
+  hotter there, past ``T_dis_max`` even at ``x_suction_min``. The smallest
+  duty that runs is then the lower end of continuous operation, returned with
+  ``capacity_clamped == "min"`` and averaged over the on/off period like a
+  minimum-speed row (``Q_min [W]`` is that duty; the loss is the EN 14825
+  degradation). The climb passes the rungs refused for the discharge limit
+  and ends at the first that is not; if that rung is refused as well, by a
+  limit of the other side (the pressure ratio, the heat exchanger, the
+  condensing temperature), the duties that run lie between it and the rung
+  below and the bisection goes by which side refuses the trial (the 15 kW R32
+  boiler at A−20 against a 60 °C tank: 2.1 to 4.3 kW, between the discharge
+  limit below and the pressure-ratio ceiling above). The request keeps its
+  reason when no duty runs: the two sides meet (the same boiler at A−25
+  against a 55 °C tank: the discharge limit refuses the smallest duties and
+  the pressure-ratio ceiling every larger one). Of the 2026-11-15 sweep
+  (5,796 boiler points, with the efficiency map of then), 73 requests refused
+  for the discharge temperature while a larger one ran became cycling rows,
+  at a ``Q_min`` of 15--84 % of the nameplate (median 38 %); the 3,803 rows
+  that ran before were unchanged.
   The limits are not monotone in the duty together: above the duties
   that run the pressure ratio or the heat exchanger refuses, below them the
   discharge temperature does (at low speed the efficiency falls). So when no
   rung runs, two neighbouring rungs refused for different reasons are
   bisected by reason, which finds a running range narrower than the ladder
-  spacing (R1234yf A-15/W65: 4.0--5.7 kW of a 15 kW request); a trial
-  refused for the efficiency floor counts as the lower side there. Three short
+  spacing (with the efficiency map of before November 2026, R1234yf
+  A-15/W65: 4.0--5.7 kW of a 15 kW request; with the present defaults that
+  request runs at 3.3 kW, held by the pressure ratio). Three short
   cuts keep "no duty runs" cheap: a request refused by the pressure ratio,
   or by a coil short at full airflow, has its 10 % rung solved first, and if
   that is refused the same way nothing in between is tried (those limits
@@ -648,36 +667,28 @@ How each family answers a point the control cannot hold:
   bound later); a step with no duty that runs is an off step with the
   reason. The start-temperature retry of that function applies the same
   reduction. A step that needs the reduction costs one cycle solve per
-  ladder rung and bisection point: 24 h of the default R32 boiler on a cold
-  day (outdoor −8 to 0 °C, dt 600 s; 10 of 22 running steps at a reduced
-  duty, 70 called steps with no duty that runs) takes about half a minute,
-  against one to two seconds on a mild day where the control alone holds the
-  limit.
+  ladder rung and bisection point: with the efficiency map of before
+  November 2026, 24 h of the default R32 boiler on a cold day (outdoor −8 to
+  0 °C, dt 600 s; 10 of 22 running steps at a reduced duty, 70 called steps
+  with no duty that runs) took about half a minute, against one to two
+  seconds on a mild day where the control alone held the limit.
 
 Steady results of every family carry ``efficiency_extrapolated`` (bool):
-the point lies outside the (PR, N) box of a default efficiency fit. Scalar
-and user efficiencies give ``False``.
+the point lies outside the (PR, N) data hull of a default efficiency model.
+Scalar and user efficiencies give ``False``.
 
-Isentropic-efficiency floor (``ETA_ISEN_MIN`` = 0.30). With the discharge
-control a point can hold ``T_dis_max`` while the shipped isentropic fit, read
-outside its data, is far below anything measured: the guard's first-order
-continuation towards 15 rev/s reaches 0.14. Inside the convex hull of its
-3899 data points the fit never goes below 0.336, and its lowest value over the
-whole fitted box is 0.297 (corner PR 7.15, 33.8 rev/s). A running point at
-which the shipped fit is extrapolated *and* below 0.30 is therefore outside the
-envelope (``failure_reason == "eta_isen_below_min"``; ASHP and GSHP reject
-the candidate). The values held at the high-PR and high-speed boundaries are
-0.306 or more, so the rule bites only in the low-speed continuation. Scalar
-and user efficiencies are the caller's statement and are not checked: the
-floor applies only where a shipped map is extrapolated. Of
-the 2026-11-13 sweep, before this rule, 23 running rows (20 of them under
-discharge control) were at eta_is 0.25–0.30, all at PR 6.4–6.9 and
-15–21 rev/s; no adopted catalogue point is below 0.37. The rule is independent
-of ``T_dis_max``. A rising minimum speed with pressure ratio would refuse the
-same corner but needs envelope data the library does not have; the floor uses
-only the fit's own data range.
+Until November 2026 the envelope had a third limit, an isentropic-efficiency
+floor (``ETA_ISEN_MIN`` = 0.30, ``failure_reason == "eta_isen_below_min"``,
+``capacity_binding == "compressor_efficiency"``): the BITZER quadratic map,
+read outside its data towards low speed, fell to 0.14, and points at which it
+was extrapolated and below 0.30 were refused. The semi-empirical forms that
+replaced the map stay positive and bounded by construction, and the floor, its
+failure reason and its binding are removed: the lower side of the envelope is
+the discharge-temperature limit alone.
 
-Effect on the adopted catalogues (2026-11-13, point-weighted COP MAPE; a
+Effect of the discharge limit and control on the adopted catalogues when they
+were introduced (a record of 2026-11-13, with the efficiency map, the
+conductances and the tank convention of then; point-weighted COP MAPE; a
 point that delivers more than 1 % less than the published duty is not scored,
 ``capacity_short``):
 
@@ -707,10 +718,12 @@ point that delivers more than 1 % less than the published duty is not scored,
       - 19/30, 4.7 %
 
 (With the ASHPB outdoor-approach band search of #109; the committed
-``validation/results`` were regenerated with this code.) The control holds 30
+``validation/results`` of then were regenerated with this code.) The control held 30
 air-to-water points (2 by superheat alone, 28 with wet suction at
-x 0.90–0.99); 23 of them are scored. Of the 17 points not scored, 10 are R32 points whose unbounded
-discharge is 243–293 °C: they would need suction quality 0.79–0.86, because
-the fitted eta_is is 0.37–0.42 at PR 8.2–12.1 (both in the default and the
-``v2026-09-24`` correlations). The other 7, all R32, run at a reduced duty
-(``capacity_short``, 42–98 % of the published duty) at x 0.90–0.93.
+x 0.90–0.99); 23 of them were scored. Of the 17 points not scored, 10 were R32 points whose unbounded
+discharge was 243–293 °C: they would have needed suction quality 0.79–0.86,
+because the map of then gave eta_is 0.37–0.42 at PR 8.2–12.1 (both the
+BITZER map and the ``v2026-09-24`` correlations). The other 7, all R32, ran at
+a reduced duty (``capacity_short``, 42–98 % of the published duty) at
+x 0.90–0.93. With the present defaults no adopted point stops on the
+discharge limit (:doc:`/validation/index`).

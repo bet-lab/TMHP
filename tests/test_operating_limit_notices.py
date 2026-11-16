@@ -41,6 +41,8 @@ from tmhp.operating_limits import (
 )
 from tmhp.simulation_summary import print_operating_limit_summary
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -195,6 +197,8 @@ LIMITED_CASES = [
     ("ASHPB", dict(T_tank_w=55.0, T0=-5.0, Q_ref_tank=15000.0), "discharge_temperature", "Q_ref_tank [W]"),
     ("GSHPB", dict(T_tank_w=35.0, T_source=5.0, Q_ref_tank=8000.0), "source_fluid_freezing", "Q_ref_tank [W]"),
     ("WSHPB", dict(T_tank_w=35.0, T_source=5.0, Q_ref_tank=8000.0), "source_fluid_freezing", "Q_ref_tank [W]"),
+    # The 1-20 K approach box of the earlier machine binds before the compressor does; in the present
+    # 1-30 K box the same request ends on the compressor (tests/test_ashp_flat_out_cooling_ceiling.py).
     ("ASHP", dict(Q_r_iu=20000.0, T0=48.0), "cycle", "Q_ref_iu [W]"),
     ("GSHP", dict(Q_r_iu=-30000.0, T0=0.0), "cycle", "Q_ref_iu [W]"),
 ]
@@ -543,7 +547,6 @@ def test_every_reason_and_binding_the_models_name_is_in_the_table():
     for reason in (
         envelope.DISCHARGE_TEMP_ABOVE_MAX,
         envelope.CONDENSING_TEMP_ABOVE_MAX,
-        envelope.ETA_ISEN_BELOW_MIN,
         envelope.PR_ABOVE_MAX,
         SOURCE_FLUID_FREEZING,
         "cycle_invalid",
@@ -557,7 +560,6 @@ def test_every_reason_and_binding_the_models_name_is_in_the_table():
         envelope.BINDING_CONDENSING,
         envelope.BINDING_PRESSURE_RATIO,
         envelope.BINDING_HEAT_EXCHANGER,
-        envelope.BINDING_EFFICIENCY,
         envelope.BINDING_CYCLE,
         "compressor",
         "outdoor_coil",

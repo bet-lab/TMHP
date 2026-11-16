@@ -1,0 +1,30 @@
+test,candidate,rmse_R290,rmse_R32,rmse_R410A,rmse_mean,fit_by_heldout,loco_shape,a_R290,a_R32,a_R410A,level_spread_max_over_min
+leave one refrigerant out,pooled level only,0.0261228,0.0312256,0.0279155,0.0284213,R290: a=1.287 coef=0; R32: a=1.207 coef=0; R410A: a=1.321 coef=0,,,,,
+leave one refrigerant out,pooled level + q0,0.0261228,0.0318016,0.0279156,0.0286133,R290: a=1.287 coef=6.15e-17; R32: a=1.190 coef=0.04586; R410A: a=1.321 coef=1.288e-12,,,,,
+leave one refrigerant out,pooled level + q1,0.0261228,0.0318016,0.0279156,0.0286133,R290: a=1.287 coef=6.15e-17; R32: a=1.190 coef=0.04586; R410A: a=1.321 coef=1.288e-12,,,,,
+leave one refrigerant out,pooled level + cL,0.0274525,0.0312094,0.0310175,0.0298931,R290: a=1.738 coef=-0.03401; R32: a=1.441 coef=-0.0214; R410A: a=0.016 coef=10.59,,,,,
+leave one refrigerant out,pooled level + qf,0.0261228,0.0312257,0.109773,0.055707,R290: a=1.287 coef=2.239e-20; R32: a=1.207 coef=4.084e-16; R410A: a=0.044 coef=49.99,,,,,
+leave one refrigerant out,pooled level + cu,0.0947842,0.0318395,0.0296796,0.0521011,R290: a=0.008 coef=39.7; R32: a=1.232 coef=-0.005597; R410A: a=1.058 coef=0.06449,,,,,
+leave one refrigerant out,pooled level + cH,0.0269598,0.0312257,0.0226573,0.0269476,R290: a=1.077 coef=0.3871; R32: a=1.207 coef=9.223e-16; R410A: a=1.178 coef=0.2247,,,,,
+leave one refrigerant out,reference: own-refrigerant median level (in sample),0.0262939,0.021498,0.0212912,0.0230277,,,,,,
+backward candidate of variant a,rotary:q0+q1+q2+cL+qf+cu+cH:rel:scaled,,,,,,0.0388544,0.953946,0.90831,0.942557,1.05024
+backward candidate of variant a,rotary:q1+q2+cL+qf+cu+cH:rel:scaled,,,,,,0.0369614,1.07453,1.037,1.01754,1.05601
+backward candidate of variant a,rotary:q0+q2+cL+qf+cu+cH:rel:scaled,,,,,,0.0388545,0.953946,0.90831,0.942557,1.05024
+backward candidate of variant a,rotary:q0+q1+q2+qf+cu+cH:rel:scaled,,,,,,0.0370815,0.705709,0.494434,0.587961,1.42731
+backward candidate of variant a,rotary:q0+q1+q2+cL+cu+cH:rel:scaled,,,,,,0.031895,1.02046,1.0174,1.03718,1.01944
+backward candidate of variant a,rotary:q0+q1+q2+cL+qf+cH:rel:scaled,,,,,,0.0419315,0.935011,1.18115,1.20846,1.29246
+backward candidate of variant a,rotary:q0+q1+q2+cL+qf+cu:rel:scaled,,,,,,0.0333928,1.12024,1.41509,1.24769,1.2632
+backward candidate of variant a,rotary:q1+q2+cL+cu+cH:rel:scaled,,,,,,0.0325108,1.07453,1.03701,1.01754,1.05601
+backward candidate of variant a,rotary:q0+q2+cL+cu+cH:rel:scaled,,,,,,0.031895,1.02046,1.0174,1.03717,1.01944
+backward candidate of variant a,rotary:q0+q1+q2+cu+cH:rel:scaled,,,,,,0.0319276,0.862023,0.646649,0.758829,1.33306
+backward candidate of variant a,rotary:q0+q1+q2+cL+cH:rel:scaled,,,,,,0.0347282,1.08478,1.52718,1.50075,1.40782
+backward candidate of variant a,rotary:q0+q1+q2+cL+cu:rel:scaled,,,,,,0.031807,1.12024,1.41509,1.24768,1.2632
+backward candidate of variant a,rotary:q1+q2+cL+cu:rel:scaled,,,,,,0.0320314,1.14316,1.31514,1.17151,1.15044
+backward candidate of variant a,rotary:q0+q2+cL+cu:rel:scaled,,,,,,0.031807,1.12024,1.41508,1.24768,1.2632
+backward candidate of variant a,rotary:q0+q1+q2+cu:rel:scaled,,,,,,0.0391042,1.04318,1.08208,0.97972,1.10448
+backward candidate of variant a,rotary:q0+q1+q2+cL:rel:scaled,,,,,,0.0344277,1.15701,2.01299,1.69454,1.73983
+backward candidate of variant a,rotary:q2+cL+cu:rel:scaled,,,,,,0.0317842,1.14515,1.3164,1.17272,1.14954
+backward candidate of variant a,rotary:q0+q2+cu:rel:scaled,,,,,,0.0391042,1.04317,1.08207,0.979711,1.10448
+backward candidate of variant a,rotary:q0+q2+cL:rel:scaled,,,,,,0.0344277,1.15701,2.01299,1.69454,1.73983
+backward candidate of variant a,rotary:q2+cu:rel:scaled,,,,,,0.0390675,1.05034,0.95796,0.877241,1.19733
+backward candidate of variant a,rotary:q2+cL:rel:scaled,,,,,,0.0403907,1.31329,2.05918,1.75339,1.56796

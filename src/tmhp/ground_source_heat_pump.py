@@ -46,7 +46,15 @@ from ._opt_utils import (
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
 from .borehole_capacity import configure_borehole_dynamics
-from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
+from .compressor_efficiency import (
+    COMPRESSOR_TYPES,
+    CompressorSpec,
+    SuctionState,
+    _eval_eff,
+    needs_state,
+    reject_invalid_efficiency,
+    resolve_compressor_type,
+)
 from .compressor_envelope import (
     BINDING_DISCHARGE,
     CONTROL_KEY,
@@ -63,7 +71,7 @@ from .compressor_envelope import (
     resolve_x_suction_min,
     steady_envelope,
 )
-from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
+from .compressor_speed import CAPACITY_CLAMPED_MAX, solve_compressor_speed
 from .cycling import (
     CAPACITY_RATIO_KEY,
     CD_AIR_DEFAULT,
@@ -114,7 +122,7 @@ from .heat_exchanger import (
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .pump import default_ground_pump_power
-from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
+from .reference_state import RATING_STANDARDS, HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
     calc_ref_state_without_discharge,
@@ -147,11 +155,6 @@ def _require_finite(**values: float | None) -> None:
         if not finite:
             raise ValueError(f"{name} must be a finite number, got {value!r}")
 
-
-#: Default rated indoor airflow per watt of capacity [m³/s per W]: 400 cfm per
-#: ton of refrigeration, the usual selection airflow of a water-to-air unit
-#: (0.215 m³/s = 773 m³/h for 4 kW).
-IU_AIRFLOW_PER_W = 5.37e-5
 
 #: Borehole-wall temperature seen by a ground closure [K]: a fixed value, or a
 #: function of the borefield load ``Q_bhe`` [W] of the point being evaluated
@@ -403,11 +406,18 @@ class GroundSourceHeatPump(ReferenceStateMixin):
       (:func:`~tmhp.ground_defaults.default_borefield_layout`; one borehole up to
       6.67 kW, 3 x 2 for 30 kW). Giving any of the three fixes the field as
       given (the others default to 1, 1 and 100 m);
-    - rated indoor airflow ``dV_iu_fan_a_rated``: 5.37e-5 m³/s per W
-      (400 cfm per ton; 773 m³/h for 4 kW). With the default coil
-      (``UA_iu_rated = 0.08 * hp_capacity``) the rated duty needs an indoor
-      approach of 21.6 K, which is why ``indoor_approach_max_K`` defaults to
-      25 K.
+    - rated indoor airflow ``dV_iu_fan_a_rated``: the largest blower airflow
+      water-to-air units of this capacity publish
+      (:func:`~tmhp.default_inputs.estimate_max_airflow`);
+    - heat-exchanger conductances: the effective ``UA`` that reproduces the
+      leaving-end approach water-to-air units print at their rating point
+      (:func:`~tmhp.default_inputs.estimate_hx_UA`) -- the coaxial ground
+      exchanger at the rated loop flow, one value as a condenser
+      (``UA_ground_rated``, cooling) and one as an evaporator
+      (``UA_ground_evap_rated``, heating), and the indoor coil at the rated
+      airflow (``UA_iu_rated``, both modes). ``ground_hx_ua_per_capacity``
+      selects the proportional rule ``coefficient * hp_capacity`` for the
+      ground exchanger instead.
 
     A supplied value always replaces its default. Two sizing slips are
     reported with a ``UserWarning`` instead of being solved silently: a
@@ -532,7 +542,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         eta_iu_fan_design: float | None = None,
         *,
         UA_ground_rated: float | None = None,
-        ground_hx_ua_per_capacity: float = 0.18,
+        # Effective ground heat-exchanger conductance as an evaporator (heating)
+        # [W/K]; None: the approach-temperature default, or UA_ground_rated when given.
+        UA_ground_evap_rated: float | None = None,
+        # Conductance per watt of capacity [1/K] for both refrigerant roles of the
+        # ground heat exchanger (the proportional rule); None: the approach defaults.
+        ground_hx_ua_per_capacity: float | None = None,
         UA_iu_rated: float | None = None,
         indoor_approach_min_K: float = 1.0,
         indoor_approach_max_K: float = 25.0,
@@ -583,8 +598,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_cond_max: float | Literal["auto"] | None = "auto",
         # Ground-loop liquid (None: 25 % ethylene glycol). Keyword-only.
         source_fluid: str | SourceFluid | None = None,
+        # Compressor type whose default efficiency models are used where
+        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
+        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
     ):
         validate_ctor("GSHP", locals())
+        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "air")
         # Liquid of the ground loop: its properties enter the source-side
@@ -629,7 +648,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.indoor_approach_max_K = indoor_approach_max_K
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
+            # No displacement given: the one a compressor catalogue gives for this capacity
+            # and refrigerant (tmhp.default_inputs), recorded in default_input_estimates.
+            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else self._default_displacement(hp_capacity, ref)
         if UA_cond is None:
             UA_cond = UA_cond_design
         if UA_evap is None:
@@ -652,7 +673,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         rps_check = rps_rated if rps_rated is not None else rps_min
         for name, legacy in (("eta_v", eta_v), ("eta_em", eta_em)):
             if legacy is not None:
-                _eval_eff(legacy, 3.0, rps_check)
+                # A probe at PR 3 of the deprecated inputs. There is no cycle
+                # yet, so a model that needs the suction state is not probed
+                # here; it is evaluated (and rejected if invalid) at every
+                # cycle evaluation, with the cycle's state.
+                if not needs_state(legacy):
+                    _eval_eff(legacy, 3.0, rps_check)
                 warnings.warn(
                     f"{name} is deprecated; use eta_cmp_vol / eta_cmp. Explicit new inputs take precedence.",
                     DeprecationWarning,
@@ -687,41 +713,18 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).
         self._x_suction: float = 1.0
 
-        # --- 2. Physical heat exchangers and compressor efficiencies ---
-        # Water HX sizing is independent of the air HX and of cycle mode.
-        self.UA_ground_rated = (
-            calc_ground_hx_UA_from_capacity(hp_capacity, ground_hx_ua_per_capacity)
-            if UA_ground_rated is None
-            else UA_ground_rated
-        )
-        self.ground_hx_ua_per_capacity = ground_hx_ua_per_capacity
-        # Preserve the former cooling indoor-air default, independently of
-        # ground-HX sizing. This is an air-HX assumption, not the BPHE rule.
-        self.UA_iu_rated = 0.08 * hp_capacity if UA_iu_rated is None else UA_iu_rated
-        if not all(np.isfinite(v) and v > 0 for v in (self.UA_ground_rated, self.UA_iu_rated)):
-            raise ValueError("Physical heat exchanger rated UA values must be positive and finite")
-        legacy_ua = UA_cond is not None or UA_evap is not None
-        self._legacy_ground_ua = legacy_ua and UA_ground_rated is None
-        self._legacy_indoor_ua = legacy_ua and UA_iu_rated is None
-        if legacy_ua:
-            warnings.warn(
-                "UA_cond/UA_evap (including *_design) are deprecated cycle-role inputs; "
-                "use UA_ground_rated and UA_iu_rated for mode-independent physical heat exchangers. "
-                "Explicit physical UA inputs take precedence.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            # Compatibility only: retain explicitly requested old role mapping.
-            self.UA_cond = hp_capacity / 10.0 if UA_cond is None else UA_cond
-            self.UA_evap = 0.8 * self.UA_cond if UA_evap is None else UA_evap
-        else:
-            # Read-compatible cooling-role aliases; no cycle computation uses
-            # these aliases unless the caller explicitly used the legacy API.
-            self.UA_cond, self.UA_evap = self.UA_ground_rated, self.UA_iu_rated
-
         # --- 3. Indoor unit fan ---
+        # The rated airflow is the unit's largest: with none given it is the
+        # largest blower airflow water-to-air units of this capacity publish
+        # (tmhp.default_inputs), for the duty the nameplate names.
         if dV_iu_fan_a_rated is None:
-            self.dV_iu_fan_a_rated = hp_capacity * IU_AIRFLOW_PER_W
+            self.dV_iu_fan_a_rated = self._default_max_airflow(
+                "dV_iu_fan_a_rated",
+                hp_capacity,
+                side="indoor",
+                product="water_to_air",
+                mode=self._rating_mode(rated_condition),
+            )
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 
@@ -750,6 +753,86 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             "fan_ref_power": self.E_iu_fan_rated,
             "fan_rated_power": self.E_iu_fan_rated,
         }
+
+        # --- 2. Physical heat exchangers ---
+        # A default is the effective conductance that reproduces the saturation
+        # temperature water-to-air units print at their rating point
+        # (tmhp.default_inputs.estimate_hx_UA, leaving-end approach law), stated
+        # at the rated flow of its fluid and sized for the exchanger's own duty
+        # per watt of the nameplate (the duty the rating condition names: cooling
+        # by default). A value the caller gives is used as given.
+        #
+        # Ground heat exchanger (coaxial liquid-to-refrigerant, at the rated loop
+        # flow of the loop liquid): one value as a condenser (cooling) and another
+        # as an evaporator (heating); a given UA_ground_rated without
+        # UA_ground_evap_rated serves both. ground_hx_ua_per_capacity keeps the
+        # proportional rule (UA = coefficient * hp_capacity) for both roles.
+        rating_mode = self._rating_mode(rated_condition)
+        C_ground = dV_b_f_lpm / 60000 * fluid.rho * fluid.cp
+        if UA_ground_rated is not None:
+            self.UA_ground_rated = UA_ground_rated
+        elif ground_hx_ua_per_capacity is not None:
+            self.UA_ground_rated = calc_ground_hx_UA_from_capacity(hp_capacity, ground_hx_ua_per_capacity)
+        else:
+            self.UA_ground_rated = self._default_hx_UA(
+                "UA_ground_rated",
+                "liquid_source_hx|water_to_air|coaxial|condensing",
+                nameplate=hp_capacity,
+                nameplate_mode=rating_mode,
+                heat_capacity_rate=C_ground,
+            )
+        if UA_ground_evap_rated is not None:
+            self.UA_ground_evap_rated = UA_ground_evap_rated
+        elif UA_ground_rated is not None or ground_hx_ua_per_capacity is not None:
+            # A given value, or the proportional rule, is not split into two roles.
+            self.UA_ground_evap_rated = self.UA_ground_rated
+        else:
+            self.UA_ground_evap_rated = self._default_hx_UA(
+                "UA_ground_evap_rated",
+                "liquid_source_hx|water_to_air|coaxial|evaporating",
+                nameplate=hp_capacity,
+                nameplate_mode=rating_mode,
+                heat_capacity_rate=C_ground,
+            )
+        self.ground_hx_ua_per_capacity = ground_hx_ua_per_capacity
+        # Indoor coil of a water-to-air unit, room air at the ISO 13256-1 heating
+        # indoor dry bulb (20 degC) at the rated airflow. Its sources print no
+        # nameplate per coil, and the model asks the nameplate of it in either
+        # mode, so the duty is the nameplate. One value in both modes: the
+        # sources' cooling coils run wet, so there is no dry evaporating stratum.
+        if UA_iu_rated is None:
+            self.UA_iu_rated = self._default_hx_UA(
+                "UA_iu_rated",
+                "indoor_coil|water_to_air|fin_tube|condensing",
+                nameplate=hp_capacity,
+                nameplate_mode=None,
+                heat_capacity_rate=air_heat_capacity_rate(
+                    self.dV_iu_fan_a_rated, RATING_STANDARDS[self._RATING_FAMILY]["heating"].load_T_C
+                ),
+            )
+        else:
+            self.UA_iu_rated = UA_iu_rated
+        rated = (self.UA_ground_rated, self.UA_ground_evap_rated, self.UA_iu_rated)
+        if not all(np.isfinite(v) and v > 0 for v in rated):
+            raise ValueError("Physical heat exchanger rated UA values must be positive and finite")
+        legacy_ua = UA_cond is not None or UA_evap is not None
+        self._legacy_ground_ua = legacy_ua and UA_ground_rated is None
+        self._legacy_indoor_ua = legacy_ua and UA_iu_rated is None
+        if legacy_ua:
+            warnings.warn(
+                "UA_cond/UA_evap (including *_design) are deprecated cycle-role inputs; "
+                "use UA_ground_rated and UA_iu_rated for mode-independent physical heat exchangers. "
+                "Explicit physical UA inputs take precedence.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            # Compatibility only: retain explicitly requested old role mapping.
+            self.UA_cond = hp_capacity / 10.0 if UA_cond is None else UA_cond
+            self.UA_evap = 0.8 * self.UA_cond if UA_evap is None else UA_evap
+        else:
+            # Read-compatible cooling-role aliases; no cycle computation uses
+            # these aliases unless the caller explicitly used the legacy API.
+            self.UA_cond, self.UA_evap = self.UA_ground_rated, self.UA_iu_rated
 
         # --- 4. BHE ---
         self.n_boreholes = calc_borehole_count(N_1, N_2)
@@ -849,6 +932,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 "eta_cmp_vol": eta_cmp_vol,
                 "eta_cmp": eta_cmp,
             },
+            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
@@ -1118,22 +1202,23 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             eta_vol_at = efficiency_evaluator(self.eta_cmp_vol)
             eta_isen_at = efficiency_evaluator(self.eta_cmp_isen)
             eta_em_at = efficiency_evaluator(self.eta_cmp)
+            suction = SuctionState(P_evap, rho_suction, dh_isen)
 
             def residual(rps: float) -> float:
-                eta_vol = eta_vol_at(ratio_P_cmp, rps)
-                eta_isen = eta_isen_at(ratio_P_cmp, rps)
+                eta_vol = eta_vol_at(ratio_P_cmp, rps, suction)
+                eta_isen = eta_isen_at(ratio_P_cmp, rps, suction)
                 # Validate the drive model on every candidate as well. It acts
                 # on input power only, not on the refrigerant heat duty.
-                eta_em_at(ratio_P_cmp, rps)
+                eta_em_at(ratio_P_cmp, rps, suction)
                 m_dot = self.V_cmp_ref * rho_suction * eta_vol * rps
                 h_out = h_in + dh_isen / eta_isen
                 dh = h_in - h_expansion if mode == "cooling" else h_out - h_liquid
                 return float(m_dot * dh - Q_ref_iu)
 
             cmp_rps, converged_rps, capacity_clamped = solve_compressor_speed(residual, self.rps_min, self.rps_max)
-            val_eta_isen = eta_isen_at(ratio_P_cmp, cmp_rps)
-            val_eta_vol = eta_vol_at(ratio_P_cmp, cmp_rps)
-            val_eta_em = eta_em_at(ratio_P_cmp, cmp_rps)
+            val_eta_isen = eta_isen_at(ratio_P_cmp, cmp_rps, suction)
+            val_eta_vol = eta_vol_at(ratio_P_cmp, cmp_rps, suction)
+            val_eta_em = eta_em_at(ratio_P_cmp, cmp_rps, suction)
             cycle_states = with_discharge_state(cycle_states, h_isen, val_eta_isen, self.ref)
             m_dot_ref = self.V_cmp_ref * rho_suction * val_eta_vol * cmp_rps
         else:
@@ -1350,12 +1435,14 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         return AirCoilSide("air", T_in_C, UA_iu, self.dV_iu_fan_a_ref)
 
     def _rated_hx_UAs(self, mode: str) -> tuple[float, float]:
-        """Return ground/IU physical UA; old explicit role inputs use an adapter.
+        """Return the rated ground and indoor conductances in ``mode``; old explicit role inputs use an adapter.
 
-        Defaults and physical inputs remain identical in cooling and heating.
-        Only deprecated role-based inputs preserve the old mode swap.
+        The ground heat exchanger is a condenser in cooling (``UA_ground_rated``)
+        and an evaporator in heating (``UA_ground_evap_rated``); the indoor coil
+        has one value. Deprecated role-based inputs preserve the old mode swap.
         """
-        ground, indoor = self.UA_ground_rated, self.UA_iu_rated
+        ground = self.UA_ground_evap_rated if mode == "heating" else self.UA_ground_rated
+        indoor = self.UA_iu_rated
         if self._legacy_ground_ua:
             ground = self.UA_evap if mode == "heating" else self.UA_cond
         if self._legacy_indoor_ua:

@@ -107,6 +107,7 @@ def test_argument_is_keyword_only_and_moves_no_positional_argument():
     assert GSHPB_STC_ground(stc=SolarThermalCollector(), borehole_dynamics=False).borehole_dynamics == "off"
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_false_is_the_steady_borehole():
     """``borehole_dynamics=False`` is the model before the dynamic default (values recorded on main f1394dd)."""
     n, dt = 12, 600.0
@@ -158,8 +159,12 @@ def test_default_falls_back_where_the_model_cannot_use_it():
         variable_flow = GroundSourceHeatPumpBoiler(ground_flow_control="optimal_power")
         # A supplied resistance below the fluid-to-pipe resistance: no grout layer can give it.
         unmappable = GroundSourceHeatPumpBoiler(R_b=0.01)
-        # 2 L/min through 200 m: the loop temperature difference alone exceeds R_b.
-        trickle = GroundSourceHeatPumpBoiler(ground_flow_ref_lpm=2.0, R_b=0.2)
+        # 2 L/min through 200 m: the loop temperature difference alone exceeds R_b. A 3 kW machine on
+        # the field of the default 8 kW one: 2 L/min of brine cannot carry the source duty of 8 kW at
+        # B0/W55, so the 8 kW default machine has no rating point on this loop.
+        trickle = GroundSourceHeatPumpBoiler(
+            hp_capacity=3000.0, N_1=1, N_2=1, H_b=200.0, ground_flow_ref_lpm=2.0, R_b=0.2
+        )
         space = GroundSourceHeatPump(variable_Rb=True)
     assert not [w for w in caught if "transit" in str(w.message) or "borehole_dynamics" in str(w.message)]
     assert injected.borehole_dynamics == "off" and "ground_coupler" in injected.borehole_dynamics_note
@@ -215,7 +220,8 @@ def test_true_requires_it():
     with pytest.raises(ValueError, match="borehole_dynamics=True.*variable ground flow"):
         _boiler(ground_flow_control="optimal_power", borehole_dynamics=True)
     with pytest.raises(ValueError, match="borehole_dynamics=True.*transit is not resolved"):
-        _boiler(ground_flow_ref_lpm=2.0, R_b=0.2, borehole_dynamics=True)
+        # The trickle loop of test_default_falls_back_where_the_model_cannot_use_it (3 kW, 200 m).
+        _boiler(hp_capacity=3000.0, N_1=1, N_2=1, H_b=200.0, ground_flow_ref_lpm=2.0, R_b=0.2, borehole_dynamics=True)
     assert _boiler(borehole_dynamics=True).borehole_dynamics == "transit"
     with pytest.raises(ValueError, match="None, True or False"):
         _boiler(borehole_dynamics="transit")

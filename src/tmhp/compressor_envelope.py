@@ -36,10 +36,15 @@ Discharge temperature (``T_dis_max``)
     (:data:`DISCHARGE_TEMP_ABOVE_MAX`). The defaults
     (:data:`DISCHARGE_TEMP_MAX_C`, :func:`default_discharge_temp_max`) are the
     *protection* values -- R32 150 degC, every other fluid 135 degC -- not the
-    controllers' earlier set points, because the cycle model has no shell heat
-    loss and puts every compressor loss into the gas (the default
-    electro-mechanical efficiency is about 1), so its discharge temperature is
-    an upper estimate of the machine's.
+    controllers' earlier set points: the cycle's discharge state is the gas
+    leaving the compression (the default models send the share of the loss
+    work to the gas that measured discharge temperatures give, 0.58 for the
+    rotary types and 0.77 for the scroll,
+    :mod:`tmhp.compressor_efficiency`), with no shell or pipe heat loss
+    after it, which is the temperature the protection values refer to; a
+    controller's pipe sensor reads lower. With a caller's efficiencies that
+    put every loss into the gas (``eta_cmp`` near 1) it is an upper estimate
+    of the machine's.
 
     Discharge-temperature control comes first (:func:`discharge_controlled`,
     ``x_suction_min``). A unit whose discharge runs hot does not stop: its
@@ -73,12 +78,12 @@ Discharge temperature (``T_dis_max``)
     per step (:func:`reduce_duty_within_envelope`): it runs at the reduced
     duty, or is an off step with that reason when no duty fits. The boilers
     answer every limit a smaller duty cures this way -- the pressure-ratio
-    ceiling, the source heat exchanger's range and the efficiency floor as
-    well (:func:`duty_reduction_binding`); ``capacity_binding`` names the
-    limit. The envelope also has a lower side: at a large lift the shipped
-    isentropic fit falls towards low speed, so the discharge runs hotter there
-    (past the limit even with the control used up) and, further down, the fit
-    drops below its floor -- while larger duties run. A boiler's
+    ceiling and the source heat exchanger's range as well
+    (:func:`duty_reduction_binding`); ``capacity_binding`` names the limit.
+    The envelope also has a lower side: at a large lift the isentropic
+    efficiency falls towards low speed, so the discharge runs hotter there
+    (past the limit even with the control used up) -- while larger duties
+    run. A boiler's
     ``analyze_steady`` answers a request refused there with the smallest duty
     that runs (:func:`raise_duty_within_envelope`, ``capacity_clamped='min'``),
     which is then reported as the mean of on/off cycling like a request below
@@ -167,18 +172,16 @@ Condensing pressure (``T_cond_max``)
 Speed (``rps_min`` / ``rps_max``)
     ``rps_min`` is the inverter's floor (15 rev/s). ``rps_max`` defaults to
     :func:`default_rps_max` of the rated speed the model solves at its rating
-    point: twice the rated speed, at most :data:`RPS_MAX_ABSOLUTE`, at least
-    1.5 times the rated speed. The rated
+    point: :data:`RPS_MAX_ABSOLUTE` (120 rev/s), or 1.5 times the rated speed
+    where that is higher. The rated
     speed itself is solved over ``[rps_min, RATED_SPEED_SEARCH_MAX]``.
 
 Efficiency domain
-    The default efficiency fits are guarded outside their (PR, N) data
-    (:mod:`tmhp.compressor_efficiency`). Steady results carry
+    The default efficiency models are followed as they are outside their
+    (PR, N) data (:mod:`tmhp.compressor_efficiency`); the envelope sets no
+    limit on an efficiency. Steady results carry
     ``efficiency_extrapolated`` so a caller can see a point evaluated outside
-    the fitted data. At low speed and high pressure ratio the guard's
-    first-order continuation reaches eta_is 0.14; no separate speed floor is
-    imposed there because every such point already exceeds the discharge
-    limit (85 of 85 running points of the 2026-11-13 sweep, at 191--348 degC).
+    the data hull of a default model.
 """
 
 from __future__ import annotations
@@ -226,7 +229,6 @@ __all__ = [
     "BINDING_CONDENSING",
     "BINDING_PRESSURE_RATIO",
     "BINDING_HEAT_EXCHANGER",
-    "BINDING_EFFICIENCY",
     "BINDING_CYCLE",
     "BINDING_COMPRESSOR",
     "CYCLE_KEY",
@@ -235,12 +237,8 @@ __all__ = [
     "resolve_discharge_temp_max",
     "discharge_temp_exceeded",
     "discharge_violation",
-    "ETA_ISEN_BELOW_MIN",
-    "ETA_ISEN_MIN",
     "envelope_violation",
     "envelope_excess",
-    "efficiency_below_floor",
-    "RPS_MAX_PER_RATED",
     "RPS_MAX_ABSOLUTE",
     "RPS_MAX_MIN_PER_RATED",
     "RATED_SPEED_SEARCH_MAX",
@@ -267,22 +265,9 @@ PR_CYCLE_MAX_SINGLE_STAGE = 11.0
 DISCHARGE_TEMP_ABOVE_MAX = "discharge_temp_above_max"
 #: ``failure_reason``: even the smallest duty tried condenses above ``T_cond_max``.
 CONDENSING_TEMP_ABOVE_MAX = "condensing_temp_above_max"
-#: ``failure_reason``: the default isentropic-efficiency fit, extrapolated, is below :data:`ETA_ISEN_MIN`.
-ETA_ISEN_BELOW_MIN = "eta_isen_below_min"
 #: Reasons with which the envelope rejects a candidate of the space-conditioning
 #: searches (``_last_pr_event[0]``); they are reported as the ``failure_reason``.
-ENVELOPE_REJECTIONS = frozenset({DISCHARGE_TEMP_ABOVE_MAX, CONDENSING_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN})
-#: Lowest isentropic efficiency of the default fit accepted outside its data [-].
-#:
-#: Inside the convex hull of its 3899 data points the default scroll fit never
-#: goes below 0.336 (at PR 7.13, 38.6 rev/s), and its lowest value over the
-#: whole (PR, N) box is 0.297 (corner PR 7.15, 33.8 rev/s). Below that the
-#: value comes only from the guard's first-order continuation towards 15 rev/s
-#: (down to 0.14) -- a compressor wasting more than 70 % of its work with no
-#: datum behind it. Such a point is outside the envelope. The rule applies only
-#: to the shipped fits (which carry a validity domain) and only where they are
-#: extrapolated; a scalar or a user model is the caller's statement.
-ETA_ISEN_MIN = 0.30
+ENVELOPE_REJECTIONS = frozenset({DISCHARGE_TEMP_ABOVE_MAX, CONDENSING_TEMP_ABOVE_MAX})
 #: ``capacity_binding``: the duty was reduced to stay within ``T_dis_max``.
 BINDING_DISCHARGE = "discharge_temperature"
 #: ``capacity_binding``: the duty was reduced to stay within ``T_cond_max``.
@@ -292,8 +277,6 @@ BINDING_PRESSURE_RATIO = "pressure_ratio"
 #: ``capacity_binding``: the duty was reduced to what the source heat exchanger
 #: carries within its flow range (ASHPB reports ``"outdoor_coil"``).
 BINDING_HEAT_EXCHANGER = "source_heat_exchanger"
-#: ``capacity_binding``: the duty was reduced to keep the shipped isentropic fit above :data:`ETA_ISEN_MIN`.
-BINDING_EFFICIENCY = "compressor_efficiency"
 #: ``capacity_binding``: the next larger duty has no valid cycle, for a reason none of the above names.
 BINDING_CYCLE = "cycle"
 #: ``capacity_binding``: the compressor runs at its speed ceiling (``rps_max``).
@@ -344,9 +327,8 @@ CONDENSING_TOL_K = 0.01
 #: with the constructor argument ``x_suction_min``.
 X_SUCTION_MIN_DEFAULT = 0.9
 
-#: ``rps_max`` default: this multiple of the rated speed ...
-RPS_MAX_PER_RATED = 2.0
-#: ... but no more than this [rev/s] (7200 rpm, the top of variable-speed scroll and rotary ranges) ...
+#: ``rps_max`` default [rev/s]: 7200 rpm, the upper end of the speed ranges inverter rotary compressors
+#: of heat-pump size are specified for (see :func:`default_rps_max`) ...
 RPS_MAX_ABSOLUTE = 120.0
 #: ... and never less than this multiple of the rated speed (catalogue maximum / rated capacity <= 1.52).
 RPS_MAX_MIN_PER_RATED = 1.5
@@ -566,9 +548,10 @@ def condensing_tank_cutout(model: Any) -> float | None:
     """Highest tank temperature a boiler heats at its nameplate duty inside the condensing limit [degC].
 
     The cycle condenses at the tank temperature plus the tank heat exchanger's
-    approach, ``hp_capacity / UA_tank_hx`` at the nameplate duty, and the
-    hottest it may condense is the bubble point of the limit pressure. ``None``
-    without a limit.
+    approach, ``hp_capacity / K_tank_hx`` at the nameplate duty (``K_tank_hx``:
+    the heat the exchanger carries per kelvin above the tank water, the
+    water entering a plate condenser), and the hottest it may condense is the
+    bubble point of the limit pressure. ``None`` without a limit.
     """
     limit, ref = getattr(model, "T_cond_max", None), getattr(model, "ref", None)
     if limit is None or ref is None:
@@ -577,7 +560,7 @@ def condensing_tank_cutout(model: Any) -> float | None:
         (T_reach_K,) = _props("T", "P", _condensing_pressure_limits(ref, float(limit))[0], "Q", 0, ref)
     except ValueError:
         return None
-    return float(cu.K2C(T_reach_K)) - float(model.hp_capacity) / float(model.UA_tank_hx)
+    return float(cu.K2C(T_reach_K)) - float(model.hp_capacity) / float(model.K_tank_hx)
 
 
 def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
@@ -606,7 +589,7 @@ def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
         return
     new_lower = lower if lower < cutout else cutout - (upper - lower)
     model.T_tank_w_upper_bound, model.T_tank_w_lower_bound = cutout, new_lower
-    approach = float(model.hp_capacity) / float(model.UA_tank_hx)
+    approach = float(model.hp_capacity) / float(model.K_tank_hx)
     moved = "" if new_lower == lower else f", and the lower bound is moved from {lower:g} to {new_lower:.1f} °C"
     warnings.warn(
         f"{what}: T_tank_w_upper_bound={upper:g} °C is above the tank temperature the compressor envelope "
@@ -642,43 +625,18 @@ def discharge_violation(result: Mapping[str, Any], T_dis_max: float | None) -> s
     return None
 
 
-def _eta_isen(result: Mapping[str, Any]) -> float:
-    if "eta_cmp_isen [-]" in result:
-        try:
-            return float(result["eta_cmp_isen [-]"])
-        except (TypeError, ValueError):
-            return math.nan
-    return math.nan
-
-
-def efficiency_below_floor(model: Any, result: Mapping[str, Any]) -> bool:
-    """The shipped isentropic fit, evaluated outside its data, is below :data:`ETA_ISEN_MIN`."""
-    eta_model = getattr(model, "eta_cmp_isen", None)
-    if getattr(eta_model, "validity_domain", None) is None:
-        return False
-    eta = _eta_isen(result)
-    if not (math.isfinite(eta) and eta < ETA_ISEN_MIN):
-        return False
-    return efficiency_extrapolated_at((eta_model,), result)
-
-
 def envelope_violation(result: Mapping[str, Any], model: Any) -> str | None:
     """Why a solved running state is outside the compressor envelope, or ``None``.
 
-    :data:`CONDENSING_TEMP_ABOVE_MAX`, :data:`DISCHARGE_TEMP_ABOVE_MAX` (after
-    the discharge-temperature control) or :data:`ETA_ISEN_BELOW_MIN`. The
-    condensing pressure is judged first: it does not depend on the efficiency
-    model or on the control, and a smaller duty always lowers it.
+    :data:`CONDENSING_TEMP_ABOVE_MAX` or :data:`DISCHARGE_TEMP_ABOVE_MAX`
+    (after the discharge-temperature control). The condensing pressure is
+    judged first: it does not depend on the efficiency model or on the
+    control, and a smaller duty always lowers it.
     """
     reason = condensing_violation(result, model)
     if reason is not None:
         return reason
-    reason = discharge_violation(result, getattr(model, "T_dis_max", None))
-    if reason is not None:
-        return reason
-    if efficiency_below_floor(model, result):
-        return ETA_ISEN_BELOW_MIN
-    return None
+    return discharge_violation(result, getattr(model, "T_dis_max", None))
 
 
 def envelope_excess(result: Mapping[str, Any], model: Any) -> float:
@@ -687,9 +645,8 @@ def envelope_excess(result: Mapping[str, Any], model: Any) -> float:
     0 inside. 1000 per kelvin of discharge above ``T_dis_max`` (beyond
     :data:`DISCHARGE_TOL_K`; an undefined discharge state counts as very far)
     and per kelvin of condensing above ``T_cond_max`` (beyond
-    :data:`CONDENSING_TOL_K`), plus 1e6 per unit of isentropic efficiency
-    below :data:`ETA_ISEN_MIN` where the floor applies. Used by searches to
-    rank candidates outside the envelope among themselves.
+    :data:`CONDENSING_TOL_K`). Used by searches to rank candidates outside the
+    envelope among themselves.
     """
     excess = 1000.0 * _condensing_excess_K(result, model)
     T_max = getattr(model, "T_dis_max", None)
@@ -699,34 +656,39 @@ def envelope_excess(result: Mapping[str, Any], model: Any) -> float:
             excess += 1.0e9
         elif T_max + DISCHARGE_TOL_K < T:
             excess += 1000.0 * (T - T_max)
-    if efficiency_below_floor(model, result):
-        excess += 1.0e6 * (ETA_ISEN_MIN - _eta_isen(result))
     return excess
 
 
 def default_rps_max(rps_rated: float) -> float:
     """Default upper speed bound from the rated speed [rev/s].
 
-    ``max(min(2 * rps_rated, 120), 1.5 * rps_rated)``. Inverter heat pumps
-    reach their published maximum capacity at 1.0--1.52 times the nameplate
-    (the adopted validation catalogues); the model needs at most 1.66 times
-    the rated speed for those points (Daikin RXM20A heating). Twice the rated
-    speed keeps them all with margin while refusing the 2.5--5.9 times
-    nameplate compressor capacity the former fixed 150 rev/s allowed, and
-    120 rev/s (7200 rpm) is the top of the variable-speed scroll and rotary
-    ranges. A machine whose *rated* speed is already high -- a
-    low-volumetric-capacity fluid with the refrigerant-independent default
-    displacement, e.g. R134a at 90 rev/s (#86) -- keeps at least
-    :data:`RPS_MAX_MIN_PER_RATED` times its rated speed, so it can still reach
-    the catalogue maximum-to-rated ratio; such a machine should be given its
-    real ``V_cmp_ref``.
+    ``max(120, 1.5 * rps_rated)``: :data:`RPS_MAX_ABSOLUTE` for every machine
+    rated at 80 rev/s or below.
+
+    The ceiling is a property of the compressor, not of the nameplate.
+    Manufacturer documents specify inverter rotary compressors of heat-pump
+    size for 12--120 rev/s (8.9--21 cm3/rev), 12--110 (57.9 cm3/rev), 15--100
+    (44 cm3/rev class) and 10--130 (small twins); an air-to-air outdoor unit's
+    service manual gives 110 rev/s in heating. 120 rev/s (7200 rpm) is the
+    upper end of that range for the 40--65 cm3/rev machines of the validation
+    catalogues, whose own documents print no maximum speed (they limit the
+    frequency by running current). The former bound ``min(2 * rps_rated,
+    120)`` tied the ceiling to the nameplate, so two units that share one
+    compressor had different ceilings (91 and 120 rev/s for the 9 and 12 kW
+    units on a 42 cm3/rev compressor). A machine whose compressor is known
+    should be given its documented ``rps_max``.
+
+    A machine whose *rated* speed is already high -- a low-volumetric-capacity
+    fluid with a default displacement that does not follow the refrigerant
+    (#86) -- keeps at least :data:`RPS_MAX_MIN_PER_RATED` times its rated
+    speed, so it can still reach the catalogue maximum-to-rated ratio; such a
+    machine should be given its real ``V_cmp_ref``.
     """
-    rated = float(rps_rated)
-    return max(min(RPS_MAX_PER_RATED * rated, RPS_MAX_ABSOLUTE), RPS_MAX_MIN_PER_RATED * rated)
+    return max(RPS_MAX_ABSOLUTE, RPS_MAX_MIN_PER_RATED * float(rps_rated))
 
 
 def efficiency_extrapolated_at(models: tuple[object, ...], result: Mapping[str, Any]) -> bool:
-    """Whether any default efficiency fit is evaluated outside its data at this state.
+    """Whether any default efficiency model is evaluated outside its data at this state.
 
     Pressure ratio and speed are read from the result row
     (``P_ref_cmp_out / P_ref_cmp_in`` and ``cmp_rpm / 60``). False for a state
@@ -744,14 +706,13 @@ def efficiency_extrapolated_at(models: tuple[object, ...], result: Mapping[str, 
     return any(_outside_domain(m, pr, rps) for m in models)
 
 
-#: Relative margin inside which a point on the edge of a fit's (PR, N) box
-#: counts as inside. The pressure ratio and speed are read back from the
+#: Relative margin inside which a point on the edge of a model's (PR, N) data
+#: hull counts as inside. The pressure ratio and speed are read back from the
 #: result row (``P_out / P_in``, ``cmp_rpm / 60``), so a point solved exactly
-#: on an edge -- the pressure-ratio floor sits next to the fit's PR 1.5016, and
-#: a speed bound can coincide with 33.8 or 72.5 rev/s -- comes back a few ulp
-#: either side, and the flag (and the efficiency floor that uses it) would
-#: differ between platforms. 1e-6 is the relative tolerance of the step-kernel
-#: goldens and far below any physical meaning of the box.
+#: on an edge -- a speed bound can coincide with a hull vertex (30 or
+#: 120 rev/s for the rotary types) -- comes back a few ulp either side, and
+#: the flag would differ between platforms. 1e-6 is the relative tolerance of
+#: the step-kernel goldens and far below any physical meaning of the hull.
 _DOMAIN_RTOL = 1e-6
 
 
@@ -759,11 +720,7 @@ def _outside_domain(model: object, pressure_ratio: float, rps: float) -> bool:
     domain = getattr(model, "validity_domain", None)
     if domain is None or not efficiency_extrapolated(model, pressure_ratio, rps):  # type: ignore[arg-type]
         return False
-    tol = _DOMAIN_RTOL
-    return not (
-        domain.pr_min * (1 - tol) <= pressure_ratio <= domain.pr_max * (1 + tol)
-        and domain.rps_min * (1 - tol) <= rps <= domain.rps_max * (1 + tol)
-    )
+    return not domain.contains(pressure_ratio, rps, rtol=_DOMAIN_RTOL)
 
 
 _F = TypeVar("_F", bound=Callable[..., Any])
@@ -869,9 +826,6 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
                     self._last_pr_event = (CONDENSING_TEMP_ABOVE_MAX, limit + above, limit)
                     self._condensing_rejected = True  # read by `_condensing_limit_binds`
                     return None
-            if reject and _state_running(result) and efficiency_below_floor(self, result):
-                self._last_pr_event = (ETA_ISEN_BELOW_MIN, _eta_isen(result), ETA_ISEN_MIN)
-                return None
             T_max = self.T_dis_max
             cycle = _solved_cycle(result)
             if T_max is None or cycle is None:
@@ -920,9 +874,6 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
             if diag_out is not None:
                 diag_out.clear()
                 diag_out.update(diags.get(id(controlled), {}))
-            if reject and efficiency_below_floor(self, controlled):
-                self._last_pr_event = (ETA_ISEN_BELOW_MIN, _eta_isen(controlled), ETA_ISEN_MIN)
-                return None
             return controlled
 
         return cast(_F, wrapped)
@@ -1149,7 +1100,6 @@ _REDUCIBLE_BINDING: Mapping[str, str] = {
     CONDENSING_TEMP_ABOVE_MAX: BINDING_CONDENSING,
     DISCHARGE_TEMP_ABOVE_MAX: BINDING_DISCHARGE,
     PR_ABOVE_MAX: BINDING_PRESSURE_RATIO,
-    ETA_ISEN_BELOW_MIN: BINDING_EFFICIENCY,
     "hx_not_converged": BINDING_HEAT_EXCHANGER,
 }
 #: ``failure_detail`` of a failure a smaller duty makes worse, whatever its
@@ -1170,28 +1120,27 @@ _NOT_REDUCIBLE_DETAIL = frozenset({"outdoor_coil_excess_at_min_airflow"})
 #: cycle exists, and reduced onto it.)
 _REDUCIBLE_CYCLE_DETAIL: Mapping[str, str] = {"discharge_state_undefined": BINDING_DISCHARGE}
 #: Failure reasons a *larger* duty can cure. At low speed the efficiency falls:
-#: the discharge runs hotter, the shipped fit drops below its floor, and on the
-#: speed floor the cycle delivers more than the nameplate (``cycle_invalid``).
+#: the discharge runs hotter, and on the speed floor the cycle delivers more
+#: than the nameplate (``cycle_invalid``).
 #: A duty refused for one of these, below a duty refused for another reason,
 #: brackets the duties that run (:func:`_between_reasons`).
-_CURED_BY_MORE_DUTY = frozenset({DISCHARGE_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN, "cycle_invalid"})
+_CURED_BY_MORE_DUTY = frozenset({DISCHARGE_TEMP_ABOVE_MAX, "cycle_invalid"})
 
 #: Duties tried, as fractions of the nameplate and from the bottom, to find one
-#: that runs above a request the efficiency floor refuses
+#: that runs above a request the envelope refuses from below
 #: (:func:`raise_duty_within_envelope`; the ladder of
 #: :class:`~tmhp.AirSourceHeatPump`'s own search).
 _RAISE_LADDER = (0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0)
 #: Relative width at which the bisection for the smallest continuous duty stops.
 _RAISE_REL_TOL = 5e-3
 #: Refusals of a request that :func:`raise_duty_within_envelope` answers with
-#: the smallest duty that runs: the two limits the compressor meets towards
-#: *low* speed at a large lift. The shipped isentropic fit falls there, so the
+#: the smallest duty that runs: the limit the compressor meets towards *low*
+#: speed at a large lift. The isentropic efficiency falls there, so the
 #: discharge runs hotter (:data:`DISCHARGE_TEMP_ABOVE_MAX`, once the
-#: discharge-temperature control is used up) and, further down, the fit drops
-#: below its floor (:data:`ETA_ISEN_BELOW_MIN`). A larger duty leaves both
-#: behind. The discharge limit also refuses duties from above (the lift grows
-#: with the duty); that side is :func:`reduce_duty_within_envelope`'s.
-_RAISED_OVER = frozenset({ETA_ISEN_BELOW_MIN, DISCHARGE_TEMP_ABOVE_MAX})
+#: discharge-temperature control is used up). A larger duty leaves it behind.
+#: The discharge limit also refuses duties from above (the lift grows with the
+#: duty); that side is :func:`reduce_duty_within_envelope`'s.
+_RAISED_OVER = frozenset({DISCHARGE_TEMP_ABOVE_MAX})
 #: Model attribute holding the smallest continuous rows found while
 #: :func:`remembering_smallest_duties` is active (``None`` outside it).
 _SMALLEST_DUTY_MEMO = "_smallest_duty_memo"
@@ -1405,9 +1354,7 @@ def _between_reasons(
     one by a limit a larger duty cures; duties that run, if any, lie where
     the two reasons meet. Bisect by reason: a trial refused like the upper
     duty moves the upper end down, one refused like the lower duty moves the
-    lower end up -- as does one refused for the efficiency floor, which only
-    a larger duty cures (towards low speed the discharge limit is met first
-    and the fit's floor below it, so both can lie under the duties that run).
+    lower end up.
     Returns ``(duty, result, refused duty above, its result)`` for the first
     trial that runs, or ``None`` when the reasons meet without one (or
     another third reason appears, which this cannot order).
@@ -1425,7 +1372,7 @@ def _between_reasons(
         reason = r.get("failure_reason")
         if reason == reason_above:
             q_above, upper = mid, r
-        elif reason in (reason_below, ETA_ISEN_BELOW_MIN):
+        elif reason == reason_below:
             q_below = mid
         else:
             return None
@@ -1521,8 +1468,7 @@ def reduce_duty_within_envelope(
     point at duty ``q``. When ``result`` failed on a limit a smaller duty can
     cure (:func:`duty_reduction_binding`: the condensing limit, the
     discharge-temperature limit even under its control, the pressure-ratio
-    ceiling, the source heat exchanger's range, the efficiency floor), smaller
-    duties are tried
+    ceiling, the source heat exchanger's range), smaller duties are tried
     (:func:`_reduce_to_envelope`) and the largest that runs is returned with
     ``capacity_clamped='max'``, ``Q_max [W]``, ``Q_request [W]`` and
     ``capacity_binding`` naming the limit active at that point
@@ -1674,7 +1620,7 @@ def _condition_key(arguments: Mapping[str, Any], duty_arg: str) -> object:
 def _remembered_smallest_duty(
     model: Any, result: Mapping[str, Any], request: float, delivered_key: str, condition: object
 ) -> dict | None:
-    """The smallest continuous row already found at this condition, for a request the floor refuses below it."""
+    """The smallest continuous row already found at this condition, for a request refused from below it."""
     memo = getattr(model, _SMALLEST_DUTY_MEMO, None)
     if memo is None or condition is None or condition not in memo:
         return None
@@ -1695,12 +1641,11 @@ def raise_duty_within_envelope(
 
     The counterpart of :func:`reduce_duty_within_envelope`. The compressor's
     speed floor is not the only lower end of continuous operation. At a large
-    lift the shipped isentropic fit falls towards low speed, and before
-    ``rps_min`` is reached the envelope refuses the point: first for the
-    discharge temperature, which the falling efficiency drives above
-    ``T_dis_max`` even with the discharge-temperature control used up, then
-    for the fit's own floor (:data:`ETA_ISEN_MIN`). Every duty below the one
-    at which the last of the two lets go is refused, while larger duties run.
+    lift the isentropic efficiency falls towards low speed, and before
+    ``rps_min`` is reached the envelope refuses the point for the discharge
+    temperature, which the falling efficiency drives above ``T_dis_max`` even
+    with the discharge-temperature control used up. Every duty below the one
+    at which that limit lets go is refused, while larger duties run.
     A unit does not stay off there: it runs at the smallest duty the envelope
     admits and switches off when the tank has had enough, exactly as it does
     below its minimum speed. (Variable-speed compressors are sold with that
@@ -1714,8 +1659,8 @@ def raise_duty_within_envelope(
     controller that cycles runs as long as it can, at the lowest frequency its
     protections allow.
 
-    ``result`` is the solve at ``request``, refused for one of
-    :data:`_RAISED_OVER` after no smaller duty ran; ``solve(q)`` solves the
+    ``result`` is the solve at ``request``, refused for the discharge limit
+    (:data:`_RAISED_OVER`) after no smaller duty ran; ``solve(q)`` solves the
     same point at duty ``q``. A ladder of duties above the request
     (:data:`_RAISE_LADDER`, fractions of ``model.hp_capacity``) is climbed
     past the rungs refused the same way to the first that is not; a bisection
@@ -1850,7 +1795,7 @@ def steady_envelope(
     smaller duties; the largest one with an operating point is returned with
     ``capacity_clamped='max'``, ``capacity_binding`` naming the limit,
     ``Q_max [W]`` and ``Q_request [W]`` (the caller's request). If no smaller duty runs, the original off-state
-    result stands -- unless the discharge limit or the efficiency floor refused
+    result stands -- unless the discharge limit refused
     the request and a larger duty runs: the smallest such duty is then returned with
     ``capacity_clamped='min'`` (:func:`raise_duty_within_envelope`), for the
     cycling decorator outside this one to average. The trial solves run

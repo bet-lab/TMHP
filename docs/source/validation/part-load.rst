@@ -74,7 +74,10 @@ fixed would put three of the four points at the wrong boundary condition.)
 
 So the goal changed: not to manufacture a roll-over, but to carry the low-speed
 loss that is genuinely measured, at the size it is measured, and to say plainly
-what is not modelled.
+what is not modelled. One part of that loss is not settled by compressor data:
+the low-speed shape of the rotary types, where two sources disagree, was chosen
+on the shape of the certified trajectory below (:doc:`defaults`), so for the
+rotary types that shape is a fitted property, not a check.
 
 
 Two different curves
@@ -82,9 +85,9 @@ Two different curves
 
 .. figure:: ../_static/validation_part_load.svg
     :alt: Left, system COP against part load at fixed source and sink
-        temperatures for three conditions, rising until the compressor reaches
-        its speed floor. Right, the EN 14825 test-point trajectory against the
-        certified Keymark band.
+        temperatures for three conditions, peaking between full load and half
+        load and falling towards the compressor's speed floor. Right, the EN
+        14825 test-point trajectory against the certified Keymark band.
     :align: center
     :width: 100%
 
@@ -96,27 +99,44 @@ Panel (a) — fixed temperatures
 ------------------------------
 
 Hold the source and sink where they are and take load away. With the shipped
-compressor efficiencies the 9 kW air-to-water model gains 3.3 % between full
-load and the speed floor (reached at 44 % load) at 7 °C air / 35 °C water, and
-1.2 % at 7/45 °C. At −7/45 °C it gains 16.8 % (COP 2.28 at full load, 2.41 at
-75 % load, 2.66 at the floor, reached at 30 % load). That curve carries the
-frost and defrost adjustment, which is on by default (:ref:`ashpb-frost`) and
-follows the load on the outdoor coil (:ref:`frost at part load
-<ashp-frost-load>`): it costs the most at full load and eases as the load
-falls, and that easing is the rise. Without it (``defrost=False``) the same
-curve is close to flat. Two effects set the frost-free shapes: the heat
-exchangers grow large relative to the duty, which raises COP, and the
-compressor loses efficiency at low speed, which takes it back. Their balance
-is measured by ``validation/fixed_boundary_plr/decompose`` on the running
-cycle (no on-off averaging below the floor): with the three efficiencies
-frozen at their rated values the same model gains about 12 % between full load
-and the speed floor (R32, 7 °C air / 42.5 °C tank), and the air-to-air model at
-pressure ratios near 2 keeps +17 to +23 % with the shipped efficiencies. None
-of these shapes is prescribed.
+compressor efficiencies (the default ``rotary_twin_inverter`` type) the 9 kW
+air-to-water model loses 16.7 % between full load and the speed floor
+(reached at 23 % load) at 7 °C air / 35 °C water, and 27.0 % at 7/45 °C. At
+−7/45 °C it loses 21.2 % (COP 2.30 at full load, 2.37 at 75 % load, 1.81 at
+the floor, reached at 16 % load). Each curve peaks above the floor and falls
+before the compressor reaches it: at 7/35 °C the peak is COP 4.53 at 79 %
+load (45 rev/s), at −7/45 °C 2.40 at 47 % load (47 rev/s).
 
-Below that the curve turns over, and the efficiency correlations are not the
-cause: a test gates the claim that wherever the modelled COP falls materially
-below its peak, the compressor speed equals ``rps_min``.
+The −7/45 °C curve carries the frost and defrost adjustment, which is on by
+default (:ref:`ashpb-frost`) and follows the load on the outdoor coil
+(:ref:`frost at part load <ashp-frost-load>`): it costs the most at full load
+and eases as the load falls, and that easing is the rise to 75 % load.
+Without it (``defrost=False``) the same curve reads COP 2.75 at full load
+(91 rev/s), 2.76 at 75 % load and 1.81 at the speed floor (16 % load): flat
+to 75 % load and falling below it. The fall at the low-load end is the
+compressor model's: at the floor the frosted point runs at 15 rev/s and a
+pressure ratio of 4.7, with isentropic efficiency 0.553 against 0.793 at full
+load. That is an extrapolation of a provisional shape -- the rotary data end at
+30 rev/s, and the speed shape below it is the form followed past its data
+(``efficiency_extrapolated``; :doc:`defaults`). Read the low-load end of these
+curves accordingly.
+
+Two effects set the frost-free shapes: the heat exchangers grow large relative
+to the duty, which raises COP, and the compressor loses efficiency at low
+speed, which takes it back. Their balance is measured by
+``validation/fixed_boundary_plr/decompose`` on the running cycle (no on-off
+averaging below the floor): with the three efficiencies frozen at their rated
+values the same model gains 22.0 % between full load and the speed floor (R32,
+7 °C air, water entering at 42.5 °C) and with the shipped efficiencies loses
+18.3 %; the air-to-air model, at pressure ratios of 2.4 to 2.8 at full
+load, keeps +33 to +40 % with the shipped efficiencies. None of these shapes is
+prescribed.
+
+Below the floor the curves are flat: every request there resolves to the same
+operating point (see the note below). The fall above the floor is the
+compressor efficiencies' -- an earlier page stated that the efficiency
+correlations were not the cause of a turn-over, which held for the efficiency
+map of then and does not hold now.
 
 .. admonition:: Below the speed floor the model delivers its minimum capacity, and says so
     :class: note
@@ -142,17 +162,17 @@ below its peak, the compressor speed equals ``rps_min``.
     ratio and the *actual* capacity ratio are two different numbers, and the
     output carries both.
 
-    Under the same conditions as before (air 7 °C, water 42.5 °C, 9 kW R32) the
-    outdoor fan now stays above 45 % of rated flow over the whole sweep and the
-    air-side temperature drop stays within 4.1 K; the air-to-air sweep stays
-    above 31 % and 4.8 K. A real machine below its modulation floor cycles. The
+    Under the same conditions as before (air 7 °C, water entering at 42.5 °C,
+    9 kW R32) the outdoor fan now stays above 52 % of rated flow over the whole
+    sweep and the air-side temperature drop stays within 5.35 K; the air-to-air
+    sweep stays above 48 % and 6.5 K. A real machine below its modulation floor cycles. The
     sweeps on this page were run before the air-to-water model reported that
     cycling (see below), so their sub-floor rows are a continuous-operation
     figure at the minimum capacity, not a part-load COP.
     They are drawn hollow in the figures and excluded from every trend verdict.
 
     At −7 °C air and 45 °C water the requests below the floor resolve to the
-    minimum-capacity point as well (COP 2.66 at the floor, reached at 30 %
+    minimum-capacity point as well (COP 1.81 at the floor, reached at 16 %
     load). They used to fail with ``hx_not_converged``: the outdoor-approach
     search probed only the ends of its range and missed the narrow band of
     approaches the fan can serve, which is now solved from the coil's capacity
@@ -161,10 +181,11 @@ below its peak, the compressor speed equals ``rps_min``.
 Panel (b) — the certification trajectory
 ----------------------------------------
 
-This is the curve that has to match: the modelled trajectory rises
-monotonically A → D and sits inside the certified band at all four points.
-Points A and B carry the frost and defrost adjustment at the load the coil
-carries there (:ref:`ashpb-frost`).
+This is the curve that has to match. The modelled trajectory rises
+monotonically A → D and sits inside the certified band at A, B and D; at C it
+is 0.1 % below the 10th percentile (5.36 against 5.37). Points A and B carry
+the frost and defrost adjustment at the load the coil carries there
+(:ref:`ashpb-frost`).
 
 .. list-table::
     :header-rows: 1
@@ -180,48 +201,67 @@ carries there (:ref:`ashpb-frost`).
       - −7 °C / 34 °C
       - 5.28 kW
       - 5.28 kW
-      - 3.22
+      - 2.95
       - 2.99 (2.61–3.35)
     * - B
       - +2 °C / 30 °C
       - 3.24 kW
-      - 3.45 kW
-      - 4.56
+      - 3.24 kW
+      - 4.18
       - 4.53 (4.13–5.01)
     * - C
       - +7 °C / 27 °C
       - 2.10 kW
-      - 4.26 kW
-      - 5.89
+      - 2.15 kW
+      - 5.36
       - 6.16 (5.37–6.82)
     * - D
       - +12 °C / 24 °C
       - 0.90 kW
-      - 4.85 kW
-      - 7.56
+      - 2.45 kW
+      - 8.28
       - 7.88 (6.40–8.97)
 
-The model sits between the 75th and 90th percentiles at A, at the median at B
-and between the 25th percentile and the median at C and D. Without the frost
-and defrost adjustment the same trajectory read 3.65 at A (above the 90th
-percentile) and 4.84 at B (between the 75th and 90th). With the EnergyPlus
-adjustment applied in full at every load — a function of outdoor temperature
-and humidity alone — it read 3.19 at A and 3.93 at B, near the 5th percentile:
-the unit at B delivers 3.7 kW frost-free on its minimum speed, 0.45 of what
-the adjustment's coil-temperature correlation is written for, and was
-corrected as if it ran flat out. The adjustment now follows the load on the
-coil (:ref:`frost at part load <ashp-frost-load>`): at A the unit is at 0.94 of that load and
-keeps nearly the whole correction, at B a third of it. No coefficient is
-adjusted to move any of this; the load term has none.
+The model sits between the 25th percentile and the median at A, between the
+10th and the 25th at B, just under the 10th at C and between the median and
+the 75th at D. In the previous release (the BITZER quadratic map) it read
+3.40 / 4.79 / 6.27 / 8.35, just above the 90th percentile at A and inside the
+band at B, C and D.
+
+.. admonition:: The shape of this trajectory is not independent validation for the rotary types
+    :class: important
+
+    The default rotary speed shape was chosen between two variants on the
+    shape of exactly this kind of trajectory: the EN 14825 study's 30 cases,
+    the number of cases whose COP(D)/COP(A) lies inside the certified
+    population's p10–p90 (:doc:`defaults`). That the modelled D/A sits in the
+    band, and that the trajectory rises from A to D, therefore says nothing
+    independent about the rotary types. On the study's 30 cases the present
+    defaults pass that shape check in 30 and the level check (every point
+    inside its p10–p90) in 9; the level check, the catalogue parity set and the
+    A−7/W55 gate were not used in the choice. The previous release passed the
+    level check in 18 of 30.
+
+Without the frost and defrost adjustment the same trajectory reads 3.39 at A,
+above the 90th percentile, and 4.38 at B. With the EnergyPlus adjustment
+applied in full at every load — a function of outdoor temperature and humidity
+alone — it reads 2.92 at A and 3.63 at B, below the 10th percentile at B: the
+unit at B delivers 3.5 kW frost-free, 0.42 of what the adjustment's
+coil-temperature correlation is written for, and would be corrected as if it
+ran flat out. The adjustment follows the load on the coil
+(:ref:`frost at part load <ashp-frost-load>`): at A the unit is at 0.94 of that
+load and keeps nearly the whole correction, at B a little over a quarter of
+it. No coefficient is adjusted to move any of this; the load term has none.
 
 .. admonition:: One result nobody put in by hand
     :class: note
 
-    Look at the *delivered* column. At points B, C and D the modelled machine
+    Look at the *delivered* column. At points C and D the modelled machine
     cannot modulate down to the required load and delivers more than the test
-    point asks for — 4.85 kW where 0.90 kW is required. (At B the 3.45 kW is
-    the mean over frosting and defrost of a machine that delivers 3.72 kW
-    frost-free.)
+    point asks for — 2.45 kW where 0.90 kW is required. (At B the 3.24 kW is
+    the mean over frosting and defrost of a machine that delivers 3.46 kW
+    frost-free; with the larger displacement of before November 2026 B was on
+    the speed floor as well.)
 
     Certified machines do the same thing. 55 % of Keymark records declare a
     *higher* heat output at point D than at point C, which is the signature of
@@ -290,4 +330,4 @@ Reproduce
 .. seealso::
 
     :doc:`defaults`
-        The compressor efficiency correlations and the measurements behind them.
+        The compressor efficiency models and the data behind them.

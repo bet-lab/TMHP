@@ -22,7 +22,10 @@ from tmhp import GroundSourceHeatPump
 from tmhp.cycling import CAPACITY_RATIO_KEY, MIN_CAPACITY_KEY, PART_LOAD_FACTOR_KEY, RUNTIME_FRACTION_KEY
 from tmhp.g_function import g_step_mean
 
-HEATING = dict(Q_r_iu=-1000.0, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
+# Requests below the minimum-speed duty of the default unit: 940 W in heating at a 0 °C wall (cycling
+# at a capacity ratio of 0.64 for 600 W), 1.49 kW in cooling at a 25 °C wall (0.67 for 1 kW). With the
+# rotary-compressor default efficiencies a 1 kW heating request runs continuously.
+HEATING = dict(Q_r_iu=-600.0, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
 COOLING = dict(Q_r_iu=1000.0, T0=30.0, T_a_room=27.0, T_bhe_wall=25.0)
 
 #: Keys of a row that say what the machine does (the coupled solver adds bookkeeping keys of its own).
@@ -76,7 +79,7 @@ def test_prescribed_reference_flow_cycles_like_the_fixed_flow_solver(gshp, point
     assert fixed["capacity_clamped"] == "min" and 0.0 < fixed[CAPACITY_RATIO_KEY] < 1.0
     assert coupled["converged"] and coupled["hp_is_on"] and coupled["failure_reason"] == "none"
     assert coupled["capacity_clamped"] == "min"
-    assert coupled["Q_ref_iu [W]"] == pytest.approx(1000.0, rel=1e-12)
+    assert coupled["Q_ref_iu [W]"] == pytest.approx(abs(point["Q_r_iu"]), rel=1e-12)
     for key in MACHINE_KEYS:
         assert coupled[key] == pytest.approx(fixed[key], rel=1e-9, abs=1e-9), key
     assert coupled["ground_flow_ratio"] == pytest.approx(1.0)
@@ -98,7 +101,8 @@ def test_mean_input_rises_with_the_request_through_the_minimum_capacity(gshp):
     Just above the smallest minimum-speed duty the coupled closure still has
     a continuous point, at the one indoor approach that reaches the request;
     it draws up to 16 % more than cycling at a better approach (491 W against
-    423 W at 1,620 W). The lower mean input is returned.
+    423 W at 1,620 W with the earlier compressor map). The lower mean input is
+    returned.
     """
     floor = gshp.analyze_steady(**HEATING)[MIN_CAPACITY_KEY]
     requests = [0.90 * floor, 0.97 * floor, 0.985 * floor, 0.999 * floor, 1.01 * floor, 1.05 * floor]
@@ -119,7 +123,7 @@ def test_variable_flow_cycles_at_the_flow_of_least_mean_input(gshp, gshp_optimal
     reference = gshp.analyze_steady(**HEATING)
     row = gshp_optimal.analyze_steady(**HEATING)
     assert row["converged"] and row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
-    assert row["Q_ref_iu [W]"] == pytest.approx(1000.0, rel=1e-12)
+    assert row["Q_ref_iu [W]"] == pytest.approx(-HEATING["Q_r_iu"], rel=1e-12)
     settings = gshp_optimal._ground_settings
     assert settings["min_ratio"] <= row["ground_flow_ratio"] <= settings["max_ratio"]
     assert row["ground_flow_ratio"] < 0.9  # less flow than the reference: less pump power

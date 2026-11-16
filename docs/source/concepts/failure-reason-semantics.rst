@@ -117,19 +117,6 @@ Common to all families
       - No — only off-mode placeholders (``E_cmp = 0``,
         ``Q_ref_tank = 0``).
 
-    * - ``eta_isen_below_min``
-      - The shipped isentropic-efficiency fit, read outside its data (the
-        low-speed continuation), is below ``ETA_ISEN_MIN`` = 0.30 at the
-        solved point (ASHP, GSHP: at every candidate). The fit never goes
-        below 0.336 inside its data. Not checked for scalar or user
-        efficiencies. ASHP and the boilers (ASHPB, GSHPB, WSHPB:
-        ``analyze_steady``) do not report it for a request that is only too
-        *small* (the fit falls below the floor towards low speed while a
-        larger duty runs): that request is met by on/off cycling at the
-        smallest duty the envelope admits (``capacity_clamped == "min"``),
-        like one the discharge limit refuses there.
-      - No — only off-mode placeholders.
-
 Liquid-source families (GSHP, GSHPB, WSHPB)
 -------------------------------------------
 
@@ -196,8 +183,7 @@ also appear).
       - The cycle was invalid and the last pressure-ratio check hit
         ``PR_cycle_min`` or ``PR_cycle_max``. It replaces ``cycle_invalid``
         in this path. (An envelope rejection keeps its own reason:
-        ``discharge_temp_above_max``, ``condensing_temp_above_max`` or
-        ``eta_isen_below_min``.)
+        ``discharge_temp_above_max`` or ``condensing_temp_above_max``.)
     * - ``compressor_min_speed``
       - The requested duty is below what the compressor delivers at
         ``rps_min`` (``capacity_clamped == "min"``), so the exact duty cannot
@@ -261,9 +247,6 @@ point for one of the reasons below and a smaller duty has one,
       - The source heat exchanger has less heat to absorb. Not tried when
         ``failure_detail == "outdoor_coil_excess_at_min_airflow"``: a
         smaller duty makes that worse.
-    * - ``eta_isen_below_min``
-      - ``"compressor_efficiency"``
-      - A lower pressure ratio moves the shipped fit back above its floor.
 
 The result is a running point with ``capacity_clamped == "max"``,
 ``Q_max [W]`` (the duty delivered) and ``Q_request [W]`` (the duty asked for);
@@ -512,12 +495,6 @@ named by ``capacity_binding`` (the quoted values marked *binding*).
       - Reduce the temperature lift (a lower tank or supply temperature, or a
         warmer source). PR_cycle_max=<ratio> sets the limit of another
         compressor.
-    * - ``eta_isen_below_min``, ``"compressor_efficiency"`` (binding)
-      - The shipped compressor efficiency map, read outside its data, is below
-        its floor (isentropic efficiency 0.30).
-      - Reduce the temperature lift (a lower tank or supply temperature, or a
-        warmer source), or give the efficiency map of the actual compressor
-        (eta_cmp_isen).
     * - ``source_fluid_freezing``
       - The source-loop liquid would run below its operating limit, its
         freezing point plus 3 K.
@@ -661,21 +638,26 @@ no brine temperature can be imposed and ``operating_range()`` refuses it
 air is ``T_a_room``.
 
 The ``W55`` of a boiler condition is the water *leaving* the heat pump, which
-is not an input of the boiler models: their sink is the tank temperature
-``T_tank_w``. The table solves ``T_tank_w = leaving water - sink_offset_K`` with
-``sink_offset_K = 2.5 K``, the offset every air-to-water catalogue of the
-validation set states for where the manufacturer measures, and prints both
-temperatures (``T_load_side [°C]`` and ``T_tank_w [°C]``). Near a limit those
-2.5 K can decide whether a point runs; ``sink_offset_K=0`` solves the tank at
-the named temperature, the stricter case of a tank held at 55 °C:
+is not an input of the boiler models: their sink is the tank water
+``T_tank_w`` entering the plate condenser. The table hands a boiler the water
+EN 14511 enters with — the leaving water less the standard's rise, 5 K up to
+45 °C, 8 K at 55 °C, 10 K at 65 °C
+(:func:`tmhp.standard_conditions.en14511_water_rise`) — and, for
+``AirSourceHeatPumpBoiler``, the flow that carries the duty at that rise; the
+liquid-source boilers run at their rated circulation flow. It prints both
+temperatures (``T_load_side [°C]`` and ``T_tank_w [°C]``). Near a limit the
+rise can decide whether a point runs. ``sink_offset_K`` replaces it: the
+water enters that much below the leaving water at the rated circulation flow,
+and ``sink_offset_K=0`` solves the tank water at the named temperature, the
+stricter case of a tank held at 55 °C:
 
 .. code-block:: python
 
    import tmhp
 
    hp = tmhp.AirSourceHeatPumpBoiler(ref="R32")
-   leaving = hp.operating_range()                 # tank 2.5 K below the leaving water
-   tank = hp.operating_range(sink_offset_K=0.0)   # tank at the named temperature
+   leaving = hp.operating_range()                 # EN 14511: water enters the rise below the leaving water
+   tank = hp.operating_range(sink_offset_K=0.0)   # tank water at the named temperature
    print(leaving[["condition", "T_tank_w [°C]", "runs", "failure_reason"]])
    print(tank[["condition", "T_tank_w [°C]", "runs", "failure_reason"]])
 
@@ -717,38 +699,38 @@ magnitude):
       - Construction
       - ``operating_range()``
       - Ratio
-    * - ASHPB (R134a)
+    * - ASHPB (R290)
       - 8
-      - 5.5 ms
-      - 0.30 s
-      - 54 ×
+      - 5.6 ms
+      - 0.036 s
+      - 6 ×
     * - ASHPB, ``ref="R32"``
       - 8
-      - 3.9 ms
-      - 0.53 s
-      - 135 ×
+      - 5.9 ms
+      - 0.41 s
+      - 69 ×
     * - ASHP
       - 5
-      - 2.4 ms
-      - 0.08 s
-      - 33 ×
+      - 3.9 ms
+      - 0.12 s
+      - 30 ×
     * - GSHPB
       - 3
-      - 203 ms
-      - 0.013 s
-      - 0.06 ×
+      - 207 ms
+      - 0.007 s
+      - 0.03 ×
     * - WSHPB
       - 2
-      - 7.2 ms
-      - 0.009 s
-      - 1.2 ×
+      - 6.5 ms
+      - 0.006 s
+      - 0.9 ×
     * - GSHP
       - 2
-      - 193 ms
-      - 0.013 s
+      - 219 ms
+      - 0.015 s
       - 0.07 ×
 
-The air-source models would be built 30 to 140 times more slowly, and a sweep
+The air-source models would be built 6 to 70 times more slowly, and a sweep
 that builds a model per point would pay that every time, for a check most
 callers make once.
 
@@ -849,17 +831,23 @@ the recommended lever to pull when you hit each one.
     at the smallest duty that runs). A point the control *does* hold runs with
     ``discharge_control == True``; its ``dT_ref_superheat [K]`` and
     ``x_ref_cmp_in [-]`` say how. The defaults are compressor protection settings
-    (:mod:`tmhp.compressor_envelope`). With the default efficiency map this
-    is chiefly high-pressure-ratio operation of R32: at ``PR > 7`` the
-    fitted isentropic efficiency is 0.37--0.45 and the cycle model puts all
-    compressor loss into the gas, so the computed discharge reaches
-    200--290 °C. Real units at those conditions use injection (liquid or
-    vapour) or two-stage compression, which the single-stage cycle does not
-    describe.
+    (:mod:`tmhp.compressor_envelope`). The cycle model puts all compressor
+    loss into the gas, so the discharge it computes is an upper estimate. With
+    the default compressor type the isentropic efficiency at pressure ratios
+    of 7 to 11 is 0.76--0.79 (the rotary forms followed past their data,
+    which end at 6.84), and the default R32 boiler discharges at up to about
+    170 °C uncontrolled there; the control holds 150 °C with a suction quality
+    of 0.98. At low speed the efficiency falls and the discharge runs hotter:
+    the 15 kW R32 boiler at −20 °C against a 60 °C tank holds the limit at
+    suction quality 0.9 down to 2.1 kW (24 rev/s) and not below, and at
+    −25 °C against 55 °C a small request is refused for the discharge
+    temperature while larger ones are refused for the pressure ratio. Real
+    units at such conditions use injection (liquid or vapour) or two-stage
+    compression, which the single-stage cycle does not describe.
 
     **What to do.** Treat the point as outside the single-stage envelope.
-    For a sensitivity study, ``T_dis_max=None`` removes the discharge limit
-    (the efficiency floor stays); a different protection setting is ``T_dis_max=<°C>``, a wetter
+    For a sensitivity study, ``T_dis_max=None`` removes the discharge limit;
+    a different protection setting is ``T_dis_max=<°C>``, a wetter
     allowed suction ``x_suction_min=<x>`` (``None`` switches the control off).
 
 .. dropdown:: ``condensing_temp_above_max`` — condensing pressure above the envelope
@@ -883,7 +871,7 @@ the recommended lever to pull when you hit each one.
 
     **What to do.** Choose an upper set point the refrigerant reaches
     (``T_cond_max`` less the condenser approach at the nameplate duty,
-    ``hp_capacity / UA_tank_hx``), or a refrigerant with a higher limit (R290, R134a). For a
+    ``hp_capacity / K_tank_hx``), or a refrigerant with a higher limit (R290, R134a). For a
     compressor with a different high-pressure rating give its own
     ``T_cond_max=<°C>``; ``None`` removes the limit for a sensitivity
     study. A zeotropic blend is judged at its dew point: R407C reaches the
@@ -923,8 +911,7 @@ Off-mode fallback
 =================
 
 When ``failure_reason`` is ``"cycle_invalid"``, ``"pr_above_max"``,
-``"discharge_temp_above_max"``, ``"condensing_temp_above_max"``,
-``"eta_isen_below_min"`` or
+``"discharge_temp_above_max"``, ``"condensing_temp_above_max"`` or
 ``"t_cond_below_t_in"`` — and, for WSHPB and for GSHPB outside the
 ground-coupled path, for every reason other than ``"none"`` — the
 steady-state path

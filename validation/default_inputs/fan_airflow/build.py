@@ -77,7 +77,8 @@ def airflow_basis(fan_step: str) -> str:
     label = fan_step.strip()
     if not label:
         return "single_value"
-    if label.lower() in RATED_STEP_LABELS or label.lower().startswith("rated"):
+    # A label naming a rated/nominal/standard airflow anywhere ('Standard air capacity') is not a maximum.
+    if set(re.findall(r"[a-z]+", label.lower())) & set(RATED_STEP_LABELS):
         return "rated"
     if "/" in label:
         return "single_value"
@@ -142,6 +143,10 @@ def normalize(obs: dict, source: dict) -> dict:
         row.update(eligible=False, exclusion_reason=f"{obs['indoor_type']}: indoor type ambiguous, not fitted")
     if row["capacity_W"] is None:
         row.update(eligible=False, exclusion_reason="no nominal capacity printed")
+    # An unmodified manufacturer PDF found only on a third-party host is recorded but not fitted until the owner
+    # accepts that source (sources.json "owner_accepted": true); see ../README.md, 'Original'.
+    if source["evidence_type"].endswith("_third_party_host") and not source.get("owner_accepted"):
+        row.update(eligible=False, exclusion_reason="third-party-hosted manufacturer PDF; awaiting owner acceptance")
     if obs.get("exclusion_reason"):
         row.update(eligible=False, exclusion_reason=obs["exclusion_reason"])
     if not (row["value"] > 0 and (row["capacity_W"] is None or row["capacity_W"] > 0)):
@@ -187,6 +192,17 @@ def explicit_max_sensitivity(group: list[dict], fit: dict) -> dict:
     }
 
 
+def manufacturer_holdout_bias(predictions: list[dict]) -> dict[str, float]:
+    """Mean signed error [%] of each manufacturer's rows predicted by a law fitted to the other manufacturers.
+
+    The spread of these values is how far a given maker's airflow sits from the default at equal capacity.
+    """
+    errors = defaultdict(list)
+    for p in predictions:
+        errors[p["fold"]].append((p["predicted"] - p["observed"]) / p["observed"] * 100)
+    return {maker: float(sum(e) / len(e)) for maker, e in sorted(errors.items())}
+
+
 def fit_groups(rows: list[dict]) -> dict:
     groups = defaultdict(list)
     for row in rows:
@@ -201,6 +217,7 @@ def fit_groups(rows: list[dict]) -> dict:
         fit["status"] = statuses.get(key, {}).get("status", "shipped")
         fit["status_reason"] = statuses.get(key, {}).get("reason")
         fit["airflow_basis_counts"] = dict(sorted(Counter(r["airflow_basis"] for r in groups[key]).items()))
+        fit["manufacturer_holdout_bias_pct"] = manufacturer_holdout_bias(fit["manufacturer_predictions"])
         fit["explicit_max_only"] = explicit_max_sensitivity(groups[key], fit)
         fit["meets_shipping_gate"] = (
             len(fit["families"]) >= SHIPPING_GATE["families"]

@@ -26,6 +26,7 @@ from _dmpl_common import (  # noqa: E402
     COLORS,
     GRIDLINE,
     HAIRLINE,
+    TEXT_COLORS,
     apply_style,
     finalize,
     static_path,
@@ -42,6 +43,8 @@ from validation.analysis.residual_decomposition import (  # noqa: E402
 BAND_CSV = REPO_ROOT / "validation" / "data"
 
 MAKER_COLOR = {"Daikin": COLORS["accent"], "Fujitsu": COLORS["warm"]}
+#: The unit names written above the stems: the stem's colour family, dark enough to read.
+MAKER_TEXT_COLOR = {"Daikin": COLORS["accent"], "Fujitsu": TEXT_COLORS["warm"]}
 SWEEP = [2.5 + 0.5 * i for i in range(24)]  # Q/2.5 .. Q/14
 
 
@@ -134,7 +137,7 @@ def main() -> None:
             fontsize=dm.fs(-3),
             ha="center",
             va="bottom",
-            color=MAKER_COLOR[r.manufacturer],
+            color=MAKER_TEXT_COLOR[r.manufacturer],
             path_effects=[withStroke(linewidth=2.0, foreground="white")],
         )
     ax.axvline(5.0, color=COLORS["ink"], linestyle="--", linewidth=dm.lw(0))

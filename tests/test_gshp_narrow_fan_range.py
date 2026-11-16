@@ -43,6 +43,7 @@ def default_rows():
     return {mode: steady(model, *case) for mode, case in LOADS.items()}
 
 
+@pytest.mark.earlier_defaults  # the 320 W/K indoor coil of the review case: tests/conftest.py
 @pytest.mark.parametrize("load", [-3000.0, -2600.0])
 def test_review_case_fan_range_0p79_to_0p80_delivers_heating(load):
     # Reference 0.8 m3/s and UA 320 W/K: 3 kW needs an indoor approach of about
@@ -93,8 +94,12 @@ def test_narrow_range_ceiling_is_set_by_the_maximum_airflow():
 
 def test_fan_that_cannot_turn_down_fails_without_a_capacity_search():
     # A fan held at its reference airflow over-delivers a small heating duty
-    # at every approach; that is not a capacity limit.
-    model = GroundSourceHeatPump(**GROUND, dV_iu_fan_a_min=0.79, dV_iu_fan_a_max=0.80, rps_min=1.0)
+    # at every approach; that is not a capacity limit. The speed floor is low
+    # (5 rev/s) so that the compressor's smallest duty is not what refuses the
+    # point; below about 3 rev/s the inverter and mechanical losses of the
+    # default rotary-compressor model exceed the shaft power (eta_cmp <= 0),
+    # so no cycle runs there at all (cycle_invalid; 1 rev/s was used before).
+    model = GroundSourceHeatPump(**GROUND, dV_iu_fan_a_min=0.79, dV_iu_fan_a_max=0.80, rps_min=5.0)
     with pytest.warns(OperatingLimitWarning, match="hx_not_converged"):
         row = steady(model, -300.0, 20.0, 30.0)
     assert not row["converged"] and row["failure_reason"] == "hx_not_converged"

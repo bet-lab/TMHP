@@ -65,8 +65,11 @@ capacity, so the rating-point COP is the same from 1 to 100 kW:
        source-side heat within 50 W/m.
      - 1 × 1 / 3 × 2
    * - ``dV_iu_fan_a_rated``
-     - 5.37e-5 m³/s per W (400 cfm per ton).
-     - 773 / 5 800 m³/h
+     - Largest blower airflow water-to-air units of that capacity publish:
+       ``0.0491 × kW + 0.1305`` m³/s (cooling-rated; both capacities here lie
+       outside the 4.7 to 21.6 kW of the catalogue rows, which
+       ``default_input_estimates`` reports as ``extrapolated``).
+     - 1 177 / 5 773 m³/h
 
 The helpers are :func:`tmhp.ground_defaults.default_ground_flow_lpm`,
 :func:`tmhp.ground_defaults.default_borefield_layout` and
@@ -87,11 +90,17 @@ of being solved silently:
 * a borefield you sized that carries more than **80 W/m** at the rated
   source-side heat (attribute ``q_bhe_rated``).
 
-At the rated duty the default indoor coil (``UA_iu_rated = 0.08 ×
-hp_capacity``) at this airflow needs an indoor approach of 21.6 K: supply air
-at 35 °C and condensing at 41.6 °C in heating from a 20 °C room, supply air
-at 12 °C and evaporating at 5.4 °C in cooling from 27 °C (the coil is dry).
-``indoor_approach_max_K`` therefore defaults to 25 K.
+The default indoor coil (``UA_iu_rated``) is the effective conductance that,
+at the rated duty and this airflow, leaves the supply air 2.79 K from the
+condensing temperature: the leaving-end approach water-to-air units print at
+their rating point (:doc:`/validation/defaults`, *Heat-exchanger
+conductance*). The same value serves cooling (the coil is dry). The earlier
+default, ``0.08 × hp_capacity``, needed an indoor approach of 18 K for the
+default 4 kW unit: supply air at 30 °C and condensing at 38 °C in heating
+from a 20 °C room, supply air at 17 °C and evaporating at 8.6 °C in cooling
+from 27 °C; a larger unit moves less air per kW and needed more (20 K at
+8 kW: supply air at 33 °C and 14 °C). ``indoor_approach_max_K`` defaults to
+25 K.
 
 The indoor coil takes the density of the room air it draws in, as the coils of
 :doc:`ashp` do (:ref:`ashp-air-density`): ``dV_iu_a [m3/s]`` and the fan
@@ -99,7 +108,8 @@ references and limits are volumes at the coil inlet, and the coil NTU, the fan
 heat, the reported air energy flows and the air exergy all use the mass flow
 ``air_density(T_a_room) * dV_iu_a``. Room air at 20 to 27 °C is 1.7 to 4.0 %
 lighter than the 15 °C standard air (1.225 kg/m³) earlier releases used. For
-the default 4 kW unit: at a 0 °C borehole wall and a 20 °C room the system COP
+the default 4 kW unit as it was then (400 cfm per ton indoors): at a 0 °C
+borehole wall and a 20 °C room the system COP
 is 0.4 % lower at nameplate (3.508 → 3.495) and 0.2 % lower at half load;
 at the ISO 13256-1 cooling point (liquid 25 °C, room 27 °C) the compressor
 runs 1.4 % faster at nameplate.
@@ -108,7 +118,8 @@ runs 1.4 % faster at nameplate.
 
    Until November 2026 the defaults were fixed at the values of the 4 kW
    machine (20.04 L/min, 100 W, one borehole) and the indoor airflow was
-   0.0002 m³/s per W (2 880 m³/h for 4 kW). A larger machine then ran on the
+   0.0002 m³/s per W (2 880 m³/h for 4 kW), then 5.37e-5 m³/s per W
+   (400 cfm per ton, 773 m³/h for 4 kW). A larger machine then ran on the
    small loop: at 30 kW the system COP of rated heating against a 0 °C
    borehole wall fell from 3.8 to 2.1 and some rating points had no
    solution; 100 kW could not be constructed. To reproduce
@@ -153,7 +164,7 @@ the default runs:
 .. code-block:: python
 
    gshp = GroundSourceHeatPump()                                        # 4 kW, 25 % ethylene glycol
-   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)   # leaves at -6.3 °C, system COP 3.50
+   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)   # leaves at -6.8 °C, system COP 3.70
    GroundSourceHeatPump(source_fluid="water").analyze_steady(
        Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0
    )                                                                    # off: source_fluid_freezing

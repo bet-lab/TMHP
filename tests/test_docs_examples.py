@@ -128,7 +128,9 @@ def test_minimal_input_examples_run_and_match_the_page() -> None:
     assert (gshp.N_1, gshp.N_2, gshp.H_b) == (3, 2, 100.0)
     assert math.isclose(gshp.ground_flow_ref_lpm, 115.3, abs_tol=0.05)
     assert math.isclose(gshp.E_pmp, 640.0, abs_tol=0.5)
-    assert math.isclose(gshp.UA_ground_rated, 5400.0, rel_tol=1e-9)
+    # "5845 W/K (condensing; 4927 W/K evaporating)", the approach-temperature defaults.
+    assert math.isclose(gshp.UA_ground_rated, 5845.0, abs_tol=0.5)
+    assert math.isclose(gshp.UA_ground_evap_rated, 4927.0, abs_tol=0.5)
 
 
 def test_result_keys_example_is_copy_runnable() -> None:
@@ -143,6 +145,6 @@ def test_result_keys_example_is_copy_runnable() -> None:
     assert row["failure_reason"] == "none"
     assert row["capacity_clamped"] == "max"
     assert row["capacity_binding"] == "compressor"
-    assert math.isclose(row["Q_ref_iu [W]"], 3770.0, rel_tol=0.02)
-    assert math.isclose(row["Q_unmet [W]"], 5230.0, rel_tol=0.02)
+    assert math.isclose(row["Q_ref_iu [W]"], 3800.0, rel_tol=0.02)
+    assert math.isclose(row["Q_unmet [W]"], 5200.0, rel_tol=0.02)
     assert math.isclose(row["Q_ref_iu [W]"] + row["Q_unmet [W]"], 9000.0, rel_tol=1e-9)

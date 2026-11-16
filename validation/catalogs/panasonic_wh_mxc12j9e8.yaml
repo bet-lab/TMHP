@@ -10,6 +10,13 @@
 # air flow is likewise read verbatim from the service manual. Both are inputs,
 # not tuning -- every efficiency coefficient and conductance comes from the
 # library defaults.
+#
+# Compressor kind and injection are published facts too: the parts list
+# names 9JD420XBA22, which Panasonic's industrial compressor site lists as a
+# "J2P" variable-speed R32 rotary (42.0 cm3/rev), and the refrigerant circuit
+# is the UQ generation's -- the bypass expansion valve outlet returns to the
+# accumulator (suction), no injection port. Hence compressor_type: rotary,
+# injection: none.
 slug: panasonic_wh_mxc12j9e8
 name: WH-MXC12J9E8
 manufacturer: Panasonic
@@ -20,12 +27,12 @@ cop_definition: "Q_cond / (E_cmp + E_fan), heating"
 source:
   document: "Panasonic Aquarea WH-MXC series service manual / 2025 catalogue"
   table: "references/Panasonic_R32_9-12-16 kW.png (heating performance table)"
+  compressor: "service-manual parts list (9JD420XBA22, Panasonic \"J2P\" R32 rotary); refrigerant circuit, no injection port"
 published_inputs:
   displacement_cc: 42.0
   rated_air_flow_m3_s: 1.280
-# The catalogue's reference is leaving water temperature; the model's tank
-# temperature sits this far below it.
-sink_offset_K: 2.5
+  compressor_type: rotary
+  injection: none
 points:
   - id: 1
     t_source_C: -15

@@ -37,6 +37,7 @@ import numpy as np
 import pytest
 
 from tmhp import AirSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
+from tmhp.compressor_efficiency import needs_state
 from tmhp.constants import c_w, rho_w
 from tmhp.dynamic_context import unphysical_cycle_detail
 
@@ -110,8 +111,17 @@ def _collapse_above(default, pr_limit: float, value: float = 0.003):
     It stays inside (0, 1], so the efficiency guard of ``_eval_eff`` accepts
     it: what such a fit produces has to be caught by the boiler's own
     judgement of the solved cycle, whatever efficiency model is plugged in.
-    Set after construction so the rating point keeps the default fit.
+    Set after construction so the rating point keeps the default fit. It is
+    called as the default is: the default rotary-compressor model needs the
+    suction state (``needs_state``), and is called ``model(PR, rps, state)``.
     """
+    if needs_state(default):
+
+        def eta_isen(pressure_ratio: float, rps: float, state=None) -> float:
+            return value if pressure_ratio > pr_limit else default(pressure_ratio, rps, state)
+
+        eta_isen.needs_state = True
+        return eta_isen
 
     def eta_isen(pressure_ratio: float, rps: float) -> float:
         return value if pressure_ratio > pr_limit else default(pressure_ratio, rps)
@@ -151,12 +161,19 @@ _COLLAPSE_CASES = [
 # The #96 points were found with the former capacity-independent heat
 # exchangers of the liquid-source boilers (500 W/K, 24 L/min, 200 W pump);
 # with the capacity-scaled defaults the same inputs stay below PR 7.15.
-# Their 16 K condenser approach rates R410A at 71 °C condensing, above its
-# condensing limit (65 °C), so that limit is off for these recorded machines.
+# Their 16 K condenser approach (a tank coil without circulating water) rates R410A at 71 °C condensing,
+# above its condensing limit (65 °C), so that limit is off for these recorded machines.
 _LEGACY_HX = {
-    "GSHPB": dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0, T_cond_max=None),
-    "WSHPB": dict(UA_tank_hx=500.0, UA_water=500.0, dV_b_f_lpm=24.0, E_pmp=200.0, T_cond_max=None),
+    "GSHPB": dict(
+        UA_tank_hx=500.0, m_dot_w_rated=0.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0, T_cond_max=None
+    ),
+    "WSHPB": dict(UA_tank_hx=500.0, m_dot_w_rated=0.0, UA_water=500.0, dV_b_f_lpm=24.0, E_pmp=200.0, T_cond_max=None),
 }
+# Water reaching the water-source boiler at -5 °C is refused before the cycle is judged since the
+# source-fluid limits (#137): once a smaller duty escapes the collapsed fit, the point is off as
+# source_fluid_freezing and the collapse is not what the row reports. The #96 point is examined on a
+# loop of 25 % ethylene glycol, which runs at -5 °C (pressure ratio 8.9 at the request, above 7.15).
+_ANTIFREEZE_SOURCE = {("WSHPB", "R410A"): "MEG-25%"}
 _FAMILY_CLASS = {
     "ASHPB": AirSourceHeatPumpBoiler,
     "GSHPB": GroundSourceHeatPumpBoiler,
@@ -166,7 +183,10 @@ _FAMILY_CLASS = {
 
 @pytest.mark.parametrize(("family", "ref", "point", "pr_limit"), _COLLAPSE_CASES)
 def test_collapsed_user_efficiency_is_reported_as_failure(family: str, ref: str, point: dict, pr_limit: float) -> None:
-    model = _FAMILY_CLASS[family](ref=ref, **_LEGACY_HX.get(family, {}))
+    inputs = dict(_LEGACY_HX.get(family, {}))
+    if (family, ref) in _ANTIFREEZE_SOURCE:
+        inputs["source_fluid"] = _ANTIFREEZE_SOURCE[family, ref]
+    model = _FAMILY_CLASS[family](ref=ref, **inputs)
     model.eta_cmp_isen = _collapse_above(model.eta_cmp_isen, pr_limit)
     result = _steady(model, **point)
     if result["hp_is_on"]:
@@ -232,15 +252,17 @@ def _tank_balance_residual(model, df, T_init: float, dt: float, T_sup: float) ->
 def gshpb_failing_run():
     """Default GSHPB from just below its hysteresis floor, four 300 s steps.
 
-    The former default machine (R410A, UA_tank_hx 500 W/K, 8 kW) condenses 16 K
-    above the tank, so above ~55.4 °C it would condense beyond the R410A
+    The former default machine (R410A, UA_tank_hx 500 W/K without circulating
+    water, 8 kW) condenses 16 K above the tank, so above ~55.4 °C it would condense beyond the R410A
     critical point (71.3 °C): the first step heats the 100 L tank to ~60 °C
     and every later step is called but has no cycle. Before #96 each of those
     steps still put the requested 8 kW into the tank. (R410A and no condensing
     limit are spelled out: this is the machine the defect was found on.)
     """
     dt, n = 300.0, 4
-    model = GroundSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400, UA_tank_hx=500.0, ref="R410A", T_cond_max=None)
+    model = GroundSourceHeatPumpBoiler(
+        dt_s=dt, t_max_s=86400, UA_tank_hx=500.0, m_dot_w_rated=0.0, ref="R410A", T_cond_max=None
+    )
     df = model.analyze_dynamic(
         n * dt,
         dt,
@@ -331,7 +353,7 @@ def wshpb_failing_run():
     GSHPB: its 16 K condenser approach also crosses the R410A critical point
     once the tank passes ~55.4 °C."""
     dt, n = 300.0, 3
-    model = WaterSourceHeatPumpBoiler(UA_tank_hx=500.0, ref="R410A", T_cond_max=None)
+    model = WaterSourceHeatPumpBoiler(UA_tank_hx=500.0, m_dot_w_rated=0.0, ref="R410A", T_cond_max=None)
     df = model.analyze_dynamic(
         n * dt,
         dt,

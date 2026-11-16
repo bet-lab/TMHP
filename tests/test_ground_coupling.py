@@ -230,6 +230,9 @@ def _historical_efficiency_plant():
     # borehole (resistance without heat capacity), now ``borehole_dynamics=False``.
     return GroundSourceHeatPumpBoiler(
         ref="R410A",  # the default refrigerant when the plant was recorded (now R290)
+        # The displacement of then, 42 cm3/rev per 9 kW: the R410A catalogue default (26.6 cm3/rev)
+        # cannot deliver the rating point of this plant below 150 rev/s.
+        V_cmp_ref=8000.0 * 42e-6 / 9000.0,
         borehole_dynamics=False,
         source_fluid=WATER_AS_RECORDED,  # the archived loop liquid (the default is now 25 % ethylene glycol)
         t_max_s=200 * 3600,
@@ -237,6 +240,7 @@ def _historical_efficiency_plant():
         eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr,
         eta_cmp=0.855,
         UA_tank_hx=500.0,
+        m_dot_w_rated=0.0,  # the recorded tank coil had no circulating water
         UA_ground=500.0,
         ground_flow_ref_lpm=24.0,
         E_pmp=200.0,

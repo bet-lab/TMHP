@@ -32,6 +32,8 @@ from tmhp.source_fluid import (
     resolve_source_fluid,
 )
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 WATER = resolve_source_fluid("water")
 LIMIT = WATER.limit_C  # 3 °C
 

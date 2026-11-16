@@ -19,6 +19,8 @@ from tmhp.constants import c_w, rho_w
 from tmhp.heat_exchanger import calc_phase_change_hx_effectiveness
 from tmhp.reference_state import HXSide
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 
 def _quiet(cls, **kwargs):
     with warnings.catch_warnings():

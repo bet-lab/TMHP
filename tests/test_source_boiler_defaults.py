@@ -28,7 +28,10 @@ from tmhp._source_boiler import (
     close_source_temperature,
     default_borehole_grid,
     default_source_flow_lpm,
+    default_source_hx_UA,
+    default_tank_hx_UA,
 )
+from tmhp.constants import c_w
 
 FAMILIES = {"GSHPB": GroundSourceHeatPumpBoiler, "WSHPB": WaterSourceHeatPumpBoiler}
 RATING_SOURCE_C = {"GSHPB": 0.0, "WSHPB": 10.0}
@@ -65,8 +68,16 @@ COLD_LOOP: dict[str, dict] = {"GSHPB": {}, "WSHPB": dict(source_fluid=ANTIFREEZE
 @pytest.mark.parametrize("capacity", [3e3, 8e3, 3e4])
 def test_defaults_scale_with_capacity(machines, family, capacity):
     m = machines[family, capacity]
-    assert m.UA_tank_hx == pytest.approx(capacity / 5.0)
-    assert getattr(m, SOURCE_UA[family]) == pytest.approx(0.18 * capacity)
+    # The plate condenser at the rated circulation flow (5 K rise) and the source evaporator at the rated
+    # source flow, both from the approach archive: the leaving-approach law scales with the capacity when the
+    # duty and the flow do, so the conductance per watt is the same at every size.
+    assert m.m_dot_w_rated == pytest.approx(capacity / (c_w * 5.0))
+    assert m.UA_tank_hx == pytest.approx(default_tank_hx_UA(capacity, m.m_dot_w_rated).value)
+    C_source = m.dV_b_f_m3s * m.source_fluid.rho * m.source_fluid.cp
+    assert getattr(m, SOURCE_UA[family]) == pytest.approx(default_source_hx_UA(capacity, C_source).value)
+    reference = machines[family, 8e3]
+    assert m.UA_tank_hx / capacity == pytest.approx(reference.UA_tank_hx / 8e3)
+    assert getattr(m, SOURCE_UA[family]) / capacity == pytest.approx(getattr(reference, SOURCE_UA[family]) / 8e3)
     assert m.E_pmp == pytest.approx(75.0 / 3516.85 * capacity) == pytest.approx(PUMP_POWER_PER_CAPACITY * capacity)
     # 0.75 x capacity at a 3 K loop temperature difference of the loop liquid:
     # 3.58 L/min per kW of water (WSHPB), 3.84 of 25 % ethylene glycol (GSHPB).
@@ -98,20 +109,23 @@ def test_default_8kw_machine_keeps_one_borehole_and_larger_ones_stay_below_50_w_
 
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_rated_cop_does_not_depend_on_capacity(machines, family):
-    """B0/W35 (GSHPB) and W10/W35 (WSHPB) at the rated duty: the same cycle at every capacity."""
+    """B0/W35 (GSHPB) and W10/W35 (WSHPB) at the rated duty: the same cycle at every capacity.
+
+    W35 is the water leaving at 35 degC: at the rated circulation flow it enters at 30 degC.
+    """
     cops = []
     for cap in (3e3, 8e3, 3e4):
-        r = _quiet(
-            machines[family, cap].analyze_steady, T_tank_w=35.0, T_source=RATING_SOURCE_C[family], Q_ref_tank=cap
-        )
+        m = machines[family, cap]
+        r = _quiet(m.analyze_steady, T_tank_w=30.0, T_source=RATING_SOURCE_C[family], Q_ref_tank=cap)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
-        assert r["T_ref_cond_sat_l [°C]"] - 35.0 == pytest.approx(5.0, abs=1e-6)
+        assert r["T_ref_cond_sat_l [°C]"] - 30.0 == pytest.approx(cap / m.K_tank_hx, abs=1e-6)
         cops.append((r["cop_ref [-]"], r["cop_sys [-]"]))
     ref, sys = np.array(cops).T
     assert np.ptp(ref) / ref.mean() < 1e-3 and np.ptp(sys) / sys.mean() < 1e-3
-    # Catalogue ranges are 4.2-4.8 (B0/W35) and 5.5-6.3 (W10/W35); the default
-    # efficiency map puts the model at the low end. A band, not a regression value.
-    assert (4.0 < ref.mean() < 4.6) if family == "GSHPB" else (5.0 < ref.mean() < 5.6)
+    # Catalogue ranges are 4.2-4.8 (B0/W35) and 5.5-6.3 (W10/W35). A band, not a regression value: the plate
+    # condenser holding its archived leaving approach puts the model at 4.23 and 5.74 (it was 40 degC
+    # condensing against a 35 degC tank before, at the low end).
+    assert (4.0 < ref.mean() < 4.8) if family == "GSHPB" else (5.0 < ref.mean() < 6.3)
 
 
 @pytest.mark.parametrize("family", list(FAMILIES))
@@ -120,7 +134,10 @@ def test_large_machine_builds_for_every_refrigerant(family, ref):
     """14 kW and above used to fail in the constructor (rated condensing 83 °C at 500 W/K)."""
     m = _quiet(FAMILIES[family], ref=ref, hp_capacity=1e5)
     assert m.reference_state is not None
-    assert m.reference_state.T_cond_sat_C == pytest.approx(60.0, abs=1e-6)  # 55 °C + 5 K
+    # Water leaving at 55 °C (entering 50 °C at the rated flow) plus the plate condenser's leaving approach.
+    T_in = m.rated_condition.load.T_in_C
+    assert T_in == pytest.approx(55.0 - m.dT_w_rated)
+    assert m.reference_state.T_cond_sat_C == pytest.approx(T_in + m.hp_capacity / m.K_tank_hx, abs=1e-6)
 
 
 def test_caller_values_are_used_as_given_and_aliases_keep_their_order():
@@ -176,7 +193,9 @@ def test_overloaded_field_laminar_flow_and_unreachable_set_point_warn():
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_min_speed_clamp_closes_tank_hx_on_delivered_heat(machines, family):
     m = machines[family, 8e3]
-    requests = (400.0, 800.0, 2000.0)
+    # Below the speed-floor duty of the default 8 kW machine at 10/50 degC: 1.71 kW (GSHPB) and
+    # 1.89 kW (WSHPB) with the rotary-compressor efficiencies and the catalogue displacement.
+    requests = (400.0, 800.0, 1500.0)
     results = [_quiet(m.analyze_steady, T_tank_w=50.0, T_source=10.0, Q_ref_tank=q, T0=10.0) for q in requests]
     for request, r in zip(requests, results, strict=True):
         assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
@@ -185,10 +204,10 @@ def test_min_speed_clamp_closes_tank_hx_on_delivered_heat(machines, family):
         # ``Q_min [W]`` is what the running machine delivers.
         assert r["Q_ref_tank [W]"] == pytest.approx(request, rel=1e-12)
         delivered = r["Q_min [W]"]
-        assert delivered > 2000.0  # more than any of the requests
+        assert delivered > max(requests)
         # The condenser runs at the approach of the heat it delivers, not of the request.
-        assert r["T_ref_cond_sat_l [°C]"] - 50.0 == pytest.approx(delivered / m.UA_tank_hx, abs=1e-5)
-        assert r["dT_ref_tank [K]"] == pytest.approx(delivered / m.UA_tank_hx, abs=1e-5)
+        assert r["T_ref_cond_sat_l [°C]"] - 50.0 == pytest.approx(delivered / m.K_tank_hx, abs=1e-5)
+        assert r["dT_ref_tank [K]"] == pytest.approx(delivered / m.K_tank_hx, abs=1e-5)
         assert abs(r["tank_hx_residual [W]"]) < 1e-2
         assert r["Q_request [W]"] < delivered
     # On the floor the machine no longer knows the request: one operating point.
@@ -219,21 +238,24 @@ def test_request_below_the_speed_floor_runs_at_the_floor_capacity(family, ref, T
 
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_speed_floor_closure_lifts_a_small_lift_cycle_off_the_pressure_ratio_floor(family):
-    """R32 from a 20 °C source into a 30 °C tank, far below the floor capacity.
+    """R32 from a 20 °C source into a 33 °C tank, far below the floor capacity.
 
     At the approach of the 400 W request the pressure ratio is below
-    ``PR_cycle_min``; at the approach of the 5.5 kW the compressor delivers at
-    its speed floor it is not. The closure is tried before the floor is taken
-    as binding, so the point is one closed operating point (it used to fall
-    between the two formulations and fail the source balance).
+    ``PR_cycle_min`` (about 1.43); at the approach of the 2.6 kW (WSHPB 2.8 kW)
+    the compressor delivers at its speed floor it is not (1.60, 1.62). The
+    closure is tried before the floor is taken as binding, so the point is one
+    closed operating point (it used to fall between the two formulations and
+    fail the source balance). Into a 30 °C tank, the point of before the
+    rotary-compressor default efficiencies (5.5 kW at the speed floor), the
+    floor duty is too small to lift the cycle off ``PR_cycle_min``.
     """
     m = _quiet(FAMILIES[family], ref="R32")
-    r = _quiet(m.analyze_steady, T_tank_w=30.0, T_source=20.0, Q_ref_tank=400.0, T0=10.0)
+    r = _quiet(m.analyze_steady, T_tank_w=33.0, T_source=20.0, Q_ref_tank=400.0, T0=10.0)
     assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
     ratio = r["P_ref_cmp_out [Pa]"] / r["P_ref_cmp_in [Pa]"]
     assert ratio > m.PR_cycle_min + 0.05
     delivered = r["Q_min [W]"]  # the running machine; the row's heat is the cycling mean
-    assert r["T_ref_cond_sat_l [°C]"] - 30.0 == pytest.approx(delivered / m.UA_tank_hx, abs=1e-4)
+    assert r["T_ref_cond_sat_l [°C]"] - 33.0 == pytest.approx(delivered / m.K_tank_hx, abs=1e-4)
     assert abs(r["tank_hx_residual [W]"]) < 1e-2
 
 
@@ -242,7 +264,7 @@ def test_modulating_point_keeps_the_requested_approach(machines, family):
     m = machines[family, 8e3]
     r = _quiet(m.analyze_steady, T_tank_w=50.0, T_source=10.0, Q_ref_tank=6000.0, T0=10.0)
     assert r["capacity_clamped"] is None and r["Q_ref_tank [W]"] == pytest.approx(6000.0, rel=1e-9)
-    assert r["dT_ref_tank [K]"] == pytest.approx(6000.0 / m.UA_tank_hx, abs=1e-9)
+    assert r["dT_ref_tank [K]"] == pytest.approx(6000.0 / m.K_tank_hx, abs=1e-9)
     assert abs(r["tank_hx_residual [W]"]) < 1e-6
 
 
@@ -268,13 +290,15 @@ def test_superheat_is_untouched_where_the_approach_allows_it(machines):
 
 
 def test_low_speed_balance_below_1_K_approach_is_solved():
-    """R134a at 25 % against the capacity-scaled evaporator balances at 0.97 K.
+    """R134a at 15 % against the capacity-scaled evaporator balances at 0.78 K.
 
     The approach search started at 1 K, reported ``hx_not_converged`` and took
-    its 1024-point scan to say so.
+    its 1024-point scan to say so. (At 25 %, the point of before the
+    rotary-compressor default efficiencies and the approach-temperature
+    conductances, the evaporator now balances at 1.37 K.)
     """
     m = _quiet(GroundSourceHeatPumpBoiler, ref="R134a", t_max_s=86400.0)
-    r = _quiet(m.analyze_steady, T_tank_w=55.0, T_source=-5.0, Q_ref_tank=2000.0)
+    r = _quiet(m.analyze_steady, T_tank_w=55.0, T_source=-5.0, Q_ref_tank=1200.0)
     assert r["failure_reason"] == "none"
     rho_c = m.source_fluid.rho * m.source_fluid.cp
     approach = r["T_bhe_f_out [°C]"] + r["E_pmp [W]"] / (m.dV_b_f_m3s * rho_c) - r["T_ref_evap_sat [°C]"]
@@ -350,6 +374,7 @@ def test_default_machine_charges_to_its_default_upper_set_point(default_runs, fa
     assert df.loc[ran, "T_ref_cmp_out [°C]"].max() <= m.T_dis_max + 0.02
 
 
+@pytest.mark.earlier_defaults  # the 5 K tank exchanger without circulating water: tests/conftest.py
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_former_default_refrigerant_stops_below_the_default_set_point(family):
     """R410A against the default 55-65 °C band: the envelope (65 °C condensing) caps the set point at 59.9 °C."""

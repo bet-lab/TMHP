@@ -21,7 +21,9 @@ def hp():
     return AirSourceHeatPump(defrost=None)
 
 
-def test_a_limit_on_the_air_side_is_served_at_least_power(hp):
+def test_a_limit_on_the_air_side_is_served_at_least_power():
+    # A search box the indoor coil reaches before the compressor does (the default 30 K is past it).
+    hp = AirSourceHeatPump(defrost=None, dT_approach_bounds=(1.0, 20.0))
     limited = _solve(hp, -5090.0, 2.0, 20.0)
     assert limited["failure_reason"] == "none" and limited["capacity_clamped"] == "max"
     assert limited["capacity_binding"] == "cycle"
@@ -44,6 +46,7 @@ def test_a_compressor_that_is_flat_out_stays_at_its_ceiling(hp):
     assert limited["Q_ref_iu [W]"] < 6000.0
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_a_candidate_without_a_fluid_state_is_infeasible_not_an_exception():
     """A flash CoolProp cannot solve at one search candidate does not abort the solve.
 

@@ -33,6 +33,8 @@ from tmhp.cycling import (
     RUNTIME_FRACTION_KEY,
 )
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 # GSHPB / WSHPB: R410A, the refrigerant these minimum-speed duties belong to.
 # The default is now R290, whose higher rated speed puts the minimum-speed duty
 # at 1.8-2.4 kW here, at or below the 2 kW request. The 59 °C upper set point
@@ -182,15 +184,19 @@ def test_boiler_dynamic_run_is_not_touched_by_the_steady_cycling_report():
         assert default[column].to_numpy() == pytest.approx(without[column].to_numpy(), rel=0, abs=0, nan_ok=True)
 
 
+@pytest.mark.current_defaults  # the committed study is made with the present defaults
 def test_en14825_trend_harness_compares_the_running_machine():
     """The certified-population study must not pick up the cycling degradation.
 
     The declared COP of an EN 14825 part-load condition belongs to the capacity
     the unit runs at there; the degradation is applied afterwards, in the bin
     calculation. The harness therefore solves the running machine
-    (``Cd_cycling=None``), and its points B-D -- all below the minimum-speed
+    (``Cd_cycling=None``), and its points C and D -- below the minimum-speed
     duty -- are the ones committed in ``validation/data``. With the default
-    report they would read 4.53 / 5.34 / 5.26 instead of 4.56 / 5.89 / 7.56.
+    report they would read 5.35 / 7.06 instead of 5.36 / 8.28. (Point B, at
+    54 % of the design load, was below the minimum-speed duty too until the
+    catalogue displacement of issue #86: an R32 unit of this size now turns
+    down to 2.15 kW at point C's condition, 24 % of its nameplate.)
     """
     pd = pytest.importorskip("pandas")
     from pathlib import Path
@@ -210,7 +216,7 @@ def test_en14825_trend_harness_compares_the_running_machine():
     with contextlib.redirect_stdout(io.StringIO()):
         rows = en14825_trend.trajectory(variant, 9000.0, "R32", "low", 0.667)
     assert [r["point"] for r in rows] == ["A", "B", "C", "D"]
-    assert [r["clamped"] for r in rows] == [False, True, True, True]
+    assert [r["clamped"] for r in rows] == [False, False, True, True]
     for row in rows:
         assert row["cop"] == pytest.approx(expected.cop[row["point"]], rel=1e-6), row["point"]
     cop = [r["cop"] for r in rows]

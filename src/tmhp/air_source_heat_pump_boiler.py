@@ -15,8 +15,10 @@ integrated model, its physical calculations represent the behavior of:
    refrigerant from the condensing pressure down to the evaporating pressure.
 4. **Heat Exchangers (Condenser & Evaporator):**
 
-   - **Condenser:** Placed inside the tank (hydronic), utilizing a static overall heat
-     transfer coefficient (UA_tank_hx).
+   - **Condenser:** An external plate condenser the tank water is pumped through
+     (circulation flow ``m_dot_w_rated``, conductance ``UA_tank_hx``); the tank
+     temperature is the water entering it. ``m_dot_w_rated=0`` selects a coil
+     without circulating water, ``UA_tank_hx`` working against the tank temperature.
    - **Evaporator:** Air-coupled outdoor unit, utilizing a dynamic overall heat transfer
      coefficient (UA_ou) that scales non-linearly with fan airflow (Colburn j-factor analogy).
 5. **Thermal Storage Tank:**
@@ -61,12 +63,19 @@ from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, spec
 from ._tank_solve import recover_tank_temperature
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
 from .air_properties import air_heat_capacity_rate
-from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
+from .compressor_efficiency import (
+    COMPRESSOR_TYPES,
+    CompressorSpec,
+    InvalidCompressorEfficiency,
+    _eval_eff,
+    reject_invalid_efficiency,
+    resolve_compressor_type,
+    suction_state,
+)
 from .compressor_envelope import (
     CONDENSING_TEMP_ABOVE_MAX,
     CYCLE_KEY,
     DISCHARGE_TEMP_ABOVE_MAX,
-    ETA_ISEN_BELOW_MIN,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
@@ -83,7 +92,7 @@ from .compressor_envelope import (
     resolve_x_suction_min,
     steady_envelope,
 )
-from .compressor_speed import default_displacement, solve_compressor_speed
+from .compressor_speed import solve_compressor_speed
 from .constants import c_w, rho_w
 from .cycling import (
     CC_WATER_DEFAULT,
@@ -128,13 +137,13 @@ from .enex_functions import (
     calc_mixing_valve_flows,
     calc_mixing_valve_temp,
 )
-from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
+from .heat_exchanger import AirCoilSide, calc_tank_hx_conductance, resolve_fan_flow_limits, tank_hx_rating_side
 from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is_generic_fan_curve
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
-from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
+from .reference_state import RATING_STANDARDS, HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
-from .standard_conditions import LEAVING_WATER_TO_TANK_K, StandardCondition
+from .standard_conditions import StandardCondition
 from .standard_conditions import operating_range as _operating_range
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector, add_uv_power_to_e_tot
 from .thermodynamics import calc_energy_flow
@@ -146,8 +155,8 @@ from .thermodynamics import calc_energy_flow
 #: a worse class of candidate, and so that among candidates none of which is an
 #: operating point it returns the one closest to being one.
 #: A solved, physical cycle outside the compressor envelope (discharge above
-#: ``T_dis_max`` even under the discharge-temperature control, or the shipped
-#: isentropic fit extrapolated below ``ETA_ISEN_MIN``); graded by how far
+#: ``T_dis_max`` even under the discharge-temperature control, or condensing
+#: above ``T_cond_max``); graded by how far
 #: outside, so the search moves towards the smaller lift that may be inside.
 #: It is not an operating point, but closer to one than an unphysical state.
 _OBJ_OUTSIDE_ENVELOPE = 2.5 * PENALTY
@@ -312,16 +321,25 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
     The refrigerant cycle is resolved via CoolProp with
     user-specified superheat / subcool margins.  The condenser
-    approach temperature is determined analytically from either the circulating-
-    water flow (constant-surface-temperature ε-NTU) or the backward-compatible
-    ``dT_ref_tank = Q_ref_tank / UA_tank_hx`` fallback, and a bounded
+    approach temperature is determined analytically: tank water entering a
+    plate condenser at the circulation flow (constant-surface-temperature
+    ε-NTU; ``m_dot_w_rated`` by default, ``m_dot_w`` of a call), or, without
+    flow, ``dT_ref_tank = Q_ref_tank / UA_tank_hx``. A bounded
     1-D optimiser (Brent's method) minimises total electrical
     input (``E_cmp + E_ou_fan``) over the evaporator approach.
 
-    Unless explicitly injected, compressor efficiencies use the
-    shared baseline correlations in :mod:`tmhp.compressor_efficiency`
-    (BITZER 2026-10-06), evaluated at PR and actual shaft speed in rev/s.
-    Scalar and user-supplied callable overrides remain supported.
+    **Default heat exchangers.** ``UA_tank_hx`` and ``UA_ou_rated`` left out
+    are the effective conductances that reproduce the approach temperatures
+    real air-to-water machines print at their rating point
+    (:func:`tmhp.default_inputs.estimate_hx_UA`): the plate condenser at the
+    rated circulation flow (``hp_capacity / (c_w dT_w_rated)``, 5 K rise by
+    default) and the outdoor coil as an evaporator at its rated airflow,
+    recorded in ``default_input_estimates``.
+
+    Unless explicitly injected, compressor efficiencies are the default
+    models of ``compressor_type`` in :mod:`tmhp.compressor_efficiency`,
+    evaluated at the pressure ratio, the shaft speed in rev/s and the suction
+    state. A scalar or a callable given for one replaces that model.
 
     **Below the minimum capacity.** ``analyze_steady`` reports a request below
     what the compressor delivers at ``rps_min`` as the mean of on/off cycling
@@ -396,7 +414,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     def __init__(
         self,
         # 1. Refrigerant / cycle / compressor -----------
-        ref: str = "R134a",
+        ref: str = "R290",
         V_cmp_ref: float | None = None,
         eta_cmp_isen: float | Callable | None = None,
         eta_cmp_vol: float | Callable | None = None,
@@ -469,6 +487,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         rps_rated: float | None = None,
         m_dot_ref_rated: float | None = None,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
+        # Tank heat exchanger: an external plate condenser fed with tank water
+        # by a circulation pump. dT_w_rated [K] is the water temperature rise
+        # across it at hp_capacity (EN 14511 30/35 degC rating), m_dot_w_rated
+        # [kg/s] the circulation flow (None: hp_capacity / (c_w dT_w_rated);
+        # 0.0: no flow, an immersed or wrapped coil working against the tank
+        # temperature, whose UA_tank_hx must then be given).
+        dT_w_rated: float = 5.0,
+        m_dot_w_rated: float | None = None,
         dV_fan_a_ref: float | None = None,
         dV_fan_a_min: float | None = None,
         dV_fan_a_max: float | None = None,
@@ -484,8 +510,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         T_cond_max: float | Literal["auto"] | None = "auto",
         # Frost on the outdoor coil and its defrost (None / False: off).
         defrost: DefrostModel | bool | None = True,
+        # Compressor type whose default efficiency models are used where
+        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
+        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
     ):
         validate_ctor("ASHPB", locals())
+        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
         self.defrost = resolve_defrost(defrost)
@@ -496,7 +526,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             dV_fan_a_rated = dV_fan_a_ref
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
+            # No displacement given: the one a compressor catalogue gives for this capacity
+            # and refrigerant (tmhp.default_inputs), recorded in default_input_estimates.
+            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else self._default_displacement(hp_capacity, ref)
         if eta_cmp is None:
             eta_cmp = eta_cmp_electro_mech
         if UA_tank_hx is None:
@@ -553,31 +585,22 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self._solve_bound_at_speed_floor: bool = False
         self.hp_capacity: float = hp_capacity
 
-        # --- 2. Heat exchanger UA ---
-        # If not explicitly provided, scale the condenser UA with rated heating capacity
-        # to give a 5 K condensing approach at the rated point. This is the common rule
-        # used by the validation manuscript and the Panasonic rule set in equipment_presets.py.
-        if UA_tank_hx is None:
-            self.UA_tank_hx = hp_capacity / 5.0
-        else:
-            self.UA_tank_hx = UA_tank_hx
-
-        # The condenser rejects the evaporator load plus compressor work, so the
-        # evaporator load is approximately (1 - 1 / COP) times the condenser load.
-        # Across the COP range considered by the validation manuscript, this is about 0.7.
-        if UA_ou_rated is None:
-            self.UA_ou_rated = self.UA_tank_hx * 0.7
-        else:
-            self.UA_ou_rated = UA_ou_rated
-
         self.n_ou: float = n_ou
 
         # --- 3. Outdoor unit fan ---
-        # Default fan flow rate is scaled at 0.0002 m^3/s per W (or 720 CMH per kW),
-        # representing an optimal ratio of airflow volume to thermal capacity.
-        # This provides enough margin so that nominal optimization operates at ~80% fan ratio.
+        # The rated airflow is the unit's largest: with none given it is the
+        # largest fan step air-to-water outdoor units of this heating capacity
+        # publish (tmhp.default_inputs), recorded in default_input_estimates.
+        # The fan modulates below it; UA_ou_rated and the fan power are stated
+        # at it.
         if dV_fan_a_rated is None:
-            self.dV_fan_a_rated = hp_capacity * 0.00015
+            self.dV_fan_a_rated = self._default_max_airflow(
+                "dV_fan_a_rated",
+                hp_capacity,
+                side="outdoor",
+                product="air_to_water",
+                mode=self._rating_mode(rated_condition),
+            )
         else:
             self.dV_fan_a_rated = dV_fan_a_rated
 
@@ -611,11 +634,62 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             "fan_rated_power": self.E_fan_rated,
         }
 
+        # --- 2. Heat exchanger UA ---
+        # A default is the effective conductance that reproduces the saturation
+        # temperature real machines print at their rating point
+        # (tmhp.default_inputs.estimate_hx_UA, leaving-end approach law), stated
+        # at the rated flow of its fluid. A value the caller gives is used as given.
+        #
+        # Tank side: an external plate condenser fed with tank water at the
+        # rated circulation flow (the water_condenser|bphe|condensing stratum of
+        # air-to-water units, duty = the heating nameplate). The tank water the
+        # pump draws enters the condenser, so the tank temperature is the
+        # condenser's water inlet; with m_dot_w_rated = 0 the earlier no-flow
+        # form (an immersed coil against the tank temperature) is used, for
+        # which the archive issues no value.
+        # (dT_w_rated > 0 and m_dot_w_rated >= 0 are checked by validate_ctor.)
+        self.dT_w_rated: float = float(dT_w_rated)
+        self.m_dot_w_rated: float = float(
+            hp_capacity / (c_w * self.dT_w_rated) if m_dot_w_rated is None else m_dot_w_rated
+        )
+        if UA_tank_hx is not None:
+            self.UA_tank_hx = UA_tank_hx
+        elif self.m_dot_w_rated > 0:
+            self.UA_tank_hx = self._default_hx_UA(
+                "UA_tank_hx",
+                "water_condenser|bphe|condensing",
+                nameplate=hp_capacity,
+                nameplate_mode=None,
+                heat_capacity_rate=self.m_dot_w_rated * c_w,
+            )
+        else:
+            raise ValueError(
+                "m_dot_w_rated=0 selects a tank heat exchanger without circulating water (an immersed or wrapped "
+                "coil); the archive issues no conductance for one, so give its UA_tank_hx [W/K]"
+            )
+
+        # Outdoor coil: an evaporator, air at the EN 14511 A7 outdoor dry bulb
+        # (7 degC) at the rated airflow, sized for the duty it absorbs per watt
+        # of heating nameplate.
+        if UA_ou_rated is None:
+            self.UA_ou_rated = self._default_hx_UA(
+                "UA_ou_rated",
+                "outdoor_coil|fin_tube|evaporating",
+                nameplate=hp_capacity,
+                nameplate_mode=self._rating_mode(rated_condition),
+                heat_capacity_rate=air_heat_capacity_rate(
+                    self.dV_fan_a_rated, RATING_STANDARDS[self._RATING_FAMILY]["heating"].source_T_C
+                ),
+            )
+        else:
+            self.UA_ou_rated = UA_ou_rated
+
         # --- Compressor reference state (rated speed, rated mass flow) ---
         efficiencies = self._initialize_reference_state(
             rps_rated=rps_rated,
             m_dot_ref_rated=m_dot_ref_rated,
             efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen: float | Callable = efficiencies["eta_cmp_isen"]
@@ -681,10 +755,30 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self.dV_mix_w_out: float = 0.0
 
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
-        """Outdoor-air evaporator (source) and tank-immersed condenser (load)."""
+        """Outdoor-air evaporator (source) and the tank heat exchanger (load).
+
+        The load temperature of a rating condition is the standard's water
+        *outlet* (``W55``). The plate condenser is rated with water entering at
+        that outlet less the rise the rated flow takes at ``hp_capacity``; the
+        no-flow form (``m_dot_w_rated = 0``) works against a tank at it.
+        """
         if role == "source":
             return AirCoilSide("air", T_in_C, self.UA_ou_rated, self.dV_fan_a_ref)
-        return HXSide("tank", T_in_C, self.UA_tank_hx)
+        return tank_hx_rating_side(T_in_C, self.UA_tank_hx, self.m_dot_w_rated, self.hp_capacity)
+
+    @property
+    def K_tank_hx(self) -> float:
+        """Heat the tank heat exchanger carries per kelvin of condensing temperature above the tank water [W/K].
+
+        ``C_w (1 - exp(-UA_tank_hx / C_w))`` with ``C_w = m_dot_w_rated c_w`` (the
+        plate condenser at its rated circulation flow, the tank water entering
+        it), or ``UA_tank_hx`` for the no-flow form (``m_dot_w_rated = 0``).
+        """
+        return calc_tank_hx_conductance(self.UA_tank_hx, self.m_dot_w_rated)
+
+    def _circulation_flow(self, m_dot_w: float | None) -> float:
+        """Condenser water flow of one call [kg/s]: ``None`` is the rated circulation flow."""
+        return self.m_dot_w_rated if m_dot_w is None else float(m_dot_w)
 
     # =============================================================
     # Refrigerant cycle physics (ASHP-specific)
@@ -720,9 +814,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             ``dV_mix_w_out``, ``dV_tank_w_out``, ``dV_tank_w_in``,
             ``dV_mix_sup_w_in``. Replaces former implicit ``self.dV_*`` reads.
         m_dot_w : float | None
-            Circulating-water mass flow rate [kg/s]. ``None`` preserves the
-            standalone fixed-UA approach calculation. The water specific heat
-            is the shared constant ``c_w`` (``tmhp.constants``).
+            Water flow through the condenser [kg/s]; ``T_tank_w`` is the water
+            entering it. ``None`` is the rated circulation flow
+            (``m_dot_w_rated``); ``0`` the no-flow form, the conductance
+            working against the tank temperature. The water specific heat is
+            the shared constant ``c_w`` (``tmhp.constants``).
         hx_diag : dict | None
             When given, receives the outdoor-coil solution of an active
             cycle, including its signed capacity margins at the fan flow
@@ -735,7 +831,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dict | None
             Cycle performance dictionary; ``None`` if infeasible.
         """
-        if m_dot_w is not None and m_dot_w > 0:
+        m_dot_w = self._circulation_flow(m_dot_w)
+        if m_dot_w > 0:
             # Flow-dependent ε-NTU: circulating water passing a constant
             # condensing-temperature surface (same physics as the outdoor-side HX,
             # cf. enex_functions.calc_HX_perf_for_target_heat)
@@ -743,9 +840,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             eps_tank_hx = 1.0 - math.exp(-self.UA_tank_hx / C_w_tank)
             K_tank_hx = C_w_tank * eps_tank_hx
         else:
-            # Backward-compatible fallback (standalone runs without loop flow).
-            # There is no water-side capacity rate, so no effectiveness to
-            # define either -- the conductance carries the whole description.
+            # No flow (an immersed or wrapped coil): there is no water-side
+            # capacity rate, so no effectiveness to define either -- the
+            # conductance carries the whole description.
             C_w_tank = float("nan")
             eps_tank_hx = float("nan")
             K_tank_hx = self.UA_tank_hx
@@ -930,10 +1027,16 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
             except ValueError:
                 h_ref_cmp_out_isen = h_cmp_in
+            # Suction state for the efficiency models that need it. (Where the
+            # isentropic flash above failed, dh_isen is 0 and a state-dependent
+            # model reports the point infeasible -- no state-free substitute.)
+            suction = suction_state(
+                cs_i["P_ref_cmp_in [Pa]"], cs_i["rho_ref_cmp_in [kg/m3]"], h_cmp_in, h_ref_cmp_out_isen
+            )
 
             def _residual_rps(rps):
-                eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps)
-                eta_isen_r = _eval_eff(self.eta_cmp_isen, ratio, rps)
+                eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps, suction)
+                eta_isen_r = _eval_eff(self.eta_cmp_isen, ratio, rps, suction)
 
                 h_cmp_out = h_cmp_in + (h_ref_cmp_out_isen - h_cmp_in) / eta_isen_r
                 dh_cond_local = h_cmp_out - h_exp_in
@@ -946,9 +1049,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             else:
                 rps_i, converged_i, clamped_i = rps_fixed, True, None
 
-            eta_vol_i = _eval_eff(self.eta_cmp_vol, ratio, rps_i)
-            eta_isen_i = _eval_eff(self.eta_cmp_isen, ratio, rps_i)
-            eta_em_i = _eval_eff(self.eta_cmp, ratio, rps_i)
+            eta_vol_i = _eval_eff(self.eta_cmp_vol, ratio, rps_i, suction)
+            eta_isen_i = _eval_eff(self.eta_cmp_isen, ratio, rps_i, suction)
+            eta_em_i = _eval_eff(self.eta_cmp, ratio, rps_i, suction)
 
             # Post-evaluate state with final isentropic efficiency
             cs_i = calc_ref_state(
@@ -1263,9 +1366,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     #: Resolution of the edge between approaches with and without a cycle [K].
     _CYCLE_EDGE_TOL_K = 1e-3
     #: In-band candidates are no farther apart than the band width over this.
-    #: The objective is not unimodal in the band -- the guarded efficiency fit
-    #: has kinks (PR 7.15, 33.8 and 72.5 rev/s) and the speed floor another --
-    #: so the minimiser starts from the best of these, not from the band.
+    #: The objective is not unimodal in the band -- the speed floor puts a
+    #: kink in it, and so can an efficiency model the caller supplies -- so the
+    #: minimiser starts from the best of these, not from the band.
     _BAND_SCAN_INTERVALS = 4
     #: Tolerance of the minimisation around the best candidate [K]. Below it
     #: the objective is flat to the inner solvers' noise.
@@ -1310,7 +1413,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         flow_state : dict
             Explicit flow context passed through to ``_calc_state()``.
         m_dot_w : float | None
-            Circulating-water mass flow rate [kg/s].
+            Water flow through the condenser [kg/s] (``None``: the rated circulation flow).
 
         Returns
         -------
@@ -1740,8 +1843,6 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             return float(refused_state.get("T_ref_cmp_out [°C]", math.nan))
         if failure_reason == CONDENSING_TEMP_ABOVE_MAX:
             return float(getattr(self, "_condensing_refused_C", math.nan))
-        if failure_reason == ETA_ISEN_BELOW_MIN:
-            return float(refused_state.get("eta_cmp_isen [-]", math.nan))
         return None
 
     def _report_part_load(self, result: dict, Q_ref_tank: float) -> None:
@@ -1788,15 +1889,22 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         Parameters
         ----------
         T_tank_w : float
-            Tank water temperature [°C] — treated as a given input.
+            Tank water temperature [°C] — treated as a given input. With
+            circulating water (the default) it is the temperature of the water
+            *entering* the condenser: the tank water the pump draws. The water
+            leaves at ``T_tank_w + Q_ref_tank / (m_dot_w c_w)``.
         T0 : float
             Dead-state / outdoor-air temperature [°C].
         Q_ref_tank : float
             Target condenser heat rate [W].
         m_dot_w : float | None
-            Circulating-water mass flow rate [kg/s]. When positive, the
-            condenser approach uses a constant-surface-temperature ε-NTU model
+            Water flow through the condenser [kg/s]. ``None`` (default) is the
+            rated circulation flow ``m_dot_w_rated``; a positive value is that
+            flow, the condenser a constant-surface-temperature ε-NTU exchanger
             with the shared water specific heat ``c_w`` (``tmhp.constants``).
+            ``0`` is the no-flow form: ``UA_tank_hx`` works against the tank
+            temperature (an immersed coil). A model built with
+            ``m_dot_w_rated=0`` uses that form for ``None`` too.
         return_dict : bool
             If True return dict; else single-row DataFrame.
         RH_out : float | None
@@ -1821,10 +1929,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               refused at low speed while a larger duty runs, is a ``"min"``
               point, below),
               ``"condensing_temp_above_max"`` (even a reduced duty condenses
-              above ``T_cond_max``: the tank is too hot), ``"eta_isen_below_min"``
-              (the shipped isentropic fit, extrapolated, is below 0.30, and
-              no larger duty runs either: a request that is only too small
-              for the floor is a ``"min"`` point, below),
+              above ``T_cond_max``: the tank is too hot),
               ``"hx_not_converged"``, or ``"optimizer_failed"``.
             - ``"failure_detail"`` (str, failures only) — on
               ``"cycle_invalid"``, which check of
@@ -1838,8 +1943,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               requested duty was below what the compressor delivers at
               ``rps_min`` and the cycle was solved at that floor instead (or
               below the smallest duty the compressor envelope admits, where
-              the discharge exceeds ``T_dis_max`` or the shipped fit falls
-              under 0.30 before ``rps_min`` is reached: the cycle is then
+              the discharge exceeds ``T_dis_max`` before ``rps_min`` is
+              reached: the cycle is then
               solved at that duty, above ``rps_min``),
               ``"max"`` for the corresponding ceiling case, ``None`` when the
               request was met exactly. A clamped point is **converged**: the
@@ -1854,9 +1959,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               when a smaller duty runs --
               ``"discharge_temperature"`` (``T_dis_max``),
               ``"condensing_temperature"`` (``T_cond_max``),
-              ``"pressure_ratio"`` (``PR_cycle_max``), ``"outdoor_coil"`` (the
-              coil is short at the fan's largest airflow) or
-              ``"compressor_efficiency"`` (the shipped fit's floor). The
+              ``"pressure_ratio"`` (``PR_cycle_max``) or ``"outdoor_coil"``
+              (the coil is short at the fan's largest airflow). The
               largest duty that runs is then returned, with ``"Q_max [W]"``
               and ``"Q_request [W]"``; see
               :func:`tmhp.compressor_envelope.reduce_duty_within_envelope`.
@@ -1884,7 +1988,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               pressures and speed are those of the running machine. With
               ``Cd_cycling=None`` the row is the continuous minimum-speed
               point and ``Q_ref_tank [W]`` exceeds the request.
-            - ``"efficiency_extrapolated"`` (bool) — a default efficiency fit
+            - ``"efficiency_extrapolated"`` (bool) — a default efficiency model
               is evaluated outside its data at this point.
             - ``"discharge_control"`` (bool), ``"dT_ref_superheat [K]"``,
               ``"x_ref_cmp_in [-]"`` — whether the discharge-temperature
@@ -3207,7 +3311,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self,
         conditions: Iterable[StandardCondition] | None = None,
         *,
-        sink_offset_K: float = LEAVING_WATER_TO_TANK_K,
+        sink_offset_K: float | None = None,
     ) -> pd.DataFrame:
         """Solve standard rating conditions and tabulate whether the heat pump runs at each.
 
@@ -3224,11 +3328,13 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         conditions : iterable of StandardCondition, optional
             Conditions to solve; :data:`tmhp.standard_conditions.AIR_TO_WATER`
             (A7/W35 ... A-15/W55 at the nameplate duty) when omitted.
-        sink_offset_K : float
-            The tank is solved this far below each condition's leaving water
-            [K]: ``T_tank_w = leaving water - sink_offset_K``. The default
-            2.5 K is the offset of the validation catalogues; 0 solves the
-            tank at the named temperature.
+            A condition names the water leaving the heat pump; it is solved with
+            the water entering the condenser below it by the temperature rise of
+            the rating (:mod:`tmhp.standard_conditions`), the table's ``T_tank_w [°C]``.
+        sink_offset_K : float, optional
+            The water enters this far below each condition's leaving water [K],
+            at the rated circulation flow, instead (0: the tank water at the
+            named temperature, a stricter point). ``None``: the EN 14511 rise.
 
         Returns
         -------

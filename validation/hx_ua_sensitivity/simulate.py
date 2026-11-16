@@ -19,8 +19,12 @@ approach-temperature search bounds stay as shipped.
 Passes
 ------
 1. ``default``  model built without UA arguments -- the regression reference
-                (``UA_ou_rated = hp_capacity/5``, ``UA_iu_rated = 0.8 UA_ou``).
-2. ``joint``    both coils scaled by the same factor, JOINT_SCALES.
+                (the library's approach-temperature defaults: the outdoor
+                coil has one rated conductance per refrigerant role,
+                ``UA_ou_rated`` as a condenser and ``UA_ou_evap_rated`` as an
+                evaporator; ``UA_iu_rated``).
+2. ``joint``    both coils scaled by the same factor, JOINT_SCALES (the
+                outdoor factor scales both role values).
 3. ``split``    one coil at a time, SPLIT_CASES, to separate outdoor from
                 indoor when the joint scan shows a sensitivity.
 
@@ -93,21 +97,30 @@ def _model(cap: float, ref: str, s_ou: float | None, s_iu: float | None):
         if s_ou is None:
             _MODELS[key] = AirSourceHeatPump(hp_capacity=cap, ref=ref, **CYCLE_SETTINGS)
         else:
-            probe = _default_ua(cap, ref)
+            ua_ou, ua_ou_evap, ua_iu = _default_ua(cap, ref)
             _MODELS[key] = AirSourceHeatPump(
                 hp_capacity=cap,
                 ref=ref,
                 **CYCLE_SETTINGS,
-                UA_ou_rated=probe[0] * s_ou,
-                UA_iu_rated=probe[1] * float(s_iu),
+                UA_ou_rated=ua_ou * s_ou,
+                UA_ou_evap_rated=ua_ou_evap * s_ou,
+                UA_iu_rated=ua_iu * float(s_iu),
             )
     return _MODELS[key]
 
 
-def _default_ua(cap: float, ref: str) -> tuple[float, float]:
-    """Shipped rated conductances, read off a default-constructed model."""
+def _default_ua(cap: float, ref: str) -> tuple[float, float, float]:
+    """Shipped rated conductances, read off a default-constructed model.
+
+    ``(outdoor coil as a condenser, outdoor coil as an evaporator, indoor coil)``.
+    """
     m = _model(cap, ref, None, None)
-    return float(m.UA_ou_rated), float(m.UA_iu_rated)
+    return float(m.UA_ou_rated), float(m.UA_ou_evap_rated), float(m.UA_iu_rated)
+
+
+def outdoor_rated_ua(m, heating: bool) -> float:
+    """Rated conductance of the outdoor coil in the role it has: evaporator in heating, condenser in cooling."""
+    return float(m.UA_ou_evap_rated if heating else m.UA_ou_rated)
 
 
 def _num(r: dict, key: str) -> float:
@@ -115,13 +128,14 @@ def _num(r: dict, key: str) -> float:
     return float(v) if isinstance(v, (int, float)) else float("nan")
 
 
-def coil_state(m, r: dict, side: str) -> tuple[float, float, float]:
+def coil_state(m, r: dict, side: str, heating: bool) -> tuple[float, float, float]:
     """``(UA, NTU, epsilon)`` of one coil of a solved row, from the model's own law.
 
     The library does not report the coil conductance, so it is evaluated here
     at the solved airflow with exactly the call the model makes
     (``tmhp.heat_exchanger.calc_UA_from_dV_fan`` on the coil's rated UA,
-    reference flow, cross-section and exponent; air density at the coil inlet).
+    reference flow, cross-section and exponent; air density at the coil inlet;
+    the outdoor coil's rated UA is the one of its role, ``heating`` saying which).
     A study that patches that law (``refrigerant_ua_sensitivity.patch``) gets
     the patched value, provided its state is set to the solved row first.
     """
@@ -136,7 +150,7 @@ def coil_state(m, r: dict, side: str) -> tuple[float, float, float]:
     if not (math.isfinite(dV) and dV > 0.0 and math.isfinite(t_in)):
         return float("nan"), float("nan"), float("nan")
     if side == "ou":
-        args = (m.dV_ou_fan_a_ref, m.A_cross_ou, m.UA_ou_rated, m.n_ou)
+        args = (m.dV_ou_fan_a_ref, m.A_cross_ou, outdoor_rated_ua(m, heating), m.n_ou)
     else:
         args = (m.dV_iu_fan_a_ref, m.A_cross_iu, m.UA_iu_rated, m.n_iu)
     ua = float(heat_exchanger.calc_UA_from_dV_fan(dV, *args))
@@ -184,8 +198,8 @@ def run_point(task: dict) -> dict:
     delivered = abs(_num(r, "Q_ref_iu [W]"))
     fan_ou = _num(r, "dV_ou_a [m3/s]") / m.dV_ou_fan_a_rated
     fan_iu = _num(r, "dV_iu_a [m3/s]") / m.dV_iu_fan_a_rated
-    ua_ou, ntu_ou, eps_ou = coil_state(m, r, "ou")
-    ua_iu, ntu_iu, eps_iu = coil_state(m, r, "iu")
+    ua_ou, ntu_ou, eps_ou = coil_state(m, r, "ou", heating)
+    ua_iu, ntu_iu, eps_iu = coil_state(m, r, "iu", heating)
     t_evap, t_cond = _num(r, "T_ref_evap_sat [°C]"), _num(r, "T_ref_cond_sat_v [°C]")
     t_ou_in, t_iu_in = _num(r, "T_ou_a_in [°C]"), _num(r, "T_iu_a_in [°C]")
 
@@ -225,7 +239,8 @@ def run_point(task: dict) -> dict:
         "n_star": _num(r, "n_star [-]"),
         "pr": _num(r, "pr_cmp [-]"),
         "m_dot_ref": _num(r, "m_dot_ref [kg/s]"),
-        "UA_ou_rated": float(m.UA_ou_rated),
+        # The outdoor coil's rated conductance in the role this row runs it in.
+        "UA_ou_rated": outdoor_rated_ua(m, heating),
         "UA_iu_rated": float(m.UA_iu_rated),
         "UA_ou": ua_ou,
         "UA_iu": ua_iu,

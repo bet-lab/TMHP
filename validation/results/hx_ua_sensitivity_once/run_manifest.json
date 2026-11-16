@@ -1,5 +1,5 @@
 {
-  "default_UA_ou_rated_W_K": 700.0,
+  "default_UA_ou_rated_W_K": 638.5870769887339,
   "default_UA_iu_rated_W_K": 560.0,
   "joint_scales": [
     0.25,
@@ -65,8 +65,8 @@
   },
   "n_rows": 506,
   "n_failures": 46,
-  "n_speed_floor": 218,
+  "n_speed_floor": 105,
   "n_fan_floor_ou": 0,
   "n_fan_floor_iu": 0,
-  "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06"
+  "coefficient_version": "semi-empirical-2026-11-15"
 }

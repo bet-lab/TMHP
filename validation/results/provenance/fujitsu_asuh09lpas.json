@@ -1,7 +1,7 @@
 {
  "slug": "fujitsu_asuh09lpas",
- "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "git_head": "c1bfaaed77038b2e19444ca975f445bde28cfdc1",
+ "coefficient_version": "semi-empirical-2026-11-15",
+ "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -11,11 +11,11 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "3a4c532b524385b05a582dcb0d10ea267bf99be8",
- "validation_parity_tree": "a1cfee06702656e5516c0d9e9d0ca94a31797e30",
+ "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
+ "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "catalog_blob": "402134e5310d16b697e8b61171aecd5070970f89",
- "run_at": "2026-11-15T07:52:10+00:00"
+ "catalog_blob": "0819fadd7a8e9c1865fc5334773339b43ee656dc",
+ "run_at": "2026-11-16T03:01:44+00:00"
 }

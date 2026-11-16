@@ -51,7 +51,9 @@ def _steady(model, family, T_tank_w, Q, **source):
 
 def _steady_cases(model, family):
     cap = model.hp_capacity
-    cold = {"T0": -25.0} if family == "ASHPB" else {"T_source": -8.0}
+    # Cold enough that no duty runs: the default R290 air-source unit still delivers half its
+    # nameplate at -25 degC (pressure-ratio ceiling) and is off from about -30 degC.
+    cold = {"T0": -30.0} if family == "ASHPB" else {"T_source": -8.0}
     return {
         "off": _steady(model, family, 45.0, 0.0),
         "running": _steady(model, family, 45.0, 0.6 * cap),
@@ -105,9 +107,11 @@ def dynamic_runs(models):
     runs = {}
     for family, (cls, _) in FAMILIES.items():
         model = models[family]
-        # R410A against a 65 degC set point from just below 55 degC: the nameplate
-        # duty, then the in-step stop at the envelope cut-out (test_condensing_limit).
+        # R410A against a 65 degC set point from just below the lower bound the
+        # envelope cut-out moved (5 K under it): the nameplate duty, then the
+        # in-step stop at the cut-out (test_condensing_limit).
         limited = _quiet(cls, ref="R410A", hp_capacity=8000.0)
+        start = limited.T_tank_w_lower_bound - 0.03
         limited.T_tank_w_upper_bound = 65.0
         # A compressor whose speed ceiling is below the rated speed: steps at the ceiling.
         slow = _quiet(cls)
@@ -115,7 +119,7 @@ def dynamic_runs(models):
         runs[family] = {
             "charging": _dynamic(model, 40.0, 3, 600.0, draw=1e-4),
             "idle, no call": _dynamic(model, 62.0, 3, 600.0),
-            "reduced": _dynamic(limited, 54.9, 8, 60.0),
+            "reduced": _dynamic(limited, start, 8, 60.0),
             "speed ceiling": _dynamic(slow, 50.0, 2, 600.0),
         }
     return runs

@@ -1,7 +1,7 @@
 {
   "airflow|heating|outdoor|air_to_water": {
-    "status": "provisional",
-    "decided": "2026-11-14",
-    "reason": "Family hold-out MAPE 19.6 % and manufacturer hold-out 28.9 % (bias +19.9 %): Mitsubishi Ecodan and Samsung EHS differ systematically; every row is a single printed value, so no explicit maximum confirms it; model size is declared at A2/W35, A-7/W35 or as a kW class depending on the maker."
+    "status": "shipped",
+    "decided": "2026-11-15",
+    "reason": "Shipped by owner decision (2026-11-15: switch to the 6-manufacturer stratum, central value with the manufacturer spread stated). Two pre-set criteria are missed: manufacturer hold-out MAPE 22.7 % (limit 20 %) and family hold-out MAPE 20.2 % (limit 20 %). Met: 6 manufacturers / 13 families, manufacturer hold-out bias +9.7 % (limit 10 %), out-of-sample Panasonic bias -8.0 % and MAPE 14.1 %, explicit-max-only fit within 0.99-1.08 of the all-row fit. LG rows rest on LG's own ErP fiches, Daikin rows on an owner-accepted databook copy matched on daikin.eu. Model size is declared differently by each maker."
   }
 }

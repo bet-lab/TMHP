@@ -1,0 +1,107 @@
+{
+ "variants": {
+  "a": {
+   "description": "Shao-informed (the first archive's data arrangement): Shao, Ossorio and AREP #26 inform the shared shape",
+   "default": true,
+   "terms": [
+    "q2",
+    "cL",
+    "cu"
+   ],
+   "backward_elimination_selected": [
+    "q2",
+    "cL",
+    "cu"
+   ],
+   "parameters": {
+    "cL": 0.03401,
+    "cu": 0.118791
+   },
+   "high_speed_term": {
+    "term": "qf",
+    "loco_shape_without": 0.031784,
+    "loco_shape_with": 0.032042,
+    "kept": false,
+    "rule": "kept only if LOCO shape RMSE falls by more than 0.0001"
+   },
+   "level_twin": 1.27097,
+   "level_twin_by_refrigerant": {
+    "R290": 1.145152,
+    "R32": 1.316402,
+    "R410A": 1.172723
+   },
+   "level_single_fixed": 1.729347,
+   "level_single_fixed_by_refrigerant": {
+    "R22": 1.790992,
+    "R410A": 1.692558
+   }
+  },
+  "b": {
+   "description": "Ossorio-anchored: each Shao speed record carries its own level (Shao informs the PR shape only)",
+   "default": false,
+   "terms": [
+    "q2",
+    "cu",
+    "cH",
+    "qf"
+   ],
+   "backward_elimination_selected": [
+    "q2",
+    "qf",
+    "cu",
+    "cH"
+   ],
+   "parameters": {
+    "cu": 0.242992,
+    "cH": 2.408944,
+    "qf": 0.123333
+   },
+   "high_speed_term": {
+    "term": "qf",
+    "loco_shape_without": 0.021511,
+    "loco_shape_with": 0.020881,
+    "kept": true,
+    "rule": "kept only if LOCO shape RMSE falls by more than 0.0001"
+   },
+   "level_twin": 0.52336,
+   "level_twin_by_refrigerant": {
+    "R290": 0.790146,
+    "R32": 0.447823,
+    "R410A": 0.567186
+   },
+   "level_single_fixed": 0.790302,
+   "level_single_fixed_by_refrigerant": {
+    "R22": 0.802211,
+    "R410A": 0.783514
+   }
+  }
+ },
+ "default": "a",
+ "data_speed_ratios": {
+  "ossorio_2019_cnit": {
+   "ossorio_2019_cnit TPB306F R290 [ossorio_2019_cnit]": {
+    "30": 0.97979,
+    "90": 0.978393,
+    "120": 0.914434
+   }
+  },
+  "shao_2004": {
+   "shao_2004 Hitachi SGZ20DB2-Y R22 [shao_2004]": {
+    "30": 0.718251,
+    "90": 0.994047,
+    "120": 0.927214
+   },
+   "shao_2004 Mitsubishi RHV207FEM R22 [shao_2004]": {
+    "30": 0.768918,
+    "90": 1.019021,
+    "120": 0.817212
+   },
+   "shao_2004 SANYO 80870080 R22 [shao_2004]": {
+    "30": 0.854945,
+    "90": 1.002532,
+    "120": 0.971031
+   }
+  }
+ },
+ "note": "Level form scaled, relative speed coordinate n = N/N_rated (the archive's selections on the original data arrangement). Variant a (the original arrangement) is the default rotary shape of the archive (coefficients.json types.rotary_*), chosen by the EN 14825 trajectory-shape rule of DESIGN 14; variant b is kept as the documented alternative. Levels are refitted on the same rating points with each variant's shape."
+}

@@ -90,7 +90,7 @@ def _num(r: dict, key: str) -> float:
 
 def run_point(task: dict) -> dict:
     from tmhp.compressor_efficiency import COEFFICIENT_VERSION
-    from validation.hx_ua_sensitivity.simulate import coil_state
+    from validation.hx_ua_sensitivity.simulate import coil_state, outdoor_rated_ua
 
     m = _model(task["capacity_W"], task["refrigerant"])
     ua_calls, x_ref_min = float("nan"), float("nan")
@@ -122,8 +122,10 @@ def run_point(task: dict) -> dict:
     m_dot_rated = task.get("m_dot_rated")
     fan_ou = _num(r, "dV_ou_a [m3/s]") / m.dV_ou_fan_a_rated
     fan_iu = _num(r, "dV_iu_a [m3/s]") / m.dV_iu_fan_a_rated
-    ua_ou, ntu_ou, eps_ou = coil_state(m, r, "ou")
-    ua_iu, ntu_iu, eps_iu = coil_state(m, r, "iu")
+    heating = task["duty"] == "heating"
+    ua_ou_rated = outdoor_rated_ua(m, heating)
+    ua_ou, ntu_ou, eps_ou = coil_state(m, r, "ou", heating)
+    ua_iu, ntu_iu, eps_iu = coil_state(m, r, "iu", heating)
     return {
         "variant": task["variant"],
         "pass": task["pass"],
@@ -157,8 +159,9 @@ def run_point(task: dict) -> dict:
         "x_ref_min_seen": x_ref_min,
         "ua_eval_count": ua_calls,
         "UA_ou": ua_ou,
-        "UA_ou_rated": m.UA_ou_rated,
-        "ua_ratio_ou": ua_ou / m.UA_ou_rated,
+        # The outdoor coil's rated conductance in the role this row runs it in.
+        "UA_ou_rated": ua_ou_rated,
+        "ua_ratio_ou": ua_ou / ua_ou_rated,
         "NTU_ou": ntu_ou,
         "epsilon_ou": eps_ou,
         "UA_iu": ua_iu,

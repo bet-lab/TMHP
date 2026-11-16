@@ -62,8 +62,15 @@ def envelope_heating_mild(hp: AirSourceHeatPump) -> dict:
 
 
 def test_default_approach_bounds_are_unchanged(hp: AirSourceHeatPump):
-    """The bound is a documented model setting; widening it is a deliberate act."""
-    assert hp.dT_approach_bounds == (1.0, 20.0)
+    """The bound is a documented model setting; widening it is a deliberate act.
+
+    It was widened from 20 K to 30 K with the catalogue airflow defaults
+    (issue #86): at the largest airflow indoor units publish, a dry coil
+    carrying the nameplate needs about 20 K of approach, so a 20 K bound cut
+    the rated capacity of every default unit above 8 kW
+    (tests/test_default_inputs_wiring.py).
+    """
+    assert hp.dT_approach_bounds == (1.0, 30.0)
 
 
 def test_ceiling_is_found_and_exceeds_nameplate_at_mild_conditions(envelope_heating_mild):

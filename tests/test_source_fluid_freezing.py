@@ -106,23 +106,34 @@ def test_default_constructors_are_quiet():
 
 
 def test_default_machines_run_their_brine_rating_points(machines):
-    """EN 14511 B0/W35 and B0/W55 (GSHPB) and a 0 °C borehole wall (GSHP) with nothing but the defaults."""
+    """B0 with the tank at 35 and 55 °C (GSHPB) and a 0 °C borehole wall (GSHP) with nothing but the defaults.
+
+    The boiler's ``T_tank_w`` is the water entering its plate condenser, which
+    leaves 5 K warmer at the rated flow; the EN 14511 points, named by the
+    leaving water, are in tests/test_operating_range.py.
+    """
     gshpb = machines["GSHPB", "default"]
     assert gshpb.ref == "R290"  # (R410A, the default before: 3.847 and 2.404, with glycol as with water)
-    for T_tank, cop_sys in ((35.0, 3.870), (55.0, 2.651)):
+    # 3.870 and 2.651 with the earlier compressor map, a 5 K tank coil without circulating water and
+    # 42 cm3/rev per 9 kW; with the rotary-compressor model, the plate condenser and the catalogue
+    # displacement 3.473 and 2.405.
+    for T_tank, cop_sys in ((35.0, 3.473), (55.0, 2.405)):
         with warnings.catch_warnings():
             warnings.simplefilter("error", RuntimeWarning)
             warnings.simplefilter("error", OperatingLimitWarning)
             r = gshpb.analyze_steady(T_tank_w=T_tank, T_source=0.0, Q_ref_tank=8000.0)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["Q_ref_tank [W]"] == pytest.approx(8000.0)
-        assert r["T_bhe_f_in [°C]"] == pytest.approx(-3.0 if T_tank == 35.0 else -2.5, abs=0.1)
+        assert r["T_bhe_f_in [°C]"] == pytest.approx(-3.0 if T_tank == 35.0 else -2.6, abs=0.1)
         assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)
     gshp = machines["GSHP", "default"]
     # 3.520 and 3.921 with a water loop before it had a freezing point: the glycol's
     # borehole resistance is 0.168 against 0.162 m K/W. 3.508 and 3.915 with the indoor
-    # coil on 15 °C standard air instead of the 20 °C room air it draws (#96).
-    for load, cop_sys in ((-4000.0, 3.495), (-2000.0, 3.908)):
+    # coil on 15 °C standard air instead of the 20 °C room air it draws (#96). 3.495 and
+    # 3.908 before the catalogue default inputs (#86): the displacement of an R32 unit of
+    # this capacity is 0.65 of the earlier constant and the indoor airflow 1.52 times it. 3.743 and
+    # 4.139 before the rotary-compressor default efficiencies and the approach-temperature conductances.
+    for load, cop_sys in ((-4000.0, 3.697), (-2000.0, 4.265)):
         r = _quiet(gshp.analyze_steady, Q_r_iu=load, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)
@@ -359,8 +370,8 @@ def test_steady_limits_apply_in_order_cycling_mean_then_freezing_then_envelope(m
     water = machines["GSHPB", "water"]
     limit, T_cond_max = FREEZE_MARGIN_K, water.T_cond_max
     assert (water.ref, T_cond_max) == ("R290", 75.0)
-    # Tank at 72 °C: the condensing limit allows 4.8 kW (3 K of approach), less
-    # than the freezing limit would (about 5.5 kW from a 5 °C source). The
+    # Tank at 72 °C: the condensing limit allows 3.4 kW (3 K of approach), less
+    # than the freezing limit would (about 6.7 kW from a 5 °C source). The
     # envelope reduces, and the point it returns is inside the freezing limit.
     r = _quiet(water.analyze_steady, T_tank_w=72.0, T_source=5.0, Q_ref_tank=8000.0)
     assert r["failure_reason"] == "none" and r["capacity_binding"] == "condensing_temperature"
@@ -380,7 +391,10 @@ def test_steady_limits_apply_in_order_cycling_mean_then_freezing_then_envelope(m
     assert 0.0 < r["runtime_fraction [-]"] < 1.0 and r["T_bhe_f_in [°C]"] >= limit - TOL_K
     # ... and off when the running machine, already on its speed floor, would
     # chill the loop below it: switching on and off does not warm the liquid.
-    r = _quiet(water.analyze_steady, T_tank_w=45.0, T_source=3.5, Q_ref_tank=400.0)
+    # (Its 1.47 kW floor duty cools the loop by 0.47 K: from 3.5 °C, the source
+    # of before the rotary-compressor default efficiencies, it stays above the
+    # limit; from 3.4 °C it does not.)
+    r = _quiet(water.analyze_steady, T_tank_w=45.0, T_source=3.3, Q_ref_tank=400.0)
     assert r["failure_reason"] == SOURCE_FLUID_FREEZING and r["hp_is_on"] is False
     assert r["Q_ref_tank [W]"] == 0.0 and r["runtime_fraction [-]"] == 0.0
 

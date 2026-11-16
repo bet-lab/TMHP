@@ -40,13 +40,15 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     ticks,
 )
 
-from tmhp import compressor_efficiency as ce  # noqa: E402
 from tmhp.compressor_speed import (  # noqa: E402
     RATED_POINT_AIR_TO_AIR,
     RATED_POINT_AIR_TO_WATER,
     RatedPoint,
     default_displacement,
 )
+
+# The report is that of the v2026-09-24 coefficients: an earlier release, recorded outside the library.
+from validation.coefficients.recorded_maps import v2026_09_24 as ce  # noqa: E402
 from validation.compressor_maps.schema import DATA_DIR, REPO_ROOT  # noqa: E402
 from validation.fixed_boundary_plr.shape_metrics import metrics_for  # noqa: E402
 from validation.parity.spec import load_all  # noqa: E402

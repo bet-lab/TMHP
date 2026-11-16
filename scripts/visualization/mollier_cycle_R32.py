@@ -17,7 +17,7 @@ import CoolProp.CoolProp as CP
 import dartwork_mpl as dm
 import matplotlib.pyplot as plt
 import numpy as np
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, record_figure, static_path
+from _dmpl_common import COLORS, GRIDLINE, TEXT_COLORS, apply_style, finalize, record_figure, static_path
 
 from tmhp import AirSourceHeatPumpBoiler
 
@@ -207,9 +207,9 @@ def main() -> None:
     )
 
     ax_th.axhline(T_TANK_W, color=COLORS["hot"], linewidth=dm.lw(0), linestyle=(0, (3, 3)), alpha=0.9)
-    ax_th.text(15, T_TANK_W + 3, f"Tank water: {T_TANK_W:.0f} °C", color=COLORS["hot"], fontsize=dm.fs(-1))
+    ax_th.text(15, T_TANK_W + 3, f"Tank water: {T_TANK_W:.0f} °C", color=TEXT_COLORS["hot"], fontsize=dm.fs(-1))
     ax_th.axhline(T0, color=COLORS["warm"], linewidth=dm.lw(0), linestyle=(0, (3, 3)), alpha=0.9)
-    ax_th.text(15, T0 - 10, f"Outdoor air: {T0:.0f} °C", color=COLORS["warm"], fontsize=dm.fs(-1))
+    ax_th.text(15, T0 - 10, f"Outdoor air: {T0:.0f} °C", color=TEXT_COLORS["warm"], fontsize=dm.fs(-1))
 
     ax_th.set_xlim(0, 700)
     ax_th.set_ylim(-20, 160)

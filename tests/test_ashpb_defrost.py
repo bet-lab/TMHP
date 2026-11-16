@@ -23,6 +23,8 @@ from tmhp import ASHPB_PV_ESS, AirSourceHeatPumpBoiler, ASHPB_STC_tank
 from tmhp.defrost import DefrostModel
 from tmhp.subsystems import PhotovoltaicSystem, SolarThermalCollector
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 os.environ.setdefault("TQDM_DISABLE", "1")
 
 FROST_KEYS = (

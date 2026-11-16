@@ -196,8 +196,10 @@ def test_a_request_above_the_compressor_ceiling_reports_the_ceiling():
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_a_coil_that_cannot_carry_any_duty_fails_with_a_reason():
-    # Within an 8 K approach this indoor coil carries no duty the compressor can deliver.
-    model = AirSourceHeatPump(UA_iu_rated=300.0, dT_approach_bounds=(1.0, 8.0), **FIXED_IU, **FIXED_OU)
+    # Within a 5 K approach this indoor coil carries no duty the compressor can deliver: at most
+    # 818 W at its one airflow, below the 1.02 kW the compressor delivers at its speed floor here.
+    # (8 K, the bound of before the rotary-compressor default efficiencies, now carries 1.31 kW.)
+    model = AirSourceHeatPump(UA_iu_rated=300.0, dT_approach_bounds=(1.0, 5.0), **FIXED_IU, **FIXED_OU)
     out = _solve(model, **HEATING)
     assert not out["converged"] and out["failure_reason"] == "hx_not_converged"
     assert out["Q_ref_iu [W]"] == 0.0 and out["E_tot [W]"] == 0.0

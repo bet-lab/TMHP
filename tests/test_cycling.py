@@ -30,6 +30,8 @@ from tmhp.cycling import (
     resolve_cycling,
 )
 
+pytestmark = pytest.mark.earlier_defaults  # scenarios pinned on the earlier default machine: tests/conftest.py
+
 A7_20 = dict(T0=7.0, T_a_room=20.0)
 
 

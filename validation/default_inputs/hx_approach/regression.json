@@ -1,0 +1,5689 @@
+{
+  "dataset": {
+    "records": 2287,
+    "eligible": 1576,
+    "sources": 59
+  },
+  "third_party_sources_not_accepted": [
+    "CARRIER-50PS-6SI",
+    "CARRIER-SVM-12031",
+    "DANFOSS-VIGFI102",
+    "MITSUBISHI-OBH498",
+    "MITSUBISHI-OBH502-REVE",
+    "MITSUBISHI-OBH543-REVG",
+    "MITSUBISHI-OBH684-REVA",
+    "MITSUBISHI-OBH821-REVA",
+    "TOSHIBA-A06-011",
+    "TOSHIBA-A07-008",
+    "TOSHIBA-A08-010",
+    "TOSHIBA-SVM-07036",
+    "TOSHIBA-SVM-09041",
+    "TOSHIBA-SVM-10001-2",
+    "TOSHIBA-SVM-10029",
+    "TOSHIBA-SVM-11031",
+    "TOSHIBA-SVM-12029",
+    "TOSHIBA-SVM-12039",
+    "TOSHIBA-SVM-12057",
+    "TOSHIBA-SVM-12059-1",
+    "TOSHIBA-SVM-12070",
+    "TOSHIBA-SVM-12071"
+  ],
+  "data_sha256": "855fdbe2c09a7cc59f28193cc63b81d1fa948d9255a874d442819fb9f75d2b58",
+  "selection": "Per stratum, every candidate law is fitted with one hold-out group (product lines sharing hardware) left out, family-balanced, and scored by the RMSE of the predicted inlet temperature difference [K] of the held-out units at their own flow and duty. Selected: the first law in the order leaving_approach, ua_per_duty, ua_per_nameplate, itd, ua_linear whose RMSE is within 1.10 of the lowest.",
+  "pressure_basis": {
+    "KTH-EGI-2015-084MSC": {
+      "basis": "absolute",
+      "n": 21,
+      "median_mismatch_K": {
+        "gauge": 5.802794798829905,
+        "absolute": 0.010052572246756875
+      },
+      "evidence": "the printed saturation temperatures of the same table"
+    },
+    "MITSUBISHI-OCH439-REVM": {
+      "basis": "gauge",
+      "n": 12,
+      "median_mismatch_K": {
+        "gauge": 0.7116532073430335,
+        "absolute": 2.3533904936671775
+      },
+      "evidence": "the printed saturation temperatures of the same table"
+    },
+    "MITSUBISHI-OCH562-REVD": {
+      "basis": "gauge",
+      "n": 2,
+      "median_mismatch_K": {
+        "gauge": 0.2614976220338576,
+        "absolute": 2.1620458734881822
+      },
+      "evidence": "the printed saturation temperatures of the same table"
+    },
+    "MITSUBISHI-OCH605-REVA": {
+      "basis": "gauge",
+      "n": 2,
+      "median_mismatch_K": {
+        "gauge": 0.3482275971847457,
+        "absolute": 2.2156366616021614
+      },
+      "evidence": "the printed saturation temperatures of the same table"
+    },
+    "AHRI-AREP-004": {
+      "basis": "absolute",
+      "evidence": "the report forms print every pressure as kPa with psia in the IP column"
+    },
+    "AHRI-AREP-032": {
+      "basis": "absolute",
+      "evidence": "the report forms print every pressure as kPa with psia in the IP column"
+    },
+    "AHRI-AREP-042": {
+      "basis": "absolute",
+      "evidence": "the report forms print every pressure as kPa with psia in the IP column"
+    },
+    "AHRI-AREP-052": {
+      "basis": "absolute",
+      "evidence": "the report forms print every pressure as kPa with psia in the IP column"
+    },
+    "AHRI-AREP-054": {
+      "basis": "absolute",
+      "evidence": "the report forms print every pressure as kPa with psia in the IP column"
+    }
+  },
+  "shipping_gate": {
+    "holdout_groups": 3,
+    "manufacturers": 2
+  },
+  "fits": {
+    "indoor_coil|ducted|fin_tube|condensing": {
+      "n": 32,
+      "holdout_groups": [
+        "Carrier:25HCD4 14 SEER split HP",
+        "Goodman:SSZ14 split HP",
+        "Lennox:14HPX 14 SEER split HP",
+        "Mitsubishi:SUZ-KA (one outdoor line, three manual generations)",
+        "Rheem:13PJL 13 SEER split HP"
+      ],
+      "families": [
+        "Carrier:25HCD4 14 SEER split HP",
+        "Goodman:SSZ14 split HP",
+        "Lennox:14HPX 14 SEER split HP",
+        "Mitsubishi:SUZ-KA NA",
+        "Mitsubishi:SUZ-KA NA2",
+        "Mitsubishi:SUZ-KA NAR1",
+        "Rheem:13PJL 13 SEER split HP"
+      ],
+      "manufacturers": [
+        "Carrier (United Technologies)",
+        "Goodman/Amana (tested by Univ. of Maryland CEEE)",
+        "Lennox",
+        "Mitsubishi Electric",
+        "Rheem (tested by Danfoss)"
+      ],
+      "value_kinds": {
+        "measured_lab": 11,
+        "manufacturer_standard_data": 21
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          7.229460072999927,
+          18.36389005776654,
+          25.300843532421723
+        ],
+        "leave_K": [
+          0.26659658375886064,
+          2.583928076593211,
+          8.908623370390071
+        ],
+        "LMTD_K": [
+          2.5940790402359033,
+          6.901993609312995,
+          15.704097834779203
+        ],
+        "eps": [
+          0.5930004341531075,
+          0.7558226147202478,
+          0.9676577265096641
+        ],
+        "UA_per_Q_hx": [
+          0.06367764710337846,
+          0.14488567457534016,
+          0.38549326542843537
+        ],
+        "Q_hx_per_nameplate": [
+          0.44844608315168544,
+          0.7150874660956474,
+          1.0625572561991563
+        ],
+        "UA_per_nameplate": [
+          0.05802052985717013,
+          0.09847272337391261,
+          0.22119643176391904
+        ],
+        "Q_hx_per_cooling_nameplate": [
+          0.44844608315168544,
+          0.9114210315426461,
+          1.2000000000000002
+        ],
+        "n_with_cooling_nameplate": 32,
+        "Q_hx_per_heating_nameplate": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "n_with_heating_nameplate": 21
+      },
+      "by_product_class": {
+        "split_ducted": {
+          "n": 32,
+          "holdout_groups": 5,
+          "ITD_K": 18.36389005776654,
+          "leave_K": 2.583928076593211
+        }
+      },
+      "selected_law": {
+        "kind": "leaving_approach",
+        "dT_out_K": 2.583928076593211
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 2.583928076593211
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 32,
+            "RMSE_K": 5.4633489386570595,
+            "bias_K": -2.625285200952451,
+            "MAE_K": 4.651140357912861,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 2,
+                "bias_K": -1.9551073657981641
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 4,
+                "bias_K": 4.575917326552161
+              },
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 2,
+                "bias_K": -6.240576790374592
+              },
+              "Mitsubishi:SUZ-KA (one outdoor line, three manual generations)": {
+                "n": 21,
+                "bias_K": -4.736833046174078
+              },
+              "Rheem:13PJL 13 SEER split HP": {
+                "n": 3,
+                "bias_K": 4.517355515104695
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 32,
+            "RMSE_K": 5.4633489386570595,
+            "bias_K": -2.625285200952451,
+            "MAE_K": 4.651140357912861,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 2,
+                "bias_K": -1.9551073657981641
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 4,
+                "bias_K": 4.575917326552161
+              },
+              "Lennox": {
+                "n": 2,
+                "bias_K": -6.240576790374592
+              },
+              "Mitsubishi Electric": {
+                "n": 21,
+                "bias_K": -4.736833046174078
+              },
+              "Rheem (tested by Danfoss)": {
+                "n": 3,
+                "bias_K": 4.517355515104695
+              }
+            }
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.14488567457534016
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 32,
+            "RMSE_K": 5.925942770995631,
+            "bias_K": -2.7136779059857523,
+            "MAE_K": 5.050411960013321,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 2,
+                "bias_K": -0.9767167561299868
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 4,
+                "bias_K": 4.981441332284502
+              },
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 2,
+                "bias_K": -6.023828132129987
+              },
+              "Mitsubishi:SUZ-KA (one outdoor line, three manual generations)": {
+                "n": 21,
+                "bias_K": -5.193382137626948
+              },
+              "Rheem:13PJL 13 SEER split HP": {
+                "n": 3,
+                "bias_K": 5.432885448667918
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 32,
+            "RMSE_K": 5.925942770995631,
+            "bias_K": -2.7136779059857523,
+            "MAE_K": 5.050411960013321,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 2,
+                "bias_K": -0.9767167561299868
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 4,
+                "bias_K": 4.981441332284502
+              },
+              "Lennox": {
+                "n": 2,
+                "bias_K": -6.023828132129987
+              },
+              "Mitsubishi Electric": {
+                "n": 21,
+                "bias_K": -5.193382137626948
+              },
+              "Rheem (tested by Danfoss)": {
+                "n": 3,
+                "bias_K": 5.432885448667918
+              }
+            }
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 18.36389005776654
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 32,
+            "RMSE_K": 8.10762344966921,
+            "bias_K": -3.578346820164775,
+            "MAE_K": 6.892208307417879,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 2,
+                "bias_K": 4.210314658567375
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 4,
+                "bias_K": 5.422175729031818
+              },
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 2,
+                "bias_K": -5.448249992401301
+              },
+              "Mitsubishi:SUZ-KA (one outdoor line, three manual generations)": {
+                "n": 21,
+                "bias_K": -7.4310017380816396
+              },
+              "Rheem:13PJL 13 SEER split HP": {
+                "n": 3,
+                "bias_K": 7.4437020019940645
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 32,
+            "RMSE_K": 8.10762344966921,
+            "bias_K": -3.578346820164775,
+            "MAE_K": 6.892208307417879,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 2,
+                "bias_K": 4.210314658567375
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 4,
+                "bias_K": 5.422175729031818
+              },
+              "Lennox": {
+                "n": 2,
+                "bias_K": -5.448249992401301
+              },
+              "Mitsubishi Electric": {
+                "n": 21,
+                "bias_K": -7.4310017380816396
+              },
+              "Rheem (tested by Danfoss)": {
+                "n": 3,
+                "bias_K": 7.4437020019940645
+              }
+            }
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": [
+        8381.832602,
+        12308.98375
+      ],
+      "duty_range_W": [
+        2930.7107,
+        13079.0
+      ],
+      "n_with_conductance": 11,
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "AHRI-AREP-004",
+        "AHRI-AREP-032",
+        "AHRI-AREP-052",
+        "AHRI-AREP-054",
+        "MITSUBISHI-OCH467-REVC",
+        "MITSUBISHI-OCH699-REVA",
+        "MITSUBISHI-TCH022"
+      ]
+    },
+    "indoor_coil|ducted|fin_tube|evaporating": {
+      "n": 8,
+      "holdout_groups": [
+        "Carrier:25HCD4 14 SEER split HP",
+        "Goodman:SSX14 split AC",
+        "Goodman:SSZ14 split HP",
+        "Rheem:13PJL 13 SEER split HP"
+      ],
+      "families": [
+        "Carrier:25HCD4 14 SEER split HP",
+        "Goodman:SSX14 split AC",
+        "Goodman:SSZ14 split HP",
+        "Rheem:13PJL 13 SEER split HP"
+      ],
+      "manufacturers": [
+        "Carrier (United Technologies)",
+        "Goodman",
+        "Goodman/Amana (tested by Univ. of Maryland CEEE)",
+        "Rheem (tested by Danfoss)"
+      ],
+      "value_kinds": {
+        "measured_lab": 8
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          13.589094673198382,
+          17.02620837985787,
+          18.001342652087928
+        ],
+        "leave_K": [
+          1.0431905612345407,
+          4.0599041095328,
+          6.194039814477819
+        ],
+        "LMTD_K": [
+          4.887410813780175,
+          9.12446446582112,
+          10.669104189254568
+        ],
+        "eps": [
+          0.633659103169537,
+          0.7649276054049134,
+          0.923233255318177
+        ],
+        "UA_per_Q_hx": [
+          0.0937285813561699,
+          0.10959547310922746,
+          0.20460731420008227
+        ],
+        "Q_hx_per_nameplate": [
+          0.7044177523320451,
+          0.802801101377143,
+          0.9042175333102649
+        ],
+        "UA_per_nameplate": [
+          0.0660240766081844,
+          0.09236796043141234,
+          0.16425897718964516
+        ],
+        "Q_hx_per_cooling_nameplate": [
+          0.7044177523320451,
+          0.802801101377143,
+          0.9042175333102649
+        ],
+        "n_with_cooling_nameplate": 8
+      },
+      "by_product_class": {
+        "split_ducted": {
+          "n": 8,
+          "holdout_groups": 4,
+          "ITD_K": 17.02620837985787,
+          "leave_K": 4.0599041095328
+        }
+      },
+      "selected_law": {
+        "kind": "ua_per_duty",
+        "k_per_K": 0.10959547310922746
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 4.0599041095328
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 8,
+            "RMSE_K": 1.5340278999069408,
+            "bias_K": 0.09917315646608316,
+            "MAE_K": 1.1245198095275457,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 1,
+                "bias_K": -2.5101692244230502
+              },
+              "Goodman:SSX14 split AC": {
+                "n": 2,
+                "bias_K": 0.5216726881988425
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 2,
+                "bias_K": 1.9257132437884152
+              },
+              "Rheem:13PJL 13 SEER split HP": {
+                "n": 3,
+                "bias_K": -0.5304057959409333
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 8,
+            "RMSE_K": 1.5340278999069408,
+            "bias_K": 0.09917315646608316,
+            "MAE_K": 1.1245198095275457,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 1,
+                "bias_K": -2.5101692244230502
+              },
+              "Goodman": {
+                "n": 2,
+                "bias_K": 0.5216726881988425
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 2,
+                "bias_K": 1.9257132437884152
+              },
+              "Rheem (tested by Danfoss)": {
+                "n": 3,
+                "bias_K": -0.5304057959409333
+              }
+            }
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.10959547310922746
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 8,
+            "RMSE_K": 1.3352029811407078,
+            "bias_K": 0.2910604168366222,
+            "MAE_K": 0.8566236196536428,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 1,
+                "bias_K": -1.4904463064300888
+              },
+              "Goodman:SSX14 split AC": {
+                "n": 2,
+                "bias_K": 0.30129033578324105
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 2,
+                "bias_K": 1.7743079640655939
+              },
+              "Rheem:13PJL 13 SEER split HP": {
+                "n": 3,
+                "bias_K": -0.11075565285820115
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 8,
+            "RMSE_K": 1.3352029811407078,
+            "bias_K": 0.2910604168366222,
+            "MAE_K": 0.8566236196536428,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 1,
+                "bias_K": -1.4904463064300888
+              },
+              "Goodman": {
+                "n": 2,
+                "bias_K": 0.30129033578324105
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 2,
+                "bias_K": 1.7743079640655939
+              },
+              "Rheem (tested by Danfoss)": {
+                "n": 3,
+                "bias_K": -0.11075565285820115
+              }
+            }
+          }
+        },
+        "ua_per_nameplate": {
+          "law": {
+            "kind": "ua_per_nameplate",
+            "k_per_K": 0.09236796043141234
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 8,
+            "RMSE_K": 1.8132874927165095,
+            "bias_K": 0.5584051556105702,
+            "MAE_K": 1.4397617892958525,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 1,
+                "bias_K": -2.8390259066717576
+              },
+              "Goodman:SSX14 split AC": {
+                "n": 2,
+                "bias_K": -0.2712941703927232
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 2,
+                "bias_K": 2.5220685690347633
+              },
+              "Rheem:13PJL 13 SEER split HP": {
+                "n": 3,
+                "bias_K": 0.9349061180907464
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 8,
+            "RMSE_K": 1.8132874927165095,
+            "bias_K": 0.5584051556105702,
+            "MAE_K": 1.4397617892958525,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 1,
+                "bias_K": -2.8390259066717576
+              },
+              "Goodman": {
+                "n": 2,
+                "bias_K": -0.2712941703927232
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 2,
+                "bias_K": 2.5220685690347633
+              },
+              "Rheem (tested by Danfoss)": {
+                "n": 3,
+                "bias_K": 0.9349061180907464
+              }
+            }
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 17.02620837985787
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 8,
+            "RMSE_K": 1.550768743956501,
+            "bias_K": 0.07104837294474642,
+            "MAE_K": 1.1443234187538813,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 1,
+                "bias_K": 0.36300933340701746
+              },
+              "Goodman:SSX14 split AC": {
+                "n": 2,
+                "bias_K": -0.5288529028558564
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 2,
+                "bias_K": 1.2309897172147153
+              },
+              "Rheem:13PJL 13 SEER split HP": {
+                "n": 3,
+                "bias_K": -0.399631992855588
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 8,
+            "RMSE_K": 1.550768743956501,
+            "bias_K": 0.07104837294474642,
+            "MAE_K": 1.1443234187538813,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 1,
+                "bias_K": 0.36300933340701746
+              },
+              "Goodman": {
+                "n": 2,
+                "bias_K": -0.5288529028558564
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 2,
+                "bias_K": 1.2309897172147153
+              },
+              "Rheem (tested by Danfoss)": {
+                "n": 3,
+                "bias_K": -0.399631992855588
+              }
+            }
+          }
+        },
+        "ua_linear": {
+          "law": {
+            "kind": "ua_linear",
+            "a_W_K_per_kW": 103.8211218027118,
+            "b_W_K": -84.75040149140773
+          },
+          "group_holdout": {
+            "valid": false,
+            "reason": "law not defined without Carrier:25HCD4 14 SEER split HP"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "law not defined without Carrier (United Technologies)"
+          }
+        }
+      },
+      "nameplate_range_W": [
+        8381.832602,
+        10550.55852
+      ],
+      "duty_range_W": [
+        6670.37,
+        9540.0
+      ],
+      "n_with_conductance": 8,
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "AHRI-AREP-032",
+        "AHRI-AREP-042",
+        "AHRI-AREP-052",
+        "AHRI-AREP-054"
+      ]
+    },
+    "indoor_coil|other_indoor_unit|fin_tube|condensing": {
+      "n": 15,
+      "holdout_groups": [
+        "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+        "Mitsubishi:SUZ-KA (one outdoor line, three manual generations)"
+      ],
+      "families": [
+        "Mitsubishi:MUFZ-KJ NAHZ",
+        "Mitsubishi:SUZ-KA NA",
+        "Mitsubishi:SUZ-KA NA2",
+        "Mitsubishi:SUZ-KA NAR1"
+      ],
+      "manufacturers": [
+        "Mitsubishi Electric"
+      ],
+      "value_kinds": {
+        "manufacturer_standard_data": 15
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          18.227569460466814,
+          27.287581433815124,
+          33.11300781352091
+        ],
+        "leave_K": [
+          4.653446748671168,
+          6.949139276065033,
+          11.476438047534408
+        ],
+        "LMTD_K": [
+          9.942030000491982,
+          15.46788262061993,
+          19.562357322162157
+        ],
+        "eps": [
+          0.5747015475475071,
+          0.7294672781967801,
+          0.7679065802919475
+        ],
+        "UA_per_Q_hx": [
+          0.051118583692728176,
+          0.06465008977162263,
+          0.10058308011045178
+        ],
+        "Q_hx_per_nameplate": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "UA_per_nameplate": [
+          0.0635271355168112,
+          0.06499568472017066,
+          0.10058308011045179
+        ],
+        "Q_hx_per_cooling_nameplate": [
+          1.0833333333333333,
+          1.222222222222222,
+          1.2976190476190477
+        ],
+        "n_with_cooling_nameplate": 15,
+        "Q_hx_per_heating_nameplate": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "n_with_heating_nameplate": 15
+      },
+      "by_product_class": {
+        "split_other": {
+          "n": 15,
+          "holdout_groups": 2,
+          "ITD_K": 27.287581433815124,
+          "leave_K": 6.949139276065033
+        }
+      },
+      "selected_law": {
+        "kind": "ua_per_duty",
+        "k_per_K": 0.06465008977162263
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 6.949139276065033
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 15,
+            "RMSE_K": 5.032160326299855,
+            "bias_K": -1.7722844133680835,
+            "MAE_K": 4.681969342831895,
+            "folds": {
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 4,
+                "bias_K": 4.289841127736452
+              },
+              "Mitsubishi:SUZ-KA (one outdoor line, three manual generations)": {
+                "n": 11,
+                "bias_K": -3.97669370104246
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.06465008977162263
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 15,
+            "RMSE_K": 4.1368132979420675,
+            "bias_K": -0.158198683889722,
+            "MAE_K": 3.5262030503141903,
+            "folds": {
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 4,
+                "bias_K": 4.2738419405257515
+              },
+              "Mitsubishi:SUZ-KA (one outdoor line, three manual generations)": {
+                "n": 11,
+                "bias_K": -1.7698498200408033
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 27.287581433815124
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 15,
+            "RMSE_K": 7.825689300257983,
+            "bias_K": -4.421682607394616,
+            "MAE_K": 6.795212565614489,
+            "folds": {
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 4,
+                "bias_K": 3.4331435312455483
+              },
+              "Mitsubishi:SUZ-KA (one outdoor line, three manual generations)": {
+                "n": 11,
+                "bias_K": -7.277983021445585
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": [
+        3223.78177,
+        6154.49247
+      ],
+      "duty_range_W": [
+        3194.474663,
+        6154.49247
+      ],
+      "n_with_conductance": 4,
+      "meets_shipping_gate": false,
+      "source_ids": [
+        "MITSUBISHI-OBH753-REVB",
+        "MITSUBISHI-OCH467-REVC",
+        "MITSUBISHI-OCH699-REVA",
+        "MITSUBISHI-TCH022"
+      ]
+    },
+    "indoor_coil|wall_mounted|fin_tube|condensing": {
+      "n": 78,
+      "holdout_groups": [
+        "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+        "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+        "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+        "Mitsubishi:MUZ-FW NAHZ",
+        "Mitsubishi:MUZ-FX NLHZ",
+        "Mitsubishi:MUZ-GS NA"
+      ],
+      "families": [
+        "Mitsubishi:MUZ-FH NA",
+        "Mitsubishi:MUZ-FS NA",
+        "Mitsubishi:MUZ-FW NAHZ",
+        "Mitsubishi:MUZ-FX NLHZ",
+        "Mitsubishi:MUZ-GE NA",
+        "Mitsubishi:MUZ-GL NA",
+        "Mitsubishi:MUZ-GS NA",
+        "Mitsubishi:MUZ-GX NL",
+        "Mitsubishi:MUZ-HM NA",
+        "Mitsubishi:MUZ-HX NL",
+        "Mitsubishi:MUZ-JX WL",
+        "Mitsubishi:MUZ-WR NA",
+        "Mitsubishi:MUZ-WX NL"
+      ],
+      "manufacturers": [
+        "Mitsubishi Electric"
+      ],
+      "value_kinds": {
+        "manufacturer_standard_data": 78
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          14.02974168892931,
+          21.68427190176155,
+          30.09428546880017
+        ],
+        "leave_K": [
+          3.785190037977898,
+          6.84857636349583,
+          10.116571845600296
+        ],
+        "LMTD_K": [
+          7.819770663900555,
+          12.963518418261643,
+          17.830236087260506
+        ],
+        "eps": [
+          0.6273265509795695,
+          0.7064730995167622,
+          0.7564478952546214
+        ],
+        "UA_per_Q_hx": [
+          0.056084506963678865,
+          0.07713955175867264,
+          0.1278809882003871
+        ],
+        "Q_hx_per_nameplate": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "UA_per_nameplate": [
+          0.056084506963678865,
+          0.07713955175867264,
+          0.12788098820038704
+        ],
+        "Q_hx_per_cooling_nameplate": [
+          1.0166666666666666,
+          1.1555555555555554,
+          1.45
+        ],
+        "n_with_cooling_nameplate": 72,
+        "Q_hx_per_heating_nameplate": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "n_with_heating_nameplate": 78
+      },
+      "by_product_class": {
+        "split_wall": {
+          "n": 78,
+          "holdout_groups": 6,
+          "ITD_K": 21.68427190176155,
+          "leave_K": 6.84857636349583
+        }
+      },
+      "selected_law": {
+        "kind": "leaving_approach",
+        "dT_out_K": 6.84857636349583
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 6.84857636349583
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 78,
+            "RMSE_K": 2.6197587481195828,
+            "bias_K": -0.9634445653442103,
+            "MAE_K": 2.1750114266288914,
+            "folds": {
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": 1.415987199670492
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -0.5046498615248151
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 22,
+                "bias_K": -3.23246021189577
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 2.7371661039383475
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": -0.022817104767558643
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": -1.1844792400843318
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.07713955175867264
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 78,
+            "RMSE_K": 3.410709735469634,
+            "bias_K": -1.168984933724763,
+            "MAE_K": 2.8895266232368253,
+            "folds": {
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": 1.3293865568617846
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -0.49578682302391913
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 22,
+                "bias_K": -3.751448079337186
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 4.082233354492761
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 0.8115443894635863
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": -2.1057768217376167
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_nameplate": {
+          "law": {
+            "kind": "ua_per_nameplate",
+            "k_per_K": 0.07713955175867264
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 78,
+            "RMSE_K": 3.410709735469635,
+            "bias_K": -1.1689849337247635,
+            "MAE_K": 2.889526623236826,
+            "folds": {
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": 1.3293865568617849
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -0.49578682302391786
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 22,
+                "bias_K": -3.751448079337188
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 4.082233354492764
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 0.8115443894635863
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": -2.1057768217376194
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 21.68427190176155
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 78,
+            "RMSE_K": 5.939195898018077,
+            "bias_K": -2.600697873219702,
+            "MAE_K": 4.995876192966442,
+            "folds": {
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": 0.6890428829004908
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -2.25031430949827
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 22,
+                "bias_K": -5.456010767252536
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 6.250913386794802
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 2.192684831417305
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": -5.2002573773866185
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_linear": {
+          "law": {
+            "kind": "ua_linear",
+            "a_W_K_per_kW": 34.281801733790495,
+            "b_W_K": 200.74048717558676
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 78,
+            "RMSE_K": 2.470990686363838,
+            "bias_K": -0.7775174692404534,
+            "MAE_K": 1.9816055569224365,
+            "folds": {
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": 0.3295515632104346
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -0.4770704896132331
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 22,
+                "bias_K": -2.8661444933900566
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 1.6019717535634708
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": -0.12743928567720916
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": 0.374144305955362
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": [
+        2549.718309,
+        10316.101664
+      ],
+      "duty_range_W": [
+        2549.718309,
+        10316.101664
+      ],
+      "n_with_conductance": 78,
+      "meets_shipping_gate": false,
+      "source_ids": [
+        "MITSUBISHI-OBH549-REVH",
+        "MITSUBISHI-OBH684-REVE",
+        "MITSUBISHI-OBH733-REVJ",
+        "MITSUBISHI-OBH747-REVH",
+        "MITSUBISHI-OBH819-REVB",
+        "MITSUBISHI-OBH873-REVB",
+        "MITSUBISHI-OBH875-REVB",
+        "MITSUBISHI-OBH936-REVA",
+        "MITSUBISHI-OBH946-REVC",
+        "MITSUBISHI-OBH948",
+        "MITSUBISHI-OBH951-REVC",
+        "MITSUBISHI-OBH953-REVA",
+        "MITSUBISHI-OBH955-REVA"
+      ]
+    },
+    "indoor_coil|water_to_air|fin_tube|condensing": {
+      "n": 113,
+      "holdout_groups": [
+        "ClimateMaster:Tranquility 30 TT",
+        "ClimateMaster:Tranquility TR",
+        "WaterFurnace:5 Series 500A11",
+        "WaterFurnace:7 Series 700R11 indoor split",
+        "WaterFurnace:7 Series VS"
+      ],
+      "families": [
+        "ClimateMaster:Tranquility 30 TT",
+        "ClimateMaster:Tranquility TR",
+        "WaterFurnace:5 Series 500A11",
+        "WaterFurnace:7 Series 700R11 indoor split",
+        "WaterFurnace:7 Series VS"
+      ],
+      "manufacturers": [
+        "ClimateMaster",
+        "WaterFurnace"
+      ],
+      "value_kinds": {
+        "manufacturer_operating_table": 113
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          13.772177317257249,
+          15.922559581683775,
+          20.43797447390583
+        ],
+        "leave_K": [
+          1.4712169025260273,
+          2.794940913043863,
+          6.595847043121845
+        ],
+        "LMTD_K": [
+          5.266813089147888,
+          7.155193632942021,
+          11.890452524586713
+        ],
+        "eps": [
+          0.6585742407463112,
+          0.819286104990326,
+          0.9132335604945153
+        ],
+        "UA_per_Q_hx": [
+          0.08410108849366588,
+          0.13975862168091,
+          0.18986813905746347
+        ]
+      },
+      "by_product_class": {
+        "water_to_air": {
+          "n": 113,
+          "holdout_groups": 5,
+          "ITD_K": 15.922559581683775,
+          "leave_K": 2.794940913043863
+        }
+      },
+      "selected_law": {
+        "kind": "leaving_approach",
+        "dT_out_K": 2.794940913043863
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 2.794940913043863
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 113,
+            "RMSE_K": 2.723849393407222,
+            "bias_K": -1.3712671850351061,
+            "MAE_K": 2.10107763441587,
+            "folds": {
+              "ClimateMaster:Tranquility 30 TT": {
+                "n": 30,
+                "bias_K": 0.46056078126619826
+              },
+              "ClimateMaster:Tranquility TR": {
+                "n": 66,
+                "bias_K": -2.3897064607025986
+              },
+              "WaterFurnace:5 Series 500A11": {
+                "n": 8,
+                "bias_K": 0.7963875346736486
+              },
+              "WaterFurnace:7 Series 700R11 indoor split": {
+                "n": 6,
+                "bias_K": -3.6235909194125875
+              },
+              "WaterFurnace:7 Series VS": {
+                "n": 3,
+                "bias_K": 1.440352099501632
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 113,
+            "RMSE_K": 2.8240340043760814,
+            "bias_K": -1.7278108068771598,
+            "MAE_K": 2.14619700659328,
+            "folds": {
+              "ClimateMaster": {
+                "n": 96,
+                "bias_K": -1.9791750423041148
+              },
+              "WaterFurnace": {
+                "n": 17,
+                "bias_K": -0.30834218328964846
+              }
+            }
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.13975862168091
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 113,
+            "RMSE_K": 2.8252392587916875,
+            "bias_K": -1.4323171305876896,
+            "MAE_K": 2.1969374730984885,
+            "folds": {
+              "ClimateMaster:Tranquility 30 TT": {
+                "n": 30,
+                "bias_K": 0.2202833413157102
+              },
+              "ClimateMaster:Tranquility TR": {
+                "n": 66,
+                "bias_K": -2.4373899210348577
+              },
+              "WaterFurnace:5 Series 500A11": {
+                "n": 8,
+                "bias_K": 1.1974666726988823
+              },
+              "WaterFurnace:7 Series 700R11 indoor split": {
+                "n": 6,
+                "bias_K": -3.4976301765525366
+              },
+              "WaterFurnace:7 Series VS": {
+                "n": 3,
+                "bias_K": 1.2711488233815202
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 113,
+            "RMSE_K": 2.7132077596151545,
+            "bias_K": -1.3822549942556601,
+            "MAE_K": 2.0964709070767173,
+            "folds": {
+              "ClimateMaster": {
+                "n": 96,
+                "bias_K": -1.6206331206162992
+              },
+              "WaterFurnace": {
+                "n": 17,
+                "bias_K": -0.03611969245440427
+              }
+            }
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 15.922559581683775
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 113,
+            "RMSE_K": 3.7262062640964575,
+            "bias_K": -1.524479162895906,
+            "MAE_K": 3.036420786807739,
+            "folds": {
+              "ClimateMaster:Tranquility 30 TT": {
+                "n": 30,
+                "bias_K": 0.27288445916653736
+              },
+              "ClimateMaster:Tranquility TR": {
+                "n": 66,
+                "bias_K": -2.7516593226554606
+              },
+              "WaterFurnace:5 Series 500A11": {
+                "n": 8,
+                "bias_K": 2.5564134065305097
+              },
+              "WaterFurnace:7 Series 700R11 indoor split": {
+                "n": 6,
+                "bias_K": -3.3240131496881986
+              },
+              "WaterFurnace:7 Series VS": {
+                "n": 3,
+                "bias_K": 0.21653591963733257
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 113,
+            "RMSE_K": 3.676264042066071,
+            "bias_K": -1.6190407464681418,
+            "MAE_K": 2.996653818724653,
+            "folds": {
+              "ClimateMaster": {
+                "n": 96,
+                "bias_K": -2.038393568876023
+              },
+              "WaterFurnace": {
+                "n": 17,
+                "bias_K": 0.7490693094822451
+              }
+            }
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": null,
+      "duty_range_W": null,
+      "n_with_conductance": 105,
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "CLIMATEMASTER-97B0075N05",
+        "CLIMATEMASTER-97B0075N08",
+        "WATERFURNACE-IM2500AN",
+        "WATERFURNACE-OMW7-0018WA",
+        "WATERFURNACE-OMW7-0022WA"
+      ]
+    },
+    "liquid_source_hx|water_to_air|coaxial|condensing": {
+      "n": 117,
+      "holdout_groups": [
+        "ClimateMaster:Tranquility 30 TT",
+        "ClimateMaster:Tranquility TR",
+        "WaterFurnace:5 Series 500A11",
+        "WaterFurnace:7 Series 700R11 indoor split",
+        "WaterFurnace:7 Series VS"
+      ],
+      "families": [
+        "ClimateMaster:Tranquility 30 TT",
+        "ClimateMaster:Tranquility TR",
+        "WaterFurnace:5 Series 500A11",
+        "WaterFurnace:7 Series 700R11 indoor split",
+        "WaterFurnace:7 Series VS"
+      ],
+      "manufacturers": [
+        "ClimateMaster",
+        "WaterFurnace"
+      ],
+      "value_kinds": {
+        "manufacturer_operating_table": 117
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          6.9550242143995185,
+          10.165305018097317,
+          15.365326936423294
+        ],
+        "leave_K": [
+          1.5660954434679493,
+          4.0638341393696855,
+          6.486183432254456
+        ],
+        "LMTD_K": [
+          4.361785998259773,
+          6.802791143011438,
+          9.980300115436867
+        ],
+        "eps": [
+          0.4651734493995367,
+          0.5989688759695095,
+          0.8577639734826044
+        ],
+        "UA_per_Q_hx": [
+          0.10019738769711607,
+          0.1469984862062549,
+          0.22926388419765922
+        ],
+        "Q_hx_per_nameplate": [
+          1.0730503983663284,
+          1.1988906150703464,
+          1.4505096330480731
+        ],
+        "UA_per_nameplate": [
+          0.15561385356475366,
+          0.21677997930573986,
+          0.5166006842332115
+        ],
+        "Q_hx_per_cooling_nameplate": [
+          1.0730503983663284,
+          1.1988906150703464,
+          1.4505096330480731
+        ],
+        "n_with_cooling_nameplate": 13,
+        "Q_hx_per_heating_nameplate": [
+          1.0468753149339416,
+          1.2553064733211072,
+          1.3106073654269155
+        ],
+        "n_with_heating_nameplate": 13
+      },
+      "by_product_class": {
+        "water_to_air": {
+          "n": 117,
+          "holdout_groups": 5,
+          "ITD_K": 10.165305018097317,
+          "leave_K": 4.0638341393696855
+        }
+      },
+      "selected_law": {
+        "kind": "leaving_approach",
+        "dT_out_K": 4.0638341393696855
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 4.0638341393696855
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 117,
+            "RMSE_K": 2.8659910878594412,
+            "bias_K": -1.467287189764621,
+            "MAE_K": 2.1806207235923547,
+            "folds": {
+              "ClimateMaster:Tranquility 30 TT": {
+                "n": 30,
+                "bias_K": -1.2012316662532545
+              },
+              "ClimateMaster:Tranquility TR": {
+                "n": 66,
+                "bias_K": -2.3785451774832427
+              },
+              "WaterFurnace:5 Series 500A11": {
+                "n": 8,
+                "bias_K": 1.1692493684796976
+              },
+              "WaterFurnace:7 Series 700R11 indoor split": {
+                "n": 6,
+                "bias_K": -0.9708320345442232
+              },
+              "WaterFurnace:7 Series VS": {
+                "n": 7,
+                "bias_K": 2.545618251208398
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 117,
+            "RMSE_K": 3.2330042370514964,
+            "bias_K": -1.7003134228764225,
+            "MAE_K": 2.5624626073031926,
+            "folds": {
+              "ClimateMaster": {
+                "n": 96,
+                "bias_K": -2.5041096164374093
+              },
+              "WaterFurnace": {
+                "n": 21,
+                "bias_K": 1.9741834619738032
+              }
+            }
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.1469984862062549
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 117,
+            "RMSE_K": 3.1402549999273885,
+            "bias_K": -1.6970148479983396,
+            "MAE_K": 2.4586268834164144,
+            "folds": {
+              "ClimateMaster:Tranquility 30 TT": {
+                "n": 30,
+                "bias_K": -1.7950652313257256
+              },
+              "ClimateMaster:Tranquility TR": {
+                "n": 66,
+                "bias_K": -2.659822246612093
+              },
+              "WaterFurnace:5 Series 500A11": {
+                "n": 8,
+                "bias_K": 0.9377923166533728
+              },
+              "WaterFurnace:7 Series 700R11 indoor split": {
+                "n": 6,
+                "bias_K": -0.20312930360553919
+              },
+              "WaterFurnace:7 Series VS": {
+                "n": 7,
+                "bias_K": 3.5094178983957756
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 117,
+            "RMSE_K": 3.7025421487631816,
+            "bias_K": -1.9857285096153265,
+            "MAE_K": 3.049142673957503,
+            "folds": {
+              "ClimateMaster": {
+                "n": 96,
+                "bias_K": -3.037857699546723
+              },
+              "WaterFurnace": {
+                "n": 21,
+                "bias_K": 2.8240049300710552
+              }
+            }
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 10.165305018097317
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 117,
+            "RMSE_K": 4.726646044189333,
+            "bias_K": -2.982585262011509,
+            "MAE_K": 3.8601973878921316,
+            "folds": {
+              "ClimateMaster:Tranquility 30 TT": {
+                "n": 30,
+                "bias_K": -3.5302928905975546
+              },
+              "ClimateMaster:Tranquility TR": {
+                "n": 66,
+                "bias_K": -4.213077782298924
+              },
+              "WaterFurnace:5 Series 500A11": {
+                "n": 8,
+                "bias_K": -0.36488571115620694
+              },
+              "WaterFurnace:7 Series 700R11 indoor split": {
+                "n": 6,
+                "bias_K": 1.0823453509257366
+              },
+              "WaterFurnace:7 Series VS": {
+                "n": 7,
+                "bias_K": 4.490636896857741
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 117,
+            "RMSE_K": 5.110138727803048,
+            "bias_K": -2.682983317049219,
+            "MAE_K": 4.30664602513863,
+            "folds": {
+              "ClimateMaster": {
+                "n": 96,
+                "bias_K": -4.19399798486765
+              },
+              "WaterFurnace": {
+                "n": 21,
+                "bias_K": 4.224512307263608
+              }
+            }
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": [
+        7063.012787,
+        16411.979919999998
+      ],
+      "duty_range_W": [
+        7578.968684756821,
+        20485.39215656251
+      ],
+      "n_with_conductance": 13,
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "CLIMATEMASTER-97B0075N05",
+        "CLIMATEMASTER-97B0075N08",
+        "WATERFURNACE-IM2500AN",
+        "WATERFURNACE-OMW7-0018WA",
+        "WATERFURNACE-OMW7-0022WA"
+      ]
+    },
+    "liquid_source_hx|water_to_air|coaxial|evaporating": {
+      "n": 118,
+      "holdout_groups": [
+        "ClimateMaster:Tranquility 30 TT",
+        "ClimateMaster:Tranquility TR",
+        "WaterFurnace:5 Series 500A11",
+        "WaterFurnace:7 Series 700R11 indoor split",
+        "WaterFurnace:7 Series VS"
+      ],
+      "families": [
+        "ClimateMaster:Tranquility 30 TT",
+        "ClimateMaster:Tranquility TR",
+        "WaterFurnace:5 Series 500A11",
+        "WaterFurnace:7 Series 700R11 indoor split",
+        "WaterFurnace:7 Series VS"
+      ],
+      "manufacturers": [
+        "ClimateMaster",
+        "WaterFurnace"
+      ],
+      "value_kinds": {
+        "manufacturer_operating_table": 118
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          4.769917153275262,
+          7.696387975822688,
+          10.20237088971328
+        ],
+        "leave_K": [
+          0.9561054523041879,
+          3.4718808000475985,
+          6.610271979131086
+        ],
+        "LMTD_K": [
+          2.566983735728032,
+          5.186681861074422,
+          8.251981973081874
+        ],
+        "eps": [
+          0.2758606738312594,
+          0.49174154050727464,
+          0.7831369424914276
+        ],
+        "UA_per_Q_hx": [
+          0.12118300830782466,
+          0.19280149174078123,
+          0.34154185965198197
+        ],
+        "Q_hx_per_nameplate": [
+          0.7222222222222223,
+          0.7580645161290324,
+          1.0577507598784195
+        ],
+        "UA_per_nameplate": [
+          0.0940224922802674,
+          0.13634764295835333,
+          0.21087477565427912
+        ],
+        "Q_hx_per_cooling_nameplate": [
+          0.6660714285714286,
+          0.8062500000000001,
+          1.09375
+        ],
+        "n_with_cooling_nameplate": 14,
+        "Q_hx_per_heating_nameplate": [
+          0.7222222222222223,
+          0.7580645161290324,
+          1.0577507598784195
+        ],
+        "n_with_heating_nameplate": 14
+      },
+      "by_product_class": {
+        "water_to_air": {
+          "n": 118,
+          "holdout_groups": 5,
+          "ITD_K": 7.696387975822688,
+          "leave_K": 3.4718808000475985
+        }
+      },
+      "selected_law": {
+        "kind": "leaving_approach",
+        "dT_out_K": 3.4718808000475985
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 3.4718808000475985
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 118,
+            "RMSE_K": 1.5798120711175598,
+            "bias_K": -0.24634675309853288,
+            "MAE_K": 1.197751664462712,
+            "folds": {
+              "ClimateMaster:Tranquility 30 TT": {
+                "n": 30,
+                "bias_K": -0.03796410245673127
+              },
+              "ClimateMaster:Tranquility TR": {
+                "n": 66,
+                "bias_K": -0.1978313972243984
+              },
+              "WaterFurnace:5 Series 500A11": {
+                "n": 8,
+                "bias_K": 2.0015055447899064
+              },
+              "WaterFurnace:7 Series 700R11 indoor split": {
+                "n": 6,
+                "bias_K": 0.010520252360679994
+              },
+              "WaterFurnace:7 Series VS": {
+                "n": 8,
+                "bias_K": -3.868535930949747
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 118,
+            "RMSE_K": 1.5146576700484924,
+            "bias_K": -0.28041791631449775,
+            "MAE_K": 1.1479996264150538,
+            "folds": {
+              "ClimateMaster": {
+                "n": 96,
+                "bias_K": -0.14787286760950244
+              },
+              "WaterFurnace": {
+                "n": 22,
+                "bias_K": -0.8587963106635683
+              }
+            }
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.19280149174078123
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 118,
+            "RMSE_K": 1.605524923731703,
+            "bias_K": -0.2323217553254093,
+            "MAE_K": 1.236141138244947,
+            "folds": {
+              "ClimateMaster:Tranquility 30 TT": {
+                "n": 30,
+                "bias_K": -0.20068706743751125
+              },
+              "ClimateMaster:Tranquility TR": {
+                "n": 66,
+                "bias_K": -0.22058598253673456
+              },
+              "WaterFurnace:5 Series 500A11": {
+                "n": 8,
+                "bias_K": 1.6004251335151398
+              },
+              "WaterFurnace:7 Series 700R11 indoor split": {
+                "n": 6,
+                "bias_K": 1.211141393705404
+              },
+              "WaterFurnace:7 Series VS": {
+                "n": 8,
+                "bias_K": -3.363116211025253
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 118,
+            "RMSE_K": 1.5490489384033637,
+            "bias_K": -0.2834592247501941,
+            "MAE_K": 1.1948063350494014,
+            "folds": {
+              "ClimateMaster": {
+                "n": 96,
+                "bias_K": -0.21436757156822728
+              },
+              "WaterFurnace": {
+                "n": 22,
+                "bias_K": -0.5849500749987767
+              }
+            }
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 7.696387975822688
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 118,
+            "RMSE_K": 1.9948515408492753,
+            "bias_K": -0.09016194625966788,
+            "MAE_K": 1.6204739988479115,
+            "folds": {
+              "ClimateMaster:Tranquility 30 TT": {
+                "n": 30,
+                "bias_K": -0.24864211186682691
+              },
+              "ClimateMaster:Tranquility TR": {
+                "n": 66,
+                "bias_K": -0.010361258486346076
+              },
+              "WaterFurnace:5 Series 500A11": {
+                "n": 8,
+                "bias_K": 0.9781341258806561
+              },
+              "WaterFurnace:7 Series 700R11 indoor split": {
+                "n": 6,
+                "bias_K": 2.3341577654396954
+              },
+              "WaterFurnace:7 Series VS": {
+                "n": 8,
+                "bias_K": -3.0407528552775727
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 118,
+            "RMSE_K": 1.8961593476412644,
+            "bias_K": -0.07885316217871391,
+            "MAE_K": 1.5404810036268781,
+            "folds": {
+              "ClimateMaster": {
+                "n": 96,
+                "bias_K": -0.08482402516774634
+              },
+              "WaterFurnace": {
+                "n": 22,
+                "bias_K": -0.0527984873174814
+              }
+            }
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": [
+        7268.162536,
+        15679.302244999999
+      ],
+      "duty_range_W": [
+        5509.736116000001,
+        15562.073817000002
+      ],
+      "n_with_conductance": 14,
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "CLIMATEMASTER-97B0075N05",
+        "CLIMATEMASTER-97B0075N08",
+        "WATERFURNACE-IM2500AN",
+        "WATERFURNACE-OMW7-0018WA",
+        "WATERFURNACE-OMW7-0022WA"
+      ]
+    },
+    "liquid_source_hx|water_to_water|coaxial|condensing": {
+      "n": 240,
+      "holdout_groups": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "families": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "manufacturers": [
+        "Bosch"
+      ],
+      "value_kinds": {
+        "manufacturer_operating_table": 240
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          10.093659377418426,
+          14.14526655420369,
+          18.868335616023078
+        ],
+        "leave_K": [
+          3.7770230895203074,
+          6.081565112523828,
+          11.823471235433026
+        ],
+        "LMTD_K": [
+          7.181996643503486,
+          9.385286459231297,
+          14.671242721118132
+        ],
+        "eps": [
+          0.24876209887956974,
+          0.49676385337493545,
+          0.7315301198317328
+        ],
+        "UA_per_Q_hx": [
+          0.06814993269721818,
+          0.10654975789432698,
+          0.13690220528098632
+        ]
+      },
+      "by_product_class": {
+        "water_to_water": {
+          "n": 240,
+          "holdout_groups": 2,
+          "ITD_K": 14.14526655420369,
+          "leave_K": 6.081565112523828
+        }
+      },
+      "selected_law": {
+        "kind": "itd",
+        "ITD_K": 14.14526655420369
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 6.081565112523828
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 240,
+            "RMSE_K": 5.490463956668527,
+            "bias_K": -0.5223303120406578,
+            "MAE_K": 5.033710467355622,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 100,
+                "bias_K": 5.404297066513612
+              },
+              "Bosch:WW Series": {
+                "n": 140,
+                "bias_K": -4.755635582436565
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.10654975789432698
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 240,
+            "RMSE_K": 4.300176339412803,
+            "bias_K": -0.3970527788838228,
+            "MAE_K": 3.7958972859443354,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 100,
+                "bias_K": 3.845391947264375
+              },
+              "Bosch:WW Series": {
+                "n": 140,
+                "bias_K": -3.42737044041825
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 14.14526655420369
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 240,
+            "RMSE_K": 3.7380488195326125,
+            "bias_K": -0.5102065147587551,
+            "MAE_K": 3.003715421075664,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 100,
+                "bias_K": 1.3578580878952653
+              },
+              "Bosch:WW Series": {
+                "n": 140,
+                "bias_K": -1.8445383737973413
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": null,
+      "duty_range_W": [
+        6412.973502486541,
+        105353.44537660721
+      ],
+      "n_with_conductance": 240,
+      "meets_shipping_gate": false,
+      "source_ids": [
+        "BOSCH-8733852844-2025-06"
+      ]
+    },
+    "liquid_source_hx|water_to_water|coaxial|evaporating": {
+      "n": 192,
+      "holdout_groups": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "families": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "manufacturers": [
+        "Bosch"
+      ],
+      "value_kinds": {
+        "manufacturer_operating_table": 192
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          10.374330310652283,
+          16.35635639214223,
+          22.612793478064646
+        ],
+        "leave_K": [
+          7.040996977318949,
+          13.683635426084114,
+          18.653252623641087
+        ],
+        "LMTD_K": [
+          8.827498112206413,
+          14.760439619409194,
+          20.400408287512715
+        ],
+        "eps": [
+          0.08529306879292031,
+          0.21724760144962987,
+          0.4237975401965313
+        ],
+        "UA_per_Q_hx": [
+          0.049018626779744875,
+          0.06774865964595343,
+          0.11238964715460875
+        ]
+      },
+      "by_product_class": {
+        "water_to_water": {
+          "n": 192,
+          "holdout_groups": 2,
+          "ITD_K": 16.35635639214223,
+          "leave_K": 13.683635426084114
+        }
+      },
+      "selected_law": {
+        "kind": "ua_per_duty",
+        "k_per_K": 0.06774865964595343
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 13.683635426084114
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 192,
+            "RMSE_K": 7.797725774041057,
+            "bias_K": -1.687570098777117,
+            "MAE_K": 7.209529977353788,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 80,
+                "bias_K": 6.506223959826772
+              },
+              "Bosch:WW Series": {
+                "n": 112,
+                "bias_K": -7.540280140637037
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.06774865964595343
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 192,
+            "RMSE_K": 7.038863277582834,
+            "bias_K": -1.5360442535688552,
+            "MAE_K": 6.394880586067231,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 80,
+                "bias_K": 5.531382021418762
+              },
+              "Bosch:WW Series": {
+                "n": 112,
+                "bias_K": -6.58420587856001
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 16.35635639214223
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 192,
+            "RMSE_K": 6.423931204180674,
+            "bias_K": -1.5674075631020028,
+            "MAE_K": 5.624842720633615,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 80,
+                "bias_K": 4.255982511448952
+              },
+              "Bosch:WW Series": {
+                "n": 112,
+                "bias_K": -5.72697190206697
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": null,
+      "duty_range_W": [
+        3547.3068496925575,
+        52916.70110585963
+      ],
+      "n_with_conductance": 192,
+      "meets_shipping_gate": false,
+      "source_ids": [
+        "BOSCH-8733852844-2025-06"
+      ]
+    },
+    "load_water_hx|water_to_water|coaxial|condensing": {
+      "n": 188,
+      "holdout_groups": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "families": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "manufacturers": [
+        "Bosch"
+      ],
+      "value_kinds": {
+        "manufacturer_operating_table": 188
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          6.431746596444377,
+          9.928596065527898,
+          14.308688684609841
+        ],
+        "leave_K": [
+          1.4728775507078122,
+          4.5157055147623595,
+          10.172516319924274
+        ],
+        "LMTD_K": [
+          3.6367238235685706,
+          6.575514574104056,
+          11.949023646009419
+        ],
+        "eps": [
+          0.2279795311628045,
+          0.49075028428047646,
+          0.7961104838411363
+        ],
+        "UA_per_Q_hx": [
+          0.08368884601998149,
+          0.15192713204398525,
+          0.27497276354043854
+        ]
+      },
+      "by_product_class": {
+        "water_to_water": {
+          "n": 188,
+          "holdout_groups": 2,
+          "ITD_K": 9.928596065527898,
+          "leave_K": 4.5157055147623595
+        }
+      },
+      "selected_law": {
+        "kind": "itd",
+        "ITD_K": 9.928596065527898
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 4.5157055147623595
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 188,
+            "RMSE_K": 4.993103685894427,
+            "bias_K": -0.8004987166737908,
+            "MAE_K": 4.433927393786243,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 76,
+                "bias_K": 4.475754509921092
+              },
+              "Bosch:WW Series": {
+                "n": 112,
+                "bias_K": -4.38081340614889
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.15192713204398525
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 188,
+            "RMSE_K": 4.448032138233949,
+            "bias_K": -0.7731279963175933,
+            "MAE_K": 3.81941802072508,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 76,
+                "bias_K": 3.6748095100882843
+              },
+              "Bosch:WW Series": {
+                "n": 112,
+                "bias_K": -3.7913713042358674
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 9.928596065527898
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 188,
+            "RMSE_K": 3.810468796838656,
+            "bias_K": -0.7254006194453871,
+            "MAE_K": 3.0885046852614564,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 76,
+                "bias_K": 2.1245282006186006
+              },
+              "Bosch:WW Series": {
+                "n": 112,
+                "bias_K": -2.6592808902030933
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": null,
+      "duty_range_W": [
+        5215.098861366292,
+        79183.50249821521
+      ],
+      "n_with_conductance": 188,
+      "meets_shipping_gate": false,
+      "source_ids": [
+        "BOSCH-8733852844-2025-06"
+      ]
+    },
+    "load_water_hx|water_to_water|coaxial|evaporating": {
+      "n": 240,
+      "holdout_groups": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "families": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "manufacturers": [
+        "Bosch"
+      ],
+      "value_kinds": {
+        "manufacturer_operating_table": 240
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          12.737132767228367,
+          19.20728239136397,
+          26.45964614507799
+        ],
+        "leave_K": [
+          6.605622911002506,
+          14.143079536967473,
+          18.91973868911253
+        ],
+        "LMTD_K": [
+          9.497415540633016,
+          16.60984187692593,
+          22.168942208534997
+        ],
+        "eps": [
+          0.15040190401333245,
+          0.2979934215103964,
+          0.49000708477214444
+        ],
+        "UA_per_Q_hx": [
+          0.04510815133141545,
+          0.060205269105492246,
+          0.10482522349117378
+        ]
+      },
+      "by_product_class": {
+        "water_to_water": {
+          "n": 240,
+          "holdout_groups": 2,
+          "ITD_K": 19.20728239136397,
+          "leave_K": 14.143079536967473
+        }
+      },
+      "selected_law": {
+        "kind": "ua_per_duty",
+        "k_per_K": 0.060205269105492246
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 14.143079536967473
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 240,
+            "RMSE_K": 6.473711098942806,
+            "bias_K": -1.5876056126902667,
+            "MAE_K": 5.64035755665636,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 100,
+                "bias_K": 4.549381830054561
+              },
+              "Bosch:WW Series": {
+                "n": 140,
+                "bias_K": -5.9711680717937154
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.060205269105492246
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 240,
+            "RMSE_K": 5.489795506426405,
+            "bias_K": -1.3288699959458725,
+            "MAE_K": 4.582065211344401,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 100,
+                "bias_K": 2.8990619020979675
+              },
+              "Bosch:WW Series": {
+                "n": 140,
+                "bias_K": -4.348821351691473
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 19.20728239136397
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 240,
+            "RMSE_K": 5.253129471997624,
+            "bias_K": -0.966615754649001,
+            "MAE_K": 4.193052488312717,
+            "folds": {
+              "Bosch:WT Series": {
+                "n": 100,
+                "bias_K": 1.3246946996754752
+              },
+              "Bosch:WW Series": {
+                "n": 140,
+                "bias_K": -2.603266079166484
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": null,
+      "duty_range_W": [
+        5291.670110585964,
+        91822.12060378457
+      ],
+      "n_with_conductance": 240,
+      "meets_shipping_gate": false,
+      "source_ids": [
+        "BOSCH-8733852844-2025-06"
+      ]
+    },
+    "outdoor_coil|fin_tube|condensing": {
+      "n": 120,
+      "holdout_groups": [
+        "Carrier:25HCD4 14 SEER split HP",
+        "Goodman:SSZ14 split HP",
+        "Lennox:14HPX 14 SEER split HP",
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+        "Mitsubishi:Ecodan PUZ-HWM (R32)",
+        "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+        "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+        "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+        "Mitsubishi:MUZ-FW NAHZ",
+        "Mitsubishi:MUZ-FX NLHZ",
+        "Mitsubishi:MUZ-GS NA"
+      ],
+      "families": [
+        "Carrier:25HCD4 14 SEER split HP",
+        "Goodman:SSZ14 split HP",
+        "Lennox:14HPX 14 SEER split HP",
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+        "Mitsubishi:Ecodan PUZ-HWM (R32)",
+        "Mitsubishi:MUFZ-KJ NAHZ",
+        "Mitsubishi:MUZ-FH NA",
+        "Mitsubishi:MUZ-FS NA",
+        "Mitsubishi:MUZ-FW NAHZ",
+        "Mitsubishi:MUZ-FX NLHZ",
+        "Mitsubishi:MUZ-GE NA",
+        "Mitsubishi:MUZ-GL NA",
+        "Mitsubishi:MUZ-GS NA",
+        "Mitsubishi:MUZ-GX NL",
+        "Mitsubishi:MUZ-HM NA",
+        "Mitsubishi:MUZ-HX NL",
+        "Mitsubishi:MUZ-JX WL",
+        "Mitsubishi:MUZ-WR NA",
+        "Mitsubishi:MUZ-WX NL"
+      ],
+      "manufacturers": [
+        "Carrier (United Technologies)",
+        "Goodman/Amana (tested by Univ. of Maryland CEEE)",
+        "Lennox",
+        "Mitsubishi Electric"
+      ],
+      "value_kinds": {
+        "measured_lab": 10,
+        "manufacturer_standard_data": 110
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          6.694036075370796,
+          9.441764330107958,
+          12.74625155396808
+        ],
+        "leave_K": [
+          0.9075646945557354,
+          2.7292276469352394,
+          3.9445842582387005
+        ],
+        "LMTD_K": [
+          2.479430635917887,
+          5.577343495484721,
+          7.261839773252323
+        ],
+        "eps": [
+          0.6468604940594456,
+          0.7145758544877437,
+          0.8409643103808486
+        ],
+        "UA_per_Q_hx": [
+          0.13770615040052517,
+          0.17929682846494488,
+          0.4033184012142365
+        ],
+        "Q_hx_per_nameplate": [
+          1.1335714285714287,
+          1.2374701526435927,
+          1.309206375384158
+        ],
+        "UA_per_nameplate": [
+          0.16004344029061973,
+          0.21164415887020727,
+          0.512385533156336
+        ],
+        "Q_hx_per_cooling_nameplate": [
+          1.15923327630621,
+          1.2437244025095053,
+          1.309206375384158
+        ],
+        "n_with_cooling_nameplate": 111,
+        "Q_hx_per_heating_nameplate": [
+          0.8893291167679339,
+          1.1335714285714287,
+          1.28614448554116
+        ],
+        "n_with_heating_nameplate": 85
+      },
+      "by_product_class": {
+        "air_to_water": {
+          "n": 9,
+          "holdout_groups": 2,
+          "ITD_K": 12.0,
+          "leave_K": 3.7370845804521498
+        },
+        "split_ducted": {
+          "n": 10,
+          "holdout_groups": 3,
+          "ITD_K": 8.350673051016596,
+          "leave_K": 2.266498376422639
+        },
+        "split_other": {
+          "n": 4,
+          "holdout_groups": 1,
+          "ITD_K": 10.080340483031591,
+          "leave_K": 3.9445842582387005
+        },
+        "split_wall": {
+          "n": 97,
+          "holdout_groups": 6,
+          "ITD_K": 9.21863044766775,
+          "leave_K": 2.5355341821512516
+        }
+      },
+      "selected_law": {
+        "kind": "leaving_approach",
+        "dT_out_K": 2.7292276469352394
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 2.7292276469352394
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 120,
+            "RMSE_K": 1.6312666157929872,
+            "bias_K": -0.5271090984274129,
+            "MAE_K": 1.0949741531827244,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 3,
+                "bias_K": -0.2406701507317314
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 4,
+                "bias_K": 0.4740936910959004
+              },
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 3,
+                "bias_K": 2.5081542873158518
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 8,
+                "bias_K": -0.09237621639172855
+              },
+              "Mitsubishi:Ecodan PUZ-HWM (R32)": {
+                "n": 1,
+                "bias_K": -1.056411529435552
+              },
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 15,
+                "bias_K": 0.46000504100783957
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 27,
+                "bias_K": -1.05292417342213
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 29,
+                "bias_K": -1.5570372025988812
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 1.0814885202661193
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 0.13454921989571478
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 21,
+                "bias_K": -0.35834774582768164
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 120,
+            "RMSE_K": 1.8370300078277038,
+            "bias_K": -0.942805488861601,
+            "MAE_K": 1.294177842852215,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 3,
+                "bias_K": -0.2406701507317314
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 4,
+                "bias_K": 0.4740936910959004
+              },
+              "Lennox": {
+                "n": 3,
+                "bias_K": 2.5081542873158518
+              },
+              "Mitsubishi Electric": {
+                "n": 110,
+                "bias_K": -1.1075953257957096
+              }
+            }
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.17929682846494488
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 120,
+            "RMSE_K": 1.9602426607820966,
+            "bias_K": -0.6144675431165283,
+            "MAE_K": 1.4984129995004898,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 3,
+                "bias_K": -0.577956940761494
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 4,
+                "bias_K": 1.018579930933179
+              },
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 3,
+                "bias_K": 2.8409198016127504
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 8,
+                "bias_K": -0.40362166540638533
+              },
+              "Mitsubishi:Ecodan PUZ-HWM (R32)": {
+                "n": 1,
+                "bias_K": -1.567290127627789
+              },
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 15,
+                "bias_K": 0.8601291767782774
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 27,
+                "bias_K": -1.220215723575551
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 29,
+                "bias_K": -1.918387247687409
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 2.1741263519787273
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 0.9016812943477049
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 21,
+                "bias_K": -0.7646857039815632
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 120,
+            "RMSE_K": 2.0428852942685487,
+            "bias_K": -0.9355614872435888,
+            "MAE_K": 1.555610107802171,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 3,
+                "bias_K": -0.577956940761494
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 4,
+                "bias_K": 1.018579930933179
+              },
+              "Lennox": {
+                "n": 3,
+                "bias_K": 2.8409198016127504
+              },
+              "Mitsubishi Electric": {
+                "n": 110,
+                "bias_K": -1.1193689706865193
+              }
+            }
+          }
+        },
+        "ua_per_nameplate": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 9.441764330107958
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 120,
+            "RMSE_K": 3.134045865690888,
+            "bias_K": -1.0454594599230487,
+            "MAE_K": 2.4840721080392165,
+            "folds": {
+              "Carrier:25HCD4 14 SEER split HP": {
+                "n": 3,
+                "bias_K": -1.5660831949824672
+              },
+              "Goodman:SSZ14 split HP": {
+                "n": 4,
+                "bias_K": 1.6488941738946536
+              },
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 3,
+                "bias_K": 3.0715975239848845
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 8,
+                "bias_K": -1.2438899594769026
+              },
+              "Mitsubishi:Ecodan PUZ-HWM (R32)": {
+                "n": 1,
+                "bias_K": -3.0291510945944005
+              },
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 15,
+                "bias_K": 1.5048966628382572
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 27,
+                "bias_K": -1.7305252749840094
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 29,
+                "bias_K": -2.7703372441182914
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 3.7893351923875636
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 1.9757088668289338
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 21,
+                "bias_K": -2.0151776342692154
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 120,
+            "RMSE_K": 3.569130315768211,
+            "bias_K": -2.0357288788071304,
+            "MAE_K": 2.843265630209556,
+            "folds": {
+              "Carrier (United Technologies)": {
+                "n": 3,
+                "bias_K": -1.5660831949824672
+              },
+              "Goodman/Amana (tested by Univ. of Maryland CEEE)": {
+                "n": 4,
+                "bias_K": 1.6488941738946536
+              },
+              "Lennox": {
+                "n": 3,
+                "bias_K": 3.0715975239848845
+              },
+              "Mitsubishi Electric": {
+                "n": 110,
+                "bias_K": -2.3218144103585594
+              }
+            }
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": [
+        1758.42642,
+        14000.0
+      ],
+      "duty_range_W": [
+        2038.42642,
+        17500.0
+      ],
+      "n_with_conductance": 116,
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "AHRI-AREP-004",
+        "AHRI-AREP-032",
+        "AHRI-AREP-052",
+        "MITSUBISHI-OBH549-REVH",
+        "MITSUBISHI-OBH684-REVE",
+        "MITSUBISHI-OBH733-REVJ",
+        "MITSUBISHI-OBH747-REVH",
+        "MITSUBISHI-OBH753-REVB",
+        "MITSUBISHI-OBH819-REVB",
+        "MITSUBISHI-OBH873-REVB",
+        "MITSUBISHI-OBH875-REVB",
+        "MITSUBISHI-OBH936-REVA",
+        "MITSUBISHI-OBH946-REVC",
+        "MITSUBISHI-OBH948",
+        "MITSUBISHI-OBH951-REVC",
+        "MITSUBISHI-OBH953-REVA",
+        "MITSUBISHI-OBH955-REVA",
+        "MITSUBISHI-OCH439-REVM",
+        "MITSUBISHI-OCH562-REVD",
+        "MITSUBISHI-OCH605-REVA",
+        "MITSUBISHI-OCH748-REVA"
+      ]
+    },
+    "outdoor_coil|fin_tube|evaporating": {
+      "n": 87,
+      "holdout_groups": [
+        "Lennox:14HPX 14 SEER split HP",
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+        "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+        "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+        "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+        "Mitsubishi:MUZ-FW NAHZ",
+        "Mitsubishi:MUZ-FX NLHZ",
+        "Mitsubishi:MUZ-GS NA"
+      ],
+      "families": [
+        "Lennox:14HPX 14 SEER split HP",
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+        "Mitsubishi:MUZ-FH NA",
+        "Mitsubishi:MUZ-FS NA",
+        "Mitsubishi:MUZ-FW NAHZ",
+        "Mitsubishi:MUZ-FX NLHZ",
+        "Mitsubishi:MUZ-GE NA",
+        "Mitsubishi:MUZ-GL NA",
+        "Mitsubishi:MUZ-GS NA",
+        "Mitsubishi:MUZ-GX NL",
+        "Mitsubishi:MUZ-HM NA",
+        "Mitsubishi:MUZ-HX NL",
+        "Mitsubishi:MUZ-JX WL",
+        "Mitsubishi:MUZ-WR NA",
+        "Mitsubishi:MUZ-WX NL"
+      ],
+      "manufacturers": [
+        "Lennox",
+        "Mitsubishi Electric"
+      ],
+      "value_kinds": {
+        "measured_lab": 2,
+        "manufacturer_standard_data": 85
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          4.7985708969076395,
+          6.805035757477148,
+          9.001438563086216
+        ],
+        "leave_K": [
+          2.0374059447247763,
+          2.8247237633434805,
+          4.51629435990565
+        ],
+        "LMTD_K": [
+          3.1851580803449915,
+          4.596842157430572,
+          6.429161718726956
+        ],
+        "eps": [
+          0.4584862298916195,
+          0.5662638489641661,
+          0.6388404708621914
+        ],
+        "UA_per_Q_hx": [
+          0.1555412733027364,
+          0.21754064328346548,
+          0.31395616003199683
+        ],
+        "Q_hx_per_nameplate": [
+          0.6504124827808444,
+          0.7593542215221937,
+          0.7952715018920155
+        ],
+        "UA_per_nameplate": [
+          0.1091378785191999,
+          0.1584908115296956,
+          0.22636508695920357
+        ],
+        "Q_hx_per_cooling_nameplate": [
+          0.6906660240604408,
+          0.8384024746397974,
+          1.0641532710061685
+        ],
+        "n_with_cooling_nameplate": 73,
+        "Q_hx_per_heating_nameplate": [
+          0.6966985213215044,
+          0.7593542215221937,
+          0.7952715018920155
+        ],
+        "n_with_heating_nameplate": 85
+      },
+      "by_product_class": {
+        "air_to_water": {
+          "n": 8,
+          "holdout_groups": 1,
+          "ITD_K": 7.715095323373703,
+          "leave_K": 3.4659668851732075
+        },
+        "split_ducted": {
+          "n": 2,
+          "holdout_groups": 1,
+          "ITD_K": 4.261270550417789,
+          "leave_K": 2.3075366812085507
+        },
+        "split_wall": {
+          "n": 77,
+          "holdout_groups": 6,
+          "ITD_K": 6.545011319313138,
+          "leave_K": 2.5769772932672113
+        }
+      },
+      "selected_law": {
+        "kind": "leaving_approach",
+        "dT_out_K": 2.8247237633434805
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 2.8247237633434805
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 87,
+            "RMSE_K": 1.3720182002807482,
+            "bias_K": -0.5917126444979915,
+            "MAE_K": 1.0871449648226499,
+            "folds": {
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 2,
+                "bias_K": 0.06099563250612405
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 8,
+                "bias_K": -1.0656683027880605
+              },
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": 0.06091133720669604
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -1.4000849283787984
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 21,
+                "bias_K": -0.48500656821259996
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 0.881710639108601
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 1.1240635899738936
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": -0.867726908834121
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 87,
+            "RMSE_K": 1.5599192453754658,
+            "bias_K": -1.0605049792438876,
+            "MAE_K": 1.1867532033223631,
+            "folds": {
+              "Lennox": {
+                "n": 2,
+                "bias_K": 0.06099563250612405
+              },
+              "Mitsubishi Electric": {
+                "n": 85,
+                "bias_K": -1.0868932289321231
+              }
+            }
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.21754064328346548
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 87,
+            "RMSE_K": 1.488481601170707,
+            "bias_K": -0.6469186219521703,
+            "MAE_K": 1.207272540599297,
+            "folds": {
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 2,
+                "bias_K": 0.591365042404584
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 8,
+                "bias_K": -1.2029735758913294
+              },
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": 0.2983733367849132
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -1.5158097764134373
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 21,
+                "bias_K": -0.5986543641647477
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 0.9896910824545214
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 1.2223510299644598
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": -1.1076136421961718
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 87,
+            "RMSE_K": 1.2888427513181895,
+            "bias_K": -0.35905962670797426,
+            "MAE_K": 1.0266225548591932,
+            "folds": {
+              "Lennox": {
+                "n": 2,
+                "bias_K": 0.591365042404584
+              },
+              "Mitsubishi Electric": {
+                "n": 85,
+                "bias_K": -0.38142256009885794
+              }
+            }
+          }
+        },
+        "ua_per_nameplate": {
+          "law": {
+            "kind": "ua_per_nameplate",
+            "k_per_K": 0.1584908115296956
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 87,
+            "RMSE_K": 1.5487901029525715,
+            "bias_K": -0.55946203722642,
+            "MAE_K": 1.2242138605305277,
+            "folds": {
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 2,
+                "bias_K": -0.32764886472221977
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 8,
+                "bias_K": -0.834650828534278
+              },
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": 0.38289715907579874
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -1.383048783028037
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 21,
+                "bias_K": -0.6315878408486874
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 1.3221774306868943
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 1.4319129751719217
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": -1.0300109921047587
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 87,
+            "RMSE_K": 1.4409848215427714,
+            "bias_K": 0.11405854687430626,
+            "MAE_K": 1.1810212193041627,
+            "folds": {
+              "Lennox": {
+                "n": 2,
+                "bias_K": -0.32764886472221977
+              },
+              "Mitsubishi Electric": {
+                "n": 85,
+                "bias_K": 0.12445166244128333
+              }
+            }
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 6.805035757477148
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 87,
+            "RMSE_K": 1.8359043713098155,
+            "bias_K": -0.8401107118873397,
+            "MAE_K": 1.4766668362793995,
+            "folds": {
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 2,
+                "bias_K": 1.2534134689421617
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 8,
+                "bias_K": -1.5260637067966218
+              },
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": 0.3403307925535744
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -1.8047076763870522
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 21,
+                "bias_K": -0.8562833823183004
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 1.149124333327806
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 1.3677861679510446
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": -1.5071541453063892
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 87,
+            "RMSE_K": 3.6606686362571668,
+            "bias_K": -3.2442265146301663,
+            "MAE_K": 3.3027038757119906,
+            "folds": {
+              "Lennox": {
+                "n": 2,
+                "bias_K": 1.2534134689421617
+              },
+              "Mitsubishi Electric": {
+                "n": 85,
+                "bias_K": -3.350053337773044
+              }
+            }
+          }
+        },
+        "ua_linear": {
+          "law": {
+            "kind": "ua_linear",
+            "a_W_K_per_kW": 118.86807370154828,
+            "b_W_K": 208.54099343364726
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 87,
+            "RMSE_K": 1.5181046973364156,
+            "bias_K": -0.6745497699635975,
+            "MAE_K": 1.1461960438810082,
+            "folds": {
+              "Lennox:14HPX 14 SEER split HP": {
+                "n": 2,
+                "bias_K": 0.7874718841447343
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 8,
+                "bias_K": -0.12597321056307564
+              },
+              "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)": {
+                "n": 11,
+                "bias_K": -0.10025601847834086
+              },
+              "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)": {
+                "n": 22,
+                "bias_K": -1.584876333370739
+              },
+              "Mitsubishi:GX/JX/HX/WX (shared outdoor units)": {
+                "n": 21,
+                "bias_K": -0.808698404998139
+              },
+              "Mitsubishi:MUZ-FW NAHZ": {
+                "n": 3,
+                "bias_K": 0.6821071371028857
+              },
+              "Mitsubishi:MUZ-FX NLHZ": {
+                "n": 6,
+                "bias_K": 1.2124536469130418
+              },
+              "Mitsubishi:MUZ-GS NA": {
+                "n": 14,
+                "bias_K": -1.1158049515018449
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "law not defined without Mitsubishi Electric"
+          }
+        }
+      },
+      "nameplate_range_W": [
+        2549.718309,
+        14000.0
+      ],
+      "duty_range_W": [
+        2004.7183089999999,
+        10710.0
+      ],
+      "n_with_conductance": 87,
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "AHRI-AREP-004",
+        "MITSUBISHI-OBH549-REVH",
+        "MITSUBISHI-OBH684-REVE",
+        "MITSUBISHI-OBH733-REVJ",
+        "MITSUBISHI-OBH747-REVH",
+        "MITSUBISHI-OBH819-REVB",
+        "MITSUBISHI-OBH873-REVB",
+        "MITSUBISHI-OBH875-REVB",
+        "MITSUBISHI-OBH936-REVA",
+        "MITSUBISHI-OBH946-REVC",
+        "MITSUBISHI-OBH948",
+        "MITSUBISHI-OBH951-REVC",
+        "MITSUBISHI-OBH953-REVA",
+        "MITSUBISHI-OBH955-REVA",
+        "MITSUBISHI-OCH439-REVM",
+        "MITSUBISHI-OCH562-REVD",
+        "MITSUBISHI-OCH605-REVA"
+      ]
+    },
+    "water_condenser|bphe|condensing": {
+      "n": 20,
+      "holdout_groups": [
+        "KTH NxtHPG:CASE 1 R290 air-to-water prototype (40 kW)",
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+        "Mitsubishi:Ecodan PUZ-HWM (R32)"
+      ],
+      "families": [
+        "KTH NxtHPG:CASE 1 R290 air-to-water prototype (40 kW)",
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+        "Mitsubishi:Ecodan PUZ-HWM (R32)"
+      ],
+      "manufacturers": [
+        "KTH (NxtHPG project)",
+        "Mitsubishi Electric"
+      ],
+      "value_kinds": {
+        "measured_lab": 10,
+        "manufacturer_standard_data": 10
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          5.77781704072056,
+          7.042456380125213,
+          10.257951073456972
+        ],
+        "leave_K": [
+          0.7474121579198645,
+          2.0089208676463004,
+          3.303996062902841
+        ],
+        "LMTD_K": [
+          2.4596579152653093,
+          4.012833793977358,
+          6.2154598256939
+        ],
+        "eps": [
+          0.577100501579114,
+          0.7147414539455647,
+          0.870641082496677
+        ],
+        "UA_per_Q_hx": [
+          0.15701744277967514,
+          0.24920045318120204,
+          0.4065606008842639
+        ],
+        "Q_hx_per_nameplate": [
+          0.797,
+          1.0,
+          1.0
+        ],
+        "UA_per_nameplate": [
+          0.14932358808347107,
+          0.24920045318120207,
+          0.4065606008842639
+        ],
+        "Q_hx_per_heating_nameplate": [
+          0.797,
+          1.0,
+          1.0
+        ],
+        "n_with_heating_nameplate": 20
+      },
+      "by_product_class": {
+        "air_to_water": {
+          "n": 20,
+          "holdout_groups": 3,
+          "ITD_K": 7.042456380125213,
+          "leave_K": 2.0089208676463004
+        }
+      },
+      "selected_law": {
+        "kind": "leaving_approach",
+        "dT_out_K": 2.0089208676463004
+      },
+      "candidates": {
+        "leaving_approach": {
+          "law": {
+            "kind": "leaving_approach",
+            "dT_out_K": 2.0089208676463004
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 20,
+            "RMSE_K": 1.167282666735047,
+            "bias_K": -0.29459113503385864,
+            "MAE_K": 0.9444577276888623,
+            "folds": {
+              "KTH NxtHPG:CASE 1 R290 air-to-water prototype (40 kW)": {
+                "n": 10,
+                "bias_K": -1.1309310295312187
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 9,
+                "bias_K": 0.5769092207567481
+              },
+              "Mitsubishi:Ecodan PUZ-HWM (R32)": {
+                "n": 1,
+                "bias_K": 0.22530460782428108
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 20,
+            "RMSE_K": 1.6100260180386115,
+            "bias_K": 0.26126505920004506,
+            "MAE_K": 1.3921960887312637,
+            "folds": {
+              "KTH (NxtHPG project)": {
+                "n": 10,
+                "bias_K": -1.1309310295312187
+              },
+              "Mitsubishi Electric": {
+                "n": 10,
+                "bias_K": 1.6534611479313086
+              }
+            }
+          }
+        },
+        "ua_per_duty": {
+          "law": {
+            "kind": "ua_per_duty",
+            "k_per_K": 0.24920045318120204
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 20,
+            "RMSE_K": 1.5282275891688861,
+            "bias_K": -0.1598376572304689,
+            "MAE_K": 1.4093359974052313,
+            "folds": {
+              "KTH NxtHPG:CASE 1 R290 air-to-water prototype (40 kW)": {
+                "n": 10,
+                "bias_K": -1.5254727787574391
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 9,
+                "bias_K": 1.2198034437736034
+              },
+              "Mitsubishi:Ecodan PUZ-HWM (R32)": {
+                "n": 1,
+                "bias_K": 1.0797436490025856
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 20,
+            "RMSE_K": 2.1191380067881274,
+            "bias_K": 0.43478893957794645,
+            "MAE_K": 1.9602617183353857,
+            "folds": {
+              "KTH (NxtHPG project)": {
+                "n": 10,
+                "bias_K": -1.5254727787574391
+              },
+              "Mitsubishi Electric": {
+                "n": 10,
+                "bias_K": 2.3950506579133326
+              }
+            }
+          }
+        },
+        "ua_per_nameplate": {
+          "law": {
+            "kind": "ua_per_nameplate",
+            "k_per_K": 0.24920045318120207
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 20,
+            "RMSE_K": 2.2678855948642305,
+            "bias_K": 0.29880209985059736,
+            "MAE_K": 2.1686632807756583,
+            "folds": {
+              "KTH NxtHPG:CASE 1 R290 air-to-water prototype (40 kW)": {
+                "n": 10,
+                "bias_K": -1.8698611809250607
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 9,
+                "bias_K": 2.52516723149725
+              },
+              "Mitsubishi:Ecodan PUZ-HWM (R32)": {
+                "n": 1,
+                "bias_K": 1.9481487227873053
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 20,
+            "RMSE_K": 2.5021686932027705,
+            "bias_K": 0.5075904917104259,
+            "MAE_K": 2.3774516726354866,
+            "folds": {
+              "KTH (NxtHPG project)": {
+                "n": 10,
+                "bias_K": -1.8698611809250607
+              },
+              "Mitsubishi Electric": {
+                "n": 10,
+                "bias_K": 2.8850421643459123
+              }
+            }
+          }
+        },
+        "itd": {
+          "law": {
+            "kind": "itd",
+            "ITD_K": 7.042456380125213
+          },
+          "group_holdout": {
+            "valid": true,
+            "n": 20,
+            "RMSE_K": 2.222406024284345,
+            "bias_K": -1.0462349080849065,
+            "MAE_K": 1.7811221753959905,
+            "folds": {
+              "KTH NxtHPG:CASE 1 R290 air-to-water prototype (40 kW)": {
+                "n": 10,
+                "bias_K": -2.7196565810597724
+              },
+              "Mitsubishi:Ecodan PUHZ-W/HW (R410A)": {
+                "n": 9,
+                "bias_K": 0.5772069582987053
+              },
+              "Mitsubishi:Ecodan PUZ-HWM (R32)": {
+                "n": 1,
+                "bias_K": 1.077005024211246
+              }
+            }
+          },
+          "manufacturer_holdout": {
+            "valid": true,
+            "n": 20,
+            "RMSE_K": 2.9888508126788556,
+            "bias_K": 0.08707713541049653,
+            "MAE_K": 2.8067337164702684,
+            "folds": {
+              "KTH (NxtHPG project)": {
+                "n": 10,
+                "bias_K": -2.7196565810597724
+              },
+              "Mitsubishi Electric": {
+                "n": 10,
+                "bias_K": 2.8938108518807653
+              }
+            }
+          }
+        },
+        "ua_linear": {
+          "law": null,
+          "group_holdout": {
+            "valid": false,
+            "reason": "nameplate missing"
+          },
+          "manufacturer_holdout": {
+            "valid": false,
+            "reason": "single manufacturer"
+          }
+        }
+      },
+      "nameplate_range_W": [
+        5000.0,
+        40000.0
+      ],
+      "duty_range_W": [
+        5000.0,
+        42190.0
+      ],
+      "n_with_conductance": 20,
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "KTH-EGI-2015-084MSC",
+        "MITSUBISHI-OCH439-REVM",
+        "MITSUBISHI-OCH465-REVD",
+        "MITSUBISHI-OCH562-REVD",
+        "MITSUBISHI-OCH605-REVA",
+        "MITSUBISHI-OCH748-REVA"
+      ]
+    },
+    "water_condenser|bphe|evaporating": {
+      "n": 8,
+      "holdout_groups": [
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)"
+      ],
+      "families": [
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)"
+      ],
+      "manufacturers": [
+        "Mitsubishi Electric"
+      ],
+      "value_kinds": {
+        "manufacturer_standard_data": 8
+      },
+      "band_p10_p50_p90": {
+        "ITD_K": [
+          7.095079663662018,
+          8.880039325643834,
+          11.017560253932135
+        ],
+        "leave_K": [
+          2.105501137701557,
+          3.8904393292128097,
+          5.752211031534271
+        ],
+        "LMTD_K": [
+          4.107183648772784,
+          6.04595187136246,
+          8.101707918051677
+        ],
+        "eps": [
+          0.47790518962840944,
+          0.5624032746597524,
+          0.7034867742567583
+        ],
+        "UA_per_Q_hx": [
+          0.12343076424316257,
+          0.1653999273028697,
+          0.2434758426979026
+        ],
+        "Q_hx_per_nameplate": [
+          0.8333333333333334,
+          0.8928571428571429,
+          0.9
+        ],
+        "UA_per_nameplate": [
+          0.10285897020263547,
+          0.14767850652041936,
+          0.21902239460990464
+        ],
+        "Q_hx_per_heating_nameplate": [
+          0.8333333333333334,
+          0.8928571428571429,
+          0.9
+        ],
+        "n_with_heating_nameplate": 8
+      },
+      "by_product_class": {
+        "air_to_water": {
+          "n": 8,
+          "holdout_groups": 1,
+          "ITD_K": 8.880039325643834,
+          "leave_K": 3.8904393292128097
+        }
+      },
+      "selected_law": null,
+      "candidates": {},
+      "nameplate_range_W": [
+        5000.0,
+        14000.0
+      ],
+      "duty_range_W": [
+        4500.0,
+        12500.0
+      ],
+      "n_with_conductance": 8,
+      "meets_shipping_gate": false,
+      "source_ids": [
+        "MITSUBISHI-OCH439-REVM",
+        "MITSUBISHI-OCH562-REVD",
+        "MITSUBISHI-OCH605-REVA"
+      ]
+    }
+  },
+  "itd_only_rows": {
+    "indoor_coil|ducted|fin_tube|evaporating": {
+      "n": 32,
+      "manufacturers": [
+        "Carrier (United Technologies)",
+        "Goodman",
+        "Goodman/Amana (tested by Univ. of Maryland CEEE)",
+        "Lennox",
+        "Mitsubishi Electric",
+        "Rheem (tested by Danfoss)"
+      ],
+      "ITD_K_min_median_max": [
+        14.547864486617563,
+        16.780928469537898,
+        18.843319491624733
+      ],
+      "reasons": {
+        "surface_wet": 29,
+        "effectiveness_outside_0_1; surface_wet": 3
+      }
+    },
+    "indoor_coil|other_indoor_unit|fin_tube|evaporating": {
+      "n": 15,
+      "manufacturers": [
+        "Mitsubishi Electric"
+      ],
+      "ITD_K_min_median_max": [
+        10.81056708379456,
+        17.51097884786376,
+        20.217036018108082
+      ],
+      "reasons": {
+        "effectiveness_outside_0_1; surface_wet": 4,
+        "surface_wet": 11
+      }
+    },
+    "indoor_coil|wall_mounted|fin_tube|condensing": {
+      "n": 50,
+      "manufacturers": [
+        "Gree",
+        "Mitsubishi Electric",
+        "Toshiba"
+      ],
+      "ITD_K_min_median_max": [
+        13.0,
+        22.0,
+        33.888888888888886
+      ],
+      "reasons": {
+        "no_fluid_temperature_change; saturation_from_pipe_surface": 6,
+        "third_party_copy_not_accepted": 9,
+        "superseded_revision; third_party_copy_not_accepted": 3,
+        "no_fluid_temperature_change; third_party_copy_not_accepted; saturation_from_pipe_surface": 32
+      }
+    },
+    "indoor_coil|wall_mounted|fin_tube|evaporating": {
+      "n": 164,
+      "manufacturers": [
+        "Carrier (Toshiba Carrier layout)",
+        "Carrier (tested by ORNL)",
+        "Gree",
+        "Mitsubishi Electric",
+        "Toshiba"
+      ],
+      "ITD_K_min_median_max": [
+        8.699117319982214,
+        16.43026806504853,
+        25.60261908497953
+      ],
+      "reasons": {
+        "no_fluid_temperature_change; third_party_copy_not_accepted; surface_wet; saturation_from_pipe_surface": 33,
+        "no_fluid_temperature_change; surface_wet; saturation_from_pipe_surface": 6,
+        "effectiveness_outside_0_1; third_party_copy_not_accepted; surface_wet": 6,
+        "third_party_copy_not_accepted; surface_wet": 5,
+        "surface_wet": 73,
+        "effectiveness_outside_0_1; surface_wet": 26,
+        "superseded_revision; third_party_copy_not_accepted; surface_wet": 3,
+        "no_fluid_temperature_change": 12
+      }
+    },
+    "indoor_coil|water_to_air|fin_tube|condensing": {
+      "n": 17,
+      "manufacturers": [
+        "Carrier",
+        "WaterFurnace"
+      ],
+      "ITD_K_min_median_max": [
+        8.905176993814823,
+        13.448443297133142,
+        17.153272463341395
+      ],
+      "reasons": {
+        "third_party_copy_not_accepted": 8,
+        "effectiveness_outside_0_1; third_party_copy_not_accepted": 4,
+        "effectiveness_outside_0_1": 5
+      }
+    },
+    "indoor_coil|water_to_air|fin_tube|evaporating": {
+      "n": 136,
+      "manufacturers": [
+        "Carrier",
+        "ClimateMaster",
+        "WaterFurnace"
+      ],
+      "ITD_K_min_median_max": [
+        11.737187672976145,
+        17.292743228531698,
+        21.157370227989567
+      ],
+      "reasons": {
+        "no_fluid_temperature_change; third_party_copy_not_accepted; surface_wet": 6,
+        "third_party_copy_not_accepted; surface_wet": 12,
+        "surface_wet": 118
+      }
+    },
+    "liquid_source_hx|water_to_air|coaxial|condensing": {
+      "n": 19,
+      "manufacturers": [
+        "Carrier",
+        "WaterFurnace"
+      ],
+      "ITD_K_min_median_max": [
+        4.313256232699764,
+        8.811439107307542,
+        10.852331935875075
+      ],
+      "reasons": {
+        "third_party_copy_not_accepted": 18,
+        "effectiveness_outside_0_1": 1
+      }
+    },
+    "liquid_source_hx|water_to_air|coaxial|evaporating": {
+      "n": 12,
+      "manufacturers": [
+        "Carrier"
+      ],
+      "ITD_K_min_median_max": [
+        5.880255492109345,
+        8.89004728810281,
+        11.86665370416722
+      ],
+      "reasons": {
+        "third_party_copy_not_accepted": 12
+      }
+    },
+    "liquid_source_hx|water_to_water|coaxial|condensing": {
+      "n": 8,
+      "manufacturers": [
+        "WaterFurnace"
+      ],
+      "ITD_K_min_median_max": [
+        8.763240920131668,
+        11.560431666990162,
+        13.772177317257249
+      ],
+      "reasons": {
+        "no_fluid_temperature_change": 8
+      }
+    },
+    "liquid_source_hx|water_to_water|coaxial|evaporating": {
+      "n": 12,
+      "manufacturers": [
+        "WaterFurnace"
+      ],
+      "ITD_K_min_median_max": [
+        4.769917153275262,
+        5.9405564503396135,
+        9.261574254264929
+      ],
+      "reasons": {
+        "no_fluid_temperature_change": 12
+      }
+    },
+    "load_water_hx|water_to_water|coaxial|condensing": {
+      "n": 16,
+      "manufacturers": [
+        "Bosch",
+        "WaterFurnace"
+      ],
+      "ITD_K_min_median_max": [
+        4.925755682938757,
+        8.278325764205675,
+        11.166771396389173
+      ],
+      "reasons": {
+        "effectiveness_outside_0_1": 4,
+        "no_fluid_temperature_change": 12
+      }
+    },
+    "load_water_hx|water_to_water|coaxial|evaporating": {
+      "n": 8,
+      "manufacturers": [
+        "WaterFurnace"
+      ],
+      "ITD_K_min_median_max": [
+        7.696387975822688,
+        19.695468332677812,
+        28.819362350188918
+      ],
+      "reasons": {
+        "no_fluid_temperature_change": 8
+      }
+    },
+    "outdoor_coil|fin_tube|condensing": {
+      "n": 108,
+      "manufacturers": [
+        "Carrier (tested by ORNL)",
+        "Goodman",
+        "Gree",
+        "Mitsubishi Electric",
+        "Rheem (tested by Danfoss)",
+        "Toshiba"
+      ],
+      "ITD_K_min_median_max": [
+        2.5,
+        10.19730764069244,
+        25.0
+      ],
+      "reasons": {
+        "no_fluid_temperature_change": 55,
+        "no_fluid_temperature_change; saturation_from_pipe_surface": 6,
+        "third_party_copy_not_accepted": 9,
+        "no_fluid_temperature_change; third_party_copy_not_accepted": 2,
+        "superseded_revision; third_party_copy_not_accepted": 3,
+        "effectiveness_outside_0_1": 1,
+        "no_fluid_temperature_change; third_party_copy_not_accepted; saturation_from_pipe_surface": 32
+      }
+    },
+    "outdoor_coil|fin_tube|evaporating": {
+      "n": 106,
+      "manufacturers": [
+        "Carrier (United Technologies)",
+        "Goodman/Amana (tested by Univ. of Maryland CEEE)",
+        "Gree",
+        "KTH (NxtHPG project)",
+        "Mitsubishi Electric",
+        "Rheem (tested by Danfoss)",
+        "Toshiba"
+      ],
+      "ITD_K_min_median_max": [
+        0.15415963232972452,
+        6.623879364877716,
+        21.998781641137295
+      ],
+      "reasons": {
+        "no_fluid_temperature_change": 45,
+        "saturation_on_wrong_side_of_inlet": 1,
+        "no_fluid_temperature_change; surface_frosting": 5,
+        "saturation_on_wrong_side_of_inlet; saturation_from_pipe_surface": 6,
+        "third_party_copy_not_accepted": 9,
+        "superseded_revision; third_party_copy_not_accepted": 3,
+        "effectiveness_outside_0_1": 5,
+        "no_fluid_temperature_change; third_party_copy_not_accepted; saturation_from_pipe_surface": 32
+      }
+    }
+  },
+  "role_ratios": {
+    "outdoor_coil|fin_tube": {
+      "n_units": 80,
+      "manufacturers": [
+        "Lennox",
+        "Mitsubishi Electric"
+      ],
+      "holdout_groups": [
+        "Lennox:14HPX 14 SEER split HP",
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+        "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+        "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+        "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+        "Mitsubishi:MUZ-FW NAHZ",
+        "Mitsubishi:MUZ-FX NLHZ",
+        "Mitsubishi:MUZ-GS NA"
+      ],
+      "UA_evaporating_over_condensing_p10_p50_p90": [
+        0.20854743366491443,
+        0.7214774053815979,
+        1.0797389063584248
+      ],
+      "by_manufacturer_median": {
+        "Lennox": 0.20854743366491443,
+        "Mitsubishi Electric": 0.7625240527094305
+      },
+      "meets_shipping_gate": true,
+      "units": [
+        {
+          "model": "Lennox 14HPX-042 / CBX26UH-042",
+          "manufacturer": "Lennox",
+          "holdout_group": "Lennox:14HPX 14 SEER split HP",
+          "ratio": 0.20854743366491443,
+          "n_rows": {
+            "condensing": 3,
+            "evaporating": 2
+          }
+        },
+        {
+          "model": "MSZ-FH06NA / MUZ-FH06NA; MUZ-FH06NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.5451048887442677,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FH09NA / MUZ-FH09NA; MUZ-FH09NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.6369123954445113,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FH12NA / MUZ-FH12NA; MUZ-FH12NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.6664672356190426,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FH15NA / MUZ-FH15NA; MUZ-FH15NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.682006559125974,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FH18NA / MUZ-FH18NA; MUZ-FH18NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.6676327507360349,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FH18NA2 / MUZ-FH18NA2; MUZ-FH18NAH2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.6182042786105211,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GL09NA - U1, U2 / MUZ-GL09NA - U1, U2; MUZ-GL09NAH - U1, U2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.7188352066350566,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GL09NA - U8 / MUZ-GL09NA - U8; MUZ-GL09NAH - U8",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.7827740862383461,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GL12NA / MUZ-GL12NA; MUZ-GL12NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.9361076895227795,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GL15NA / MUZ-GL15NA; MUZ-GL15NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.782104512189564,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GL18NA / MUZ-GL18NA; MUZ-GL18NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.691851749456653,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GL24NA / MUZ-GL24NA; MUZ-GL24NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.878965904712771,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HM09NA - U1, U2 / MUZ-HM09NA - U1, U2; MUZ-HM09NA2 - U1; MUZ-HM09NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.76425558103712,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HM09NA - U8 / MUZ-HM09NA - U8; MUZ-HM09NA2 - U8",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.8591250741768203,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HM12NA - U1, U2 / MUZ-HM12NA - U1, U2; MUZ-HM12NA2 - U1; MUZ-HM12NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.8309252210283682,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HM12NA - U8 / MUZ-HM12NA - U8; MUZ-HM12NA2 - U8",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.926550076102698,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HM15NA / MUZ-HM15NA; MUZ-HM15NAH; MUZ-HM15NA2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.7578663443959543,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HM18NA / MUZ-HM18NA; MUZ-HM18NAH; MUZ-HM18NA2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.7625240527094305,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HM24NA / MUZ-HM24NA; MUZ-HM24NAH; MUZ-HM24NA2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.44613320148002306,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-WR09NA / MUZ-WR09NA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.76425558103712,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-WR12NA / MUZ-WR12NA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.8309252210283682,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-WR18NA / MUZ-WR18NA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.7625240527094305,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-WR24NA / MUZ-WR24NA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GE/GL/HM/WR/JP (identical data across series)",
+          "ratio": 0.44613320148002306,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FS06NA / MUZ-FS06NA; MUZ-FS06NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.6400009524460412,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FS09NA / MUZ-FS09NA; MUZ-FS09NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.7415259710486043,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FS12NA / MUZ-FS12NA; MUZ-FS12NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.6438330331121717,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FS15NA / MUZ-FS15NA; MUZ-FS15NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.3821403362900344,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FS18NA / MUZ-FS18NA; MUZ-FS18NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:FH/FS/KJ (shared outdoor and indoor hardware)",
+          "ratio": 0.44826348354092405,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS09NA / MUZ-GS09NA; MUZ-GS09NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.8441761973365688,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS09NA / MUZ-GS09NAHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.8836028451063729,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS12NA / MUZ-GS12NA; MUZ-GS12NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.980246643419024,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS12NA / MUZ-GS12NAHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.7885225289444896,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS15NA / MUZ-GS15NA; MUZ-GS15NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.9191324213109393,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS15NA / MUZ-GS15NAHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.7214774053815979,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS18NA / MUZ-GS18NA; MUZ-GS18NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.5118987789067234,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS18NA / MUZ-GS18NAHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.7320338724749748,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS24NA / MUZ-GS24NA; MUZ-GS24NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.681460320415666,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS24NA / MUZ-GS24NAHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.6896209771022206,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS30NA / MUZ-GS30NA; MUZ-GS30NAH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.5527607687760047,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS30NA2 / MUZ-GS30NA2; MUZ-GS30NAH2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.4798632011043665,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GS36NA2 / MUZ-GS36NA2; MUZ-GS36NAH2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-GS NA",
+          "ratio": 0.46400234710035115,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FW06NA / MUZ-FW06NAHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-FW NAHZ",
+          "ratio": 0.684464480335642,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FW09NA / MUZ-FW09NAHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-FW NAHZ",
+          "ratio": 0.797931662680096,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FW12NA / MUZ-FW12NAHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-FW NAHZ",
+          "ratio": 0.7777373182588203,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FX06NL / MUZ-FX06NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-FX NLHZ",
+          "ratio": 1.0947543451012594,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FX09NL / MUZ-FX09NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-FX NLHZ",
+          "ratio": 1.1154903948851869,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FX12NL / MUZ-FX12NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-FX NLHZ",
+          "ratio": 0.9929579301067327,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FX15NL / MUZ-FX15NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-FX NLHZ",
+          "ratio": 1.1635864988754157,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FX18NL / MUZ-FX18NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-FX NLHZ",
+          "ratio": 0.8537888250073455,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-FX24NL / MUZ-FX24NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:MUZ-FX NLHZ",
+          "ratio": 0.7032559972079796,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-JX09WL / MUZ-JX09WL; MUZ-JX09WLH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.0682216287670332,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-JX12WL / MUZ-JX12WL; MUZ-JX12WLH",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.1833200714821541,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX09NL / MUZ-GX09NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 0.9375446244602754,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX12NL / MUZ-GX12NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 0.9335810382501977,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX12NL / MUZ-GX12NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.104822508438236,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX15NL / MUZ-GX15NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.1149601730055858,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX15NL / MUZ-GX15NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 0.9567369543753883,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX18NL / MUZ-GX18NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.0036212355726746,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX18NL / MUZ-GX18NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.0797389063584248,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX24NL / MUZ-GX24NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 0.6935005171712965,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX24NL / MUZ-GX24NLHZ",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 0.6693591370830538,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX30NL / MUZ-GX30NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 0.6015385417258876,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-GX36NL / MUZ-GX36NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 0.5831545272320363,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HX09NL / MUZ-HX09NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.1025921784224175,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HX12NL / MUZ-HX12NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.0089848339448209,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HX18NL / MUZ-HX18NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.028473339555776,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-HX24NL / MUZ-HX24NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 0.5334597139692233,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-WX09NL / MUZ-WX09NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.109667251635051,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-WX12NL / MUZ-WX12NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.035297605885132,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-WX18NL / MUZ-WX18NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 1.2534092026229078,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "MSZ-WX24NL / MUZ-WX24NL",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:GX/JX/HX/WX (shared outdoor units)",
+          "ratio": 0.7581751464546781,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "PUHZ-W50VHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.46636115611415296,
+          "n_rows": {
+            "evaporating": 1,
+            "condensing": 1
+          }
+        },
+        {
+          "model": "PUHZ-W85VHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.6775368515673627,
+          "n_rows": {
+            "evaporating": 1,
+            "condensing": 1
+          }
+        },
+        {
+          "model": "PUHZ-HW112YHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.7177258864624891,
+          "n_rows": {
+            "evaporating": 1,
+            "condensing": 1
+          }
+        },
+        {
+          "model": "PUHZ-HW140VHA / PUHZ-HW140YHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.8067802892737446,
+          "n_rows": {
+            "evaporating": 1,
+            "condensing": 1
+          }
+        },
+        {
+          "model": "PUHZ-HW112YHA2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.7381425576863037,
+          "n_rows": {
+            "evaporating": 1,
+            "condensing": 1
+          }
+        },
+        {
+          "model": "PUHZ-HW140VHA2 / PUHZ-HW140YHA2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.792216631720602,
+          "n_rows": {
+            "evaporating": 1,
+            "condensing": 1
+          }
+        },
+        {
+          "model": "PUHZ-W112VHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.6368549844722751,
+          "n_rows": {
+            "evaporating": 1,
+            "condensing": 1
+          }
+        },
+        {
+          "model": "PUHZ-W50VHA2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.48182518483257075,
+          "n_rows": {
+            "evaporating": 1,
+            "condensing": 1
+          }
+        }
+      ]
+    },
+    "indoor_coil|ducted|fin_tube": {
+      "n_units": 3,
+      "manufacturers": [
+        "Carrier (United Technologies)",
+        "Goodman/Amana (tested by Univ. of Maryland CEEE)",
+        "Rheem (tested by Danfoss)"
+      ],
+      "holdout_groups": [
+        "Carrier:25HCD4 14 SEER split HP",
+        "Goodman:SSZ14 split HP",
+        "Rheem:13PJL 13 SEER split HP"
+      ],
+      "UA_evaporating_over_condensing_p10_p50_p90": [
+        0.41998384978943526,
+        0.6704808635939027,
+        0.8837003178408042
+      ],
+      "by_manufacturer_median": {
+        "Carrier (United Technologies)": 0.6704808635939027,
+        "Goodman/Amana (tested by Univ. of Maryland CEEE)": 0.8837003178408042,
+        "Rheem (tested by Danfoss)": 0.41998384978943526
+      },
+      "meets_shipping_gate": true,
+      "units": [
+        {
+          "model": "SSZ140361BA / ARUF374316",
+          "manufacturer": "Goodman/Amana (tested by Univ. of Maryland CEEE)",
+          "holdout_group": "Goodman:SSZ14 split HP",
+          "ratio": 0.8837003178408042,
+          "n_rows": {
+            "evaporating": 2,
+            "condensing": 4
+          }
+        },
+        {
+          "model": "Carrier 25HCD436 / FX4DN037L",
+          "manufacturer": "Carrier (United Technologies)",
+          "holdout_group": "Carrier:25HCD4 14 SEER split HP",
+          "ratio": 0.6704808635939027,
+          "n_rows": {
+            "condensing": 2,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "Rheem 13PJL30A01 / RHSL-HM3017J",
+          "manufacturer": "Rheem (tested by Danfoss)",
+          "holdout_group": "Rheem:13PJL 13 SEER split HP",
+          "ratio": 0.41998384978943526,
+          "n_rows": {
+            "evaporating": 3,
+            "condensing": 3
+          }
+        }
+      ]
+    },
+    "liquid_source_hx|water_to_water|coaxial": {
+      "n_units": 12,
+      "manufacturers": [
+        "Bosch"
+      ],
+      "holdout_groups": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "UA_evaporating_over_condensing_p10_p50_p90": [
+        0.22825404513292677,
+        0.35569687147400525,
+        0.48066613014997633
+      ],
+      "by_manufacturer_median": {
+        "Bosch": 0.35569687147400525
+      },
+      "meets_shipping_gate": false,
+      "units": [
+        {
+          "model": "WW120",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.35569687147400525,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WW122",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.228831332781748,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WW180",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.38583088931797005,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WW210",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.32937375119218565,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WW240",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.3330470141051813,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WW360",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.33255503697209,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WW420",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.33878703731710264,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WT025",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.48066613014997633,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WT035",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.5307124783848091,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WT049",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.4000481397900712,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WT061",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.22825404513292677,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        },
+        {
+          "model": "WT071",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.38868779727962266,
+          "n_rows": {
+            "condensing": 20,
+            "evaporating": 16
+          }
+        }
+      ]
+    },
+    "load_water_hx|water_to_water|coaxial": {
+      "n_units": 12,
+      "manufacturers": [
+        "Bosch"
+      ],
+      "holdout_groups": [
+        "Bosch:WT Series",
+        "Bosch:WW Series"
+      ],
+      "UA_evaporating_over_condensing_p10_p50_p90": [
+        0.20600358037438432,
+        0.5421390603385008,
+        0.6495510447271416
+      ],
+      "by_manufacturer_median": {
+        "Bosch": 0.5686176108159607
+      },
+      "meets_shipping_gate": false,
+      "units": [
+        {
+          "model": "WW120",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.6055204378658671,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WW122",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.49447775734889027,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WW180",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.6495510447271416,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WW210",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.5032478377092714,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WW240",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.627244152855691,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WW360",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.6285111151656484,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WW420",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WW Series",
+          "ratio": 0.5147074312276545,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WT025",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.5421390603385008,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WT035",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.7777507386329945,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WT049",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.5686176108159607,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WT061",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.34259506365261705,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 16
+          }
+        },
+        {
+          "model": "WT071",
+          "manufacturer": "Bosch",
+          "holdout_group": "Bosch:WT Series",
+          "ratio": 0.20600358037438432,
+          "n_rows": {
+            "evaporating": 20,
+            "condensing": 12
+          }
+        }
+      ]
+    },
+    "water_condenser|bphe": {
+      "n_units": 8,
+      "manufacturers": [
+        "Mitsubishi Electric"
+      ],
+      "holdout_groups": [
+        "Mitsubishi:Ecodan PUHZ-W/HW (R410A)"
+      ],
+      "UA_evaporating_over_condensing_p10_p50_p90": [
+        0.32351377466682885,
+        0.4686280037296754,
+        0.7914043238982743
+      ],
+      "by_manufacturer_median": {
+        "Mitsubishi Electric": 0.5347029318462388
+      },
+      "meets_shipping_gate": false,
+      "units": [
+        {
+          "model": "PUHZ-W50VHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.7914043238982743,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "PUHZ-W85VHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.5354891834109441,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "PUHZ-HW112YHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.32351377466682885,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "PUHZ-HW140VHA / PUHZ-HW140YHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.4686280037296754,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "PUHZ-HW112YHA2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.32351377466682885,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "PUHZ-HW140VHA2 / PUHZ-HW140YHA2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.4686280037296754,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "PUHZ-W112VHA",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.5347029318462388,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        },
+        {
+          "model": "PUHZ-W50VHA2",
+          "manufacturer": "Mitsubishi Electric",
+          "holdout_group": "Mitsubishi:Ecodan PUHZ-W/HW (R410A)",
+          "ratio": 0.7914043238982743,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 1
+          }
+        }
+      ]
+    },
+    "liquid_source_hx|water_to_air|coaxial": {
+      "n_units": 7,
+      "manufacturers": [
+        "WaterFurnace"
+      ],
+      "holdout_groups": [
+        "WaterFurnace:7 Series 700R11 indoor split",
+        "WaterFurnace:7 Series VS"
+      ],
+      "UA_evaporating_over_condensing_p10_p50_p90": [
+        0.1505109022348821,
+        0.4850603019105259,
+        1.605458252996818
+      ],
+      "by_manufacturer_median": {
+        "WaterFurnace": 0.4850603019105259
+      },
+      "meets_shipping_gate": false,
+      "units": [
+        {
+          "model": "7 Series 024",
+          "manufacturer": "WaterFurnace",
+          "holdout_group": "WaterFurnace:7 Series VS",
+          "ratio": 0.1505109022348821,
+          "n_rows": {
+            "condensing": 2,
+            "evaporating": 2
+          }
+        },
+        {
+          "model": "7 Series 036",
+          "manufacturer": "WaterFurnace",
+          "holdout_group": "WaterFurnace:7 Series VS",
+          "ratio": 0.40660372405073486,
+          "n_rows": {
+            "condensing": 1,
+            "evaporating": 2
+          }
+        },
+        {
+          "model": "7 Series 048",
+          "manufacturer": "WaterFurnace",
+          "holdout_group": "WaterFurnace:7 Series VS",
+          "ratio": 0.26607975643833337,
+          "n_rows": {
+            "condensing": 2,
+            "evaporating": 2
+          }
+        },
+        {
+          "model": "7 Series 060",
+          "manufacturer": "WaterFurnace",
+          "holdout_group": "WaterFurnace:7 Series VS",
+          "ratio": 0.4850603019105259,
+          "n_rows": {
+            "condensing": 2,
+            "evaporating": 2
+          }
+        },
+        {
+          "model": "700R11 W7S048",
+          "manufacturer": "WaterFurnace",
+          "holdout_group": "WaterFurnace:7 Series 700R11 indoor split",
+          "ratio": 0.8561235712971952,
+          "n_rows": {
+            "condensing": 2,
+            "evaporating": 2
+          }
+        },
+        {
+          "model": "700R11 W7S042",
+          "manufacturer": "WaterFurnace",
+          "holdout_group": "WaterFurnace:7 Series 700R11 indoor split",
+          "ratio": 0.9313780799635231,
+          "n_rows": {
+            "condensing": 2,
+            "evaporating": 2
+          }
+        },
+        {
+          "model": "700R11 W7S030",
+          "manufacturer": "WaterFurnace",
+          "holdout_group": "WaterFurnace:7 Series 700R11 indoor split",
+          "ratio": 1.605458252996818,
+          "n_rows": {
+            "condensing": 2,
+            "evaporating": 2
+          }
+        }
+      ]
+    }
+  },
+  "excluded": {
+    "surface_wet": 231,
+    "effectiveness_outside_0_1; surface_wet": 33,
+    "no_fluid_temperature_change": 152,
+    "saturation_on_wrong_side_of_inlet": 1,
+    "no_fluid_temperature_change; surface_frosting": 5,
+    "effectiveness_outside_0_1": 16,
+    "third_party_copy_not_accepted": 65,
+    "effectiveness_outside_0_1; third_party_copy_not_accepted": 4,
+    "no_fluid_temperature_change; third_party_copy_not_accepted; surface_wet": 6,
+    "third_party_copy_not_accepted; surface_wet": 17,
+    "no_fluid_temperature_change; third_party_copy_not_accepted; surface_wet; saturation_from_pipe_surface": 33,
+    "no_saturation_or_inlet; third_party_copy_not_accepted": 2,
+    "no_fluid_temperature_change; surface_wet; saturation_from_pipe_surface": 6,
+    "no_fluid_temperature_change; saturation_from_pipe_surface": 12,
+    "saturation_on_wrong_side_of_inlet; saturation_from_pipe_surface": 6,
+    "value_kind_design_selection": 2,
+    "effectiveness_outside_0_1; third_party_copy_not_accepted; surface_wet": 6,
+    "no_fluid_temperature_change; third_party_copy_not_accepted": 2,
+    "superseded_revision; third_party_copy_not_accepted": 9,
+    "superseded_revision; third_party_copy_not_accepted; surface_wet": 3,
+    "no_saturation_or_inlet": 4,
+    "no_fluid_temperature_change; third_party_copy_not_accepted; saturation_from_pipe_surface": 96
+  }
+}

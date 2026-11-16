@@ -511,6 +511,7 @@ def _real_surrogate(t_in, t0, load, mdot=3.0):
     return plant
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_surrogate_with_real_model_at_the_discharge_temperature_ceiling():
     """R32 at A-2 with a 60 degC loop: the discharge-temperature control holds 150 degC
     only at a reduced duty (``capacity_clamped='max'``). The loop gets that duty,
@@ -529,6 +530,7 @@ def test_surrogate_with_real_model_at_the_discharge_temperature_ceiling():
     assert ex.globals[9] == pytest.approx(full["E_tot [W]"])
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_surrogate_with_real_model_outside_the_envelope_delivers_nothing():
     """R32 at A-10 with a 50 degC loop: outside the envelope even under control."""
     plant = _real_surrogate(50.0, -10.0, 15000.0)

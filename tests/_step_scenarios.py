@@ -15,9 +15,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from validation.coefficients.recorded_maps.v2026_09_24 import make_eta_em, make_eta_isen, make_eta_vol
 
 from tmhp import AirSourceHeatPumpBoiler
-from tmhp.compressor_efficiency_legacy import make_eta_em, make_eta_isen, make_eta_vol
 from tmhp.compressor_speed import refrigerant_aware_displacement
 
 PERIOD_S: int = 3 * 86400  # 3-day horizon (spec: >= 3 days)
@@ -30,9 +30,10 @@ DATA_DIR: Path = Path(__file__).parent / "data"
 def make_model() -> AirSourceHeatPumpBoiler:
     """Fixed ASHPB configuration shared by golden generation and tests."""
     # Freeze the archived machine recorded in the goldens: v2026-09-24
-    # efficiencies at 40 rev/s and the A7/W35 refrigerant-aware displacement.
-    # Constructor defaults now use BITZER absolute-speed fits and a different
-    # capacity-based displacement, so leaving either implicit changes the run.
+    # efficiencies at 40 rev/s (an earlier release, recorded in
+    # validation/coefficients/recorded_maps) and the A7/W35 refrigerant-aware
+    # displacement. The constructor's defaults are other models and another
+    # displacement now, so leaving either implicit changes the run.
     return AirSourceHeatPumpBoiler(
         ref="R32",
         V_cmp_ref=refrigerant_aware_displacement(15000, "R32"),
@@ -42,6 +43,9 @@ def make_model() -> AirSourceHeatPumpBoiler:
         eta_cmp=make_eta_em(40.0),
         # Historical 5% correlation domain, frozen for this characterization.
         vsd_coeffs={"curve_type": "custom"},
+        # The outdoor fan of the recorded machine: 1.5e-4 m3/s per watt of
+        # capacity, the constructor's constant before the catalogue airflow (#86).
+        dV_fan_a_rated=15000 * 0.00015,
         dV_fan_a_min=0.05 * 15000 * 0.00015,
         # Compressor envelope as recorded in the goldens (before 2026-11-13):
         # no discharge-temperature limit, PR ceiling 20, 150 rev/s. With the
@@ -57,6 +61,12 @@ def make_model() -> AirSourceHeatPumpBoiler:
         # both schedules run below 5 degC, where the default now averages the
         # running cycle over frost and defrost (tests/test_ashpb_defrost.py).
         defrost=False,
+        # The heat exchangers of the recorded machine (before the approach-
+        # temperature defaults, #115-#118): a tank exchanger without circulating
+        # water at 5 K approach (hp_capacity / 5) and the outdoor coil at 0.7 of it.
+        UA_tank_hx=15000 / 5.0,
+        UA_ou_rated=0.7 * 15000 / 5.0,
+        m_dot_w_rated=0.0,
     )
 
 

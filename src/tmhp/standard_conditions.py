@@ -48,13 +48,19 @@ Which model input a standard temperature is
   cannot be imposed: ``operating_range()`` refuses it (``ValueError``) rather
   than report a condition it did not solve.
 - **Leaving water** (the ``W35`` of ``A7/W35``) is not an input of the boiler
-  models: their sink is the tank temperature ``T_tank_w``. The table solves
-  ``T_tank_w = leaving water - sink_offset_K`` with ``sink_offset_K = 2.5 K``
-  (:data:`LEAVING_WATER_TO_TANK_K`), the offset every air-to-water catalogue
-  of the validation set states for where the manufacturer measures
-  (``sink_offset_K`` in ``validation/catalogs``). ``sink_offset_K=0`` solves
-  the tank at the named temperature instead -- a stricter point, since the
-  water around the condenser is then as hot as the standard's leaving water.
+  models: their sink is the tank water ``T_tank_w`` that enters the plate
+  condenser. The table hands them the water EN 14511 enters with: the leaving
+  water less the standard's temperature rise (:func:`en14511_water_rise`:
+  5 K up to 45 °C leaving, 8 K at 55 °C, 10 K at 65 °C). The air-source
+  boiler takes the flow that carries the requested duty at that rise
+  (``m_dot_w``, :func:`en14511_condenser_water`); the liquid-source boilers
+  have no per-call flow, so their water enters at the leaving water less the
+  rise of their own rated circulation flow (``m_dot_w_rated``). A boiler built
+  without circulating water (``m_dot_w_rated=0``) is solved with its tank at
+  the leaving water. ``sink_offset_K`` replaces the rise: the water enters
+  that much below the leaving water at the boiler's rated circulation flow
+  (``sink_offset_K=0`` solves the tank water at the named temperature -- a
+  stricter point, since the water then leaves hotter than the standard's).
   The table prints both temperatures.
 - **Indoor air** is ``T_a_room`` (ASHP, GSHP).
 - ``T0`` of GSHP, GSHPB and WSHPB is the dead state of the exergy columns
@@ -82,6 +88,7 @@ from typing import Any
 import pandas as pd
 
 from . import operating_limits
+from .constants import c_w
 
 __all__ = [
     "AIR_TO_AIR",
@@ -89,19 +96,54 @@ __all__ = [
     "BRINE_TO_AIR",
     "BRINE_TO_WATER",
     "COLUMNS",
-    "LEAVING_WATER_TO_TANK_K",
+    "EN14511_WATER_RISE_K",
     "StandardCondition",
     "WATER_TO_WATER",
+    "en14511_condenser_water",
+    "en14511_water_rise",
     "operating_range",
 ]
 
-LEAVING_WATER_TO_TANK_K: float = 2.5
-"""How far a boiler's tank temperature sits below the leaving water of a standard name [K].
+EN14511_WATER_RISE_K: tuple[tuple[float, float], ...] = ((45.0, 5.0), (55.0, 8.0), (65.0, 10.0))
+"""Water temperature rise across the condenser of an EN 14511 rating [K] at a leaving-water temperature [°C].
 
-The value every air-to-water catalogue of the validation set gives as
-``sink_offset_K`` (the validation harness solves ``T_tank_w`` at the
-catalogue's leaving water less this offset).
+The low-, medium-, high- and very-high-temperature applications: 30/35 and
+40/45 °C (5 K), 47/55 °C (8 K) and 55/65 °C (10 K); :func:`en14511_water_rise`
+interpolates linearly between them and holds the ends.
 """
+
+
+def en14511_water_rise(T_leaving_C: float) -> float:
+    """Water temperature rise across a boiler's condenser at an EN 14511 leaving-water temperature [K].
+
+    5 K up to 45 °C leaving, 8 K at 55 °C, 10 K at 65 °C, linear in between
+    (:data:`EN14511_WATER_RISE_K`): the water enters at
+    ``T_leaving_C - en14511_water_rise(T_leaving_C)``.
+    """
+    if not math.isfinite(T_leaving_C):
+        raise ValueError(f"T_leaving_C must be finite, got {T_leaving_C!r}")
+    points = EN14511_WATER_RISE_K
+    if T_leaving_C <= points[0][0]:
+        return points[0][1]
+    for (T_low, rise_low), (T_high, rise_high) in zip(points, points[1:], strict=False):
+        if T_leaving_C <= T_high:
+            return rise_low + (rise_high - rise_low) * (T_leaving_C - T_low) / (T_high - T_low)
+    return points[-1][1]
+
+
+def en14511_condenser_water(T_leaving_C: float, duty: float) -> tuple[float, float]:
+    """Water entering a condenser [°C] and its flow [kg/s] at an EN 14511 leaving-water temperature.
+
+    The flow carries ``duty`` [W] at the standard's rise
+    (:func:`en14511_water_rise`): ``m_dot_w = duty / (c_w rise)``, and the water
+    enters at ``T_leaving_C - rise``. These are the ``T_tank_w`` and ``m_dot_w``
+    of :meth:`tmhp.AirSourceHeatPumpBoiler.analyze_steady`.
+    """
+    if not (math.isfinite(duty) and duty > 0):
+        raise ValueError(f"duty must be positive and finite [W], got {duty!r}")
+    rise = en14511_water_rise(T_leaving_C)
+    return T_leaving_C - rise, duty / (c_w * rise)
+
 
 #: Pressure at which a wet-bulb temperature is turned into a relative humidity [Pa].
 _P_ATM = 101325.0
@@ -123,8 +165,8 @@ class StandardCondition:
         heat exchanger (``B``, ``W``) [°C]. In cooling it is the side the
         heat is rejected to.
     load_side_C : float
-        Water leaving the heat pump (boilers; the tank is solved
-        ``sink_offset_K`` below it) or the indoor air (space heat pumps) [°C].
+        Water leaving the heat pump (boilers; the water entering it is solved
+        the EN 14511 rise below it) or the indoor air (space heat pumps) [°C].
     outdoor_wet_bulb_C : float | None
         Outdoor wet bulb [°C] of an air-source heating condition, passed to
         the model as ``RH_out``. ``None``: the standard gives none, or the
@@ -286,33 +328,58 @@ class _Family:
     conditions: tuple[StandardCondition, ...]
     delivered_key: str
     boiler: bool
-    arguments: Callable[[StandardCondition, float, float | None, float], dict[str, Any]]
+    arguments: Callable[[Any, StandardCondition, float, float | None, float | None], dict[str, Any]]
     brine_from_borefield: bool = False
 
 
-def _air_to_water(c: StandardCondition, duty: float, humidity: float | None, offset: float) -> dict[str, Any]:
-    kwargs: dict[str, Any] = {"T_tank_w": c.load_side_C - offset, "T0": c.source_side_C, "Q_ref_tank": duty}
+def _circulates(model: Any) -> bool:
+    """Whether a boiler's tank heat exchanger has circulating water (``m_dot_w_rated > 0``)."""
+    return float(getattr(model, "m_dot_w_rated", 0.0)) > 0.0
+
+
+def _air_to_water(
+    model: Any, c: StandardCondition, duty: float, humidity: float | None, offset: float | None
+) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {"T_tank_w": c.load_side_C, "T0": c.source_side_C, "Q_ref_tank": duty}
+    if offset is not None:
+        kwargs["T_tank_w"] = c.load_side_C - offset
+    elif _circulates(model):
+        # EN 14511: the water enters the rise below the leaving water, at the flow that carries the duty.
+        kwargs["T_tank_w"], kwargs["m_dot_w"] = en14511_condenser_water(c.load_side_C, duty)
     if humidity is not None:
         kwargs["RH_out"] = humidity
     return kwargs
 
 
-def _source_to_water(c: StandardCondition, duty: float, humidity: float | None, offset: float) -> dict[str, Any]:
-    return {"T_tank_w": c.load_side_C - offset, "T_source": c.source_side_C, "Q_ref_tank": duty, "T0": c.source_side_C}
+def _source_to_water(
+    model: Any, c: StandardCondition, duty: float, humidity: float | None, offset: float | None
+) -> dict[str, Any]:
+    if offset is not None:
+        T_in = c.load_side_C - offset
+    elif _circulates(model):
+        # No per-call flow: the water enters the rise of the rated circulation flow below the leaving water.
+        T_in = c.load_side_C - duty / (float(model.m_dot_w_rated) * c_w)
+    else:
+        T_in = c.load_side_C
+    return {"T_tank_w": T_in, "T_source": c.source_side_C, "Q_ref_tank": duty, "T0": c.source_side_C}
 
 
 def _space_load(c: StandardCondition, duty: float) -> float:
     return -duty if c.mode == "heating" else duty  # the space models' sign: heating below zero
 
 
-def _air_to_air(c: StandardCondition, duty: float, humidity: float | None, offset: float) -> dict[str, Any]:
+def _air_to_air(
+    model: Any, c: StandardCondition, duty: float, humidity: float | None, offset: float | None
+) -> dict[str, Any]:
     kwargs: dict[str, Any] = {"Q_r_iu": _space_load(c, duty), "T0": c.source_side_C, "T_a_room": c.load_side_C}
     if humidity is not None and c.mode == "heating":
         kwargs["RH_out"] = humidity
     return kwargs
 
 
-def _brine_to_air(c: StandardCondition, duty: float, humidity: float | None, offset: float) -> dict[str, Any]:
+def _brine_to_air(
+    model: Any, c: StandardCondition, duty: float, humidity: float | None, offset: float | None
+) -> dict[str, Any]:
     return {"Q_r_iu": _space_load(c, duty), "T0": c.source_side_C, "T_a_room": c.load_side_C}
 
 
@@ -359,11 +426,11 @@ def _label(value: Any) -> str | None:
     return str(value)
 
 
-def _solve(model: Any, family: _Family, condition: StandardCondition, sink_offset_K: float) -> dict[str, Any]:
+def _solve(model: Any, family: _Family, condition: StandardCondition, sink_offset_K: float | None) -> dict[str, Any]:
     """One table row: the condition, what was solved, and what came out."""
     duty = condition.part_load * float(model.hp_capacity)
     humidity = condition.outdoor_humidity
-    kwargs = family.arguments(condition, duty, humidity, sink_offset_K)
+    kwargs = family.arguments(model, condition, duty, humidity, sink_offset_K)
     target = _target(model, family, condition)
     # A scope of our own: the analyze_steady call issues nothing and leaves
     # what its refusals knew (the refused discharge temperature, ...) for the
@@ -422,7 +489,7 @@ def operating_range(
     family: str,
     conditions: Iterable[StandardCondition] | None = None,
     *,
-    sink_offset_K: float = LEAVING_WATER_TO_TANK_K,
+    sink_offset_K: float | None = None,
 ) -> pd.DataFrame:
     """Solve rating conditions with ``model.analyze_steady`` and tabulate whether the machine runs at each.
 
@@ -439,10 +506,13 @@ def operating_range(
     conditions : iterable of StandardCondition, optional
         Conditions to solve; the family's default list
         (:data:`AIR_TO_WATER`, ...) when omitted.
-    sink_offset_K : float
-        Boilers: the tank is solved this far below the condition's leaving
-        water [K] (:data:`LEAVING_WATER_TO_TANK_K`; 0 solves the tank at the
-        named temperature). Not used by the space heat pumps.
+    sink_offset_K : float, optional
+        Boilers: the water enters the condenser this far below the
+        condition's leaving water [K], at the boiler's rated circulation flow
+        (0 solves the tank water at the named temperature). ``None`` (default)
+        is the EN 14511 rise (:func:`en14511_water_rise`; the air-source
+        boiler at the flow that carries the duty at it). Not used by the space
+        heat pumps.
 
     Returns
     -------
@@ -452,8 +522,9 @@ def operating_range(
         - ``condition``, ``mode``, ``basis``, ``part_load [-]``: the condition.
         - ``T_source_side [°C]``, ``T_load_side [°C]``: its temperatures as
           named (leaving water for a boiler, indoor air for a space heat pump).
-        - ``T_tank_w [°C]``: the tank temperature a boiler was solved at
-          (``T_load_side - sink_offset_K``; NaN for a space heat pump).
+        - ``T_tank_w [°C]``: the tank water a boiler was solved with, the
+          water entering its condenser (``T_load_side`` less the EN 14511 rise
+          or ``sink_offset_K``, see the module notes; NaN for a space heat pump).
         - ``RH_out [-]``: the outdoor humidity passed (NaN: the model default).
         - ``inputs``: the keyword arguments given to ``analyze_steady``
           (on a shallow copy of the model; GSHP: with ``T_bhe_f_out`` at
@@ -479,8 +550,10 @@ def operating_range(
         spec = _FAMILIES[family]
     except KeyError:
         raise ValueError(f"unknown family {family!r}; one of {sorted(_FAMILIES)}") from None
-    if not (isinstance(sink_offset_K, (int, float)) and math.isfinite(sink_offset_K) and sink_offset_K >= 0.0):
-        raise ValueError(f"sink_offset_K must be a finite number >= 0 [K], got {sink_offset_K!r}")
+    if sink_offset_K is not None and not (
+        isinstance(sink_offset_K, (int, float)) and math.isfinite(sink_offset_K) and sink_offset_K >= 0.0
+    ):
+        raise ValueError(f"sink_offset_K must be None or a finite number >= 0 [K], got {sink_offset_K!r}")
     if spec.brine_from_borefield:
         _check_brine_is_settable(model)
     chosen = spec.conditions if conditions is None else tuple(conditions)
@@ -489,7 +562,8 @@ def operating_range(
             raise TypeError(f"conditions must be StandardCondition instances, got {type(condition).__name__}")
         if spec.boiler and condition.mode != "heating":
             raise ValueError(f"{type(model).__name__} heats water only; condition {condition.name!r} is cooling")
-    rows = [_solve(model, spec, condition, float(sink_offset_K)) for condition in chosen]
+    offset = None if sink_offset_K is None else float(sink_offset_K)
+    rows = [_solve(model, spec, condition, offset) for condition in chosen]
     table = pd.DataFrame(rows, columns=list(COLUMNS))
     for column in _TEXT_COLUMNS:  # a missing label is None in every row, not NaN in some
         table[column] = pd.Series([row[column] for row in rows], index=table.index, dtype=object)

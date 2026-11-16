@@ -129,20 +129,26 @@ represent off operation. There is no tank energy balance.
 Indoor airflow
 ==============
 
-The rated indoor airflow defaults to ``5.37e-5 m³/s`` per watt of
-``hp_capacity`` — 400 cfm per ton, 193 m³/h per kW, the airflow at which unitary
-equipment is rated (``tmhp.hx_fan.INDOOR_AIRFLOW_PER_W``). Pass
-``dV_iu_fan_a_rated`` when the unit's own figure is known; wall-mounted split
-units publish 170 to 310 m³/h per kW at their high fan speed.
+The rated indoor airflow defaults to the largest airflow wall-mounted indoor
+units of that capacity publish: ``0.0320 × kW + 0.1035`` m³/s for a
+cooling-rated unit, 0.232 m³/s (209 m³/h per kW) at the default 4 kW
+(:func:`tmhp.default_inputs.estimate_max_airflow`;
+:doc:`/validation/defaults`, *Maximum fan airflow*).
+``indoor_unit_type="floor_standing"`` selects that class instead. Pass
+``dV_iu_fan_a_rated`` when the unit's own figure is known — a cassette or
+ducted unit has no catalogue class and needs it. The rated airflow is also the
+fan's maximum.
 
 The airflow decides the supply-air temperature and, through the indoor coil's
 approach, most of the temperature lift. At the default a unit delivering its
-nameplate capacity supplies air about 15 K from the room: 35 °C in heating at a
+nameplate capacity supplies air about 14 K from the room: 34 °C in heating at a
 20 °C room, 12 °C in cooling at a 27 °C room, with the refrigerant saturated
-17 K from the room air. (The earlier default, 720 m³/h per kW, moved four times
-that air: supply air 5 K from the room, a condensing temperature near 30 °C,
-and a rated COP above what such equipment declares.) The indoor fan draws about
-0.5 % of the nameplate capacity at rated flow, both fans together 1.3 to 2.5 %.
+16 K from the room air. (Until November 2026 the default was 193 m³/h per kW,
+400 cfm per ton — the airflow unitary equipment is rated at rather than its
+largest; before that, 720 m³/h per kW moved four times that air: supply air
+5 K from the room, a condensing temperature near 30 °C, and a rated COP above
+what such equipment declares.) The indoor fan draws about 0.6 % of the
+nameplate capacity at rated flow, both fans together 1.5 to 2.1 %.
 
 Because the fan power is small against the compressor's, the least-power
 operating point keeps the indoor fan at its largest airflow at every load; the
@@ -151,12 +157,19 @@ A unit that slows its fan for comfort is described with ``dV_iu_fan_a_max``.
 
 .. note::
 
-   The approach-temperature search domain (``dT_approach_bounds``, 1–20 K) is
-   close to the 17 K the indoor coil runs at nameplate capacity, so in mild
-   weather it caps the delivered heat near 120 % of the nameplate
-   (``capacity_clamped == "max"``, ``capacity_binding == "cycle"``). That cap
-   is the search box, not the machine: widen the bounds — the validation
-   harness uses ``(1, 30)`` — when larger duties are to be explored.
+   The approach-temperature search domain (``dT_approach_bounds``) is 1 to
+   30 K. A default unit runs its indoor coil 12 to 24 K from the room air at
+   nameplate capacity, depending on its size (2 to 30 kW), so at the rating
+   points the box is not what limits it. In mild weather the delivered heat of
+   the default 4 kW unit is capped by the compressor's speed range, at about
+   160 % of the nameplate at 7/20 °C
+   (``capacity_clamped == "max"``, ``capacity_binding == "compressor"``).
+   A larger unit moves less air per kW, and from 8 kW the indoor coil at its
+   largest airflow and the widest approach is the ceiling there
+   (``capacity_binding == "cycle"``): 155 % of the nameplate at 8 kW, 137 % at
+   15 kW. Until November 2026 the default was 1 to 20 K, which capped the
+   default 4 kW unit near 125 % of its nameplate and cut the rated capacity of
+   units above 8 kW.
 
 Part load: cycling and unmet load
 =================================
@@ -236,21 +249,20 @@ the degradation, so the minimum-speed point may sit a few watts from the one
 found with ``Cd_cycling=None``.
 
 The minimum speed is not always the lower end of continuous operation. At a
-large lift the shipped isentropic-efficiency fit falls towards low speed, and
-the compressor envelope (:doc:`../developer/reference-operating-limits`)
-refuses the point before ``rps_min`` is reached: for the discharge
+large lift the compressor efficiency falls towards low speed, and the
+compressor envelope (:doc:`../developer/reference-operating-limits`) can
+refuse the point before ``rps_min`` is reached, for the discharge
 temperature, which the falling efficiency drives above ``T_dis_max`` even
-with the discharge-temperature control used up, or for the fit's own floor
-(``ETA_ISEN_MIN`` = 0.30). The default R134a unit at -25 °C outdoors and
-24 °C indoors runs down to about 0.65 kW (frost-free) and no further, the
-R407C unit at -25 °C and 21 °C to about 1.27 kW (39 rev/s). A request below
-that duty was answered with the unit switched off (``failure_reason ==
-"eta_isen_below_min"`` or ``"discharge_temp_above_max"``) while a larger one
-ran. It is met the same way as one below the minimum speed: the unit cycles
-at the smallest duty the envelope admits. The row has ``capacity_clamped ==
-"min"``, ``Q_min [W]`` is that duty (found by bisection on the duty, to
-0.5 %), and the compressor speed of the row is above ``rps_min``. The two
-reasons remain where no duty runs at all.
+with the discharge-temperature control used up. The default 4 kW unit does
+not reach that case at −15 to −25 °C outdoors and 20 to 27 °C indoors with
+R32, R410A, R290, R134a, R407C or R1234yf: it runs down to its minimum speed
+(:doc:`ashpb` names boiler cases that do). Where it happens, a request below
+that duty, refused while a larger one runs, is met the same way as one below
+the minimum speed: the unit cycles at the smallest duty the envelope admits.
+The row has ``capacity_clamped == "min"``, ``Q_min [W]`` is that duty (found
+by bisection on the duty, to 0.5 %), and the compressor speed of the row is
+above ``rps_min``. ``failure_reason == "discharge_temp_above_max"`` remains
+where no duty runs at all.
 
 **Above the maximum capacity** the unit runs flat out
 (``capacity_clamped == "max"``): ``Q_ref_iu [W]`` is the ceiling,
@@ -297,18 +309,19 @@ water-heating models use (:doc:`/concepts/failure-reason-semantics`):
        envelope (:doc:`/developer/reference-operating-limits`).
    * - ``"pressure_ratio"``
      - ``PR_cycle_max``.
-   * - ``"compressor_efficiency"``
-     - The floor of the shipped isentropic fit outside its data.
    * - ``"cycle"``
      - A coil at its largest airflow and the widest approach the search
        admits (``dT_approach_bounds``). The compressor is clear of its own
        limits and the other fan still has a range, so the row is the
        least-power point at that duty.
 
-The same holds below the ceiling. The envelope is not monotone in the duty: at
-mid speed the compressor is less efficient and its discharge hotter than flat
-out, so a duty can be refused although a larger one runs (default unit, −25 °C
-outdoor / 24 °C room: 2.3 kW has no operating point, 3.6 kW has). Such a
+The same holds below the ceiling. The envelope need not be monotone in the
+duty: where the compressor is less efficient and its discharge hotter at mid
+speed than flat out, a duty can be refused although a larger one runs (the
+4 kW R32 unit as a bare constructor built it until November 2026 --
+18.7 cm³/rev, 0.8 m³/s outdoors, the efficiency map of then -- at −25 °C
+outdoor / 24 °C room: 2.3 kW had no operating point, 3.6 kW had; the present
+default unit runs at every duty up to its 2.8 kW ceiling there). Such a
 request runs at the largest duty below it that has one, again with
 ``capacity_clamped == "max"`` and the binding that names the limit, as the
 water-heating models do. A request is switched off (``failure_reason``) only
@@ -460,25 +473,25 @@ difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
      - −7 °C
      - −15 °C
    * - 3 kW (:math:`r = 1` at each)
-     - 3.63
-     - 3.56
-     - 3.31
-     - 2.81
+     - 3.81
+     - 3.72
+     - 3.37
+     - 2.82
    * - 2 kW
-     - 4.37
-     - 4.18
-     - 3.69
-     - 3.10
+     - 4.64
+     - 4.46
+     - 3.97
+     - 3.33
    * - 2 kW, ``load_weighted=False``
-     - 3.93
-     - 3.83
-     - 3.53
-     - 3.09
-   * - 1 kW (cycling at the minimum speed)
-     - 4.34
      - 4.21
-     - 3.87
-     - 3.48
+     - 4.11
+     - 3.80
+     - 3.32
+   * - 1 kW (cycling at the minimum speed at 2 and 0 °C)
+     - 5.24
+     - 5.05
+     - 4.40
+     - 3.70
 
 ``DefrostModel(load_weighted=False)`` is EnergyPlus at every load. A unit that
 cycles below its minimum capacity is loaded by what the running machine
@@ -495,8 +508,8 @@ width of the transition below it and the default humidity.
 
 Four things differ from EnergyPlus: the load term above, and three more. The transition above replaces a switch:
 in EnergyPlus the correction is in full at 5.0 °C and absent at 5.1 °C, where
-its cost is at its largest, so the COP of the default unit stepped from 3.49 to
-4.64 between 5.0 and 5.5 °C. The 5 °C limit is a setting of the defrost
+its cost is at its largest, so the COP of the default unit steps from 3.32 to
+4.88 between 5.0 and 5.5 °C at nameplate capacity. The 5 °C limit is a setting of the defrost
 controller, not the temperature at which a coil frosts over, and a coil near
 freezing frosts on part of its surface and for part of the time.
 ``DefrostModel(transition_K=0)`` restores the switch. The other two are there

@@ -128,7 +128,8 @@ def eta_oi_of(row: pd.Series, pr: float, n: np.ndarray) -> np.ndarray:
 
 def eta_em_of(pr: float, n: np.ndarray) -> np.ndarray:
     """Common to every group: the split is one machine's evidence and is not refitted."""
-    import tmhp.compressor_efficiency as ce
+    # the correlations the groups were refitted from: an earlier release, recorded outside the library
+    from validation.coefficients.recorded_maps import v2026_09_24 as ce
 
     s = n * (1.0 + ce.ETA_EM_N0) / (n + ce.ETA_EM_N0)
     x = max(pr - 1.0, 0.05)

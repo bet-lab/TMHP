@@ -54,8 +54,8 @@ def _steady(hp: AirSourceHeatPumpBoiler, plr: float, **kw) -> dict:
 
 
 def test_fixed_ua_speed_floor_closes_on_delivered_heat(hp):
-    """Test 1 -- ``Q_delivered = UA_tank_hx * dT`` at the floor."""
-    r = _steady(hp, 0.12)
+    """Test 1 -- ``Q_delivered = UA_tank_hx * dT`` at the floor (no circulating water: ``m_dot_w=0``)."""
+    r = _steady(hp, 0.12, m_dot_w=0.0)
 
     assert r["capacity_clamped"] == "min"
     assert r["converged"] is True
@@ -114,14 +114,15 @@ def test_continuous_modulation_is_untouched(hp):
 
     The closure only runs when the speed solver reports a clamp, so every
     modulating point must still satisfy the request exactly and sit at the
-    approach the request implies.
+    approach the request implies (the plate condenser at the rated
+    circulation flow: ``K_tank_hx`` per kelvin above the entering water).
     """
     floor = _floor_plr(hp)
     for plr in (1.0, 0.8, 0.6, floor * 1.1):
         r = _steady(hp, plr)
         assert r["capacity_clamped"] is None
         assert r["Q_ref_tank [W]"] == pytest.approx(CAP * plr, rel=1.0e-6)
-        assert r["dT_ref_tank [K]"] == pytest.approx(CAP * plr / hp.UA_tank_hx, rel=1.0e-6)
+        assert r["dT_ref_tank [K]"] == pytest.approx(CAP * plr / hp.K_tank_hx, rel=1.0e-6)
         assert hp.rps_min < r["cmp_rpm [rpm]"] / 60.0 < hp.rps_max
 
 

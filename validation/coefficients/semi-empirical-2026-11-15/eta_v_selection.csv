@@ -1,0 +1,9 @@
+family,role,candidate,loco_shape,loco_total,parameters,loso_shape_mean,loso_shape_shao_2004,loso_shape_ossorio_2019_cnit,loso_shape_arep_rpt26_hitachi2013,edge_bias_top,edge_bias_bottom,edge_bias_low_speed
+rotary,selected (bounded),rotary:eta_v_bounded:c_re+c_s:rel,0.0166744,0.088056,c_re=0.06809; c_s=0.1234,0.0163244,0.0204526,0.012129,0.0163918,-0.0146478,-0.00880894,0.0118398
+rotary,archive linear form V1,rotary:eta_v:V1:rel,0.0220272,0.0813849,c_re=0.02102; c_Lv=0.02574,0.0204481,0.0318065,0.0128062,0.0167316,-0.0249357,-0.0125942,0.0232917
+rotary,bounded c_re,rotary:eta_v_bounded:c_re:rel,0.0416926,0.104516,c_re=0.06815,0.0379775,0.0588688,0.038332,0.0167316,0.00628508,-0.00202884,0.113728
+rotary,bounded c_re+c_L,rotary:eta_v_bounded:c_re+c_L:rel,0.0222677,0.0817268,c_re=0.02541; c_L=0.0377,0.0213604,0.0302572,0.0169981,0.016826,-0.0161543,-0.00737136,0.0290224
+rotary,bounded c_re+c_f,rotary:eta_v_bounded:c_re+c_f:rel,0.0416926,0.104516,c_re=0.06815; c_f=2.382e-17,0.0379775,0.0588688,0.038332,0.0167316,0.00628508,-0.00202884,0.113728
+rotary,sensitivity: with the unconfirmed Shao machines,rotary:eta_v_bounded:c_re+c_s+c_f:rel,0.0246775,0.115001,c_re=0.06808; c_s=0.2142; c_f=0.02189,0.0246336,0.0321599,0.0258809,0.0158601,-0.000491849,-0.00718412,0.00950191
+scroll,"selected (bounded, archive terms)",scroll:eta_v_bounded:c_re+c_L:abs,0.04142,0.0848529,c_re=0.009801; c_L=0.02071,,,,,0.0347424,0.00911092,-0.00348415
+scroll,archive linear form V1,scroll:eta_v:V1:abs,0.0411686,0.084657,c_re=0.01063; c_Lv=0.0174,,,,,0.0340138,0.00836189,-0.00295297

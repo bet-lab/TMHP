@@ -28,6 +28,7 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     COLORS,
     GRIDLINE,
     HAIRLINE,
+    TEXT_COLORS,
     apply_style,
     cover_data_ylim,
     finalize,
@@ -315,7 +316,7 @@ def fig06(d) -> None:
             ylim[0] + 0.06 * (ylim[1] - ylim[0]),
             "compressor\nspeed floor",
             fontsize=dm.fs(-3),
-            color=COLORS["muted"],
+            color=TEXT_COLORS["muted"],
             va="bottom",
         )
         _panels.append((ax, letter))

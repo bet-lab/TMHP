@@ -12,13 +12,22 @@ Two things live here because both boilers need them identically:
 
 Default sizing rules
 --------------------
-``UA_tank_hx = hp_capacity / 5``
-    A 5 K condensing approach at the rated duty, the rule of the air-source
-    boiler (:class:`~tmhp.AirSourceHeatPumpBoiler`).
-``UA_source = 0.18 * hp_capacity``
-    The liquid-to-refrigerant evaporator conductance per watt of capacity, the
-    coefficient of the space-conditioning ground-source model
-    (``ground_hx_ua_per_capacity``).
+Tank heat exchanger
+    An external plate condenser fed with tank water at the rated circulation
+    flow ``m_dot_w_rated = hp_capacity / (c_w dT_w_rated)`` (5 K rise by
+    default; ``0`` selects a coil without circulating water, whose
+    ``UA_tank_hx`` must then be given), the tank water entering it. Its
+    ``UA_tank_hx`` reproduces the leaving-end approach of the plate condensers
+    of air-to-water units (``water_condenser|bphe|condensing``,
+    :func:`tmhp.default_inputs.estimate_hx_UA`), the rule of
+    :class:`~tmhp.AirSourceHeatPumpBoiler`.
+Source heat exchanger (``UA_ground`` / ``UA_water``)
+    The leaving-end approach of the brine-to-refrigerant coaxial evaporators of
+    water-to-air units (``liquid_source_hx|water_to_air|coaxial|evaporating``)
+    at the rated source flow, sized for the duty they absorb per watt of
+    heating nameplate. It is the only liquid-source stratum the archive ships
+    (three manufacturers); the plate-exchanger and water-to-water strata are
+    not shipped, so a water-to-water machine borrows it.
 source-loop flow ``= 0.75 * hp_capacity / (rho c * 3 K)``
     The rated source-side heat (0.75 of the condenser duty, i.e. COP 4) carried
     at a 3 K loop temperature difference: 3.58 L/min per kW of water. ``rho c``
@@ -50,6 +59,7 @@ import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
 from .constants import c_w, mu_w, rho_w
+from .default_inputs import DefaultInputEstimate, estimate_hx_UA, hx_duty_per_nameplate
 from .ground_defaults import (
     BOREHOLE_DESIGN_LINEAR_LOAD,
     BOREHOLE_MAX_LINEAR_LOAD,
@@ -66,10 +76,10 @@ from .pump import ASHRAE_PUMP_GRADE_W_PER_TON, WATT_PER_TON, default_ground_pump
 
 _Outcome = TypeVar("_Outcome")
 
-#: Rated condensing approach of the default tank heat exchanger [K].
-TANK_HX_APPROACH_RATED_K = 5.0
-#: Default source-side (evaporator) conductance per watt of capacity [W/K per W].
-SOURCE_HX_UA_PER_CAPACITY = 0.18
+#: Stratum of the default tank heat exchanger (plate condenser with circulating water).
+TANK_HX_STRATUM = "water_condenser|bphe|condensing"
+#: Stratum of the default source heat exchanger (liquid-to-refrigerant evaporator).
+SOURCE_HX_STRATUM = "liquid_source_hx|water_to_air|coaxial|evaporating"
 # The source-side sizing rules are those of :mod:`tmhp.ground_defaults` and
 # :func:`tmhp.pump.default_ground_pump_power` (one policy for the
 # space-conditioning and the boiler families); the names below are kept for
@@ -100,14 +110,30 @@ _CLOSURE_XTOL_K = 1.0e-6
 _CLOSURE_SECANT_STEPS = 8
 
 
-def default_tank_hx_UA(hp_capacity: float) -> float:
-    """Default tank heat-exchanger conductance [W/K]: 5 K approach at ``hp_capacity``."""
-    return hp_capacity / TANK_HX_APPROACH_RATED_K
+def rated_circulation_flow(hp_capacity: float, dT_w_rated: float, m_dot_w_rated: float | None) -> float:
+    """Water flow through the tank heat exchanger [kg/s]: the caller's, or ``hp_capacity`` at a ``dT_w_rated`` rise."""
+    return float(hp_capacity / (c_w * dT_w_rated) if m_dot_w_rated is None else m_dot_w_rated)
 
 
-def default_source_hx_UA(hp_capacity: float) -> float:
-    """Default source-side evaporator conductance [W/K]."""
-    return SOURCE_HX_UA_PER_CAPACITY * hp_capacity
+def default_tank_hx_UA(hp_capacity: float, m_dot_w_rated: float) -> DefaultInputEstimate:
+    """Default tank heat-exchanger conductance: the plate condenser at the rated circulation flow.
+
+    Its duty is the heating nameplate. Without circulating water
+    (``m_dot_w_rated = 0``) the archive issues no value: ``ValueError`` asks
+    for ``UA_tank_hx``.
+    """
+    if not m_dot_w_rated > 0:
+        raise ValueError(
+            "m_dot_w_rated=0 selects a tank heat exchanger without circulating water (an immersed or wrapped "
+            "coil); the archive issues no conductance for one, so give its UA_tank_hx [W/K]"
+        )
+    return estimate_hx_UA(TANK_HX_STRATUM, duty=hp_capacity, heat_capacity_rate=m_dot_w_rated * c_w)
+
+
+def default_source_hx_UA(hp_capacity: float, heat_capacity_rate: float) -> DefaultInputEstimate:
+    """Default source-side evaporator conductance at the rated source flow (``heat_capacity_rate`` [W/K])."""
+    duty = hx_duty_per_nameplate(SOURCE_HX_STRATUM, "heating") * hp_capacity
+    return estimate_hx_UA(SOURCE_HX_STRATUM, duty=duty, heat_capacity_rate=heat_capacity_rate)
 
 
 def rated_source_heat(hp_capacity: float) -> float:
@@ -181,18 +207,19 @@ def warn_if_setpoint_unreachable(
     ref: str,
     T_tank_w_upper_bound: float,
     hp_capacity: float,
-    UA_tank_hx: float,
+    K_tank_hx: float,
 ) -> None:
     """:class:`~tmhp.OperatingLimitWarning` when the upper set point needs a condensing state the refrigerant lacks.
 
     Charging the tank to ``T_tank_w_upper_bound`` at the rated duty condenses at
-    ``T_tank_w_upper_bound + hp_capacity / UA_tank_hx``. At or above the
-    critical temperature the subcritical cycle has no condenser, so every call
-    for heat above ``T_crit - hp_capacity / UA_tank_hx`` would be a failed step
-    (``cycle_invalid``) and the tank would never reach its set point.
+    ``T_tank_w_upper_bound + hp_capacity / K_tank_hx`` (``K_tank_hx``: the heat
+    the tank heat exchanger carries per kelvin above the tank water). At or
+    above the critical temperature the subcritical cycle has no condenser, so
+    every call for heat above ``T_crit - hp_capacity / K_tank_hx`` would be a
+    failed step (``cycle_invalid``) and the tank would never reach its set point.
     """
     T_crit_C = float(CP.PropsSI("Tcrit", ref)) - 273.15
-    approach = hp_capacity / UA_tank_hx
+    approach = hp_capacity / K_tank_hx
     T_cond_C = T_tank_w_upper_bound + approach
     if T_cond_C >= T_crit_C:
         warnings.warn(
@@ -277,7 +304,7 @@ def close_tank_hx(
     cycle: Callable[[float, float | None], dict | None],
     state0: dict,
     dT_request: float,
-    UA_tank_hx: float,
+    K_tank_hx: float,
 ) -> dict | None:
     """Re-solve the tank-side approach against the heat a speed-bound compressor delivers.
 
@@ -292,14 +319,15 @@ def close_tank_hx(
     was requested, so an approach derived from the request describes a
     condenser transferring a duty the cycle does not produce. The speed is
     held at the bound and the approach becomes the unknown of
-    ``Q_delivered(dT) = UA_tank_hx * dT`` -- the closure of
+    ``Q_delivered(dT) = K_tank_hx * dT`` (``K_tank_hx`` [W/K]: the heat the tank
+    heat exchanger carries per kelvin above the tank water) -- the closure of
     :class:`~tmhp.AirSourceHeatPumpBoiler`. Returns the closed state, or
     ``None`` when the balance cannot be bracketed (the caller keeps
     ``state0``; the pressure-ratio floor, which fixes the condensing state,
     is one such case).
     """
     rps_bound = state0["rps"]
-    r0 = state0["Q_tank"] - UA_tank_hx * state0["dT_tank"]
+    r0 = state0["Q_tank"] - K_tank_hx * state0["dT_tank"]
     if r0 == 0.0:
         return state0
     floor_event = state0.get("pr_event")
@@ -312,7 +340,7 @@ def close_tank_hx(
     # is wider, which raises the condensing pressure and can lift the cycle
     # off the floor. The closure is tried; it is kept only when the closed
     # state is clear of the floor (otherwise the floor does fix the state).
-    tolerance = _CLOSURE_XTOL_K * UA_tank_hx
+    tolerance = _CLOSURE_XTOL_K * K_tank_hx
 
     def finish(closed: dict) -> dict:
         closed["capacity_clamped"] = state0["capacity_clamped"]
@@ -323,14 +351,14 @@ def close_tank_hx(
     # about 1 % per kelvin of approach while UA * dT changes by UA, so the
     # residual is nearly linear and two or three cycles close it.
     x_prev, r_prev = dT_request, r0
-    x = state0["Q_tank"] / UA_tank_hx
+    x = state0["Q_tank"] / K_tank_hx
     for _ in range(_CLOSURE_SECANT_STEPS):
         if not (math.isfinite(x) and x > 0.0):
             break
         st = cycle(x, rps_bound)
         if st is None or st.get("pr_event") is not None:
             break
-        r = float(st["Q_tank"] - UA_tank_hx * st["dT_tank"])
+        r = float(st["Q_tank"] - K_tank_hx * st["dT_tank"])
         if not math.isfinite(r):
             break
         if abs(r) <= tolerance:
@@ -344,7 +372,7 @@ def close_tank_hx(
         st = cycle(dT, rps_bound)
         if st is None:
             return math.nan
-        return float(st["Q_tank"] - UA_tank_hx * st["dT_tank"])
+        return float(st["Q_tank"] - K_tank_hx * st["dT_tank"])
 
     lo = hi = dT_request
     if r0 > 0.0:

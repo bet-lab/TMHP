@@ -33,6 +33,8 @@ def export() -> dict:
     }
     for key, fit in sorted(report["fits"].items()):
         cv = fit["nested_family_cv"]
+        maker_cv = fit["nested_manufacturer_cv"]
+        maker_bias = fit["manufacturer_holdout_bias_pct"]
         output["strata"][key] = {
             "selected_law": fit["selected_law"],
             "capacity_range_W": fit["capacity_range_W"],
@@ -40,6 +42,9 @@ def export() -> dict:
             "n_families": len(fit["families"]),
             "manufacturers": fit["manufacturers"],
             "nested_family_cv": {k: cv[k] for k in CV_FIELDS} if cv.get("valid") else cv,
+            # Spread between makers: hold one manufacturer out, predict it from the others.
+            "nested_manufacturer_cv": {k: maker_cv[k] for k in CV_FIELDS} if maker_cv.get("valid") else maker_cv,
+            "manufacturer_holdout_bias_pct": maker_bias,
             "meets_shipping_gate": fit["meets_shipping_gate"],
             "status": fit["status"],
             "status_reason": fit["status_reason"],

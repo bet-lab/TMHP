@@ -64,10 +64,11 @@ Default sizing
 
 ``hp_capacity`` (default 8 kW) and the refrigerant are enough to build a
 machine: every other size follows the capacity, so the rated cycle is the same
-at 1 kW and at 100 kW (B0/W35: condensing 5 K above the tank, evaporating about
-6 K below the entering fluid, COP of the cycle 4.2 with the default
-refrigerant, R290, and the default efficiency map). B0 is a brine point: the
-loop liquid leaves the heat pump at -3 °C. The default loop liquid is
+at 1 kW and at 100 kW (B0/W35, water entering at 30 °C and leaving at 35 °C:
+condensing 2.0 K above the leaving water, evaporating 6.8 K below the entering
+fluid, COP of the cycle 4.20 with the default refrigerant, R290, and the
+default compressor type, ``rotary_twin_inverter``). B0 is a brine point: the
+loop liquid leaves the heat pump at -3.1 °C. The default loop liquid is
 therefore an antifreeze, 25 % ethylene glycol; a loop declared as water is
 refused there (see :ref:`source-fluid`).
 
@@ -78,13 +79,22 @@ refused there (see :ref:`source-fluid`).
     * - Argument
       - Default
       - Rule
+    * - ``m_dot_w_rated``
+      - ``hp_capacity / (c_w · dT_w_rated)``, ``dT_w_rated`` 5 K
+      - Circulation flow through the plate condenser (the EN 14511 30/35 °C
+        rating). ``0`` selects a coil without circulating water, whose
+        ``UA_tank_hx`` you give.
     * - ``UA_tank_hx``
-      - ``hp_capacity / 5`` [W/K]
-      - 5 K condensing approach at the rated duty (as ASHPB).
+      - Leaving-end approach 2.01 K [W/K]
+      - Plate condenser at the rated circulation flow, the tank water entering
+        it: the effective conductance that reproduces the approach of the
+        plate condensers of air-to-water units (as ASHPB).
     * - ``UA_ground``
-      - ``0.18 × hp_capacity`` [W/K]
-      - Fluid-to-refrigerant evaporator, the coefficient of
-        :class:`tmhp.GroundSourceHeatPump` (``ground_hx_ua_per_capacity``).
+      - Leaving-end approach 3.47 K [W/K]
+      - Fluid-to-refrigerant evaporator at the rated loop flow, sized for the
+        heat it absorbs per watt of heating nameplate: the approach of the
+        coaxial evaporators of water-to-air units
+        (:doc:`/validation/defaults`, *Heat-exchanger conductance*).
     * - ``ground_flow_ref_lpm``
       - ``0.75 × hp_capacity / (ρ c · 3 K)``
       - Rated source-side heat at a 3 K loop temperature difference:
@@ -112,7 +122,9 @@ precedence). The constructor warns (``UserWarning``) when
 - the default flow is laminar in the U-tubes (``Re < 2300``, e.g. many
   boreholes on a small machine, or a viscous antifreeze mixture);
 - ``T_tank_w_upper_bound`` plus the tank heat-exchanger approach
-  (``hp_capacity / UA_tank_hx``) is at or above the refrigerant's critical
+  (``hp_capacity / K_tank_hx``, with ``K_tank_hx`` the heat the exchanger
+  carries per kelvin of condensing temperature above the tank water) is at or
+  above the refrigerant's critical
   temperature: no cycle exists there, so the tank could not reach the set
   point.
 
@@ -121,7 +133,7 @@ by refrigerant: R410A, R32, R407C 65 °C; R290 75 °C; R134a 80 °C; see
 :doc:`/developer/reference-operating-limits`). The cycle condenses at the
 tank temperature plus the tank heat-exchanger approach, so the highest tank
 temperature the machine heats at its nameplate duty is ``T_cond_max`` less
-``hp_capacity / UA_tank_hx``. A ``T_tank_w_upper_bound`` above that cut-out
+``hp_capacity / K_tank_hx``. A ``T_tank_w_upper_bound`` above that cut-out
 is capped at it (``UserWarning``; ``T_tank_w_setpoints_requested`` keeps the
 values asked for), and the thermostat stops the heat pump there.
 ``analyze_steady`` against a hotter tank returns the duty that condenses on
@@ -147,7 +159,7 @@ Two relations hold in every running result (``analyze_steady`` and each
 - **Tank heat exchanger on a speed bound.** When the request is below what the
   compressor delivers at ``rps_min`` (``capacity_clamped == "min"``) or above
   its ``rps_max`` duty (``"max"``), the condensing temperature is solved from
-  the heat actually delivered, ``Q_ref_tank = UA_tank_hx × dT_ref_tank``, not
+  the heat actually delivered, ``Q_ref_tank = K_tank_hx × dT_ref_tank``, not
   from the request. ``dT_ref_tank [K]`` is the approach the cycle ran at and
   ``tank_hx_residual [W]`` the remaining imbalance (zero unless the closure
   could not be bracketed, as on the pressure-ratio floor). On the speed floor
@@ -289,8 +301,10 @@ difference, the evaporator effectiveness and the default flow (which keeps the
 film inside the U-tube) and the laminar-flow warning. Five things do not
 follow it:
 
-- ``UA_ground`` is the conductance you give or ``0.18 × hp_capacity``; it is not
-  derated for the mixture's poorer film coefficient. Pass a smaller value when
+- ``UA_ground`` is the conductance you give or the approach-temperature
+  default; it is not derated for the mixture's poorer film coefficient (the
+  default is stated at the mixture's own heat capacity rate, but its approach
+  comes from tables that do not name the liquid and are read as water). Pass a smaller value when
   you know it.
 - The default pump power is the ASHRAE grade B allowance for the capacity,
   whatever the liquid. A grade is a property of the whole installation, pipe
@@ -425,10 +439,11 @@ request (the behaviour before this report existed).
      - 1.0
 
 The default machine (8 kW, R290) at a 0 °C source and a 35 °C tank delivers
-1.81 kW at its minimum speed. A 400 W request used to return those 1.81 kW at
-574 W of input; it now returns 400 W at 171 W (system COP 2.34 against 3.16
-for the running machine), and a 1 kW request 1 kW at 342 W (COP 2.92). (With
-R410A, whose rated speed is lower, the minimum-speed duty is 3.05 kW.)
+1.41 kW at its minimum speed. A 400 W request now returns 400 W at 206 W
+(system COP 1.95 against 2.43 for the running machine), and a 1 kW request
+1 kW at 427 W (COP 2.34). Before the cycling model it returned the
+minimum-speed duty itself (with the defaults of then 1.81 kW at 574 W of
+input). (With R410A the minimum-speed duty is 1.49 kW.)
 
 A dynamic run is not affected. There the tank thermostat switches the
 compressor, which runs at ``hp_capacity`` — not at its minimum speed — for

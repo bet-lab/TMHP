@@ -9,7 +9,8 @@
    "Cd_cycling": null,
    "defrost": true
   },
-  "sink_offset_K": 2.5,
+  "water": "leaving water named; entering water at a fixed flow (EN 14825 study rule)",
+  "water_flow_kg_s": 0.43000477783086477,
   "sweep_conditions": [
    [
     7.0,
@@ -85,8 +86,8 @@
   "validation/data/part_load_figure/sweep.csv",
   "validation/data/part_load_figure/trajectory.csv"
  ],
- "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "git_head": "7648998662f703b13792e2384f6a5962dcf81631",
+ "coefficient_version": "semi-empirical-2026-11-15",
+ "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -96,10 +97,10 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "3a4c532b524385b05a582dcb0d10ea267bf99be8",
- "validation_parity_tree": "a1cfee06702656e5516c0d9e9d0ca94a31797e30",
+ "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
+ "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-15T08:08:44+00:00"
+ "run_at": "2026-11-16T03:02:28+00:00"
 }

@@ -39,29 +39,18 @@ from scipy.optimize import brentq, minimize_scalar
 
 __all__ = [
     "solve_compressor_speed",
-    "default_displacement",
     "refrigerant_aware_displacement",
     "RatedPoint",
     "RATED_POINT_AIR_TO_WATER",
     "RATED_POINT_AIR_TO_AIR",
     "CAPACITY_CLAMPED_MIN",
     "CAPACITY_CLAMPED_MAX",
-    "DISPLACEMENT_PER_W",
 ]
 
 #: Clamp code: request below the duty deliverable at ``rps_min``.
 CAPACITY_CLAMPED_MIN = "min"
 #: Clamp code: request above the duty deliverable at ``rps_max``.
 CAPACITY_CLAMPED_MAX = "max"
-
-#: Legacy fixed displacement per watt of nominal capacity [m^3/rev per W].
-#:
-#: Retained only so that code pinning the previous behaviour can reproduce it.
-#: It takes no account of the working fluid, and the volumetric refrigerating
-#: capacity of the fluids in common use spans a factor of 2.7 -- so a single
-#: constant is roughly 50 % too large for R32 and 40 % too small for R134a.
-#: :func:`refrigerant_aware_displacement` is the optional physical alternative.
-DISPLACEMENT_PER_W = 42.0e-6 / 9000.0
 
 
 class RatedPoint(NamedTuple):
@@ -118,9 +107,10 @@ CRITICAL_MARGIN_K = 5.0
 #: * 60 rev/s is neither of the two published figures, nor their mean. It is a
 #:   round number inside the interval they span, and displacement is exactly
 #:   inversely proportional to it -- so the honest bracket is about +/-17 %.
-#: * The same number also sets the peak of the electro-mechanical efficiency
-#:   curve, through ``make_eta_em`` in :mod:`tmhp.compressor_efficiency`. An
-#:   error in it perturbs the displacement and the efficiency shape together.
+#: * A study that also hands this number to an efficiency model written in
+#:   speed relative to the rated speed perturbs the displacement and the
+#:   efficiency shape together. (The heat-pump models do not: they solve their
+#:   own rated speed at the rating condition, :mod:`tmhp.reference_state`.)
 #: * ISO 5151 T1 declares *air* states. The saturation temperatures below are
 #:   that condition seen from the refrigerant side, but the approach
 #:   temperatures used to get there are not derived anywhere.
@@ -233,11 +223,6 @@ def refrigerant_aware_displacement(
     return float(mass_flow / (rho_suction * eta_vol * rated_point.rps))
 
 
-def default_displacement(hp_capacity: float) -> float:
-    """Swept compressor displacement [m^3/rev] implied by a nominal capacity."""
-    return hp_capacity * DISPLACEMENT_PER_W
-
-
 def solve_compressor_speed(
     residual: Callable[[float], float],
     rps_min: float,
@@ -306,9 +291,9 @@ def solve_compressor_speed(
         except ValueError:
             bound = rps_min if abs(low) < abs(high) else rps_max
             return bound, False, None
-    # Unguarded fits (user callables, FittedEfficiency.raw) may turn down or
-    # become invalid at high N; the guarded defaults are held above 72.5 rev/s.
-    # Locate the maximum and solve its rising branch, as in the source study.
+    # A caller's efficiency model (a polynomial fit, say) may turn the
+    # delivered duty down or become invalid at high N. Locate the maximum and
+    # solve its rising branch.
     peak = minimize_scalar(lambda rps: -value(rps), bounds=(rps_min, rps_max), method="bounded")
     # ``peak.fun`` is the objective at ``peak.x`` -- minus the residual there --
     # so the residual at the peak is already known.

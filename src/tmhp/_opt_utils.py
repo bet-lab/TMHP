@@ -15,7 +15,13 @@ from contextlib import contextmanager
 
 from scipy.optimize import brentq
 
-from .compressor_efficiency import InvalidCompressorEfficiency, _takes_speed
+from .compressor_efficiency import (
+    InvalidCompressorEfficiency,
+    SuctionState,
+    SuctionStateRequired,
+    _takes_speed,
+    needs_state,
+)
 
 __all__ = [
     "ignore_minpack_progress_warning",
@@ -76,19 +82,31 @@ def safe_float_attr(obj: object, name: str, default: float) -> float:
 # lookup on every call of a solver's inner loop.
 
 
-def efficiency_evaluator(model: float | Callable) -> Callable[[float, float], float]:
-    """``_eval_eff(model, PR, rps)`` as a function of ``(PR, rps)``, for a solver's inner loop.
+def efficiency_evaluator(model: float | Callable) -> Callable[..., float]:
+    """``_eval_eff(model, PR, rps, state)`` as a function of ``(PR, rps, state=None)``, for a solver's inner loop.
 
     The same value and the same :class:`InvalidCompressorEfficiency` as
-    :func:`tmhp.compressor_efficiency._eval_eff` at every point (a scalar or a
-    PR / PR-speed callable, ``0 < eta <= 1`` enforced, a value above one set
-    to one); the call form of a callable is looked up once here instead of on
-    every evaluation.
+    :func:`tmhp.compressor_efficiency._eval_eff` at every point (a scalar, a
+    PR / PR-speed callable or a model that declares ``needs_state``,
+    ``0 < eta <= 1`` enforced, a value above one set to one); the call form of
+    a callable is looked up once here instead of on every evaluation. A
+    state-dependent model evaluated without ``state`` raises
+    :class:`SuctionStateRequired`.
     """
-    if callable(model):
+    if callable(model) and needs_state(model):
+
+        def evaluate(PR: float, rps: float, state: SuctionState | None = None) -> float:
+            if state is None:
+                raise SuctionStateRequired(f"{model!r} needs the suction state; the caller passed none")
+            value = float(model(PR, rps, state))
+            if not math.isfinite(value) or value <= 0:
+                raise InvalidCompressorEfficiency("Compressor efficiencies must be finite and positive")
+            return 1.0 if value > 1.0 else value
+
+    elif callable(model):
         takes_speed = _takes_speed(model)
 
-        def evaluate(PR: float, rps: float) -> float:
+        def evaluate(PR: float, rps: float, state: SuctionState | None = None) -> float:
             value = float(model(PR, rps)) if takes_speed else float(model(PR))
             if not math.isfinite(value) or value <= 0:
                 raise InvalidCompressorEfficiency("Compressor efficiencies must be finite and positive")
@@ -97,7 +115,7 @@ def efficiency_evaluator(model: float | Callable) -> Callable[[float, float], fl
     else:
         constant = float(model)
 
-        def evaluate(PR: float, rps: float) -> float:
+        def evaluate(PR: float, rps: float, state: SuctionState | None = None) -> float:
             if not math.isfinite(constant) or constant <= 0:
                 raise InvalidCompressorEfficiency("Compressor efficiencies must be finite and positive")
             return 1.0 if constant > 1.0 else constant

@@ -7,13 +7,15 @@ for a manufacturer map, and three times over:
 
 ``(a) compressor block``
     ``COP = eta_oi(PR, n*) (h_suc - h_liq) / dh_is`` at fixed saturation
-    temperatures.  The correlations make the speed dependence a single shared
+    temperatures, with the 2026-09-24 correlations (an earlier release,
+    recorded in ``validation/coefficients/recorded_maps``).  Those correlations make the speed dependence a single shared
     factor ``s(n*)``, so the nine curves are parallel and none of them has an
     optimum: whatever optimal speed a heat pump shows is not in the compressor
     block.
 
 ``(b) air-to-water, (c) air-to-air``
-    The assembled models at fixed boundary temperatures.  Speed cannot be
+    The assembled models at fixed boundary temperatures, with the library's
+    default efficiency models.  Speed cannot be
     prescribed -- the models solve it from the requested duty -- so the duty is
     swept and the speed the solver returns is used as the abscissa, which is
     the same curve read the other way round.  Rows where the solver hit the
@@ -52,7 +54,8 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
 )
 
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler  # noqa: E402
-from tmhp.compressor_efficiency_legacy import (  # noqa: E402
+from tmhp.compressor_efficiency import COEFFICIENT_VERSION as DEFAULT_VERSION  # noqa: E402
+from validation.coefficients.recorded_maps.v2026_09_24 import (  # noqa: E402
     COEFFICIENT_VERSION,
     eta_isen_default,
     make_eta_em,
@@ -86,7 +89,7 @@ COLD_DASH = ((0, (1.2, 1.2)), (0, (4.0, 1.6)), "solid")  # rising cold-side leve
 
 
 def compressor_block() -> pd.DataFrame:
-    """Panel (a): the three correlations evaluated at fixed saturation temperatures."""
+    """Panel (a): the three 2026-09-24 correlations evaluated at fixed saturation temperatures."""
     eta_em = make_eta_em(CMP_RPS_RATED)
     rows = []
     for tc in CMP_TC:
@@ -257,7 +260,7 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out_csv = OUT_DIR / "speed_sweep.csv"
     frames = [cmp_df.assign(coefficient_version=COEFFICIENT_VERSION)]
-    frames += [d.assign(coefficient_version=COEFFICIENT_VERSION) for d in (a2w, a2a)]
+    frames += [d.assign(coefficient_version=DEFAULT_VERSION) for d in (a2w, a2a)]
     pd.concat(frames, ignore_index=True).to_csv(out_csv, index=False)
 
     for name, df in (("air-to-water", a2w), ("air-to-air", a2a)):

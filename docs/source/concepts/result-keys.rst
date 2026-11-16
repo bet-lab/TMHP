@@ -86,13 +86,13 @@ are an operating point, a reduced one, a time average, or placeholders.
       - ``"none"`` or why a requested point has no operating point; the row then holds off-state placeholders. Values: :doc:`failure-reason-semantics`.
     * - ``capacity_clamped``
       - all
-      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP and the boilers' ``analyze_steady`` also when it was below the smallest duty the compressor envelope admits, where the discharge-temperature limit or the efficiency floor refuses lower speeds); ``"max"`` when the unit delivers less than asked.
+      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP and the boilers' ``analyze_steady`` also when it was below the smallest duty the compressor envelope admits, where the discharge-temperature limit refuses lower speeds); ``"max"`` when the unit delivers less than asked.
     * - ``capacity_binding``
       - all
-      - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` on every other row.
+      - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` on every other row.
     * - ``efficiency_extrapolated``
       - ASHP, GSHP (s), ASHPB (s), GSHPB (s), WSHPB (s)
-      - A default compressor-efficiency fit is read outside its data box (PR 1.50–7.15, 33.8–72.5 rev/s) at this point. Scalar and user efficiencies give ``False``.
+      - A default compressor efficiency is evaluated outside the (PR, N) hull of its compressor type's data at this point (``rotary_twin_inverter`` and ``rotary_single_fixed``: PR 1.94–6.84, 30–120 rev/s; ``scroll``: within PR 1.46–8.76 and 20–90 rev/s). Outside it the forms are followed as they are, nothing is held, so the flag is common at ordinary points: every rotary speed below 30 rev/s, and the pressure ratios of hot water in cold weather. Scalar and user efficiencies give ``False``.
     * - ``discharge_control``
       - all
       - The discharge-temperature control acted: suction superheat reduced, then wet suction, to hold ``T_dis_max``. See ``dT_ref_superheat [K]`` and ``x_ref_cmp_in [-]``.
@@ -139,7 +139,7 @@ What was asked for, what was delivered, and how a request outside the modulation
       - On a ``"max"`` row, the duty delivered (the ceiling); in a boiler's dynamic step the running machine's, not the step average (``Q_ref_tank [W]`` is ``Q_max [W]`` times ``runtime_fraction [-]``). NaN on every other row.
     * - ``Q_min [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
-      - On a ``"min"`` row, the duty of continuous operation at the minimum speed (or at the smallest duty the compressor envelope admits, where that is larger: the discharge-temperature limit or the efficiency floor refuses the speeds below it). NaN otherwise.
+      - On a ``"min"`` row, the duty of continuous operation at the minimum speed (or at the smallest duty the compressor envelope admits, where that is larger: the discharge-temperature limit refuses the speeds below it). NaN otherwise.
     * - ``PLR_request [-]``
       - ASHPB (s)
       - Requested duty over ``hp_capacity``, on every row.
@@ -243,7 +243,7 @@ All ``E_*`` are electrical input, ≥ 0, and 0 on an off row. COPs are NaN on an
       - Meaning
     * - ``E_cmp [W]``
       - all
-      - Compressor electrical input (refrigerant work over the electro-mechanical efficiency; on a cycling or frosting row, the mean including that loss).
+      - Compressor electrical input (refrigerant work over ``eta_cmp [-]``; with the default efficiencies the inverter input, drive loss included; on a cycling or frosting row, the mean including that loss).
     * - ``E_cmp_ref [W]``
       - GSHP
       - Work the compressor does on the refrigerant, ``ṁ (h_cmp_out − h_cmp_in)``.
@@ -341,7 +341,7 @@ Values of the running machine. On an off row speeds and flows are 0 and efficien
       - Volumetric efficiency at this point.
     * - ``eta_cmp [-]``
       - all
-      - Electro-mechanical efficiency at this point.
+      - Motor, mechanical and drive efficiency at this point: refrigerant work over ``eta_cmp`` is ``E_cmp [W]``. With the default efficiencies it includes the inverter, so ``E_cmp [W]`` is the inverter input.
     * - ``m_dot_ref [kg/s]``
       - all
       - Refrigerant mass flow (a mean on a cycling row).

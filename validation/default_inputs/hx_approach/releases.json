@@ -1,0 +1,283 @@
+[
+  {
+    "version": "hx-approach-2026-11-16",
+    "date": "2026-11-16",
+    "data_sha256": "19ff6b9297fa090055a320bc9cf888b60e143af40af72fdb2a38bbeb53b67a5c",
+    "records": 2287,
+    "eligible": 1641,
+    "sources": 59,
+    "changes": [
+      "indoor_coil|ducted|fin_tube|condensing: None -> {'n': 32, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 2.583928076593211}, 'meets_shipping_gate': True}",
+      "indoor_coil|ducted|fin_tube|evaporating: None -> {'n': 8, 'selected_law': {'kind': 'ua_per_duty', 'k_per_K': 0.10959547310922746}, 'meets_shipping_gate': True}",
+      "indoor_coil|other_indoor_unit|fin_tube|condensing: None -> {'n': 15, 'selected_law': {'kind': 'ua_per_duty', 'k_per_K': 0.06465008977162263}, 'meets_shipping_gate': False}",
+      "indoor_coil|wall_mounted|fin_tube|condensing: None -> {'n': 87, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 6.2833397330013145}, 'meets_shipping_gate': False}",
+      "indoor_coil|water_to_air|fin_tube|condensing: None -> {'n': 121, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 2.445992719009647}, 'meets_shipping_gate': True}",
+      "liquid_source_hx|water_to_air|coaxial|condensing: None -> {'n': 135, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 3.9153383151351724}, 'meets_shipping_gate': True}",
+      "liquid_source_hx|water_to_air|coaxial|evaporating: None -> {'n': 130, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 3.4718808000475985}, 'meets_shipping_gate': True}",
+      "liquid_source_hx|water_to_water|coaxial|condensing: None -> {'n': 240, 'selected_law': {'kind': 'itd', 'ITD_K': 14.14526655420369}, 'meets_shipping_gate': False}",
+      "liquid_source_hx|water_to_water|coaxial|evaporating: None -> {'n': 192, 'selected_law': {'kind': 'ua_per_duty', 'k_per_K': 0.06774865964595343}, 'meets_shipping_gate': False}",
+      "load_water_hx|water_to_water|coaxial|condensing: None -> {'n': 188, 'selected_law': {'kind': 'itd', 'ITD_K': 9.928596065527898}, 'meets_shipping_gate': False}",
+      "load_water_hx|water_to_water|coaxial|evaporating: None -> {'n': 240, 'selected_law': {'kind': 'ua_per_duty', 'k_per_K': 0.060205269105492246}, 'meets_shipping_gate': False}",
+      "outdoor_coil|fin_tube|condensing: None -> {'n': 129, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 2.7610923175820945}, 'meets_shipping_gate': True}",
+      "outdoor_coil|fin_tube|evaporating: None -> {'n': 96, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 3.1834872073143816}, 'meets_shipping_gate': True}",
+      "water_condenser|bphe|condensing: None -> {'n': 20, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 2.0089208676463004}, 'meets_shipping_gate': True}",
+      "water_condenser|bphe|evaporating: None -> {'n': 8, 'selected_law': None, 'meets_shipping_gate': False}"
+    ],
+    "note": "First release: 59 sources, 2,287 observation rows.",
+    "strata": {
+      "indoor_coil|ducted|fin_tube|condensing": {
+        "n": 32,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 2.583928076593211
+        },
+        "meets_shipping_gate": true
+      },
+      "indoor_coil|ducted|fin_tube|evaporating": {
+        "n": 8,
+        "selected_law": {
+          "kind": "ua_per_duty",
+          "k_per_K": 0.10959547310922746
+        },
+        "meets_shipping_gate": true
+      },
+      "indoor_coil|other_indoor_unit|fin_tube|condensing": {
+        "n": 15,
+        "selected_law": {
+          "kind": "ua_per_duty",
+          "k_per_K": 0.06465008977162263
+        },
+        "meets_shipping_gate": false
+      },
+      "indoor_coil|wall_mounted|fin_tube|condensing": {
+        "n": 87,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 6.2833397330013145
+        },
+        "meets_shipping_gate": false
+      },
+      "indoor_coil|water_to_air|fin_tube|condensing": {
+        "n": 121,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 2.445992719009647
+        },
+        "meets_shipping_gate": true
+      },
+      "liquid_source_hx|water_to_air|coaxial|condensing": {
+        "n": 135,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 3.9153383151351724
+        },
+        "meets_shipping_gate": true
+      },
+      "liquid_source_hx|water_to_air|coaxial|evaporating": {
+        "n": 130,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 3.4718808000475985
+        },
+        "meets_shipping_gate": true
+      },
+      "liquid_source_hx|water_to_water|coaxial|condensing": {
+        "n": 240,
+        "selected_law": {
+          "kind": "itd",
+          "ITD_K": 14.14526655420369
+        },
+        "meets_shipping_gate": false
+      },
+      "liquid_source_hx|water_to_water|coaxial|evaporating": {
+        "n": 192,
+        "selected_law": {
+          "kind": "ua_per_duty",
+          "k_per_K": 0.06774865964595343
+        },
+        "meets_shipping_gate": false
+      },
+      "load_water_hx|water_to_water|coaxial|condensing": {
+        "n": 188,
+        "selected_law": {
+          "kind": "itd",
+          "ITD_K": 9.928596065527898
+        },
+        "meets_shipping_gate": false
+      },
+      "load_water_hx|water_to_water|coaxial|evaporating": {
+        "n": 240,
+        "selected_law": {
+          "kind": "ua_per_duty",
+          "k_per_K": 0.060205269105492246
+        },
+        "meets_shipping_gate": false
+      },
+      "outdoor_coil|fin_tube|condensing": {
+        "n": 129,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 2.7610923175820945
+        },
+        "meets_shipping_gate": true
+      },
+      "outdoor_coil|fin_tube|evaporating": {
+        "n": 96,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 3.1834872073143816
+        },
+        "meets_shipping_gate": true
+      },
+      "water_condenser|bphe|condensing": {
+        "n": 20,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 2.0089208676463004
+        },
+        "meets_shipping_gate": true
+      },
+      "water_condenser|bphe|evaporating": {
+        "n": 8,
+        "selected_law": null,
+        "meets_shipping_gate": false
+      }
+    }
+  },
+  {
+    "version": "hx-approach-2026-11-16.1",
+    "date": "2026-11-16",
+    "data_sha256": "855fdbe2c09a7cc59f28193cc63b81d1fa948d9255a874d442819fb9f75d2b58",
+    "records": 2287,
+    "eligible": 1576,
+    "sources": 59,
+    "changes": [
+      "indoor_coil|wall_mounted|fin_tube|condensing: {'n': 87, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 6.2833397330013145}, 'meets_shipping_gate': False} -> {'n': 78, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 6.84857636349583}, 'meets_shipping_gate': False}",
+      "indoor_coil|water_to_air|fin_tube|condensing: {'n': 121, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 2.445992719009647}, 'meets_shipping_gate': True} -> {'n': 113, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 2.794940913043863}, 'meets_shipping_gate': True}",
+      "liquid_source_hx|water_to_air|coaxial|condensing: {'n': 135, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 3.9153383151351724}, 'meets_shipping_gate': True} -> {'n': 117, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 4.0638341393696855}, 'meets_shipping_gate': True}",
+      "liquid_source_hx|water_to_air|coaxial|evaporating: {'n': 130, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 3.4718808000475985}, 'meets_shipping_gate': True} -> {'n': 118, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 3.4718808000475985}, 'meets_shipping_gate': True}",
+      "outdoor_coil|fin_tube|condensing: {'n': 129, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 2.7610923175820945}, 'meets_shipping_gate': True} -> {'n': 120, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 2.7292276469352394}, 'meets_shipping_gate': True}",
+      "outdoor_coil|fin_tube|evaporating: {'n': 96, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 3.1834872073143816}, 'meets_shipping_gate': True} -> {'n': 87, 'selected_law': {'kind': 'leaving_approach', 'dT_out_K': 2.8247237633434805}, 'meets_shipping_gate': True}"
+    ],
+    "note": "Manufacturer documents found only on third-party hosts are fitted only once accepted (rule of the parent README): five sources leave the fits (Mitsubishi OBH498, OBH502-REVE, OBH543-REVG, OBH821-REVA; Carrier 50PS-6SI).",
+    "strata": {
+      "indoor_coil|ducted|fin_tube|condensing": {
+        "n": 32,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 2.583928076593211
+        },
+        "meets_shipping_gate": true
+      },
+      "indoor_coil|ducted|fin_tube|evaporating": {
+        "n": 8,
+        "selected_law": {
+          "kind": "ua_per_duty",
+          "k_per_K": 0.10959547310922746
+        },
+        "meets_shipping_gate": true
+      },
+      "indoor_coil|other_indoor_unit|fin_tube|condensing": {
+        "n": 15,
+        "selected_law": {
+          "kind": "ua_per_duty",
+          "k_per_K": 0.06465008977162263
+        },
+        "meets_shipping_gate": false
+      },
+      "indoor_coil|wall_mounted|fin_tube|condensing": {
+        "n": 78,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 6.84857636349583
+        },
+        "meets_shipping_gate": false
+      },
+      "indoor_coil|water_to_air|fin_tube|condensing": {
+        "n": 113,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 2.794940913043863
+        },
+        "meets_shipping_gate": true
+      },
+      "liquid_source_hx|water_to_air|coaxial|condensing": {
+        "n": 117,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 4.0638341393696855
+        },
+        "meets_shipping_gate": true
+      },
+      "liquid_source_hx|water_to_air|coaxial|evaporating": {
+        "n": 118,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 3.4718808000475985
+        },
+        "meets_shipping_gate": true
+      },
+      "liquid_source_hx|water_to_water|coaxial|condensing": {
+        "n": 240,
+        "selected_law": {
+          "kind": "itd",
+          "ITD_K": 14.14526655420369
+        },
+        "meets_shipping_gate": false
+      },
+      "liquid_source_hx|water_to_water|coaxial|evaporating": {
+        "n": 192,
+        "selected_law": {
+          "kind": "ua_per_duty",
+          "k_per_K": 0.06774865964595343
+        },
+        "meets_shipping_gate": false
+      },
+      "load_water_hx|water_to_water|coaxial|condensing": {
+        "n": 188,
+        "selected_law": {
+          "kind": "itd",
+          "ITD_K": 9.928596065527898
+        },
+        "meets_shipping_gate": false
+      },
+      "load_water_hx|water_to_water|coaxial|evaporating": {
+        "n": 240,
+        "selected_law": {
+          "kind": "ua_per_duty",
+          "k_per_K": 0.060205269105492246
+        },
+        "meets_shipping_gate": false
+      },
+      "outdoor_coil|fin_tube|condensing": {
+        "n": 120,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 2.7292276469352394
+        },
+        "meets_shipping_gate": true
+      },
+      "outdoor_coil|fin_tube|evaporating": {
+        "n": 87,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 2.8247237633434805
+        },
+        "meets_shipping_gate": true
+      },
+      "water_condenser|bphe|condensing": {
+        "n": 20,
+        "selected_law": {
+          "kind": "leaving_approach",
+          "dT_out_K": 2.0089208676463004
+        },
+        "meets_shipping_gate": true
+      },
+      "water_condenser|bphe|evaporating": {
+        "n": 8,
+        "selected_law": null,
+        "meets_shipping_gate": false
+      }
+    }
+  }
+]

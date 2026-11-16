@@ -1,14 +1,19 @@
 # 기본 입력값 카탈로그 아카이브 (#86)
 
-사용자가 압축기 배제체적과 팬 최대 풍량을 주지 않을 때 TMHP가 쓰는 기본값의 근거 자료다. 정격 용량을
-x로 하는 회귀식을 제조사 카탈로그 원문에서 만든다. 아카이브는 둘이다.
+사용자가 압축기 배제체적, 팬 최대 풍량, 열교환기 컨덕턴스(UA)를 주지 않을 때 TMHP가 쓰는 기본값의 근거
+자료다. 앞의 둘은 정격 용량을 x로 하는 회귀식을 제조사 카탈로그 원문에서 만든다. 아카이브는 셋이다.
 
 | 폴더 | 응답 | 층(stratum) |
 |---|---|---|
 | [compressor_displacement/](compressor_displacement/README.md) | 기하 배제체적 [cm³/rev] | 압축기 형식 × 속도 기준 (냉매·시험 조건은 rho_1 · Δh로 정규화) |
 | [fan_airflow/](fan_airflow/README.md) | 최대 풍량 [m³/s] | 모드 × 측(실내/실외) × 형식 |
+| [hx_approach/](hx_approach/README.md) | 정격점 냉매 포화온도 → 출구 접근온도 [K]와 유효 UA [W/K] | 열교환기 종류 × 냉매 역할(응축/증발) |
 
-두 폴더 모두 사람이 고치는 파일(`sources.json`, `observations/<source_id>.csv`, `errata.csv`)과 빌드가 만드는
+`hx_approach`는 응답이 다르다. 용량 회귀가 아니라 실제 기계가 정격점에서 인쇄한 냉매 압력의 포화온도로
+접근온도를 구하고, 다른 크기의 기계로 옮길 때 고정할 양(출구 접근온도·UA 비례·유입 온도차)을 제품군 보류
+시험으로 고른다.
+
+세 폴더 모두 사람이 고치는 파일(`sources.json`, `observations/<source_id>.csv`, `errata.csv`)과 빌드가 만드는
 파일(`measurements.*`, `regression.json`, `audit.json`), 덧붙이기만 하는 `releases.json`으로 나뉜다. 공통
 빌드·정오표·릴리스 기록은 `archive.py`, 적합 함수는 `regression.py`에 있다.
 
@@ -18,7 +23,7 @@ x로 하는 회귀식을 제조사 카탈로그 원문에서 만든다. 아카�
 
 | 항목 | 기준 |
 |---|---|
-| 원문 | 제조사 공식 도메인의 문서만. 대리점·2차 가공 자료는 쓰지 않는다 |
+| 원문 | 제조사 공식 도메인의 문서만. 대리점·2차 가공 자료는 쓰지 않는다. 제3자 사본(소유자 결정 2026-11-15): 공식 도메인이 공개하지 않는 제조사 원본 PDF를 제3자가 고치지 않고 올린 사본은 `evidence_type`을 `*_third_party_host`로 표시해 행으로 기록하고, 제조사 도메인의 다른 문서가 같은 값을 싣는지 대조한 뒤 출처에 `owner_accepted: true`와 `owner_acceptance`(결정·대조 문서)를 적어야 회귀에 들어간다(그 전에는 빌드가 제외). 대조되지 않으면 켜지 않는다. 제조사 도메인에 같은 종류의 값이 따로 있으면 사본 대신 그 공식 문서를 출처로 쓴다(예: LG 는 PDB 대신 lg.com 의 ErP 문서). 판매점이 만든 사양표는 여전히 받지 않는다 |
 | 출처 기록 | 문서 ID·개정판, URL, 접근일, SHA-256, PDF 전체 쪽수, 값이 있는 PDF 쪽과 인쇄 쪽, 표 위치 |
 | 원본 보관 | 원본은 연구실 NAS(`energy-systems/<id>-source/files/source/`)에 두고 git에는 넣지 않는다. git에는 전사값·해시·위치만. `sources.json`의 `nas_path`, 같은 원문이 #87 대장에 있으면 `archive87_dataset_id` |
 | 전사 | 인쇄된 값과 단위를 그대로(Btu/h, cm³/rev, m³/h, CMM). 환산은 빌드가 한다 |

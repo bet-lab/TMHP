@@ -52,7 +52,8 @@ def _model(cls, **overrides):
             indoor_approach_max_K=20.0,
         )
         if cls is GroundSourceHeatPump
-        else dict(UA_tank_hx=2000, UA_ground=2000)
+        # The tank coil of the recorded boiler had no circulating water.
+        else dict(UA_tank_hx=2000, m_dot_w_rated=0.0, UA_ground=2000)
     )
     kw.update(overrides)
     return cls(**kw)

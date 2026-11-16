@@ -38,7 +38,7 @@ What you give
       - ``Q_r_iu``, ``T0``, ``T_a_room``; the ground is ``Ts`` (16 °C) unless
         ``T_bhe_wall`` is given
     * - ASHPB — air to hot-water tank
-      - :class:`~tmhp.AirSourceHeatPumpBoiler` (15 kW, R134a)
+      - :class:`~tmhp.AirSourceHeatPumpBoiler` (15 kW, R290)
       - EN 14511 A7/W55
       - ``T_tank_w``, ``T0`` (outdoor air), ``Q_ref_tank`` (heat to the tank)
     * - GSHPB — ground to hot-water tank
@@ -86,7 +86,7 @@ delivers exactly ``hp_capacity`` there, whatever the refrigerant.
        print(f"{name:6s} {row['failure_reason']:5s} COP {row['cop_sys [-]']:.2f}")
 
 Each call returns a running point (``failure_reason == "none"``) with a system
-COP of 4.74, 4.86, 3.44, 3.66 and 3.72 respectively. The keys of the result
+COP of 4.50, 6.26, 3.05, 3.13 and 3.24 respectively. The keys of the result
 are listed in :doc:`/concepts/result-keys`. A time series needs the same
 quantities as schedules; see :doc:`first-dynamic-simulation`.
 
@@ -107,49 +107,65 @@ always be read back.
       - Families
       - Where it comes from
     * - Compressor displacement ``V_cmp_ref``
-      - 42 cm³/rev per 9 kW of nameplate (4.67 cm³/rev per kW), any
-        refrigerant
+      - ``hp_capacity / (ρ₁ · Δh · 53.2 rev/s)`` at the compressor catalogues'
+        rating point: 3.01 cm³/rev per kW for R32, 5.62 for R290, 7.31 for
+        R134a, in every family
       - all
       - :doc:`/validation/defaults`, *Compressor displacement*
     * - Compressor speed range
       - ``rps_rated`` solved at the rating point; ``rps_min`` 15 rev/s;
-        ``rps_max`` = ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``
+        ``rps_max`` = ``max(120, 1.5 × rps_rated)``
       - all
       - :doc:`/models/reference-state`,
         :doc:`/developer/reference-operating-limits`
     * - Outdoor-coil conductance
-      - ASHP: ``UA_ou_rated = hp_capacity / 5`` [W/K]. ASHPB:
-        ``0.7 × UA_tank_hx`` = ``0.14 × hp_capacity``
+      - The effective ``UA`` [W/K] that reproduces the leaving-end approach
+        real outdoor coils print at their rating point, at the rated outdoor
+        airflow: 2.73 K as a condenser (ASHP ``UA_ou_rated``), 2.82 K as an
+        evaporator (ASHP ``UA_ou_evap_rated``, ASHPB ``UA_ou_rated``)
       - ASHP, ASHPB
       - :doc:`/validation/defaults`, *Heat-exchanger conductance*
     * - Indoor-coil conductance
-      - ASHP: ``UA_iu_rated = 0.8 × UA_ou_rated`` = ``0.16 × hp_capacity``.
-        GSHP: ``0.08 × hp_capacity``
+      - ASHP: ``UA_iu_rated = 0.16 × hp_capacity``, the earlier rule, kept as
+        provisional (no wall-mounted value ships). GSHP: leaving-end approach
+        2.79 K at the rated indoor airflow
       - ASHP, GSHP
       - :doc:`/validation/defaults`; :doc:`/models/gshp`
     * - Tank heat exchanger ``UA_tank_hx``
-      - ``hp_capacity / 5`` [W/K]: a 5 K condensing approach at the nameplate
-        duty
+      - A plate condenser with circulating water at
+        ``m_dot_w_rated = hp_capacity / (c_w · dT_w_rated)``, ``dT_w_rated``
+        5 K; ``UA_tank_hx`` reproduces a leaving-end approach of 2.01 K there.
+        ``m_dot_w_rated=0`` selects a coil without circulating water, whose
+        ``UA_tank_hx`` you give
       - ASHPB, GSHPB, WSHPB
       - :doc:`/validation/defaults`; :doc:`/models/gshpb`, *Default sizing*
     * - Source-side heat exchanger (liquid to refrigerant)
-      - ``0.18 × hp_capacity`` [W/K] (``UA_ground_rated``, ``UA_ground``,
-        ``UA_water``)
+      - Leaving-end approach at the rated loop flow: 3.47 K as an evaporator
+        (GSHP ``UA_ground_evap_rated``, GSHPB ``UA_ground``, WSHPB
+        ``UA_water``), 4.06 K as a condenser (GSHP ``UA_ground_rated``)
       - GSHP, GSHPB, WSHPB
       - :doc:`/models/gshp`, :doc:`/models/gshpb`, :doc:`/models/wshpb`
     * - Rated outdoor airflow
-      - ASHP: 720 m³/h per kW. ASHPB: 540 m³/h per kW. The fan modulates down
-        to 15 % of it
+      - ASHP: the largest airflow single-split outdoor units of that capacity
+        publish, ``0.1084 × kW + 0.1776`` m³/s (573 m³/h per kW at 3.5 kW,
+        470 at 8 kW). ASHPB: the largest airflow air-to-water outdoor units
+        publish, ``0.0864 × kW + 0.2208`` m³/s (heating-rated; 538 m³/h per
+        kW at 3.5 kW, 410 at 8 kW, 364 at 15 kW). It is also the fan's maximum;
+        the fan modulates down to 15 % of it
       - ASHP, ASHPB
-      - :doc:`/validation/defaults`, *Summary*
+      - :doc:`/validation/defaults`, *Maximum fan airflow*
     * - Rated indoor airflow
-      - 193 m³/h per kW (400 cfm per ton), modulating down to 15 %
+      - ASHP: the largest airflow wall-mounted indoor units publish,
+        ``0.0320 × kW + 0.1035`` m³/s (222 m³/h per kW at 3.5 kW, 162 at
+        8 kW); ``indoor_unit_type="floor_standing"`` selects that class.
+        GSHP: of water-to-air units, ``0.0491 × kW + 0.1305`` m³/s.
+        Modulating down to 15 %
       - ASHP, GSHP
-      - :doc:`/models/ashp`, *Indoor airflow*
+      - :doc:`/validation/defaults`, *Maximum fan airflow*
     * - Fan power
-      - From the airflow at 60 Pa and 60 % fan efficiency: outdoor fan 2.0 %
-        (ASHP) or 1.5 % (ASHPB) of the nameplate at rated flow, indoor fan
-        0.5 %
+      - From the airflow at 60 Pa and 60 % fan efficiency: at rated flow the
+        ASHP outdoor fan draws 1.6 % of the nameplate at 3.5 kW and 1.2 % at
+        15 kW, its indoor fan 0.6 % and 0.4 %; the ASHPB outdoor fan 1.5 %
       - ASHP, GSHP, ASHPB
       - :doc:`/models/ashp`, *Indoor airflow*
     * - Source-loop flow
@@ -185,7 +201,7 @@ The size that the rules give for a machine can be checked in one line:
    print(gshp.N_1, gshp.N_2, gshp.H_b)   # 3 2 100.0  -> six 100 m boreholes
    print(gshp.ground_flow_ref_lpm)       # 115.3 L/min of 25 % ethylene glycol
    print(gshp.E_pmp)                     # 640 W
-   print(gshp.UA_ground_rated)           # 5400 W/K
+   print(gshp.UA_ground_rated)           # 5845 W/K (condensing; 4927 W/K evaporating)
 
 The constructor warns (``UserWarning``) when a size you give contradicts the
 rest — a borefield above 80 W/m, a loop flow that is laminar in the U-tubes, a
@@ -203,9 +219,11 @@ What follows the refrigerant
       - Where it comes from
     * - Rated compressor speed
       - Solved for the fluid at the rating point, so the nameplate capacity
-        is kept when the refrigerant is swapped. A fluid of low volumetric
-        capacity (R134a, R1234yf, R600a) then runs fast and may need a larger
-        ``V_cmp_ref``
+        is kept when the refrigerant is swapped. The displacement follows the
+        refrigerant in every family, so the rated speed moves little with the
+        fluid: over R32, R290, R410A, R134a, R600a, R1234yf and R1234ze(E)
+        36–38 rev/s for the default GSHP, 48–50 ASHP, 54–64 WSHPB, 63–79
+        ASHPB and 75–101 GSHPB (its rating point is B0/W55)
       - :doc:`/concepts/refrigerant-and-coolprop`
     * - Discharge-temperature limit ``T_dis_max``
       - 150 °C for R32, 135 °C for every other refrigerant
@@ -215,14 +233,16 @@ What follows the refrigerant
         70 °C; otherwise the dew point at 0.9 of the critical pressure
       - :doc:`/developer/reference-operating-limits`, *Condensing limit*
     * - Highest tank set point (boilers)
-      - ``T_cond_max`` less the 5 K condenser approach: a
-        ``T_tank_w_upper_bound`` above it is capped with a ``UserWarning``
-        (about 60 °C for R410A and R32, 70 °C for R290)
+      - ``T_cond_max`` less the tank heat-exchanger approach at the nameplate
+        duty (7.0 K): a ``T_tank_w_upper_bound`` above it is capped with a
+        ``UserWarning`` (58 °C for R410A and R32, 68 °C for R290)
       - :doc:`/models/gshpb`, *Default sizing*
 
 The default refrigerants are chosen so the default machine runs inside these
-limits: R32 for the space-conditioning families, R134a for ASHPB (60–65 °C
-tank) and R290 for GSHPB and WSHPB (55–65 °C tank).
+limits: R32 for the space-conditioning families and R290 for the three
+water-heating families (ASHPB with a 60–65 °C tank band, GSHPB and WSHPB with
+55–65 °C). ASHPB was R134a until the 6th round (2026-11): a fluid being phased
+out, and the one whose default machine was rated above the fitted speed range.
 
 What is on by default
 =====================
@@ -240,8 +260,8 @@ Each can be switched off to see the bare cycle.
     * - Compressor envelope
       - A point outside it is not returned as running: pressure ratio above
         11, discharge above ``T_dis_max`` (after suction control down to
-        quality 0.9), condensing above ``T_cond_max``, isentropic fit below
-        0.30. A request that a smaller duty meets runs at that duty
+        quality 0.9) or condensing above ``T_cond_max``. A request that a
+        smaller duty meets runs at that duty
       - ``PR_cycle_max``, ``T_dis_max=None``, ``x_suction_min``,
         ``T_cond_max=None``
         (:doc:`/developer/reference-operating-limits`)

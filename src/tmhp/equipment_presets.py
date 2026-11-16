@@ -24,6 +24,12 @@ def validated_rule_set(
 
     ``ref`` is accepted as part of the common preset contract.  The working
     fluid itself remains a top-level model constructor argument.
+
+    The rule set states its own conductances, sized for a condenser without
+    circulating water (``UA_tank`` working against the tank temperature), so
+    it selects that form (``m_dot_w_rated = 0``); a caller that passes the
+    loop flow to ``analyze_steady`` (``m_dot_w``) gets the plate condenser at
+    that flow, as before.
     """
     del ref
     UA_tank = hp_capacity / 5.0
@@ -31,6 +37,7 @@ def validated_rule_set(
         "V_cmp_ref": V_cmp_disp_cc * 1.0e-6,
         "UA_tank": UA_tank,
         "UA_ou_rated": 0.7 * UA_tank,
+        "m_dot_w_rated": 0.0,
         "dV_fan_a_rated": dV_fan_a_rated,
         "eta_cmp_vol": lambda pi: 1.0 - 0.020 * (pi - 1.0),
         "eta_cmp_isen": lambda r: 0.90 - 0.02 * r,

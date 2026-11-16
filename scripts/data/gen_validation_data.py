@@ -18,6 +18,7 @@ import math
 from pathlib import Path
 
 import pandas as pd
+from validation.parity.run import injection_strata
 
 from scripts.data._common import write_json
 
@@ -87,6 +88,11 @@ def build_validation_summary() -> dict:
             float(summary.nominal_kW.max()),
         ],
         "rows": [{k: _clean(v) for k, v in record.items()} for record in summary.to_dict(orient="records")],
+        # The adopted air-to-water headline, pooled and split by published injection
+        # (validation.parity.run.injection_strata); the pooled figure above is unchanged.
+        "air_to_water_injection_strata": [
+            {k: _clean(v) for k, v in record.items()} for record in injection_strata(summary).to_dict(orient="records")
+        ],
     }
 
 

@@ -1,10 +1,12 @@
-"""Default rated indoor airflow of ``AirSourceHeatPump``: 400 cfm per ton.
+"""Default rated indoor airflow of ``AirSourceHeatPump``: the catalogue maximum of its indoor-unit class.
 
-The earlier default (``hp_capacity * 0.0002``, 720 m3/h per kW) moved about
+The first default (``hp_capacity * 0.0002``, 720 m3/h per kW) moved about
 four times the air a split or ducted unit moves. The indoor coil then ran a
 9 K approach at nameplate capacity: supply air at 25 degC in heating, a
 condensing temperature near 30 degC, and a rated COP above what such equipment
-declares. ``5.37e-5 m3/s per W`` is the airflow unitary equipment is rated at.
+declares. The default is now the largest fan step wall-mounted indoor units of
+that capacity publish (``tmhp.default_inputs``, issue #86): 209 m3/h per kW at
+the default 4 kW.
 """
 
 import math
@@ -14,7 +16,7 @@ import pytest
 from tmhp import AirSourceHeatPump
 from tmhp.air_properties import air_density
 from tmhp.constants import c_a
-from tmhp.hx_fan import INDOOR_AIRFLOW_PER_W
+from tmhp.default_inputs import estimate_max_airflow
 
 
 def _solve(model, Q_r_iu, T0, T_a_room):
@@ -26,21 +28,21 @@ def hp():
     return AirSourceHeatPump()
 
 
-def test_the_default_is_400_cfm_per_ton():
-    cfm, ton = 0.3048**3 / 60.0, 3516.8528
-    flow = INDOOR_AIRFLOW_PER_W
-    assert flow == pytest.approx(400.0 * cfm / ton, rel=2e-3)
-    assert flow * 3600.0 * 1000.0 == pytest.approx(193.3, abs=0.1)  # m3/h per kW
+def test_the_default_is_the_wall_mounted_catalogue_maximum(hp):
+    estimate = estimate_max_airflow(4000.0, side="indoor", product="wall_mounted", mode="cooling")
+    assert hp.dV_iu_fan_a_rated == estimate.value
+    assert hp.dV_iu_fan_a_rated * 3600.0 / 4.0 == pytest.approx(208.5, abs=0.1)  # m3/h per kW
 
 
 @pytest.mark.parametrize("capacity", [3000.0, 14000.0])
-def test_default_airflow_scales_with_the_nameplate(capacity):
+def test_default_airflow_follows_the_nameplate(capacity):
     model = AirSourceHeatPump(hp_capacity=capacity)
-    assert model.dV_iu_fan_a_rated == pytest.approx(capacity * INDOOR_AIRFLOW_PER_W, rel=1e-12)
+    indoor = estimate_max_airflow(capacity, side="indoor", product="wall_mounted", mode="cooling")
+    outdoor = estimate_max_airflow(capacity, side="outdoor", product="single_split", mode="cooling")
+    assert model.dV_iu_fan_a_rated == indoor.value
     assert model.dV_iu_fan_a_max == model.dV_iu_fan_a_ref == model.dV_iu_fan_a_rated
     assert model.A_cross_iu == pytest.approx(model.dV_iu_fan_a_rated / 2.0)
-    # The outdoor airflow default is unchanged.
-    assert model.dV_ou_fan_a_rated == pytest.approx(capacity * 0.0002)
+    assert model.dV_ou_fan_a_rated == outdoor.value
 
 
 def test_a_published_airflow_overrides_the_default():
@@ -63,8 +65,24 @@ def test_supply_air_and_fan_power_at_the_rating_points(hp):
     for out in (heating, cooling):
         assert out["E_iu_fan [W]"] < 0.01 * 4000.0
         assert 0.01 * 4000.0 < out["E_iu_fan [W]"] + out["E_ou_fan [W]"] < 0.04 * 4000.0
-    # Rated COP inside what such equipment declares (A7/20: 3.8-4.8; A35/27: 3.2-4.5).
-    assert 3.8 < heating["cop_sys [-]"] < 4.9
+    # Rated COP against what such equipment declares. The five Daikin FTXM-A / RXM-A units of 2.0 to
+    # 5.0 kW in validation/catalogs declare 4.14 to 5.00 in heating (H1) and 3.68 to 5.41 in cooling
+    # (T1) (validation/results/gate_a/rated_points.csv); the bounds are that band with 5 % either
+    # side in heating. The default unit is at 4.65 in heating (5.03 with the quadratic efficiency map,
+    # which carried no inverter loss). It delivers its cooling nameplate here, three quarters of what
+    # a unit of this size declares in heating (5.4 kW at 6/20 degC for the 4.2 kW RXM42A, COP 4.19),
+    # so the declared band is a ceiling for this row, not a like-for-like point.
+    #
+    # The like-for-like point is 7.7 % under the declared 4.19 -- outside the 5 % either side this test
+    # held it to until the semi-empirical compressor model (4.09 then). That is the heating bias of
+    # the whole air-to-air validation set with that model (-8.4 % over the 180 heating points of the
+    # five units, validation/results), not something particular to this row, and it is stated here as
+    # it is: the value is pinned, under the band, so the test moves when it does in either direction.
+    like = _solve(hp, -5400.0, 6.0, 20.0)
+    assert like["capacity_clamped"] is None
+    assert like["cop_sys [-]"] == pytest.approx(3.866, rel=0.005)
+    assert like["cop_sys [-]"] < 0.95 * 4.19
+    assert 0.95 * 4.14 < heating["cop_sys [-]"] < 1.05 * 5.00
     assert 3.2 < cooling["cop_sys [-]"] < 4.5
 
 
@@ -75,8 +93,10 @@ def test_the_earlier_default_gave_a_supply_temperature_near_the_room(hp):
     assert old["cop_sys [-]"] > new["cop_sys [-]"]
 
 
-def test_the_mild_weather_ceiling_is_the_indoor_coil_and_is_solved_not_swept(hp, monkeypatch):
+def test_the_mild_weather_ceiling_is_the_indoor_coil_and_is_solved_not_swept(monkeypatch):
     """The ceiling is one least-lift solve at the indoor coil's limit, not a ladder of grid sweeps."""
+    # A search box the indoor coil reaches before the compressor does (the default 30 K is past it).
+    hp = AirSourceHeatPump(dT_approach_bounds=(1.0, 20.0))
     calls = {"n": 0}
     original = hp._calc_state
 

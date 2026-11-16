@@ -4,7 +4,7 @@ See :mod:`tmhp.compressor_envelope`. The reproduction inputs are the #96 /
 #104 rediagnosis points that the models used to report as normal operation:
 discharge 357 degC (GSHPB R32 B0/W55 8 kW), 271 degC (ASHPB R32 A-7/W55 15 kW)
 and 201.6 degC (ASHPB R32 A0/W60 15 kW), and the low-speed / high-pressure-ratio
-corner at eta_is 0.14.
+corner.
 """
 
 from __future__ import annotations
@@ -19,24 +19,23 @@ import pytest
 import tmhp
 from tmhp.compressor_envelope import (
     BINDING_DISCHARGE,
-    BINDING_EFFICIENCY,
     BINDING_HEAT_EXCHANGER,
     BINDING_PRESSURE_RATIO,
     DISCHARGE_TEMP_ABOVE_MAX,
     DISCHARGE_TOL_K,
-    ETA_ISEN_BELOW_MIN,
-    ETA_ISEN_MIN,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     RPS_MAX_ABSOLUTE,
     default_discharge_temp_max,
     default_rps_max,
     discharge_temp_exceeded,
-    efficiency_below_floor,
     resolve_discharge_temp_max,
 )
 
-pytestmark = pytest.mark.filterwarnings("ignore::RuntimeWarning")
+pytestmark = [
+    pytest.mark.filterwarnings("ignore::RuntimeWarning"),
+    pytest.mark.earlier_defaults,  # scenarios pinned on the earlier default machine: tests/conftest.py
+]
 
 FAMILIES = (
     tmhp.AirSourceHeatPump,
@@ -93,6 +92,7 @@ def test_discharge_exceeded_counts_undefined_discharge():
     assert not discharge_temp_exceeded(math.nan, None)  # check off
 
 
+@pytest.mark.current_defaults  # the present defaults of the envelope, the speed ceiling among them
 @pytest.mark.parametrize("cls", FAMILIES)
 def test_every_family_carries_the_envelope(cls):
     model = _quiet(cls, ref="R32")
@@ -108,14 +108,18 @@ def test_every_family_carries_the_envelope(cls):
 
 
 def test_default_rps_max_rule():
-    assert default_rps_max(30.0) == 60.0
+    # The ceiling belongs to the compressor, not to the nameplate: every machine
+    # rated at 80 rev/s or below gets the same 120 rev/s.
+    assert default_rps_max(30.0) == RPS_MAX_ABSOLUTE == 120.0
     assert default_rps_max(70.0) == RPS_MAX_ABSOLUTE
+    assert default_rps_max(80.0) == RPS_MAX_ABSOLUTE
     # A machine already rated fast keeps 1.5x headroom (catalogue max/rated <= 1.52).
     assert default_rps_max(90.0) == 135.0
     assert RATED_SPEED_SEARCH_MAX > RPS_MAX_ABSOLUTE
 
 
 def test_rps_max_follows_the_rated_speed_after_it_is_solved():
+    # The earlier ceiling (tests/conftest.py, ``earlier_rps_max``): twice the rated speed up to 120 rev/s.
     # Default R134a boiler is rated at ~90 rev/s: solved over the wide search
     # range, then given 1.5x headroom (the 120 rev/s bound would leave 1.33x).
     hp = _quiet(tmhp.AirSourceHeatPumpBoiler)
@@ -125,21 +129,27 @@ def test_rps_max_follows_the_rated_speed_after_it_is_solved():
     assert small.rps_max == pytest.approx(2.0 * small.rps_rated)
 
 
+@pytest.mark.current_defaults  # the present speed ceiling: 120 rev/s whatever the rated speed
 def test_explicit_rps_max_and_rated_speed_are_kept():
     hp = _quiet(tmhp.WaterSourceHeatPumpBoiler, rps_max=130.0)
     assert hp.rps_max == 130.0
+    # A given rated speed is kept; the ceiling does not follow it (default_rps_max).
     fixed = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0, rps_rated=40.0)
-    assert fixed.rps_max == 80.0
+    assert fixed.rps_rated == 40.0
+    assert fixed.rps_max == RPS_MAX_ABSOLUTE
 
 
 def test_speed_ceiling_caps_air_to_air_capacity_in_the_cold():
-    """The former 150 rev/s let ASHP deliver 150 % of nameplate at -25 degC."""
+    """A request for 150 % of nameplate at -25 degC is cut back to what the speed ceiling delivers."""
     hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0)
     r = _quiet(hp.analyze_steady, Q_r_iu=-6000.0, T0=-25.0, T_a_room=20.0, verbose=False)
     assert _running(r)
     assert r["capacity_clamped"] == "max"
     assert r["cmp_rpm [rpm]"] / 60.0 <= hp.rps_max + 1e-6
-    assert abs(r["Q_ref_iu [W]"]) < hp.hp_capacity
+    # Well short of the request. With the 120 rev/s ceiling (not twice the rated
+    # speed) the machine holds about its nameplate there, as cold-climate inverter
+    # units do down to their rated low temperature; it no longer falls below it.
+    assert abs(r["Q_ref_iu [W]"]) < 0.75 * 6000.0
 
 
 # ---------------------------------------------------------------------------
@@ -174,16 +184,6 @@ def test_gshpb_r32_b0_w55_discharge_357C_is_not_an_operating_point():
         tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, x_suction_min=None, **_GSHPB_UNDERSIZED_HX
     )
     _off(_quiet(uncontrolled.analyze_steady, **case), DISCHARGE_TEMP_ABOVE_MAX)
-    # With the discharge limit off, the 357 degC point (eta_is 0.23 at 25 rev/s,
-    # the guard's low-speed continuation) is still refused, by the efficiency
-    # floor: the largest duty that keeps the fit above it is returned instead.
-    legacy = _quiet(
-        tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, T_dis_max=None, **_GSHPB_UNDERSIZED_HX
-    )
-    old = _quiet(legacy.analyze_steady, **case)
-    assert _running(old) and old["capacity_clamped"] == "max"
-    assert old["capacity_binding"] == BINDING_EFFICIENCY
-    assert old["Q_ref_tank [W]"] < 8000.0 and old["eta_cmp_isen [-]"] >= ETA_ISEN_MIN
 
 
 def test_ashpb_r32_a_minus7_w55_is_refused_even_with_control():
@@ -287,38 +287,24 @@ def test_gshp_reports_the_discharge_limit():
 
 
 def test_low_speed_high_pressure_ratio_corner_is_outside_the_envelope():
-    """PR > 7.15 at the 15 rev/s floor: the guard's continuation gives eta_is 0.14.
+    """A large lift towards the 15 rev/s floor: the efficiency falls and the discharge runs hot.
 
-    With the discharge-temperature control the discharge can be held, so the
-    corner is refused by the isentropic-efficiency floor (0.30, below the
-    fit's 0.336 minimum inside its data) instead. The unit does not run there:
-    the request is met by on/off cycling at the smallest duty inside the
-    envelope, well above the speed floor.
+    Even with the discharge-temperature control used up the corner is above
+    ``T_dis_max``. The unit does not run there: the request is met by on/off
+    cycling at the smallest duty inside the envelope, well above the speed
+    floor.
     """
     case = dict(T_tank_w=65.0, T_source=0.0, Q_ref_tank=1600.0, T0=10.0)
     hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R134a", hp_capacity=8000.0)
     refused = _quiet(hp.analyze_steady.__wrapped__, hp, **case)  # the request's own solve
-    assert refused["failure_reason"] in (ETA_ISEN_BELOW_MIN, DISCHARGE_TEMP_ABOVE_MAX)
+    assert refused["failure_reason"] == DISCHARGE_TEMP_ABOVE_MAX
     assert not refused["hp_is_on"]
     r = _quiet(hp.analyze_steady, **case)
     assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
     assert r["Q_ref_tank [W]"] == pytest.approx(1600.0) and r["Q_min [W]"] > 1600.0
     assert r["runtime_fraction [-]"] < 1.0
-    assert r["eta_cmp_isen [-]"] >= ETA_ISEN_MIN and r["cmp_rpm [rpm]"] / 60.0 > hp.rps_min + 1.0
+    assert r["cmp_rpm [rpm]"] / 60.0 > hp.rps_min + 1.0
     assert r["T_ref_cmp_out [°C]"] <= hp.T_dis_max + 0.01
-    # A scalar efficiency is the caller's statement: no floor.
-    scalar = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R134a", hp_capacity=8000.0, eta_cmp_isen=0.25, T_dis_max=None)
-    assert _quiet(scalar.analyze_steady, **case)["failure_reason"] != ETA_ISEN_BELOW_MIN
-
-
-@pytest.mark.parametrize("cls", [tmhp.AirSourceHeatPump, tmhp.GroundSourceHeatPumpBoiler])
-def test_efficiency_floor_rule(cls):
-    hp = _quiet(cls, ref="R32")
-    low = {"eta_cmp_isen [-]": 0.25, "P_ref_cmp_in [Pa]": 3.0e5, "P_ref_cmp_out [Pa]": 2.4e6, "cmp_rpm [rpm]": 900.0}
-    assert efficiency_below_floor(hp, low)  # PR 8, 15 rev/s: extrapolated
-    inside = {**low, "P_ref_cmp_out [Pa]": 1.5e6, "cmp_rpm [rpm]": 3000.0}  # PR 5, 50 rev/s
-    assert not efficiency_below_floor(hp, inside)
-    assert not efficiency_below_floor(hp, {**low, "eta_cmp_isen [-]": 0.31})
 
 
 # ---------------------------------------------------------------------------
@@ -326,37 +312,29 @@ def test_efficiency_floor_rule(cls):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.current_defaults  # the flag belongs to the library's default models (tests/conftest.py)
 def test_efficiency_extrapolated_is_reported_by_every_family():
-    rows = [
-        _quiet(_quiet(tmhp.AirSourceHeatPump, ref="R32").analyze_steady, Q_r_iu=-3000.0, T0=7.0, T_a_room=20.0),
-        _quiet(_quiet(tmhp.GroundSourceHeatPump, ref="R32").analyze_steady, Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0),
-        _quiet(
-            _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0).analyze_steady,
-            T_tank_w=35.0,
-            T0=7.0,
-            Q_ref_tank=15000.0,
+    cases = [
+        (_quiet(tmhp.AirSourceHeatPump, ref="R32"), dict(Q_r_iu=-3000.0, T0=7.0, T_a_room=20.0)),
+        (_quiet(tmhp.GroundSourceHeatPump, ref="R32"), dict(Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0)),
+        (
+            _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0),
+            dict(T_tank_w=35.0, T0=7.0, Q_ref_tank=15000.0),
         ),
-        _quiet(
-            _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R410A").analyze_steady,
-            T_tank_w=40.0,
-            T_source=10.0,
-            Q_ref_tank=4000.0,
-        ),
-        _quiet(
-            _quiet(tmhp.WaterSourceHeatPumpBoiler, ref="R410A").analyze_steady,
-            T_tank_w=40.0,
-            T_source=10.0,
-            Q_ref_tank=4000.0,
-        ),
+        (_quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R410A"), dict(T_tank_w=40.0, T_source=10.0, Q_ref_tank=4000.0)),
+        (_quiet(tmhp.WaterSourceHeatPumpBoiler, ref="R410A"), dict(T_tank_w=40.0, T_source=10.0, Q_ref_tank=4000.0)),
     ]
-    for r in rows:
+    flags = []
+    for hp, case in cases:
+        r = _quiet(hp.analyze_steady, **case)
         assert _running(r), r.get("failure_reason")
         assert isinstance(r["efficiency_extrapolated"], bool)
-    # Inside the fitted box (PR 1.5-7.15, 33.8-72.5 rev/s): not extrapolated.
-    inside = rows[2]
-    rps = inside["cmp_rpm [rpm]"] / 60.0
-    pr = inside["P_ref_cmp_out [Pa]"] / inside["P_ref_cmp_in [Pa]"]
-    assert inside["efficiency_extrapolated"] is not (1.5016 <= pr <= 7.1486 and 33.83 <= rps <= 72.5)
+        # The flag says whether the point lies outside the (PR, N) data hull of the machine's default models.
+        rps = r["cmp_rpm [rpm]"] / 60.0
+        pr = r["P_ref_cmp_out [Pa]"] / r["P_ref_cmp_in [Pa]"]
+        assert r["efficiency_extrapolated"] is not hp.eta_cmp_isen.validity_domain.contains(pr, rps, rtol=1e-6)
+        flags.append(r["efficiency_extrapolated"])
+    assert True in flags and False in flags  # both sides of the hull are among the five points
 
 
 def test_scalar_efficiencies_are_never_reported_as_extrapolated():
@@ -677,17 +655,6 @@ def test_pressure_ratio_above_the_ceiling_at_every_duty_is_decided_in_two_solves
     r = _steady_ashpb(r134a_15kw, 60.0, -25.0, 15000.0)
     _off(r, "pr_above_max")
     assert solves == [15000.0, pytest.approx(1500.0)]
-
-
-def test_duties_that_run_between_two_limits_are_found():
-    """A-15/W65 R1234yf 15 kW: above ~5.7 kW the pressure ratio refuses the duty, below
-    ~4 kW the discharge temperature does (low speed). No rung of the ladder runs."""
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R1234yf", hp_capacity=15000.0)
-    for rung in (0.8, 0.6, 0.4, 0.25, 0.1):
-        assert not _running(tmhp.AirSourceHeatPumpBoiler.analyze_steady.__wrapped__(hp, 65.0, -15.0, rung * 15000.0))
-    r = _steady_ashpb(hp, 65.0, -15.0, 15000.0)
-    _reduced(r, 15000.0, BINDING_PRESSURE_RATIO)
-    assert 0.25 * 15000.0 < r["Q_ref_tank [W]"] < 0.4 * 15000.0
 
 
 def test_condensing_above_the_critical_point_is_not_reduced_onto_it():

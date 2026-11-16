@@ -25,7 +25,7 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, record_figure, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, TEXT_COLORS, apply_style, finalize, record_figure, static_path  # noqa: E402
 
 SIM_HOURS = 24
 DT_S = 60  # 1-minute step
@@ -121,7 +121,7 @@ def main() -> None:
         0.5,
         ashpb.T_tank_w_upper_bound + 0.6,
         f"upper {ashpb.T_tank_w_upper_bound:.0f} °C",
-        color=COLORS["muted"],
+        color=TEXT_COLORS["muted"],
         fontsize=dm.fs(-2),
         va="bottom",
         ha="left",
@@ -130,7 +130,7 @@ def main() -> None:
         0.5,
         ashpb.T_tank_w_lower_bound - 0.6,
         f"lower {ashpb.T_tank_w_lower_bound:.0f} °C",
-        color=COLORS["muted"],
+        color=TEXT_COLORS["muted"],
         fontsize=dm.fs(-2),
         va="top",
         ha="left",

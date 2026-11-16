@@ -5,8 +5,8 @@ judged at. These tests pin what the file *says* -- which points, that they are
 catalogue rows and not retyped numbers, that the points with no evidence behind
 them are reported rather than gated -- and that the evaluation script computes
 a value for each. They do **not** assert that the gate passes: it does not
-today (about -20 % on the three catalogue points), and that assertion belongs to
-the stages that close it.
+today (13 to 20 % below the catalogue on the three points), and that assertion
+belongs to the work that closes it.
 """
 
 from __future__ import annotations
@@ -15,36 +15,83 @@ import math
 
 import pandas as pd
 import pytest
-from validation.gate.evaluate import GATE_FILE, catalogue_point, evaluate_all, load_gate
-from validation.parity.run import RESULTS_DIR
+from validation.gate.evaluate import GATE_FILE, catalogue_point, evaluate_all, gate_call, load_gate, parity_layers
+from validation.parity.run import RESULTS_DIR, STRATUM_INJECTION, STRATUM_NO_INJECTION, injection_strata
+from validation.parity.spec import load_all
 
-#: The gate, as the plan states it: Panasonic WH-WXG09ME8 A-7/W55 and A-7/W65,
-#: WH-UQ09HE8 A-7/W55. Spelled out here so that editing the data file alone
-#: cannot widen or narrow the gate.
+from tmhp.constants import c_w
+
+#: The gate, as the owner set it on 2026-11-15: A-7/W55 of the three Panasonic
+#: WH-UQ units (R410A), machines the single-stage cycle can represent. Spelled
+#: out here so that editing the data file alone cannot widen or narrow the gate.
 EXPECTED_CATALOGUE_POINTS = {
-    ("panasonic_wh_wxg09me8", -7, 55),
-    ("panasonic_wh_wxg09me8", -7, 65),
     ("panasonic_wh_uq09he8", -7, 55),
+    ("panasonic_wh_uq12he8", -7, 55),
+    ("panasonic_wh_uq16he8", -7, 55),
 }
+#: Reported beside it: the T-CAP M units (vapour-injection scroll), A-7/W55 and A-7/W65.
+INJECTION_CATALOGS = ("panasonic_wh_wxg09me8", "panasonic_wh_wxg12me8", "panasonic_wh_wxg16me8")
+EXPECTED_INJECTION_POINTS = {(slug, -7, sink) for slug in INJECTION_CATALOGS for sink in (55, 65)}
+
+
+def _conditions(entries) -> set:
+    return {(e["catalog"], e["condition"]["t_source_C"], e["condition"]["t_sink_C"]) for e in entries}
+
+
+def _catalogue_entries() -> list:
+    gate = load_gate()
+    return gate["gate"]["catalogue_points"] + gate["reported"]["vapour_injection"]["catalogue_points"]
 
 
 def test_gate_is_the_three_catalogue_points_plus_the_default_r32_run() -> None:
     gate = load_gate()
-    assert gate["schema_version"] == 1
+    assert gate["schema_version"] == 2
     assert gate["gate"]["tolerance_rel"] == 0.10
-    points = {
-        (e["catalog"], e["condition"]["t_source_C"], e["condition"]["t_sink_C"])
-        for e in gate["gate"]["catalogue_points"]
-    }
-    assert points == EXPECTED_CATALOGUE_POINTS
+    assert _conditions(gate["gate"]["catalogue_points"]) == EXPECTED_CATALOGUE_POINTS
     (run,) = gate["gate"]["runs"]
     assert run["model"] == "AirSourceHeatPumpBoiler"
     assert run["constructor"]["ref"] == "R32"
-    assert run["call"]["T0"] == -7.0
+    # Leaving water 55 degC, as EN 14511 states it (decision of 2026-11-16): water entering at 47 degC at
+    # the flow that carries the duty at an 8 K rise, as the catalogue parity runs read a catalogue.
+    assert run["call"] == {"T0": -7.0, "Q_ref_tank": 8000.0}
+    assert run["en14511_leaving_water_C"] == 55.0
+    call = gate_call(run)
+    assert call["T_tank_w"] == pytest.approx(47.0)
+    assert call["m_dot_w"] == pytest.approx(8000.0 / (c_w * 8.0))
+    assert {k: call[k] for k in ("T0", "Q_ref_tank")} == run["call"]
+    assert [v["call"]["T_tank_w"] for v in run["variants"]] == [55.0]
+
+
+def test_vapour_injection_units_are_reported_with_their_reason_and_stay_in_the_parity_runs() -> None:
+    injection = load_gate()["reported"]["vapour_injection"]
+    assert tuple(injection["catalogs"]) == INJECTION_CATALOGS
+    assert _conditions(injection["catalogue_points"]) == EXPECTED_INJECTION_POINTS
+    assert "injection" in injection["reason"] and "single-stage" in injection["reason"]
+    assert injection["source"]  # the manufacturer document that says so
+    assert not EXPECTED_INJECTION_POINTS & EXPECTED_CATALOGUE_POINTS
+    # Reported is not removed: the layers add up to the headline, point for point.
+    layers = parity_layers().set_index("layer")
+    whole, rest, injected = (layers.loc[name] for name in layers.index)
+    # The layers are the catalogues' published injection: the three T-CAP M units reported here and the
+    # Samsung unit (flash injection); the six rotaries without injection are the layer the gate is judged on.
+    assert (rest.units, injected.units) == (6, 4)
+    published = {c.slug for c in load_all() if c.model_class == "ASHPB" and c.status == "adopted" and c.injected}
+    assert set(INJECTION_CATALOGS) < published and len(published) == 4
+    strata = injection_strata(pd.read_csv(RESULTS_DIR / "summary.csv")).set_index("stratum")
+    assert injected.evaluated == strata.loc[STRATUM_INJECTION].points_usable
+    assert injected.cop_MAPE_pct == pytest.approx(strata.loc[STRATUM_INJECTION].cop_MAPE_pct, rel=1e-9)
+    assert rest.cop_bias_pct == pytest.approx(strata.loc[STRATUM_NO_INJECTION].cop_bias_pct, rel=1e-9)
+    assert rest.points + injected.points == whole.points
+    assert rest.evaluated + injected.evaluated == whole.evaluated
+    summary = pd.read_csv(RESULTS_DIR / "summary.csv")
+    adopted = summary[(summary.model_class == "ASHPB") & (summary.status == "adopted")]
+    assert whole.points == adopted.points.sum() and whole.evaluated == adopted.points_usable.sum()
+    weighted = (adopted.cop_MAPE_pct * adopted.points_usable).sum() / adopted.points_usable.sum()
+    assert whole.cop_MAPE_pct == pytest.approx(weighted, rel=1e-9)
 
 
 def test_catalogue_entries_point_at_rows_instead_of_retyping_them() -> None:
-    for entry in load_gate()["gate"]["catalogue_points"]:
+    for entry in _catalogue_entries():
         assert set(entry) == {"id", "catalog", "point_id", "condition"}, (
             f"{entry['id']}: a COP or duty written here would be a second copy of the catalogue row"
         )
@@ -63,31 +110,48 @@ def test_ground_and_water_source_items_are_reported_not_gated() -> None:
     gate = load_gate()
     reported = {item["id"]: item for item in gate["reported"]["items"]}
     assert set(reported) == {"gshpb-b0-w35", "wshpb-w10-w35"}
-    assert not {i["id"] for i in gate["gate"]["catalogue_points"]} & set(reported)
+    assert not {i["id"] for i in _catalogue_entries()} & set(reported)
     assert "estimate" in gate["reported"]["estimate_basis"]
     assert reported["gshpb-b0-w35"]["estimate_cop"] == {"min": 4.2, "max": 4.8}
     assert reported["wshpb-w10-w35"]["estimate_cop"] == {"min": 5.0, "max": 6.0}
+    # W35: water entering at 30 degC at the boilers' rated circulation flow (5 K at the nameplate).
+    assert {item["call"]["T_tank_w"] for item in reported.values()} == {30.0}
     # No catalogue exists for either family, so nothing may be referenced as evidence.
     assert all("catalog" not in item for item in reported.values())
 
 
 def test_evaluation_computes_a_value_for_every_entry_and_matches_the_committed_results() -> None:
     report = evaluate_all()
-    assert len(report["gate"]) == 3 + 2  # three catalogue points, the R32 run and its leaving-water variant
+    assert len(report["gate"]) == 3 + 1  # three catalogue points and the R32 run
+    assert len(report["variants"]) == 1  # the same run read with the tank at 55 degC
+    assert len(report["vapour_injection"]) == 6
     assert len(report["reported"]) == 2
 
-    committed = pd.read_csv(RESULTS_DIR / "panasonic_wh_wxg09me8.csv")
-    committed_uq = pd.read_csv(RESULTS_DIR / "panasonic_wh_uq09he8.csv")
-    by_slug = {"panasonic_wh_wxg09me8": committed, "panasonic_wh_uq09he8": committed_uq}
-    entries = {e["id"]: e for e in load_gate()["gate"]["catalogue_points"]}
-    for row in (r for r in report["gate"] if r["kind"] == "catalogue"):
-        assert math.isfinite(row["cop_model"]) and math.isfinite(row["rel_diff"]), row
+    entries = {e["id"]: e for e in _catalogue_entries()}
+    rows = [r for r in report["gate"] if r["kind"] == "catalogue"] + report["vapour_injection"]
+    assert len(rows) == 3 + 6
+    for row in rows:
         assert isinstance(row["within_tolerance"], bool)
         entry = entries[row["id"]]
-        stored = by_slug[entry["catalog"]].set_index("point_id").loc[entry["point_id"]]
+        stored = pd.read_csv(RESULTS_DIR / f"{entry['catalog']}.csv").set_index("point_id").loc[entry["point_id"]]
         # The gate reads what the parity harness reads: same point, same code.
         assert row["cop_catalogue"] == pytest.approx(stored.cop_target, rel=1e-9)
-        assert row["cop_model"] == pytest.approx(stored.cop_pred, rel=1e-6)
+        assert row["failure_reason"] == stored.failure_reason, row
+        if stored.usable:
+            assert math.isfinite(row["cop_model"]) and math.isfinite(row["rel_diff"]), row
+            assert row["cop_model"] == pytest.approx(stored.cop_pred, rel=1e-6)
+        else:
+            # A point the model does not deliver has no COP to compare: it is named, and it is outside.
+            assert row["failure_reason"] != "none" and math.isnan(row["rel_diff"]), row
+            assert row["within_tolerance"] is False
+    # The gate as the committed results have it: two of the three points inside +-10 %, and the 12 kW unit
+    # short of its catalogue duty at the 120 rev/s speed ceiling (so not scored; the gate is not met).
+    gate = {r["id"]: (r["within_tolerance"], r["failure_reason"]) for r in report["gate"] if r["kind"] == "catalogue"}
+    assert gate == {
+        "wh-uq09he8-a-7-w55": (True, "none"),
+        "wh-uq12he8-a-7-w55": (False, "capacity_short"),
+        "wh-uq16he8-a-7-w55": (True, "none"),
+    }
     for row in report["reported"]:
         assert math.isfinite(row["cop_model"]), row
 

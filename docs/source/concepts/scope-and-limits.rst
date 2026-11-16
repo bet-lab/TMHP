@@ -23,7 +23,7 @@ cycle: the energy balance holds, heat flows from warm to cold in every heat
 exchanger, and the compressor is inside its envelope. It does *not* claim
 that the request was met (``capacity_clamped``, ``Q_unmet [W]``), that the
 compressor ran the whole time (``runtime_fraction [-]``), or that the
-efficiency fit was read inside its data (``efficiency_extrapolated``).
+compressor efficiency was read inside its data (``efficiency_extrapolated``).
 :doc:`result-keys` describes these keys.
 
 Refused: outside the models
@@ -54,14 +54,15 @@ named in ``capacity_binding``.
       - :doc:`refrigerant-and-coolprop`
     * - Two-stage compression, vapour or liquid injection, economisers
       - The cycle is single-stage. Where a real unit would need them the
-        point is outside the envelope: ``failure_reason`` is
-        ``"pr_above_max"`` or ``"discharge_temp_above_max"``, or the duty is
-        reduced (``capacity_binding``)
+        point is outside the envelope (``failure_reason`` is
+        ``"pr_above_max"`` or ``"discharge_temp_above_max"``), the duty is
+        reduced (``capacity_binding``), or the point runs and reports the
+        single-stage COP: the injection machines of the validation set run
+        10 to 23 % below their catalogues at −7 °C (:ref:`high-lift-deficit`)
       - :doc:`/developer/reference-operating-limits`
     * - Operation beyond the compressor envelope
-      - Condensing above ``T_cond_max``, discharge above ``T_dis_max``, a
-        pressure ratio above 11, or the shipped isentropic fit below 0.30:
-        reduced duty, on/off cycling at the smallest duty inside the envelope
+      - Condensing above ``T_cond_max``, discharge above ``T_dis_max`` or a
+        pressure ratio above 11: reduced duty, on/off cycling at the smallest duty inside the envelope
         (a request refused only at low speed), or the off state -- never a
         running row outside it
       - :doc:`failure-reason-semantics`
@@ -102,22 +103,29 @@ The refrigerant cycle
     * - Simplification
       - What it means
       - How it shows
-    * - Compressor efficiencies from one data set
-      - Volumetric, isentropic and electro-mechanical efficiency are three
-        fits to scroll-compressor calculation data over pressure ratio
-        1.50–7.15 and 33.8–72.5 rev/s. Outside that box the fit is held or
-        continued, not measured
-      - ``efficiency_extrapolated == True``. A default machine with a
-        refrigerant of low volumetric capacity (R134a, R1234yf) is rated
-        above the box; give it a larger ``V_cmp_ref``
-        (:doc:`refrigerant-and-coolprop`, :doc:`/validation/defaults`)
+    * - Compressor efficiencies by compressor type
+      - Volumetric, isentropic and electro-mechanical efficiency come from
+        semi-empirical forms fitted to standalone-compressor data, one set per
+        ``compressor_type`` (``rotary_twin_inverter`` by default, ``scroll``,
+        ``rotary_single_fixed``). The level is the manufacturers' published
+        level; independent compressor measurements sit 5–15 % lower. The
+        rotary types are provisional: their data span pressure ratio
+        1.94–6.84 and 30–120 rev/s. The electrical input is that of the
+        inverter input (drive loss about 6 % at 60 rev/s, more at low speed).
+        Outside the data the forms are followed as they are, not held
+      - ``efficiency_extrapolated == True`` outside the data hull of the type,
+        often at ordinary points: every speed below 30 rev/s, and pressure
+        ratios above 6.84 (hot water in cold weather) or below 1.94. The
+        default air-source models and boilers are rated inside the hull with
+        every refrigerant; the default ``GroundSourceHeatPump`` is rated below
+        it (pressure ratio 1.6–1.8). :doc:`/validation/defaults`
     * - Adiabatic compressor
       - No shell heat loss: every loss ends up in the discharge gas
       - ``T_ref_cmp_out [°C]`` is an upper estimate, so the discharge limit
         binds early rather than late
     * - Wet suction without an efficiency penalty
-      - When the discharge control lets the suction go wet, the dry-suction
-        efficiency fits are used unchanged
+      - When the discharge control lets the suction go wet, the efficiency
+        forms, fitted to dry-suction data, are used unchanged
       - Rows with ``discharge_control == True`` are optimistic by a few
         percent in COP, and their duty at the edge of the limit is an upper
         estimate (:doc:`/developer/reference-operating-limits`)
@@ -280,6 +288,80 @@ The air-source families are compared with manufacturer catalogues, with no
 parameter fitted to them; the ground- and water-source families share the
 same cycle core but have not been compared with unit data. The numbers, the
 units held back and the reasons are in :doc:`/validation/index`.
+
+.. _high-lift-deficit:
+
+High lift: hot water in cold weather
+------------------------------------
+
+The acceptance gate of the sixth round of work
+(``validation/gate/high_lift_gate.yaml``; ``uv run python -m
+validation.gate.evaluate`` prints where it stands) is the catalogue COP within
+10 % at A−7/W55 on the three Panasonic WH-UQ units, which publish their
+displacement, airflow and compressor (a rotary without injection, the
+machine the single-stage cycle represents). With the present defaults two of
+the three points are within it and the third is not evaluated:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 26 14 14 16 30
+
+    * - Unit, A−7/W55
+      - Catalogue COP
+      - Model
+      - Difference
+      - At the solved point
+    * - WH-UQ09HE8 (R410A, 9 kW)
+      - 2.02
+      - 1.962
+      - −2.9 %
+      - pressure ratio 7.4, 90 rev/s, isentropic efficiency 0.806
+    * - WH-UQ12HE8 (R410A, 12 kW)
+      - 1.92
+      - not evaluated
+      - capacity short
+      - pressure ratio 7.6, at the 120 rev/s ceiling: 96 % of the duty
+    * - WH-UQ16HE8 (R410A, 16 kW)
+      - 1.86
+      - 1.890
+      - +1.6 %
+      - pressure ratio 8.3, 119 rev/s, isentropic efficiency 0.797
+
+WH-UQ12HE8 runs at its speed ceiling and delivers 96 % of the published duty,
+so its COP is not compared (``capacity_short``, :doc:`/validation/index`).
+With the ceiling raised the model meets the duty at 126 rev/s; the default
+ceiling is 120 rev/s (:doc:`/developer/reference-operating-limits`). The gate
+is therefore not met as it is written: one of its three points has no
+comparable COP.
+
+All three points are solved above the rotary data: the rotary forms rest on
+data up to a pressure ratio of 6.84 (``efficiency_extrapolated`` is true at
+each), and the rotary volumetric efficiency there is the form followed past
+its data. How far that reaches is recorded with the coefficients
+(``validation/coefficients/semi-empirical-2026-11-15/eta_v_high_pr.csv``): at
+a pressure ratio of 8 the three PR slopes the archive compares give 0.728 to
+0.763 for R32 at 60 rev/s.
+
+In the previous release, with the BITZER quadratic map, the three points ran
+−19.9, −15.6 and −12.9 % below the catalogue; that map held its isentropic
+efficiency at 0.371 beyond a pressure ratio of 7.15. Of the machines without
+injection, the six rotaries of the parity set, the 17 points evaluated at −7 °C run
++2.6 % on average (:doc:`/validation/index`).
+
+**Vapour injection, which the model does not have.** The Panasonic T-CAP M
+units (WH-WXG09/12/16, R290) are sold with an injection scroll; a
+single-stage cycle (`Refused: outside the models`_) cannot hold their
+efficiency or their discharge temperature at these pressure ratios. Their
+A−7/W55 and A−7/W65 points (−22.7 and −20.8 % at 9 kW, −16.6 and −15.8 % at
+12 kW, −9.7 and −10.9 % at 16 kW) are therefore reported beside the gate, not
+part of it. They stay in the parity results of :doc:`/validation/index`,
+where the four injection machines (with the Samsung flash-injection unit) run
+−9.6 % on average and the six without injection −2.2 %.
+
+For a result: at outdoor temperatures below about 2 °C and leaving water at
+55 °C or more, a single-stage machine is read from compressor forms past
+their data, and a machine with injection is under-predicted, by 10 to 23 %
+at these points.
 
 A short checklist for any result
 ================================

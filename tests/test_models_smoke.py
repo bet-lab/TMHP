@@ -48,22 +48,39 @@ def test_ashpb_analyze_steady():
 def test_ashpb_default_compressor_efficiencies():
     ashpb = AirSourceHeatPumpBoiler()
 
-    from tmhp.compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
+    from tmhp.compressor_efficiency import SuctionState, default_efficiencies
 
     # The rated speed is solved at the rating condition, not a fixed default.
     rated = ashpb.rps_rated
     assert rated == ashpb.reference_state.rps_rated
     assert ashpb.rps_min < rated < ashpb.rps_max
-    assert ashpb.eta_cmp_vol(4.0, 55.0) == pytest.approx(make_eta_vol(rated)(4.0, 55.0))
-    assert ashpb.eta_cmp_isen(4.0, 55.0) == pytest.approx(make_eta_isen(rated)(4.0, 55.0))
-    assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(make_eta_em(rated)(4.0, 55.0))
+    # The three models are the defaults of the machine's compressor type, bound to that rated speed.
+    expected = default_efficiencies(ashpb.compressor_type, ashpb.ref, rated)
+    state = SuctionState(p_suc=4.0e5, rho_suc=9.0, dh_isen=6.0e4)
+    for name in ("eta_cmp_vol", "eta_cmp_isen", "eta_cmp"):
+        model = getattr(ashpb, name)
+        assert model.rps_rated == rated
+        assert model(4.0, 55.0, state) == expected[name](4.0, 55.0, state)
 
 
-def test_ashpb_default_heat_exchanger_uas_follow_validation_rules():
+def test_ashpb_default_heat_exchanger_uas_follow_the_approach_archive():
+    """Plate condenser at the rated circulation flow (5 K rise), outdoor coil as an evaporator in A7 air."""
+    from tmhp.air_properties import air_heat_capacity_rate
+    from tmhp.constants import c_w
+    from tmhp.default_inputs import estimate_hx_UA, hx_duty_per_nameplate
+
     ashpb = AirSourceHeatPumpBoiler(hp_capacity=9_000.0)
 
-    assert ashpb.UA_tank_hx == pytest.approx(1_800.0)
-    assert ashpb.UA_ou_rated == pytest.approx(1_260.0)
+    assert ashpb.m_dot_w_rated == pytest.approx(9_000.0 / (c_w * 5.0))
+    condenser = estimate_hx_UA("water_condenser|bphe|condensing", duty=9_000.0, heat_capacity_rate=9_000.0 / 5.0)
+    assert ashpb.UA_tank_hx == pytest.approx(condenser.value)
+    evaporating = "outdoor_coil|fin_tube|evaporating"
+    outdoor = estimate_hx_UA(
+        evaporating,
+        duty=hx_duty_per_nameplate(evaporating, "heating") * 9_000.0,
+        heat_capacity_rate=air_heat_capacity_rate(ashpb.dV_fan_a_rated, 7.0),
+    )
+    assert ashpb.UA_ou_rated == pytest.approx(outdoor.value)
 
 
 def test_gshpb_analyze_steady():
@@ -137,6 +154,7 @@ def test_gshp_cooling_analyze_steady():
     _assert_solved(result, "Q_ref_iu [W]", 3_000.0)
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 def test_ashp_off_mode_failure_reason_is_diagnostic():
     # Deliberately tiny UA so the inner HX optimisation cannot converge.
     # The model is expected to fall back to off-mode AND surface a
@@ -145,9 +163,10 @@ def test_ashp_off_mode_failure_reason_is_diagnostic():
     # The threshold is not arbitrary and should not be chased downward again
     # (2000 -> 200 previously). A coil needs an approach of about Q/UA to move
     # the heat, and the search offsets the saturation temperatures by at most
-    # ``dT_approach_bounds[1]`` = 20 K. So the case is genuinely unsolvable only
-    # once Q/UA exceeds that bound: measured, 200 W/K (15 K) converges and
-    # 120 W/K (25 K) does not. 50 W/K asks for 60 K, well clear of the boundary.
+    # ``dT_approach_bounds[1]`` (20 K when this was measured, 30 K since #86). So
+    # the case is genuinely unsolvable only once Q/UA exceeds that bound:
+    # measured at 20 K, 200 W/K (15 K) converges and 120 W/K (25 K) does not.
+    # 50 W/K asks for 60 K, well clear of the boundary at either bound.
     with pytest.warns(RuntimeWarning, match="m_dot_ref_rated not derived"):
         ashp = AirSourceHeatPump(
             ref="R32",
@@ -404,12 +423,14 @@ def test_wshpb_pr_ceiling_rejects():
 
 
 def test_non_air_source_boiler_common_eta_defaults():
-    from tmhp.compressor_efficiency import make_eta_isen
+    from tmhp.compressor_efficiency import SuctionState, default_efficiencies
 
+    state = SuctionState(p_suc=8.0e5, rho_suc=22.0, dh_isen=5.0e4)
     for cls in (GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler):
         m = cls(ref="R32")
         assert m.rps_min < m.rps_rated < m.rps_max
-        assert m.eta_cmp_isen(3, 40) == pytest.approx(make_eta_isen(m.rps_rated)(3, 40))
+        expected = default_efficiencies(m.compressor_type, m.ref, m.rps_rated)
+        assert m.eta_cmp_isen(3, 40, state) == expected["eta_cmp_isen"](3, 40, state)
         assert callable(m.eta_cmp_vol) and callable(m.eta_cmp)
 
 

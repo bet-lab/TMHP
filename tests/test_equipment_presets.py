@@ -20,6 +20,7 @@ def test_validated_rule_set_values() -> None:
         "V_cmp_ref",
         "UA_tank",
         "UA_ou_rated",
+        "m_dot_w_rated",
         "dV_fan_a_rated",
         "eta_cmp_vol",
         "eta_cmp_isen",
@@ -35,6 +36,7 @@ def test_validated_rule_set_values() -> None:
     assert kwargs["V_cmp_ref"] == pytest.approx(4.2e-5)
     assert kwargs["UA_tank"] == pytest.approx(1800.0)
     assert kwargs["UA_ou_rated"] == pytest.approx(1260.0)
+    assert kwargs["m_dot_w_rated"] == 0.0  # the rule set's condenser has no circulating water of its own
     assert kwargs["dV_fan_a_rated"] == pytest.approx(1.153)
     assert kwargs["eta_cmp_vol"](1.0) == pytest.approx(1.0)
     assert kwargs["eta_cmp_vol"](5.0) == pytest.approx(0.92)

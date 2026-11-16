@@ -37,6 +37,7 @@ from _dmpl_common import (  # noqa: E402
     COLORS,
     GRIDLINE,
     HAIRLINE,
+    TEXT_COLORS,
     apply_style,
     finalize,
     static_path,
@@ -58,6 +59,9 @@ VARIANT_STYLE = {
     "legacy-v1": ("pre-refit defaults (v1)", COLORS["cool"], (0, (2.4, 1.4))),
     "defaults": ("TMHP defaults", COLORS["accent"], "solid"),
 }
+
+#: Colour of a variant's name in panel (c) where the line colour is too light to read as text.
+LABEL_COLOR = {"constant": TEXT_COLORS["warm"], "legacy-v1": TEXT_COLORS["cool"]}
 
 #: Where each variant's name sits in panel (c): offset in points and the
 #: horizontal anchor. The four land in one corner plus one far outlier, so a
@@ -194,7 +198,7 @@ def main() -> None:
             xytext=(dx, dy),
             ha=ha,
             fontsize=dm.fs(-2),
-            color=color,
+            color=LABEL_COLOR.get(key, color),
         )
     ax.set_xlabel("Catalogue parity, air-to-water MAPE [%]")
     ax.set_ylabel("EN 14825 distance from\ncertified median [%]")

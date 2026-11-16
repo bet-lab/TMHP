@@ -32,17 +32,21 @@ from ._boiler_results import fill_missing, report_condenser_dew_point
 from ._opt_utils import efficiency_evaluator, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
-from .compressor_efficiency import reject_invalid_efficiency
+from .compressor_efficiency import (
+    COMPRESSOR_TYPES,
+    CompressorSpec,
+    reject_invalid_efficiency,
+    resolve_compressor_type,
+    suction_state,
+)
 from .compressor_envelope import (
     BINDING_CONDENSING,
     BINDING_CYCLE,
     BINDING_DISCHARGE,
-    BINDING_EFFICIENCY,
     BINDING_PRESSURE_RATIO,
     CONDENSING_TEMP_ABOVE_MAX,
     CYCLE_KEY,
     DISCHARGE_TEMP_ABOVE_MAX,
-    ETA_ISEN_BELOW_MIN,
     PR_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
@@ -57,7 +61,6 @@ from .compressor_envelope import (
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
     CAPACITY_CLAMPED_MIN,
-    default_displacement,
     solve_compressor_speed,
 )
 from .cycling import (
@@ -70,6 +73,7 @@ from .cycling import (
     continuous_keys,
     resolve_cycling,
 )
+from .default_inputs import kept_hx_UA
 from .defrost import (
     NO_FROST,
     DefrostModel,
@@ -84,9 +88,9 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
-from .hx_fan import INDOOR_AIRFLOW_PER_W, SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
+from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
-from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
+from .reference_state import RATING_STANDARDS, HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     _props,
     calc_ref_state,
@@ -482,6 +486,22 @@ def _exergy_row(result: dict, ref: str) -> dict:
     return {key: _boxed(value) for key, value in row.items()}
 
 
+#: Indoor-unit classes with a catalogue airflow law (:func:`tmhp.default_inputs.estimate_max_airflow`).
+#: Cassette and ducted units are not covered: give their ``dV_iu_fan_a_rated``.
+INDOOR_UNIT_TYPES: tuple[str, ...] = ("wall_mounted", "floor_standing")
+
+#: Default indoor-coil conductance per watt of nameplate [W/K per W]: the earlier rule, kept (provisional).
+INDOOR_UA_PER_CAPACITY = 0.16
+#: Why the indoor coil keeps that rule instead of an approach-temperature estimate (recorded in
+#: ``default_input_estimates["UA_iu_rated"]``; archive ``validation/default_inputs/hx_approach``).
+INDOOR_UA_KEPT_REASON = (
+    "kept at the previous rule. The archive's wall-mounted indoor-coil rows come from one manufacturer "
+    "(Mitsubishi Electric, 6 product lines): their leaving approach is 6.8 K on the declared duty but 3.6 K on "
+    "the printed discharge-air temperature, and a second manufacturer's pipe temperatures suggest about 3.3 K, so "
+    "the evidence does not settle the value and no estimate is issued (shipping gate: 2 manufacturers)."
+)
+
+
 class AirSourceHeatPump(ReferenceStateMixin):
     """Air source heat pump with indoor-unit air heat exchange.
 
@@ -506,10 +526,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
     14825 degradation (``Cd_cycling``), and ``runtime_fraction [-]`` is the
     share of the time the compressor runs (:mod:`tmhp.cycling`). The same
     holds where the envelope ends continuous operation above the minimum
-    speed: at a large lift the shipped isentropic fit falls towards low
+    speed: at a large lift the isentropic efficiency falls towards low
     speed, the discharge runs above its limit there
-    (``discharge_temp_above_max``) or the fit drops below its floor
-    (``eta_isen_below_min``), and a request below the smallest duty that
+    (``discharge_temp_above_max``), and a request below the smallest duty that
     stays inside is met by cycling at that duty (``Q_min [W]``), not answered
     with the unit switched off.
     """
@@ -593,10 +612,21 @@ class AirSourceHeatPump(ReferenceStateMixin):
         rps_max: float | None = None,
         # Approach-temperature search bounds [K]: how far the refrigerant
         # saturation temperature may stand from the inlet air on either side.
-        # The upper bound is a modelling limit, not a component limit, and it
-        # becomes the binding constraint on :meth:`max_capacity` at mild
-        # conditions -- widen it there rather than reading a bound as a ceiling.
-        dT_approach_bounds: tuple[float, float] = (1.0, 20.0),
+        # The upper bound is a modelling limit, not a component limit: a coil
+        # at its largest airflow and the widest approach is reported as the
+        # ceiling (``capacity_binding == "cycle"``).
+        #
+        # 30 K is the box the catalogue parity runs have always used, and the
+        # one a default machine needs. The coils are dry, so the nameplate is
+        # all sensible heat, and at the largest airflow indoor units publish
+        # (150-160 m3/h per kW from 9 kW up, tmhp.default_inputs) the room air
+        # changes by about 20 K at nameplate capacity. With an upper bound of
+        # 20 K the bound itself was the limit at the rating point: a default
+        # 15 kW unit delivered 89 % of its nameplate at 35/27 degC and 76 % at
+        # -7/20 degC. At 30 K every default unit from 1.5 to 50 kW, of either
+        # indoor class and either rated duty, delivers its nameplate at both
+        # rating points (ISO 5151 T1 and H1).
+        dT_approach_bounds: tuple[float, float] = (1.0, 30.0),
         # ASHRAE 90.1-2022 VSD coefficients
         vsd_coeffs_ou: dict | None = None,
         vsd_coeffs_iu: dict | None = None,
@@ -619,6 +649,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         rps_rated: float | None = None,
         m_dot_ref_rated: float | None = None,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
+        # Effective outdoor-coil conductance as an evaporator (heating) [W/K];
+        # None: the approach-temperature default, or UA_ou_rated when that is given.
+        UA_ou_evap_rated: float | None = None,
         dV_ou_fan_a_ref: float | None = None,
         dV_ou_fan_a_min: float | None = None,
         dV_ou_fan_a_max: float | None = None,
@@ -633,8 +666,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
         T_cond_max: float | Literal["auto"] | None = "auto",
+        # Indoor-unit class whose catalogue airflow stands in for an omitted
+        # dV_iu_fan_a_rated: "wall_mounted" or "floor_standing".
+        indoor_unit_type: str = "wall_mounted",
+        # Compressor type whose default efficiency models are used where
+        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
+        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
     ):
         validate_ctor("ASHP", locals())
+        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         import warnings
 
         if dV_ou_fan_a_ref is not None:
@@ -643,7 +683,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             dV_iu_fan_a_rated = dV_iu_fan_a_ref
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
+            # No displacement given: the one a compressor catalogue gives for this capacity
+            # and refrigerant (tmhp.default_inputs), recorded in default_input_estimates.
+            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else self._default_displacement(hp_capacity, ref)
         if eta_cmp is None:
             eta_cmp = eta_cmp_mech
         # UA_cond/evap_design → UA_cond/evap_rated (oldest names, two hops)
@@ -729,61 +771,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self._last_pr_event: tuple[str, float, float] | None = None
         self.hp_capacity: float = hp_capacity
 
-        # --- 2. Heat exchanger UA ---
-        # Outdoor-coil conductance per watt of nameplate cooling capacity.
-        #
-        # Derived, not chosen. Air-coil catalogues rate an entire range at one
-        # declared condition, so inverting them gives conductance per unit duty
-        # that is comparable across capacities by construction -- and for a
-        # coil whose refrigerant side changes phase that inversion is an
-        # identity, with no parameter fitted. Two rating standards written by
-        # different committees for different applications (EN 328 SC2 for unit
-        # coolers, 352 models across four manufacturers; ENV 327 for air-cooled
-        # condensers, 1,062 models across two) place their populations in the
-        # same band of UA per unit duty, 0.11-0.23 W/K per W, although the air
-        # flow per kilowatt they adopt differs by a factor of 2.4.
-        #
-        # Converting the condenser band to the nameplate basis needs the factor
-        # `1 + 1/EER`, because the nameplate is the indoor coil's cooling duty
-        # while the outdoor coil rejects that duty plus the compressor work
-        # (1.29-1.35 across the reference units). The result is
-        # UA/Q_cool = 0.19, i.e. `hp_capacity / 5`.
-        #
-        # An independent route -- computing the conductance straight from the
-        # outdoor-coil geometry that Trane prints for twelve Precedent packaged
-        # heat pumps, through the Wang/Chi/Chang (2000) plain-fin correlation
-        # and Schmidt fin efficiency -- gives Q/6.8 with a declared
-        # refrigerant-side film coefficient of 2500 W/(m^2 K) and Q/4.3 with
-        # that resistance removed, bracketing the value above. The two routes
-        # share neither inputs nor method.
-        #
-        # See validation/extraction/ua_transfer_law.py to regenerate all of it.
-        # Established for dry, round-tube-plate-fin coils; frosted operation,
-        # microchannel coils and residential mini-splits are outside the
-        # evidence and stated as such in the documentation.
-        if UA_ou_rated is None:
-            self.UA_ou_rated = hp_capacity / 5.0
-        else:
-            self.UA_ou_rated = UA_ou_rated
-
-        # Both faces are air coils sharing the same equivalent approach, so
-        # their conductance ratio is their duty ratio, `1 / (1 + 1/EER)`. That
-        # is 0.73-0.78 across the twelve reference units and 0.78-0.80 at the
-        # EER of current equipment, so 0.8 is derived rather than assumed.
-        # In cooling the indoor coil runs wet, which makes a sensible-basis UA
-        # an underestimate; the ratio rises above 0.8 when the latent load is
-        # large.
-        if UA_iu_rated is None:
-            self.UA_iu_rated = self.UA_ou_rated * 0.8
-        else:
-            self.UA_iu_rated = UA_iu_rated
-
         self.n_ou: float = n_ou
         self.n_iu: float = n_iu
 
         # --- 3. Outdoor unit fan ---
+        # The rated airflow is the unit's largest: with none given it is the
+        # largest fan step single-split outdoor units of this capacity publish
+        # (tmhp.default_inputs), for the duty the nameplate names. The fan
+        # modulates below it; UA_ou_rated and the fan power are stated at it.
+        rating_mode = self._rating_mode(rated_condition)
         if dV_ou_fan_a_rated is None:
-            self.dV_ou_fan_a_rated = hp_capacity * 0.0002
+            self.dV_ou_fan_a_rated = self._default_max_airflow(
+                "dV_ou_fan_a_rated", hp_capacity, side="outdoor", product="single_split", mode=rating_mode
+            )
         else:
             self.dV_ou_fan_a_rated = dV_ou_fan_a_rated
 
@@ -816,10 +816,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # --- 4. Indoor unit fan ---
         # The indoor airflow sets the condensing (heating) and evaporating
         # (cooling) temperatures through the coil's approach, so it decides
-        # the supply-air temperature and most of the lift. 400 cfm/ton is the
-        # airflow unitary equipment is rated at; see ``INDOOR_AIRFLOW_PER_W``.
+        # the supply-air temperature and most of the lift. With none given it
+        # is the largest fan step indoor units of this class and capacity
+        # publish (tmhp.default_inputs).
+        self.indoor_unit_type: str = indoor_unit_type
         if dV_iu_fan_a_rated is None:
-            self.dV_iu_fan_a_rated = hp_capacity * INDOOR_AIRFLOW_PER_W
+            if indoor_unit_type not in INDOOR_UNIT_TYPES:
+                raise ValueError(
+                    f"indoor_unit_type={indoor_unit_type!r} has no catalogue airflow: use one of "
+                    f"{', '.join(INDOOR_UNIT_TYPES)}, or give the unit's own dV_iu_fan_a_rated"
+                )
+            self.dV_iu_fan_a_rated = self._default_max_airflow(
+                "dV_iu_fan_a_rated", hp_capacity, side="indoor", product=indoor_unit_type, mode=rating_mode
+            )
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 
@@ -849,6 +858,67 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "fan_rated_power": self.E_iu_fan_rated,
         }
 
+        # --- 2. Heat exchanger UA ---
+        # Stated at the rated (largest) airflows resolved above. A default is the
+        # effective conductance that reproduces the saturation temperature real
+        # machines print at their rating point (tmhp.default_inputs.estimate_hx_UA,
+        # leaving-end approach law), sized for the coil's own duty -- the outdoor
+        # coil rejects the nameplate plus the compressor work as a condenser and
+        # absorbs less than the nameplate as an evaporator
+        # (hx_duty_per_nameplate). The same coil therefore has one value as a
+        # condenser (cooling) and another as an evaporator (heating). A value
+        # the caller gives is used as given; a given UA_ou_rated without
+        # UA_ou_evap_rated serves both roles.
+        outdoor_condensing = "outdoor_coil|fin_tube|condensing"
+        outdoor_evaporating = "outdoor_coil|fin_tube|evaporating"
+        rating_temperatures = RATING_STANDARDS[self._RATING_FAMILY]
+        if UA_ou_rated is None:
+            # Air at the ISO 5151 T1 outdoor dry bulb (35 degC).
+            self.UA_ou_rated = self._default_hx_UA(
+                "UA_ou_rated",
+                outdoor_condensing,
+                nameplate=hp_capacity,
+                nameplate_mode=rating_mode,
+                heat_capacity_rate=air_heat_capacity_rate(
+                    self.dV_ou_fan_a_rated, rating_temperatures["cooling"].source_T_C
+                ),
+            )
+        else:
+            self.UA_ou_rated = UA_ou_rated
+        if UA_ou_evap_rated is not None:
+            self.UA_ou_evap_rated = UA_ou_evap_rated
+        elif UA_ou_rated is not None:
+            # A coil value the caller gave is not silently split into two roles.
+            self.UA_ou_evap_rated = self.UA_ou_rated
+        else:
+            # Air at the ISO 5151 H1 outdoor dry bulb (7 degC).
+            self.UA_ou_evap_rated = self._default_hx_UA(
+                "UA_ou_evap_rated",
+                outdoor_evaporating,
+                nameplate=hp_capacity,
+                nameplate_mode=rating_mode,
+                heat_capacity_rate=air_heat_capacity_rate(
+                    self.dV_ou_fan_a_rated, rating_temperatures["heating"].source_T_C
+                ),
+            )
+
+        # The indoor coil keeps its earlier rule, 0.16 W/K per watt of nameplate,
+        # no longer tied to the outdoor coil: the archive issues no value for
+        # wall-mounted indoor coils (see INDOOR_UA_KEPT_REASON).
+        if UA_iu_rated is None:
+            self.UA_iu_rated = self._use_default_input(
+                "UA_iu_rated",
+                kept_hx_UA(
+                    "indoor_coil|wall_mounted|fin_tube|condensing",
+                    INDOOR_UA_PER_CAPACITY * hp_capacity,
+                    duty=hp_capacity,
+                    rule=f"UA_iu_rated = {INDOOR_UA_PER_CAPACITY:g} W/K per W of nameplate, the earlier rule, kept.",
+                    reason=INDOOR_UA_KEPT_REASON,
+                ),
+            )
+        else:
+            self.UA_iu_rated = UA_iu_rated
+
         # --- 5. Room temperature ---
         self.T_a_room: float = T_a_room
 
@@ -864,6 +934,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             rps_rated=rps_rated,
             m_dot_ref_rated=m_dot_ref_rated,
             efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen: float | Callable = efficiencies["eta_cmp_isen"]
@@ -873,8 +944,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """Outdoor coil is the source side, indoor coil the load side, in either mode."""
         if role == "source":
-            return AirCoilSide("air", T_in_C, self.UA_ou_rated, self.dV_ou_fan_a_ref)
+            return AirCoilSide("air", T_in_C, self._UA_ou_rated_for(mode), self.dV_ou_fan_a_ref)
         return AirCoilSide("air", T_in_C, self.UA_iu_rated, self.dV_iu_fan_a_ref)
+
+    def _UA_ou_rated_for(self, mode: str) -> float:
+        """Rated outdoor-coil conductance in ``mode`` [W/K]: a condenser in cooling, an evaporator in heating."""
+        return self.UA_ou_evap_rated if mode == "heating" else self.UA_ou_rated
 
     # =============================================================
     # Refrigerant cycle physics
@@ -1077,10 +1152,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         eta_vol_at = efficiency_evaluator(self.eta_cmp_vol)
         eta_isen_at = efficiency_evaluator(self.eta_cmp_isen)
         eta_em_at = efficiency_evaluator(self.eta_cmp)
+        suction = suction_state(P_evap, rho_in, h_cmp_in, h_ref_cmp_out_isen)
 
         def _residual_rps(rps):
-            val_eta_vol = eta_vol_at(ratio_P_cmp, rps)
-            val_eta_isen = eta_isen_at(ratio_P_cmp, rps)
+            val_eta_vol = eta_vol_at(ratio_P_cmp, rps, suction)
+            val_eta_isen = eta_isen_at(ratio_P_cmp, rps, suction)
             h_cmp_out_local = h_cmp_in + (h_ref_cmp_out_isen - h_cmp_in) / val_eta_isen
 
             dh_cond_local = h_cmp_out_local - h_exp_in
@@ -1094,9 +1170,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         cmp_rps, converged_rps, capacity_clamped = solve_compressor_speed(_residual_rps, self.rps_min, self.rps_max)
 
-        val_eta_vol = eta_vol_at(ratio_P_cmp, cmp_rps)
-        val_eta_isen = eta_isen_at(ratio_P_cmp, cmp_rps)
-        val_eta_electro_mech = eta_em_at(ratio_P_cmp, cmp_rps)
+        val_eta_vol = eta_vol_at(ratio_P_cmp, cmp_rps, suction)
+        val_eta_isen = eta_isen_at(ratio_P_cmp, cmp_rps, suction)
+        val_eta_electro_mech = eta_em_at(ratio_P_cmp, cmp_rps, suction)
 
         cs = with_discharge_state(cs, h_ref_cmp_out_isen, val_eta_isen, self.ref)
 
@@ -1115,9 +1191,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return None
 
         # ── Outdoor unit HX ──
-        # The outdoor coil is always parameterised by UA_ou_rated regardless of mode.
-        # In cooling it acts as condenser; in heating as evaporator — but the physical
-        # geometry (and therefore UA) is unchanged.
+        # In cooling the outdoor coil is the condenser (UA_ou_rated), in heating
+        # the evaporator (UA_ou_evap_rated): one coil, but its effective
+        # conductance differs by refrigerant role (see the constructor).
         if mode == "cooling":
             # Outdoor = condenser → ref rejects heat → air is heated
             ou_hx = calc_HX_perf_for_target_heat(
@@ -1125,7 +1201,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 T_a_in_C=T0,
                 T_ref_sat_K=T_cond_sat_K,
                 A_cross=self.A_cross_ou,
-                UA_rated=self.UA_ou_rated,
+                UA_rated=self._UA_ou_rated_for(mode),
                 dV_fan_ref=self.dV_ou_fan_a_ref,
                 dV_fan_min=self.dV_ou_fan_a_min,
                 dV_fan_max=self.dV_ou_fan_a_max,
@@ -1141,7 +1217,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 T_a_in_C=T0,
                 T_ref_sat_K=T_evap_sat_K,
                 A_cross=self.A_cross_ou,
-                UA_rated=self.UA_ou_rated,
+                UA_rated=self._UA_ou_rated_for(mode),
                 dV_fan_ref=self.dV_ou_fan_a_ref,
                 dV_fan_min=self.dV_ou_fan_a_min,
                 dV_fan_max=self.dV_ou_fan_a_max,
@@ -1499,13 +1575,25 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         best_x0 = [de, dc]
 
         # Phase 2: Nelder-Mead refinement from the best candidate found above.
+        #
+        # The iteration cap is a guard against a search that does not end, not
+        # a tolerance: a refinement stopped by it reports ``success=False`` and,
+        # unless the refinement from the least-lift point ends (below), the
+        # point is answered as ``optimizer_failed`` with the unit off.
+        # Where the least-power point is the least-lift point itself -- both
+        # fans at their largest airflow, a corner of the feasible set -- the
+        # simplex contracts against the infeasible side and needs 200 to 450
+        # iterations to reach ``xatol``; a cap of 200 switched such a unit off
+        # 5e-5 of its input away from the answer (Daikin RXM42A, 40/32 degC,
+        # 4.49 kW with the catalogue outdoor airflow). A refinement that ends
+        # inside the cap is not affected by its value.
         def refine(x0) -> OptimizeResult:
             return minimize(
                 _objective,
                 x0=x0,
                 bounds=[self.dT_approach_bounds, self.dT_approach_bounds],
                 method="Nelder-Mead",
-                options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
+                options={"maxiter": self._REFINE_MAXITER, "xatol": 1e-3, "fatol": 1e-1},
             )
 
         seed_val = _objective(seed) if seed is not None else OBJ_INFEASIBLE
@@ -1516,15 +1604,33 @@ class AirSourceHeatPump(ReferenceStateMixin):
             result["least_lift_reason"] = seed_reason
             return result
         result = refine(best_x0)
-        if seed is not None and seed_val < float(result.fun):
+        if seed is not None and (seed_val < float(result.fun) or not result.success):
             # The refinement stopped above the least-lift point's own cost: it
             # sits on a flat stretch of the objective (the discharge-temperature
             # control makes the input nearly independent of the outdoor
             # approach) or in another basin. Refine from the least-lift point
             # too and take it when it is materially cheaper -- by more than the
             # two refinements differ when they end in the same place.
+            #
+            # Or it did not end at all. Towards the least-lift corner the
+            # iteration count has no bound a cap can be set by (1173 for a
+            # 5 kW unit at 46/32 degC), and a refinement the cap stops is a
+            # failed search however close it got. The refinement that starts
+            # on the corner ends in a few dozen iterations: where it ends and
+            # is not materially dearer, it is the answer. "Materially" is the
+            # same band as above, the spread of two refinements that end in the
+            # same place: the finished one commonly lies 1e-5 of the input
+            # above where the capped one happened to stop (0.01 to 0.05 W,
+            # under the refinement's own ``fatol``), and held to "no dearer at
+            # all" it was thrown away and the unit answered as switched off.
             from_seed = refine(list(seed))
-            if float(from_seed.fun) < (1.0 - self._SEED_GAIN) * float(result.fun):
+            cheaper = float(from_seed.fun) < (1.0 - self._SEED_GAIN) * float(result.fun)
+            ended_instead = (
+                not result.success
+                and from_seed.success
+                and float(from_seed.fun) <= (1.0 + self._SEED_GAIN) * float(result.fun)
+            )
+            if cheaper or ended_instead:
                 result = from_seed
         return result
 
@@ -1694,7 +1800,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     abs(float(perf.get("Q_ref_ou [W]", math.nan))),
                     float(perf.get("dV_ou_a [m3/s]", math.nan)),
                     float(perf.get("T_ou_a_in [°C]", math.nan)),
-                    self.UA_ou_rated,
+                    self._UA_ou_rated_for(perf["mode"]),
                     self.dV_ou_fan_a_ref,
                     self.n_ou,
                     self.dV_ou_fan_a_min,
@@ -1900,6 +2006,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: point replaces the one from the pre-scan (the refinements stop at 0.1 W,
     #: about 2e-4 of a typical input).
     _SEED_GAIN = 1e-3
+    #: Iteration cap of the Nelder-Mead refinement in :meth:`_optimize_operation`.
+    _REFINE_MAXITER = 1000
     #: Starting approaches of :meth:`_largest_airflow_point`, as fractions of the bounds' span.
     _LEAST_LIFT_STARTS: tuple[float, ...] = (0.0, 0.1, 0.2, 0.35, 0.55)
     #: The same for the least-lift point used as a starting point of the search.
@@ -1917,7 +2025,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
         PR_ABOVE_MAX: BINDING_PRESSURE_RATIO,
         CONDENSING_TEMP_ABOVE_MAX: BINDING_CONDENSING,
         DISCHARGE_TEMP_ABOVE_MAX: BINDING_DISCHARGE,
-        ETA_ISEN_BELOW_MIN: BINDING_EFFICIENCY,
     }
     #: Why :meth:`_largest_airflow_point` has no state although the cycle exists:
     #: a coil cannot carry its duty inside the approach bounds.
@@ -1974,7 +2081,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     abs(float(perf.get("Q_ref_ou [W]", math.nan))),
                     float(perf.get("dV_ou_a [m3/s]", math.nan)),
                     float(perf.get("T_ou_a_in [°C]", math.nan)),
-                    self.UA_ou_rated,
+                    self._UA_ou_rated_for(perf["mode"]),
                     self.dV_ou_fan_a_ref,
                     self.n_ou,
                     self.dV_ou_fan_a_max,
@@ -2029,8 +2136,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         whether the compressor met the duty) and ``reason`` is ``None``; or
         ``state`` is ``None`` and ``reason`` says why: the envelope limit the
         cycle ran into (``"pr_above_max"``, ``"discharge_temp_above_max"``,
-        ``"eta_isen_below_min"``), :attr:`_AIR_SIDE` when a coil cannot carry
-        its duty inside the approach bounds, or ``"cycle_invalid"``.
+        ``"condensing_temp_above_max"``), :attr:`_AIR_SIDE` when a coil cannot
+        carry its duty inside the approach bounds, or ``"cycle_invalid"``.
         """
         lo, hi = self.dT_approach_bounds
         heating = Q_r_iu < 0
@@ -2068,25 +2175,59 @@ class AirSourceHeatPump(ReferenceStateMixin):
         if perf is None:
             return None, None, first_reason
 
-        for _ in range(self._LEAST_LIFT_MAX_ITER):
-            target = self._largest_airflow_approaches(x[0], x[1], perf)
-            if target is None:
-                return None, None, "cycle_invalid"
-            if all(abs(t - v) <= rtol * v for t, v in zip(target, x, strict=True)):
-                break
-            step = 1.0
+        def step_towards(
+            x: tuple[float, float], target: tuple[float, float], step: float
+        ) -> tuple[tuple[float, float], dict] | str:
+            """The state a step from ``x`` towards ``target`` reaches, halved until a cycle exists; else why not."""
             while True:
                 trial = (x[0] + step * (target[0] - x[0]), x[1] + step * (target[1] - x[1]))
                 trial_perf = evaluate(trial)
                 if trial_perf is not None:
-                    break
+                    return trial, trial_perf
                 reason = missing()
                 step *= 0.5
                 if step < self._LEAST_LIFT_MIN_STEP:
-                    return None, None, reason
-            x, perf = trial, trial_perf
+                    return reason
+
+        def at_fixed_point(x: tuple[float, float], target: tuple[float, float]) -> bool:
+            return all(abs(t - v) <= rtol * v for t, v in zip(target, x, strict=True))
+
+        flat_out = False
+        for _ in range(self._LEAST_LIFT_MAX_ITER):
+            flat_out = flat_out or perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX
+            target = self._largest_airflow_approaches(x[0], x[1], perf)
+            if target is None:
+                return None, None, "cycle_invalid"
+            if at_fixed_point(x, target):
+                break
+            moved = step_towards(x, target, 1.0)
+            if isinstance(moved, str):
+                return None, None, moved
+            x, perf = moved
         else:
-            return None, None, "cycle_invalid"
+            # Out of iterations. A duty above what the compressor delivers flat
+            # out is one way to get here: the delivered heat, and with it each
+            # coil's approach, then moves with the approaches themselves, and
+            # the full step overshoots from one side of the fixed point to the
+            # other (cooling at 40/24 degC closes a fifth of the gap per pair
+            # of steps). Half steps contract there, so the same fixed point is
+            # iterated on with them. Only a state that meets the same
+            # criterion is a result; anything else stays what it was, a point
+            # the solve could not find.
+            if not flat_out:
+                return None, None, "cycle_invalid"
+            for _ in range(self._LEAST_LIFT_MAX_ITER):
+                target = self._largest_airflow_approaches(x[0], x[1], perf)
+                if target is None:
+                    return None, None, "cycle_invalid"
+                if at_fixed_point(x, target):
+                    break
+                moved = step_towards(x, target, 0.5)
+                if isinstance(moved, str):
+                    return None, None, moved
+                x, perf = moved
+            else:
+                return None, None, "cycle_invalid"
 
         # The fixed point puts each coil exactly on its largest airflow, where
         # the coil solve closes or not by the sign of a rounding error (a fan
@@ -2220,7 +2361,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         lift at which that speed's duty is delivered
         (:meth:`_largest_airflow_point`). Where that point is outside the
         compressor envelope (pressure ratio, discharge temperature even under
-        its control, the efficiency floor) or beyond what a coil carries
+        its control, condensing temperature) or beyond what a coil carries
         inside the approach bounds, the ceiling is the largest duty whose
         least-lift point is an operating point -- a unit's controller holds
         the compressor back to it -- found by bisection on the duty.
@@ -2268,10 +2409,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
             approach temperatures there, the electrical input and system COP at
             that point, and ``binding`` naming what stopped it:
             ``"compressor"`` (the speed range), ``"pressure_ratio"``,
-            ``"discharge_temperature"`` or ``"compressor_efficiency"`` (the
+            ``"discharge_temperature"`` or ``"condensing_temperature"`` (the
             compressor envelope: the next larger duty exceeds ``PR_cycle_max``,
-            ``T_dis_max`` under its control, or falls below the efficiency
-            floor), ``"cycle"`` (a coil at its largest airflow and the widest
+            ``T_dis_max`` under its control, or ``T_cond_max``),
+            ``"cycle"`` (a coil at its largest airflow and the widest
             approach the search admits), ``"cycle_invalid"`` (the next larger
             duty has no cycle the model can represent -- a condensing
             temperature at the critical point; :meth:`analyze_steady` does not
@@ -2392,7 +2533,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
             BINDING_CONDENSING,
             BINDING_DISCHARGE,
             BINDING_PRESSURE_RATIO,
-            BINDING_EFFICIENCY,
         }
     )
 
@@ -2465,25 +2605,23 @@ class AirSourceHeatPump(ReferenceStateMixin):
     _FLOOR_LADDER: tuple[float, ...] = (0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0)
     #: Relative width at which the bisection for the smallest continuous duty stops.
     _FLOOR_REL_TOL = 5e-3
-    #: Refusals a larger duty leaves behind: the two limits the compressor
-    #: meets towards low speed at a large lift, where the shipped isentropic
-    #: fit falls (:func:`~tmhp.compressor_envelope.raise_duty_within_envelope`
+    #: Refusals a larger duty leaves behind: the limit the compressor meets
+    #: towards low speed at a large lift, where the isentropic efficiency
+    #: falls (:func:`~tmhp.compressor_envelope.raise_duty_within_envelope`
     #: is the boilers' counterpart).
-    _REFUSED_FROM_BELOW = frozenset({ETA_ISEN_BELOW_MIN, DISCHARGE_TEMP_ABOVE_MAX})
+    _REFUSED_FROM_BELOW = frozenset({DISCHARGE_TEMP_ABOVE_MAX})
 
     def _smallest_continuous_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
         """The smallest duty above a request the envelope refuses from below, as a continuous state.
 
         The compressor's speed floor is not the only lower end of continuous
         operation. At a large lift (a low-pressure refrigerant in severe cold)
-        the shipped isentropic fit falls towards low speed, and before
-        ``rps_min`` is reached the envelope refuses the point: first for the
+        the isentropic efficiency falls towards low speed, and before
+        ``rps_min`` is reached the envelope refuses the point for the
         discharge temperature, which the falling efficiency drives above
-        ``T_dis_max`` even with the discharge-temperature control used up,
-        then for the fit's own floor
-        (:data:`~tmhp.compressor_envelope.ETA_ISEN_MIN`). Every duty below the
-        one at which the last of the two lets go is refused -- while larger
-        duties run. A unit does not stay off there: it runs at the smallest
+        ``T_dis_max`` even with the discharge-temperature control used up.
+        Every duty below the one at which that limit lets go is refused --
+        while larger duties run. A unit does not stay off there: it runs at the smallest
         duty the envelope admits and switches off when the room has had
         enough, exactly as it does below its minimum speed.
 
@@ -2616,15 +2754,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
               and the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``, ``"cycle_invalid"``
               (the refrigerant cycle itself was infeasible), ``"pr_above_max"``,
-              ``"discharge_temp_above_max"``, ``"condensing_temp_above_max"``,
-              ``"eta_isen_below_min"`` (the
+              ``"discharge_temp_above_max"``, ``"condensing_temp_above_max"``
+              (the
               compressor envelope refuses the request where it is easiest to
               meet -- at its least-lift point -- and no smaller duty runs
               either; a request that a smaller duty meets returns that duty
               with ``capacity_clamped="max"`` and ``capacity_binding`` naming
               the limit: ``"discharge_temperature"``,
-              ``"condensing_temperature"`` for ``T_cond_max``,
-              ``"compressor_efficiency"``), ``"hx_not_converged"`` (cycle OK
+              ``"condensing_temperature"`` for ``T_cond_max``),
+              ``"hx_not_converged"`` (cycle OK
               but a coil cannot carry the duty inside the approach bounds), or
               ``"optimizer_failed"`` (SciPy reported ``success=False``).
 
@@ -2648,8 +2786,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             the running machine (:mod:`tmhp.cycling`). A request above
             the ceiling (``capacity_clamped == "max"``) adds ``Q_max [W]``
             and ``capacity_binding`` (``"compressor"``,
-            ``"discharge_temperature"``, ``"pressure_ratio"``,
-            ``"compressor_efficiency"`` or ``"cycle"``; see
+            ``"discharge_temperature"``, ``"condensing_temperature"``,
+            ``"pressure_ratio"`` or ``"cycle"``; see
             :meth:`max_capacity`).
 
             Heating below the frost model's outdoor limit (5 degC; the
@@ -2772,8 +2910,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         failure_reason = "none"
 
             if failure_reason in self._REFUSED_FROM_BELOW:
-                # Refused at low speed -- the discharge temperature or the
-                # efficiency floor -- while larger duties run: the unit's
+                # Refused at low speed -- the discharge temperature -- while
+                # larger duties run: the unit's
                 # smallest continuous duty lies above the request, and the
                 # request is met by cycling at it.
                 with contextlib.suppress(Exception):

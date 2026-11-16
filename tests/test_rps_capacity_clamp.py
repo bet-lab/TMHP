@@ -59,6 +59,26 @@ def test_root_exactly_on_a_bound_is_not_reported_as_clamped(bound):
     assert clamped is None
 
 
+def test_speed_solver_finds_lower_branch_with_invalid_high_endpoint():
+    """A caller's efficiency fit may be invalid at the upper speed bound; the root on the rising branch is found."""
+
+    def residual(n):
+        if n > 100:
+            raise ValueError("invalid extrapolation")
+        return n * (100 - n) - 1600
+
+    n, ok, clamp = solve_compressor_speed(residual, 5, 150)
+    assert n == pytest.approx(20)
+    assert ok and clamp is None
+
+
+def test_unattainable_polynomial_load_clamps_at_capacity_peak():
+    """A duty that turns down with speed (a polynomial fit) is clamped at its peak, not at the speed bound."""
+    n, ok, clamp = solve_compressor_speed(lambda n: n * (100 - n) - 3000, 5, 95)
+    assert n == pytest.approx(50)
+    assert ok and clamp == "max"
+
+
 def test_solver_breakdown_inside_a_valid_bracket_reports_non_convergence():
     """The residual changes sign, so a root exists; failing to find it is real."""
 
@@ -87,8 +107,10 @@ def hp() -> AirSourceHeatPumpBoiler:
 
 def test_default_speed_floor_is_15_rps(hp):
     assert hp.rps_min == 15.0
-    # Derived from the rated speed: min(2 x 34.5, 120) rev/s for this R32 15 kW unit.
-    assert hp.rps_max == pytest.approx(2.0 * hp.rps_rated)
+    # Derived from the rated speed: max(120, 1.5 x 63.3) rev/s for this R32 15 kW unit
+    # (min(2 x 34.5, 120) with the earlier compressor map and speed-ceiling rule).
+    assert hp.rps_max == pytest.approx(max(120.0, 1.5 * hp.rps_rated))
+    assert hp.rps_max == 120.0
 
 
 def test_duty_below_minimum_capacity_returns_that_minimum(hp):
@@ -132,3 +154,19 @@ def test_any_request_below_the_floor_runs_at_the_floor_speed(hp):
     assert b["cmp_rpm [rpm]"] == pytest.approx(60.0 * hp.rps_min, rel=1e-9)
     assert a["Q_min [W]"] == pytest.approx(b["Q_min [W]"], rel=1e-3)
     assert (a["Q_ref_tank [W]"], b["Q_ref_tank [W]"]) == pytest.approx((50.0, 200.0), rel=1e-12)
+
+
+def test_a_speed_floor_where_the_default_drive_model_is_not_positive_is_refused_at_construction():
+    """The drive model falls as 1/N and is zero at 2.2 rev/s; the speed solve evaluates the floor.
+
+    With such a floor every point failed (``cycle_invalid``), also one whose answer lies at an ordinary
+    speed. The constructor says so instead; a caller's own ``eta_cmp`` is the caller's statement.
+    """
+    from tmhp import AirSourceHeatPumpBoiler
+    from tmhp.compressor_efficiency import drive_model_zero_speed
+
+    assert drive_model_zero_speed() == pytest.approx(2.23, abs=0.01)
+    with pytest.raises(ValueError, match="default drive"):
+        AirSourceHeatPumpBoiler(rps_min=2.0)
+    assert AirSourceHeatPumpBoiler(rps_min=2.0, eta_cmp=0.9).rps_min == 2.0
+    assert AirSourceHeatPumpBoiler(rps_min=5.0).rps_min == 5.0

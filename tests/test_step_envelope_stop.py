@@ -313,6 +313,7 @@ def ashpb_min_run():
     return m, _ashpb_run(m, 52.0)
 
 
+@pytest.mark.earlier_defaults  # the R32 machine with the 60 degC envelope stop: tests/conftest.py
 def test_ashpb_minimum_run_time_stops_at_the_envelope_stop(ashpb_min_run):
     """Was: the run went on to 66.2 degC and ended in a ``condensing_temp_above_max`` step."""
     from tmhp.compressor_envelope import condensing_tank_cutout
@@ -332,6 +333,7 @@ def test_ashpb_minimum_run_time_stops_at_the_envelope_stop(ashpb_min_run):
     assert df["hp_stop_reason"].iloc[step + 1 :].isna().all()
 
 
+@pytest.mark.earlier_defaults  # the R32 machine with the 60 degC envelope stop: tests/conftest.py
 def test_ashpb_stop_does_not_depend_on_the_step(ashpb_min_run):
     m, coarse = ashpb_min_run
     fine = _ashpb_run(m, 52.0, n=120, dt=60.0)
@@ -341,6 +343,7 @@ def test_ashpb_stop_does_not_depend_on_the_step(ashpb_min_run):
     assert (fine["hp_stop_reason"] == STOP_CONDENSING_LIMIT).sum() == 1
 
 
+@pytest.mark.earlier_defaults  # the R32 machine with the 60 degC envelope stop: tests/conftest.py
 def test_ashpb_default_run_has_no_stop_reason_and_the_column_is_on_every_row():
     """Without a minimum run time the thermostat's own bound ends the run: values as before."""
     m = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32")
@@ -354,6 +357,7 @@ def test_ashpb_default_run_has_no_stop_reason_and_the_column_is_on_every_row():
     assert df["hp_stop_reason"].isna().all() and df["T_tank_w [°C]"].max() > 66.0
 
 
+@pytest.mark.earlier_defaults  # the R32 machine with the 60 degC envelope stop: tests/conftest.py
 def test_ashpb_scenario_classes_take_the_same_path():
     """The PV/ESS and collector variants inherit ``step``: the stop and its column are theirs too."""
     from tmhp.subsystems import PhotovoltaicSystem, SolarThermalCollector

@@ -37,6 +37,13 @@ certificates by ``validation.extraction.keymark_declared``.
 Panel (b) is the one that decides whether the trend is right. Panel (a) shows
 what the model does with a question the certification data never asks.
 
+Both panels name the *leaving* water. The model's sink is a plate condenser
+with circulating water, so each point is solved with the water entering it
+at a fixed flow, the nameplate duty at the 5 K rise of the EN 14511 30/35 °C
+rating, the rule of the EN 14825 study
+(``validation.analysis.en14825_trend.solve_at_leaving_water``; what of it is
+not verified against the standard is listed there).
+
 The plotted values are written to ``validation/data/part_load_figure/`` with a
 provenance record (``validation.study_provenance``), and
 ``docs/source/validation/part-load.rst`` quotes them;
@@ -68,6 +75,10 @@ from _dmpl_common import (  # noqa: E402
 
 from tmhp import AirSourceHeatPumpBoiler  # noqa: E402
 
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+from validation.analysis.en14825_trend import en14825_water_flow, solve_at_leaving_water  # noqa: E402
+
 KEYMARK_SUMMARY = REPO_ROOT / "validation" / "data" / "keymark_en14825_summary.csv"
 DATA_DIR = REPO_ROOT / "validation" / "data" / "part_load_figure"
 SWEEP_CSV = DATA_DIR / "sweep.csv"
@@ -96,7 +107,9 @@ NOMINAL_W = 9000.0
 #: fractions of the design demand, not of the machine's full capacity, so a
 #: machine is normally oversized against it.
 DESIGN_LOAD_W = 6000.0
-SINK_OFFSET_K = 2.5
+#: Water flow through the condenser at every point [kg/s]: the nameplate duty
+#: at the 5 K rise of the EN 14511 low-temperature rating (30/35 °C).
+WATER_FLOW_KG_S = en14825_water_flow(NOMINAL_W, "low")
 
 #: The model this figure asks its question of, chosen explicitly so the figure
 #: does not move with a library default: the running machine (below the speed
@@ -120,19 +133,14 @@ def sweep_fixed_temperatures(
     rows = []
     for t_outdoor, lwt in conditions:
         for fraction in fractions:
-            result = model.analyze_steady(
-                T_tank_w=lwt - SINK_OFFSET_K,
-                T0=t_outdoor,
-                Q_ref_tank=NOMINAL_W * fraction,
-                return_dict=True,
-            )
-            assert isinstance(result, dict)
+            result, t_entering = solve_at_leaving_water(model, t_outdoor, lwt, NOMINAL_W * fraction, WATER_FLOW_KG_S)
             failure = result.get("failure_reason", "none")
             rps = float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0
             rows.append(
                 {
                     "t_outdoor_C": t_outdoor,
                     "lwt_C": lwt,
+                    "t_water_in_C": t_entering,
                     "plr": fraction,
                     "q_request_W": NOMINAL_W * fraction,
                     "q_delivered_W": float(result["Q_ref_tank [W]"]) if failure == "none" else np.nan,
@@ -150,19 +158,14 @@ def trajectory_en14825() -> list[dict]:
     model = _model()
     rows = []
     for label, t_outdoor, lwt, load_ratio in EN14825_LOW:
-        result = model.analyze_steady(
-            T_tank_w=lwt - SINK_OFFSET_K,
-            T0=t_outdoor,
-            Q_ref_tank=DESIGN_LOAD_W * load_ratio,
-            return_dict=True,
-        )
-        assert isinstance(result, dict)
+        result, t_entering = solve_at_leaving_water(model, t_outdoor, lwt, DESIGN_LOAD_W * load_ratio, WATER_FLOW_KG_S)
         rows.append(
             {
                 "point": label,
                 "plr": load_ratio,
                 "t_outdoor_C": t_outdoor,
                 "lwt_C": lwt,
+                "t_water_in_C": t_entering,
                 "q_required_W": DESIGN_LOAD_W * load_ratio,
                 "q_delivered_W": float(result["Q_ref_tank [W]"]),
                 "clamped": result.get("capacity_clamped") is not None,
@@ -189,7 +192,8 @@ def write_data(sweep: pd.DataFrame, trajectory: pd.DataFrame) -> None:
         [SWEEP_CSV, TRAJECTORY_CSV, static_path("validation_part_load.svg")],
         {
             "model": MODEL_SETTINGS,
-            "sink_offset_K": SINK_OFFSET_K,
+            "water": "leaving water named; entering water at a fixed flow (EN 14825 study rule)",
+            "water_flow_kg_s": WATER_FLOW_KG_S,
             "sweep_conditions": [(t, lwt) for t, lwt, _ in SWEEP_CONDITIONS],
             "load_fractions": [float(f) for f in LOAD_FRACTIONS],
             "en14825_points": EN14825_LOW,

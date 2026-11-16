@@ -1,9 +1,10 @@
 r"""Compressor reference state solved from nominal capacity.
 
-BITZER compressor efficiencies use absolute shaft speed in rev/s. Models
-normalise the ground heat exchanger refrigerant-side UA by a rated mass flow
-(``m_dot_ref / m_dot_ref_rated``). Both denominators belong to one physical
-point -- the *reference state* -- and this module computes that point from the
+The default compressor efficiencies of the rotary types are written in speed
+relative to the machine's rated speed (:mod:`tmhp.compressor_efficiency`).
+Models normalise the ground heat exchanger refrigerant-side UA by a rated mass
+flow (``m_dot_ref / m_dot_ref_rated``). Both denominators belong to one
+physical point -- the *reference state* -- and this module computes that point from the
 same inputs every model already requires:
 
 .. code-block:: text
@@ -11,9 +12,12 @@ same inputs every model already requires:
     hp_capacity -> V_cmp_ref -> rating condition -> rps_rated -> m_dot_ref_rated
 
 ``V_cmp_ref``
-    Swept displacement. When the caller gives none, the models use
-    :func:`tmhp.compressor_speed.default_displacement`, a capacity-scaled
-    reduced-order default, not an identification of a real compressor.
+    Swept displacement. When the caller gives none, the air-source and
+    ground-source space-conditioning models and the air-source boiler use
+    :func:`tmhp.default_inputs.estimate_displacement` -- the displacement an
+    inverter twin-rotary compressor catalogue gives for that capacity and
+    refrigerant -- and record it in ``default_input_estimates``. It is a
+    representative compressor, not an identification of a real one.
 ``rating condition``
     A standard (or manufacturer/user) rating point for the model family:
     mode, source- and load-side inlet temperatures, the model's reference
@@ -59,15 +63,30 @@ import math
 import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, Literal
 
 import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
-from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_efficiency import (
+    CompressorSpec,
+    InvalidCompressorEfficiency,
+    SuctionState,
+    _eval_eff,
+    default_efficiencies,
+    drive_model_zero_speed,
+)
 from .compressor_envelope import RATED_SPEED_SEARCH_MAX, check_rated_condensing, default_rps_max
 from .compressor_speed import solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
+from .default_inputs import (
+    DefaultInputEstimate,
+    estimate_displacement,
+    estimate_hx_UA,
+    estimate_max_airflow,
+    hx_duty_per_nameplate,
+)
 from .refrigerant import calc_ref_state
 
 __all__ = [
@@ -103,8 +122,11 @@ class RatingStandard:
 #:
 #: ``source_T_C`` / ``load_T_C`` are the secondary-fluid inlet temperatures.
 #: TMHP's air coils are dry (sensible only), so wet-bulb conditions of the
-#: standards are not used. The boiler models' condenser is immersed in a
-#: lumped tank; the tank temperature is set to the standard's water outlet
+#: standards are not used. The boilers' ``load_T_C`` is the standard's water
+#: outlet temperature: a plate condenser with circulating water is rated with
+#: water entering at the outlet less the rise its rated flow takes at
+#: ``hp_capacity`` (:func:`tmhp.heat_exchanger.tank_hx_rating_side`); a
+#: condenser without circulating water works against a tank at the outlet
 #: temperature, the conservative end of the condenser water range.
 RATING_STANDARDS: dict[str, dict[str, RatingStandard]] = {
     "ASHP": {
@@ -146,8 +168,8 @@ class HXSide:
 
     ``fluid`` is ``"air"`` or ``"water"`` for a single-phase stream crossing a
     constant-saturation-temperature surface (``Q = eps C dT``,
-    ``eps = 1 - exp(-UA / C)``), or ``"tank"`` for the boiler condenser
-    immersed in a lumped tank (``Q = UA dT``), as in the models' own cycles.
+    ``eps = 1 - exp(-UA / C)``), or ``"tank"`` for a boiler condenser without
+    circulating water (``Q = UA dT``), as in the models' own cycles.
 
     ``rho_cp`` is the stream's volumetric heat capacity ``rho c_p``
     [J/(m³ K)]. Left out, the stream is standard air or water (the constants
@@ -268,36 +290,26 @@ def rating_condition(
     )
 
 
-def _rated_speed_efficiency(factory: Callable[[float], Callable]) -> Callable[[float, float], float]:
-    """Evaluate absolute shaft speed at every candidate reference point."""
-    correlation = factory(1.0)
-    return lambda pressure_ratio, rps: correlation(pressure_ratio, rps)
-
-
-#: Efficiency factories by attribute, used when the caller supplied none.
-BASELINE_FACTORIES: dict[str, Callable[[float], Callable]] = {
-    "eta_cmp_isen": make_eta_isen,
-    "eta_cmp_vol": make_eta_vol,
-    "eta_cmp": make_eta_em,
-}
-
-
 def reference_efficiencies(
     supplied: Mapping[str, float | Callable | None],
     resolved: Mapping[str, float | Callable] | None,
+    compressor: CompressorSpec,
+    ref: str,
 ) -> dict[str, float | Callable]:
     """Efficiencies to evaluate the reference state with.
 
     ``resolved`` (the model's final efficiencies) is used when the rated speed
     is already known. Otherwise caller-supplied models are used as they are and
-    omitted ones use BITZER correlations at each candidate shaft speed.
+    omitted ones are the type's default models with ``rps_rated=None``: every
+    candidate speed of the rated-speed solve is evaluated as the rated speed
+    (``n = 1`` in a relative speed coordinate), because the speed being solved
+    *is* the machine's rated speed. Absolute-speed forms (scroll, drive) see
+    the candidate speed itself.
     """
     if resolved is not None:
         return dict(resolved)
-    return {
-        name: model if model is not None else _rated_speed_efficiency(BASELINE_FACTORIES[name])
-        for name, model in supplied.items()
-    }
+    defaults = default_efficiencies(compressor, ref, None)
+    return {name: model if model is not None else defaults[name] for name, model in supplied.items()}
 
 
 _CACHE: dict[tuple, ReferenceState] = {}
@@ -447,11 +459,14 @@ def _solve(
         h3 = states["h_ref_exp_in [J/kg]"]
         h4 = states["h_ref_exp_out [J/kg]"]
         rho = states["rho_ref_cmp_in [kg/m3]"]
+        # Suction state of this duty: the states were solved with eta_isen = 1,
+        # so h_ref_cmp_out is the isentropic discharge enthalpy.
+        suction = SuctionState(states["P_ref_cmp_in [Pa]"], rho, dh_isen)
 
         def duties(rps: float) -> tuple[float, float, float, float, float]:
-            eta_vol = _eval_eff(eta_vol_model, PR, rps)
-            eta_isen = _eval_eff(eta_isen_model, PR, rps)
-            _eval_eff(eta_em_model, PR, rps)
+            eta_vol = _eval_eff(eta_vol_model, PR, rps, suction)
+            eta_isen = _eval_eff(eta_isen_model, PR, rps, suction)
+            _eval_eff(eta_em_model, PR, rps, suction)
             m_dot = V_cmp_ref * rho * eta_vol * rps
             h2 = h1 + dh_isen / eta_isen
             return m_dot, m_dot * (h2 - h3), m_dot * (h1 - h4), eta_vol, eta_isen
@@ -461,7 +476,7 @@ def _solve(
             # denominator. With raw speed-dependent fits, condenser duty can
             # decrease before rising again, so its value at rps_min is not a
             # lower capacity bound.
-            eta_vol = _eval_eff(eta_vol_model, PR, rps)
+            eta_vol = _eval_eff(eta_vol_model, PR, rps, suction)
             m_dot = V_cmp_ref * rho * eta_vol * rps
             return float(m_dot * (h1 - h4) - Q_evap)
 
@@ -490,6 +505,7 @@ def _solve(
             "eta_isen": eta_isen,
             "T_cond_K": T_cond_K,
             "T_evap_K": T_evap_K,
+            "suction": suction,
         }
 
     # Heating: the evaporator takes Q_rated less the compressor work.
@@ -498,7 +514,7 @@ def _solve(
     if heating:
         # Parameterize the actual bounded speed, rather than assuming that
         # condenser duty increases from rps_min. This also retains reference
-        # solutions on the descending mass-flow branch of a raw fit.
+        # solutions on the descending mass-flow branch of a caller's fit.
         speed_states: dict[float, dict[str, Any]] = {}
 
         def at_speed(rps: float) -> dict[str, Any]:
@@ -554,7 +570,7 @@ def _solve(
             f"(V_cmp_ref={V_cmp_ref:.4g} m3/rev); supply V_cmp_ref or rps_rated consistent with the machine"
         )
     rps_ref = c["rps"]
-    eta_em = _eval_eff(eta_em_model, c["PR"], rps_ref)
+    eta_em = _eval_eff(eta_em_model, c["PR"], rps_ref, c["suction"])
     E_cmp_ref = c["Q_cond"] - c["Q_evap"]
     return ReferenceState(
         rps_rated=rps_ref if rps_rated is None else rps_rated,
@@ -586,7 +602,7 @@ def _evaluable_bracket(
 ) -> tuple[float, float]:
     """Find adjacent actual, evaluable residuals with opposing signs.
 
-    A raw fit can be invalid at an endpoint but valid inside the interval.
+    A caller's fit can be invalid at an endpoint but valid inside the interval.
     Halving that endpoint can jump past a root. Invalid evaluations break a
     bracket instead of contributing a synthetic residual.
     """
@@ -669,6 +685,67 @@ class ReferenceStateMixin:
     rps_max: float
     _rps_max_derived: bool
 
+    @property
+    def default_input_estimates(self) -> Mapping[str, DefaultInputEstimate]:
+        """Catalogue estimates behind the inputs the caller left out, by constructor argument name.
+
+        An input the caller supplied has no entry; a model built entirely from
+        supplied inputs gives an empty mapping. Each
+        :class:`~tmhp.default_inputs.DefaultInputEstimate` carries the value,
+        the release and stratum it came from, the capacity range the
+        catalogues cover, ``extrapolated`` (the capacity lies outside that
+        range), the source documents, the assumptions, and ``status``
+        (``"provisional"``, with its reason, where the evidence is weak).
+        """
+        return MappingProxyType(vars(self).get("_default_input_estimates", {}))
+
+    def _use_default_input(self, name: str, estimate: DefaultInputEstimate) -> float:
+        """Record the catalogue estimate that stands in for the omitted input ``name``; return its value."""
+        vars(self).setdefault("_default_input_estimates", {})[name] = estimate
+        return estimate.value
+
+    def _default_displacement(self, hp_capacity: float, ref: str) -> float:
+        """Displacement of a machine given only its capacity and refrigerant [m³/rev] (recorded)."""
+        return self._use_default_input("V_cmp_ref", estimate_displacement(hp_capacity, ref))
+
+    def _rating_mode(self, rated_condition: Mapping[str, Any] | RatingCondition | None) -> Mode:
+        """The duty ``hp_capacity`` names: the mode of the rating condition the caller asked for."""
+        if isinstance(rated_condition, RatingCondition):
+            return rated_condition.mode
+        mode: Mode = (rated_condition or {}).get("mode", self._RATING_DEFAULT_MODE)
+        table = RATING_STANDARDS[self._RATING_FAMILY]
+        if mode not in table:
+            raise ValueError(f"{self._RATING_FAMILY} has no {mode!r} rating condition; available: {sorted(table)}")
+        return mode
+
+    def _default_max_airflow(self, name: str, hp_capacity: float, *, side: str, product: str, mode: str) -> float:
+        """Largest fan airflow a catalogue gives a product of this class and capacity [m³/s] (recorded).
+
+        ``name`` is the constructor argument it stands in for. ``mode`` is the
+        duty ``hp_capacity`` names (:meth:`_rating_mode`): the catalogues print
+        cooling and heating capacity separately and each law is fitted against
+        its own.
+        """
+        return self._use_default_input(name, estimate_max_airflow(hp_capacity, side=side, product=product, mode=mode))
+
+    def _default_hx_UA(
+        self, name: str, stratum: str, *, nameplate: float, nameplate_mode: str | None, heat_capacity_rate: float
+    ) -> float:
+        """Effective conductance of an exchanger of ``stratum`` from real machines' approaches [W/K] (recorded).
+
+        ``name`` is the constructor argument it stands in for. The exchanger's
+        rating-point duty is the stratum's median duty per watt of the
+        ``nameplate_mode`` nameplate times ``nameplate`` [W]
+        (:func:`~tmhp.default_inputs.hx_duty_per_nameplate`); ``None`` takes the
+        duty as the nameplate itself (a stratum whose sources print no
+        nameplate). ``heat_capacity_rate`` [W/K] is that of the fluid at the
+        reference flow the conductance is stated at
+        (:func:`~tmhp.default_inputs.estimate_hx_UA`).
+        """
+        ratio = 1.0 if nameplate_mode is None else hx_duty_per_nameplate(stratum, nameplate_mode)
+        estimate = estimate_hx_UA(stratum, duty=ratio * nameplate, heat_capacity_rate=heat_capacity_rate)
+        return self._use_default_input(name, estimate)
+
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """The model's own heat exchanger on ``role`` at its rated UA and reference flow."""
         raise NotImplementedError
@@ -679,12 +756,14 @@ class ReferenceStateMixin:
         rps_rated: float | None,
         m_dot_ref_rated: float | None,
         efficiencies: Mapping[str, float | Callable | None],
+        compressor: CompressorSpec,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
     ) -> dict[str, float | Callable]:
         """Resolve ``rps_rated``, ``m_dot_ref_rated`` and the compressor efficiencies.
 
         ``efficiencies`` maps ``eta_cmp_isen`` / ``eta_cmp_vol`` / ``eta_cmp``
-        to the caller's input (``None`` = baseline correlation). Explicit
+        to the caller's input (``None`` = the default model of ``compressor``,
+        :func:`~tmhp.compressor_efficiency.default_efficiencies`). Explicit
         ``rps_rated`` / ``m_dot_ref_rated`` take precedence over solved values.
         Returns the resolved efficiencies; also sets ``rps_rated``,
         ``m_dot_ref_rated``, ``rated_condition`` and ``reference_state``
@@ -702,6 +781,14 @@ class ReferenceStateMixin:
         speed_search_max = RATED_SPEED_SEARCH_MAX if derive_rps_max else self.rps_max
         if not 0 < self.rps_min < speed_search_max or not math.isfinite(speed_search_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
+        if efficiencies.get("eta_cmp") is None and self.rps_min <= drive_model_zero_speed():
+            # The speed solve evaluates the floor; a default model that is not
+            # positive there fails every point, whatever speed its answer lies at.
+            raise ValueError(
+                f"rps_min={self.rps_min:g} rev/s is at or below the speed where the default drive (inverter) model "
+                f"gives no positive efficiency ({drive_model_zero_speed():.1f} rev/s; its data start at 20 rev/s). "
+                "Give a higher rps_min, or your own eta_cmp."
+            )
         condition = rating_condition(
             self._RATING_FAMILY,
             source=lambda mode, T: self._rating_side("source", mode, T),
@@ -711,18 +798,19 @@ class ReferenceStateMixin:
         )
 
         def resolve(speed: float) -> dict[str, float | Callable]:
-            return {
-                name: model if model is not None else BASELINE_FACTORIES[name](speed)
-                for name, model in efficiencies.items()
-            }
+            defaults = default_efficiencies(compressor, self.ref, speed)
+            return {name: model if model is not None else defaults[name] for name, model in efficiencies.items()}
 
         state: ReferenceState | None = None
         if rps_rated is None or m_dot_ref_rated is None:
-            # Scalars and baseline correlations are hashable descriptions of the
-            # compressor; a caller's callable is not, so it is solved uncached.
+            # Scalars and the default models (described by the compressor spec)
+            # are hashable descriptions of the compressor; a caller's callable is
+            # not, so it is solved uncached.
             cacheable = not any(callable(model) for model in efficiencies.values())
-            cache_key = tuple(sorted(efficiencies.items())) if cacheable else None
-            etas = reference_efficiencies(efficiencies, None if rps_rated is None else resolve(rps_rated))
+            cache_key = (compressor, tuple(sorted(efficiencies.items()))) if cacheable else None
+            etas = reference_efficiencies(
+                efficiencies, None if rps_rated is None else resolve(rps_rated), compressor, self.ref
+            )
             kwargs: dict[str, Any] = dict(
                 ref=self.ref,
                 V_cmp_ref=self.V_cmp_ref,

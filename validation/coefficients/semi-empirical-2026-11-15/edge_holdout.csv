@@ -1,0 +1,124 @@
+holdout,group,rows,units_without_level,bias,rmse,family,candidate
+PR top 20 % (PR > 4.49),all,2372,0,0.0178302,0.0567731,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR top 20 % (PR > 4.49),BITZER,734,,0.000918639,0.0297568,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR top 20 % (PR > 4.49),AREP,147,,0.00686029,0.0550324,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR top 20 % (PR > 4.49),Copeland,1488,,0.0208574,0.0597866,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR top 20 % (PR > 4.49),literature,3,,0.0580613,0.0622026,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR bottom 20 % (PR < 2.24),all,2367,0,-0.00833097,0.0672036,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR bottom 20 % (PR < 2.24),BITZER,707,,0.0663601,0.0835326,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR bottom 20 % (PR < 2.24),AREP,123,,-0.0431378,0.0466614,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR bottom 20 % (PR < 2.24),Copeland,1516,,-0.0154259,0.0663915,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR bottom 20 % (PR < 2.24),literature,21,,-0.022868,0.0314598,scroll,selected-abs (scroll:q2+cL+zv:abs)
+lowest speed record of each multi-speed unit,all,2368,0,0.0214707,0.0711903,scroll,selected-abs (scroll:q2+cL+zv:abs)
+lowest speed record of each multi-speed unit,BITZER,424,,0.0349233,0.0588848,scroll,selected-abs (scroll:q2+cL+zv:abs)
+lowest speed record of each multi-speed unit,AREP,1,,0.0442816,0.0442816,scroll,selected-abs (scroll:q2+cL+zv:abs)
+lowest speed record of each multi-speed unit,Copeland,1924,,0.021008,0.0721194,scroll,selected-abs (scroll:q2+cL+zv:abs)
+lowest speed record of each multi-speed unit,literature,19,,0.00718186,0.0459458,scroll,selected-abs (scroll:q2+cL+zv:abs)
+PR top 20 % (PR > 4.49),all,2372,0,0.018004,0.0568285,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR top 20 % (PR > 4.49),BITZER,734,,0.0123814,0.0350395,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR top 20 % (PR > 4.49),AREP,147,,0.010023,0.0543229,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR top 20 % (PR > 4.49),Copeland,1488,,0.0191158,0.0593962,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR top 20 % (PR > 4.49),literature,3,,0.0728747,0.0772749,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR bottom 20 % (PR < 2.24),all,2367,0,-0.0147777,0.0727513,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR bottom 20 % (PR < 2.24),BITZER,707,,0.0448912,0.0642428,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR bottom 20 % (PR < 2.24),AREP,123,,-0.0506363,0.0534154,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR bottom 20 % (PR < 2.24),Copeland,1516,,-0.0200323,0.0747904,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR bottom 20 % (PR < 2.24),literature,21,,-0.0334512,0.0418085,scroll,selected-rel (scroll:q2+cL+zv:rel)
+lowest speed record of each multi-speed unit,all,2368,0,0.0318249,0.0784552,scroll,selected-rel (scroll:q2+cL+zv:rel)
+lowest speed record of each multi-speed unit,BITZER,424,,0.0552353,0.0735255,scroll,selected-rel (scroll:q2+cL+zv:rel)
+lowest speed record of each multi-speed unit,AREP,1,,0.0477299,0.0477299,scroll,selected-rel (scroll:q2+cL+zv:rel)
+lowest speed record of each multi-speed unit,Copeland,1924,,0.0309444,0.0790772,scroll,selected-rel (scroll:q2+cL+zv:rel)
+lowest speed record of each multi-speed unit,literature,19,,0.0155142,0.0549657,scroll,selected-rel (scroll:q2+cL+zv:rel)
+PR top 20 % (PR > 4.49),all,2372,0,0.0215465,0.0578959,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR top 20 % (PR > 4.49),BITZER,734,,-0.00753155,0.0293012,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR top 20 % (PR > 4.49),AREP,147,,0.000905317,0.0330645,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR top 20 % (PR > 4.49),Copeland,1488,,0.0272242,0.0623001,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR top 20 % (PR > 4.49),literature,3,,0.0129119,0.022961,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR bottom 20 % (PR < 2.24),all,2367,0,-0.0183781,0.0697189,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR bottom 20 % (PR < 2.24),BITZER,707,,0.0613743,0.0741381,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR bottom 20 % (PR < 2.24),AREP,123,,-0.039138,0.0400782,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR bottom 20 % (PR < 2.24),Copeland,1516,,-0.0268314,0.0704552,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR bottom 20 % (PR < 2.24),literature,21,,-0.018407,0.042148,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+lowest speed record of each multi-speed unit,all,2368,0,0.000985352,0.0638606,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+lowest speed record of each multi-speed unit,BITZER,424,,0.0231706,0.0607767,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+lowest speed record of each multi-speed unit,AREP,1,,0.0651439,0.0651439,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+lowest speed record of each multi-speed unit,Copeland,1924,,-0.000242895,0.0642846,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+lowest speed record of each multi-speed unit,literature,19,,0.00109573,0.0431636,scroll,other level form (scroll:q2+cL+zv:abs:scaled)
+PR top 20 % (PR > 4.49),all,2372,0,-0.00664232,0.0545785,scroll,start form (scroll:q0+q2+cL:abs)
+PR top 20 % (PR > 4.49),BITZER,734,,-0.0278203,0.0412693,scroll,start form (scroll:q0+q2+cL:abs)
+PR top 20 % (PR > 4.49),AREP,147,,-0.0179567,0.0593602,scroll,start form (scroll:q0+q2+cL:abs)
+PR top 20 % (PR > 4.49),Copeland,1488,,-0.00294695,0.0559977,scroll,start form (scroll:q0+q2+cL:abs)
+PR top 20 % (PR > 4.49),literature,3,,0.0286089,0.0357287,scroll,start form (scroll:q0+q2+cL:abs)
+PR bottom 20 % (PR < 2.24),all,2367,0,-0.0473525,0.088493,scroll,start form (scroll:q0+q2+cL:abs)
+PR bottom 20 % (PR < 2.24),BITZER,707,,0.0259078,0.0516444,scroll,start form (scroll:q0+q2+cL:abs)
+PR bottom 20 % (PR < 2.24),AREP,123,,-0.0688882,0.0711308,scroll,start form (scroll:q0+q2+cL:abs)
+PR bottom 20 % (PR < 2.24),Copeland,1516,,-0.0551861,0.092955,scroll,start form (scroll:q0+q2+cL:abs)
+PR bottom 20 % (PR < 2.24),literature,21,,-0.0434522,0.0512977,scroll,start form (scroll:q0+q2+cL:abs)
+lowest speed record of each multi-speed unit,all,2368,0,0.0234849,0.0826373,scroll,start form (scroll:q0+q2+cL:abs)
+lowest speed record of each multi-speed unit,BITZER,424,,0.0389785,0.0615955,scroll,start form (scroll:q0+q2+cL:abs)
+lowest speed record of each multi-speed unit,AREP,1,,0.0437133,0.0437133,scroll,start form (scroll:q0+q2+cL:abs)
+lowest speed record of each multi-speed unit,Copeland,1924,,0.0229885,0.0840149,scroll,start form (scroll:q0+q2+cL:abs)
+lowest speed record of each multi-speed unit,literature,19,,0.00584119,0.0494216,scroll,start form (scroll:q0+q2+cL:abs)
+PR top 20 % (PR > 4.49),all,2372,0,-0.0503632,0.114473,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR top 20 % (PR > 4.49),BITZER,734,,-0.10183,0.152224,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR top 20 % (PR > 4.49),AREP,147,,-0.143053,0.25717,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR top 20 % (PR > 4.49),Copeland,1488,,-0.0366967,0.0900075,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR top 20 % (PR > 4.49),literature,3,,-0.0252374,0.0314682,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR bottom 20 % (PR < 2.24),all,2367,0,0.0414064,0.0961083,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR bottom 20 % (PR < 2.24),BITZER,707,,0.134265,0.160855,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR bottom 20 % (PR < 2.24),AREP,123,,0.00621949,0.0346204,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR bottom 20 % (PR < 2.24),Copeland,1516,,0.0327191,0.0882377,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR bottom 20 % (PR < 2.24),literature,21,,0.0132929,0.0464949,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+lowest speed record of each multi-speed unit,all,2368,0,0.00128289,0.0777792,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+lowest speed record of each multi-speed unit,BITZER,424,,0.0178868,0.0541593,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+lowest speed record of each multi-speed unit,AREP,1,,0.0297867,0.0297867,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+lowest speed record of each multi-speed unit,Copeland,1924,,0.000880058,0.079051,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+lowest speed record of each multi-speed unit,literature,19,,-0.0265858,0.0613116,scroll,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR top 20 % (PR > 4.61),all,75,0,0.032519,0.0451967,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+PR top 20 % (PR > 4.61),AREP,3,,0.0183035,0.0197346,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+PR top 20 % (PR > 4.61),literature,72,,0.0336614,0.0466433,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+PR bottom 20 % (PR < 2.76),all,78,0,0.0104132,0.0512411,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+PR bottom 20 % (PR < 2.76),AREP,6,,0.0189695,0.0217056,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+PR bottom 20 % (PR < 2.76),literature,72,,0.00885467,0.054937,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+lowest speed record of each multi-speed unit,all,56,0,0.0406514,0.0665291,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+lowest speed record of each multi-speed unit,literature,56,,0.0406514,0.0665291,rotary,selected-abs (rotary:q2+cL+cu:abs:scaled)
+PR top 20 % (PR > 4.61),all,75,0,0.0281832,0.0433982,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+PR top 20 % (PR > 4.61),AREP,3,,0.0232142,0.0245587,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+PR top 20 % (PR > 4.61),literature,72,,0.0285825,0.0445677,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+PR bottom 20 % (PR < 2.76),all,78,0,0.0103974,0.0507347,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+PR bottom 20 % (PR < 2.76),AREP,6,,0.00690041,0.0104623,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+PR bottom 20 % (PR < 2.76),literature,72,,0.0110344,0.054981,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+lowest speed record of each multi-speed unit,all,56,0,0.0435701,0.067587,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+lowest speed record of each multi-speed unit,literature,56,,0.0435701,0.067587,rotary,selected-rel (rotary:q2+cL+cu:rel:scaled)
+PR top 20 % (PR > 4.61),all,75,0,0.0407216,0.0525693,rotary,other level form (rotary:q2+cL+cu:abs)
+PR top 20 % (PR > 4.61),AREP,3,,0.00193628,0.00568766,rotary,other level form (rotary:q2+cL+cu:abs)
+PR top 20 % (PR > 4.61),literature,72,,0.0438383,0.0546168,rotary,other level form (rotary:q2+cL+cu:abs)
+PR bottom 20 % (PR < 2.76),all,78,0,0.00426853,0.0478436,rotary,other level form (rotary:q2+cL+cu:abs)
+PR bottom 20 % (PR < 2.76),AREP,6,,0.0177427,0.0204118,rotary,other level form (rotary:q2+cL+cu:abs)
+PR bottom 20 % (PR < 2.76),literature,72,,0.00181431,0.051284,rotary,other level form (rotary:q2+cL+cu:abs)
+lowest speed record of each multi-speed unit,all,56,0,0.0716151,0.088707,rotary,other level form (rotary:q2+cL+cu:abs)
+lowest speed record of each multi-speed unit,literature,56,,0.0716151,0.088707,rotary,other level form (rotary:q2+cL+cu:abs)
+PR top 20 % (PR > 4.61),all,75,0,0.0383545,0.05083,rotary,start form (rotary:q0+q2+cL:abs)
+PR top 20 % (PR > 4.61),AREP,3,,0.00627787,0.00870277,rotary,start form (rotary:q0+q2+cL:abs)
+PR top 20 % (PR > 4.61),literature,72,,0.0409321,0.0527752,rotary,start form (rotary:q0+q2+cL:abs)
+PR bottom 20 % (PR < 2.76),all,78,0,0.00810705,0.0523926,rotary,start form (rotary:q0+q2+cL:abs)
+PR bottom 20 % (PR < 2.76),AREP,6,,0.0152724,0.0176495,rotary,start form (rotary:q0+q2+cL:abs)
+PR bottom 20 % (PR < 2.76),literature,72,,0.00680194,0.0564644,rotary,start form (rotary:q0+q2+cL:abs)
+lowest speed record of each multi-speed unit,all,56,0,0.0716151,0.0887069,rotary,start form (rotary:q0+q2+cL:abs)
+lowest speed record of each multi-speed unit,literature,56,,0.0716151,0.0887069,rotary,start form (rotary:q0+q2+cL:abs)
+PR top 20 % (PR > 4.61),all,75,0,-0.0705915,0.0920684,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR top 20 % (PR > 4.61),AREP,3,,-0.0474273,0.0546117,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR top 20 % (PR > 4.61),literature,72,,-0.0724529,0.0944356,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR bottom 20 % (PR < 2.76),all,78,0,0.0252108,0.0378398,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR bottom 20 % (PR < 2.76),AREP,6,,0.00443503,0.00960094,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR bottom 20 % (PR < 2.76),literature,72,,0.028995,0.0409373,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+lowest speed record of each multi-speed unit,all,56,0,0.0547825,0.0661674,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+lowest speed record of each multi-speed unit,literature,56,,0.0547825,0.0661674,rotary,"shipped-form baseline (quadratic in PR and N, unit intercepts)"
+PR top 20 % (PR > 4.61),all,75,0,0.0281832,0.0433982,rotary,default: variant a (rotary:q2+cL+cu:rel:scaled)
+PR top 20 % (PR > 4.61),AREP,3,,0.0232142,0.0245587,rotary,default: variant a (rotary:q2+cL+cu:rel:scaled)
+PR top 20 % (PR > 4.61),literature,72,,0.0285825,0.0445677,rotary,default: variant a (rotary:q2+cL+cu:rel:scaled)
+PR bottom 20 % (PR < 2.76),all,78,0,0.0103974,0.0507347,rotary,default: variant a (rotary:q2+cL+cu:rel:scaled)
+PR bottom 20 % (PR < 2.76),AREP,6,,0.00690041,0.0104623,rotary,default: variant a (rotary:q2+cL+cu:rel:scaled)
+PR bottom 20 % (PR < 2.76),literature,72,,0.0110344,0.054981,rotary,default: variant a (rotary:q2+cL+cu:rel:scaled)
+lowest speed record of each multi-speed unit,all,56,0,0.0435701,0.067587,rotary,default: variant a (rotary:q2+cL+cu:rel:scaled)
+lowest speed record of each multi-speed unit,literature,56,,0.0435701,0.067587,rotary,default: variant a (rotary:q2+cL+cu:rel:scaled)

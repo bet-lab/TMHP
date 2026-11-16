@@ -24,6 +24,7 @@ import pytest
 
 import tmhp
 from tmhp import OperatingLimitWarning, StandardCondition
+from tmhp.constants import c_w
 from tmhp.operating_limits import reset_notices
 from tmhp.standard_conditions import (
     AIR_TO_AIR,
@@ -31,8 +32,9 @@ from tmhp.standard_conditions import (
     BRINE_TO_AIR,
     BRINE_TO_WATER,
     COLUMNS,
-    LEAVING_WATER_TO_TANK_K,
     WATER_TO_WATER,
+    en14511_condenser_water,
+    en14511_water_rise,
 )
 
 
@@ -153,16 +155,41 @@ def test_each_row_is_the_direct_steady_call_with_its_inputs(tables, family):
         assert row["meets_request"] == (row["runs"] and not shortfall)
 
 
-def test_boiler_inputs_name_the_tank_temperature_below_the_leaving_water(tables):
-    _, table = tables["ASHPB"]
+def test_en14511_water_rise_and_flow():
+    """5 K up to 45 degC leaving, 8 K at 55 degC, 10 K at 65 degC, linear in between and held at the ends."""
+    for leaving, rise in ((35.0, 5.0), (45.0, 5.0), (50.0, 6.5), (55.0, 8.0), (60.0, 9.0), (65.0, 10.0), (70.0, 10.0)):
+        assert en14511_water_rise(leaving) == pytest.approx(rise)
+    T_in, m_dot_w = en14511_condenser_water(55.0, 8000.0)
+    assert (T_in, m_dot_w) == (pytest.approx(47.0), pytest.approx(8000.0 / (c_w * 8.0)))
+    with pytest.raises(ValueError):
+        en14511_condenser_water(55.0, 0.0)
+
+
+def test_boiler_inputs_name_the_water_entering_below_the_leaving_water(tables):
+    """The leaving water of a condition is reached from the water EN 14511 enters with."""
+    model, table = tables["ASHPB"]
     for _, row in table.iterrows():
-        assert row["T_tank_w [°C]"] == pytest.approx(row["T_load_side [°C]"] - LEAVING_WATER_TO_TANK_K)
+        duty = row["Q_request [W]"]
+        T_in, m_dot_w = en14511_condenser_water(row["T_load_side [°C]"], duty)
+        assert row["T_tank_w [°C]"] == pytest.approx(T_in)
         assert row["inputs"]["T_tank_w"] == row["T_tank_w [°C]"]
+        assert row["inputs"]["m_dot_w"] == pytest.approx(m_dot_w)
         assert row["inputs"]["T0"] == row["T_source_side [°C]"]
-    # A tank solved at the named temperature: sink_offset_K=0.
-    model, _ = tables["ASHPB"]
+    # The liquid-source boilers have no per-call flow: the rise of their rated circulation flow.
+    for family in ("GSHPB", "WSHPB"):
+        source, table = tables[family]
+        for _, row in table.iterrows():
+            rise = row["Q_request [W]"] / (source.m_dot_w_rated * c_w)
+            assert row["T_tank_w [°C]"] == pytest.approx(row["T_load_side [°C]"] - rise)
+            assert "m_dot_w" not in row["inputs"]
+    # A water inlet the caller names instead: sink_offset_K=0 solves the tank water at the named temperature,
+    # at the rated circulation flow.
     named = model.operating_range([AIR_TO_WATER[0]], sink_offset_K=0.0)
-    assert named.loc[0, "T_tank_w [°C]"] == AIR_TO_WATER[0].load_side_C
+    assert named.loc[0, "T_tank_w [°C]"] == AIR_TO_WATER[0].load_side_C and "m_dot_w" not in named.loc[0, "inputs"]
+    # A boiler without circulating water is solved with its tank at the named temperature.
+    coil = _quiet(tmhp.AirSourceHeatPumpBoiler, UA_tank_hx=3000.0, m_dot_w_rated=0.0)
+    named = coil.operating_range([AIR_TO_WATER[0]])
+    assert named.loc[0, "T_tank_w [°C]"] == AIR_TO_WATER[0].load_side_C and "m_dot_w" not in named.loc[0, "inputs"]
     # The space heat pumps have no tank.
     _, space = tables["ASHP"]
     assert space["T_tank_w [°C]"].isna().all()
@@ -199,12 +226,16 @@ def test_part_load_and_own_conditions():
 
 # A discharge limit no duty or speed meets at this lift, and a source liquid
 # below its operating limit: points that stay refused whatever the duty rules.
+# The rotary-compressor default discharges cooler than the earlier compressor
+# map: at T_dis_max = 100 °C the R32 boiler runs A-15/W55 at 11 kW (90 °C:
+# refused at A-15/W55 only), at 85 °C it is refused at A-10/W55 and A-15/W55.
+DISCHARGE_LIMIT_C = 85.0
 REFUSED = [
     (
-        lambda: tmhp.AirSourceHeatPumpBoiler(ref="R32", T_dis_max=100.0),
+        lambda: tmhp.AirSourceHeatPumpBoiler(ref="R32", T_dis_max=DISCHARGE_LIMIT_C),
         StandardCondition("A-15/W55", "heating", -15.0, 55.0),
         "discharge_temp_above_max",
-        "T_dis_max = 100 °C",
+        "T_dis_max = 85 °C",
     ),
     (
         lambda: tmhp.GroundSourceHeatPumpBoiler(source_fluid="water"),
@@ -229,19 +260,25 @@ def test_a_point_that_does_not_run_is_named_with_its_limit(build, condition, rea
     assert [str(w.message) for w in caught] == [row["limit"]]
 
 
-def test_the_default_r32_boiler_at_a7_w55_tank_55_is_reported_as_the_direct_call():
+def test_the_default_r32_boiler_at_a7_w55_is_reported_as_the_direct_call():
     # The point the 6th-round gate is about. Its outcome is not fixed here (the
     # on/off rule for refused continuous duties is about to change it); only
     # that the table reports exactly what analyze_steady does.
     model = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32")
     a7_w55 = next(c for c in AIR_TO_WATER if c.name == "A-7/W55")
-    for offset in (0.0, LEAVING_WATER_TO_TANK_K):
-        row = model.operating_range([a7_w55], sink_offset_K=offset).iloc[0]
-        expected = {"T_tank_w": 55.0 - offset, "T0": -7.0, "Q_ref_tank": model.hp_capacity, "RH_out": row["RH_out [-]"]}
-        assert row["inputs"] == expected
-        direct = _direct(model, row)
-        assert row["failure_reason"] == direct["failure_reason"]
-        assert row["runs"] == (bool(direct["hp_is_on"]) and direct["failure_reason"] == "none")
+    row = model.operating_range([a7_w55]).iloc[0]
+    T_in, m_dot_w = en14511_condenser_water(55.0, model.hp_capacity)  # 47 degC, the flow for 8 K
+    expected = {
+        "T_tank_w": T_in,
+        "m_dot_w": m_dot_w,
+        "T0": -7.0,
+        "Q_ref_tank": model.hp_capacity,
+        "RH_out": row["RH_out [-]"],
+    }
+    assert row["inputs"] == expected
+    direct = _direct(model, row)
+    assert row["failure_reason"] == direct["failure_reason"]
+    assert row["runs"] == (bool(direct["hp_is_on"]) and direct["failure_reason"] == "none")
 
 
 # ---------------------------------------------------------------------------
@@ -250,7 +287,7 @@ def test_the_default_r32_boiler_at_a7_w55_tank_55_is_reported_as_the_direct_call
 
 
 def _refusing_boiler() -> Any:
-    return _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", T_dis_max=100.0)
+    return _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", T_dis_max=DISCHARGE_LIMIT_C)
 
 
 def test_no_operating_limit_warning_even_under_the_error_filter():

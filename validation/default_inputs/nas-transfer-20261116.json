@@ -1,0 +1,490 @@
+{
+ "verified_at": "2026-11-16T00:27:45.006850+00:00",
+ "scope": "heat-exchanger approach archive originals (hx_approach, #115-#118, PR #181)",
+ "transport": "macOS SMB mount /Volumes/datasets (smb://betlab-nas/datasets); staged in _incoming/20261116-tmhp-hx-approach-sources/, hashed, then renamed into place",
+ "files": 59,
+ "bytes": 540188770,
+ "smb_readback_sha256": "59/59 matched",
+ "nas_shell_sha256": "59/59 matched (sha256sum on betlab-nas, /volume1/datasets)",
+ "nfs_read_sha256": "59/59 matched (sha256sum on ml-main, /mnt/datasets)",
+ "nas_payload_root": "/mnt/datasets",
+ "smb_payload_root": "/Volumes/datasets",
+ "destination_preflight": "all 59 dataset folders absent before upload; no file with the same SHA-256 in the dataset catalogue or the #87 ledger",
+ "shared_nas_metadata_written": false,
+ "catalogue_registration": "bet-lab/dataset-catalog#107 (merged e914a934 and published 2026-11-16; one dataset per source, energy-systems/<source-id>-source; dataset_pool.py verify: 59 datasets, 59 files)",
+ "owner_approval": "2026-11-16, input prompt of the UA-defaults session (TMHP PR #181), third-party copies included",
+ "files_detail": [
+  {
+   "path": "energy-systems/ahri-arep-004-source/files/source/AHRI-AREP-004.pdf",
+   "bytes": 438185,
+   "sha256": "881a90dfb7d417713f9ecc0b542f4f315edc7d22bde5b18965d395d571f951ed",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/ahri-arep-032-source/files/source/AHRI-AREP-032.pdf",
+   "bytes": 896065,
+   "sha256": "89731020031211d44793c4c1c59f2108467f6ab2814bd33d502da9375622aec9",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/ahri-arep-042-source/files/source/AHRI-AREP-042.pdf",
+   "bytes": 725841,
+   "sha256": "f17846bdc82316bb2ee7a4c3d7c45883f74e5bd32e6c7a25cffd031f9743107e",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/ahri-arep-052-source/files/source/AHRI-AREP-052.pdf",
+   "bytes": 1611414,
+   "sha256": "b32cb585192e5019525cafb72bd477885059689f515ba23300b1ef5241a70cbc",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/ahri-arep-054-source/files/source/AHRI-AREP-054.pdf",
+   "bytes": 1815710,
+   "sha256": "a735d8e8aec2fa6ec75b370076111b60b7435dc5f0a1b84f57e1abb65ed09ed7",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/bosch-8733852844-2025-06-source/files/source/BOSCH-8733852844-2025-06.pdf",
+   "bytes": 4702495,
+   "sha256": "ab9672cb0a2e64b3f757b66855a86b97a6e55495f2145c3faaf7a095a7a55b89",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/carrier-50ps-6si-source/files/source/CARRIER-50PS-6SI.pdf",
+   "bytes": 4377277,
+   "sha256": "d35ab581680491e0eb23cc00626c44fe95fd3609c426effcd85632b5a9a90ce6",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/carrier-svm-12031-source/files/source/CARRIER-SVM-12031.pdf",
+   "bytes": 13301965,
+   "sha256": "d68755c5d6fcab584e02c39ffdbc2cae56e7f352749bceeec79b0e12754f44e1",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/climatemaster-97b0075n05-source/files/source/CLIMATEMASTER-97B0075N05.pdf",
+   "bytes": 2118699,
+   "sha256": "066149013eb0af1c3e5b1ff9083b14dffb11fd1be7d8ba18c5985aee078b8600",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/climatemaster-97b0075n08-source/files/source/CLIMATEMASTER-97B0075N08.pdf",
+   "bytes": 4609936,
+   "sha256": "7ca5c2dab2115df8d0b3287af0deccf9931d8a584fc09e355106c0c2d0da35ca",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/danfoss-vigfi102-source/files/source/DANFOSS-VIGFI102.html",
+   "bytes": 88875,
+   "sha256": "a459378cf6c90a9e5d2c389c2ffea8d7b56291fbbc0ff9c9d3539e2bfebed18e",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/gree-vireo-gen3-sm-a-source/files/source/GREE-VIREO-GEN3-SM-A.pdf",
+   "bytes": 21137334,
+   "sha256": "8067b1e43618c9786f7c307a1ea77a51d2e35499a4700a8657548ae21e989c6c",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/kth-egi-2015-084msc-source/files/source/KTH-EGI-2015-084MSC.pdf",
+   "bytes": 4252102,
+   "sha256": "8f8ab51d7531b8d429fd8d77019bcbffd2a5ebe3cad13e052b724a1975394f77",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh498-source/files/source/MITSUBISHI-OBH498.pdf",
+   "bytes": 3050549,
+   "sha256": "4cbb6e06d9999173a517da2bf2f0feee88fa150eb20601875a1acfef8f41aec4",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh502-reve-source/files/source/MITSUBISHI-OBH502-REVE.pdf",
+   "bytes": 3800063,
+   "sha256": "43023949bac7f9d895a604ad0cacba68a84c69f3be4d447718d0be243e61a050",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh543-revg-source/files/source/MITSUBISHI-OBH543-REVG.pdf",
+   "bytes": 7624204,
+   "sha256": "e454c3c4448650891131f8379161d08fe8ed88851766c3ec4a7bce50e662c8f8",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh549-revh-source/files/source/MITSUBISHI-OBH549-REVH.pdf",
+   "bytes": 13161202,
+   "sha256": "950119efadef85275f33e788cc8485df580390eb49142b1e29022aa410d6635c",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh684-reva-source/files/source/MITSUBISHI-OBH684-REVA.pdf",
+   "bytes": 3164887,
+   "sha256": "7642d72ccc251a4e91f614f0ab10f2ed70d994992b2a6504fac6183bd6f8fbe6",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh684-reve-source/files/source/MITSUBISHI-OBH684-REVE.pdf",
+   "bytes": 14309444,
+   "sha256": "90a92a2d77fce214699c01a7da42d96990b3591b3a3dc94c4642944856d95c47",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh733-revj-source/files/source/MITSUBISHI-OBH733-REVJ.pdf",
+   "bytes": 19159441,
+   "sha256": "9e7426cedb0ed6cfa1b257b2121533ba128e983f4b3fa9ed8e7f1eb508bbe34d",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh747-revh-source/files/source/MITSUBISHI-OBH747-REVH.pdf",
+   "bytes": 14998877,
+   "sha256": "4cbc32969213134ee5f8a90d4abdc83de0514d3bad6a727fe5120abef3b305ab",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh753-revb-source/files/source/MITSUBISHI-OBH753-REVB.pdf",
+   "bytes": 5985258,
+   "sha256": "92ba92f01022c96cc7fbfe433f6408a36107b3ee2110b641bf9bb8431972b3d5",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh819-revb-source/files/source/MITSUBISHI-OBH819-REVB.pdf",
+   "bytes": 16310602,
+   "sha256": "8e81b0a82aa993bc8fdfe745de15aa884f6a9457a40d8063a17e2f81ae496d72",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh821-reva-source/files/source/MITSUBISHI-OBH821-REVA.pdf",
+   "bytes": 2414500,
+   "sha256": "4f2dbe096cdbfd29385d2d29737dd71fba508d28580d79f0a5ed78a1ddc7755f",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh873-revb-source/files/source/MITSUBISHI-OBH873-REVB.pdf",
+   "bytes": 4179252,
+   "sha256": "59c7c28183838eb99d65536d3914db2b07f6fa62bd93999a18a6f5d1e4a7c5d1",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh875-revb-source/files/source/MITSUBISHI-OBH875-REVB.pdf",
+   "bytes": 13541866,
+   "sha256": "81584c98ca0353f8202d8f3d6040ac8ff56e888365b7bd2305326080b58c9f14",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh936-reva-source/files/source/MITSUBISHI-OBH936-REVA.pdf",
+   "bytes": 5491475,
+   "sha256": "423e46216019bb3715e046c268f0c1f6ee5bdacdeadfa36e53ac516703befe15",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh946-revc-source/files/source/MITSUBISHI-OBH946-REVC.pdf",
+   "bytes": 24349688,
+   "sha256": "0a78b905588ca48e2f9c95d827ce524124aa029b5ba1ab43c2f72e12a90a027e",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh948-source/files/source/MITSUBISHI-OBH948.pdf",
+   "bytes": 7189453,
+   "sha256": "2d1ac84e184ef92b828b7500d1834fff8e283576d4af7af9476964bc3ad4cc44",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh951-revc-source/files/source/MITSUBISHI-OBH951-REVC.pdf",
+   "bytes": 28074876,
+   "sha256": "1c8a0907fd70c3ce895d230a69f681cfb86b913424f2f45aeeae00d95b50d1fe",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh953-reva-source/files/source/MITSUBISHI-OBH953-REVA.pdf",
+   "bytes": 5834962,
+   "sha256": "6a20154e4188eefd3f574ce2c90e57607f960aa87fddf0b5726e715d18e482a1",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-obh955-reva-source/files/source/MITSUBISHI-OBH955-REVA.pdf",
+   "bytes": 4354769,
+   "sha256": "f00c6b392354821e25d360ae5df827f840768e59876964cf00180c5b8f883020",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-och439-revm-source/files/source/MITSUBISHI-OCH439-REVM.pdf",
+   "bytes": 25800294,
+   "sha256": "6a67cfa80077071e0527776e3bc522621e692c04eb709ab2f3f5adf6e59f75b8",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-och465-revd-source/files/source/MITSUBISHI-OCH465-REVD.pdf",
+   "bytes": 9092187,
+   "sha256": "36c58c50f6777a637d3f5a6265f391f726c1dcbdf9175b09cf543441be85e22c",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-och467-revc-source/files/source/MITSUBISHI-OCH467-REVC.pdf",
+   "bytes": 5161409,
+   "sha256": "b0ca1d34c0fd9ef7c81876c7388ee2840d3124b6ee2db350f402bc26cadcfeaf",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-och562-revd-source/files/source/MITSUBISHI-OCH562-REVD.pdf",
+   "bytes": 9934108,
+   "sha256": "9a4871e69d561d969deda55a6c70df35fcbdaa70d6978139ff518e51d5595c22",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-och605-reva-source/files/source/MITSUBISHI-OCH605-REVA.pdf",
+   "bytes": 16626650,
+   "sha256": "bb26c37ce21febc73364d70c48f85c6d4e511096fc9a2e4489cd354ae7ff23de",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-och699-reva-source/files/source/MITSUBISHI-OCH699-REVA.pdf",
+   "bytes": 3949073,
+   "sha256": "3de84731d48f3fa5ea280d03a01639dc3ae80453213a2667ca4d4f603d7ba9c4",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-och748-reva-source/files/source/MITSUBISHI-OCH748-REVA.pdf",
+   "bytes": 10651186,
+   "sha256": "3c02158e35e7ca6cff68b063a5924b879dc9d2c62192c305a3855fd2cf4596eb",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/mitsubishi-tch022-source/files/source/MITSUBISHI-TCH022.pdf",
+   "bytes": 4679493,
+   "sha256": "bbab9b55640dfb90407d46f00275ea21d511a7c88470d188f9580a0e3de506f0",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/ornl-tm-2015-536-source/files/source/ORNL-TM-2015-536.pdf",
+   "bytes": 5541373,
+   "sha256": "b5ee3246dc07f290ef5cb48879d6371ba8d1d1253360cbb0ad569c9f81d64a00",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-a06-011-source/files/source/TOSHIBA-A06-011.pdf",
+   "bytes": 15610177,
+   "sha256": "0b51005536f63e7d0cbee94091ed8cd3f1ef3a54d4772b86acfd94897f1caf32",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-a07-008-source/files/source/TOSHIBA-A07-008.pdf",
+   "bytes": 10525319,
+   "sha256": "7e0c4c126f5f4db75cacacb09684e86737824072d5dddc23053e176dd8246e34",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-a08-010-source/files/source/TOSHIBA-A08-010.pdf",
+   "bytes": 24331473,
+   "sha256": "4023ff42c9f5ab7bf03ff5ee311d1bd02c9b1a4e0664518821223a7882d9043a",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-07036-source/files/source/TOSHIBA-SVM-07036.pdf",
+   "bytes": 8896685,
+   "sha256": "7555b65b09b5b8fa7d94850b9e712078a9e30f3fcbfb4e7fbf9d5acf248439c4",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-09041-source/files/source/TOSHIBA-SVM-09041.pdf",
+   "bytes": 26836738,
+   "sha256": "65a8f0ae76977817b6637aa00df6ed1d6a62672ab1bf2cbbf42fdcafa734c8ad",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-10001-2-source/files/source/TOSHIBA-SVM-10001-2.pdf",
+   "bytes": 7231602,
+   "sha256": "52a397f28c668b31b5ec88071db0077ab5ec80deb2de070d9b92ac006f4d0583",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-10029-source/files/source/TOSHIBA-SVM-10029.pdf",
+   "bytes": 6292837,
+   "sha256": "69471fcd184d048c7c15b498a87cdc40242866ca6e56703ce0fd8946f24c1bbc",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-11031-source/files/source/TOSHIBA-SVM-11031.pdf",
+   "bytes": 5583751,
+   "sha256": "252de41ac17dba4193c2df60c04928bf3c1133ca98465d4cf3ac7a38d06d4534",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-12029-source/files/source/TOSHIBA-SVM-12029.pdf",
+   "bytes": 7206755,
+   "sha256": "9ee2dc3fef145368a82c4492f6ecaebda5ea7acc02b8f73f69471b7dc75cac64",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-12039-source/files/source/TOSHIBA-SVM-12039.pdf",
+   "bytes": 8062999,
+   "sha256": "2622f63564e5f7563d48777501e57f12162c5277b2ac9fa91181a514db9bc03d",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-12057-source/files/source/TOSHIBA-SVM-12057.pdf",
+   "bytes": 10135973,
+   "sha256": "84d29c0429538a8af552d2830a518b6f0e24f6a30f8f167ca807f00e77d24fcf",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-12059-1-source/files/source/TOSHIBA-SVM-12059-1.pdf",
+   "bytes": 9484745,
+   "sha256": "0af8adc06bb5d1e4e71a5bca3b3301a7d47b847ae6a1f98704dbe6a8383796f0",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-12070-source/files/source/TOSHIBA-SVM-12070.pdf",
+   "bytes": 7058436,
+   "sha256": "70a77cc38171ce29e1b0161277295564948ad2698cb577409a62546eefe067ae",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/toshiba-svm-12071-source/files/source/TOSHIBA-SVM-12071.pdf",
+   "bytes": 7314163,
+   "sha256": "f5d2c8c87b99ebd8ca8ff4a8a0f5168f2a9fdab7b5101a9ab3b43877fcdf5dc5",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/waterfurnace-im2500an-source/files/source/WATERFURNACE-IM2500AN.pdf",
+   "bytes": 6188781,
+   "sha256": "0326e4398d1a53fa041610b2cfd92f4c3a9c0f42feef3747d92089da2e38e277",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/waterfurnace-im2508wn-source/files/source/WATERFURNACE-IM2508WN.pdf",
+   "bytes": 1056859,
+   "sha256": "eedced7719f46504e0e1cddf7c67516a055445c6d97b54fad36e9b3aaaaf3456",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/waterfurnace-omw7-0018wa-source/files/source/WATERFURNACE-OMW7-0018WA.pdf",
+   "bytes": 14021014,
+   "sha256": "a28d71c136ed20098d9cddc05e4a02da28c6c4f267f25c6baf19bcde100cdee9",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  },
+  {
+   "path": "energy-systems/waterfurnace-omw7-0022wa-source/files/source/WATERFURNACE-OMW7-0022WA.pdf",
+   "bytes": 15843424,
+   "sha256": "86f7354b9e2c5c3bdc5eb3aa130ac01a527a7d80600eb9e022e5eaba60c1db9e",
+   "smb_readback": true,
+   "nas_shell_read": true,
+   "nfs_read": true
+  }
+ ]
+}

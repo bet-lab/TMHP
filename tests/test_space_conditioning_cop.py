@@ -97,6 +97,7 @@ def test_active_zero_airflow_has_no_reportable_cop(model, monkeypatch):
     assert math.isnan(row["cop_sys [-]"])
 
 
+@pytest.mark.earlier_defaults  # tests/conftest.py
 @pytest.mark.parametrize("boundary", ["min", "max"])
 def test_speed_boundary_uses_actual_delivery(model, boundary):
     if boundary == "min":

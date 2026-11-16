@@ -1,4 +1,7 @@
-"""Compare BITZER speed ratios with the current TMHP default correlations (read-only).
+"""Compare BITZER speed ratios with the 2026-09-24 TMHP correlations (read-only).
+
+Those were the library's defaults when the pilot was run; they are now a record of an earlier release
+(``validation/coefficients/recorded_maps``).
 
 TMHP electrical-to-isentropic product = eta_oi_product(PR, n*) * eta_em(PR, n*); eta_em carries
 the drive term s(n*). BITZER power excludes the external FI, so the TMHP product is shown both
@@ -7,10 +10,13 @@ usage: compare_tmhp.py EFFICIENCY_POINTS.csv OUT.csv
 """
 
 import sys
+from pathlib import Path
 
 import pandas as pd
 
-from tmhp import compressor_efficiency as ce
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))  # the repository root, for ``validation``
+
+from validation.coefficients.recorded_maps import v2026_09_24 as ce  # noqa: E402
 
 eta_v = ce.make_eta_vol(1.0)
 

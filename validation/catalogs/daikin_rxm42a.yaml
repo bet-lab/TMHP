@@ -15,6 +15,10 @@
 # print one and its compressor division has no public catalogue for the swing
 # machines used here. That makes this set a direct test of the derived
 # displacement rule rather than of a specification input.
+#
+# The compressor is Daikin's swing compressor -- a rolling-piston rotary whose
+# vane is integral to the piston -- with no injection (compressor_type: swing,
+# injection: none). It runs on the library's inverter rotary model.
 slug: daikin_rxm42a
 name: FTXM42A / RXM42A
 manufacturer: Daikin
@@ -26,8 +30,11 @@ rating_standard: "EN 14511"
 source:
   document: "Daikin RXM-A engineering data book, EEDEN24-200 (R-32, pair application)"
   table: "Capacity tables, cooling and heating at nominal operating frequency"
+  compressor: "Daikin swing compressor (rolling-piston rotary, vane integral to the piston); no injection"
 published_inputs:
   rated_indoor_air_flow_m3_s: 0.2233
+  compressor_type: swing
+  injection: none
 notes: >-
   The heating grid's outdoor axis is wet bulb, the cooling grid's is dry bulb,
   as printed. TMHP takes a single outdoor air temperature, so the heating

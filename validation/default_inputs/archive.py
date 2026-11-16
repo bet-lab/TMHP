@@ -22,7 +22,10 @@ SELECTION = (
 
 
 # Canonical refrigerant names keyed by the upper-case label without hyphens or footnote marks.
-REFRIGERANTS = {name.upper(): name for name in ("R22", "R32", "R290", "R410A", "R454B", "R454C", "R134a", "R1234yf")}
+REFRIGERANTS = {
+    name.upper(): name
+    for name in ("R22", "R32", "R290", "R410A", "R407C", "R454B", "R454C", "R134a", "R1234yf", "R744")
+}
 
 
 def normalize_refrigerant(text: str) -> str:

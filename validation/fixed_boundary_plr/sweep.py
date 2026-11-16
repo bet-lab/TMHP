@@ -3,8 +3,10 @@
 Conditions
 ----------
 * ASHPB (air-to-water), 9 kW nominal, R32 / R410A / R290: outdoor 7 degC,
-  tank 42.5 degC (A7/W45 in the sink-offset convention of the parity harness),
-  and outdoor -7 degC / tank 32.5 degC as the cold, low-lift companion.
+  water entering the condenser at 42.5 degC, and outdoor -7 degC / 32.5 degC
+  as the cold, low-lift companion. The entering water is held (``T_tank_w``,
+  the fixed boundary) at the rated circulation flow, so the leaving water is
+  5 K above it at the nameplate duty and closer to it at part load.
 * ASHP (air-to-air), 3.5 kW nominal, R32: heating outdoor 7 degC / room
   20 degC and cooling outdoor 35 degC / room 27 degC.
 

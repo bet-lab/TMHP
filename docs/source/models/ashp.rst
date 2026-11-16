@@ -249,21 +249,20 @@ the degradation, so the minimum-speed point may sit a few watts from the one
 found with ``Cd_cycling=None``.
 
 The minimum speed is not always the lower end of continuous operation. At a
-large lift the shipped isentropic-efficiency fit falls towards low speed, and
-the compressor envelope (:doc:`../developer/reference-operating-limits`)
-refuses the point before ``rps_min`` is reached: for the discharge
+large lift the compressor efficiency falls towards low speed, and the
+compressor envelope (:doc:`../developer/reference-operating-limits`) can
+refuse the point before ``rps_min`` is reached, for the discharge
 temperature, which the falling efficiency drives above ``T_dis_max`` even
-with the discharge-temperature control used up, or for the fit's own floor
-(``ETA_ISEN_MIN`` = 0.30). The default 4 kW unit with R134a at -25 °C outdoors
-and 24 °C indoors runs down to about 1.14 kW (frost-free, 35 rev/s) and no
-further, with R407C at -25 °C and 21 °C to about 1.34 kW (39 rev/s). A request below
-that duty was answered with the unit switched off (``failure_reason ==
-"eta_isen_below_min"`` or ``"discharge_temp_above_max"``) while a larger one
-ran. It is met the same way as one below the minimum speed: the unit cycles
-at the smallest duty the envelope admits. The row has ``capacity_clamped ==
-"min"``, ``Q_min [W]`` is that duty (found by bisection on the duty, to
-0.5 %), and the compressor speed of the row is above ``rps_min``. The two
-reasons remain where no duty runs at all.
+with the discharge-temperature control used up. The default 4 kW unit does
+not reach that case at −15 to −25 °C outdoors and 20 to 27 °C indoors with
+R32, R410A, R290, R134a, R407C or R1234yf: it runs down to its minimum speed
+(:doc:`ashpb` names boiler cases that do). Where it happens, a request below
+that duty, refused while a larger one runs, is met the same way as one below
+the minimum speed: the unit cycles at the smallest duty the envelope admits.
+The row has ``capacity_clamped == "min"``, ``Q_min [W]`` is that duty (found
+by bisection on the duty, to 0.5 %), and the compressor speed of the row is
+above ``rps_min``. ``failure_reason == "discharge_temp_above_max"`` remains
+where no duty runs at all.
 
 **Above the maximum capacity** the unit runs flat out
 (``capacity_clamped == "max"``): ``Q_ref_iu [W]`` is the ceiling,

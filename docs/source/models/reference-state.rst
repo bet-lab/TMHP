@@ -9,8 +9,10 @@ and the composed variants built on them -- derives rated speed and refrigerant
 mass flow from one physical *reference state*:
 
 * ``rps_rated`` identifies the nominal-capacity operating point and the reported
-  speed ratio, ``n* = rps / rps_rated``. BITZER efficiencies use actual shaft
-  speed in rev/s, without relative-speed normalization;
+  speed ratio, ``n* = rps / rps_rated``. The default efficiency models take
+  the shaft speed in rev/s; the rotary types read it relative to the machine's
+  ``rps_rated`` (so their level sits at the rated point whatever the rated
+  speed), the scroll type relative to a fixed 50 rev/s;
 * ``m_dot_ref_rated`` normalizes the refrigerant-side ground-HX resistance,
   ``m_dot_ref / m_dot_ref_rated`` (``variable_ground_hx_UA=True``).
 
@@ -41,9 +43,8 @@ not identify the exact manufacturer compressor.
 
 When manufacturer compressor data are unavailable, ``V_cmp_ref`` is estimated
 from the nominal heat-pump capacity and the refrigerant
-(:func:`tmhp.default_inputs.estimate_displacement`; the ground- and
-water-source boilers use :func:`tmhp.compressor_speed.default_displacement`),
-and the estimate is kept in ``default_input_estimates``. The rated compressor
+(:func:`tmhp.default_inputs.estimate_displacement`, every family), and the
+estimate is kept in ``default_input_estimates``. The rated compressor
 speed and reference refrigerant mass flow are then solved self-consistently at
 the model's standard/reference rating condition.
 

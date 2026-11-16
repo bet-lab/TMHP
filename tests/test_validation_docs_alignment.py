@@ -309,6 +309,27 @@ def test_index_prose_states_the_unevaluated_points_and_the_strata(points: pd.Dat
     ).replace("+", "") in text.replace("+", "")
 
 
+def test_result_keys_state_the_data_hull_of_each_type() -> None:
+    """``efficiency_extrapolated`` is described against the data hull the library carries, per type."""
+    from tmhp.compressor_efficiency import SEMI_EMPIRICAL_TYPES
+
+    text = _flat("docs/source/concepts/result-keys.rst")
+    start = text.index("* - ``efficiency_extrapolated``")
+    row = text[start : text.index("* - ``discharge_control``", start)]
+
+    def span(compressor_type: str) -> str:
+        hull = SEMI_EMPIRICAL_TYPES[compressor_type]["hull_PR_N"]
+        prs, speeds = [pr for pr, _ in hull], [n for _, n in hull]
+        return f"PR {min(prs):.2f}–{max(prs):.2f}", f"{min(speeds):g}–{max(speeds):g} rev/s"
+
+    rotary = span("rotary_twin_inverter")
+    assert rotary == span("rotary_single_fixed")
+    assert f"``rotary_twin_inverter`` and ``rotary_single_fixed``: {rotary[0]}, {rotary[1]}" in row
+    scroll = span("scroll")
+    assert f"``scroll``: within {scroll[0]} and {scroll[1].replace(' rev/s', '')} rev/s" in row
+    assert f"every rotary speed below {rotary[1].split('–')[0]} rev/s" in row
+
+
 def test_coverage_claims_match_the_catalogues(summary: pd.DataFrame) -> None:
     text = _read("docs/source/validation/index.rst")
     for manufacturer in sorted(summary.manufacturer.unique()):

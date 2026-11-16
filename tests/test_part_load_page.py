@@ -140,6 +140,29 @@ def test_panel_a_sentence_quotes_the_sweep(page: str, sweep: pd.DataFrame) -> No
     ) in text
 
 
+def test_entering_water_paragraph_quotes_its_sweep(page: str, sweep: pd.DataFrame) -> None:
+    """The same machine with the entering water held: its peak and floor against the leaving-water curve."""
+    rows = pd.read_csv(DATA / "entering_water.csv", float_precision="round_trip")
+    assert (rows.failure_reason == "none").all(), "an entering-water sweep point did not converge"
+    nameplate = rows[rows.is_nameplate].iloc[0]
+    held = _curve(sweep, 7.0, 35.0)
+    # At the 9 kW duty the two sweeps are the same operating point (30 °C in, 35 °C out).
+    assert nameplate.lwt_C == pytest.approx(35.0, abs=0.01) and nameplate.cop == pytest.approx(
+        held["at_nameplate"], rel=1e-3
+    )
+    peak = rows.loc[rows.cop.idxmax()]
+    floor = rows[rows.at_floor].iloc[0]
+    assert not peak.at_floor and floor.cop < nameplate.cop
+    expected = (
+        f"The peak is then COP {peak.cop:.2f} at {peak.q_delivered_W / NAMEPLATE_W * 100:.0f} % of the nameplate "
+        f"({peak.delivered_fraction_of_max * 100:.0f} % of the maximum, {peak.rps:.0f} rev/s), "
+        f"{(peak.cop / nameplate.cop - 1) * 100:.1f} % above the 9 kW duty against "
+        f"{(held['peak'] / held['at_nameplate'] - 1) * 100:.1f} % with the leaving water held, and the speed floor is "
+        f"{(1 - floor.cop / nameplate.cop) * 100:.1f} % below the 9 kW duty against {_bare(held['gain_pct'])} below"
+    )
+    assert expected in _flat(page), f"part-load.rst should read {expected!r}. {HINT}."
+
+
 def test_panel_a_decomposition_quotes_the_study(page: str) -> None:
     """'with the three efficiencies frozen ... gains 19.8 % ... with the shipped efficiencies gains 11.2 %; the
     air-to-air model, at pressure ratios of 2.4 to 2.8 at full load, keeps +26 to +35 %'."""
@@ -309,6 +332,11 @@ def test_committed_csvs_are_what_the_model_gives(figure) -> None:
         pd.DataFrame(figure.trajectory_en14825()),
         pd.read_csv(DATA / "trajectory.csv", float_precision="round_trip"),
         "trajectory.csv",
+    )
+    mismatches += _mismatches(
+        pd.DataFrame(figure.sweep_entering_water()),
+        pd.read_csv(DATA / "entering_water.csv", float_precision="round_trip"),
+        "entering_water.csv",
     )
     assert not mismatches, f"validation/data/part_load_figure: {HINT}.\n  " + "\n  ".join(mismatches[:15])
 

@@ -86,6 +86,7 @@ from _dmpl_common import (  # noqa: E402
 )
 
 from tmhp import AirSourceHeatPumpBoiler, OperatingLimitWarning  # noqa: E402
+from tmhp.constants import c_w  # noqa: E402
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -95,6 +96,7 @@ KEYMARK_SUMMARY = REPO_ROOT / "validation" / "data" / "keymark_en14825_summary.c
 DATA_DIR = REPO_ROOT / "validation" / "data" / "part_load_figure"
 SWEEP_CSV = DATA_DIR / "sweep.csv"
 TRAJECTORY_CSV = DATA_DIR / "trajectory.csv"
+ENTERING_WATER_CSV = DATA_DIR / "entering_water.csv"
 PROVENANCE = REPO_ROOT / "validation" / "data" / "provenance" / "part_load_figure.json"
 
 #: Fixed-temperature sweep: outdoor air and leaving water held, load varied.
@@ -103,6 +105,12 @@ SWEEP_CONDITIONS = (
     (7.0, 45.0, COLORS["warm"]),
     (-7.0, 45.0, COLORS["cool"]),
 )
+#: The same sweep with the *entering* water held instead of the leaving water:
+#: outdoor air and the water entering the condenser [°C], at the same water
+#: flow. 30 °C is the entering water of the EN 14511 30/35 °C rating, so at the
+#: nameplate duty this is the 7/35 °C point of the sweep above. Written to
+#: ``entering_water.csv`` and quoted by the page; not drawn.
+ENTERING_WATER_CONDITION = (7.0, 30.0)
 #: Requested heat as a share of the maximum capacity at the same temperatures,
 #: top speed (1.00) down to below the speed floor (0.08; the floor is 13-15 % of
 #: the maximum at these conditions) in steps of 2 %. The nameplate duty is added
@@ -209,6 +217,60 @@ def sweep_fixed_temperatures(
     return rows
 
 
+def sweep_entering_water(fractions: tuple[float, ...] | None = None) -> list[dict]:
+    """The fixed-temperature sweep with the entering water held (:data:`ENTERING_WATER_CONDITION`).
+
+    The model's own boundary: ``analyze_steady`` takes the water entering the
+    condenser, so no iteration is needed. The leaving water then follows the
+    delivered heat, and the rise across the condenser shrinks with the load --
+    which the leaving-water sweep of panel (a) does not let it do. Columns as
+    :func:`sweep_fixed_temperatures`, with ``lwt_C`` the resulting leaving water.
+    """
+    model = _model()
+    t_outdoor, t_entering = ENTERING_WATER_CONDITION
+
+    def solve(q_request: float) -> dict:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", OperatingLimitWarning)
+            result = model.analyze_steady(
+                T_tank_w=t_entering, T0=t_outdoor, Q_ref_tank=q_request, m_dot_w=WATER_FLOW_KG_S, return_dict=True
+            )
+        assert isinstance(result, dict)
+        return result
+
+    top = solve(MAX_PROBE_W)
+    if top.get("failure_reason", "none") != "none" or top.get("capacity_clamped") != "max":
+        raise RuntimeError(f"entering water {t_entering} °C: a {MAX_PROBE_W:.0f} W request did not reach the top speed")
+    q_max = float(top["Q_max [W]"])
+    rows = []
+    requests = [(q_max * float(f), False) for f in (fractions or LOAD_FRACTIONS_OF_MAX)] + [(NOMINAL_W, True)]
+    for q_request, nameplate in requests:
+        result = solve(q_request)
+        failure = result.get("failure_reason", "none")
+        rps = float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0
+        q_delivered = float(result["Q_ref_tank [W]"]) if failure == "none" else np.nan
+        rows.append(
+            {
+                "t_outdoor_C": t_outdoor,
+                "lwt_C": t_entering + q_delivered / (WATER_FLOW_KG_S * c_w),
+                "t_water_in_C": t_entering,
+                "plr": q_request / NOMINAL_W,
+                "q_request_W": q_request,
+                "q_max_W": q_max,
+                "plr_max": q_request / q_max,
+                "delivered_fraction_of_max": q_delivered / q_max,
+                "is_nameplate": nameplate,
+                "q_delivered_W": q_delivered,
+                "cop": float(result["cop_sys [-]"]) if failure == "none" else np.nan,
+                "rps": rps,
+                "at_floor": failure == "none" and abs(rps - model.rps_min) < 1e-6,
+                "capacity_clamped": result.get("capacity_clamped") or "none",
+                "failure_reason": failure,
+            }
+        )
+    return rows
+
+
 def trajectory_en14825() -> list[dict]:
     """Panel (b): the four EN 14825 test points."""
     model = _model()
@@ -233,7 +295,7 @@ def trajectory_en14825() -> list[dict]:
     return rows
 
 
-def write_data(sweep: pd.DataFrame, trajectory: pd.DataFrame) -> None:
+def write_data(sweep: pd.DataFrame, trajectory: pd.DataFrame, entering_water: pd.DataFrame) -> None:
     """The plotted values and their provenance record."""
     if str(REPO_ROOT) not in sys.path:
         sys.path.insert(0, str(REPO_ROOT))
@@ -242,15 +304,17 @@ def write_data(sweep: pd.DataFrame, trajectory: pd.DataFrame) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     sweep.to_csv(SWEEP_CSV, index=False)
     trajectory.to_csv(TRAJECTORY_CSV, index=False)
+    entering_water.to_csv(ENTERING_WATER_CSV, index=False)
     study_provenance.write(
         PROVENANCE,
         "scripts/validation/part_load_figure.py",
-        [SWEEP_CSV, TRAJECTORY_CSV, static_path("validation_part_load.svg")],
+        [SWEEP_CSV, TRAJECTORY_CSV, ENTERING_WATER_CSV, static_path("validation_part_load.svg")],
         {
             "model": MODEL_SETTINGS,
             "water": "leaving water named; entering water at a fixed flow (EN 14825 study rule)",
             "water_flow_kg_s": WATER_FLOW_KG_S,
             "sweep_conditions": [(t, lwt) for t, lwt, _ in SWEEP_CONDITIONS],
+            "entering_water_condition": ENTERING_WATER_CONDITION,
             "load_fractions_of_max": list(LOAD_FRACTIONS_OF_MAX),
             "max_probe_W": MAX_PROBE_W,
             "en14825_points": EN14825_LOW,
@@ -266,7 +330,7 @@ def main() -> None:
     apply_style("report", hashsalt="tmhp.validation.part-load")
     sweep = pd.DataFrame(sweep_fixed_temperatures())
     trajectory = pd.DataFrame(trajectory_en14825())
-    write_data(sweep, trajectory)
+    write_data(sweep, trajectory, pd.DataFrame(sweep_entering_water()))
     sweep = sweep[sweep.failure_reason == "none"]
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.46))

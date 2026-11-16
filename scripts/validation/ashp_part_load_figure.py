@@ -93,7 +93,7 @@ def main() -> None:
             color=COLORS["ink"],
             label=f"{SHOWN_CAPACITY_KW:g} kW nameplate",
         )
-        ax.set_xlabel("Delivered heat, share of maximum capacity [-]")
+        ax.set_xlabel("Delivered capacity, share of maximum capacity [-]")
         ax.set_xlim(0.0, 1.02)
         ax.set_xticks(ticks(0.0, 1.0, 0.2))
         ax.grid(lw=GRIDLINE, color=COLORS["muted"], alpha=0.35)

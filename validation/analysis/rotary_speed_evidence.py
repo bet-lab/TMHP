@@ -10,8 +10,8 @@ a fixed control and electronics power.
 Why a fixed power
 -----------------
 The model's electrical input ``E_tot`` is the compressor plus the outdoor fan. A real unit also draws a control
-board, sensors, communications and the drive's own standby; at the lightest EN 14825 point (D, about 15 rev/s) a
-constant 15 W is about 3 % of the input. Heat Pump Keymark declares two such powers on every certificate
+board, sensors, communications and the drive's own standby; at the lightest EN 14825 point (D, at the 15 rev/s
+floor) a constant 15 W is 4-5 % of the modelled input. Heat Pump Keymark declares two such powers on every certificate
 (``validation/data/auxiliary_power/``, extracted by :mod:`validation.auxiliary_power.pto_proxy`): the
 off/standby modes (``P_offsb_a_W``, ``P_offsb_b_W``) and the thermostat-off mode (``P_TO_W``, compressor off,
 controls live; on an air-to-water unit possibly a circulator too). The levels are read from those files, not

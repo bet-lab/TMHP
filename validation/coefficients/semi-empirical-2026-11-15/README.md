@@ -244,6 +244,70 @@ set and the A-7/W55 gate were not used in the choice and remain independent.
   If the Shao 2004 powers include the inverter (the basis is not stated), variant `a` with the separate drive model
   counts the low-speed drive loss twice.
 
+**Measurements for the reopened choice (#183)** — recorded, not used by the rule; made on the released library
+(`85d710c6`) with `uv run python -m validation.analysis.rotary_speed_evidence --jobs 8` (results and provenance in
+`validation/data/rotary_speed_evidence/`) and `uv run python -m validation.compressor_maps.semi_empirical.load_coordinate`
+(`rotary_load_coordinate_cv.csv`, `rotary_load_coordinate_design_mep.csv` here).
+
+- **A fixed control power.** The model's input `E_tot` is the compressor and the outdoor fan; it carries no control
+  board, sensor or drive-standby power. Heat Pump Keymark declares such powers on every certificate
+  (`validation/data/auxiliary_power/`, `fixed_power_levels.csv`): air-to-water, the median of the two off/standby
+  declarations pooled is 15 W (8,676 certificates, 5,675 outdoor units) and the upper quartile of the thermostat-off
+  power `P_TO` 25 W; air-to-air (19 certificates), the median `P_TO` is 12 W and its upper quartile 21.5 W (the
+  air-to-air off/standby declarations have a median of 1 W). The power is added to the input of each solved
+  point, `COP' = COP · E_tot / (E_tot + P)` (exact at a running point); at the EN 14825 D point (15 rev/s, median
+  input 282–416 W) 15 W is 4–5 % of the input.
+- **EN 14825, the 30 cases** (`en14825_scores.csv`, `en14825_summary.csv`; the study's cases, water side and
+  settings, the shipped-variant rows identical to `en14825_trend_points.csv`). Cases with all four points inside
+  their p10–p90 (C2) and with each ratio inside the p10–p90 of the per-record ratio:
+
+  | variant, fixed power | C2 | D/A | B/A | C/A |
+  |---|---|---|---|---|
+  | `a`, 0 W | 9 | 30 | 23 | 22 |
+  | `a`, 15 W | 6 | 30 | 19 | 19 |
+  | `a`, 25 W | 5 | 30 | 16 | 17 |
+  | `b`, 0 W | 16 | 24 | 30 | 30 |
+  | `b`, 15 W | 27 | 30 | 30 | 30 |
+  | `b`, 25 W | 18 | 30 | 30 | 30 |
+
+  Under `b` without the fixed power the points outside the band are 12 D points (above p90) and 2 C points (below
+  p10); with 15 W the three cases left are the medium-temperature 9 kW R410A machine at C, one of them also at B
+  (below p10), and with 25 W 10 B and 9 C points fall below p10. Under `a` the points outside are B and C points
+  below p10 (14 and 18 at 0 W, 22 and 24 at 15 W) and, at 0 W only, 3 D points above p90. Medians of `b` +
+  15 W, A / B / C / D: low-temperature 2.93 / 4.41 / 5.87 / 8.75, medium 2.10 / 3.14 / 4.09 / 6.37, against the
+  population medians 2.99 / 4.53 / 6.16 / 7.88 and 2.16 / 3.34 / 4.54 / 6.10; `a` + 15 W 2.95 / 4.10 / 5.24 / 7.94
+  and 2.10 / 2.91 / 3.58 / 5.67. D runs at the 15 rev/s floor in every case and C in 8–9 of 15 (low) and 5–8 of 15
+  (medium).
+- **Catalogue parity with the fixed power** (`parity_summary.csv`; COP MAPE / bias, 15 W air-to-water, 12 W
+  air-to-air): air-to-water `a` 8.51 / −5.36 % (136 points), `b` 8.49 / −6.30 % (137); air-to-air cooling `a`
+  6.82 / −3.73 %, `b` 6.91 / −1.12 %; heating `a` 11.48 / −9.71 %, `b` 12.51 / −11.52 % (180 points each); as
+  shipped 8.34 / −5.02, 8.31 / −5.97; 6.34 / −1.78, 7.02 / +0.96; 10.70 / −8.38, 11.72 / −10.23 %. The A−7/W55
+  gate points (`parity_gate.csv`) with 15 W: UQ09 −3.2 % (`a`) and −7.1 % (`b`), UQ16 +1.4 % and −2.7 % (as shipped
+  −2.9 / −6.8 % and +1.6 / −2.6 %); UQ12 is capacity-short under both.
+- **Part-load curves at fixed temperatures, heating and cooling** (`curve_summary.csv`, `curves.csv`; running
+  cycle, frost-free, from the 15 rev/s floor to the 120 rev/s ceiling, load as a fraction of the nameplate).
+  Air-to-water 9 kW R32 at A7/W35 / A7/W45 / A−7/W45 (floor 0.15–0.24, ceiling 1.26–1.80 of the nameplate): peak at
+  0.78 / 0.96 / 0.82 with +1.7 / +0.1 / +0.6 % over the nameplate COP under `a`, 0.56 / 0.74 / 0.62 with +4.9 /
+  +1.9 / +2.9 % under `b`; COP at the floor −16.7 / −27.0 / −34.0 % (`a`) and −3.9 / −12.7 / −14.5 % (`b`), at the
+  ceiling −15.1 / −8.8 / −3.0 % and −17.6 / −12.6 / −4.3 %. With 15 W the peak moves to 0.78 / 0.96 / 0.84
+  (+1.5 / +0.0 / +0.5 %) under `a` and 0.60 / 0.78 / 0.66 (+4.2 / +1.7 / +2.6 %) under `b`, and the floor reads
+  −18.2 / −27.9 / −34.9 % and −6.1 / −14.1 / −16.2 %. Air-to-air 3.5 kW R32, heating 7 / 20 °C and cooling
+  35 / 27 °C: the COP rises down to the floor (0.26 and 0.37 of the nameplate) under both shapes — the floor is the
+  peak except for `a` in heating (0.28, within 0.02 % of the floor) — at +33.1 / +41.9 % over the nameplate COP
+  under `a` and +43.6 / +52.7 % under `b`; with 12 W the peak gain is +26.5 / +36.0 % and +34.3 / +45.6 %, the
+  heating peak moving to 0.34 (`a`) and 0.28 (`b`). At the ceiling (1.89–1.90 and 1.68–1.69 of the nameplate)
+  −32.3 / −41.0 %
+  (`a`) and −35.7 / −45.2 % (`b`).
+- **Loss terms per unit of the design point.** Reading the rotary loss terms against the refrigerant's suction MEP
+  at the standard compressor rating condition (7.2 / 54.4 °C dew points, 35 °C return gas: 8.21 bar R22, 6.99 bar
+  R290, 13.77 bar R32, 12.82 bar R410A), scaled to 10 bar with the density scaled alike so that ρ/MEP of `qf` is
+  unchanged, and applying the archive's selection rule unchanged (`variants.run_variants`; the absolute rows of
+  `rotary_load_coordinate_cv.csv` equal `rotary_speed_variants_cv.csv`): variant `a` LOCO shape RMSE 0.0318
+  (absolute) against 0.0336 (design point), LOSO mean 0.0246 against 0.0270, low-speed edge bias +0.044 against
+  +0.074, the rule keeping `q2, cu, cH` (`cu` 0.1696, `cH` 0.9832) instead of `q2, cL, cu`; variant `b` keeps
+  `q1, q2, cH, qf` with `cH` on its bound (20), LOCO shape 0.0218 against 0.0209. On these numbers the compressor
+  data do not favour the design-point coordinate.
+
 **Owner decision of 2026-11-16, after that measurement:** the default stays `a` for this release, as the rule
 chose it; the choice between the two shapes is reopened as a follow-up issue, with the co-author's review.
 

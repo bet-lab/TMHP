@@ -87,8 +87,10 @@ PROVENANCE = DATA / "provenance" / "rotary_speed_evidence.json"
 AUX_AIR_TO_WATER = DATA / "auxiliary_power" / "keymark_pto_air_to_water.csv"
 AUX_AIR_TO_AIR = DATA / "auxiliary_power" / "keymark_pto_air_to_air.csv"
 
-#: The two shipped rotary speed shapes (``compressor_efficiency.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS``).
-VARIANTS: tuple[str, ...] = tuple(ROTARY_SPEED_VARIANTS)
+#: The two shipped rotary speed shapes (``compressor_efficiency.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS``), in the
+#: order of the library when the study was made (``shao_informed`` the default then), so the tables keep their rows.
+VARIANTS: tuple[str, ...] = ("shao_informed", "ossorio_anchored")
+assert set(VARIANTS) == set(ROTARY_SPEED_VARIANTS)
 LEVELS = ("none", "certified_median", "certified_upper")
 APPLICATIONS = ("low", "medium")
 POINTS = ("A", "B", "C", "D")

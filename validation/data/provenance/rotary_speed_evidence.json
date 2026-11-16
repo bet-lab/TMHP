@@ -9,6 +9,7 @@
   ],
   "en14825": {
    "Cd_cycling": null,
+   "E_ctrl": 0.0,
    "CONFIGURATIONS": [
     [
      9000.0,
@@ -40,6 +41,7 @@
   "curves": {
    "Cd_cycling": null,
    "defrost": false,
+   "E_ctrl": 0.0,
    "AIR_TO_WATER_CURVES": [
     [
      9000.0,
@@ -108,7 +110,7 @@
   "validation/data/rotary_speed_evidence/parity_summary.csv"
  ],
  "coefficient_version": "semi-empirical-2026-11-15",
- "git_head": "4d7081c19fc472b30e3e84e792d6e8df33146dba",
+ "git_head": "0942fc6179ee27ab4d5f269a8daca335cf86d2f1",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -118,10 +120,10 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
+ "src_tmhp_tree": "119fcb6b55254ff5af1e71d891442f1954c41371",
+ "validation_parity_tree": "e39e67b644c02c85f5ce2eec7b15686bb0ec271e",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-16T06:35:14+00:00"
+ "run_at": "2026-11-16T08:31:27+00:00"
 }

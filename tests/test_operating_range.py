@@ -226,16 +226,18 @@ def test_part_load_and_own_conditions():
 
 # A discharge limit no duty or speed meets at this lift, and a source liquid
 # below its operating limit: points that stay refused whatever the duty rules.
-# The rotary-compressor default discharges cooler than the earlier compressor
-# map: at T_dis_max = 100 °C the R32 boiler runs A-15/W55 at 11 kW (90 °C:
-# refused at A-15/W55 only), at 85 °C it is refused at A-10/W55 and A-15/W55.
-DISCHARGE_LIMIT_C = 85.0
+# The default rotary speed shape (ossorio_anchored) discharges cooler at these
+# lifts than the earlier one (shao_informed, refused at A-10/W55 and A-15/W55
+# under 85 °C): the default R32 boiler now runs every air-to-water point at
+# T_dis_max = 85 °C and is refused at A-15/W55 below 82.1 °C, at A-10/W55
+# below 77.6 °C and at A-7/W55 below 75.2 °C. At 80 °C only A-15/W55 is refused.
+DISCHARGE_LIMIT_C = 80.0
 REFUSED = [
     (
         lambda: tmhp.AirSourceHeatPumpBoiler(ref="R32", T_dis_max=DISCHARGE_LIMIT_C),
         StandardCondition("A-15/W55", "heating", -15.0, 55.0),
         "discharge_temp_above_max",
-        "T_dis_max = 85 °C",
+        "T_dis_max = 80 °C",
     ),
     (
         lambda: tmhp.GroundSourceHeatPumpBoiler(source_fluid="water"),

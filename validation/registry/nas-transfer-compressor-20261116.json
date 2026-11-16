@@ -12,7 +12,7 @@
  "smb_payload_root": "/Volumes/datasets",
  "destination_preflight": "all 54 new dataset folders absent before upload; two files already in the catalogue with the same SHA-256 were not uploaded; one (Samsung HT Quiet data book) replaces the unrecorded copy of an existing catalogue dataset",
  "shared_nas_metadata_written": false,
- "catalogue_registration": "bet-lab/dataset-catalog#108 (draft; one dataset per document, energy-systems/<id>; AREP #11, #21 and #33 keep the ORNL copy in the same dataset). Not merged or published yet.",
+ "catalogue_registration": "bet-lab/dataset-catalog#108 (merged 116aefcd and published 2026-11-16; one dataset per document, energy-systems/<id>; AREP #11, #21 and #33 keep the ORNL copy in the same dataset; dataset_pool.py verify: 55 datasets, 58 files incl. the Samsung replacement). The catalogue's previous unrecorded Samsung HT Quiet copy (14,734,164 B, sha256 6d5938139bdec638d515397059929cf02e2e93e1895a895ac831b0cd050df6a6) was deleted before the deploy.",
  "owner_approval": "2026-11-16, input prompt of the TMHP integration PR session: register the compressor originals (AHRI AREP reports, paper author versions, validation-unit service manuals) as research inputs; author versions kept lab-internal only",
  "registry_sha256_matches": 19,
  "files_detail": [

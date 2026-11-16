@@ -605,7 +605,7 @@ def _eval_eff(model: float | Callable, PR: float, rps: float, state: SuctionStat
     # still acts on the default volumetric forms: their level ``c0`` is above
     # one (1.01 scroll, 1.10-1.13 rotary), so they pass one at a low pressure
     # ratio well above the rated speed (1.08 at PR 1.2 and 150 rev/s for a
-    # rotary rated at 40 rev/s). The default ``eta_cmp_isen`` and ``eta_cmp``
-    # cannot exceed one. Rejecting instead would punch infeasible holes into
-    # ordinary low-lift operation and break the monotone speed bracket.
+    # rotary rated at 40 rev/s). Rejecting instead would punch infeasible
+    # holes into ordinary low-lift operation and break the monotone speed
+    # bracket.
     return 1.0 if value > 1.0 else value

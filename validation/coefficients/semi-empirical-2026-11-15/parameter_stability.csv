@@ -104,9 +104,12 @@ start form (rotary:q0+q2+cL:abs),cL,edge,3,0.103995,0.0792003,0.101412,0.113688,
 "shipped-form baseline (quadratic in PR and N, unit intercepts)",PRN,loco,5,-8.17007e-05,-0.000132706,-8.21981e-05,-1.1628e-05,7.00727e-05,rotary
 "shipped-form baseline (quadratic in PR and N, unit intercepts)",PRN,loso,3,-8.17007e-05,-9.99287e-05,-1.1628e-05,0.00299888,0.00308058,rotary
 "shipped-form baseline (quadratic in PR and N, unit intercepts)",PRN,edge,3,-8.17007e-05,-0.000249044,-6.46065e-05,1.88656e-05,0.000167343,rotary
-default: variant a (rotary:q2+cL+cu:rel:scaled),cL,loco,5,0.0340102,0.0319703,0.0331689,0.0378055,0.00379527,rotary
-default: variant a (rotary:q2+cL+cu:rel:scaled),cL,loso,3,0.0340102,0.0296793,0.0331689,0.0378055,0.00433095,rotary
-default: variant a (rotary:q2+cL+cu:rel:scaled),cL,edge,3,0.0340102,0.0271269,0.0369393,0.0371204,0.00688334,rotary
-default: variant a (rotary:q2+cL+cu:rel:scaled),cu,loco,5,0.118791,0.101669,0.124976,0.14219,0.023399,rotary
-default: variant a (rotary:q2+cL+cu:rel:scaled),cu,loso,3,0.118791,0.0693063,0.124976,0.125183,0.0494843,rotary
-default: variant a (rotary:q2+cL+cu:rel:scaled),cu,edge,3,0.118791,0.0688541,0.0830225,0.16024,0.0499366,rotary
+default: variant b (rotary:q2+cu+cH+qf:rel:scaled),cu,loco,5,0.242992,0.158312,0.25095,0.284323,0.0846799,rotary
+default: variant b (rotary:q2+cu+cH+qf:rel:scaled),cu,loso,3,0.242992,0.158312,0.236577,0.25095,0.0846799,rotary
+default: variant b (rotary:q2+cu+cH+qf:rel:scaled),cu,edge,3,0.242992,0.2261,0.246329,0.500915,0.257923,rotary
+default: variant b (rotary:q2+cu+cH+qf:rel:scaled),cH,loco,5,2.40894,1.82892,2.52261,2.78614,0.580024,rotary
+default: variant b (rotary:q2+cu+cH+qf:rel:scaled),cH,loso,3,2.40894,1.82892,1.93679,2.52898,0.580024,rotary
+default: variant b (rotary:q2+cu+cH+qf:rel:scaled),cH,edge,3,2.40894,1.54972,2.43282,9.96185,7.5529,rotary
+default: variant b (rotary:q2+cu+cH+qf:rel:scaled),qf,loco,5,0.123333,0.0782526,0.132309,0.150903,0.0450803,rotary
+default: variant b (rotary:q2+cu+cH+qf:rel:scaled),qf,loso,3,0.123333,0.0551385,0.0825341,0.132309,0.0681944,rotary
+default: variant b (rotary:q2+cu+cH+qf:rel:scaled),qf,edge,3,0.123333,0.112544,0.12526,0.653554,0.530221,rotary

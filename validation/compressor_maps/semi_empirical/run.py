@@ -27,7 +27,10 @@ REVISION = (
     "default rotary speed shape = the Ossorio-anchored variant b (variant a kept in rotary_speed_variants*); "
     "second pass: per-refrigerant rotary levels, eta_v uncertainty above the data; then the default rotary speed shape "
     "= the Shao-informed variant a, chosen by the EN 14825 trajectory-shape rule written before the measurement "
-    "(DESIGN 14: D/A of 30 cases inside the certified p10-p90, a 30 / b 24; b kept in rotary_speed_variants*)"
+    "(DESIGN 14: D/A of 30 cases inside the certified p10-p90, a 30 / b 24; b kept in rotary_speed_variants*); "
+    "then the Ossorio-anchored variant b again (#183): with the fixed control power of a real unit in the device model "
+    "both variants pass that rule (30 / 30) and b has all four EN 14825 points inside the certified p10-p90 in 27 of "
+    "30 cases against 6 (a kept in rotary_speed_variants*)"
 )
 ARCHIVE = REPO_ROOT / "validation" / "coefficients" / VERSION
 TYPES = {
@@ -178,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
             ct = P.copeland_speed_test(ev.df["scroll"], best[(lev, "abs")].terms, lev)
             speed_tables[fam]["copeland_rated_speed_test"] = ct.to_dict(orient="records")
 
-    # ---- default rotary shape: ``variants.DEFAULT`` (variant a, Shao-informed, since the DESIGN 14 rule) ----------
+    # ---- default rotary shape: ``variants.DEFAULT`` (variant b, Ossorio-anchored; see ``variants.DEFAULT``) ---------
     # The level form and speed coordinate above were selected on the first arrangement (Shao, Ossorio and AREP #26
     # in one shared shape). The default shape is ``variants.DEFAULT``: the same selection rule (backward
     # elimination, then the explicit high-speed-term rule) on that variant's data arrangement, with the level form

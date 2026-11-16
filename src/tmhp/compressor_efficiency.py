@@ -116,9 +116,9 @@ SEMI_EMPIRICAL_TYPES: dict[str, Any] = {
         "family": "rotary",
         "level_form": "scaled",
         "speed": "rel",
-        "parameters": {"cL": 0.03401, "cu": 0.118791},
-        "level": 1.27097,
-        "level_by_refrigerant": {"R290": 1.145152, "R32": 1.316402, "R410A": 1.172723},
+        "parameters": {"cu": 0.242992, "cH": 2.408944, "qf": 0.123333},
+        "level": 0.52336,
+        "level_by_refrigerant": {"R290": 0.790146, "R32": 0.447823, "R410A": 0.567186},
         "eta_v": {"c0": 1.129917, "parameters": {"c_re": 0.068093, "c_s": 0.123416}, "speed": "rel"},
         "loss_share": 0.575922,
         "hull_PR_N": ((1.9429, 30.0), (6.8421, 30.0), (6.8421, 120.0), (1.9429, 120.0)),
@@ -128,9 +128,9 @@ SEMI_EMPIRICAL_TYPES: dict[str, Any] = {
         "family": "rotary",
         "level_form": "scaled",
         "speed": "rel",
-        "parameters": {"cL": 0.03401, "cu": 0.118791},
-        "level": 1.729347,
-        "level_by_refrigerant": {"R22": 1.790992, "R410A": 1.692558},
+        "parameters": {"cu": 0.242992, "cH": 2.408944, "qf": 0.123333},
+        "level": 0.790302,
+        "level_by_refrigerant": {"R22": 0.802211, "R410A": 0.783514},
         "eta_v": {"c0": 1.101583, "parameters": {"c_re": 0.068093, "c_s": 0.123416}, "speed": "rel"},
         "loss_share": 0.575922,
         "hull_PR_N": ((1.9429, 30.0), (6.8421, 30.0), (6.8421, 120.0), (1.9429, 120.0)),
@@ -138,15 +138,6 @@ SEMI_EMPIRICAL_TYPES: dict[str, Any] = {
     },
 }
 SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS: dict[str, Any] = {
-    "shao_informed": {
-        "terms": ("q2", "cL", "cu"),
-        "parameters": {"cL": 0.03401, "cu": 0.118791},
-        "level": {"rotary_twin_inverter": 1.27097, "rotary_single_fixed": 1.729347},
-        "level_by_refrigerant": {
-            "rotary_twin_inverter": {"R290": 1.145152, "R32": 1.316402, "R410A": 1.172723},
-            "rotary_single_fixed": {"R22": 1.790992, "R410A": 1.692558},
-        },
-    },
     "ossorio_anchored": {
         "terms": ("q2", "cu", "cH", "qf"),
         "parameters": {"cu": 0.242992, "cH": 2.408944, "qf": 0.123333},
@@ -156,11 +147,20 @@ SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS: dict[str, Any] = {
             "rotary_single_fixed": {"R22": 0.802211, "R410A": 0.783514},
         },
     },
+    "shao_informed": {
+        "terms": ("q2", "cL", "cu"),
+        "parameters": {"cL": 0.03401, "cu": 0.118791},
+        "level": {"rotary_twin_inverter": 1.27097, "rotary_single_fixed": 1.729347},
+        "level_by_refrigerant": {
+            "rotary_twin_inverter": {"R290": 1.145152, "R32": 1.316402, "R410A": 1.172723},
+            "rotary_single_fixed": {"R22": 1.790992, "R410A": 1.692558},
+        },
+    },
 }
 SEMI_EMPIRICAL_DRIVE: dict[str, Any] = {"lam": 0.058774, "beta": 0.617538, "N_ref_rps": 60.0}
 # --- END GENERATED semi-empirical coefficients ---
-#: Rotary speed-shape variants; the first (``shao_informed``, the first archive's arrangement) is the archive's and
-#: the package's default, the other (``ossorio_anchored``) is kept selectable through :class:`CompressorSpec`.
+#: Rotary speed-shape variants; the first (``ossorio_anchored``) is the archive's and the package's default, the
+#: other (``shao_informed``, the first archive's arrangement) is kept selectable through :class:`CompressorSpec`.
 ROTARY_SPEED_VARIANTS = tuple(SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS)
 
 
@@ -288,14 +288,16 @@ class CompressorSpec:
     ``CompressorSpec`` also selects the speed shape of the rotary types:
 
     ``rotary_speed_variant``
-        ``"shao_informed"`` (default: Shao 2004, Ossorio 2019 and AREP #26 in
-        one shared speed shape) or ``"ossorio_anchored"`` (Shao 2004 kept out
-        of the speed shape, which then rests on Ossorio 2019). The compressor
-        data do not separate the two shapes, so both stay in the library. The
-        default was chosen by the EN 14825 trajectory-shape rule recorded in
-        the archive README ("Rotary speed-shape variants"), which this option
-        reproduces; that shape check is therefore not an independent
-        validation of the rotary types. The option has no effect on a scroll.
+        ``"ossorio_anchored"`` (default: Shao 2004 kept out of the speed
+        shape, which then rests on Ossorio 2019, measured with the drive
+        separated) or ``"shao_informed"`` (Shao 2004, Ossorio 2019 and AREP
+        #26 in one shared speed shape). The compressor data do not separate
+        the two shapes, so both stay in the library. The default was chosen
+        at the device level, against the certified EN 14825 part-load points
+        with the fixed control power in the model (archive README, "Rotary
+        speed-shape variants"); the EN 14825 comparison is therefore not an
+        independent validation of the rotary types. The option has no effect
+        on a scroll.
     """
 
     compressor_type: str = COMPRESSOR_TYPES[0]

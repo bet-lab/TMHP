@@ -167,8 +167,8 @@ Condensing pressure (``T_cond_max``)
 Speed (``rps_min`` / ``rps_max``)
     ``rps_min`` is the inverter's floor (15 rev/s). ``rps_max`` defaults to
     :func:`default_rps_max` of the rated speed the model solves at its rating
-    point: twice the rated speed, at most :data:`RPS_MAX_ABSOLUTE`, at least
-    1.5 times the rated speed. The rated
+    point: :data:`RPS_MAX_ABSOLUTE` (120 rev/s), or 1.5 times the rated speed
+    where that is higher. The rated
     speed itself is solved over ``[rps_min, RATED_SPEED_SEARCH_MAX]``.
 
 Efficiency domain
@@ -240,7 +240,6 @@ __all__ = [
     "envelope_violation",
     "envelope_excess",
     "efficiency_below_floor",
-    "RPS_MAX_PER_RATED",
     "RPS_MAX_ABSOLUTE",
     "RPS_MAX_MIN_PER_RATED",
     "RATED_SPEED_SEARCH_MAX",
@@ -344,9 +343,8 @@ CONDENSING_TOL_K = 0.01
 #: with the constructor argument ``x_suction_min``.
 X_SUCTION_MIN_DEFAULT = 0.9
 
-#: ``rps_max`` default: this multiple of the rated speed ...
-RPS_MAX_PER_RATED = 2.0
-#: ... but no more than this [rev/s] (7200 rpm, the top of variable-speed scroll and rotary ranges) ...
+#: ``rps_max`` default [rev/s]: 7200 rpm, the upper end of the speed ranges inverter rotary compressors
+#: of heat-pump size are specified for (see :func:`default_rps_max`) ...
 RPS_MAX_ABSOLUTE = 120.0
 #: ... and never less than this multiple of the rated speed (catalogue maximum / rated capacity <= 1.52).
 RPS_MAX_MIN_PER_RATED = 1.5
@@ -708,22 +706,29 @@ def envelope_excess(result: Mapping[str, Any], model: Any) -> float:
 def default_rps_max(rps_rated: float) -> float:
     """Default upper speed bound from the rated speed [rev/s].
 
-    ``max(min(2 * rps_rated, 120), 1.5 * rps_rated)``. Inverter heat pumps
-    reach their published maximum capacity at 1.0--1.52 times the nameplate
-    (the adopted validation catalogues); the model needs at most 1.66 times
-    the rated speed for those points (Daikin RXM20A heating). Twice the rated
-    speed keeps them all with margin while refusing the 2.5--5.9 times
-    nameplate compressor capacity the former fixed 150 rev/s allowed, and
-    120 rev/s (7200 rpm) is the top of the variable-speed scroll and rotary
-    ranges. A machine whose *rated* speed is already high -- a
-    low-volumetric-capacity fluid with the refrigerant-independent default
-    displacement, e.g. R134a at 90 rev/s (#86) -- keeps at least
-    :data:`RPS_MAX_MIN_PER_RATED` times its rated speed, so it can still reach
-    the catalogue maximum-to-rated ratio; such a machine should be given its
-    real ``V_cmp_ref``.
+    ``max(120, 1.5 * rps_rated)``: :data:`RPS_MAX_ABSOLUTE` for every machine
+    rated at 80 rev/s or below.
+
+    The ceiling is a property of the compressor, not of the nameplate.
+    Manufacturer documents specify inverter rotary compressors of heat-pump
+    size for 12--120 rev/s (8.9--21 cm3/rev), 12--110 (57.9 cm3/rev), 15--100
+    (44 cm3/rev class) and 10--130 (small twins); an air-to-air outdoor unit's
+    service manual gives 110 rev/s in heating. 120 rev/s (7200 rpm) is the
+    upper end of that range for the 40--65 cm3/rev machines of the validation
+    catalogues, whose own documents print no maximum speed (they limit the
+    frequency by running current). The former bound ``min(2 * rps_rated,
+    120)`` tied the ceiling to the nameplate, so two units that share one
+    compressor had different ceilings (91 and 120 rev/s for the 9 and 12 kW
+    units on a 42 cm3/rev compressor). A machine whose compressor is known
+    should be given its documented ``rps_max``.
+
+    A machine whose *rated* speed is already high -- a low-volumetric-capacity
+    fluid with a default displacement that does not follow the refrigerant
+    (#86) -- keeps at least :data:`RPS_MAX_MIN_PER_RATED` times its rated
+    speed, so it can still reach the catalogue maximum-to-rated ratio; such a
+    machine should be given its real ``V_cmp_ref``.
     """
-    rated = float(rps_rated)
-    return max(min(RPS_MAX_PER_RATED * rated, RPS_MAX_ABSOLUTE), RPS_MAX_MIN_PER_RATED * rated)
+    return max(RPS_MAX_ABSOLUTE, RPS_MAX_MIN_PER_RATED * float(rps_rated))
 
 
 def efficiency_extrapolated_at(models: tuple[object, ...], result: Mapping[str, Any]) -> bool:

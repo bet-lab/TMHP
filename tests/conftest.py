@@ -16,7 +16,7 @@
     leaves them out:
 
     - displacement ``hp_capacity * 42 cm3/rev / 9 kW``, whatever the
-      refrigerant (:func:`tmhp.compressor_speed.default_displacement`);
+      refrigerant (:data:`EARLIER_DISPLACEMENT_PER_W`), for every family;
     - largest airflow ``hp_capacity * 2.0e-4 m3/s`` outdoors and
       ``hp_capacity * 5.37e-5 m3/s`` (400 cfm/ton) indoors, for
       ``AirSourceHeatPump`` and ``GroundSourceHeatPump``, and
@@ -80,13 +80,15 @@ from tmhp import (
     GroundSourceHeatPumpBoiler,
     WaterSourceHeatPumpBoiler,
 )
-from tmhp.compressor_speed import default_displacement
 
 MARKER = "earlier_defaults"
 #: A test of a marked module that compares against committed results, which are made with the
 #: present defaults (it must build no module-scoped model fixture of its own).
 OPT_OUT = "current_defaults"
 
+#: Displacement per watt of nameplate capacity every constructor assumed before issue #86, whatever the
+#: refrigerant [m3/rev per W]: 42 cm3/rev per 9 kW.
+EARLIER_DISPLACEMENT_PER_W = 42.0e-6 / 9000.0
 #: Largest airflow per watt of nameplate capacity the constructors assumed before issue #86 [m3/s per W].
 EARLIER_AIRFLOW_PER_W = {
     ("outdoor", "single_split"): 2.0e-4,
@@ -248,7 +250,7 @@ def earlier_default_inputs() -> Iterator[None]:
 
     def displacement(hp_capacity, refrigerant, *args, **kwargs):
         estimate = estimate_displacement(hp_capacity, refrigerant, *args, **kwargs)
-        return dataclasses.replace(estimate, value=default_displacement(hp_capacity))
+        return dataclasses.replace(estimate, value=hp_capacity * EARLIER_DISPLACEMENT_PER_W)
 
     def max_airflow(hp_capacity, *, side, product, mode="cooling"):
         estimate = estimate_max_airflow(hp_capacity, side=side, product=product, mode=mode)

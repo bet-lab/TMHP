@@ -24,7 +24,7 @@ threshold chosen here:
 
 The ablation is the point of the module
 ---------------------------------------
-Passing on its own proves little if every coefficient set passes. Four
+Passing on its own proves little if every coefficient set passes. Five
 compressor descriptions are therefore run through the identical trajectory:
 
 ``ideal``
@@ -38,6 +38,13 @@ compressor descriptions are therefore run through the identical trajectory:
     The correlations TMHP shipped before the standalone-compressor refit
     (Guth shape, Cuevas leakage term, ``0.90 - 0.02 PR``), frozen under
     ``validation/coefficients/v1-legacy/``.
+``quadratic-2026-10-06``
+    The map TMHP shipped until the type-specific semi-empirical models: three
+    quadratic fits in (PR, N) to BITZER scroll calculation data, with their
+    guard (an earlier release, recorded in
+    ``validation/coefficients/recorded_maps``). It carries no inverter loss and
+    one map for every compressor type. On the same tree as ``defaults`` it is
+    the before of the before/after.
 ``defaults``
     What TMHP ships now (``compressor_efficiency.COEFFICIENT_VERSION``).
 
@@ -97,6 +104,7 @@ from tmhp.compressor_efficiency import COEFFICIENT_VERSION
 from tmhp.compressor_speed import RATED_POINT_AIR_TO_WATER
 from tmhp.constants import c_w
 from tmhp.standard_conditions import en14511_water_rise
+from validation.coefficients.recorded_maps import recorded_efficiencies
 from validation.coefficients.recorded_maps.v2026_09_24 import ETA_EM_REF, eta_isen_default, make_eta_vol
 
 # The pre-refit correlations (Guth shape, Cuevas leakage term, 0.90 - 0.02 PR) are frozen
@@ -120,6 +128,8 @@ DECLARED_CSV = DATA / "keymark_en14825_declared.csv"
 OUT_POINTS = DATA / "en14825_trend_points.csv"
 OUT_VERDICT = DATA / "en14825_trend_verdict.csv"
 OUT_PARITY = DATA / "coefficient_ablation_parity.csv"
+#: The release whose map the ``quadratic-2026-10-06`` variant runs (a record, not a shipped default).
+PREVIOUS_RELEASE = "BITZER-three-C3-absolute-N-2026-10-06"
 
 #: EN 14825 average climate. Part load is fixed by the standard's own bin
 #: rule, ``(T_j - 16) / (T_design - 16)`` with ``T_design = -10 degC``, so
@@ -297,6 +307,12 @@ def variants() -> tuple[Variant, ...]:
                 "eta_cmp_vol": legacy.eta_vol_default,
                 "eta_cmp": legacy.make_eta_em(RATED_POINT_AIR_TO_WATER.rps),
             },
+        ),
+        Variant(
+            "quadratic-2026-10-06",
+            "previous release (BITZER quadratic)",
+            f"three quadratic fits in (PR, N) with their guard -- {PREVIOUS_RELEASE}; no inverter loss",
+            dict(recorded_efficiencies(PREVIOUS_RELEASE, RATED_POINT_AIR_TO_WATER.rps)),
         ),
         Variant(
             "defaults",

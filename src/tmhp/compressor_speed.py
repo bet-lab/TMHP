@@ -39,30 +39,18 @@ from scipy.optimize import brentq, minimize_scalar
 
 __all__ = [
     "solve_compressor_speed",
-    "default_displacement",
     "refrigerant_aware_displacement",
     "RatedPoint",
     "RATED_POINT_AIR_TO_WATER",
     "RATED_POINT_AIR_TO_AIR",
     "CAPACITY_CLAMPED_MIN",
     "CAPACITY_CLAMPED_MAX",
-    "DISPLACEMENT_PER_W",
 ]
 
 #: Clamp code: request below the duty deliverable at ``rps_min``.
 CAPACITY_CLAMPED_MIN = "min"
 #: Clamp code: request above the duty deliverable at ``rps_max``.
 CAPACITY_CLAMPED_MAX = "max"
-
-#: Fixed displacement per watt of nominal capacity [m^3/rev per W].
-#:
-#: The default of the ground- and water-source boilers. It takes no account of
-#: the working fluid, and the volumetric refrigerating capacity of the fluids
-#: in common use spans a factor of 2.7 -- so a single constant is roughly 50 %
-#: too large for R32 and 40 % too small for R134a. The other families take
-#: their default from compressor catalogues
-#: (:func:`tmhp.default_inputs.estimate_displacement`).
-DISPLACEMENT_PER_W = 42.0e-6 / 9000.0
 
 
 class RatedPoint(NamedTuple):
@@ -233,11 +221,6 @@ def refrigerant_aware_displacement(
 
     mass_flow = hp_capacity / dh_nameplate
     return float(mass_flow / (rho_suction * eta_vol * rated_point.rps))
-
-
-def default_displacement(hp_capacity: float) -> float:
-    """Swept compressor displacement [m^3/rev] implied by a nominal capacity."""
-    return hp_capacity * DISPLACEMENT_PER_W
 
 
 def solve_compressor_speed(

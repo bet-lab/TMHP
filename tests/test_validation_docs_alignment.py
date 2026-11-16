@@ -410,7 +410,6 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
     """The Summary table -- not some historical sentence elsewhere -- states each shipped value."""
     from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
     from tmhp.compressor_efficiency import COEFFICIENT_VERSION, COMPRESSOR_TYPES, SEMI_EMPIRICAL_TYPES
-    from tmhp.compressor_speed import DISPLACEMENT_PER_W, default_displacement
     from tmhp.default_inputs import DEFAULT_DISPLACEMENT_BASIS, _artifact
 
     table = _summary_table(_read("docs/source/validation/defaults.rst"))
@@ -425,9 +424,13 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
     assert f"{basis['n']} catalogue rows" in displacement and f"{basis['n_families']} families" in displacement
     condition = basis["reference_condition"]
     assert f"({condition['T_evap_C']:g} / {condition['T_cond_C']:g} °C)" in displacement
-    # The ground- and water-source boilers keep the fixed constant.
-    assert default_displacement(9000.0) == pytest.approx(DISPLACEMENT_PER_W * 9000.0)
-    assert f"{DISPLACEMENT_PER_W * 9000.0 * 1e6:g} cm³/rev per 9 kW" in displacement
+    # Every family takes it: no constructor is left on the refrigerant-independent constant.
+    assert "every family" in displacement and "cm³/rev per 9 kW" not in displacement
+    from tmhp import GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
+    from tmhp.default_inputs import estimate_displacement
+
+    for cls in (GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler):
+        assert cls(hp_capacity=9000.0, ref="R32").V_cmp_ref == estimate_displacement(9000.0, "R32").value
 
     efficiency = re.sub(
         r"\s+", " ", _list_table_row(table, "Compressor efficiencies (volumetric, isentropic, electro-mechanical)")
@@ -448,16 +451,16 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
 
 def test_defaults_displacement_table_matches_the_decision_module() -> None:
     """Every cell of the default-displacement table is what the constructors use."""
-    from tmhp.compressor_speed import default_displacement
     from tmhp.default_inputs import estimate_displacement
 
+    earlier_per_W = 42.0e-6 / 9000.0  # the constant of before #86: 42 cm³/rev per 9 kW, whatever the refrigerant
     text = _read("docs/source/validation/defaults.rst")
     start = text.index(".. list-table:: Default displacement [cm³/rev]")
     table = text[start : text.index("The earlier default, 42 cm³/rev per 9 kW", start)]
     for capacity_kW in (3.5, 8.0, 15.0):
         row = re.sub(r"\s+", " ", _list_table_row(table, f"{capacity_kW:g} kW"))
         cells = [cell.strip() for cell in row.split(" - ")[1:]]
-        expected = [default_displacement(capacity_kW * 1000.0) * 1e6] + [
+        expected = [capacity_kW * 1000.0 * earlier_per_W * 1e6] + [
             estimate_displacement(capacity_kW * 1000.0, ref).value * 1e6 for ref in ("R32", "R410A", "R290", "R134a")
         ]
         assert cells == [f"{value:.2f}" for value in expected], f"{capacity_kW:g} kW: {cells}"

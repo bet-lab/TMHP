@@ -36,10 +36,15 @@ Discharge temperature (``T_dis_max``)
     (:data:`DISCHARGE_TEMP_ABOVE_MAX`). The defaults
     (:data:`DISCHARGE_TEMP_MAX_C`, :func:`default_discharge_temp_max`) are the
     *protection* values -- R32 150 degC, every other fluid 135 degC -- not the
-    controllers' earlier set points, because the cycle model has no shell heat
-    loss and puts every compressor loss into the gas (the default
-    electro-mechanical efficiency is about 1), so its discharge temperature is
-    an upper estimate of the machine's.
+    controllers' earlier set points: the cycle's discharge state is the gas
+    leaving the compression (the default models send the share of the loss
+    work to the gas that measured discharge temperatures give, 0.58 for the
+    rotary types and 0.77 for the scroll,
+    :mod:`tmhp.compressor_efficiency`), with no shell or pipe heat loss
+    after it, which is the temperature the protection values refer to; a
+    controller's pipe sensor reads lower. With a caller's efficiencies that
+    put every loss into the gas (``eta_cmp`` near 1) it is an upper estimate
+    of the machine's.
 
     Discharge-temperature control comes first (:func:`discharge_controlled`,
     ``x_suction_min``). A unit whose discharge runs hot does not stop: its

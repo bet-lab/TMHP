@@ -4,10 +4,10 @@ import math
 from types import SimpleNamespace
 
 import pytest
+from validation.coefficients.recorded_maps import recorded_efficiencies
 
 from tmhp import AirSourceHeatPump, GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
 from tmhp.air_source_heat_pump import OBJ_INFEASIBLE
-from tmhp.compressor_efficiency import RPS_REF, make_eta_em, make_eta_isen, make_eta_vol
 from tmhp.compressor_envelope import RATED_SPEED_SEARCH_MAX
 from tmhp.reference_state import ReferenceStateError, _evaluable_bracket, _root_in_bracket
 
@@ -35,7 +35,7 @@ def test_default_raw_fit_reference_closes_despite_decreasing_low_speed_condenser
     # this rating point at PR 7.40; they are spelled out now that the defaults
     # scale with capacity. It condenses at 71 °C, above the R32 condensing
     # limit, which is therefore off for this solver regression.
-    # The raw fit is the BITZER quadratic map, the default compressor efficiency
+    # The raw fit is the BITZER quadratic map (a recorded release), the default compressor efficiency
     # when the regression was found (now the rotary-compressor model, whose
     # condenser duty rises with the speed), so it is given here together with
     # the machine of then: 42 cm3/rev per 9 kW and a tank coil without
@@ -50,9 +50,7 @@ def test_default_raw_fit_reference_closes_despite_decreasing_low_speed_condenser
         ground_flow_ref_lpm=24.0,
         T_cond_max=None,
         V_cmp_ref=8000.0 * 42e-6 / 9000.0,
-        eta_cmp_isen=make_eta_isen(RPS_REF),
-        eta_cmp_vol=make_eta_vol(RPS_REF),
-        eta_cmp=make_eta_em(RPS_REF),
+        **recorded_efficiencies("BITZER-three-C3-absolute-N-2026-10-06", 50.0),
     )
     state = hp.reference_state
     assert state is not None

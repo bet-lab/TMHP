@@ -122,13 +122,27 @@ def test_evaluation_computes_a_value_for_every_entry_and_matches_the_committed_r
     rows = [r for r in report["gate"] if r["kind"] == "catalogue"] + report["vapour_injection"]
     assert len(rows) == 3 + 6
     for row in rows:
-        assert math.isfinite(row["cop_model"]) and math.isfinite(row["rel_diff"]), row
         assert isinstance(row["within_tolerance"], bool)
         entry = entries[row["id"]]
         stored = pd.read_csv(RESULTS_DIR / f"{entry['catalog']}.csv").set_index("point_id").loc[entry["point_id"]]
         # The gate reads what the parity harness reads: same point, same code.
         assert row["cop_catalogue"] == pytest.approx(stored.cop_target, rel=1e-9)
-        assert row["cop_model"] == pytest.approx(stored.cop_pred, rel=1e-6)
+        assert row["failure_reason"] == stored.failure_reason, row
+        if stored.usable:
+            assert math.isfinite(row["cop_model"]) and math.isfinite(row["rel_diff"]), row
+            assert row["cop_model"] == pytest.approx(stored.cop_pred, rel=1e-6)
+        else:
+            # A point the model does not deliver has no COP to compare: it is named, and it is outside.
+            assert row["failure_reason"] != "none" and math.isnan(row["rel_diff"]), row
+            assert row["within_tolerance"] is False
+    # The gate as the committed results have it: two of the three points inside +-10 %, and the 12 kW unit
+    # short of its catalogue duty at the 120 rev/s speed ceiling (so not scored; the gate is not met).
+    gate = {r["id"]: (r["within_tolerance"], r["failure_reason"]) for r in report["gate"] if r["kind"] == "catalogue"}
+    assert gate == {
+        "wh-uq09he8-a-7-w55": (True, "none"),
+        "wh-uq12he8-a-7-w55": (False, "capacity_short"),
+        "wh-uq16he8-a-7-w55": (True, "none"),
+    }
     for row in report["reported"]:
         assert math.isfinite(row["cop_model"]), row
 

@@ -11,7 +11,7 @@
  "smb_payload_root": "/Volumes/datasets",
  "destination_preflight": "all 59 dataset folders absent before upload; no file with the same SHA-256 in the dataset catalogue or the #87 ledger",
  "shared_nas_metadata_written": false,
- "catalogue_registration": "bet-lab/dataset-catalog#107 (draft; one dataset per source, energy-systems/<source-id>-source)",
+ "catalogue_registration": "bet-lab/dataset-catalog#107 (merged e914a934 and published 2026-11-16; one dataset per source, energy-systems/<source-id>-source; dataset_pool.py verify: 59 datasets, 59 files)",
  "owner_approval": "2026-11-16, input prompt of the UA-defaults session (TMHP PR #181), third-party copies included",
  "files_detail": [
   {

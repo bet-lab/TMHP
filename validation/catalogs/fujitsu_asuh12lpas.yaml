@@ -16,6 +16,9 @@
 #
 # No compressor displacement is published, so this unit exercises the derived
 # displacement rule rather than a specification input.
+#
+# The service manual names a DC rotary compressor (outdoor unit AOUH12LPAS1)
+# and the circuit has no injection: compressor_type: rotary, injection: none.
 slug: fujitsu_asuh12lpas
 name: ASUH12LPAS
 manufacturer: Fujitsu
@@ -34,9 +37,12 @@ hold_reason: >-
 source:
   document: "Fujitsu General ASUH/AOUH LPAS design & technical manual (R-410A)"
   table: "Section 4, capacity tables (SI blocks)"
+  compressor: "service manual: DC rotary compressor, no injection"
 published_inputs:
   rated_indoor_air_flow_heating_m3_s: 0.2139
   rated_indoor_air_flow_m3_s: 0.2139
+  compressor_type: rotary
+  injection: none
 points:
   - {id: 1, t_source_C: -10.0, t_sink_C: 17.8, q_kW: 3.37, power_kW: 0.37, mode: cooling, note: "SHR 0.69, wet coil"}
   - {id: 2, t_source_C: -10.0, t_sink_C: 21.1, q_kW: 3.69, power_kW: 0.38, mode: cooling, note: "SHR 0.69, wet coil"}

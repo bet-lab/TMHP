@@ -77,6 +77,11 @@ def _build_model(catalog: Catalog, overrides: dict | None = None, mode: str = "c
     published = catalog.published_inputs
     if published.get("displacement_cc"):
         kwargs["V_cmp_ref"] = float(published["displacement_cc"]) * 1.0e-6
+    # The published compressor kind selects the library's type-specific default
+    # (spec.MODEL_COMPRESSOR_TYPE); ``injection`` is a reporting fact and never
+    # reaches the single-stage model.
+    if catalog.model_compressor_type is not None:
+        kwargs["compressor_type"] = catalog.model_compressor_type
 
     if catalog.model_class == "ASHPB":
         if published.get("rated_air_flow_m3_s"):
@@ -210,6 +215,8 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
                 "nominal_kW": catalog.nominal_capacity_kW,
                 "rating_standard": catalog.rating_standard,
                 "status": catalog.status,
+                "compressor_type": catalog.published_inputs.get("compressor_type", ""),
+                "injection": catalog.published_inputs.get("injection", ""),
                 "coefficient_version": COEFFICIENT_VERSION,
                 "point_id": point.id,
                 "mode": point.mode,
@@ -256,6 +263,8 @@ def _summarise(df: pd.DataFrame) -> dict:
         "nominal_kW": df.nominal_kW.iat[0],
         "rating_standard": df.rating_standard.iat[0],
         "status": df.status.iat[0],
+        "compressor_type": df["compressor_type"].iat[0] if "compressor_type" in df else "",
+        "injection": df["injection"].iat[0] if "injection" in df else "",
         "coefficient_version": COEFFICIENT_VERSION,
         "points": len(df),
         "points_usable": int(len(good)),
@@ -487,6 +496,72 @@ def summarize(catalogs: list[Catalog], results_dir: Path) -> tuple[pd.DataFrame,
     return summary, manifest
 
 
+#: Names of the air-to-water reporting strata (:func:`injection_strata`).
+STRATUM_POOLED = "pooled"
+STRATUM_NO_INJECTION = "no injection (single-stage, what the model represents)"
+STRATUM_INJECTION = "injection (reported, not represented by the single-stage cycle)"
+STRATUM_UNPUBLISHED = "injection not published"
+#: Columns of :func:`injection_strata`; kept when there is no adopted air-to-water unit.
+STRATA_COLUMNS = (
+    "model_class",
+    "rating_standard",
+    "stratum",
+    "units",
+    "slugs",
+    "points",
+    "points_usable",
+    "cop_MAPE_pct",
+    "cop_bias_pct",
+)
+
+
+def injection_strata(summary: pd.DataFrame, catalogs: list[Catalog] | None = None) -> pd.DataFrame:
+    """The adopted air-to-water headline, pooled and split by the published injection.
+
+    One row per (rating standard, stratum): units, points attempted and
+    evaluated, point-weighted COP MAPE and bias [%], computed exactly as the
+    pooled headline is. Injection machines stay in the parity set and in the
+    pooled figure; the split only says how much of it the single-stage cycle
+    represents. The stratum comes from each catalogue's
+    ``published_inputs.injection`` (read from ``catalogs``, default
+    :func:`spec.load_all`), so it also applies to results written before the
+    column existed.
+    """
+    injected = {c.slug: c.injected for c in (catalogs if catalogs is not None else load_all())}
+    adopted = summary[(summary.status == "adopted") & (summary.model_class == "ASHPB")]
+    rows = []
+    for standard, grp in adopted.groupby("rating_standard"):
+        flags = [injected.get(slug) for slug in grp.slug]
+        layers = {
+            STRATUM_POOLED: grp,
+            STRATUM_NO_INJECTION: grp[[f is False for f in flags]],
+            STRATUM_INJECTION: grp[[f is True for f in flags]],
+        }
+        unpublished = grp[[f is None for f in flags]]
+        if len(unpublished):
+            layers[STRATUM_UNPUBLISHED] = unpublished
+        for name, frame in layers.items():
+            usable = int(frame.points_usable.sum())
+            rows.append(
+                {
+                    "model_class": "ASHPB",
+                    "rating_standard": standard,
+                    "stratum": name,
+                    "units": int(len(frame)),
+                    "slugs": sorted(frame.slug.tolist()),
+                    "points": int(frame.points.sum()),
+                    "points_usable": usable,
+                    "cop_MAPE_pct": float((frame.cop_MAPE_pct * frame.points_usable).sum() / usable)
+                    if usable
+                    else float("nan"),
+                    "cop_bias_pct": float((frame.cop_bias_pct * frame.points_usable).sum() / usable)
+                    if usable
+                    else float("nan"),
+                }
+            )
+    return pd.DataFrame(rows, columns=STRATA_COLUMNS)
+
+
 def _print_summary(summary: pd.DataFrame) -> None:
     print(f"Catalogue parity -- library defaults applied unchanged (coefficients {COEFFICIENT_VERSION})")
     print()
@@ -512,6 +587,12 @@ def _print_summary(summary: pd.DataFrame) -> None:
         bias = (grp.cop_bias_pct * grp.points_usable).sum() / max(usable, 1)
         print(
             f"  {model_class:5s} {standard:13s}: {len(grp)} units, {usable}/{grp.points.sum()} points, point-weighted COP MAPE {weighted:.1f} %, bias {bias:+.1f} %"
+        )
+    strata = injection_strata(summary)
+    for row in strata[strata.stratum != STRATUM_POOLED].itertuples():
+        print(
+            f"    {row.rating_standard} by injection -- {row.stratum}: {row.units} units, "
+            f"{row.points_usable}/{row.points} points, COP MAPE {row.cop_MAPE_pct:.1f} %, bias {row.cop_bias_pct:+.1f} %"
         )
     held = summary[summary.status == "hold"]
     if len(held):

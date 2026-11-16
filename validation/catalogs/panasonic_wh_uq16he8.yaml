@@ -10,6 +10,12 @@
 # air flow is likewise read verbatim from the service manual. Both are inputs,
 # not tuning -- every efficiency coefficient and conductance comes from the
 # library defaults.
+#
+# Compressor kind and injection are published facts too: the service-manual
+# parts list names a Panasonic JD-series rotary (5JD650XBA22), and the
+# refrigerant circuit has no injection port -- the bypass expansion valve
+# outlet returns to the accumulator, i.e. to suction. Hence
+# compressor_type: rotary, injection: none.
 slug: panasonic_wh_uq16he8
 name: WH-UQ16HE8
 manufacturer: Panasonic
@@ -20,9 +26,12 @@ cop_definition: "Q_cond / (E_cmp + E_fan), heating"
 source:
   document: "Panasonic Aquarea WH-UQ series service manual / 2025 catalogue"
   table: "references/Panasonic_R410A_9-12-16 kW.png (heating performance table)"
+  compressor: "service-manual parts list (JD rotary 5JD650XBA22); refrigerant circuit, no injection port"
 published_inputs:
   displacement_cc: 65.0
   rated_air_flow_m3_s: 1.267
+  compressor_type: rotary
+  injection: none
 points:
   - id: 1
     t_source_C: -15

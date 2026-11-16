@@ -19,10 +19,21 @@ Fields
     The nameplate figure, as printed.
 ``published_inputs``
     Values the manufacturer publishes *about this machine*. Allowed:
-    ``displacement_cc``, ``rated_air_flow_m3_s``, ``rated_indoor_air_flow_m3_s``.
-    These are specification inputs, not tuning -- the same status as the
-    nameplate capacity. Anything absent falls back to the library default,
-    which is the case the derivation work is really about.
+    ``displacement_cc``, ``rated_air_flow_m3_s``, ``rated_indoor_air_flow_m3_s``,
+    ``rated_indoor_air_flow_heating_m3_s``, ``compressor_type`` and
+    ``injection``. These are specification inputs, not tuning -- the same
+    status as the nameplate capacity. Anything absent falls back to the library
+    default, which is the case the derivation work is really about.
+
+    ``compressor_type`` is the compressor kind the manufacturer documents
+    (:data:`PUBLISHED_COMPRESSOR_TYPES`: ``rotary``, ``scroll``, ``swing``). It
+    selects among the library's type-specific default efficiency models
+    through one fixed mapping (:data:`MODEL_COMPRESSOR_TYPE`); it carries no
+    coefficient. ``injection`` (:data:`INJECTION_KINDS`: ``none``, ``vapor``,
+    ``flash``) records whether the circuit injects vapour into the
+    compressor. The single-stage model has no injection, so it is never passed
+    to the model; it only splits the reported headline into the machines the
+    cycle represents and those it does not.
 ``points``
     The operating grid. ``t_source_C`` is outdoor air; ``t_sink_C`` is leaving
     water (ASHPB) or indoor dry bulb (ASHP); ``q_kW`` is the published duty;
@@ -51,8 +62,32 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CATALOG_DIR = REPO_ROOT / "validation" / "catalogs"
 
 ALLOWED_PUBLISHED_INPUTS = frozenset(
-    {"displacement_cc", "rated_air_flow_m3_s", "rated_indoor_air_flow_m3_s", "rated_indoor_air_flow_heating_m3_s"}
+    {
+        "displacement_cc",
+        "rated_air_flow_m3_s",
+        "rated_indoor_air_flow_m3_s",
+        "rated_indoor_air_flow_heating_m3_s",
+        "compressor_type",
+        "injection",
+    }
 )
+#: Compressor kinds a catalogue may publish (``published_inputs.compressor_type``).
+PUBLISHED_COMPRESSOR_TYPES = frozenset({"rotary", "scroll", "swing"})
+#: Injection kinds a catalogue may publish (``published_inputs.injection``).
+#: Reporting only: the single-stage model has no injection port.
+INJECTION_KINDS = frozenset({"none", "vapor", "flash"})
+#: The one mapping from a published compressor kind to the library's model type
+#: (:data:`tmhp.compressor_efficiency.COMPRESSOR_TYPES`). Every validation
+#: machine is inverter driven, and the documents do not say whether the JD
+#: rotaries are single or twin, while the library has one inverter rotary type,
+#: so ``rotary`` maps to it. A swing compressor (Daikin's rolling-piston rotary
+#: with the vane integral to the piston) runs on the same model. Scroll maps
+#: to scroll.
+MODEL_COMPRESSOR_TYPE: dict[str, str] = {
+    "rotary": "rotary_twin_inverter",
+    "swing": "rotary_twin_inverter",
+    "scroll": "scroll",
+}
 #: Rating standards a catalogue may declare. They define the test conditions
 #: and the COP boundary (net vs gross capacity, indoor fan heat), so results are
 #: never pooled across them -- ``run.py`` reports one headline per standard.
@@ -116,6 +151,26 @@ class Catalog:
                 f"specifications {sorted(ALLOWED_PUBLISHED_INPUTS)}; got {sorted(unknown)}. "
                 "A tuned coefficient does not belong in a validation catalogue."
             )
+        kind = self.published_inputs.get("compressor_type")
+        if kind is not None and kind not in PUBLISHED_COMPRESSOR_TYPES:
+            raise ValueError(
+                f"{self.slug}: compressor_type must be one of {sorted(PUBLISHED_COMPRESSOR_TYPES)}; got {kind!r}"
+            )
+        injection = self.published_inputs.get("injection")
+        if injection is not None and injection not in INJECTION_KINDS:
+            raise ValueError(f"{self.slug}: injection must be one of {sorted(INJECTION_KINDS)}; got {injection!r}")
+
+    @property
+    def model_compressor_type(self) -> str | None:
+        """The library compressor type for the published one, or ``None`` (library default)."""
+        kind = self.published_inputs.get("compressor_type")
+        return None if kind is None else MODEL_COMPRESSOR_TYPE[kind]
+
+    @property
+    def injected(self) -> bool | None:
+        """Whether the published circuit injects vapour; ``None`` when not published."""
+        injection = self.published_inputs.get("injection")
+        return None if injection is None else injection != "none"
 
 
 def load(path: Path) -> Catalog:

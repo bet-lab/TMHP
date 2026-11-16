@@ -37,6 +37,7 @@ import numpy as np
 import pytest
 
 from tmhp import AirSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
+from tmhp.compressor_efficiency import needs_state
 from tmhp.constants import c_w, rho_w
 from tmhp.dynamic_context import unphysical_cycle_detail
 
@@ -110,8 +111,17 @@ def _collapse_above(default, pr_limit: float, value: float = 0.003):
     It stays inside (0, 1], so the efficiency guard of ``_eval_eff`` accepts
     it: what such a fit produces has to be caught by the boiler's own
     judgement of the solved cycle, whatever efficiency model is plugged in.
-    Set after construction so the rating point keeps the default fit.
+    Set after construction so the rating point keeps the default fit. It is
+    called as the default is: the default rotary-compressor model needs the
+    suction state (``needs_state``), and is called ``model(PR, rps, state)``.
     """
+    if needs_state(default):
+
+        def eta_isen(pressure_ratio: float, rps: float, state=None) -> float:
+            return value if pressure_ratio > pr_limit else default(pressure_ratio, rps, state)
+
+        eta_isen.needs_state = True
+        return eta_isen
 
     def eta_isen(pressure_ratio: float, rps: float) -> float:
         return value if pressure_ratio > pr_limit else default(pressure_ratio, rps)
@@ -159,6 +169,11 @@ _LEGACY_HX = {
     ),
     "WSHPB": dict(UA_tank_hx=500.0, m_dot_w_rated=0.0, UA_water=500.0, dV_b_f_lpm=24.0, E_pmp=200.0, T_cond_max=None),
 }
+# Water reaching the water-source boiler at -5 °C is refused before the cycle is judged since the
+# source-fluid limits (#137): once a smaller duty escapes the collapsed fit, the point is off as
+# source_fluid_freezing and the collapse is not what the row reports. The #96 point is examined on a
+# loop of 25 % ethylene glycol, which runs at -5 °C (pressure ratio 8.9 at the request, above 7.15).
+_ANTIFREEZE_SOURCE = {("WSHPB", "R410A"): "MEG-25%"}
 _FAMILY_CLASS = {
     "ASHPB": AirSourceHeatPumpBoiler,
     "GSHPB": GroundSourceHeatPumpBoiler,
@@ -168,7 +183,10 @@ _FAMILY_CLASS = {
 
 @pytest.mark.parametrize(("family", "ref", "point", "pr_limit"), _COLLAPSE_CASES)
 def test_collapsed_user_efficiency_is_reported_as_failure(family: str, ref: str, point: dict, pr_limit: float) -> None:
-    model = _FAMILY_CLASS[family](ref=ref, **_LEGACY_HX.get(family, {}))
+    inputs = dict(_LEGACY_HX.get(family, {}))
+    if (family, ref) in _ANTIFREEZE_SOURCE:
+        inputs["source_fluid"] = _ANTIFREEZE_SOURCE[family, ref]
+    model = _FAMILY_CLASS[family](ref=ref, **inputs)
     model.eta_cmp_isen = _collapse_above(model.eta_cmp_isen, pr_limit)
     result = _steady(model, **point)
     if result["hp_is_on"]:

@@ -25,7 +25,7 @@ integrated model, its physical calculations represent the behavior of:
    Modeled with lumped-capacitance and DHW mixing logic.
 
 At each time step, the model finds the minimum-power operating point
-(compressor + fan) via bounded 1-D optimisation (Brent's method) over
+(compressor + fan + fixed control power) via bounded 1-D optimisation (Brent's method) over
 the evaporator approach temperature difference.
 
 .. note::
@@ -94,6 +94,7 @@ from .compressor_envelope import (
 )
 from .compressor_speed import solve_compressor_speed
 from .constants import c_w, rho_w
+from .control_power import CONTROL_POWER_SINK_WATER_W
 from .cycling import (
     CC_WATER_DEFAULT,
     MIN_CAPACITY_KEY,
@@ -326,7 +327,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     ε-NTU; ``m_dot_w_rated`` by default, ``m_dot_w`` of a call), or, without
     flow, ``dT_ref_tank = Q_ref_tank / UA_tank_hx``. A bounded
     1-D optimiser (Brent's method) minimises total electrical
-    input (``E_cmp + E_ou_fan``) over the evaporator approach.
+    input (``E_cmp + E_ou_fan + E_ctrl``) over the evaporator approach.
 
     **Default heat exchangers.** ``UA_tank_hx`` and ``UA_ou_rated`` left out
     are the effective conductances that reproduce the approach temperatures
@@ -369,6 +370,17 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     ``defrost=False`` (or ``None``) returns the frost-free steady state;
     ``RH_out`` (``RH_out_schedule`` in a dynamic run, ``inputs["RH_out"]`` in
     ``step``) is the outdoor relative humidity, 0.84 when not given.
+
+    **Fixed control power.** ``E_ctrl`` [W] is what the running unit draws
+    besides the compressor and the fan -- control board, sensors,
+    communications, drive standby (:mod:`tmhp.control_power`). It is part of
+    ``E_tot [W]`` and ``cop_sys [-]`` and is reported as ``E_ctrl [W]``; the
+    default 15 W is the median off/standby declaration of Heat Pump Keymark
+    air-to-water certificates, ``E_ctrl=0`` the machine without it. It is
+    averaged like the machine's other inputs: with the power fraction of an
+    on/off mean (the off-period draw is in ``Cc``, not added again), with the
+    run-time fraction of a dynamic step, unchanged through a defrost; an off
+    row has none.
     """
 
     _RATING_FAMILY = "ASHPB"
@@ -377,6 +389,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     _RUNTIME_SCALED_KEYS: tuple[str, ...] = (
         "E_cmp [W]",
         "E_ou_fan [W]",
+        "E_ctrl [W]",
         "E_tot [W]",
         "Q_ou_a [W]",
         "Q_ref_ou [W]",
@@ -399,7 +412,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         "dV_ou_a [m3/s]",
         "m_dot_ref [kg/s]",
     )
-    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_ou_fan [W]")
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_ou_fan [W]", "E_ctrl [W]")
     _CYCLING_SOURCE_HEAT_KEY: str | None = None
     #: Heat and flow rates averaged with the delivered-heat factor under frost.
     _FROST_RATE_KEYS: tuple[str, ...] = _CYCLING_RATE_KEYS
@@ -513,6 +526,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # Compressor type whose default efficiency models are used where
         # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
         compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
+        # Fixed control power of the running unit [W] (tmhp.control_power): control
+        # board, sensors, communications, drive standby. 0: none.
+        E_ctrl: float = CONTROL_POWER_SINK_WATER_W,
     ):
         validate_ctor("ASHPB", locals())
         self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
@@ -584,6 +600,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # Whether the last outdoor-approach search found every cycle on the speed floor.
         self._solve_bound_at_speed_floor: bool = False
         self.hp_capacity: float = hp_capacity
+        #: Fixed control power of the running unit [W] (part of ``E_tot``; :mod:`tmhp.control_power`).
+        self.E_ctrl: float = float(E_ctrl)
 
         self.n_ou: float = n_ou
 
@@ -936,6 +954,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                     "Q_tank_w_out [W]": Q_tank_w_out,
                     "Q_mix_sup_w_in [W]": Q_mix_sup_w_in,
                     "Q_mix_w_out [W]": Q_mix_w_out,
+                    "E_ctrl [W]": 0.0,
                     "E_tot [W]": 0.0,
                     # COP metrics
                     "cop_ref [-]": np.nan,
@@ -1280,6 +1299,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         Q_mix_sup_w_in = calc_energy_flow(G=c_w * rho_w * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=T0_K)
         Q_mix_w_out = mixed_water_enthalpy_flow(dV_mix_w_out_val, T_mix_w_out_val_K, T0_K)
 
+        # The whole electric draw of the running unit: compressor, outdoor fan
+        # and the fixed control power (tmhp.control_power).
+        E_tot: float = E_cmp + E_ou_fan + self.E_ctrl
+
         result = reportable_state(cs)
 
         result.update(
@@ -1337,10 +1360,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_tank_w_out [W]": Q_tank_w_out,
                 "Q_mix_sup_w_in [W]": Q_mix_sup_w_in,
                 "Q_mix_w_out [W]": Q_mix_w_out,
-                "E_tot [W]": E_cmp + E_ou_fan,
+                "E_ctrl [W]": self.E_ctrl,
+                "E_tot [W]": E_tot,
                 # COP metrics (analogous to X_eff_ref / X_eff_sys)
                 "cop_ref [-]": (Q_ref_tank_calc / E_cmp if E_cmp > 0 else np.nan),
-                "cop_sys [-]": (Q_ref_tank_calc / (E_cmp + E_ou_fan) if (E_cmp + E_ou_fan) > 0 else np.nan),
+                "cop_sys [-]": (Q_ref_tank_calc / E_tot if E_tot > 0 else np.nan),
             }
         )
 
@@ -2152,6 +2176,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                         "Q_ref_ou [W]": 0.0,
                         "E_cmp [W]": 0.0,
                         "E_ou_fan [W]": 0.0,
+                        "E_ctrl [W]": 0.0,
                         "E_tot [W]": 0.0,
                         "T_tank_w [°C]": T_tank_w,
                         "T0 [°C]": T0,
@@ -3244,7 +3269,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # Subsystems handle their own exergy via _postprocess hook.
 
         # ── 9. Total exergy input (system-level) ──────────
-        X_tot = df["E_cmp [W]"] + df["E_ou_fan [W]"]
+        X_tot = df["E_cmp [W]"] + df["E_ou_fan [W]"] + df["E_ctrl [W]"]
         if "X_uv [W]" in df.columns:
             X_tot = X_tot + df["X_uv [W]"].fillna(0)
         df["X_tot [W]"] = X_tot
@@ -3263,6 +3288,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             df["X_ref_cmp_in [W]"] + df["X_a_ou_mid [W]"]
         )
         df["Xc_ou_fan [W]"] = df["X_ou_fan [W]"] + df["X_a_ou_mid [W]"] - df["X_a_ou_out [W]"]
+        # The control power warms no stream of the balance: its exergy is destroyed.
+        df["Xc_ctrl [W]"] = df["X_ctrl [W]"]
         df["Xc_mix [W]"] = df["X_tank_w_out [W]"] + df["X_mix_sup_w_in [W]"] - df["X_mix_w_out [W]"]
 
         # 10g. Storage tank

@@ -9,7 +9,10 @@ a fixed control and electronics power.
 
 Why a fixed power
 -----------------
-The model's electrical input ``E_tot`` is the compressor plus the outdoor fan. A real unit also draws a control
+When this study was made the model's electrical input ``E_tot`` was the compressor plus the outdoor fan. (The
+library has carried that power since as the input ``E_ctrl``, :mod:`tmhp.control_power`, with the medians read
+here as its defaults; the study still runs every model with ``E_ctrl=0`` and adds the power afterwards, so its
+tables are the ones the choice was made on.) A real unit also draws a control
 board, sensors, communications and the drive's own standby; at the lightest EN 14825 point (D, at the 15 rev/s
 floor) a constant 15 W is 4-5 % of the modelled input. Heat Pump Keymark declares two such powers on every certificate
 (``validation/data/auxiliary_power/``, extracted by :mod:`validation.auxiliary_power.pto_proxy`): the
@@ -91,10 +94,13 @@ APPLICATIONS = ("low", "medium")
 POINTS = ("A", "B", "C", "D")
 RATIOS = {"B/A": "B", "C/A": "C", "D/A": "D"}
 
+#: The model without the library's fixed control power: the study adds its own levels afterwards
+#: (:func:`with_fixed_power`), and "none" is the model as it was shipped when the study was made.
+NO_CONTROL_POWER: dict = {"E_ctrl": 0.0}
 #: Model settings of the EN 14825 cases: those of the EN 14825 study (``en14825_trend.trajectory``).
-EN14825_SETTINGS: dict = {"Cd_cycling": None}
+EN14825_SETTINGS: dict = {"Cd_cycling": None, **NO_CONTROL_POWER}
 #: Model settings of the fixed-temperature curves: the running cycle, no frost (``fixed_boundary_plr``).
-CURVE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
+CURVE_SETTINGS: dict = {"Cd_cycling": None, "defrost": False, **NO_CONTROL_POWER}
 
 #: (capacity W, refrigerant, outdoor degC, leaving water degC)
 AIR_TO_WATER_CURVES = (
@@ -334,7 +340,7 @@ def parity_catalog(variant: str, slug: str) -> pd.DataFrame:
     catalog = load_all(slug)[0]
     kind = catalog.model_compressor_type
     overrides = {"compressor_type": spec(variant, kind)} if kind and kind.startswith("rotary") else {}
-    df = run_catalog(catalog, overrides)
+    df = run_catalog(catalog, overrides | NO_CONTROL_POWER)
     df = df[df.status == "adopted"][list(PARITY_COLUMNS)].copy()
     df.insert(0, "variant", variant)
     df["model_compressor_type"] = kind

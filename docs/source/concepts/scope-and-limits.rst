@@ -150,12 +150,17 @@ The refrigerant cycle
         them). Below the minimum speed, ASHP and GSHP rows and every
         ``analyze_steady`` apply the EN 14825 degradation instead
         (``E_cycling_loss [W]``)
-    * - No standby power
-      - An off row draws nothing: crankcase heater, controls and an idling
-        pump are not modelled, except through the EN 14825 ``Cc`` of a
-        boiler's steady on/off mean
+    * - Control power only while the unit operates
+      - A running unit draws a fixed control power besides its compressor,
+        fans and pumps (``E_ctrl``: 15 W to water, 12 W to air, medians of
+        Heat Pump Keymark declarations, :mod:`tmhp.control_power`). An off row
+        draws nothing: crankcase heater, standby controls and an idling pump
+        are not modelled, except through the EN 14825 ``Cc`` of a boiler's
+        steady on/off mean, which charges the off periods with a tenth of the
+        running input (``E_ctrl`` included, so no standby is added beside it)
       - ``E_tot [W]`` is 0 on off rows; add a standby load yourself for an
-        annual balance
+        annual balance (the ``P_SB``, ``P_OFF`` and ``P_TO`` hours of an
+        EN 14825 seasonal figure)
 
 Air side
 --------

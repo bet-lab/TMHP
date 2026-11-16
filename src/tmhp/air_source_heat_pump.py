@@ -63,6 +63,7 @@ from .compressor_speed import (
     CAPACITY_CLAMPED_MIN,
     solve_compressor_speed,
 )
+from .control_power import CONTROL_POWER_SINK_AIR_W
 from .cycling import (
     CD_AIR_DEFAULT,
     CONTINUOUS,
@@ -426,7 +427,7 @@ def _exergy_row(result: dict, ref: str) -> dict:
             row["X_ref_ou [W]"] = num("Q_ref_ou [W]") * (1 - T0_K / T_ou_sat_K)
 
         # ── 5. Total exergy input ───────────────────────
-        X_tot = num("E_cmp [W]") + filled("E_ou_fan [W]") + filled("E_iu_fan [W]")
+        X_tot = num("E_cmp [W]") + filled("E_ou_fan [W]") + filled("E_iu_fan [W]") + filled("E_ctrl [W]")
         row["X_tot [W]"] = X_tot
 
         # ── 6. Component exergy destruction (IU/OU naming) ──
@@ -473,6 +474,8 @@ def _exergy_row(result: dict, ref: str) -> dict:
         X_in_iu_fan = filled("X_iu_fan [W]") + X_a_iu_mid
         row["X_in_iu_fan [W]"], row["X_out_iu_fan [W]"] = X_in_iu_fan, X_a_iu_out
         row["Xc_iu_fan [W]"] = Xc_iu_fan = X_in_iu_fan - X_a_iu_out
+        # The control power warms no stream of the balance: its exergy is destroyed.
+        row["Xc_ctrl [W]"] = filled("E_ctrl [W]")
 
         # ── 7. Exergetic efficiency metrics ─────────────
         row["X_eff_sys [-]"] = divided(X_a_iu_out - X_a_iu_in, X_tot)
@@ -508,7 +511,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
     The refrigerant cycle is resolved via CoolProp with
     user-specified superheat / subcool margins.  A bounded
     2-D optimiser minimises total electrical input
-    (``E_cmp + E_iu_fan + E_ou_fan``) over the evaporator
+    (``E_cmp + E_iu_fan + E_ou_fan + E_ctrl``) over the evaporator
     and condenser approach temperatures.
 
     When the requested duty has no operating point -- the compressor runs
@@ -531,6 +534,14 @@ class AirSourceHeatPump(ReferenceStateMixin):
     (``discharge_temp_above_max``), and a request below the smallest duty that
     stays inside is met by cycling at that duty (``Q_min [W]``), not answered
     with the unit switched off.
+
+    ``E_ctrl`` [W] is the fixed control power of the running unit -- control
+    boards, sensors, communications, drive standby (:mod:`tmhp.control_power`).
+    It is part of ``E_tot [W]`` and ``cop_sys [-]`` and is reported as
+    ``E_ctrl [W]``; the default 12 W is the median thermostat-off power of
+    Heat Pump Keymark air-to-air certificates, ``E_ctrl=0`` the machine
+    without it. While the unit cycles it is drawn for the time the compressor
+    runs; a defrost leaves it as it is; an off row has none.
     """
 
     #: Heat and flow rates averaged with the capacity ratio while cycling.
@@ -546,7 +557,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: Electrical powers averaged with the runtime fraction while cycling. The
     #: indoor fan is not among them: it moves the delivered heat and is
     #: averaged with it (``E_iu_fan [W]`` times the capacity ratio).
-    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_ou_fan [W]")
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_ou_fan [W]", "E_ctrl [W]")
 
     #: Heat and flow rates averaged with the delivered-heat factor under frost.
     _FROST_RATE_KEYS: tuple[str, ...] = (
@@ -672,6 +683,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Compressor type whose default efficiency models are used where
         # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
         compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
+        # Fixed control power of the running unit [W] (tmhp.control_power): control
+        # boards, sensors, communications, drive standby. 0: none.
+        E_ctrl: float = CONTROL_POWER_SINK_AIR_W,
     ):
         validate_ctor("ASHP", locals())
         self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
@@ -770,6 +784,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # (None | ("pr_below_min", pr, bound) | ("pr_above_max", pr, bound)).
         self._last_pr_event: tuple[str, float, float] | None = None
         self.hp_capacity: float = hp_capacity
+        #: Fixed control power of the running unit [W] (part of ``E_tot``; :mod:`tmhp.control_power`).
+        self.E_ctrl: float = float(E_ctrl)
 
         self.n_ou: float = n_ou
         self.n_iu: float = n_iu
@@ -1039,6 +1055,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     "indoor_heat_direction_valid": True,
                     "Q_ref_ou [W]": 0.0,
                     "E_cmp [W]": 0.0,
+                    "E_ctrl [W]": 0.0,
                     "E_tot [W]": 0.0,
                     # COP metrics
                     "cop_ref [-]": np.nan,
@@ -1309,7 +1326,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         # Check overall convergence
         is_converged = ou_hx.get("converged", True) and iu_hx.get("converged", True) and converged_rps
-        E_tot: float = E_cmp + E_ou_fan + E_iu_fan
+        # The whole electric draw of the running unit: compressor, both fans and
+        # the fixed control power (tmhp.control_power).
+        E_tot: float = E_cmp + E_ou_fan + E_iu_fan + self.E_ctrl
         # Final outlet already includes fan heat. Keep the coil-load residual
         # and operating-point objective unchanged; only the reported COP changes.
         G_iu_a = C_iu_a
@@ -1368,6 +1387,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 "indoor_heat_direction_valid": heat_direction_valid,
                 "Q_ref_ou [W]": Q_ref_ou,
                 "E_cmp [W]": E_cmp,
+                "E_ctrl [W]": self.E_ctrl,
                 "E_tot [W]": E_tot,
                 # Refrigerant COP uses coil duty; system COP uses final air delivery.
                 "cop_ref [-]": (Q_ref_iu / E_cmp if E_cmp > 0 else np.nan),
@@ -3200,7 +3220,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             df["X_ref_ou [W]"] = df["Q_ref_ou [W]"] * (1 - T0_K / T_ou_sat_K)
 
         # ── 5. Total exergy input ───────────────────────
-        X_tot = df["E_cmp [W]"] + df["E_ou_fan [W]"].fillna(0) + df["E_iu_fan [W]"].fillna(0)
+        X_tot = (
+            df["E_cmp [W]"] + df["E_ou_fan [W]"].fillna(0) + df["E_iu_fan [W]"].fillna(0) + df["E_ctrl [W]"].fillna(0)
+        )
         df["X_tot [W]"] = X_tot
 
         # ── 6. Component exergy destruction (IU/OU naming) ──
@@ -3264,6 +3286,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         df["X_in_iu_fan [W]"] = df["X_iu_fan [W]"].fillna(0) + X_a_iu_mid
         df["X_out_iu_fan [W]"] = X_a_iu_out
         df["Xc_iu_fan [W]"] = df["X_in_iu_fan [W]"] - df["X_out_iu_fan [W]"]
+        # The control power warms no stream of the balance: its exergy is destroyed.
+        df["Xc_ctrl [W]"] = df["E_ctrl [W]"].fillna(0)
 
         # ── 7. Exergetic efficiency metrics ─────────────
         # System exergetic efficiency

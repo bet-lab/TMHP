@@ -224,7 +224,7 @@ Metered electricity and delivered heat
 ======================================
 
 The metered power is the **system total** ``E_tot`` of the solved cycle,
-compressor plus outdoor fan. The heat handed to the plant loop and the metered
+compressor plus outdoor fan plus the fixed control power ``E_ctrl``. The heat handed to the plant loop and the metered
 power always belong to the same operating state:
 
 .. code-block:: text

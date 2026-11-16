@@ -67,7 +67,8 @@ the tank heat exchanger is solved against the heat actually delivered
 ``analyze_steady`` reports a request below the minimum-speed duty as the mean
 of on/off cycling, exactly as :doc:`gshpb` does (:ref:`boiler-steady-cycling`):
 ``Q_ref_tank [W]`` equals the request, ``runtime_fraction [-]`` is the share
-of the time the compressor runs, and ``E_cmp``, ``E_pmp`` and ``E_tot`` carry
+of the time the compressor runs, and ``E_cmp``, ``E_pmp``, ``E_ctrl`` and
+``E_tot`` carry
 the EN 14825 degradation for a unit delivering to water (``Cd_cycling``, the
 standard's ``Cc``, 0.9 by default; ``None`` returns the continuous
 minimum-speed point). The default machine at 10 °C source water and a 35 °C

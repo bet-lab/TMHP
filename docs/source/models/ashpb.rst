@@ -106,9 +106,11 @@ water (:ref:`boiler-steady-cycling` has the formula and a table):
 - ``runtime_fraction [-]`` equals the capacity ratio. Heat and flow rates
   (``Q_ref_tank``, ``Q_ref_ou``, ``Q_ou_a``, ``m_dot_ref``, ``dV_ou_a``) are
   the running values times it, as in a dynamic step.
-- ``E_cmp``, ``E_ou_fan`` and ``E_tot`` are the running values times
-  ``CR + (1 − Cc)(1 − CR)``: the unit keeps drawing ``1 − Cc`` of its running
-  input while the compressor is off. Both COPs are the continuous ones times
+- ``E_cmp``, ``E_ou_fan``, ``E_ctrl`` and ``E_tot`` are the running values
+  times ``CR + (1 − Cc)(1 − CR)``: the unit keeps drawing ``1 − Cc`` of its
+  running input while the compressor is off (the control power is part of
+  that input, so no standby is added beside it:
+  :ref:`fixed-control-power`). Both COPs are the continuous ones times
   ``part_load_factor [-]``; ``E_cycling_loss [W]`` is the off-state part.
 - Temperatures, pressures and speed are those of the running machine.
 
@@ -687,7 +689,7 @@ assumes the lamp in a quartz sleeve inside the tank (its UV, light and heat
 all end in the water) and its ballast (about 90 % efficient) in the control
 box outside; set 1.0 when both are inside the tank boundary.
 
-``E_tot [W]`` includes the lamp: ``E_tot = E_cmp + E_ou_fan + E_uv`` on the
+``E_tot [W]`` includes the lamp: ``E_tot = E_cmp + E_ou_fan + E_ctrl + E_uv`` on the
 base boiler (``E_pmp`` in place of the fan on the ground- and water-source
 boilers). The PV + ESS variants route that ``E_tot``, so the lamp is counted
 once. COP columns (``cop_ref``, ``cop_sys``) describe the heat-pump cycle and
@@ -718,7 +720,8 @@ closes (all in W)::
    E_ess_chg - E_ess_dis = C_ess_max * dSOC_ess/dt + Q_l_ess
 
 ``E_tot`` is the whole electric draw of the system: compressor, ``E_ou_fan``
-(outdoor fan) and the UV lamp ``E_uv`` when one is attached. ``E_inv_out`` is the
+(outdoor fan), the fixed control power ``E_ctrl`` and the UV lamp ``E_uv`` when
+one is attached. ``E_inv_out`` is the
 AC power out of the inverter only (it excludes ``E_grid_import``). ``cop_grid`` is
 ``Q_tank_w_out / E_grid_import`` and is NaN while the import is at most 1 mW
 (``tmhp.subsystems.GRID_IMPORT_FLOOR_W``): without a grid draw there is no

@@ -47,7 +47,7 @@ class GSHPB_STC_ground(STCScenario, GroundSourceHeatPumpBoilerRun):
     """GSHPB + SolarThermalCollector in *ground-loop* (borehole) placement.
 
     ``E_tot [W]`` is the whole electric draw: compressor + source-loop pump +
-    the collector-loop pump ``E_stc_pump [W]`` (which runs whenever the
+    control power (``E_ctrl``) + the collector-loop pump ``E_stc_pump [W]`` (which runs whenever the
     collector is active).  Every step the collector balance closes::
 
         Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc

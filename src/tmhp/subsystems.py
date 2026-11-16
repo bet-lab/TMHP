@@ -1154,7 +1154,7 @@ def add_uv_power_to_e_tot(row: dict) -> float:
     The UV subsystem reports ``E_uv [W]`` through ``assemble_results`` but the
     cycle assembly that sets ``E_tot [W]`` runs before it, so the lamp is added
     here.  ``E_tot`` is the electricity the system draws:
-    compressor + fans/pumps + solar-loop pump + UV lamp.
+    compressor + fans/pumps + control power + solar-loop pump + UV lamp.
     """
     e_tot = row.get("E_tot [W]", 0.0)
     e_tot = 0.0 if e_tot is None or np.isnan(e_tot) else float(e_tot)

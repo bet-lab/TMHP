@@ -18,7 +18,7 @@ VARIABLE_DESCRIPTIONS: Mapping[str, str] = {
     "dhw_draw": "DHW draw-off volumetric flow rate",
     "T_sup_w": "Mains supply water temperature",
     "E_cmp": "Compressor electric power averaged over the communication step",
-    "E_tot": "Total system electric power (compressor and fan) averaged over the communication step",
+    "E_tot": "Total system electric power (compressor, fan and control power) averaged over the communication step",
     "Q_ref_tank": "Condenser heat transfer rate to the tank averaged over the communication step",
     "cop_sys": "System coefficient of performance of the running cycle (Q_ref_tank / E_tot)",
     "T_tank_w": "Tank water temperature after the step",

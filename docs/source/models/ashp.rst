@@ -545,7 +545,8 @@ flows use the actual indoor airflow and the same outdoor reference temperature.
 The final outlet already includes indoor fan heat: net cooling equals coil
 duty minus indoor fan power, while net heating equals coil duty plus that
 power. Do not add or subtract it a second time. The denominator includes
-compressor, indoor fan and outdoor fan electricity.
+compressor, indoor fan and outdoor fan electricity and the fixed control
+power ``E_ctrl [W]`` (:ref:`fixed-control-power`).
 
 ``indoor_heat_direction_valid`` identifies delivery in the requested mode.
 Opposite-direction transfer or zero airflow during active operation gives

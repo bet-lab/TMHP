@@ -330,6 +330,8 @@ _CYCLE = {
     "PR_cycle_max": "pos",
     "rps_rated": "pos",
     "m_dot_ref_rated": "pos",
+    # Fixed control power of the running unit [W] (tmhp.control_power); 0 = none.
+    "E_ctrl": "nonneg",
     # Compressor envelope (tmhp.compressor_envelope): "auto" or a temperature, None = off.
     "T_dis_max": "T_dis",
     "x_suction_min": "quality",

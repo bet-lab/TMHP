@@ -25,7 +25,8 @@ extend it the same way ASHPB's do:
 - :class:`tmhp.GSHPB_PV_ESS`
 
 The base class and all variants report ``E_tot [W]`` as the whole electric
-draw: compressor ``E_cmp`` + source-loop pump ``E_pmp`` + the collector-loop
+draw: compressor ``E_cmp`` + source-loop pump ``E_pmp`` + the fixed control
+power ``E_ctrl`` (:ref:`fixed-control-power`) + the collector-loop
 pump ``E_stc_pump`` (tank, ground, routed; the mains-driven preheat has none)
 + the UV lamp ``E_uv`` (the base class and ``GSHPB_PV_ESS`` with ``uv=``; the
 STC variants do not simulate a ``uv=`` lamp and warn if one is passed). The
@@ -385,7 +386,7 @@ same keys as :doc:`ashp` and :doc:`gshp` (:mod:`tmhp.cycling`):
   *CR*: heat and refrigerant rates (``Q_ref_tank``, ``Q_ref_ground``,
   ``m_dot_ref``) are the running values times it. This is how a dynamic step
   reports a compressor that ran part of the step.
-- The electrical inputs (``E_cmp``, ``E_pmp``, ``E_tot``) carry the EN 14825
+- The electrical inputs (``E_cmp``, ``E_pmp``, ``E_ctrl``, ``E_tot``) carry the EN 14825
   degradation for a unit delivering to water,
   ``COP = COP_min · CR / (Cc · CR + 1 − Cc)``. The standard takes the start-up
   loss of a hydronic unit as negligible and charges the power the unit draws
@@ -870,7 +871,7 @@ Routing and balances are the same as for :class:`~tmhp.ASHPB_PV_ESS` (see
 :doc:`ashpb`): no grid export (surplus is ``E_dump``), every loss is a column
 (``Q_l_ctrl``, ``Q_l_inv``, ``Q_l_ess``) and each step closes
 ``E_pv_out = Q_l_ctrl + E_pv_to_inv + E_ess_chg + E_dump`` and
-``E_tot = E_inv_out + E_grid_import`` with ``E_tot = E_cmp + E_pmp + E_uv``.
+``E_tot = E_inv_out + E_grid_import`` with ``E_tot = E_cmp + E_pmp + E_ctrl + E_uv``.
 
 .. autoclass:: tmhp.GSHPB_PV_ESS
     :members:

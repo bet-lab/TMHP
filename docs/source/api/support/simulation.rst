@@ -38,6 +38,14 @@ Frost and defrost of an outdoor coil
     :undoc-members:
     :show-inheritance:
 
+Fixed control power
+===================
+
+.. automodule:: tmhp.control_power
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Operating-limit warnings and summaries
 ======================================
 

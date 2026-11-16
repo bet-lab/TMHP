@@ -21,7 +21,8 @@ Per-step balances (every term is a result column, [W])::
     E_inv_out = eta_inv · (E_pv_to_inv + E_ess_dis),  Q_l_inv = (1-eta_inv)·(...)
     E_ess_chg - E_ess_dis = C_ess_max·ΔSOC_ess/dt + Q_l_ess
 
-``E_tot`` is the whole electric draw: compressor + source-loop pump + UV lamp.
+``E_tot`` is the whole electric draw: compressor + source-loop pump + control
+power (``E_ctrl``) + UV lamp.
 
 .. note::
    See the project paper for the orchestration logic and energy/exergy
@@ -131,7 +132,7 @@ class GSHPB_PV_ESS(GroundSourceHeatPumpBoilerRun):
         hp_res = super()._augment_results(base_result, ctx, ctrl, sub_states, T_solved_K)
 
         # 2. Electric load this step [W]: the base boiler's E_tot, which already
-        #    holds compressor + source-loop pump + UV lamp (NaN-safe).
+        #    holds compressor + source-loop pump + control power + UV lamp (NaN-safe).
         e_tot = hp_res.get("E_tot [W]")
         E_load = float(e_tot) if e_tot is not None and math.isfinite(e_tot) else 0.0
         hp_res["E_tot [W]"] = E_load

@@ -5,8 +5,8 @@
     duty, a number recorded from an earlier commit, a point that lies just
     inside or outside the compressor envelope -- on the machine a bare
     constructor built before the catalogue default inputs (issue #86), the
-    R290 default of the air-source boiler and the semi-empirical compressor
-    models. What such a test examines is the mechanism at that scenario, not
+    R290 default of the air-source boiler, the semi-empirical compressor
+    models and the fixed control power. What such a test examines is the mechanism at that scenario, not
     the default: with another displacement, refrigerant or efficiency map the
     same request sits somewhere else in the envelope and the test would pass
     or fail for a reason it was not written for.
@@ -43,7 +43,12 @@
       (``eta_isen_below_min``) left the library with it and is not restored;
     - the compressor speed ceiling of before the fixed 120 rev/s, where the
       test gives no ``rps_max``: ``max(min(2 rps_rated, 120), 1.5 rps_rated)``
-      (:func:`earlier_rps_max`).
+      (:func:`earlier_rps_max`);
+    - no fixed control power (``E_ctrl = 0``) for every family: the electrical
+      input was the compressor with its fans and pumps (15 W for a unit
+      delivering to water and 12 W for one delivering to air now,
+      :mod:`tmhp.control_power`; the accounting of the default is examined in
+      ``tests/test_control_power.py``).
 
     These are explicit inputs given on the test's behalf -- the constructors
     still take them through ``default_input_estimates`` -- so the scenario
@@ -101,6 +106,17 @@ EARLIER_AIRFLOW_PER_W = {
 EARLIER_ARGUMENTS: tuple[tuple[type, str, Any], ...] = (
     (AirSourceHeatPumpBoiler, "ref", "R134a"),  # R290 now
     (AirSourceHeatPump, "dT_approach_bounds", (1.0, 20.0)),  # (1, 30) now
+    # No fixed control power (15 W to water, 12 W to air now: tmhp.control_power).
+    *(
+        (cls, "E_ctrl", 0.0)
+        for cls in (
+            AirSourceHeatPump,
+            AirSourceHeatPumpBoiler,
+            GroundSourceHeatPump,
+            GroundSourceHeatPumpBoiler,
+            WaterSourceHeatPumpBoiler,
+        )
+    ),
 )
 
 
@@ -236,8 +252,8 @@ def earlier_rps_max(rps_rated: float) -> float:
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
-        f"{MARKER}: build models with the default inputs of before issue #86, the R290 air-source boiler and the "
-        "semi-empirical compressor models (tests/conftest.py)",
+        f"{MARKER}: build models with the default inputs of before issue #86, the R290 air-source boiler, the "
+        "semi-empirical compressor models and the fixed control power (tests/conftest.py)",
     )
     config.addinivalue_line("markers", f"{OPT_OUT}: inside an {MARKER} module, build models with the present defaults")
 

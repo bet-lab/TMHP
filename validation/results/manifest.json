@@ -1,14 +1,14 @@
 {
  "coefficient_version": "semi-empirical-2026-11-15",
- "src_tmhp_tree": "a1a08c0234a8f42beb5291f69a9560572da34500",
+ "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
  "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
  "dirty_digest": null,
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "git_head": "ae8f35b91282ece506ecd59de93f91f84d7b2aee",
+ "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
  "git_heads": [
-  "ae8f35b91282ece506ecd59de93f91f84d7b2aee"
+  "3faac8ac39039f969e9de41dbe8553c239579f96"
  ],
  "dirty": false,
  "dirty_scope": [
@@ -18,8 +18,8 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "run_started": "2026-11-16T02:14:32+00:00",
- "run_finished": "2026-11-16T02:14:37+00:00",
+ "run_started": "2026-11-16T03:01:40+00:00",
+ "run_finished": "2026-11-16T03:01:45+00:00",
  "provenance": "provenance/<slug>.json, one per unit",
  "space_conditioning_cop_basis": "final_indoor_air_sensible",
  "units": 17,

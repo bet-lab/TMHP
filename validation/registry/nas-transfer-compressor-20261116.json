@@ -10,7 +10,7 @@
  "nfs_read_sha256": "57/57 matched (sha256sum on ml-main, /mnt/datasets)",
  "nas_payload_root": "/mnt/datasets",
  "smb_payload_root": "/Volumes/datasets",
- "destination_preflight": "all 54 dataset folders absent before upload; files already in the dataset catalogue by SHA-256 (2) or by content (1) were not uploaded (not_uploaded below)",
+ "destination_preflight": "all 54 new dataset folders absent before upload; two files already in the catalogue with the same SHA-256 were not uploaded; one (Samsung HT Quiet data book) replaces the unrecorded copy of an existing catalogue dataset",
  "shared_nas_metadata_written": false,
  "catalogue_registration": "bet-lab/dataset-catalog#108 (draft; one dataset per document, energy-systems/<id>; AREP #11, #21 and #33 keep the ORNL copy in the same dataset). Not merged or published yet.",
  "owner_approval": "2026-11-16, input prompt of the TMHP integration PR session: register the compressor originals (AHRI AREP reports, paper author versions, validation-unit service manuals) as research inputs; author versions kept lab-internal only",
@@ -663,8 +663,10 @@
    "source_file": "data-sources/pdf2/samsung_HTQuiet_R32_tdb.pdf",
    "bytes": 4659734,
    "sha256": "0fceed2c53000b776b2c570a3d1e8db454b928a873f6f460b8352b559e8e250a",
-   "reason": "same_document_recompressed",
-   "catalogue_dataset": "energy-systems/samsung-ehs-mono-ht-quiet-r32-50hz-held-copy"
+   "reason": "replaced_existing_file",
+   "catalogue_dataset": "energy-systems/samsung-ehs-mono-ht-quiet-r32-50hz-held-copy",
+   "nas_path": "energy-systems/samsung-ehs-mono-ht-quiet-r32-50hz-held-copy/files/source/tdb-ehs-mono-ht-quiet-for-europe-r32-50hz-hp-ver.2.1-221005-compressed-compressed.pdf",
+   "note": "Uploaded into the existing catalogue dataset, replacing an unrecorded copy with the same content (SMB read-back, NAS shell and NFS sha256sum matched)."
   }
  ]
 }

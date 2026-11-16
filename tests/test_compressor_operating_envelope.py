@@ -111,8 +111,11 @@ def test_every_family_carries_the_envelope(cls):
 
 
 def test_default_rps_max_rule():
-    assert default_rps_max(30.0) == 60.0
+    # The ceiling belongs to the compressor, not to the nameplate: every machine
+    # rated at 80 rev/s or below gets the same 120 rev/s.
+    assert default_rps_max(30.0) == RPS_MAX_ABSOLUTE == 120.0
     assert default_rps_max(70.0) == RPS_MAX_ABSOLUTE
+    assert default_rps_max(80.0) == RPS_MAX_ABSOLUTE
     # A machine already rated fast keeps 1.5x headroom (catalogue max/rated <= 1.52).
     assert default_rps_max(90.0) == 135.0
     assert RATED_SPEED_SEARCH_MAX > RPS_MAX_ABSOLUTE
@@ -131,18 +134,23 @@ def test_rps_max_follows_the_rated_speed_after_it_is_solved():
 def test_explicit_rps_max_and_rated_speed_are_kept():
     hp = _quiet(tmhp.WaterSourceHeatPumpBoiler, rps_max=130.0)
     assert hp.rps_max == 130.0
+    # A given rated speed is kept; the ceiling does not follow it (default_rps_max).
     fixed = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0, rps_rated=40.0)
-    assert fixed.rps_max == 80.0
+    assert fixed.rps_rated == 40.0
+    assert fixed.rps_max == RPS_MAX_ABSOLUTE
 
 
 def test_speed_ceiling_caps_air_to_air_capacity_in_the_cold():
-    """The former 150 rev/s let ASHP deliver 150 % of nameplate at -25 degC."""
+    """A request for 150 % of nameplate at -25 degC is cut back to what the speed ceiling delivers."""
     hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0)
     r = _quiet(hp.analyze_steady, Q_r_iu=-6000.0, T0=-25.0, T_a_room=20.0, verbose=False)
     assert _running(r)
     assert r["capacity_clamped"] == "max"
     assert r["cmp_rpm [rpm]"] / 60.0 <= hp.rps_max + 1e-6
-    assert abs(r["Q_ref_iu [W]"]) < hp.hp_capacity
+    # Well short of the request. With the 120 rev/s ceiling (not twice the rated
+    # speed) the machine holds about its nameplate there, as cold-climate inverter
+    # units do down to their rated low temperature; it no longer falls below it.
+    assert abs(r["Q_ref_iu [W]"]) < 0.75 * 6000.0
 
 
 # ---------------------------------------------------------------------------

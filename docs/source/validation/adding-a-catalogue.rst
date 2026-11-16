@@ -72,6 +72,8 @@ The catalogue file
       table: "Capacity tables, cooling and heating at nominal frequency"
     published_inputs:
       rated_indoor_air_flow_m3_s: 0.2067
+      compressor_type: swing         # rotary | scroll | swing
+      injection: none                # none | vapor | flash
     points:
       - {id: 1, t_source_C: 35, t_sink_C: 27, q_kW: 3.28, power_kW: 1.04, mode: cooling}
       - {id: 2, t_source_C: 7,  t_sink_C: 20, q_kW: 4.38, power_kW: 0.98, mode: heating}
@@ -82,12 +84,36 @@ The catalogue file
     capacity and ``t_sink_C`` is indoor dry bulb.
 
 ``published_inputs``
-    Values the manufacturer publishes *about this machine*. Only three keys are
-    accepted — ``displacement_cc``, ``rated_air_flow_m3_s`` and
-    ``rated_indoor_air_flow_m3_s`` — and the loader raises on anything else.
-    These have the same status as the nameplate capacity: specification, not
-    tuning. Anything you omit falls back to the library default, which is the
-    case :doc:`the derivation work <defaults>` is really about.
+    Values the manufacturer publishes *about this machine*. The accepted keys
+    are ``displacement_cc``, ``rated_air_flow_m3_s``,
+    ``rated_indoor_air_flow_m3_s``, ``rated_indoor_air_flow_heating_m3_s``,
+    ``compressor_type`` and ``injection``, and the loader raises on anything
+    else. These have the same status as the nameplate capacity: specification,
+    not tuning. Anything you omit falls back to the library default, which is
+    the case :doc:`the derivation work <defaults>` is really about.
+
+``compressor_type`` and ``injection``
+    The compressor kind and the injection circuit, as the service manual or
+    parts list states them; write the evidence in the file's comment or under
+    ``source``. ``compressor_type`` is ``rotary``, ``scroll`` or ``swing`` and
+    selects one of the library's type-specific default efficiency models — it
+    carries no coefficient:
+
+    ========== ===========================
+    published  library ``compressor_type``
+    ========== ===========================
+    rotary     ``rotary_twin_inverter``
+    swing      ``rotary_twin_inverter``
+    scroll     ``scroll``
+    ========== ===========================
+
+    Every validation machine is inverter driven, and the documents do not say
+    whether a rotary is single or twin, so both rotary kinds run on the
+    library's one inverter rotary type. ``injection`` is ``none``, ``vapor`` or
+    ``flash``. It is never passed to the model — the cycle is single-stage —
+    and only splits the air-to-water headline into the machines the cycle
+    represents and those it does not; injection machines stay in the parity
+    set and in the pooled figure.
 
 Air-to-water points need no sink field. The harness runs each one as EN 14511
 states the rating: the water enters at ``t_sink_C`` less the standard's rise

@@ -10,6 +10,13 @@
 # air flow is likewise read verbatim from the service manual. Both are inputs,
 # not tuning -- every efficiency coefficient and conductance comes from the
 # library defaults.
+#
+# Compressor kind and injection are published facts too (T-CAP M, R290): the
+# compressor is an involute scroll, and the service manual's circuit carries an
+# economizer and a "2-WAY VALVE (INJECTION)"; the brochure states "R290 scroll
+# with injection technology". Hence compressor_type: scroll, injection: vapor.
+# The single-stage model has no injection, so this unit is reported in the
+# injection stratum of the headline and run with the scroll default.
 slug: panasonic_wh_wxg16me8
 name: WH-WXG16ME8
 manufacturer: Panasonic
@@ -20,9 +27,12 @@ cop_definition: "Q_cond / (E_cmp + E_fan), heating"
 source:
   document: "Panasonic Aquarea WH-WXG series service manual / 2025 catalogue"
   table: "references/Panasonic_R290_9-12-16 kW.png (heating performance table)"
+  compressor: "service manual: economizer and \"2-WAY VALVE (INJECTION)\"; brochure: \"R290 scroll with injection technology\""
 published_inputs:
   displacement_cc: 81.0
   rated_air_flow_m3_s: 1.800
+  compressor_type: scroll
+  injection: vapor
 points:
   - id: 1
     t_source_C: -15

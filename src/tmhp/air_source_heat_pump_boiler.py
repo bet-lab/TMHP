@@ -337,10 +337,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     default) and the outdoor coil as an evaporator at its rated airflow,
     recorded in ``default_input_estimates``.
 
-    Unless explicitly injected, compressor efficiencies use the
-    shared baseline correlations in :mod:`tmhp.compressor_efficiency`
-    (BITZER 2026-10-06), evaluated at PR and actual shaft speed in rev/s.
-    Scalar and user-supplied callable overrides remain supported.
+    Unless explicitly injected, compressor efficiencies are the default
+    models of ``compressor_type`` in :mod:`tmhp.compressor_efficiency`,
+    evaluated at the pressure ratio, the shaft speed in rev/s and the suction
+    state. A scalar or a callable given for one replaces that model.
 
     **Below the minimum capacity.** ``analyze_steady`` reports a request below
     what the compressor delivers at ``rps_min`` as the mean of on/off cycling
@@ -1367,9 +1367,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     #: Resolution of the edge between approaches with and without a cycle [K].
     _CYCLE_EDGE_TOL_K = 1e-3
     #: In-band candidates are no farther apart than the band width over this.
-    #: The objective is not unimodal in the band -- the guarded efficiency fit
-    #: has kinks (PR 7.15, 33.8 and 72.5 rev/s) and the speed floor another --
-    #: so the minimiser starts from the best of these, not from the band.
+    #: The objective is not unimodal in the band -- the speed floor puts a
+    #: kink in it, and so can an efficiency model the caller supplies -- so the
+    #: minimiser starts from the best of these, not from the band.
     _BAND_SCAN_INTERVALS = 4
     #: Tolerance of the minimisation around the best candidate [K]. Below it
     #: the objective is flat to the inner solvers' noise.

@@ -107,7 +107,7 @@ def block_data() -> dict[str, Any]:
         }
     drive = coeffs["drive"]
     return {
-        "SEMI_EMPIRICAL_VERSION": VERSION,
+        "COEFFICIENT_VERSION": VERSION,
         "SEMI_EMPIRICAL_TYPES": types,
         "SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS": speed_variants,
         "SEMI_EMPIRICAL_DRIVE": {"lam": drive["lam_median"], "beta": drive["beta"], "N_ref_rps": 60.0},

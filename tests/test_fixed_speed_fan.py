@@ -257,8 +257,14 @@ def test_fixed_fan_with_an_undersized_coil_fails_like_a_variable_fan():
 
 def test_ashpb_fixed_fan_with_an_undersized_coil_runs_at_the_duty_the_coil_carries():
     """9 kW is more than the small coil absorbs at its one airflow: the unit
-    runs at the largest duty the coil carries and says what bound it."""
-    hp = _ashpb(dV_fan_a_rated=1.4, dV_fan_a_min=1.4, dV_fan_a_max=1.4, UA_ou_rated=300.0)
+    runs at the largest duty the coil carries and says what bound it.
+
+    An 8 kW machine: with the 300 W/K coil the 15 kW default has no A7/W55
+    rating point (the reference solve finds no speed up to 150 rev/s; 400 W/K
+    is the smallest coil of 50 W/K steps it builds with). The coil carries
+    7.65 kW here at any capacity from 8 to 12 kW.
+    """
+    hp = _ashpb(hp_capacity=8000.0, dV_fan_a_rated=1.4, dV_fan_a_min=1.4, dV_fan_a_max=1.4, UA_ou_rated=300.0)
     out = hp.analyze_steady(T_tank_w=40.0, T0=7.0, Q_ref_tank=9000.0)
     assert out["converged"] and out["failure_reason"] == "none"
     assert out["capacity_clamped"] == "max" and out["capacity_binding"] == "outdoor_coil"

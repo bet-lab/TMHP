@@ -37,7 +37,7 @@ def check_delivery(row):
     assert difference * sign == pytest.approx(row["Q_ref_iu [W]"] + sign * row["E_iu_fan [W]"], abs=1e-6)
     assert row["cop_sys [-]"] == pytest.approx(abs(difference) / row["E_tot [W]"])
     assert row["cop_ref [-]"] == pytest.approx(row["Q_ref_iu [W]"] / row["E_cmp [W]"])
-    auxiliaries = ["E_iu_fan [W]", "E_ou_fan [W]" if "E_ou_fan [W]" in row else "E_pmp [W]"]
+    auxiliaries = ["E_iu_fan [W]", "E_ou_fan [W]" if "E_ou_fan [W]" in row else "E_pmp [W]", "E_ctrl [W]"]
     assert row["E_tot [W]"] == pytest.approx(row["E_cmp [W]"] + sum(row[k] for k in auxiliaries))
 
 

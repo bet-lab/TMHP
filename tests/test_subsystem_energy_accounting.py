@@ -8,7 +8,8 @@ result table reports must add up, step by step:
 - the PV/ESS power balances close (generation and consumption side, with every
   loss a column);
 - ``E_tot`` is the sum of every electric draw the class simulates (compressor,
-  outdoor fan or source-loop pump, collector-loop pump, UV lamp);
+  outdoor fan or source-loop pump, collector-loop pump, UV lamp, fixed control
+  power ``E_ctrl``);
 - the collector's heat is fully accounted for (absorbed = carried away + lost,
   carried away = delivered to the tank + delivered to the ground);
 - running the same model twice with the same inputs gives the same table.
@@ -332,10 +333,12 @@ def test_battery_balance_per_call():
 
 @pytest.mark.parametrize("name", CLASS_NAMES)
 def test_e_tot_is_the_sum_of_every_electric_draw(runs, name):
-    """compressor + outdoor fan (air) or source-loop pump (ground) + collector pump + UV lamp."""
+    """compressor + outdoor fan (air) or source-loop pump (ground) + collector pump + UV lamp + control power."""
     _, df, _ = runs[name]
     aux = "E_ou_fan [W]" if name.startswith("ASHPB") else "E_pmp [W]"
-    expected = col(df, "E_cmp [W]") + col(df, aux) + col(df, "E_stc_pump [W]") + col(df, "E_uv [W]")
+    expected = (
+        col(df, "E_cmp [W]") + col(df, aux) + col(df, "E_stc_pump [W]") + col(df, "E_uv [W]") + col(df, "E_ctrl [W]")
+    )
     np.testing.assert_allclose(col(df, "E_tot [W]"), expected, rtol=1e-12, atol=1e-9)
 
 
@@ -346,7 +349,7 @@ def test_collector_pump_power_is_reported_and_counted(runs, name):
     pump = col(df, "E_stc_pump [W]")
     assert (pump > 0).any(), "collector pump never ran"
     aux = "E_ou_fan [W]" if name.startswith("ASHPB") else "E_pmp [W]"
-    without_pump = col(df, "E_cmp [W]") + col(df, aux)
+    without_pump = col(df, "E_cmp [W]") + col(df, aux) + col(df, "E_ctrl [W]")
     np.testing.assert_allclose(col(df, "E_tot [W]") - without_pump, pump, rtol=1e-12, atol=1e-9)
 
 
@@ -367,13 +370,14 @@ def test_pv_ess_with_uv_lamp_includes_lamp_in_e_tot(runs):
         lamp = col(df, "E_uv [W]")
         assert lamp.sum() > 0
         aux = "E_ou_fan [W]" if name.startswith("ASHPB") else "E_pmp [W]"
+        ctrl = col(df, "E_ctrl [W]")
         np.testing.assert_allclose(
-            col(df, "E_tot [W]") - lamp, col(df, "E_cmp [W]") + col(df, aux), rtol=1e-12, atol=1e-9
+            col(df, "E_tot [W]") - lamp, col(df, "E_cmp [W]") + col(df, aux) + ctrl, rtol=1e-12, atol=1e-9
         )
         # The inverter and the grid supply exactly that load: the lamp is not counted twice.
         np.testing.assert_allclose(
             col(df, "E_inv_out [W]") + col(df, "E_grid_import [W]"),
-            col(df, "E_cmp [W]") + col(df, aux) + lamp,
+            col(df, "E_cmp [W]") + col(df, aux) + ctrl + lamp,
             rtol=1e-9,
             atol=1e-6,
         )
@@ -392,7 +396,7 @@ BASE_BOILERS = {
 
 @pytest.mark.parametrize("name", list(BASE_BOILERS))
 def test_base_boiler_e_tot_includes_the_uv_lamp(name):
-    """E_tot = compressor + fan/pump + lamp on every step, whether the compressor runs or not.
+    """E_tot = compressor + fan/pump + control power + lamp on every step, whether the compressor runs or not.
 
     The base boilers used to leave ``uv=`` power out of E_tot (only the PV + ESS
     variants added it).
@@ -412,7 +416,8 @@ def test_base_boiler_e_tot_includes_the_uv_lamp(name):
     assert (running & (e_uv > 0)).any() and (~running & (e_uv > 0)).any(), (
         "need lamp-on steps with and without the cycle"
     )
-    np.testing.assert_allclose(col(df, "E_tot [W]"), col(df, "E_cmp [W]") + col(df, aux) + e_uv, rtol=1e-12, atol=1e-9)
+    expected = col(df, "E_cmp [W]") + col(df, aux) + col(df, "E_ctrl [W]") + e_uv
+    np.testing.assert_allclose(col(df, "E_tot [W]"), expected, rtol=1e-12, atol=1e-9)
 
 
 @pytest.mark.parametrize("name", STC_NAMES)

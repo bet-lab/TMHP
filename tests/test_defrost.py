@@ -272,7 +272,8 @@ def test_the_frosted_row_keeps_the_cycle_in_balance(frosted):
     r = frosted
     work = r["m_dot_ref [kg/s]"] * (r["h_ref_cmp_out [J/kg]"] - r["h_ref_cmp_in [J/kg]"])
     assert r["Q_ref_iu [W]"] - r["Q_ref_ou [W]"] == pytest.approx(work, rel=1e-9)
-    assert r["E_tot [W]"] == pytest.approx(r["E_cmp [W]"] + r["E_iu_fan [W]"] + r["E_ou_fan [W]"], rel=1e-12)
+    parts = r["E_cmp [W]"] + r["E_iu_fan [W]"] + r["E_ou_fan [W]"] + r["E_ctrl [W]"]
+    assert r["E_tot [W]"] == pytest.approx(parts, rel=1e-12)
     assert r["cop_ref [-]"] == pytest.approx(r["Q_ref_iu [W]"] / r["E_cmp [W]"], rel=1e-12)
     delivery = r["Q_a_iu_out [W]"] - r["Q_a_iu_in [W]"]
     assert r["cop_sys [-]"] == pytest.approx(delivery / r["E_tot [W]"], rel=1e-12)

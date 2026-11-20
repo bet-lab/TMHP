@@ -11,6 +11,8 @@ dependency-light; the plugin-class structure is checked only when
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from tmhp import AirSourceHeatPumpBoiler
@@ -338,6 +340,49 @@ def test_surrogate_accepts_legacy_energy_global_without_new_name():
 
     assert plant._valid(object()) is True
     assert plant.api.runtime.severe == []
+
+
+@pytest.mark.parametrize(
+    ("declared_names", "expected_outputs"),
+    [
+        (["PLANT ENERGY"], {0: 9000.0}),
+        (["PLANT ENERGY", "PLANT POWER"], {0: 9000.0, 1: 10.0}),
+        (["TMHP_E_CMP"], {0: 9000.0}),
+        (["TMHP_E_CMP", "PLANT POWER", "PLANT ENERGY"], {0: 9000.0, 1: 10.0, 2: 9000.0}),
+        (["PLANT POWER"], {}),
+    ],
+    ids=["energy-only", "energy-and-power", "legacy-only", "all-three", "missing-energy"],
+)
+def test_surrogate_initializes_and_meters_only_declared_globals(monkeypatch, declared_names, expected_outputs):
+    """EnergyPlus aborts on undeclared global lookups, even for an optional output."""
+    from tmhp.integrations import energyplus_plugin as plugin
+
+    monkeypatch.setattr(plugin, "ECMP_ENERGY_GLOBAL", "Plant Energy")
+    monkeypatch.setattr(plugin, "ECMP_POWER_GLOBAL", "Plant Power")
+    plant = plugin.TmhpPlantSurrogate()
+    plant.api = _FakeApi({1: 50.0, 2: 7.0})
+    ex = plant.api.exchange
+    ex.request_variable = lambda *args: None
+    ex.get_internal_variable_handle = lambda *args: 1
+    ex.get_actuator_handle = lambda *args: 3
+    ex.get_variable_handle = lambda *args: 2
+    global_handles = {name: handle for handle, name in enumerate(declared_names)}
+    points = [SimpleNamespace(what="PluginGlobalVariable", name="", key=name) for name in declared_names]
+    points.append(SimpleNamespace(what="OutputVariable", name="Unrelated", key="PLANT ENERGY"))
+    ex.get_api_data = lambda state: points
+    ex.get_global_handle = lambda state, name: global_handles[name.upper()]
+    result = {"converged": True, "failure_reason": "none", "Q_ref_tank [W]": 50.0, "E_cmp [W]": 10.0}
+    monkeypatch.setattr(plant, "_solve", lambda *args: result)
+
+    state = object()
+    assert plant.on_user_defined_component_model(state) == 0  # Request the outdoor-air variable.
+    if expected_outputs:
+        assert plant.on_user_defined_component_model(state) == 0
+        assert plant.api.runtime.severe == []
+    else:
+        assert plant.on_user_defined_component_model(state) == 1
+        assert "energy global" in plant.api.runtime.severe[0]
+    assert ex.globals == expected_outputs
 
 
 def test_surrogate_uses_legacy_energy_global_when_new_name_missing(monkeypatch):

@@ -370,10 +370,19 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
             t_out_act=ac(state, "Plant Connection 1", "Outlet Temperature", UD_NAME),
             mdot_act=ac(state, "Plant Connection 1", "Mass Flow Rate", UD_NAME),
             t0=ex.get_variable_handle(state, "Site Outdoor Air Drybulb Temperature", "Environment"),
-            e_cmp_j=ex.get_global_handle(state, ECMP_ENERGY_GLOBAL),
-            e_cmp_w=ex.get_global_handle(state, ECMP_POWER_GLOBAL),
-            e_cmp_legacy=ex.get_global_handle(state, ECMP_LEGACY_GLOBAL),
         )
+        # EnergyPlus 24.2 aborts a simulation if get_global_handle receives an
+        # undeclared name. PluginGlobalVariable entries carry the name in key.
+        declared_globals = {
+            point.key.upper(): point.key for point in ex.get_api_data(state) if point.what == "PluginGlobalVariable"
+        }
+        for field, name in (
+            ("e_cmp_j", ECMP_ENERGY_GLOBAL),
+            ("e_cmp_w", ECMP_POWER_GLOBAL),
+            ("e_cmp_legacy", ECMP_LEGACY_GLOBAL),
+        ):
+            declared_name = declared_globals.get(name.upper())
+            self.h[field] = ex.get_global_handle(state, declared_name) if declared_name is not None else -1
         self._need = False
 
     def _valid(self, state: Any) -> bool:

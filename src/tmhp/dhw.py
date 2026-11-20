@@ -195,64 +195,83 @@ def warn_if_dhw_unmet(df: pd.DataFrame, dt_s: float, who: str, T_set_C: float) -
     )
 
 
+def _schedule_time(seconds: int) -> str:
+    """Format a daily schedule boundary, adding seconds only between whole minutes."""
+    hours, within_hour = divmod(seconds, cu.h2s)
+    minutes, remainder = divmod(within_hour, cu.m2s)
+    return f"{hours:02d}:{minutes:02d}" + (f":{remainder:02d}" if remainder else "")
+
+
+def _schedule_seconds(time_str: str) -> float:
+    """Convert hours with optional minute and second fields to seconds from midnight."""
+    parts = time_str.split(":")
+    hours = float(parts[0])
+    minutes = float(parts[1]) if len(parts) > 1 else 0.0
+    seconds = float(parts[2]) if len(parts) > 2 else 0.0
+    return hours * cu.h2s + minutes * cu.m2s + seconds
+
+
 def make_dhw_schedule_from_Annex_42_profile(
     flow_rate_array: np.ndarray, df_time_step: int, simulation_time_step: int
 ) -> list[tuple[str, str, float]]:
     """Generate DHW schedule list from flow profile data.
 
-    This function implements the logic to convert a flow profile (L/min)
-    into a schedule list with specified time step.
+    Treat each input rate as constant over its sample interval. Each output
+    fraction is the time-weighted mean rate over the interval divided by the
+    profile peak. The last interval ends at midnight, even for a step that
+    does not divide the day.
 
     Parameters
     ----------
     flow_rate_array : np.ndarray
-        Array of flow rates [L/min]. Data should represent 24 hours.
+        One day of finite, nonnegative flow rates [L/min].
     df_time_step : int
         Time step of the input ``flow_rate_array`` [min].
     simulation_time_step : int
-        Target time step for the simulation schedule [s].
+        Positive whole-second time step for the simulation schedule [s].
 
     Returns
     -------
     list[tuple[str, str, float]]
-        List of tuples (start_time, end_time, fraction).
+        Nonzero intervals as tuples (start_time, end_time, fraction). Times
+        include seconds for boundaries that do not fall on a whole minute.
+
+    Raises
+    ------
+    ValueError
+        If the profile is not a day of finite, nonnegative rates or the
+        target step is not a positive whole number of seconds.
     """
-    total_minutes = len(flow_rate_array) * df_time_step
+    flow_rate_array = np.asarray(flow_rate_array, dtype=float)
+    if flow_rate_array.ndim != 1 or not np.all(np.isfinite(flow_rate_array)) or np.any(flow_rate_array < 0):
+        raise ValueError("Input profile must be a one-dimensional array of finite nonnegative flow rates")
+    # NumPy integer scalars can overflow in both the day-length and seconds calculations.
+    sample_minutes = float(df_time_step)
+    total_minutes = len(flow_rate_array) * sample_minutes
     if total_minutes != 1440:
         raise ValueError(f"Input profile must cover exactly 24 hours (got {total_minutes} min)")
+    if (
+        not np.isfinite(simulation_time_step)
+        or simulation_time_step <= 0
+        or simulation_time_step != int(simulation_time_step)
+    ):
+        raise ValueError("simulation_time_step must be a positive whole number of seconds")
 
-    peak_flow = np.max(flow_rate_array)
-    schedule = []
-
-    sim_step_min = simulation_time_step / 60
-    num_sim_steps = int(1440 / sim_step_min)
-
-    for i in range(num_sim_steps):
-        start_min = i * sim_step_min
-        end_min = (i + 1) * sim_step_min
-
-        # Original logic averagng
-        start_idx = int(start_min / df_time_step)
-        end_idx = int(end_min / df_time_step)
-
-        avg_flow = flow_rate_array[start_idx] if start_idx == end_idx else np.mean(flow_rate_array[start_idx:end_idx])
-
-        frac = float(avg_flow / peak_flow) if peak_flow > 0 else 0.0
-
-        start_h = int(start_min // 60)
-        start_m = int(start_min % 60)
-        end_h = int(end_min // 60)
-        end_m = int(end_min % 60)
-
-        start_str = f"{start_h:02d}:{start_m:02d}"
-        end_str = f"{end_h:02d}:{end_m:02d}"
-        if end_h == 24:
-            end_str = "24:00"
-
-        if frac > 0:
-            schedule.append((start_str, end_str, frac))
-
-    return schedule
+    peak_flow = flow_rate_array.max()
+    if peak_flow == 0.0:
+        return []
+    source_seconds = sample_minutes * cu.m2s
+    source_edges = np.arange(len(flow_rate_array) + 1) * source_seconds
+    target_edges = np.append(np.arange(0, cu.d2s, min(int(simulation_time_step), cu.d2s)), cu.d2s)
+    # The integral of a piecewise-constant rate is linear between source edges.
+    cumulative = np.append(0.0, np.cumsum(flow_rate_array / peak_flow)) * source_seconds
+    at_edges = np.interp(target_edges, source_edges, cumulative)
+    fractions = np.clip(np.diff(at_edges) / np.diff(target_edges), 0.0, 1.0)
+    return [
+        (_schedule_time(int(start)), _schedule_time(int(end)), float(frac))
+        for start, end, frac in zip(target_edges[:-1], target_edges[1:], fractions, strict=True)
+        if frac > 0.0
+    ]
 
 
 def calc_total_water_use_from_schedule(
@@ -266,7 +285,8 @@ def calc_total_water_use_from_schedule(
     Parameters
     ----------
     schedule : list[tuple[str, str, float]]
-        Schedule list. Each item is (start_str, end_str, ratio) format.
+        Schedule list. Each item is (start_str, end_str, ratio) with times
+        in hours, hours:minutes or hours:minutes:seconds.
     peak_load_m3s : float
         Peak load water flow rate [m3/s].
     info : bool, optional
@@ -280,15 +300,9 @@ def calc_total_water_use_from_schedule(
         Total daily water usage [m3].
     """
 
-    def _time_to_min(t_str: str) -> float:
-        parts = t_str.split(":")
-        return float(parts[0]) * 60 + (float(parts[1]) if len(parts) > 1 else 0)
-
     total_m3 = 0.0
     for start, end, frac in schedule:
-        s_min = _time_to_min(start)
-        e_min = _time_to_min(end)
-        dt_s = (e_min - s_min) * 60
+        dt_s = _schedule_seconds(end) - _schedule_seconds(start)
         total_m3 += peak_load_m3s * frac * dt_s
 
     if info:
@@ -379,7 +393,8 @@ def build_dhw_usage_ratio(entries: list[tuple[str, str, float]], t_array: np.nda
     Parameters
     ----------
     entries : list[tuple[str, str, float]]
-        Schedule entry list. Each item is (start_str, end_str, frac) format.
+        Schedule entry list. Each item is (start_str, end_str, frac) with
+        times in hours, hours:minutes or hours:minutes:seconds.
     t_array : np.ndarray
         Array of time seconds from start of day.
 
@@ -389,18 +404,11 @@ def build_dhw_usage_ratio(entries: list[tuple[str, str, float]], t_array: np.nda
         Array of fractions corresponding to ``t_array``.
     """
 
-    def _to_sec(t_str: str) -> int:
-        parts = t_str.split(":")
-        h = int(parts[0])
-        m = int(parts[1]) if len(parts) > 1 else 0
-        s = int(parts[2]) if len(parts) > 2 else 0
-        return h * cu.h2s + m * cu.m2s + s
-
     ratio = np.zeros_like(t_array, dtype=float)
 
     for start, end, frac in entries:
-        s_sec = _to_sec(start)
-        e_sec = _to_sec(end)
+        s_sec = _schedule_seconds(start)
+        e_sec = _schedule_seconds(end)
 
         mask = (t_array >= s_sec) & (t_array < e_sec)
         ratio[mask] = np.maximum(ratio[mask], frac)

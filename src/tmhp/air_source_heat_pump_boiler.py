@@ -142,7 +142,13 @@ from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is_generic_fan_curve
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .reference_state import RATING_STANDARDS, HXSide, RatingCondition, ReferenceStateMixin
-from .refrigerant import calc_ref_state, props_si, reportable_state
+from .refrigerant import (
+    calc_ref_state,
+    calc_ref_state_without_discharge,
+    props_si,
+    reportable_state,
+    with_discharge_state,
+)
 from .standard_conditions import StandardCondition
 from .standard_conditions import operating_range as _operating_range
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector, add_uv_power_to_e_tot
@@ -962,17 +968,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             actual_dT_superheat = min(self.dT_superheat, max(0.0, dT_ref_ou - self.dT_hx_min))
             T_cond_K = T_tank_w_K + dT_tank
 
-            cs_i = calc_ref_state(
+            cs_i, h_cmp_out_isen = calc_ref_state_without_discharge(
                 T_evap_K=T_ou_sat_K,
                 T_cond_K=T_cond_K,
                 refrigerant=self.ref,
-                eta_cmp_isen=1.0,  # Temporary dummy value to get basic states
                 mode="heating",
                 dT_superheat=actual_dT_superheat,
                 x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
-                is_active=True,
-                rps=None,
             )
 
             ratio = cs_i["P_ref_cmp_out [Pa]"] / cs_i["P_ref_cmp_in [Pa]"] if cs_i["P_ref_cmp_in [Pa]"] > 0 else 1.0
@@ -993,17 +996,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 P_evap_clamp = cs_i["P_ref_cmp_in [Pa]"]
                 P_cond_clamp = self.PR_cycle_min * P_evap_clamp
                 T_cond_K = props_si("T", "P", P_cond_clamp, "Q", 0, self.ref)
-                cs_i = calc_ref_state(
+                cs_i, h_cmp_out_isen = calc_ref_state_without_discharge(
                     T_evap_K=T_ou_sat_K,
                     T_cond_K=T_cond_K,
                     refrigerant=self.ref,
-                    eta_cmp_isen=1.0,  # Temporary dummy value to get basic states
                     mode="heating",
                     dT_superheat=actual_dT_superheat,
                     x_suction=self._x_suction,
                     dT_subcool=actual_dT_subcool,
-                    is_active=True,
-                    rps=None,
                 )
                 ratio = (
                     cs_i["P_ref_cmp_out [Pa]"] / cs_i["P_ref_cmp_in [Pa]"]
@@ -1017,28 +1017,16 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 self._last_cycle_failure_reason = "t_cond_below_t_in"
                 return None
 
-            P_cond = cs_i["P_ref_cmp_out [Pa]"]
-            s_cmp_in = cs_i["s_ref_cmp_in [J/(kg·K)]"]
             h_cmp_in = cs_i["h_ref_cmp_in [J/kg]"]
             h_exp_in = cs_i["h_ref_exp_in [J/kg]"]
 
-            # Compute isentropic enthalpy once before loop
-            try:
-                h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
-            except ValueError:
-                h_ref_cmp_out_isen = h_cmp_in
-            # Suction state for the efficiency models that need it. (Where the
-            # isentropic flash above failed, dh_isen is 0 and a state-dependent
-            # model reports the point infeasible -- no state-free substitute.)
-            suction = suction_state(
-                cs_i["P_ref_cmp_in [Pa]"], cs_i["rho_ref_cmp_in [kg/m3]"], h_cmp_in, h_ref_cmp_out_isen
-            )
+            suction = suction_state(cs_i["P_ref_cmp_in [Pa]"], cs_i["rho_ref_cmp_in [kg/m3]"], h_cmp_in, h_cmp_out_isen)
 
             def _residual_rps(rps):
                 eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps, suction)
                 eta_isen_r = _eval_eff(self.eta_cmp_isen, ratio, rps, suction)
 
-                h_cmp_out = h_cmp_in + (h_ref_cmp_out_isen - h_cmp_in) / eta_isen_r
+                h_cmp_out = h_cmp_in + (h_cmp_out_isen - h_cmp_in) / eta_isen_r
                 dh_cond_local = h_cmp_out - h_exp_in
 
                 m_dot = self.V_cmp_ref * cs_i["rho_ref_cmp_in [kg/m3]"] * eta_vol_r * rps
@@ -1054,18 +1042,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             eta_em_i = _eval_eff(self.eta_cmp, ratio, rps_i, suction)
 
             # Post-evaluate state with final isentropic efficiency
-            cs_i = calc_ref_state(
-                T_evap_K=T_ou_sat_K,
-                T_cond_K=T_cond_K,
-                refrigerant=self.ref,
-                eta_cmp_isen=eta_isen_i,
-                mode="heating",
-                dT_superheat=actual_dT_superheat,
-                x_suction=self._x_suction,
-                dT_subcool=actual_dT_subcool,
-                is_active=True,
-                rps=rps_i,
-            )
+            cs_i = with_discharge_state(cs_i, h_cmp_out_isen, eta_isen_i, self.ref)
 
             m_dot_i = self.V_cmp_ref * cs_i["rho_ref_cmp_in [kg/m3]"] * eta_vol_i * rps_i
             return {

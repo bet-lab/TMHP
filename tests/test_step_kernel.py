@@ -40,10 +40,10 @@ from . import _step_scenarios as S
 
 
 def _load_golden(name: str, dt: int) -> pd.DataFrame:
-    p = S.golden_path(name, dt)
-    if not p.exists():  # pragma: no cover - fixture must be committed
-        pytest.skip(f"golden fixture missing: {p}")
-    return pd.read_csv(p)
+    """Read the committed reference trajectory for this scenario."""
+    path = S.golden_path(name, dt)
+    assert path.is_file(), f"committed golden fixture missing: {path}"
+    return pd.read_csv(path)
 
 
 def _assert_frames_close(df: pd.DataFrame, golden: pd.DataFrame) -> None:

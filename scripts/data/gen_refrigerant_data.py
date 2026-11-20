@@ -120,19 +120,28 @@ def _profile_saturation_points(profile: str) -> int:
 
 
 def build_saturation_curves(refrigerant: str, *, points: int | None = None) -> dict[str, list[float]]:
-    """Return down-sampled saturation dome curves in display units."""
+    """Return down-sampled saturation dome curves, retaining scalar CoolProp errors."""
     t_min = CP.PropsSI("Tmin", refrigerant)
     t_crit = CP.PropsSI("Tcrit", refrigerant)
     temps_k = np.linspace(t_min + 1.0, t_crit - 0.5, points or SAT_CURVE_POINTS)
 
-    temp_c, h_liq, h_vap, p_sat, s_liq, s_vap = [], [], [], [], [], []
-    for t_k in temps_k:
-        temp_c.append(round(cu.K2C(t_k), 1))
-        h_liq.append(round(CP.PropsSI("H", "T", t_k, "Q", 0, refrigerant) * cu.J2kJ, 1))
-        h_vap.append(round(CP.PropsSI("H", "T", t_k, "Q", 1, refrigerant) * cu.J2kJ, 1))
-        p_sat.append(round(CP.PropsSI("P", "T", t_k, "Q", 0, refrigerant) * cu.Pa2kPa, 1))
-        s_liq.append(round(CP.PropsSI("S", "T", t_k, "Q", 0, refrigerant) * cu.J2kJ, 3))
-        s_vap.append(round(CP.PropsSI("S", "T", t_k, "Q", 1, refrigerant) * cu.J2kJ, 3))
+    def scaled_curve(prop: str, quality: int, scale: float, decimals: int) -> list[float]:
+        """Batch one property and rerun scalar calls if a flash fails."""
+        try:
+            values = np.atleast_1d(CP.PropsSI(prop, "T", temps_k, "Q", quality, refrigerant))
+            # A vector query can return a huge sentinel for an invalid point.
+            if values.shape == temps_k.shape and np.all(np.abs(values) < 1e100):
+                return [round(value * scale, decimals) for value in values.tolist()]
+        except ValueError:
+            pass
+        return [round(CP.PropsSI(prop, "T", t_k, "Q", quality, refrigerant) * scale, decimals) for t_k in temps_k]
+
+    temp_c = [round(cu.K2C(t_k), 1) for t_k in temps_k]
+    h_liq = scaled_curve("H", 0, cu.J2kJ, 1)
+    h_vap = scaled_curve("H", 1, cu.J2kJ, 1)
+    p_sat = scaled_curve("P", 0, cu.Pa2kPa, 1)
+    s_liq = scaled_curve("S", 0, cu.J2kJ, 3)
+    s_vap = scaled_curve("S", 1, cu.J2kJ, 3)
 
     try:
         h_crit = CP.PropsSI("H", "T", t_crit, "Q", 0, refrigerant) * cu.J2kJ

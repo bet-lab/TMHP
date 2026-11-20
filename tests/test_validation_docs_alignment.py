@@ -28,8 +28,6 @@ RESULTS = REPO_ROOT / "validation" / "results"
 SUMMARY = RESULTS / "summary.csv"
 ABLATION = REPO_ROOT / "validation" / "data" / "coefficient_ablation_parity.csv"
 
-pytestmark = pytest.mark.skipif(not SUMMARY.exists(), reason="parity harness has not been run in this checkout")
-
 Selector = Callable[[pd.DataFrame], pd.Series]
 
 
@@ -71,6 +69,8 @@ README_SENTENCES: dict[str, Selector] = {
 
 @pytest.fixture(scope="module")
 def summary() -> pd.DataFrame:
+    """Read the committed summary that backs the published coverage claims."""
+    assert SUMMARY.is_file(), f"committed parity summary missing: {SUMMARY}"
     return pd.read_csv(SUMMARY)
 
 
@@ -1170,7 +1170,7 @@ def test_defaults_rotary_speed_variant_account_matches_the_archive_and_the_study
     assert "0.90–0.91 under ``shao_informed`` and 0.89–0.90 under ``ossorio_anchored``" in flat
 
 
-def test_defaults_limits_quote_the_archive_and_the_library() -> None:
+def test_defaults_limits_quote_the_archive_and_the_library(summary: pd.DataFrame) -> None:
     """The limits are stated with the archive's numbers, and none of the README's is left out."""
     import json
 
@@ -1335,7 +1335,6 @@ def test_defaults_limits_quote_the_archive_and_the_library() -> None:
     assert all(value > 1.0 for value in twice)
 
     # The validation set has no scroll without injection.
-    summary = pd.read_csv(SUMMARY)
     water = summary[(summary.model_class == "ASHPB") & (summary.status == "adopted")]
     scrolls = water[water.compressor_type == "scroll"]
     assert len(scrolls) == 4 and set(scrolls.injection) == {"vapor", "flash"}

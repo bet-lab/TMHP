@@ -9,6 +9,9 @@ on:
       - src/tmhp/**
       - scripts/data/**
       - scripts/validation/**
+      - validation/parity/*.py
+      - validation/catalogs/*.yaml
+      - validation/results/*.csv
       - pyproject.toml
       - uv.lock
       - .github/workflows/docs.yml
@@ -19,6 +22,9 @@ permissions:
 concurrency:
   group: pages
   cancel-in-progress: true
+
+env:
+  UV_PYTHON: "3.12"
 
 jobs:
   build-and-deploy:
@@ -39,31 +45,30 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ env.UV_PYTHON }}
 
-      - name: Restore generated docs data cache
+      - name: Cache cycle grid
         id: docs-data-cache
         uses: actions/cache@v4
         with:
-          path: |
-            docs/source/_static/widgets/cycle_data.json
-            docs/source/_static/widgets/cycle_data.*.stamp
-            docs/source/_static/data/*.json
-          key: docs-data-${{ runner.os }}-full-${{ hashFiles('uv.lock', 'pyproject.toml', 'docs/Makefile', 'scripts/data/**', 'scripts/validation/**', 'src/tmhp/**') }}
+          path: docs/source/_static/widgets/cycle_data.json
+          key: >-
+            cycle-grid-${{ runner.os }}-${{ env.UV_PYTHON }}-full-${{ hashFiles('uv.lock', 'pyproject.toml', 'docs/Makefile',
+            'scripts/data/gen_refrigerant_data.py', 'src/tmhp/calc_util.py',
+            'src/tmhp/mollier_diagram.py', 'src/tmhp/refrigerant.py') }}
 
       - name: Install dependencies
-        run: uv sync --all-groups --locked
+        run: uv sync --group docs --locked
 
-      - name: Refresh cached docs data mtimes
+      - name: Use restored cycle grid
         if: steps.docs-data-cache.outputs.cache-hit == 'true'
         run: |
-          find docs/source/_static/widgets -maxdepth 1 \( -name 'cycle_data.json' -o -name 'cycle_data.*.stamp' \) -exec touch {} +
-          find docs/source/_static/data -maxdepth 1 -name '*.json' -exec touch {} +
+          cd docs/source/_static/widgets
+          test -s cycle_data.json
+          touch cycle_data.full.stamp cycle_data.json
 
       - name: Build Sphinx Documentation
-        run: |
-          cd docs
-          uv run make html DOCS_DATA_PROFILE=full
+        run: make -C docs html DOCS_DATA_PROFILE=full DOCS_FRESH_DATA=1
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

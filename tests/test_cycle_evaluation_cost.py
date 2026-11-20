@@ -115,6 +115,20 @@ def test_a_cycle_evaluation_makes_each_flash_once(family, request, counted_flash
     )
 
 
+@pytest.mark.parametrize(
+    "boiler",
+    [tmhp.AirSourceHeatPumpBoiler, tmhp.GroundSourceHeatPumpBoiler, tmhp.WaterSourceHeatPumpBoiler],
+)
+def test_boiler_solves_discharge_once_at_the_operating_efficiency(boiler, counted_flashes):
+    """One modulating point needs one isentropic flash and at most two P,H flashes (expansion and discharge)."""
+    model = boiler()
+    flow_state = model._calc_tank_flow_context(0.0, 313.15, 288.15, 303.15)
+    counted_flashes.clear()
+    _ordinary(model._calc_state(7.0, 40.0, 6000.0, 7.0, flow_state=flow_state))
+    assert counted_flashes.count(("P", "S")) == 1
+    assert counted_flashes.count(("P", "H")) <= 2
+
+
 @pytest.mark.parametrize("family", ["ashp", "gshp"])
 def test_a_cycle_evaluation_inspects_no_signature(family, request, counted_signatures):
     model = request.getfixturevalue(family)

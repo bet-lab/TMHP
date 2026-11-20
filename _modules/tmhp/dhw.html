@@ -381,228 +381,236 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="196">
 </span><span data-line="197">
+</span><span data-line="198"><span class="k">def</span><span class="w"> </span><span class="nf">_schedule_time</span><span class="p">(</span><span class="n">seconds</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="199"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Format a daily schedule boundary, adding seconds only between whole minutes.&quot;&quot;&quot;</span>
+</span><span data-line="200">    <span class="n">hours</span><span class="p">,</span> <span class="n">within_hour</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="n">cu</span><span class="o">.</span><span class="n">h2s</span><span class="p">)</span>
+</span><span data-line="201">    <span class="n">minutes</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">within_hour</span><span class="p">,</span> <span class="n">cu</span><span class="o">.</span><span class="n">m2s</span><span class="p">)</span>
+</span><span data-line="202">    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">hours</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">minutes</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;:</span><span class="si">{</span><span class="n">remainder</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">remainder</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+</span><span data-line="203">
+</span><span data-line="204">
+</span><span data-line="205"><span class="k">def</span><span class="w"> </span><span class="nf">_schedule_seconds</span><span class="p">(</span><span class="n">time_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="206"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert hours with optional minute and second fields to seconds from midnight.&quot;&quot;&quot;</span>
+</span><span data-line="207">    <span class="n">parts</span> <span class="o">=</span> <span class="n">time_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+</span><span data-line="208">    <span class="n">hours</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="209">    <span class="n">minutes</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="210">    <span class="n">seconds</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="211">    <span class="k">return</span> <span class="n">hours</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">h2s</span> <span class="o">+</span> <span class="n">minutes</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">m2s</span> <span class="o">+</span> <span class="n">seconds</span>
+</span><span data-line="212">
+</span><span data-line="213">
 <div class="viewcode-block" id="make_dhw_schedule_from_Annex_42_profile">
 <a class="viewcode-back" href="../../api/support/demand-weather.html#tmhp.dhw.make_dhw_schedule_from_Annex_42_profile">[docs]</a>
-</span><span data-line="198"><span class="k">def</span><span class="w"> </span><span class="nf">make_dhw_schedule_from_Annex_42_profile</span><span class="p">(</span>
-</span><span data-line="199">    <span class="n">flow_rate_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">df_time_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">simulation_time_step</span><span class="p">:</span> <span class="nb">int</span>
-</span><span data-line="200"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
-</span><span data-line="201"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate DHW schedule list from flow profile data.</span>
-</span><span data-line="202">
-</span><span data-line="203"><span class="sd">    This function implements the logic to convert a flow profile (L/min)</span>
-</span><span data-line="204"><span class="sd">    into a schedule list with specified time step.</span>
-</span><span data-line="205">
-</span><span data-line="206"><span class="sd">    Parameters</span>
-</span><span data-line="207"><span class="sd">    ----------</span>
-</span><span data-line="208"><span class="sd">    flow_rate_array : np.ndarray</span>
-</span><span data-line="209"><span class="sd">        Array of flow rates [L/min]. Data should represent 24 hours.</span>
-</span><span data-line="210"><span class="sd">    df_time_step : int</span>
-</span><span data-line="211"><span class="sd">        Time step of the input ``flow_rate_array`` [min].</span>
-</span><span data-line="212"><span class="sd">    simulation_time_step : int</span>
-</span><span data-line="213"><span class="sd">        Target time step for the simulation schedule [s].</span>
-</span><span data-line="214">
-</span><span data-line="215"><span class="sd">    Returns</span>
-</span><span data-line="216"><span class="sd">    -------</span>
-</span><span data-line="217"><span class="sd">    list[tuple[str, str, float]]</span>
-</span><span data-line="218"><span class="sd">        List of tuples (start_time, end_time, fraction).</span>
-</span><span data-line="219"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="220">    <span class="n">total_minutes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">flow_rate_array</span><span class="p">)</span> <span class="o">*</span> <span class="n">df_time_step</span>
-</span><span data-line="221">    <span class="k">if</span> <span class="n">total_minutes</span> <span class="o">!=</span> <span class="mi">1440</span><span class="p">:</span>
-</span><span data-line="222">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input profile must cover exactly 24 hours (got </span><span class="si">{</span><span class="n">total_minutes</span><span class="si">}</span><span class="s2"> min)&quot;</span><span class="p">)</span>
+</span><span data-line="214"><span class="k">def</span><span class="w"> </span><span class="nf">make_dhw_schedule_from_Annex_42_profile</span><span class="p">(</span>
+</span><span data-line="215">    <span class="n">flow_rate_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">df_time_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">simulation_time_step</span><span class="p">:</span> <span class="nb">int</span>
+</span><span data-line="216"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+</span><span data-line="217"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate DHW schedule list from flow profile data.</span>
+</span><span data-line="218">
+</span><span data-line="219"><span class="sd">    Treat each input rate as constant over its sample interval. Each output</span>
+</span><span data-line="220"><span class="sd">    fraction is the time-weighted mean rate over the interval divided by the</span>
+</span><span data-line="221"><span class="sd">    profile peak. The last interval ends at midnight, even for a step that</span>
+</span><span data-line="222"><span class="sd">    does not divide the day.</span>
 </span><span data-line="223">
-</span><span data-line="224">    <span class="n">peak_flow</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">flow_rate_array</span><span class="p">)</span>
-</span><span data-line="225">    <span class="n">schedule</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="226">
-</span><span data-line="227">    <span class="n">sim_step_min</span> <span class="o">=</span> <span class="n">simulation_time_step</span> <span class="o">/</span> <span class="mi">60</span>
-</span><span data-line="228">    <span class="n">num_sim_steps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1440</span> <span class="o">/</span> <span class="n">sim_step_min</span><span class="p">)</span>
-</span><span data-line="229">
-</span><span data-line="230">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_sim_steps</span><span class="p">):</span>
-</span><span data-line="231">        <span class="n">start_min</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">sim_step_min</span>
-</span><span data-line="232">        <span class="n">end_min</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">sim_step_min</span>
-</span><span data-line="233">
-</span><span data-line="234">        <span class="c1"># Original logic averagng</span>
-</span><span data-line="235">        <span class="n">start_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">start_min</span> <span class="o">/</span> <span class="n">df_time_step</span><span class="p">)</span>
-</span><span data-line="236">        <span class="n">end_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">end_min</span> <span class="o">/</span> <span class="n">df_time_step</span><span class="p">)</span>
-</span><span data-line="237">
-</span><span data-line="238">        <span class="n">avg_flow</span> <span class="o">=</span> <span class="n">flow_rate_array</span><span class="p">[</span><span class="n">start_idx</span><span class="p">]</span> <span class="k">if</span> <span class="n">start_idx</span> <span class="o">==</span> <span class="n">end_idx</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flow_rate_array</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span><span class="p">])</span>
-</span><span data-line="239">
-</span><span data-line="240">        <span class="n">frac</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">avg_flow</span> <span class="o">/</span> <span class="n">peak_flow</span><span class="p">)</span> <span class="k">if</span> <span class="n">peak_flow</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="241">
-</span><span data-line="242">        <span class="n">start_h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">start_min</span> <span class="o">//</span> <span class="mi">60</span><span class="p">)</span>
-</span><span data-line="243">        <span class="n">start_m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">start_min</span> <span class="o">%</span> <span class="mi">60</span><span class="p">)</span>
-</span><span data-line="244">        <span class="n">end_h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">end_min</span> <span class="o">//</span> <span class="mi">60</span><span class="p">)</span>
-</span><span data-line="245">        <span class="n">end_m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">end_min</span> <span class="o">%</span> <span class="mi">60</span><span class="p">)</span>
-</span><span data-line="246">
-</span><span data-line="247">        <span class="n">start_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">start_h</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">start_m</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
-</span><span data-line="248">        <span class="n">end_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">end_h</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">end_m</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
-</span><span data-line="249">        <span class="k">if</span> <span class="n">end_h</span> <span class="o">==</span> <span class="mi">24</span><span class="p">:</span>
-</span><span data-line="250">            <span class="n">end_str</span> <span class="o">=</span> <span class="s2">&quot;24:00&quot;</span>
-</span><span data-line="251">
-</span><span data-line="252">        <span class="k">if</span> <span class="n">frac</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="253">            <span class="n">schedule</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start_str</span><span class="p">,</span> <span class="n">end_str</span><span class="p">,</span> <span class="n">frac</span><span class="p">))</span>
-</span><span data-line="254">
-</span><span data-line="255">    <span class="k">return</span> <span class="n">schedule</span></div>
+</span><span data-line="224"><span class="sd">    Parameters</span>
+</span><span data-line="225"><span class="sd">    ----------</span>
+</span><span data-line="226"><span class="sd">    flow_rate_array : np.ndarray</span>
+</span><span data-line="227"><span class="sd">        One day of finite, nonnegative flow rates [L/min].</span>
+</span><span data-line="228"><span class="sd">    df_time_step : int</span>
+</span><span data-line="229"><span class="sd">        Time step of the input ``flow_rate_array`` [min].</span>
+</span><span data-line="230"><span class="sd">    simulation_time_step : int</span>
+</span><span data-line="231"><span class="sd">        Positive whole-second time step for the simulation schedule [s].</span>
+</span><span data-line="232">
+</span><span data-line="233"><span class="sd">    Returns</span>
+</span><span data-line="234"><span class="sd">    -------</span>
+</span><span data-line="235"><span class="sd">    list[tuple[str, str, float]]</span>
+</span><span data-line="236"><span class="sd">        Nonzero intervals as tuples (start_time, end_time, fraction). Times</span>
+</span><span data-line="237"><span class="sd">        include seconds for boundaries that do not fall on a whole minute.</span>
+</span><span data-line="238">
+</span><span data-line="239"><span class="sd">    Raises</span>
+</span><span data-line="240"><span class="sd">    ------</span>
+</span><span data-line="241"><span class="sd">    ValueError</span>
+</span><span data-line="242"><span class="sd">        If the profile is not a day of finite, nonnegative rates or the</span>
+</span><span data-line="243"><span class="sd">        target step is not a positive whole number of seconds.</span>
+</span><span data-line="244"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="245">    <span class="n">flow_rate_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">flow_rate_array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="246">    <span class="k">if</span> <span class="n">flow_rate_array</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">flow_rate_array</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">flow_rate_array</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="247">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input profile must be a one-dimensional array of finite nonnegative flow rates&quot;</span><span class="p">)</span>
+</span><span data-line="248">    <span class="c1"># NumPy integer scalars can overflow in both the day-length and seconds calculations.</span>
+</span><span data-line="249">    <span class="n">sample_minutes</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">df_time_step</span><span class="p">)</span>
+</span><span data-line="250">    <span class="n">total_minutes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">flow_rate_array</span><span class="p">)</span> <span class="o">*</span> <span class="n">sample_minutes</span>
+</span><span data-line="251">    <span class="k">if</span> <span class="n">total_minutes</span> <span class="o">!=</span> <span class="mi">1440</span><span class="p">:</span>
+</span><span data-line="252">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input profile must cover exactly 24 hours (got </span><span class="si">{</span><span class="n">total_minutes</span><span class="si">}</span><span class="s2"> min)&quot;</span><span class="p">)</span>
+</span><span data-line="253">    <span class="k">if</span> <span class="p">(</span>
+</span><span data-line="254">        <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">simulation_time_step</span><span class="p">)</span>
+</span><span data-line="255">        <span class="ow">or</span> <span class="n">simulation_time_step</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span data-line="256">        <span class="ow">or</span> <span class="n">simulation_time_step</span> <span class="o">!=</span> <span class="nb">int</span><span class="p">(</span><span class="n">simulation_time_step</span><span class="p">)</span>
+</span><span data-line="257">    <span class="p">):</span>
+</span><span data-line="258">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;simulation_time_step must be a positive whole number of seconds&quot;</span><span class="p">)</span>
+</span><span data-line="259">
+</span><span data-line="260">    <span class="n">peak_flow</span> <span class="o">=</span> <span class="n">flow_rate_array</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+</span><span data-line="261">    <span class="k">if</span> <span class="n">peak_flow</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="262">        <span class="k">return</span> <span class="p">[]</span>
+</span><span data-line="263">    <span class="n">source_seconds</span> <span class="o">=</span> <span class="n">sample_minutes</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">m2s</span>
+</span><span data-line="264">    <span class="n">source_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">flow_rate_array</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">source_seconds</span>
+</span><span data-line="265">    <span class="n">target_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">cu</span><span class="o">.</span><span class="n">d2s</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">simulation_time_step</span><span class="p">),</span> <span class="n">cu</span><span class="o">.</span><span class="n">d2s</span><span class="p">)),</span> <span class="n">cu</span><span class="o">.</span><span class="n">d2s</span><span class="p">)</span>
+</span><span data-line="266">    <span class="c1"># The integral of a piecewise-constant rate is linear between source edges.</span>
+</span><span data-line="267">    <span class="n">cumulative</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">flow_rate_array</span> <span class="o">/</span> <span class="n">peak_flow</span><span class="p">))</span> <span class="o">*</span> <span class="n">source_seconds</span>
+</span><span data-line="268">    <span class="n">at_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">target_edges</span><span class="p">,</span> <span class="n">source_edges</span><span class="p">,</span> <span class="n">cumulative</span><span class="p">)</span>
+</span><span data-line="269">    <span class="n">fractions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">at_edges</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">target_edges</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="270">    <span class="k">return</span> <span class="p">[</span>
+</span><span data-line="271">        <span class="p">(</span><span class="n">_schedule_time</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">start</span><span class="p">)),</span> <span class="n">_schedule_time</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">end</span><span class="p">)),</span> <span class="nb">float</span><span class="p">(</span><span class="n">frac</span><span class="p">))</span>
+</span><span data-line="272">        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">frac</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">target_edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">target_edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">fractions</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="273">        <span class="k">if</span> <span class="n">frac</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+</span><span data-line="274">    <span class="p">]</span></div>
 
-</span><span data-line="256">
-</span><span data-line="257">
+</span><span data-line="275">
+</span><span data-line="276">
 <div class="viewcode-block" id="calc_total_water_use_from_schedule">
 <a class="viewcode-back" href="../../api/support/demand-weather.html#tmhp.dhw.calc_total_water_use_from_schedule">[docs]</a>
-</span><span data-line="258"><span class="k">def</span><span class="w"> </span><span class="nf">calc_total_water_use_from_schedule</span><span class="p">(</span>
-</span><span data-line="259">    <span class="n">schedule</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
-</span><span data-line="260">    <span class="n">peak_load_m3s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="261">    <span class="n">info</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="262">    <span class="n">info_unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;L&quot;</span><span class="p">,</span>
-</span><span data-line="263"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="264"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate total daily water use from a schedule.</span>
-</span><span data-line="265">
-</span><span data-line="266"><span class="sd">    Parameters</span>
-</span><span data-line="267"><span class="sd">    ----------</span>
-</span><span data-line="268"><span class="sd">    schedule : list[tuple[str, str, float]]</span>
-</span><span data-line="269"><span class="sd">        Schedule list. Each item is (start_str, end_str, ratio) format.</span>
-</span><span data-line="270"><span class="sd">    peak_load_m3s : float</span>
-</span><span data-line="271"><span class="sd">        Peak load water flow rate [m3/s].</span>
-</span><span data-line="272"><span class="sd">    info : bool, optional</span>
-</span><span data-line="273"><span class="sd">        Flag to print info. Default is True.</span>
-</span><span data-line="274"><span class="sd">    info_unit : str, optional</span>
-</span><span data-line="275"><span class="sd">        Unit to print info. Default is &#39;L&#39;.</span>
-</span><span data-line="276">
-</span><span data-line="277"><span class="sd">    Returns</span>
-</span><span data-line="278"><span class="sd">    -------</span>
-</span><span data-line="279"><span class="sd">    float</span>
-</span><span data-line="280"><span class="sd">        Total daily water usage [m3].</span>
-</span><span data-line="281"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="282">
-</span><span data-line="283">    <span class="k">def</span><span class="w"> </span><span class="nf">_time_to_min</span><span class="p">(</span><span class="n">t_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="284">        <span class="n">parts</span> <span class="o">=</span> <span class="n">t_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
-</span><span data-line="285">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
-</span><span data-line="286">
-</span><span data-line="287">    <span class="n">total_m3</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="288">    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">frac</span> <span class="ow">in</span> <span class="n">schedule</span><span class="p">:</span>
-</span><span data-line="289">        <span class="n">s_min</span> <span class="o">=</span> <span class="n">_time_to_min</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
-</span><span data-line="290">        <span class="n">e_min</span> <span class="o">=</span> <span class="n">_time_to_min</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
-</span><span data-line="291">        <span class="n">dt_s</span> <span class="o">=</span> <span class="p">(</span><span class="n">e_min</span> <span class="o">-</span> <span class="n">s_min</span><span class="p">)</span> <span class="o">*</span> <span class="mi">60</span>
-</span><span data-line="292">        <span class="n">total_m3</span> <span class="o">+=</span> <span class="n">peak_load_m3s</span> <span class="o">*</span> <span class="n">frac</span> <span class="o">*</span> <span class="n">dt_s</span>
-</span><span data-line="293">
-</span><span data-line="294">    <span class="k">if</span> <span class="n">info</span><span class="p">:</span>
-</span><span data-line="295">        <span class="k">if</span> <span class="n">info_unit</span> <span class="o">==</span> <span class="s2">&quot;L&quot;</span><span class="p">:</span>
-</span><span data-line="296">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total water use: </span><span class="si">{</span><span class="n">total_m3</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cu</span><span class="o">.</span><span class="n">m32L</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> L/day&quot;</span><span class="p">)</span>
-</span><span data-line="297">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="298">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total water use: </span><span class="si">{</span><span class="n">total_m3</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> m3/day&quot;</span><span class="p">)</span>
-</span><span data-line="299">
-</span><span data-line="300">    <span class="k">return</span> <span class="n">total_m3</span></div>
-
-</span><span data-line="301">
+</span><span data-line="277"><span class="k">def</span><span class="w"> </span><span class="nf">calc_total_water_use_from_schedule</span><span class="p">(</span>
+</span><span data-line="278">    <span class="n">schedule</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
+</span><span data-line="279">    <span class="n">peak_load_m3s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="280">    <span class="n">info</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="281">    <span class="n">info_unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;L&quot;</span><span class="p">,</span>
+</span><span data-line="282"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="283"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate total daily water use from a schedule.</span>
+</span><span data-line="284">
+</span><span data-line="285"><span class="sd">    Parameters</span>
+</span><span data-line="286"><span class="sd">    ----------</span>
+</span><span data-line="287"><span class="sd">    schedule : list[tuple[str, str, float]]</span>
+</span><span data-line="288"><span class="sd">        Schedule list. Each item is (start_str, end_str, ratio) with times</span>
+</span><span data-line="289"><span class="sd">        in hours, hours:minutes or hours:minutes:seconds.</span>
+</span><span data-line="290"><span class="sd">    peak_load_m3s : float</span>
+</span><span data-line="291"><span class="sd">        Peak load water flow rate [m3/s].</span>
+</span><span data-line="292"><span class="sd">    info : bool, optional</span>
+</span><span data-line="293"><span class="sd">        Flag to print info. Default is True.</span>
+</span><span data-line="294"><span class="sd">    info_unit : str, optional</span>
+</span><span data-line="295"><span class="sd">        Unit to print info. Default is &#39;L&#39;.</span>
+</span><span data-line="296">
+</span><span data-line="297"><span class="sd">    Returns</span>
+</span><span data-line="298"><span class="sd">    -------</span>
+</span><span data-line="299"><span class="sd">    float</span>
+</span><span data-line="300"><span class="sd">        Total daily water usage [m3].</span>
+</span><span data-line="301"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="302">
+</span><span data-line="303">    <span class="n">total_m3</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="304">    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">frac</span> <span class="ow">in</span> <span class="n">schedule</span><span class="p">:</span>
+</span><span data-line="305">        <span class="n">dt_s</span> <span class="o">=</span> <span class="n">_schedule_seconds</span><span class="p">(</span><span class="n">end</span><span class="p">)</span> <span class="o">-</span> <span class="n">_schedule_seconds</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+</span><span data-line="306">        <span class="n">total_m3</span> <span class="o">+=</span> <span class="n">peak_load_m3s</span> <span class="o">*</span> <span class="n">frac</span> <span class="o">*</span> <span class="n">dt_s</span>
+</span><span data-line="307">
+</span><span data-line="308">    <span class="k">if</span> <span class="n">info</span><span class="p">:</span>
+</span><span data-line="309">        <span class="k">if</span> <span class="n">info_unit</span> <span class="o">==</span> <span class="s2">&quot;L&quot;</span><span class="p">:</span>
+</span><span data-line="310">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total water use: </span><span class="si">{</span><span class="n">total_m3</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cu</span><span class="o">.</span><span class="n">m32L</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> L/day&quot;</span><span class="p">)</span>
+</span><span data-line="311">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="312">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total water use: </span><span class="si">{</span><span class="n">total_m3</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> m3/day&quot;</span><span class="p">)</span>
+</span><span data-line="313">
+</span><span data-line="314">    <span class="k">return</span> <span class="n">total_m3</span></div>
+
+</span><span data-line="315">
+</span><span data-line="316">
 <div class="viewcode-block" id="calc_cold_water_temp">
 <a class="viewcode-back" href="../../api/support/demand-weather.html#tmhp.dhw.calc_cold_water_temp">[docs]</a>
-</span><span data-line="303"><span class="k">def</span><span class="w"> </span><span class="nf">calc_cold_water_temp</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">target_date_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">latitude</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="304"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Mains water temperature [°C] by the EnergyPlus ``Site:WaterMainsTemperature`` correlation.</span>
-</span><span data-line="305">
-</span><span data-line="306"><span class="sd">    The correlation of Burch &amp; Christensen (NREL; Hendron et al. 2004) as</span>
-</span><span data-line="307"><span class="sd">    EnergyPlus evaluates it (Engineering Reference, &quot;Water Mains</span>
-</span><span data-line="308"><span class="sd">    Temperatures&quot;; ``WaterMainsTempFromCorrelation`` in ``WeatherManager.cc``).</span>
-</span><span data-line="309"><span class="sd">    It is fitted in °F, so the inputs are converted to °F, the correlation</span>
-</span><span data-line="310"><span class="sd">    is evaluated there and the result converted back::</span>
-</span><span data-line="311">
-</span><span data-line="312"><span class="sd">        T_mains = (T_avg + 6) + ratio · (ΔT_max / 2) · sin(0.986·(day − 15 − lag) − 90)</span>
-</span><span data-line="313"><span class="sd">        ratio   = 0.4 + 0.01·(T_avg − 44)</span>
-</span><span data-line="314"><span class="sd">        lag     = 35 − 1.0·(T_avg − 44)</span>
-</span><span data-line="315">
-</span><span data-line="316"><span class="sd">    in °F with the sine argument in degrees, ``T_avg`` the annual mean</span>
-</span><span data-line="317"><span class="sd">    outdoor temperature and ``ΔT_max`` the spread (max − min) of the monthly</span>
-</span><span data-line="318"><span class="sd">    mean outdoor temperatures. The result is not allowed below 32 °F (0 °C).</span>
-</span><span data-line="319"><span class="sd">    South of the equator the seasonal term changes sign, as in EnergyPlus.</span>
-</span><span data-line="320">
-</span><span data-line="321"><span class="sd">    References</span>
-</span><span data-line="322"><span class="sd">    ----------</span>
-</span><span data-line="323"><span class="sd">    Hendron, R., Anderson, R., Christensen, C., Eastment, M., &amp; Reeves, P. (2004).</span>
-</span><span data-line="324"><span class="sd">    Development of an Energy Savings Benchmark for All Residential End-Uses.</span>
-</span><span data-line="325"><span class="sd">    SimBuild 2004, IBPSA-USA. EnergyPlus Engineering Reference, Water Systems.</span>
-</span><span data-line="326">
-</span><span data-line="327"><span class="sd">    Parameters</span>
-</span><span data-line="328"><span class="sd">    ----------</span>
-</span><span data-line="329"><span class="sd">    df : pd.DataFrame</span>
-</span><span data-line="330"><span class="sd">        The twelve monthly mean outdoor temperatures [°C] in a column whose</span>
-</span><span data-line="331"><span class="sd">        name contains ``T_avg`` (or ``기온``, ``temp``, ``T0``, ``°C``, ``℃``).</span>
-</span><span data-line="332"><span class="sd">    target_date_str : str</span>
-</span><span data-line="333"><span class="sd">        Target date string in &#39;YYYY-MM-DD&#39; format.</span>
-</span><span data-line="334"><span class="sd">    latitude : float | None</span>
-</span><span data-line="335"><span class="sd">        Site latitude [°]; negative flips the season. ``None``: northern hemisphere.</span>
-</span><span data-line="336">
-</span><span data-line="337"><span class="sd">    Returns</span>
-</span><span data-line="338"><span class="sd">    -------</span>
-</span><span data-line="339"><span class="sd">    float</span>
-</span><span data-line="340"><span class="sd">        Mains water temperature [°C].</span>
-</span><span data-line="341"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="342">    <span class="c1"># Dynamic temperature-column lookup. The Korean keywords (&#39;기온&#39;) are kept</span>
-</span><span data-line="343">    <span class="c1"># so KMA (Korea Meteorological Administration) CSVs match out of the box</span>
-</span><span data-line="344">    <span class="c1"># alongside English column names (T_avg, temp, T0, °C, ℃).</span>
-</span><span data-line="345">    <span class="n">_TEMP_PATTERNS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;t_avg&quot;</span><span class="p">,</span> <span class="s2">&quot;기온&quot;</span><span class="p">,</span> <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="s2">&quot;t0&quot;</span><span class="p">,</span> <span class="s2">&quot;°c&quot;</span><span class="p">,</span> <span class="s2">&quot;℃&quot;</span><span class="p">]</span>
-</span><span data-line="346">    <span class="n">temp_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="347">    <span class="k">for</span> <span class="n">pat</span> <span class="ow">in</span> <span class="n">_TEMP_PATTERNS</span><span class="p">:</span>
-</span><span data-line="348">        <span class="n">matched</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">lower</span><span class="p">())]</span>
-</span><span data-line="349">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="350">            <span class="n">temp_col</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">matched</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span><span data-line="351">            <span class="k">break</span>
-</span><span data-line="352">    <span class="k">if</span> <span class="n">temp_col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="353">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="354">            <span class="sa">f</span><span class="s2">&quot;calc_cold_water_temp: could not find a temperature column. &quot;</span>
-</span><span data-line="355">            <span class="sa">f</span><span class="s2">&quot;Columns present: </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">. &quot;</span>
-</span><span data-line="356">            <span class="sa">f</span><span class="s2">&quot;A column whose name contains one of &quot;</span>
-</span><span data-line="357">            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_TEMP_PATTERNS</span><span class="si">}</span><span class="s2"> is required.&quot;</span>
-</span><span data-line="358">        <span class="p">)</span>
-</span><span data-line="359">
-</span><span data-line="360">    <span class="n">monthly</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-</span><span data-line="361">    <span class="n">T_avg_F</span> <span class="o">=</span> <span class="n">monthly</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">*</span> <span class="mf">9.0</span> <span class="o">/</span> <span class="mf">5.0</span> <span class="o">+</span> <span class="mf">32.0</span>
-</span><span data-line="362">    <span class="n">dT_max_F</span> <span class="o">=</span> <span class="p">(</span><span class="n">monthly</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">monthly</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">*</span> <span class="mf">9.0</span> <span class="o">/</span> <span class="mf">5.0</span>
-</span><span data-line="363">
-</span><span data-line="364">    <span class="n">day_of_year</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">target_date_str</span><span class="p">)</span><span class="o">.</span><span class="n">dayofyear</span>
-</span><span data-line="365">
-</span><span data-line="366">    <span class="n">ratio</span> <span class="o">=</span> <span class="mf">0.4</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_avg_F</span> <span class="o">-</span> <span class="mf">44.0</span><span class="p">)</span>
-</span><span data-line="367">    <span class="n">lag</span> <span class="o">=</span> <span class="mf">35.0</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_avg_F</span> <span class="o">-</span> <span class="mf">44.0</span><span class="p">)</span>
-</span><span data-line="368">    <span class="n">hemisphere</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">latitude</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">latitude</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">1.0</span>
-</span><span data-line="369">    <span class="n">T_mains_F</span> <span class="o">=</span> <span class="p">(</span><span class="n">T_avg_F</span> <span class="o">+</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">dT_max_F</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">hemisphere</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span>
-</span><span data-line="370">        <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mf">0.986</span> <span class="o">*</span> <span class="p">(</span><span class="n">day_of_year</span> <span class="o">-</span> <span class="mf">15.0</span> <span class="o">-</span> <span class="n">lag</span><span class="p">)</span> <span class="o">-</span> <span class="mf">90.0</span><span class="p">)</span>
-</span><span data-line="371">    <span class="p">)</span>
-</span><span data-line="372">    <span class="n">T_mains_F</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">32.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">T_mains_F</span><span class="p">))</span>
-</span><span data-line="373">    <span class="k">return</span> <span class="p">(</span><span class="n">T_mains_F</span> <span class="o">-</span> <span class="mf">32.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.0</span> <span class="o">/</span> <span class="mf">9.0</span></div>
+</span><span data-line="317"><span class="k">def</span><span class="w"> </span><span class="nf">calc_cold_water_temp</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">target_date_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">latitude</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="318"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Mains water temperature [°C] by the EnergyPlus ``Site:WaterMainsTemperature`` correlation.</span>
+</span><span data-line="319">
+</span><span data-line="320"><span class="sd">    The correlation of Burch &amp; Christensen (NREL; Hendron et al. 2004) as</span>
+</span><span data-line="321"><span class="sd">    EnergyPlus evaluates it (Engineering Reference, &quot;Water Mains</span>
+</span><span data-line="322"><span class="sd">    Temperatures&quot;; ``WaterMainsTempFromCorrelation`` in ``WeatherManager.cc``).</span>
+</span><span data-line="323"><span class="sd">    It is fitted in °F, so the inputs are converted to °F, the correlation</span>
+</span><span data-line="324"><span class="sd">    is evaluated there and the result converted back::</span>
+</span><span data-line="325">
+</span><span data-line="326"><span class="sd">        T_mains = (T_avg + 6) + ratio · (ΔT_max / 2) · sin(0.986·(day − 15 − lag) − 90)</span>
+</span><span data-line="327"><span class="sd">        ratio   = 0.4 + 0.01·(T_avg − 44)</span>
+</span><span data-line="328"><span class="sd">        lag     = 35 − 1.0·(T_avg − 44)</span>
+</span><span data-line="329">
+</span><span data-line="330"><span class="sd">    in °F with the sine argument in degrees, ``T_avg`` the annual mean</span>
+</span><span data-line="331"><span class="sd">    outdoor temperature and ``ΔT_max`` the spread (max − min) of the monthly</span>
+</span><span data-line="332"><span class="sd">    mean outdoor temperatures. The result is not allowed below 32 °F (0 °C).</span>
+</span><span data-line="333"><span class="sd">    South of the equator the seasonal term changes sign, as in EnergyPlus.</span>
+</span><span data-line="334">
+</span><span data-line="335"><span class="sd">    References</span>
+</span><span data-line="336"><span class="sd">    ----------</span>
+</span><span data-line="337"><span class="sd">    Hendron, R., Anderson, R., Christensen, C., Eastment, M., &amp; Reeves, P. (2004).</span>
+</span><span data-line="338"><span class="sd">    Development of an Energy Savings Benchmark for All Residential End-Uses.</span>
+</span><span data-line="339"><span class="sd">    SimBuild 2004, IBPSA-USA. EnergyPlus Engineering Reference, Water Systems.</span>
+</span><span data-line="340">
+</span><span data-line="341"><span class="sd">    Parameters</span>
+</span><span data-line="342"><span class="sd">    ----------</span>
+</span><span data-line="343"><span class="sd">    df : pd.DataFrame</span>
+</span><span data-line="344"><span class="sd">        The twelve monthly mean outdoor temperatures [°C] in a column whose</span>
+</span><span data-line="345"><span class="sd">        name contains ``T_avg`` (or ``기온``, ``temp``, ``T0``, ``°C``, ``℃``).</span>
+</span><span data-line="346"><span class="sd">    target_date_str : str</span>
+</span><span data-line="347"><span class="sd">        Target date string in &#39;YYYY-MM-DD&#39; format.</span>
+</span><span data-line="348"><span class="sd">    latitude : float | None</span>
+</span><span data-line="349"><span class="sd">        Site latitude [°]; negative flips the season. ``None``: northern hemisphere.</span>
+</span><span data-line="350">
+</span><span data-line="351"><span class="sd">    Returns</span>
+</span><span data-line="352"><span class="sd">    -------</span>
+</span><span data-line="353"><span class="sd">    float</span>
+</span><span data-line="354"><span class="sd">        Mains water temperature [°C].</span>
+</span><span data-line="355"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="356">    <span class="c1"># Dynamic temperature-column lookup. The Korean keywords (&#39;기온&#39;) are kept</span>
+</span><span data-line="357">    <span class="c1"># so KMA (Korea Meteorological Administration) CSVs match out of the box</span>
+</span><span data-line="358">    <span class="c1"># alongside English column names (T_avg, temp, T0, °C, ℃).</span>
+</span><span data-line="359">    <span class="n">_TEMP_PATTERNS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;t_avg&quot;</span><span class="p">,</span> <span class="s2">&quot;기온&quot;</span><span class="p">,</span> <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="s2">&quot;t0&quot;</span><span class="p">,</span> <span class="s2">&quot;°c&quot;</span><span class="p">,</span> <span class="s2">&quot;℃&quot;</span><span class="p">]</span>
+</span><span data-line="360">    <span class="n">temp_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="361">    <span class="k">for</span> <span class="n">pat</span> <span class="ow">in</span> <span class="n">_TEMP_PATTERNS</span><span class="p">:</span>
+</span><span data-line="362">        <span class="n">matched</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">lower</span><span class="p">())]</span>
+</span><span data-line="363">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="364">            <span class="n">temp_col</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">matched</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="365">            <span class="k">break</span>
+</span><span data-line="366">    <span class="k">if</span> <span class="n">temp_col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="367">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="368">            <span class="sa">f</span><span class="s2">&quot;calc_cold_water_temp: could not find a temperature column. &quot;</span>
+</span><span data-line="369">            <span class="sa">f</span><span class="s2">&quot;Columns present: </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">. &quot;</span>
+</span><span data-line="370">            <span class="sa">f</span><span class="s2">&quot;A column whose name contains one of &quot;</span>
+</span><span data-line="371">            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_TEMP_PATTERNS</span><span class="si">}</span><span class="s2"> is required.&quot;</span>
+</span><span data-line="372">        <span class="p">)</span>
+</span><span data-line="373">
+</span><span data-line="374">    <span class="n">monthly</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="375">    <span class="n">T_avg_F</span> <span class="o">=</span> <span class="n">monthly</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">*</span> <span class="mf">9.0</span> <span class="o">/</span> <span class="mf">5.0</span> <span class="o">+</span> <span class="mf">32.0</span>
+</span><span data-line="376">    <span class="n">dT_max_F</span> <span class="o">=</span> <span class="p">(</span><span class="n">monthly</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">monthly</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">*</span> <span class="mf">9.0</span> <span class="o">/</span> <span class="mf">5.0</span>
+</span><span data-line="377">
+</span><span data-line="378">    <span class="n">day_of_year</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">target_date_str</span><span class="p">)</span><span class="o">.</span><span class="n">dayofyear</span>
+</span><span data-line="379">
+</span><span data-line="380">    <span class="n">ratio</span> <span class="o">=</span> <span class="mf">0.4</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_avg_F</span> <span class="o">-</span> <span class="mf">44.0</span><span class="p">)</span>
+</span><span data-line="381">    <span class="n">lag</span> <span class="o">=</span> <span class="mf">35.0</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_avg_F</span> <span class="o">-</span> <span class="mf">44.0</span><span class="p">)</span>
+</span><span data-line="382">    <span class="n">hemisphere</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">latitude</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">latitude</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">1.0</span>
+</span><span data-line="383">    <span class="n">T_mains_F</span> <span class="o">=</span> <span class="p">(</span><span class="n">T_avg_F</span> <span class="o">+</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">dT_max_F</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">hemisphere</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span>
+</span><span data-line="384">        <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mf">0.986</span> <span class="o">*</span> <span class="p">(</span><span class="n">day_of_year</span> <span class="o">-</span> <span class="mf">15.0</span> <span class="o">-</span> <span class="n">lag</span><span class="p">)</span> <span class="o">-</span> <span class="mf">90.0</span><span class="p">)</span>
+</span><span data-line="385">    <span class="p">)</span>
+</span><span data-line="386">    <span class="n">T_mains_F</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">32.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">T_mains_F</span><span class="p">))</span>
+</span><span data-line="387">    <span class="k">return</span> <span class="p">(</span><span class="n">T_mains_F</span> <span class="o">-</span> <span class="mf">32.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.0</span> <span class="o">/</span> <span class="mf">9.0</span></div>
 
-</span><span data-line="374">
-</span><span data-line="375">
+</span><span data-line="388">
+</span><span data-line="389">
 <div class="viewcode-block" id="build_dhw_usage_ratio">
 <a class="viewcode-back" href="../../api/support/demand-weather.html#tmhp.dhw.build_dhw_usage_ratio">[docs]</a>
-</span><span data-line="376"><span class="k">def</span><span class="w"> </span><span class="nf">build_dhw_usage_ratio</span><span class="p">(</span><span class="n">entries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">t_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-</span><span data-line="377"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Build schedule ratio array from schedule entries for each timestep.</span>
-</span><span data-line="378">
-</span><span data-line="379"><span class="sd">    Parameters</span>
-</span><span data-line="380"><span class="sd">    ----------</span>
-</span><span data-line="381"><span class="sd">    entries : list[tuple[str, str, float]]</span>
-</span><span data-line="382"><span class="sd">        Schedule entry list. Each item is (start_str, end_str, frac) format.</span>
-</span><span data-line="383"><span class="sd">    t_array : np.ndarray</span>
-</span><span data-line="384"><span class="sd">        Array of time seconds from start of day.</span>
-</span><span data-line="385">
-</span><span data-line="386"><span class="sd">    Returns</span>
-</span><span data-line="387"><span class="sd">    -------</span>
-</span><span data-line="388"><span class="sd">    np.ndarray</span>
-</span><span data-line="389"><span class="sd">        Array of fractions corresponding to ``t_array``.</span>
-</span><span data-line="390"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="391">
-</span><span data-line="392">    <span class="k">def</span><span class="w"> </span><span class="nf">_to_sec</span><span class="p">(</span><span class="n">t_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span data-line="393">        <span class="n">parts</span> <span class="o">=</span> <span class="n">t_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
-</span><span data-line="394">        <span class="n">h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span><span data-line="395">        <span class="n">m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span>
-</span><span data-line="396">        <span class="n">s</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="mi">0</span>
-</span><span data-line="397">        <span class="k">return</span> <span class="n">h</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">h2s</span> <span class="o">+</span> <span class="n">m</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">m2s</span> <span class="o">+</span> <span class="n">s</span>
-</span><span data-line="398">
-</span><span data-line="399">    <span class="n">ratio</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t_array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="390"><span class="k">def</span><span class="w"> </span><span class="nf">build_dhw_usage_ratio</span><span class="p">(</span><span class="n">entries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">t_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span data-line="391"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Build schedule ratio array from schedule entries for each timestep.</span>
+</span><span data-line="392">
+</span><span data-line="393"><span class="sd">    Parameters</span>
+</span><span data-line="394"><span class="sd">    ----------</span>
+</span><span data-line="395"><span class="sd">    entries : list[tuple[str, str, float]]</span>
+</span><span data-line="396"><span class="sd">        Schedule entry list. Each item is (start_str, end_str, frac) with</span>
+</span><span data-line="397"><span class="sd">        times in hours, hours:minutes or hours:minutes:seconds.</span>
+</span><span data-line="398"><span class="sd">    t_array : np.ndarray</span>
+</span><span data-line="399"><span class="sd">        Array of time seconds from start of day.</span>
 </span><span data-line="400">
-</span><span data-line="401">    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">frac</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
-</span><span data-line="402">        <span class="n">s_sec</span> <span class="o">=</span> <span class="n">_to_sec</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
-</span><span data-line="403">        <span class="n">e_sec</span> <span class="o">=</span> <span class="n">_to_sec</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
-</span><span data-line="404">
-</span><span data-line="405">        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_array</span> <span class="o">&gt;=</span> <span class="n">s_sec</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t_array</span> <span class="o">&lt;</span> <span class="n">e_sec</span><span class="p">)</span>
-</span><span data-line="406">        <span class="n">ratio</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">ratio</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">frac</span><span class="p">)</span>
-</span><span data-line="407">
-</span><span data-line="408">    <span class="k">return</span> <span class="n">ratio</span></div>
+</span><span data-line="401"><span class="sd">    Returns</span>
+</span><span data-line="402"><span class="sd">    -------</span>
+</span><span data-line="403"><span class="sd">    np.ndarray</span>
+</span><span data-line="404"><span class="sd">        Array of fractions corresponding to ``t_array``.</span>
+</span><span data-line="405"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="406">
+</span><span data-line="407">    <span class="n">ratio</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t_array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="408">
+</span><span data-line="409">    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">frac</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+</span><span data-line="410">        <span class="n">s_sec</span> <span class="o">=</span> <span class="n">_schedule_seconds</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+</span><span data-line="411">        <span class="n">e_sec</span> <span class="o">=</span> <span class="n">_schedule_seconds</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+</span><span data-line="412">
+</span><span data-line="413">        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_array</span> <span class="o">&gt;=</span> <span class="n">s_sec</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t_array</span> <span class="o">&lt;</span> <span class="n">e_sec</span><span class="p">)</span>
+</span><span data-line="414">        <span class="n">ratio</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">ratio</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">frac</span><span class="p">)</span>
+</span><span data-line="415">
+</span><span data-line="416">    <span class="k">return</span> <span class="n">ratio</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

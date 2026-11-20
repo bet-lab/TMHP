@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
+    <meta property="article:modified_time" content="2026-11-20T03:30:10+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -900,11 +900,11 @@ the density is taken at – for a coil, its inlet air.</p>
 <span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">G_FLS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#G_FLS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.G_FLS" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the g-function for finite line source (FLS) model.</p>
 <p>This function calculates the g-function used in ground source heat pump
-analysis. Results are cached for performance.</p>
+analysis. Scalar results are cached by the input values in a bounded cache.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>t</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Time [s]</p></li>
+<li><p><strong>t</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Positive time or times [s], in any order.</p></li>
 <li><p><strong>ks</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK]</p></li>
 <li><p><strong>as</strong> (<em>float</em>) – Ground thermal diffusivity [m²/s]</p></li>
 <li><p><strong>rb</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m]</p></li>
@@ -913,8 +913,8 @@ analysis. Results are cached for performance.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>g-function value [mK/W]. Returns scalar for single time value,
-array for multiple time values.</p>
+<dd class="field-even"><p>g-function value [mK/W]. Scalar and zero-dimensional inputs return a
+float. Array inputs return a flat array, including arrays of length one.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
@@ -4598,7 +4598,7 @@ parallel boreholes.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 16, 2026
+  Last updated Nov 20, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

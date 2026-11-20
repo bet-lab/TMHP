@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Irradiance co..." />
 
-    <meta property="article:modified_time" content="2026-11-15T06:11:23+00:00" />
+    <meta property="article:modified_time" content="2026-11-20T03:30:10+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -419,7 +419,8 @@ compressor that did not run or ran below the request.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>entries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Schedule entry list. Each item is (start_str, end_str, frac) format.</p></li>
+<li><p><strong>entries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Schedule entry list. Each item is (start_str, end_str, frac) with
+times in hours, hours:minutes or hours:minutes:seconds.</p></li>
 <li><p><strong>t_array</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Array of time seconds from start of day.</p></li>
 </ul>
 </dd>
@@ -479,7 +480,8 @@ name contains <code class="docutils literal notranslate"><span class="pre">T_avg
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>schedule</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Schedule list. Each item is (start_str, end_str, ratio) format.</p></li>
+<li><p><strong>schedule</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Schedule list. Each item is (start_str, end_str, ratio) with times
+in hours, hours:minutes or hours:minutes:seconds.</p></li>
 <li><p><strong>peak_load_m3s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Peak load water flow rate [m3/s].</p></li>
 <li><p><strong>info</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Flag to print info. Default is True.</p></li>
 <li><p><strong>info_unit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Unit to print info. Default is ‘L’.</p></li>
@@ -541,21 +543,28 @@ point (nothing to heat).</p>
 <dt class="sig sig-object py" id="tmhp.dhw.make_dhw_schedule_from_Annex_42_profile">
 <span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">make_dhw_schedule_from_Annex_42_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow_rate_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#make_dhw_schedule_from_Annex_42_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.make_dhw_schedule_from_Annex_42_profile" title="Link to this definition">¶</a></dt>
 <dd><p>Generate DHW schedule list from flow profile data.</p>
-<p>This function implements the logic to convert a flow profile (L/min)
-into a schedule list with specified time step.</p>
+<p>Treat each input rate as constant over its sample interval. Each output
+fraction is the time-weighted mean rate over the interval divided by the
+profile peak. The last interval ends at midnight, even for a step that
+does not divide the day.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>flow_rate_array</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Array of flow rates [L/min]. Data should represent 24 hours.</p></li>
+<li><p><strong>flow_rate_array</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – One day of finite, nonnegative flow rates [L/min].</p></li>
 <li><p><strong>df_time_step</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Time step of the input <code class="docutils literal notranslate"><span class="pre">flow_rate_array</span></code> [min].</p></li>
-<li><p><strong>simulation_time_step</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Target time step for the simulation schedule [s].</p></li>
+<li><p><strong>simulation_time_step</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Positive whole-second time step for the simulation schedule [s].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>List of tuples (start_time, end_time, fraction).</p>
+<dd class="field-even"><p>Nonzero intervals as tuples (start_time, end_time, fraction). Times
+include seconds for boundaries that do not fall on a whole minute.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the profile is not a day of finite, nonnegative rates or the
+    target step is not a positive whole number of seconds.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -620,7 +629,7 @@ columns.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 15, 2026
+  Last updated Nov 20, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

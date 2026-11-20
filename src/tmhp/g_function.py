@@ -37,6 +37,12 @@ if TYPE_CHECKING:
 
 _BOUNDARY_CONDITIONS = ("UBWT", "UHTR", "MIFT")
 
+# Eight-point Gauss–Legendre rule for the FLS integral and step means.
+_GL_NODES, _GL_WEIGHTS = np.polynomial.legendre.leggauss(8)
+# The radial Gaussian exp(-u²), u = rb*s, underflows before u = 28.
+# Spacing the edges in u² resolves even its exponentially small tails.
+_FLS_RADIAL_EDGES = np.sqrt(np.arange(0, 28**2 + 1, 4))
+
 
 def f(x):
     """
@@ -52,7 +58,7 @@ def f(x):
     float
         f(x) = x*erf(x) - (1-exp(-x²))/√π
     """
-    return x * erf(x) - (1 - np.exp(-(x**2))) / SP
+    return x * erf(x) + np.expm1(-(x**2)) / SP
 
 
 def chi(s, rb, H, z0=0):
@@ -78,10 +84,8 @@ def chi(s, rb, H, z0=0):
     h = H * s
     d = z0 * s
 
-    temp = np.exp(-((rb * s) ** 2)) / (h * s)
     Is = 2 * f(h) + 2 * f(h + 2 * d) - f(2 * h + 2 * d) - f(2 * d)
-
-    return temp * Is
+    return np.exp(-((rb * s) ** 2)) * (Is / h) / s
 
 
 def G_FLS(t: float | np.ndarray, ks: float, as_: float, rb: float, H: float) -> float | np.ndarray:
@@ -116,37 +120,33 @@ def G_FLS(t: float | np.ndarray, ks: float, as_: float, rb: float, H: float) -> 
     times = t_arr.ravel()
     if not times.size:
         return times.copy()
-    # odeint accepts either monotone direction. Only reorder mixed queries.
-    if np.any(times[1:] < times[:-1]) and np.any(times[1:] > times[:-1]):
-        ordered, indices = np.unique(times, return_inverse=True)
-        return _g_fls_values(ordered, ks, as_, rb, H)[indices]
     return _g_fls_values(times, ks, as_, rb, H)
 
 
 @lru_cache(maxsize=1024, typed=True)
 def _g_fls_scalar(t: float, ks: float, as_: float, rb: float, H: float) -> float:
     """Evaluate and memoize a scalar response without rounding any cache-key parameter."""
-    return float(_g_fls_values(np.asarray(t), ks, as_, rb, H)[0])
+    return float(_g_fls_values(np.array([t]), ks, as_, rb, H)[0])
 
 
 def _g_fls_values(t: np.ndarray, ks: float, as_: float, rb: float, H: float) -> np.ndarray:
-    """Evaluate the finite line source integral for the given times in input order."""
-    factor = 1 / (4 * np.pi * ks)
-    lbs = (1 / np.sqrt(4 * as_ * t)).reshape(-1)
+    """Integrate each positive time's tail directly, sharing quadrature panels across the batch."""
+    lower = np.minimum((0.5 * rb / np.sqrt(as_)) / np.sqrt(t), _FLS_RADIAL_EDGES[-1])
+    # In u = rb*s, the finite-length factor changes near u = rb/H and
+    # the radial Gaussian near u = 1. Resolve both even for sparse queries.
+    n_depth = max(0, int(np.ceil(np.log2(H / rb))))
+    depth_edges = np.exp2(-np.arange(n_depth + 1))
+    edges, indices = np.unique(np.concatenate((lower, depth_edges, _FLS_RADIAL_EDGES)), return_inverse=True)
+    s = edges / rb
+    half_width = 0.5 * np.diff(s)
+    nodes = s[:-1, None] + half_width[:, None] * (1.0 + _GL_NODES)
+    areas = half_width * (chi(nodes, rb, H) @ _GL_WEIGHTS)
 
-    # Pre-calculate integral from 0 to inf
-    total = integrate.quad(chi, 0, np.inf, args=(rb, H))[0]
-    # ODE initial value
-    first = integrate.quad(chi, 0, lbs[0], args=(rb, H))[0]
-
-    # Scipy ODE solver function form: dydx = f(y, x)
-    def func(y, s):
-        """Return the integrand at the solver's current integration point."""
-        return chi(s, rb, H, z0=0)
-
-    values = np.asarray(total - integrate.odeint(func, first, lbs)[:, 0], dtype=float)
-    result: np.ndarray = factor * values
-    return result
+    # Accumulating from infinity preserves small positive early-time responses.
+    tails = np.empty_like(s)
+    tails[-1] = 0.0
+    tails[:-1] = np.cumsum(areas[::-1])[::-1]
+    return tails[indices[: t.size]] / (4 * np.pi * ks)
 
 
 class GFunction:
@@ -467,8 +467,6 @@ def _borehole_shares(solver: Any, H: np.ndarray, nt: int) -> np.ndarray:
     return np.asarray(heat / heat.sum(axis=0, keepdims=True), dtype=float)
 
 
-# Gauss–Legendre nodes for the step mean of an arbitrary g(t) callable.
-_GL_NODES, _GL_WEIGHTS = np.polynomial.legendre.leggauss(8)
 # An interval that starts within one width of t = 0 is split into this many
 # log-spaced panels, the first one starting this fraction of the width after
 # the interval start (one more panel covers the stretch before it).

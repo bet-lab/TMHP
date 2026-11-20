@@ -82,19 +82,10 @@ def test_high_loop_flow_approaches_fixed_ua_limit(hp):
 def test_final_pr_clamped_condensing_temperature_cannot_be_at_loop_inlet(hp, monkeypatch):
     """The active guard uses the final saturation temperature after PR clamping."""
 
-    def fake_ref_state(**kwargs):
-        return {
-            "P_ref_cmp_in [Pa]": 100.0,
-            "P_ref_cmp_out [Pa]": 101.0,
-        }
-
     monkeypatch.setattr(hp, "_optimize_operation", lambda *args, **kwargs: SimpleNamespace(x=5.0, success=True))
-    monkeypatch.setattr(ashpb_module, "calc_ref_state", fake_ref_state)
-    monkeypatch.setattr(ashpb_module, "check_pr_envelope", lambda *args: "pr_below_min")
-
-    import CoolProp.CoolProp as CP
-
-    monkeypatch.setattr(CP, "PropsSI", lambda *args: cu.C2K(50.0))
+    monkeypatch.setattr(hp, "PR_cycle_min", 3.0)
+    # Project the condensing temperature exactly onto the loop-inlet boundary.
+    monkeypatch.setattr(ashpb_module, "props_si", lambda *args: cu.C2K(50.0))
 
     with pytest.warns(OperatingLimitWarning, match="t_cond_below_t_in"):
         result = hp.analyze_steady(T_tank_w=50.0, T0=45.0, Q_ref_tank=1000.0, m_dot_w=1.0)

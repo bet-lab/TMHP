@@ -160,7 +160,13 @@ from .heat_transfer import calc_simple_tank_UA
 from .hybrid_tank import HybridStratifiedTank
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
-from .refrigerant import calc_ref_state, props_si, reportable_state
+from .refrigerant import (
+    calc_ref_state,
+    calc_ref_state_without_discharge,
+    props_si,
+    reportable_state,
+    with_discharge_state,
+)
 from .source_fluid import (
     GROUND_LOOP_DESIGN_INLET_C,
     GROUND_LOOP_FLUID_DEFAULT,
@@ -1026,17 +1032,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_tank - self.dT_hx_min))
             T_cond_K = T_tank_w_K + dT_tank
 
-            # Refrigerant cycle with a unit isentropic efficiency: base states and pressure ratio.
-            cs_i = calc_ref_state(
+            cs_i, h_cmp_out_isen = calc_ref_state_without_discharge(
                 T_evap_K=T_ground_sat_K,
                 T_cond_K=T_cond_K,
                 refrigerant=self.ref,
-                eta_cmp_isen=1.0,
                 mode="heating",
                 dT_superheat=actual_dT_superheat,
                 x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
-                is_active=True,
             )
             P_evap = cs_i["P_ref_cmp_in [Pa]"]
             P_cond = cs_i["P_ref_cmp_out [Pa]"]
@@ -1058,16 +1061,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 self._last_pr_event = pr_event_i
                 P_cond_clamp = self.PR_cycle_min * P_evap
                 T_cond_K = props_si("T", "P", P_cond_clamp, "Q", 0, self.ref)
-                cs_i = calc_ref_state(
+                cs_i, h_cmp_out_isen = calc_ref_state_without_discharge(
                     T_evap_K=T_ground_sat_K,
                     T_cond_K=T_cond_K,
                     refrigerant=self.ref,
-                    eta_cmp_isen=1.0,
                     mode="heating",
                     dT_superheat=actual_dT_superheat,
                     x_suction=self._x_suction,
                     dT_subcool=actual_dT_subcool,
-                    is_active=True,
                 )
                 P_evap = cs_i["P_ref_cmp_in [Pa]"]
                 P_cond = cs_i["P_ref_cmp_out [Pa]"]
@@ -1079,13 +1080,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             if h_cmp_in - h_exp_in <= 0:
                 return None
 
-            try:
-                s_cmp_in = cs_i["s_ref_cmp_in [J/(kg·K)]"]
-                h_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
-            except ValueError:
-                h_cmp_out_isen = h_cmp_in
-            # Suction state for the efficiency models that need it (a failed
-            # isentropic flash leaves dh_isen 0: such a model reports the point infeasible).
             suction = suction_state(cs_i["P_ref_cmp_in [Pa]"], rho_cmp_in, h_cmp_in, h_cmp_out_isen)
 
             def _residual_rps(rps):
@@ -1105,17 +1099,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             eta_isen_i = _eval_eff(self.eta_cmp_isen, ratio, rps_i, suction)
             eta_em_i = _eval_eff(self.eta_cmp, ratio, rps_i, suction)
 
-            cs_i = calc_ref_state(
-                T_evap_K=T_ground_sat_K,
-                T_cond_K=T_cond_K,
-                refrigerant=self.ref,
-                eta_cmp_isen=eta_isen_i,
-                mode="heating",
-                dT_superheat=actual_dT_superheat,
-                x_suction=self._x_suction,
-                dT_subcool=actual_dT_subcool,
-                is_active=True,
-            )
+            cs_i = with_discharge_state(cs_i, h_cmp_out_isen, eta_isen_i, self.ref)
             m_dot_i = self.V_cmp_ref * rho_cmp_in * eta_vol_i * rps_i
             return {
                 "cs": cs_i,
@@ -1235,7 +1219,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 "eta_cmp [-]": val_eta_electro_mech,
                 "n_star [-]": cmp_rps / self.rps_rated,
                 "h_ref_evap_sat [J/kg]": props_si("H", "P", cs.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref),
-                "h_ref_cond_sat_v [J/kg]": props_si("H", "P", cs.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref),
                 "h_ref_cond_sat_l [J/kg]": h_ref_exp_in,
                 # Tank heat-exchanger closure: the approach the cycle ran at and
                 # how far the condenser is from carrying the delivered duty.

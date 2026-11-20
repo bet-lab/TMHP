@@ -48,16 +48,19 @@ REGEN_HINT = "모델 동작이 바뀌었다. `scripts/regen-validation.sh` 로 �
 
 # One xdist group: the per-catalogue reruns and the stamp test share one worker
 # and one cache of fresh results, so nothing is solved twice.
-pytestmark = [
-    pytest.mark.skipif(not MANIFEST.exists(), reason="parity harness has not been run in this checkout"),
-    pytest.mark.xdist_group("parity-rerun"),
-]
+pytestmark = pytest.mark.xdist_group("parity-rerun")
+
+
+def _load_manifest() -> dict:
+    """Read the committed provenance required by the manifest checks."""
+    assert MANIFEST.is_file(), f"committed parity manifest missing: {MANIFEST}"
+    return json.loads(MANIFEST.read_text(encoding="utf-8"))
 
 
 def test_manifest_names_the_shipped_coefficients() -> None:
     from tmhp.compressor_efficiency import COEFFICIENT_VERSION
 
-    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    manifest = _load_manifest()
     assert manifest["coefficient_version"] == COEFFICIENT_VERSION, (
         f"validation/results/manifest.json says {manifest['coefficient_version']!r}, "
         f"the library ships {COEFFICIENT_VERSION!r}. {REGEN_HINT}."
@@ -84,7 +87,7 @@ def test_every_committed_unit_has_a_provenance_record_matching_the_manifest() ->
     from validation.parity.run import MUST_AGREE
     from validation.parity.spec import load_all
 
-    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    manifest = _load_manifest()
     for catalog in load_all():
         path = RESULTS / "provenance" / f"{catalog.slug}.json"
         assert path.exists(), f"{catalog.slug}: no provenance record. {REGEN_HINT}."
@@ -185,7 +188,7 @@ def test_manifest_stamp_is_current_or_the_results_still_reproduce() -> None:
     every committed point -- otherwise the stamp would vouch for code that no
     longer produces them (the state #96 found).
     """
-    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    manifest = _load_manifest()
     stamp = manifest["src_tmhp_tree"]
     assert re.fullmatch(r"[0-9a-f]{40}", stamp), f"src_tmhp_tree {stamp!r} is not a git tree hash"
 

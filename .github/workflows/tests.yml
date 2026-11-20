@@ -68,9 +68,10 @@ jobs:
           run_matrix=true
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
             # Compare the exact merge result tested by Actions with its base.
-            # --no-renames keeps a move out of a tested directory a deletion.
-            if git diff --quiet --no-renames HEAD^1 HEAD -- \
-              README.md src tests scripts docs validation pyproject.toml uv.lock .github/workflows; then
+            # Tests can read tracked files anywhere. [L] matches the root LICENSE
+            # exactly, even if a future PR creates a directory named LICENSE.
+            # --no-renames keeps both paths of a move visible to the comparison.
+            if git diff --quiet --no-renames HEAD^1 HEAD -- ':(top,glob,exclude)[L]ICENSE'; then
               run_matrix=false
             else
               status=$?

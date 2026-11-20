@@ -9,6 +9,7 @@ import argparse
 import os
 import shlex
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
@@ -218,6 +219,12 @@ def _scope_script() -> str:
 SCOPE_CASES = (
     # Everything pytest reads or imports triggers the matrix on a PR.
     ("README.md", "pull_request", "true"),
+    ("THIRD_PARTY_NOTICES.md", "pull_request", "true"),
+    (".github/migration-notes.txt", "pull_request", "true"),
+    ("examples/result_columns.csv.gz", "pull_request", "true"),
+    ("notebooks/example.ipynb", "pull_request", "true"),
+    ("new-area/future-input", "pull_request", "true"),
+    ("LICENSE/reference.md", "pull_request", "true"),
     ("src/unusual\nfilename.py", "pull_request", "true"),
     ("src/tmhp/fixture.py", "pull_request", "true"),
     ("tests/test_fixture.py", "pull_request", "true"),
@@ -233,7 +240,7 @@ SCOPE_CASES = (
     ("docs/source/guide/page.rst", "pull_request", "true"),
     ("validation/results/summary.csv", "pull_request", "true"),
     ("validation/parity/run.py", "pull_request", "true"),
-    # Files no test reads still skip the matrix on a PR.
+    # Only the root license is exempt on a PR.
     ("LICENSE", "pull_request", "false"),
     # Trusted pushes always run it.
     ("LICENSE", "push", "true"),
@@ -241,11 +248,10 @@ SCOPE_CASES = (
 )
 
 
-@pytest.mark.parametrize(("relative", "event", "expected"), SCOPE_CASES, ids=[f"{e}:{r}" for r, e, _ in SCOPE_CASES])
-def test_matrix_scope_selects_tests_for_changed_paths(tmp_path: Path, relative: str, event: str, expected: str) -> None:
-    """Exercise the real scope shell so no input of the tests can bypass the PR matrix."""
-    script = _scope_script()
-    environment = {
+@pytest.fixture
+def scope_environment() -> dict[str, str]:
+    """Use a synthetic Git author without inheriting another repository's Git environment."""
+    return {
         **{key: value for key, value in os.environ.items() if not key.startswith("GIT_")},
         "GIT_AUTHOR_NAME": "CI scope fixture",
         "GIT_AUTHOR_EMAIL": "scope@example.invalid",
@@ -253,45 +259,94 @@ def test_matrix_scope_selects_tests_for_changed_paths(tmp_path: Path, relative: 
         "GIT_COMMITTER_EMAIL": "scope@example.invalid",
     }
 
-    def git(*args: str) -> str:
+
+@pytest.fixture
+def scope_git(tmp_path: Path, scope_environment: dict[str, str]) -> Callable[..., None]:
+    """Create a checkout for exercising the workflow's real Git comparison."""
+
+    def git(*args: str) -> None:
         """Run isolated fixture Git without invoking user hooks or commit signing."""
-        return subprocess.run(
+        subprocess.run(
             ["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false", *args],
             cwd=tmp_path,
-            env=environment,
+            env=scope_environment,
             check=True,
             capture_output=True,
             text=True,
-        ).stdout.strip()
+        )
 
     git("init", "-q", "-b", "base")
+    return git
+
+
+def _run_scope(tmp_path: Path, environment: dict[str, str], event: str) -> tuple[int, str]:
+    """Run the workflow step and return its exit status and emitted matrix decision."""
+    output = tmp_path / "output"
+    output.write_text("", encoding="utf-8")
+    result = subprocess.run(
+        ["bash", "-c", _scope_script()],
+        cwd=tmp_path,
+        env={**environment, "GITHUB_EVENT_NAME": event, "GITHUB_OUTPUT": str(output)},
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode, output.read_text(encoding="utf-8").strip()
+
+
+@pytest.mark.parametrize(("relative", "event", "expected"), SCOPE_CASES, ids=[f"{e}:{r}" for r, e, _ in SCOPE_CASES])
+def test_matrix_scope_selects_tests_for_changed_paths(
+    tmp_path: Path,
+    scope_environment: dict[str, str],
+    scope_git: Callable[..., None],
+    relative: str,
+    event: str,
+    expected: str,
+) -> None:
+    """Exercise the real scope shell so no input of the tests can bypass the PR matrix."""
     (tmp_path / "fixture").write_text("base\n", encoding="utf-8")
-    git("add", "fixture")
-    git("commit", "-qm", "base")
-    git("checkout", "-qb", "pr")
+    scope_git("add", "fixture")
+    scope_git("commit", "-qm", "base")
+    scope_git("checkout", "-qb", "pr")
 
     path = tmp_path / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("fixture\n", encoding="utf-8")
-    git("add", relative)
-    git("commit", "-qm", relative)
-    git("checkout", "-q", "base")
+    scope_git("add", relative)
+    scope_git("commit", "-qm", relative)
+    scope_git("checkout", "-q", "base")
     # A base-only source change belongs to the merge result independently of
     # the PR. It must not send an unrelated LICENSE-only PR through the matrix.
     (tmp_path / "src").mkdir(exist_ok=True)
     (tmp_path / "src/base-only.py").write_text("base change\n", encoding="utf-8")
-    git("add", "src/base-only.py")
-    git("commit", "-qm", "base advanced")
-    git("merge", "--no-ff", "-qm", "PR merge", "pr")
+    scope_git("add", "src/base-only.py")
+    scope_git("commit", "-qm", "base advanced")
+    scope_git("merge", "--no-ff", "-qm", "PR merge", "pr")
 
-    output = tmp_path / "output"
-    output.write_text("", encoding="utf-8")
-    subprocess.run(
-        ["bash", "-c", script],
-        cwd=tmp_path,
-        env={**environment, "GITHUB_EVENT_NAME": event, "GITHUB_OUTPUT": str(output)},
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    assert output.read_text(encoding="utf-8").strip() == f"run-matrix={expected}", (event, relative)
+    assert _run_scope(tmp_path, scope_environment, event) == (0, f"run-matrix={expected}")
+
+
+def test_matrix_scope_runs_when_a_test_input_is_renamed_to_the_license(
+    tmp_path: Path, scope_environment: dict[str, str], scope_git: Callable[..., None]
+) -> None:
+    """The deletion still runs pytest when the destination of a rename is exempt."""
+    (tmp_path / "THIRD_PARTY_NOTICES.md").write_text("fixture\n", encoding="utf-8")
+    scope_git("add", "THIRD_PARTY_NOTICES.md")
+    scope_git("commit", "-qm", "base")
+    scope_git("checkout", "-qb", "pr")
+    scope_git("mv", "THIRD_PARTY_NOTICES.md", "LICENSE")
+    scope_git("commit", "-qm", "rename notice")
+    scope_git("checkout", "-q", "base")
+    scope_git("merge", "--no-ff", "-qm", "PR merge", "pr")
+
+    assert _run_scope(tmp_path, scope_environment, "pull_request") == (0, "run-matrix=true")
+
+
+def test_matrix_scope_fails_when_the_merge_base_parent_is_missing(
+    tmp_path: Path, scope_environment: dict[str, str], scope_git: Callable[..., None]
+) -> None:
+    """A Git comparison error cannot emit a decision to skip pytest."""
+    scope_git("commit", "--allow-empty", "-qm", "no parent")
+
+    status, output = _run_scope(tmp_path, scope_environment, "pull_request")
+    assert status != 0
+    assert not output

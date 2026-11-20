@@ -245,7 +245,9 @@ def make_dhw_schedule_from_Annex_42_profile(
     flow_rate_array = np.asarray(flow_rate_array, dtype=float)
     if flow_rate_array.ndim != 1 or not np.all(np.isfinite(flow_rate_array)) or np.any(flow_rate_array < 0):
         raise ValueError("Input profile must be a one-dimensional array of finite nonnegative flow rates")
-    total_minutes = len(flow_rate_array) * df_time_step
+    # NumPy integer scalars can overflow in both the day-length and seconds calculations.
+    sample_minutes = float(df_time_step)
+    total_minutes = len(flow_rate_array) * sample_minutes
     if total_minutes != 1440:
         raise ValueError(f"Input profile must cover exactly 24 hours (got {total_minutes} min)")
     if (
@@ -258,7 +260,7 @@ def make_dhw_schedule_from_Annex_42_profile(
     peak_flow = flow_rate_array.max()
     if peak_flow == 0.0:
         return []
-    source_seconds = df_time_step * cu.m2s
+    source_seconds = sample_minutes * cu.m2s
     source_edges = np.arange(len(flow_rate_array) + 1) * source_seconds
     target_edges = np.append(np.arange(0, cu.d2s, min(int(simulation_time_step), cu.d2s)), cu.d2s)
     # The integral of a piecewise-constant rate is linear between source edges.

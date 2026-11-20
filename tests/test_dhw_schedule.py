@@ -40,6 +40,13 @@ def test_daily_volume_counts_seconds_in_schedule_times():
     assert volume == pytest.approx(0.015)
 
 
+def test_numpy_integer_sample_step_preserves_long_intervals():
+    """Converting twelve-hour samples to seconds must not overflow a narrow dtype."""
+    entries = make_dhw_schedule_from_Annex_42_profile(np.array([0.0, 10.0]), np.int16(720), 43200)
+    assert entries == [("12:00", "24:00", 1.0)]
+    assert calc_total_water_use_from_schedule(entries, 10 / 60000, info=False) == pytest.approx(7.2)
+
+
 @pytest.mark.parametrize("step", [0, -10, 0.5, np.nan, np.inf])
 def test_invalid_target_step_rejected(step):
     """Reject steps that cannot be expressed as a positive duration in seconds."""

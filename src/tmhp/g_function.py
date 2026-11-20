@@ -94,7 +94,7 @@ def G_FLS(t: float | np.ndarray, ks: float, as_: float, rb: float, H: float) -> 
     Parameters
     ----------
     t : float or array
-        Time or times [s]
+        Positive time or times [s], in any order.
     ks : float
         Ground thermal conductivity [W/mK]
     as_ : float
@@ -113,7 +113,14 @@ def G_FLS(t: float | np.ndarray, ks: float, as_: float, rb: float, H: float) -> 
     t_arr = np.asarray(t, dtype=float)
     if t_arr.ndim == 0:
         return _g_fls_scalar(float(t_arr), ks, as_, rb, H)
-    return _g_fls_values(t_arr, ks, as_, rb, H)
+    times = t_arr.ravel()
+    if not times.size:
+        return times.copy()
+    # odeint accepts either monotone direction. Only reorder mixed queries.
+    if np.any(times[1:] < times[:-1]) and np.any(times[1:] > times[:-1]):
+        ordered, indices = np.unique(times, return_inverse=True)
+        return _g_fls_values(ordered, ks, as_, rb, H)[indices]
+    return _g_fls_values(times, ks, as_, rb, H)
 
 
 @lru_cache(maxsize=1024, typed=True)

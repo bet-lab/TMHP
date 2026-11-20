@@ -1,0 +1,54 @@
+! Adapted from EnergyPlus version 24.2.0 testfiles/PlantLoadProfile.idf.
+! Upstream terms are reproduced in ENERGYPLUS-LICENSE.txt.
+! One winter design day at 7 C with a 40 C water setpoint, using the TMHP plant plugin.
+Version, 24.2;
+Building, Plant Load Profile Example, 0.0, Suburbs, 0.04, 0.04, FullInteriorAndExterior, 25, 6;
+Timestep, 6;
+GlobalGeometryRules, UpperLeftCorner, CounterClockWise, Relative;
+Site:Location, CHICAGO_IL_USA_WMO_725300, 42.00, -87.88, -6.00, 190.00;
+SizingPeriod:DesignDay, Mild day 7C, 1, 21, WinterDesignDay, 7.0, 0.0, , , Wetbulb, 7.0, , , , , 99063., 4.9, 270, No, No, No, ASHRAEClearSky, , , , , 0.00;
+RunPeriod, Run Period 1, 1, 1, , 12, 31, , Tuesday, Yes, Yes, No, Yes, Yes;
+SimulationControl, NO, NO, NO, YES, NO, No, 1;
+PlantLoop, Main Loop, WATER, , Main Loop Operation, Supply Outlet Node, 100, 3, 0.003, 0, autocalculate, Supply Inlet Node, Supply Outlet Node, Supply Branches, Supply Connectors, Demand Inlet Node, Demand Outlet Node, Demand Branches, Demand Connectors, OPTIMAL;
+SetpointManager:Scheduled, Main Loop Setpoint Manager, Temperature, Main Loop Temp Sch, Main Loop Setpoint Node List;
+NodeList, Main Loop Setpoint Node List, Supply Outlet Node;
+PlantEquipmentOperationSchemes, Main Loop Operation, PlantEquipmentOperation:HeatingLoad, Purchased Only, AlwaysOnSchedule;
+PlantEquipmentOperation:HeatingLoad, Purchased Only, 0, 10000000, Heating Plant;
+PlantEquipmentList, Heating Plant, PlantComponent:UserDefined, ASHPB_UserDefined;
+BranchList, Supply Branches, Supply Inlet Branch, Heating Branch, Supply Outlet Branch;
+ConnectorList, Supply Connectors, Connector:Splitter, Supply Splitter, Connector:Mixer, Supply Mixer;
+Connector:Splitter, Supply Splitter, Supply Inlet Branch, Heating Branch;
+Connector:Mixer, Supply Mixer, Supply Outlet Branch, Heating Branch;
+Branch, Supply Inlet Branch, , Pump:VariableSpeed, Pump, Supply Inlet Node, Supply Pump-Heating Node;
+Pump:VariableSpeed, Pump, Supply Inlet Node, Supply Pump-Heating Node, 0.005, 300000, 2250, 0.87, 0.0, 0, 1, 0, 0, 0, INTERMITTENT;
+Branch, Heating Branch, , PlantComponent:UserDefined, ASHPB_UserDefined, Supply Heating Inlet Node, Supply Heating Outlet Node;
+PlantComponent:UserDefined, ASHPB_UserDefined, , 1, Supply Heating Inlet Node, Supply Heating Outlet Node, MeetsLoadWithNominalCapacity, NeedsFlowIfLoopOn, TMHP Init, TMHP Sim;
+Branch, Supply Outlet Branch, , Pipe:Adiabatic, Supply Outlet Pipe, Supply Heating-Pipe Node, Supply Outlet Node;
+Pipe:Adiabatic, Supply Outlet Pipe, Supply Heating-Pipe Node, Supply Outlet Node;
+BranchList, Demand Branches, Demand Inlet Branch, Load Profile Branch 1, Demand Outlet Branch;
+ConnectorList, Demand Connectors, Connector:Splitter, Demand Splitter, Connector:Mixer, Demand Mixer;
+Connector:Splitter, Demand Splitter, Demand Inlet Branch, Load Profile Branch 1;
+Connector:Mixer, Demand Mixer, Demand Outlet Branch, Load Profile Branch 1;
+Branch, Demand Inlet Branch, , Pipe:Adiabatic, Demand Inlet Pipe, Demand Inlet Node, Demand Pipe-Load Profile Node;
+Pipe:Adiabatic, Demand Inlet Pipe, Demand Inlet Node, Demand Pipe-Load Profile Node;
+Branch, Load Profile Branch 1, , LoadProfile:Plant, Load Profile 1, Demand Load Profile 1 Inlet Node, Demand Load Profile 1 Outlet Node;
+LoadProfile:Plant, Load Profile 1, Demand Load Profile 1 Inlet Node, Demand Load Profile 1 Outlet Node, Load Profile 1 Load Schedule, 0.002, Load Profile 1 Flow Frac Schedule, Water;
+Branch, Demand Outlet Branch, , Pipe:Adiabatic, Demand Outlet Pipe, Demand Load Profile-Pipe Node, Demand Outlet Node;
+Pipe:Adiabatic, Demand Outlet Pipe, Demand Load Profile-Pipe Node, Demand Outlet Node;
+ScheduleTypeLimits, Any Number;
+ScheduleTypeLimits, On/Off, 0, 1, DISCRETE;
+Schedule:Compact, Main Loop Temp Sch, Any Number, THROUGH: 12/31, FOR: AllDays, UNTIL: 24:00, 40;
+Schedule:Compact, AlwaysOnSchedule, On/Off, THROUGH: 12/31, FOR: AllDays, UNTIL: 24:00, 1;
+Schedule:Compact, Load Profile 1 Load Schedule, Any Number, THROUGH: 12/31, FOR: AllDays, UNTIL: 4:00, 8000, UNTIL: 8:00, 6000, UNTIL: 9:00, 0, UNTIL: 12:00, 6000, UNTIL: 24:00, 10000;
+Schedule:Compact, Load Profile 1 Flow Frac Schedule, Any Number, THROUGH: 12/31, FOR: AllDays, UNTIL: 24:00, 1.0;
+Output:SQLite, Simple;
+! Request the weather handle that the simulation plugin reads on each plant call.
+Output:Variable, *, Site Outdoor Air Drybulb Temperature, Hourly;
+PythonPlugin:Instance, TMHP Init, Yes, tmhp.integrations.energyplus_plugin, TmhpPlantInit;
+PythonPlugin:Instance, TMHP Sim, Yes, tmhp.integrations.energyplus_plugin, TmhpPlantSurrogate;
+PythonPlugin:SearchPaths, TMHP paths, No, No, No, @SITE_PACKAGES@;
+PythonPlugin:Variables, TMHP globals, tmhp_E_cmp_J, tmhp_E_cmp_W;
+PythonPlugin:OutputVariable, TMHP Energy, tmhp_E_cmp_J, Summed, SystemTimestep, J;
+Output:Variable, TMHP Energy, PythonPlugin:OutputVariable, Hourly;
+PythonPlugin:OutputVariable, TMHP Power, tmhp_E_cmp_W, Averaged, SystemTimestep, W;
+Output:Variable, TMHP Power, PythonPlugin:OutputVariable, Hourly;

@@ -1,0 +1,70 @@
+name: EnergyPlus
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/energyplus.yml"
+      - "src/tmhp/**"
+      - "tests/energyplus/**"
+      - "tests/test_energyplus_plugin.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "README.md"
+      - "LICENSE"
+      - "THIRD_PARTY_NOTICES.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/energyplus.yml"
+      - "src/tmhp/**"
+      - "tests/energyplus/**"
+      - "tests/test_energyplus_plugin.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "README.md"
+      - "LICENSE"
+      - "THIRD_PARTY_NOTICES.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('energyplus-pr-{0}', github.event.pull_request.number) || format('energyplus-run-{0}', github.run_id) }}
+  cancel-in-progress: true
+
+jobs:
+  plant:
+    name: EnergyPlus 24.2 plant
+    runs-on: ubuntu-24.04
+    env:
+      UV_PYTHON: "3.12" # ABI of the release's embedded CPython
+      RELEASE: EnergyPlus-24.2.0-e7ecb2d53b-Linux-Ubuntu24.04-x86_64
+      SHA256: fe7a9d780f71b7201f6a25df4b43b7c44b8610aecb87f800b6a6d4c07d48b126
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Install wheel and locked runtime dependencies
+        run: uv sync --locked --no-dev --no-editable
+
+      - name: Cache stock EnergyPlus archive
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/energyplus.tar.gz
+          key: energyplus-archive-${{ env.SHA256 }}
+
+      - name: Verify and extract the official release
+        working-directory: ${{ runner.temp }}
+        run: |
+          if [[ ! -f energyplus.tar.gz ]]; then
+            curl --fail --location --silent --show-error --retry 2 --output energyplus.tar.gz \
+              "https://github.com/NatLabRockies/EnergyPlus/releases/download/v24.2.0/$RELEASE.tar.gz"
+          fi
+          echo "$SHA256  energyplus.tar.gz" | sha256sum --check
+          tar -xzf energyplus.tar.gz
+          "$RELEASE/energyplus" --version
+
+      - name: Run the plant and verify 24 hourly J/W readings
+        run: .venv/bin/python tests/energyplus/run_smoke.py "$RUNNER_TEMP/$RELEASE/energyplus"

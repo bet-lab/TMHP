@@ -3,6 +3,13 @@
 TMHP is distributed under the MIT License (see `LICENSE`). The files listed
 below contain or derive from software distributed under its own terms.
 
+## EnergyPlus version 24.2.0 plant fixture
+
+`tests/energyplus/plant.idf` adapts the EnergyPlus version 24.2.0
+`testfiles/PlantLoadProfile.idf` example to a TMHP-controlled heating loop.
+The fixture's copyright notice, conditions, and disclaimer are reproduced in
+`tests/energyplus/ENERGYPLUS-LICENSE.txt`.
+
 ## geolink
 
 - Project: geolink (bet-lab/geolink), a ground thermal response research library

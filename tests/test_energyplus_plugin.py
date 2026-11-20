@@ -2,7 +2,8 @@
 
 The plugin classes import ``pyenergyplus`` (bundled in an EnergyPlus install,
 not pip-installable) and a full check needs EnergyPlus running the embedded
-interpreter — that end-to-end co-simulation is exercised outside CI. Here we
+interpreter. The EnergyPlus CI workflow runs the design-day plant in
+``tests/energyplus`` using the stock Linux CLI. Here we
 anchor correctness to the public ``analyze_steady()`` seam, which is
 exactly what the plugin calls, so the contract the adapter depends on is tested
 dependency-light; the plugin-class structure is checked only when

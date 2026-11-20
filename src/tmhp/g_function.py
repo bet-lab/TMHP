@@ -5,6 +5,7 @@ Provides:
 - Air dynamic viscosity (Sutherland's formula) and Prandtl number
 """
 
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -83,21 +84,17 @@ def chi(s, rb, H, z0=0):
     return temp * Is
 
 
-_GFuncCacheKey = tuple[float, float, float, float, float]
-_g_func_cache: dict[_GFuncCacheKey, float | np.ndarray] = {}
-
-
 def G_FLS(t: float | np.ndarray, ks: float, as_: float, rb: float, H: float) -> float | np.ndarray:
     """
     Calculate the g-function for finite line source (FLS) model.
 
     This function calculates the g-function used in ground source heat pump
-    analysis. Results are cached for performance.
+    analysis. Scalar results are cached by the input values in a bounded cache.
 
     Parameters
     ----------
-    t : float
-        Time [s]
+    t : float or array
+        Time or times [s]
     ks : float
         Ground thermal conductivity [W/mK]
     as_ : float
@@ -110,29 +107,25 @@ def G_FLS(t: float | np.ndarray, ks: float, as_: float, rb: float, H: float) -> 
     Returns
     -------
     float or array
-        g-function value [mK/W]. Returns scalar for single time value,
-        array for multiple time values.
+        g-function value [mK/W]. Scalar and zero-dimensional inputs return a
+        float. Array inputs return a flat array, including arrays of length one.
     """
     t_arr = np.asarray(t, dtype=float)
-    single = t_arr.ndim == 0
-    key: _GFuncCacheKey | None = None
-    if single:
-        key = (
-            float(round(float(t_arr), 0)),
-            float(round(ks, 2)),
-            float(round(as_, 6)),
-            float(round(rb, 2)),
-            float(round(H, 0)),
-        )
-        if key in _g_func_cache:
-            return _g_func_cache[key]
+    if t_arr.ndim == 0:
+        return _g_fls_scalar(float(t_arr), ks, as_, rb, H)
+    return _g_fls_values(t_arr, ks, as_, rb, H)
 
+
+@lru_cache(maxsize=1024, typed=True)
+def _g_fls_scalar(t: float, ks: float, as_: float, rb: float, H: float) -> float:
+    """Evaluate and memoize a scalar response without rounding any cache-key parameter."""
+    return float(_g_fls_values(np.asarray(t), ks, as_, rb, H)[0])
+
+
+def _g_fls_values(t: np.ndarray, ks: float, as_: float, rb: float, H: float) -> np.ndarray:
+    """Evaluate the finite line source integral for the given times in input order."""
     factor = 1 / (4 * np.pi * ks)
-
-    lbs = 1 / np.sqrt(4 * as_ * t_arr)
-
-    # Reshape to 1D array
-    lbs = lbs.reshape(-1)
+    lbs = (1 / np.sqrt(4 * as_ * t)).reshape(-1)
 
     # Pre-calculate integral from 0 to inf
     total = integrate.quad(chi, 0, np.inf, args=(rb, H))[0]
@@ -141,15 +134,11 @@ def G_FLS(t: float | np.ndarray, ks: float, as_: float, rb: float, H: float) -> 
 
     # Scipy ODE solver function form: dydx = f(y, x)
     def func(y, s):
+        """Return the integrand at the solver's current integration point."""
         return chi(s, rb, H, z0=0)
 
     values = np.asarray(total - integrate.odeint(func, first, lbs)[:, 0], dtype=float)
-    if single:
-        result: float | np.ndarray = float(factor * values[0])
-    else:
-        result = factor * values
-    if key is not None:
-        _g_func_cache[key] = result
+    result: np.ndarray = factor * values
     return result
 
 

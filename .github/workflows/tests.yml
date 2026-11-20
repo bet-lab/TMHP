@@ -52,8 +52,12 @@ jobs:
       run-matrix: ${{ steps.changed-files.outputs.run-matrix }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: github.event_name == 'pull_request'
         with:
-          fetch-depth: 0
+          # Only the PR merge tree and its first parent are compared.
+          fetch-depth: 2
+          sparse-checkout: /.github/workflows/tests.yml
+          sparse-checkout-cone-mode: false
 
       - name: Decide whether full pytest matrix is needed
         id: changed-files
@@ -61,23 +65,19 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            echo "run-matrix=true" >> "$GITHUB_OUTPUT"
-            exit 0
+          run_matrix=true
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            # Compare the exact merge result tested by Actions with its base.
+            # --no-renames keeps a move out of a tested directory a deletion.
+            if git diff --quiet --no-renames HEAD^1 HEAD -- \
+              README.md src tests scripts docs validation pyproject.toml uv.lock .github/workflows; then
+              run_matrix=false
+            else
+              status=$?
+              [[ $status == 1 ]] || exit "$status"
+            fi
           fi
-
-          base_sha="${{ github.event.pull_request.base.sha }}"
-          head_sha="${{ github.event.pull_request.head.sha }}"
-          changed_files="$(git diff --name-only "$base_sha" "$head_sha")"
-
-          # docs/ and validation/ are inputs to tests (test_docs_alignment,
-          # test_validation_docs_alignment, test_docs_examples read them), and
-          # every workflow file is read by test_ci_workflow_acceleration.
-          if printf '%s\n' "$changed_files" | grep -E '^README\.md$|^src/|^tests/|^scripts/|^docs/|^validation/|^pyproject\.toml$|^uv\.lock$|^\.github/workflows/' >/dev/null; then
-            echo "run-matrix=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run-matrix=false" >> "$GITHUB_OUTPUT"
-          fi
+          echo "run-matrix=$run_matrix" >> "$GITHUB_OUTPUT"
 
   test:
     needs: test-scope
@@ -112,6 +112,9 @@ jobs:
 
       - name: Pytest with coverage
         if: matrix.python-version == '3.12'
+        env:
+          # Python 3.12 supports low-overhead sys.monitoring for line coverage.
+          COVERAGE_CORE: sysmon
         run: |
           uv run pytest -q -n auto --dist loadgroup \
             --cov=tmhp \
@@ -144,26 +147,27 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.12"
+          python-version: ${{ env.UV_PYTHON }}
 
-      - name: Restore generated docs data cache
+      - name: Cache cycle grid
         id: docs-data-cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          path: |
-            docs/source/_static/widgets/cycle_data.json
-            docs/source/_static/widgets/cycle_data.*.stamp
-            docs/source/_static/data/*.json
-          key: docs-data-${{ runner.os }}-ci-${{ hashFiles('uv.lock', 'pyproject.toml', 'docs/Makefile', 'scripts/data/**', 'scripts/validation/**', 'src/tmhp/**') }}
+          path: docs/source/_static/widgets/cycle_data.json
+          key: >-
+            cycle-grid-${{ runner.os }}-${{ env.UV_PYTHON }}-ci-${{ hashFiles('uv.lock', 'pyproject.toml', 'docs/Makefile',
+            'scripts/data/gen_refrigerant_data.py', 'src/tmhp/calc_util.py',
+            'src/tmhp/mollier_diagram.py', 'src/tmhp/refrigerant.py') }}
 
       - name: Install project (dev + docs groups, lockfile pinned)
-        run: uv sync --all-groups --locked
+        run: uv sync --group docs --locked
 
-      - name: Refresh cached docs data mtimes
+      - name: Use restored cycle grid
         if: steps.docs-data-cache.outputs.cache-hit == 'true'
         run: |
-          find docs/source/_static/widgets -maxdepth 1 \( -name 'cycle_data.json' -o -name 'cycle_data.*.stamp' \) -exec touch {} +
-          find docs/source/_static/data -maxdepth 1 -name '*.json' -exec touch {} +
+          cd docs/source/_static/widgets
+          test -s cycle_data.json
+          touch cycle_data.ci.stamp cycle_data.json
 
       - name: Build docs with interactive data (warnings-as-errors)
-        run: make -C docs html SPHINXOPTS="-W --keep-going" DOCS_DATA_PROFILE="ci"
+        run: make -C docs html SPHINXOPTS="-W --keep-going" DOCS_DATA_PROFILE="ci" DOCS_FRESH_DATA=1

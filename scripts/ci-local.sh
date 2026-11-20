@@ -70,17 +70,18 @@ run_step "ruff-format" uv run ruff format --check "${lint_paths[@]}"
 run_step "mypy" uv run mypy src/tmhp
 # Same command as the CI 3.12 job, including its coverage floor (--cov-fail-under),
 # so a coverage drop fails here too. Keep the floor in sync with tests.yml.
+python_version="$(uv run python -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)"
+if [[ "$python_version" == 3.12.* ]]; then
+    export COVERAGE_CORE="${COVERAGE_CORE:-sysmon}"
+fi
 run_step "pytest" uv run pytest -q -n auto --dist loadgroup \
     --cov=tmhp --cov-report=term --cov-report=xml --cov-fail-under=88
 if [[ $do_docs -eq 1 ]]; then
-    # Mirrors the CI `docs` job (--all-groups installs the docs group). The
-    # `integrations` extra stays installed: without it this step would remove
-    # fmpy/pythonfmu from the environment, and a later `--no-sync` run would
-    # skip the FMU adapter tests instead of running them.
+    # Keep the FMU dependencies installed for the next --no-sync run.
     if [[ $do_sync -eq 1 ]]; then
-        run_step "sync-docs" uv sync --all-groups --extra integrations --locked
+        run_step "sync-docs" uv sync --group docs --extra integrations --locked
     fi
-    run_step "docs" make -C docs html SPHINXOPTS="-W --keep-going" DOCS_DATA_PROFILE="ci"
+    run_step "docs" make -C docs html SPHINXOPTS="-W --keep-going" DOCS_DATA_PROFILE="ci" DOCS_FRESH_DATA=1
 fi
 
 commit="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
@@ -93,7 +94,7 @@ failed=0
 echo
 echo "=============== ci-local receipt ==============="
 echo "commit : ${commit}${dirty}"
-echo "python : $(uv run python -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)"
+echo "python : $python_version"
 echo "host   : $(uname -sm)"
 echo "date   : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 for i in "${!step_names[@]}"; do

@@ -180,9 +180,9 @@ def test_pytest_matrix_is_gated_by_the_scope_job() -> None:
     assert scope["outputs"]["run-matrix"] == "${{ steps.changed-files.outputs.run-matrix }}"
     assert _as_list(test["needs"]) == ["test-scope"]
     assert test["if"] == "needs.test-scope.outputs.run-matrix == 'true'"
-    script = _scope_script()
-    assert "github.event.pull_request.base.sha" in script
-    assert "github.event.pull_request.head.sha" in script
+    (checkout,) = [step for step in _steps(scope) if str(step.get("uses", "")).startswith("actions/checkout@")]
+    assert checkout["if"] == "github.event_name == 'pull_request'"
+    assert checkout["with"]["fetch-depth"] == 2
 
 
 def test_matrix_covers_every_supported_python_and_the_classifiers_agree() -> None:
@@ -218,6 +218,7 @@ def _scope_script() -> str:
 SCOPE_CASES = (
     # Everything pytest reads or imports triggers the matrix on a PR.
     ("README.md", "pull_request", "true"),
+    ("src/unusual\nfilename.py", "pull_request", "true"),
     ("src/tmhp/fixture.py", "pull_request", "true"),
     ("tests/test_fixture.py", "pull_request", "true"),
     ("scripts/fixture.py", "pull_request", "true"),
@@ -263,28 +264,32 @@ def test_matrix_scope_selects_tests_for_changed_paths(tmp_path: Path, relative: 
             text=True,
         ).stdout.strip()
 
-    git("init", "-q")
+    git("init", "-q", "-b", "base")
     (tmp_path / "fixture").write_text("base\n", encoding="utf-8")
     git("add", "fixture")
     git("commit", "-qm", "base")
-    base = git("rev-parse", "HEAD")
+    git("checkout", "-qb", "pr")
 
     path = tmp_path / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("fixture\n", encoding="utf-8")
     git("add", relative)
     git("commit", "-qm", relative)
-    head = git("rev-parse", "HEAD")
+    git("checkout", "-q", "base")
+    # A base-only source change belongs to the merge result independently of
+    # the PR. It must not send an unrelated LICENSE-only PR through the matrix.
+    (tmp_path / "src").mkdir(exist_ok=True)
+    (tmp_path / "src/base-only.py").write_text("base change\n", encoding="utf-8")
+    git("add", "src/base-only.py")
+    git("commit", "-qm", "base advanced")
+    git("merge", "--no-ff", "-qm", "PR merge", "pr")
 
-    selected = script.replace("${{ github.event_name }}", event)
-    selected = selected.replace("${{ github.event.pull_request.base.sha }}", base)
-    selected = selected.replace("${{ github.event.pull_request.head.sha }}", head)
     output = tmp_path / "output"
     output.write_text("", encoding="utf-8")
     subprocess.run(
-        ["bash", "-c", selected],
+        ["bash", "-c", script],
         cwd=tmp_path,
-        env={**environment, "GITHUB_OUTPUT": str(output)},
+        env={**environment, "GITHUB_EVENT_NAME": event, "GITHUB_OUTPUT": str(output)},
         check=True,
         capture_output=True,
         text=True,

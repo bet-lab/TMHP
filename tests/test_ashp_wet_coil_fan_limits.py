@@ -221,3 +221,70 @@ def test_dry_lower_end_quoted_on_the_model_page(default):
     wet = default.analyze_steady(1050.0, 5.0, 27.0, RH_room=0.2, verbose=False)
     assert wet["failure_reason"] == "none" and wet["capacity_clamped"] == "min"
     assert wet["Q_min [W]"] == pytest.approx(1080.0, rel=5e-3)
+
+
+# ---------------------------------------------------------------------------
+# 6. A duty the ordinary search ends short of is not the ceiling
+# ---------------------------------------------------------------------------
+
+
+def _searched_trial(model, runs: tuple[tuple[float, float], ...], floor: float):
+    """A trial of the wet ceiling search for a unit whose least-lift point no duty has.
+
+    The duties inside one of the bands ``runs`` run; below ``floor`` the fans' smallest airflows
+    refuse the duty; anywhere else the ordinary search ends with the compressor flat out, short of it.
+    """
+    calls: list[float] = []
+
+    def trial(q, start=None):
+        calls.append(q)
+        if any(low <= q <= high for low, high in runs):
+            return (q / 2000.0, q / 1000.0), {"Q_ref_iu [W]": q}, None
+        if q < floor:
+            return (1.0, 1.0), None, model._MIN_AIRFLOW
+        return (20.0, 10.0), None, model._SEARCH_FLAT_OUT
+
+    return trial, calls
+
+
+def test_a_duty_the_search_ends_short_of_names_no_limit(default):
+    assert default._SEARCH_FLAT_OUT not in default._LIMIT_REASONS
+    # The binding of a ceiling found under such a duty is the compressor's.
+    assert default._binding_of(default._SEARCH_FLAT_OUT) == "compressor"
+
+
+def test_wet_ceiling_search_looks_above_a_duty_the_search_ended_short_of(default):
+    # Two bands run: 14 to 18.2 kW and 22.2 to 23.4 kW. The rungs at 80 % and 60 % of the top
+    # (25.3 and 19 kW) end short of the duty; taken for limits of the machine they put the
+    # ceiling at 18.2 kW, under 5 kW that run.
+    trial, _ = _searched_trial(default, runs=((14_000.0, 18_236.0), (22_163.0, 23_400.0)), floor=14_000.0)
+    x, state, reason = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3)
+    assert state["Q_ref_iu [W]"] == pytest.approx(23_400.0, rel=1.5e-3) and state["Q_ref_iu [W]"] <= 23_400.0
+    assert default._binding_of(reason) == "compressor"
+
+
+def test_wet_ceiling_search_finds_a_band_between_a_rung_refused_from_below_and_one_ended_short(default):
+    # One band, between the rungs at 60 % and 80 % of the top, and no rung in it: 0 W was the
+    # answer when the rung at 80 % counted as a limit of the machine and nothing ran under it.
+    trial, _ = _searched_trial(default, runs=((22_163.0, 23_400.0),), floor=22_163.0)
+    x, state, reason = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3)
+    assert x is not None and state is not None
+    assert state["Q_ref_iu [W]"] == pytest.approx(23_400.0, rel=1.5e-3) and state["Q_ref_iu [W]"] <= 23_400.0
+    assert default._binding_of(reason) == "compressor"
+
+
+def test_ceiling_of_a_stiff_outdoor_fan_is_above_every_duty_that_runs_on_request():
+    # A 10 kW unit whose outdoor fan runs at no less than 90 % of its largest flow, outdoor -10 degC,
+    # saturated 21 degC room: 18.5 to 21 kW end with the compressor flat out at the widest indoor
+    # approach, and 22.5 kW runs at a narrower one. 18.24 kW was reported for the ceiling.
+    base = _build(hp_capacity=10000.0)
+    stiff = _build(hp_capacity=10000.0, dV_ou_fan_a_min=0.9 * base.dV_ou_fan_a_max)
+    room = dict(T0=-10.0, T_a_room=21.0, RH_room=1.0)
+    running = stiff.analyze_steady(22500.0, **room, verbose=False)
+    assert running["failure_reason"] == "none" and running["capacity_clamped"] is None
+    assert running["Q_ref_iu [W]"] == pytest.approx(22500.0, rel=1e-9)
+    ceiling = stiff.max_capacity(-10.0, 21.0, mode="cooling", RH_room=1.0)
+    assert ceiling["binding"] == "compressor" and ceiling["Q_max [W]"] >= 22500.0
+    above = stiff.analyze_steady(30000.0, **room, verbose=False)
+    assert above["failure_reason"] == "none" and above["capacity_clamped"] == "max"
+    assert above["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-9)

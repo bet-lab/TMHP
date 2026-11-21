@@ -2265,6 +2265,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: (:meth:`_smallest_continuous_operating_point`). The dry search reports
     #: the same state as ``"cycle_invalid"``, as before.
     _MIN_AIRFLOW = "min_airflow"
+    #: Why a duty has no operating point where the ordinary search of it
+    #: ends with the compressor flat out, short of the duty
+    #: (:meth:`_searched_point`). Unlike ``"compressor"`` of the least-lift
+    #: point -- the point of the largest capacity, above which no duty runs
+    #: -- this is what one search found: a larger duty can run at other
+    #: approaches (a 10 kW unit whose outdoor fan runs at no less than 90 %
+    #: of its largest flow, outdoor -10 degC, room 21 degC saturated: 18.5 to
+    #: 21 kW end so at the widest indoor approach, and 22.5 kW runs at a
+    #: narrower one). It names no limit of the machine
+    #: (:attr:`_LIMIT_REASONS`), so the ceiling search looks above it before
+    #: it settles; the binding of a ceiling it does settle under is the
+    #: compressor's (:meth:`_binding_of`).
+    _SEARCH_FLAT_OUT = "compressor_where_searched"
     #: Reasons of :meth:`_largest_airflow_point` that name a limit of the
     #: machine. Any other (``"cycle_invalid"``, or none) may be the search
     #: itself not finding the point.
@@ -2660,10 +2673,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         Returns what a trial of the ceiling search returns
         (:meth:`_largest_deliverable_duty`): the approaches and the state
         that delivers ``Q_r_iu`` [W], with no reason; or the approaches and
-        ``"compressor"`` when the search ends with the compressor flat out,
-        short of the duty. ``None`` when it finds no point, or one that
-        delivers more than the duty (the compressor's speed floor) -- the
-        least-lift verdict then stands.
+        :attr:`_SEARCH_FLAT_OUT` when the search ends with the compressor
+        flat out, short of the duty -- which is not a limit of the machine,
+        as a flat-out least-lift point is. ``None`` when it finds no point,
+        or one that delivers more than the duty (the compressor's speed
+        floor) -- the least-lift verdict then stands.
         """
         with contextlib.suppress(Exception):
             opt = self._optimize_operation(Q_r_iu=Q_r_iu, T0=T0, T_a_room=T_a_room)
@@ -2674,7 +2688,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if state is None or not state.get("converged", False):
                 return None
             if state.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
-                return x, None, "compressor"
+                return x, None, self._SEARCH_FLAT_OUT
             if state.get("capacity_clamped") is None:
                 return x, state, None
         return None
@@ -2709,8 +2723,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         A rung may also be refused from below, by the fans' smallest
         airflows (:attr:`_MIN_AIRFLOW`), which is no limit above it either.
         Where no rung runs, the duties between the largest such rung and the
-        smallest duty a limit refuses are bisected by which side refuses the
-        trial, and the search goes on from the first that runs.
+        rung above it, refused otherwise, are bisected by which side refuses
+        the trial, and the search goes on from the first that runs. And a
+        trial may end with the compressor flat out where the duty was
+        searched the ordinary way (:attr:`_SEARCH_FLAT_OUT`): that names no
+        limit either, and is looked above like a duty that was not found.
 
         ``trial(q, start)`` is the caller's: the least-lift point of the duty
         ``q``, with a flat-out compressor read as the reason ``"compressor"``.
@@ -2741,8 +2758,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
         q_limit, reason_limit, x_limit = q_top, reason_hi, x if limited else None
         q_lo, x_lo, perf_lo = 0.0, None, None
         last_reason = reason_hi
-        # ``q_under``: the largest rung the fans' smallest airflows refuse.
-        q_under = 0.0
+        # ``q_under``: the largest rung the fans' smallest airflows refuse
+        # under a duty refused otherwise, ``q_over`` (the rung above it).
+        q_under, q_over = 0.0, q_top
+        q_above, reason_above = q_top, reason_hi
         for fraction in self._CEILING_LADDER:
             q = fraction * q_top
             x, perf, reason = settled(q, x_limit)
@@ -2752,16 +2771,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
             last_reason = reason
             if reason in self._LIMIT_REASONS:
                 q_limit, reason_limit, x_limit, limited = q, reason, x, True
-            elif reason == self._MIN_AIRFLOW and q_under == 0.0:
-                q_under = q
-        if perf_lo is None and 0.0 < q_under < q_limit and reason_limit != self._MIN_AIRFLOW:
-            # No rung runs, and one is refused from below: the duties that
-            # run, if any, lie between it and the smallest refused from
-            # above, in a band no rung fell in (both fans at one airflow,
-            # outdoor 15 degC, room 35 degC saturated: 12.5 to 14.2 kW of a
-            # 4 kW unit). Bisect by which side refuses the trial. Not where
-            # the top itself is refused from below: nothing under it runs.
-            q_over = q_limit
+            elif reason == self._MIN_AIRFLOW and q_under == 0.0 and reason_above != self._MIN_AIRFLOW:
+                q_under, q_over = q, q_above
+            q_above, reason_above = q, reason
+        if perf_lo is None and 0.0 < q_under < q_limit:
+            # No rung runs, and one is refused from below under one refused
+            # otherwise: the duties that run, if any, lie between the two,
+            # in a band no rung fell in (both fans at one airflow, outdoor
+            # 15 degC, room 35 degC saturated: 12.5 to 14.2 kW of a 4 kW
+            # unit). Bisect by which side refuses the trial. Not where the
+            # top itself is refused from below: nothing under it runs.
             while q_over - q_under > rel_tol * q_over:
                 mid = 0.5 * (q_under + q_over)
                 x, perf, reason = settled(mid, x_limit)
@@ -2814,7 +2833,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         :mod:`tmhp.compressor_envelope`), and only :meth:`max_capacity`
         reports it.
         """
-        if reason == "compressor":
+        if reason in ("compressor", self._SEARCH_FLAT_OUT):
             return "compressor"
         if reason == self._AIR_SIDE:
             return BINDING_CYCLE

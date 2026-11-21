@@ -683,6 +683,7 @@ def simulate_thermostat_step(
     run_limit_s: float = math.inf,
     Q_hold: float = 0.0,
     duty_limit: DutyLimit | None = None,
+    closing_heat: Callable[[float], float] | None = None,
 ) -> InStepRun:
     """Resolve the on/off thermostat inside one step at its switching events.
 
@@ -776,16 +777,26 @@ def simulate_thermostat_step(
         limit (a tank within :data:`TEMPERATURE_TOL_K` above the cut-out is at
         it). A called tank above the cut-out cools to it and is held from
         there; the heat of that hold in the step it begins in is the one the
-        implicit balance closing the step needs to end at the cut-out,
-        ``dt (-P(T_cut)) - C (T_start - T_cut)``, so that the next step finds
-        the tank at the cut-out and the hold is one start (without it the
-        step ended above the cut-out, by the loss the warmer tank had on the
-        way, and the next step counted a stop and a start). The run reports the stretch on the limit
+        implicit balance closing the step needs to end at the cut-out
+        (``closing_heat``), so that the next step finds the tank at the
+        cut-out and the hold is one start (without it the step ended above
+        the cut-out, by the loss the warmer tank had on the way, and the next
+        step counted a stop and a start). The run reports the stretch on the limit
         separately (``reduced_fraction``, ``T_reduced_mean_C``,
         ``T_full_mean_C``): the mean duty of the stretch is the limit's duty at
         its mean temperature, exactly, whatever the step. Mixed tanks only:
         not combined with ``run_limit_s`` / ``Q_hold``. ``None``: the
         compressor delivers ``Q_on`` whenever it runs.
+    closing_heat : Callable[[float], float] | None
+        With a ``duty_limit`` only: the heat [J] the compressor has to give
+        in this step for the balance the caller closes the step with to end
+        at a tank temperature [°C] (negative: without any heat the step ends
+        above it). It decides whether a tank that cooled to the cut-out in
+        this step is held in it, and with how much heat; the caller's own
+        balance is asked because it need not be the straight line of
+        ``free_heat`` (:func:`resolve_step_operation` passes the boiler's
+        implicit tank residual). ``None``: the implicit balance of that line,
+        ``dt (-P(T)) - C (T_start - T)``.
 
     A stop or a blocked start either cut-out causes while the thermostat
     would have run sets ``limit_stop`` (with a ``duty_limit`` also
@@ -815,6 +826,7 @@ def simulate_thermostat_step(
             min_off_time_s=min_off_time_s,
             T_limit_C=T_limit_C,
             duty_limit=duty_limit,
+            closing_heat=closing_heat,
         )
     # The call's upper bound. The cut-out is never below it for a tank
     # whose coil water is the tank (it is the boiling point or the envelope
@@ -1021,6 +1033,7 @@ def _simulate_duty_limited_step(
     min_off_time_s: float,
     T_limit_C: float,
     duty_limit: DutyLimit,
+    closing_heat: Callable[[float], float] | None = None,
 ) -> InStepRun:
     """:func:`simulate_thermostat_step` for a compressor that reduces its duty on ``duty_limit``.
 
@@ -1046,10 +1059,17 @@ def _simulate_duty_limited_step(
     hold has no differential, so the next step would read that as a tank above
     the cut-out -- a stop, the cooling of a moment, and a second start, for a
     compressor that started once. The heat of such a hold is therefore the one
-    the closing balance needs for the step to end at the cut-out, ``dt (-P(T_cut))
-    - C (T_start - T_cut)``, with ``P`` this function's straight line: the
-    loss at the cut-out for the whole step, less the heat the tank gave up
-    cooling to it. That is what holding the tank at the cut-out means in the
+    the closing balance needs for the step to end at the cut-out: the loss at
+    the cut-out for the whole step, less the heat the tank gave up cooling to
+    it. It is asked of the closing balance itself, ``closing_heat(T_cut)`` --
+    the boiler's own tank residual, which need not be this function's straight
+    line ``P`` -- and is ``dt (-P(T_cut)) - C (T_start - T_cut)`` when the
+    caller gives none. The same number decides whether the compressor starts
+    in the step at all, so that the decision and the temperature the next
+    step starts from come from one balance: decided by the fitted line, a
+    tank whose loss is not a straight line could be left without a start in a
+    step its own balance closes below the cut-out, or started in one it
+    closes above. That is what holding the tank at the cut-out means in the
     balance that sets the temperature the next step starts from; the start of
     the run and its timers stay where the events put them (the moment the
     tank reaches the cut-out), and the run time is that heat over the duty at
@@ -1069,10 +1089,11 @@ def _simulate_duty_limited_step(
     it a little below the cut-out (4e-6 K for the R32 unit with ``rps_min=8``
     at 45 °C outdoor, charging its last 0.2 K in a 1200 s step), where the
     next step charges on without a stop.
-    The line ``P`` is the one the caller fitted to the tank's free heat; where
-    that is not a straight line (a subsystem whose heat is not linear in the
-    tank temperature) no hold, of this kind or any other, ends exactly at the
-    cut-out.
+    A hold from the start of a step is not treated so either: its heat is the
+    fitted line's at the cut-out, which is the closing balance's as far as the
+    tank's free heat is a straight line (a tank with a subsystem whose heat is
+    not linear in its temperature ends such a step off the cut-out by what the
+    line misses, as it does with a compressor that stops).
     """
     T_hi = T_upper
     tol = bound_tolerance(T_lower, T_hi)
@@ -1152,13 +1173,18 @@ def _simulate_duty_limited_step(
         hold = want and at_limit and q_hold > 0.0 and q_cut > 0.0 and not rests
         # A hold the tank cooled to in this step, the compressor not having run in
         # it: its heat [J] is what the balance that closes the step needs to end
-        # at the cut-out, ``C (T_cut - T_start) = heat + dt P(T_cut)`` (the docstring
-        # of the function has the reason). Not positive: by that balance the tank
-        # is not down at the cut-out when the step ends, so the compressor stays
-        # off through the step (the cut-out keeps it off) and starts in the next.
+        # at the cut-out (the docstring of the function has the reason) -- the
+        # caller's own balance where it gives one, else that of the fitted line,
+        # ``C (T_cut - T_start) = heat + dt P(T_cut)``. Not positive: by that
+        # balance the tank is not down at the cut-out when the step ends, so the
+        # compressor stays off through the step (the cut-out keeps it off) and
+        # starts in the next.
         hold_heat: float | None = None
         if hold and t > 0.0 and on_time[0] + on_time[1] == 0.0:
-            hold_heat = q_hold * dt - C * (T_start_C - T_cut)
+            if closing_heat is not None:
+                hold_heat = float(closing_heat(T_cut))
+            else:
+                hold_heat = q_hold * dt - C * (T_start_C - T_cut)
             hold = hold_heat > 0.0
         if (outrun or hold) and tw > T_cut:
             # Within the bound width above the cut-out the tank is at it (the
@@ -1550,10 +1576,25 @@ def resolve_step_operation(
         T_limit_C = min(T_limit_C, DutyLimit(*line).knee_C(Q_request))
         kwargs["T_limit_C"] = T_limit_C
 
+        def closing_heat(T_C: float) -> float:
+            """Heat [J] the compressor gives in the step for its implicit tank balance to end at ``T_C``.
+
+            The residual without a heat source is ``dt Q / C_tank`` at the
+            temperature a step with the heat rate ``Q`` ends at
+            (:func:`_solve_tank_end` solves the same equation for the temperature).
+            """
+            return C_tank * float(residual_free(T_C + 273.15))
+
         def to_the_limit() -> tuple[InStepRun, dict | None]:
             """The step on the duty limit; or, reduced-duty charging withheld, as it is resolved without it."""
             on_limit = _resolve_duty_limited(
-                {**kwargs, "T_limit_C": T_WATER_BOIL_C}, Q_request, line, floor, solve_cycle, at_duty, rate_keys
+                {**kwargs, "T_limit_C": T_WATER_BOIL_C, "closing_heat": closing_heat},
+                Q_request,
+                line,
+                floor,
+                solve_cycle,
+                at_duty,
+                rate_keys,
             )
             if on_limit is not None:
                 return on_limit

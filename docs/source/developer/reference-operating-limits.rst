@@ -596,7 +596,12 @@ than ``Q_min``; a tank found above the stop of its step (the source warmed, or
 a collector heated it, or the run was started there) waits until it has
 cooled to it, and is held from then on. The heat of the hold in that step is
 the one the step's closing balance needs to end at the stop: the loss at the
-stop for the whole step, less the heat the tank gave up cooling to it. (The
+stop for the whole step, less the heat the tank gave up cooling to it. It is
+taken from the boiler's own implicit tank balance, not from the straight line
+the events use for the tank's free heat, and the same number decides whether
+the compressor starts in that step at all, so that a tank whose free heat is
+not a straight line (a subsystem) is not left without a start in a step its
+own balance closes below the stop. (The
 events have the tank lose more while it is warmer than the stop; the implicit
 balance that sets the end-of-step temperature takes the loss of the whole
 step at that temperature. With the heat of the events' hold the 15 kW R32

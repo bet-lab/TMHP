@@ -635,14 +635,17 @@ The check samples three points. A limit that acts only strictly between two
 of them is not seen; the rule assumes that a limit which leaves the knee, the
 middle and the stop alone leaves the stretch between them alone. A check of
 each step stands behind that assumption, so that no row is credited with heat
-its cycles did not deliver: the cycles a step on the limit solves anyway --
-one at the mean of its full-duty stretch, one at the mean of its stretch on
-the limit -- have to deliver the duty the events took there (the nameplate
-duty, the limit's duty) to the same 0.1 %. A step in which one does not,
-because it has no operating point or another limit holds it, is withheld the
-same way, with ``reduced_duty_withheld == "cycle"`` where the stretch itself
-had qualified. None of the charges measured here needed it (delivered over
-asked: 1.000000).
+its cycles did not deliver and no step under another limit is recorded as
+reduced-duty charging: the cycles a step on the limit solves anyway -- one at
+the mean of its full-duty stretch, one at the mean of its stretch on the
+limit -- are read as the three qualification cycles are. Each has to deliver
+the duty the events took there (the nameplate duty, the limit's duty) to the
+same 0.1 %, and to name no limit but the condensing one in
+``capacity_binding``. A step in which one does not, because it has no
+operating point or another limit holds it, is withheld the same way, with
+``reduced_duty_withheld == "cycle"`` where the stretch itself had qualified.
+None of the charges measured here needed it (delivered over asked:
+1.000000).
 
 The qualification is strict about the knee. A compressor that falls short of
 the nameplate duty there by more than 0.1 % at its speed ceiling withholds the

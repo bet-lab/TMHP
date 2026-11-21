@@ -86,26 +86,53 @@ The `comparison/` folder holds the evidence behind the choice:
 
 The catalogue does not separate the candidates. All four end within 0.04 of each other, with the
 same residual pattern over the outdoor temperature. The calibration also lifts `lambda_ov` to 1.3-1.7,
-which puts `eta_is` above one at 15-16 rows. The axes were therefore chosen on the measured
-compressor (#218).
+which puts `eta_is` above one at 15-16 rows. On the 34 rows where no candidate does so after the last
+stage, the 2026-11-01 quadratic scores 0.32 (mean error +0.16) and the adopted map 0.56 (+0.46): the
+catalogue, read this way, favours the old quadratic. The catalogue calibration is therefore not evidence
+for the choice, and the axes were chosen on the measured compressor (#218).
 
 ## Figures
 
-`validation/compressor_maps/ossorio_te/figures.py` writes `figures/`:
+`validation/compressor_maps/ossorio_te/figures.py` draws the data figures in the dartwork-mpl `scientific`
+preset, 17 cm wide, as PNG and PDF in `figures/`. The figures carry no titles; the captions are here.
 
-| file | content |
+| file | caption |
 |---|---|
-| `map_heatmaps.png` | the maps at T_e = -20 / 0 / 20 degrees C, with the measured points at that T_e on the same colour scale |
-| `map_slices.png` | the maps at three speeds and three T_e against the measured points; dashed, the quadratic they replace |
-| `te_residuals.png` | residual against T_e with and without the T_e term |
-| `correlation_points_on_quadratic.png` | the 2026-11-01 quadratic against the 2024 correlation it was fitted to, inside and outside its grid |
-| `catalogue_fit.png` | the Fujitsu calibration of the four candidates |
+| `map_pipeline` | How the 134 measured test points become the maps. The input is the test table (thesis Appendix 1), not a performance-curve equation. Upper three rows: measured flow, power and speed, with the CoolProp states from the measured T_e, T_c, suction and discharge temperatures, give three efficiencies per point (the fit targets). Lower rows: measured T_e, T_c and N give the pressure ratio and the terms ln PR, N/70 and T_e/10 (the axes). Least squares joins them into the three maps; the cycle reads them with its own PR, N and evaporating temperature. Accent: the evaporating temperature, the axis #218 added; it reaches η_ov and η_v, not f_loss. |
+| `map_heatmaps` | a–i: the maps at T_e = −20 / 0 / 20 °C (columns) for η_v, η_ov and f_loss (rows), with the measured points at that T_e on the same colour scale. A marker that matches its background is a point the map reproduces. Pale: outside the data (speeds below 30 or above 110 rev/s, pressure ratios outside the (PR, T_e) hull at that T_e). f_loss has no T_e term. |
+| `map_slices` | a–i: the maps at 30 / 70 / 110 rev/s (columns) against the measured points coloured by T_e; solid at T_e = −20 / 0 / 20 °C inside the data, dotted outside it; dashed, the PR–N quadratic of 2026-11-01 they replace. |
+| `te_residuals` | a, b: measured minus map for η_ov and η_v against T_e, with the 7-term PR–N form alone (circles) and with the T_e term (triangles); same 134 points. The points are spread by up to ±1.2 K around their T_e (and the two sets by ∓0.8 K) so that they do not overlap. |
+| `correlation_points_on_quadratic` | a–c: at 70 rev/s, the PR–N quadratic of 2026-11-01 (line) against the Ossorio 2024 correlation it was fitted to — its 567-point grid (circles, T_e −10…15 °C) and the same correlation outside that grid (triangles) — and the measured points (×). Shaded: the PR range of the grid. |
+| `catalogue_fit` | a: COP RMSE of the four candidate maps on the Fujitsu ASYG30LMTA heating catalogue (50 rows) at each stage of the #90 calibration. b: the residual over the outdoor temperature after the last stage. |
+
+`map_pipeline` is drawn with the betlab Figure System kit; its script is kept in
+`validation/compressor_maps/ossorio_te/concept/MP1_map_pipeline.py` (it runs inside the kit, not here) and the kit's
+layout lint, density and spacing checks pass on it.
+
+### How much the T_e term removes
+
+`validation/compressor_maps/ossorio_te/te_error_figures.py` compares the 7-term PR–N form with and without the T_e term
+on the same 134 points (10-fold CV with the folds of `fit.py`; F test of the one added term):
+
+| map | RMSE, PR–N / with T_e | 10-fold CV RMSE, PR–N / with T_e | F (1, 126), p |
+|---|---|---|---|
+| eta_ov | 0.0335 / 0.0206 | 0.0345 / 0.0221 (−36 %) | 206, 3e-28 |
+| eta_v | 0.0142 / 0.0075 | 0.0148 / 0.0081 (−45 %) | 331, 5e-37 |
+| f_loss | 0.0137 / 0.0136 | 0.0149 / 0.0148 (−1 %) | 2.5, 0.12 |
+
+| file | caption |
+|---|---|
+| `te_error_residual_map` | a–l: measured minus map on the axes of `map_heatmaps` (PR and N at T_e = −20 / 0 / 20 °C), for η_ov (a–f) and η_v (g–l), with the PR–N map (a–c, g–i) and with the T_e term (d–f, j–l). The panel title gives the RMSE at that T_e. At −20 and 0 °C the PR–N map leaves a residual that runs with PR; the T_e term removes most of it. At 20 °C (one test condition, five speeds) the η_ov residual changes sign with speed and its RMSE falls only from 0.042 to 0.039: the additive T_e term does not carry a speed–T_e interaction. |
+| `te_error_by_level` | a, b: mean ± standard deviation of measured minus map at each tested T_e, for η_ov and η_v, with the PR–N map (circles) and with the T_e term (triangles). |
+| `te_error_parity` | a–d: measured against map for η_ov and η_v, coloured by T_e, with the PR–N map (a, c) and with the T_e term (b, d). Without the term the warm points sit above the line and the cold points below it. |
+| `te_error_summary` | RMSE of the fit and 10-fold CV RMSE of both forms for η_ov, η_v and f_loss, with the change in CV RMSE and the F test of the T_e term. |
 
 ## Reproduce
 
     uv run python -m validation.compressor_maps.ossorio_te.fit       # points.csv, coefficients.json
     uv run python -m validation.compressor_maps.ossorio_te.emit      # constants of the library module
-    uv run python -m validation.compressor_maps.ossorio_te.figures   # figures/
+    uv run python -m validation.compressor_maps.ossorio_te.figures   # figures/ (data figures; map_pipeline: see above)
+    uv run python -m validation.compressor_maps.ossorio_te.te_error_figures   # figures/te_error_*
 
 `tests/test_compressor_default_map.py` checks three things: the library block equals this archive,
 the archive refits from `points.csv`, and the maps reproduce the archived errors.

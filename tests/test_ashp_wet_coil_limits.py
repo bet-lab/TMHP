@@ -375,7 +375,35 @@ def test_a_column_of_decimals_is_a_humidity_schedule(hp):
     assert list(frame["RH_room [-]"]) == [0.5, 0.6]
 
 
-@pytest.mark.parametrize("entry", [np.array([0.5]), [0.5, 0.6], 0.5 + 0j, object(), np.array(float("nan"))])
+@pytest.mark.parametrize(
+    "entry",
+    [
+        np.array([0.5]),
+        [0.5, 0.6],
+        0.5 + 0j,
+        # NumPy converts these to a float by dropping what makes them something else:
+        # the imaginary part of a complex number, the unit of a time span.
+        np.complex128(0.5 + 1j),
+        np.complex64(0.5),
+        np.array(0.5 + 1j),
+        np.timedelta64(1, "s"),
+        np.datetime64("2026-11-21"),
+        object(),
+        np.array(float("nan")),
+    ],
+    ids=[
+        "array",
+        "list",
+        "complex",
+        "np.complex128",
+        "np.complex64",
+        "0-d complex array",
+        "timedelta64",
+        "datetime64",
+        "object",
+        "0-d nan",
+    ],
+)
 def test_an_entry_that_is_not_one_real_number_is_refused_on_a_cooling_row(hp, entry):
     schedule = np.empty(1, dtype=object)
     schedule[0] = entry
@@ -399,6 +427,16 @@ def test_a_steady_heating_or_off_point_does_not_read_the_room_humidity(hp, unuse
         hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=unused, verbose=False)
     with pytest.raises(ValueError, match="Room relative humidity must be a fraction"):
         hp.max_capacity(35.0, 27.0, mode="cooling", RH_room=unused)
+
+
+def test_a_complex_schedule_is_not_read_by_its_real_part(hp):
+    with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 0"):
+        _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=np.array([0.5 + 1j]))
+    for value in (np.complex128(0.5 + 1j), 0.5 + 0j, np.timedelta64(1, "s")):
+        with pytest.raises(ValueError, match="Room relative humidity must be a fraction"):
+            hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=value, verbose=False)
+        with pytest.raises(ValueError, match="Room relative humidity must be a fraction"):
+            hp.max_capacity(35.0, 27.0, mode="cooling", RH_room=value)
 
 
 COOLING_TWICE = (2 * 3600, 3600, [2000.0, 2000.0], [35.0, 35.0], [27.0, 27.0])

@@ -516,8 +516,15 @@ INDOOR_UA_KEPT_REASON = (
 
 
 def _is_real_number(value: Any) -> bool:
-    """Whether ``value`` is a real number of any numeric type (NumPy scalars included), and not a boolean."""
-    return isinstance(value, numbers.Real) and not isinstance(value, (bool, np.bool_))
+    """Whether ``value`` is a real number of any numeric type (NumPy scalars included), and not a boolean.
+
+    Of NumPy's scalars the floating-point and the integer ones. A time span
+    (``np.timedelta64``) is an integer scalar to NumPy and is not a number
+    here; nor are booleans, complex numbers and dates.
+    """
+    if isinstance(value, np.generic):
+        return isinstance(value, (np.floating, np.integer)) and not isinstance(value, np.timedelta64)
+    return isinstance(value, numbers.Real) and not isinstance(value, bool)
 
 
 def _check_room_humidity(value: float) -> float:
@@ -572,13 +579,22 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
     read as one (a column from a file), or a zero-dimensional array holding
     such a value. Refused, with the step it stands at: a missing value (NaN,
     ``None``, ``pd.NA``), a masked entry, a boolean (as ``RH_room=True``
-    is), an array of one or more elements, a complex number or any other
-    object, and a number outside 0-1.
+    is), an array of one or more elements, any other object, and a number
+    outside 0-1. So is a value NumPy would turn into a float by dropping
+    what makes it something else: a complex number (its imaginary part), a
+    date or a time span (its unit).
     """
     entry, number = value, math.nan
     if isinstance(entry, np.ndarray) and entry.ndim == 0 and not np.ma.is_masked(entry):
         entry = entry.item()  # a zero-dimensional array: the value it holds
-    if not isinstance(entry, (bool, np.bool_, np.ndarray)):
+    if isinstance(entry, np.generic):
+        # Of NumPy's scalars, the real numbers and text; not booleans, complex numbers, dates, time spans.
+        readable = _is_real_number(entry) or isinstance(entry, np.character)
+    else:
+        readable = not isinstance(entry, (bool, np.ndarray)) and (
+            not isinstance(entry, numbers.Complex) or isinstance(entry, numbers.Real)
+        )
+    if readable:
         with contextlib.suppress(TypeError, ValueError):
             number = float(entry)
     if not 0.0 <= number <= 1.0:

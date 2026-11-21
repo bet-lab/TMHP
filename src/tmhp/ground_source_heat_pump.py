@@ -47,13 +47,10 @@ from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
 from .borehole_capacity import configure_borehole_dynamics
 from .compressor_efficiency import (
-    COMPRESSOR_TYPES,
-    CompressorSpec,
     SuctionState,
     _eval_eff,
     needs_state,
     reject_invalid_efficiency,
-    resolve_compressor_type,
 )
 from .compressor_envelope import (
     BINDING_DISCHARGE,
@@ -598,12 +595,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_cond_max: float | Literal["auto"] | None = "auto",
         # Ground-loop liquid (None: 25 % ethylene glycol). Keyword-only.
         source_fluid: str | SourceFluid | None = None,
-        # Compressor type whose default efficiency models are used where
-        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
-        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
     ):
         validate_ctor("GSHP", locals())
-        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "air")
         # Liquid of the ground loop: its properties enter the source-side
@@ -932,7 +925,6 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 "eta_cmp_vol": eta_cmp_vol,
                 "eta_cmp": eta_cmp,
             },
-            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
@@ -1202,7 +1194,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             eta_vol_at = efficiency_evaluator(self.eta_cmp_vol)
             eta_isen_at = efficiency_evaluator(self.eta_cmp_isen)
             eta_em_at = efficiency_evaluator(self.eta_cmp)
-            suction = SuctionState(P_evap, rho_suction, dh_isen)
+            suction = SuctionState(T_evap_sat_K)
 
             def residual(rps: float) -> float:
                 eta_vol = eta_vol_at(ratio_P_cmp, rps, suction)

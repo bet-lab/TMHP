@@ -65,10 +65,10 @@ Default sizing
 ``hp_capacity`` (default 8 kW) and the refrigerant are enough to build a
 machine: every other size follows the capacity, so the rated cycle is the same
 at 1 kW and at 100 kW (B0/W35, water entering at 30 °C and leaving at 35 °C:
-condensing 2.0 K above the leaving water, evaporating 6.8 K below the entering
-fluid, COP of the cycle 4.20 with the default refrigerant, R290, and the
-default compressor type, ``rotary_twin_inverter``). B0 is a brine point: the
-loop liquid leaves the heat pump at -3.1 °C. The default loop liquid is
+condensing 2.0 K above the leaving water, evaporating 6.6 K below the entering
+fluid, COP of the cycle 4.04 with the default refrigerant, R290, and the
+default compressor maps). B0 is a brine point: the loop liquid leaves the
+heat pump at -3.0 °C. The default loop liquid is
 therefore an antifreeze, 25 % ethylene glycol; a loop declared as water is
 refused there (see :ref:`source-fluid`).
 

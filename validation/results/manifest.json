@@ -1,14 +1,14 @@
 {
- "coefficient_version": "semi-empirical-2026-11-15",
- "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
+ "coefficient_version": "ossorio-r290-te-2026-11-21",
+ "src_tmhp_tree": "11e32032acec1bf19aef6b77ef00267be4e9904e",
+ "validation_parity_tree": "f806d541a72190c373b8a97ae4606cc02bf07ebe",
  "dirty_digest": null,
- "python": "3.14.7",
+ "python": "3.11.15",
  "coolprop": "7.2.0",
- "platform": "Darwin-arm64",
- "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
+ "platform": "Linux-x86_64",
+ "git_head": "58d481ed56df01ddc6fbaa7efb3acad563a771e5",
  "git_heads": [
-  "3faac8ac39039f969e9de41dbe8553c239579f96"
+  "58d481ed56df01ddc6fbaa7efb3acad563a771e5"
  ],
  "dirty": false,
  "dirty_scope": [
@@ -18,8 +18,8 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "run_started": "2026-11-16T03:01:40+00:00",
- "run_finished": "2026-11-16T03:01:45+00:00",
+ "run_started": "2026-11-21T10:06:23+00:00",
+ "run_finished": "2026-11-21T10:06:30+00:00",
  "provenance": "provenance/<slug>.json, one per unit",
  "space_conditioning_cop_basis": "final_indoor_air_sensible",
  "units": 17,

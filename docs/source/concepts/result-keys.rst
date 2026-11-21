@@ -53,8 +53,8 @@ dynamic only; ``all`` is all five families in both. The families are ASHP
    row["failure_reason"]      # "none": the unit runs
    row["capacity_clamped"]    # "max": it delivers less than the 9 kW asked for
    row["capacity_binding"]    # "compressor": the speed ceiling stops it
-   row["Q_ref_iu [W]"]        # heat delivered, about 3.8 kW
-   row["Q_unmet [W]"]         # the rest of the request, about 5.2 kW
+   row["Q_ref_iu [W]"]        # heat delivered, about 4.4 kW
+   row["Q_unmet [W]"]         # the rest of the request, about 4.6 kW
 
 Status and flags
 ================
@@ -92,7 +92,7 @@ are an operating point, a reduced one, a time average, or placeholders.
       - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` on every other row.
     * - ``efficiency_extrapolated``
       - ASHP, GSHP (s), ASHPB (s), GSHPB (s), WSHPB (s)
-      - A default compressor efficiency is evaluated outside the (PR, N) hull of its compressor type's data at this point (``rotary_twin_inverter`` and ``rotary_single_fixed``: PR 1.94–6.84, 30–120 rev/s; ``scroll``: within PR 1.46–8.76 and 20–90 rev/s). Outside it the forms are followed as they are, nothing is held, so the flag is common at ordinary points: every rotary speed below 30 rev/s, and the pressure ratios of hot water in cold weather. Scalar and user efficiencies give ``False``.
+      - A default compressor efficiency is evaluated outside the data of its maps at this point: the speeds 30–110 rev/s and the convex hull of the measured points in pressure ratio and evaporating saturation temperature (``T_ref_evap_sat [°C]``), which spans PR 1.44–12.67 and −30.2 to 25.1 °C. Outside it the maps are followed as they are, nothing is held, so the flag is common at ordinary points: every speed below 30 rev/s, which is most of part load with the 15 rev/s floor, and every speed above 110 rev/s. Scalar and user efficiencies give ``False``.
     * - ``discharge_control``
       - all
       - The discharge-temperature control acted: suction superheat reduced, then wet suction, to hold ``T_dis_max``. See ``dT_ref_superheat [K]`` and ``x_ref_cmp_in [-]``.

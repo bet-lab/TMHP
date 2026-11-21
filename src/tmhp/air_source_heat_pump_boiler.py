@@ -64,13 +64,10 @@ from ._tank_solve import recover_tank_temperature
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
 from .air_properties import air_heat_capacity_rate
 from .compressor_efficiency import (
-    COMPRESSOR_TYPES,
-    CompressorSpec,
     InvalidCompressorEfficiency,
+    SuctionState,
     _eval_eff,
     reject_invalid_efficiency,
-    resolve_compressor_type,
-    suction_state,
 )
 from .compressor_envelope import (
     BINDING_CYCLE,
@@ -356,9 +353,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     recorded in ``default_input_estimates``.
 
     Unless explicitly injected, compressor efficiencies are the default
-    models of ``compressor_type`` in :mod:`tmhp.compressor_efficiency`,
-    evaluated at the pressure ratio, the shaft speed in rev/s and the suction
-    state. A scalar or a callable given for one replaces that model.
+    maps of :mod:`tmhp.compressor_efficiency`, evaluated at the pressure
+    ratio, the shaft speed in rev/s and the evaporating temperature. A scalar or a callable given for one replaces that model.
 
     **Below the minimum capacity.** ``analyze_steady`` reports a request below
     what the compressor delivers at ``rps_min`` as the mean of on/off cycling
@@ -555,9 +551,6 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         T_cond_max: float | Literal["auto"] | None = "auto",
         # Frost on the outdoor coil and its defrost (None / False: off).
         defrost: DefrostModel | bool | None = True,
-        # Compressor type whose default efficiency models are used where
-        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
-        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
         # What a dynamic run does where the nameplate duty meets the condensing
         # limit: "stop" (the charge ends there) or "reduce_duty" (an inverter:
         # the compressor slows down and keeps charging). See the class docstring.
@@ -567,7 +560,6 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self.condensing_limit_control: str = resolve_condensing_limit_control(condensing_limit_control)
         #: The stretch on the condensing limit of the step's outdoor state (:meth:`_charge_stretch`).
         self._charge_stretch_cache: tuple[tuple[float, float | None], float | None, str | None] | None = None
-        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
         self.defrost = resolve_defrost(defrost)
@@ -741,7 +733,6 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             rps_rated=rps_rated,
             m_dot_ref_rated=m_dot_ref_rated,
             efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
-            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen: float | Callable = efficiencies["eta_cmp_isen"]
@@ -1097,7 +1088,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             h_cmp_in = cs_i["h_ref_cmp_in [J/kg]"]
             h_exp_in = cs_i["h_ref_exp_in [J/kg]"]
 
-            suction = suction_state(cs_i["P_ref_cmp_in [Pa]"], cs_i["rho_ref_cmp_in [kg/m3]"], h_cmp_in, h_cmp_out_isen)
+            suction = SuctionState(T_ou_sat_K)
 
             def _residual_rps(rps):
                 eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps, suction)

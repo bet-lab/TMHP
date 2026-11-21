@@ -44,9 +44,8 @@ the 3.47 K leaving-end approach of coaxial evaporators at the rated source
 flow (:doc:`/validation/defaults`, *Heat-exchanger conductance*), source-loop
 flow ``dV_b_f_lpm = 0.75 × hp_capacity / (ρ c · 3 K)`` (3.58 L/min
 per kW) and ``E_pmp = 75 W/ton × hp_capacity`` (21.3 W per kW). The rated cycle
-is then the same at every capacity (W10/W35: COP of the cycle 5.64 with the
-default refrigerant, R290, and the default compressor type,
-``rotary_twin_inverter``). The submerged source-water coil is ``H_b``
+is then the same at every capacity (W10/W35: COP of the cycle 5.24 with the
+default refrigerant, R290, and the default compressor maps). The submerged source-water coil is ``H_b``
 metres long: with none of ``N_1``, ``N_2``, ``H_b`` given it is 200 m, or as
 long as the rated source-side heat (``0.75 × hp_capacity``) needs at 50 W/m.
 Values you pass are used as given; the constructor warns (``UserWarning``) for

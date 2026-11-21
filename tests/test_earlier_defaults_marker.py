@@ -1,7 +1,7 @@
 """The ``earlier_defaults`` marker of ``tests/conftest.py``: what it gives a machine, and what it leaves alone.
 
 A marked test gets the machine a bare constructor built before the
-semi-empirical compressor models: the recorded quadratic efficiency map and
+semi-empirical compressor models and the maps after them: the recorded quadratic efficiency map and
 the earlier speed ceiling among its inputs. An unmarked test gets the
 library's defaults, whatever ran before it in the same process: the two never
 share a reference state, although the library's cache key cannot tell them
@@ -18,7 +18,7 @@ from validation.coefficients.recorded_maps import bitzer_quadratic_2026_10_06 as
 import tmhp.reference_state as reference_state
 from tests import conftest
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
-from tmhp.compressor_efficiency import SemiEmpiricalEfficiency
+from tmhp.compressor_efficiency import MapEfficiency
 from tmhp.compressor_envelope import default_rps_max
 
 #: The library's own cache, bound when this module is imported (collection runs outside every marker).
@@ -47,7 +47,7 @@ def test_an_unmarked_machine_has_the_library_defaults():
     assert reference_state._CACHE is LIBRARY_CACHE
     hp = _build(**EXPLICIT)
     for name in EFFICIENCIES:
-        assert isinstance(getattr(hp, name), SemiEmpiricalEfficiency)
+        assert isinstance(getattr(hp, name), MapEfficiency)
     assert hp.rps_max == default_rps_max(hp.rps_rated) == 120.0
 
 
@@ -62,7 +62,7 @@ def test_a_marked_machine_has_the_recorded_map_and_the_earlier_speed_ceiling():
     ):
         model = getattr(hp, name)
         assert isinstance(model, quadratic.FittedEfficiency) and model.coef == coefficients
-        assert model.rps_rated == hp.rps_rated
+        assert model.rps_rated is None  # the map reads the absolute speed the models always pass
     assert hp.rps_rated < 60.0
     assert hp.rps_max == pytest.approx(2.0 * hp.rps_rated) == conftest.earlier_rps_max(hp.rps_rated)
     # A machine rated fast keeps 1.5 times its rated speed; one in between is capped at 120 rev/s.
@@ -81,7 +81,7 @@ def test_a_marked_test_keeps_what_it_gives_itself():
 @pytest.mark.current_defaults
 def test_the_opt_out_inside_a_marked_scope_gets_the_library_defaults():
     assert reference_state._CACHE is LIBRARY_CACHE
-    assert isinstance(_build(**EXPLICIT).eta_cmp_isen, SemiEmpiricalEfficiency)
+    assert isinstance(_build(**EXPLICIT).eta_cmp_isen, MapEfficiency)
 
 
 @pytest.mark.parametrize("first", ["library", "earlier"])
@@ -106,7 +106,7 @@ def test_marked_and_unmarked_machines_never_share_a_reference_state(first):
     assert a.reference_state is not b.reference_state
     assert a.rps_rated != b.rps_rated
     new, old = (a, b) if first == "library" else (b, a)
-    assert isinstance(new.eta_cmp_isen, SemiEmpiricalEfficiency)
+    assert isinstance(new.eta_cmp_isen, MapEfficiency)
     assert isinstance(old.eta_cmp_isen, quadratic.FittedEfficiency)
     # The library's key does not tell the two apart: the same key holds a different state in each cache.
     shared = [
@@ -124,4 +124,4 @@ def test_the_marker_reaches_the_space_conditioning_models_too():
         room = _build(AirSourceHeatPump, ref="R32")
     assert isinstance(room.eta_cmp_isen, quadratic.FittedEfficiency)
     assert room.rps_max == conftest.earlier_rps_max(room.rps_rated)
-    assert isinstance(_build(AirSourceHeatPump, ref="R32").eta_cmp_isen, SemiEmpiricalEfficiency)
+    assert isinstance(_build(AirSourceHeatPump, ref="R32").eta_cmp_isen, MapEfficiency)

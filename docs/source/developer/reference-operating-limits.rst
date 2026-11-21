@@ -190,35 +190,41 @@ Compressor efficiency baseline and speed
 ----------------------------------------
 
 All five heat-pump models resolve ``eta_cmp_isen``, ``eta_cmp_vol`` and
-``eta_cmp`` set to ``None`` to the default models of their
-``compressor_type`` in :mod:`tmhp.compressor_efficiency` (coefficient set
-``semi-empirical-2026-11-15``; ``rotary_twin_inverter`` by default,
-``scroll``, ``rotary_single_fixed``). These represent isentropic, volumetric
-and electro-mechanical efficiency, respectively; ``eta_cmp`` includes the
-drive, so the compressor input is that at the inverter. The defaults are
-called ``model(PR, rps, state)`` with the suction state
-(:class:`tmhp.compressor_efficiency.SuctionState`). Each input also accepts a
-scalar, a ``function(PR)`` or a ``function(PR, rps)``. Every evaluated value
-must satisfy ``0 < eta <= 1``: a value above one is set to one, a nonpositive
-or nonfinite value makes the operating point infeasible, and exceptions raised
+``eta_cmp`` set to ``None`` to the default maps of
+:mod:`tmhp.compressor_efficiency` (coefficient set
+``ossorio-r290-te-2026-11-21``: one R290 scroll, the same maps for every
+refrigerant and compressor). These represent isentropic, volumetric and
+electro-mechanical efficiency, respectively; ``eta_cmp`` is fitted on the
+power of compressor and inverter together, so the compressor input is that at
+the inverter, with no separate drive model. The defaults are called
+``model(PR, rps, state)`` with the suction state
+(:class:`tmhp.compressor_efficiency.SuctionState`, which holds the evaporating
+saturation temperature ``T_evap_K``). Each input also accepts a scalar, a
+``function(PR)`` or a ``function(PR, rps)``. Every evaluated value must
+satisfy ``0 < eta <= 1``: a value above one is set to one, a nonpositive or
+nonfinite value makes the operating point infeasible, and exceptions raised
 inside a user function are preserved.
 
-The defaults take the shaft speed ``rps`` [rev/s]; the rotary types read it
-relative to the machine's ``rps_rated``, the scroll type relative to a fixed
-50 rev/s. When omitted, the reference state solves the speed delivering
-``hp_capacity`` and its ``m_dot_ref_rated`` at the family's rating condition
+The defaults take the shaft speed ``rps`` [rev/s] as an absolute speed,
+relative to a fixed 70 rev/s; nothing is read relative to ``rps_rated``. When
+omitted, the reference state solves the speed delivering ``hp_capacity`` and
+its ``m_dot_ref_rated`` at the family's rating condition
 (:doc:`/models/reference-state`). Explicit rated speed and refrigerant flow
 remain available. The reference solve does not change ``rps_min``; an
 omitted ``rps_max`` is derived from the rated speed it finds (see the
 operating envelope below).
 
-Each default type carries the convex (PR, N) hull of its fitting data
-(``validity_domain``; rotary PR 1.94–6.84 and 30–120 rev/s). Outside it the
-forms are followed as they are -- nothing is held, clamped or refused there --
-and ``efficiency_extrapolated(model, PR, rps)`` reports whether a point lies
-outside the hull. The earlier default maps (the BITZER quadratic map of
-2026-10-06 with its validity-domain guard, and the correlations before it) are
-no longer in the library; the code that evaluates them is kept as records in
+The default maps carry the domain of their fitting data (``validity_domain``,
+a :class:`tmhp.compressor_efficiency.MapDomain`: the speeds 30–110 rev/s and
+the convex hull of the measured points in pressure ratio and evaporating
+temperature). Outside it the maps are followed as they are -- nothing is
+held, clamped or refused there -- and
+``efficiency_extrapolated(model, PR, rps, T_evap_C)`` reports whether a point
+lies outside it. The earlier default models (the semi-empirical models of
+2026-11-15, the quadratic map of 2026-10-06 with its validity-domain guard,
+and the correlations before it) are no longer in the library; their archives
+remain under ``validation/coefficients/``, and the code that evaluates the
+quadratic map and the correlations is kept as records in
 ``validation/coefficients/recorded_maps/``.
 
 GSHP now solves speed using ``m_dot = V_cmp_ref * rho_suction * eta_v * rps``
@@ -775,27 +781,23 @@ cycle solves is kept as the fallback for a fluid without a property state or
 a candidate where a proposed suction state has no cycle.
 
 Known limit: no efficiency penalty for wet suction. A controlled point uses
-the default efficiency forms unchanged, which is optimistic. Liquid in a
+the default efficiency maps unchanged, which is optimistic. Liquid in a
 compressor's suction or compression chambers raises the compression power and
 lowers the compressor efficiency, by an amount that depends on the heat
 exchanged with the liquid and that is partly recovered in practice through
 cooler oil and walls (Dutta, Yanagisawa & Fukuta, Int. J. Refrig. 24
 (2001) 577--587, for a scroll). No relation between suction quality and
 isentropic efficiency was found that could be applied to an unspecified
-compressor without a new input, so none is applied. The forms see a wet suction
-only through the suction density and the isentropic work they are handed; with
-the default rotary speed shape that keeps the overall isentropic efficiency
-below 0.77 over a grid of evaporating −30 to 10 °C, condensing 35 to 65 °C,
-suction quality 1 to 0.8 and 15 to 120 rev/s (R32, R410A, R290, R134a,
-R1234yf). The non-default shape ``rotary_speed_variant="ossorio_anchored"``
-rises with a wetter suction on the same grid and exceeds one for R1234yf
-(1.06 to 1.09 at quality 0.8, pressure ratio 5.8, 30 rev/s), where the range
-rule sets it to one.
+compressor without a new input, so none is applied. The default maps do not
+see a wet suction at all: they take the pressure ratio, the speed and the
+evaporating temperature, so a wet suction changes the efficiency only through
+the operating point it leads to.
 
 The size of what is missing, for the default R32 15 kW boiler, if the
 isentropic efficiency fell with the liquid fraction as
-``eta_is (1 - k (1 - x))``, at the points where the control goes to wet suction
-with the present defaults (the tank temperature is the water entering the
+``eta_is (1 - k (1 - x))``, measured with the defaults of the previous release
+(the semi-empirical models of 2026-11-15) at the points where the control
+went to wet suction with them (the tank temperature is the water entering the
 condenser; every point runs at a reduced duty, ``capacity_binding`` in
 brackets):
 
@@ -829,17 +831,23 @@ brackets):
       - 1.687 (0.987), 12.2 kW
       - 1.661 (0.981), 12.2 kW
 
-So the COP of a controlled point is high by a few percent at most (3.5 % at
-A−20 against a 60 °C tank for a 10 % efficiency loss at ``x = 0.9``, 0.8 to
-1.4 % where the suction stays at 0.98 to 0.99), and the same points without a
-discharge limit run at ``cop_ref`` 1.430, 1.703, 1.717 and 1.686: the model
-credits wet suction with up to 2.7 % where a real compressor loses. With the
-present defaults the control acts only at large lifts, where the pressure
-ratio ceiling or the speed ceiling already sets the duty, so the penalty does
-not reduce what runs at these points. (In the previous release -- the BITZER
-map and the conductances and tank convention of then -- the control acted
+So with those defaults the COP of a controlled point was high by a few
+percent at most (3.5 % at A−20 against a 60 °C tank for a 10 % efficiency loss
+at ``x = 0.9``, 0.8 to 1.4 % where the suction stays at 0.98 to 0.99), and the
+same points without a discharge limit ran at ``cop_ref`` 1.430, 1.703, 1.717
+and 1.686: the model credits wet suction with up to 2.7 % where a real
+compressor loses. The control then acted only at large lifts, where the
+pressure-ratio ceiling or the speed ceiling already set the duty, so the
+penalty did not reduce what ran at these points. (With the quadratic map of
+2026-10-06 and the conductances and tank convention of then, the control acted
 already at A7/W65 and A2/W60, and the penalty took duty away: A−3/W58
 delivered 12.6 kW with ``k = 0`` and 8.3 kW with ``k = 0.5``.)
+
+The table has not been measured again with the present maps. With them the
+control acts more widely: the same boiler delivers its full 15 kW at A−7 and
+A−10 against a 55 °C tank and at A−15 against a 50 °C tank, with suction
+qualities of 0.96, 0.94 and 0.93. A penalty would therefore act on points
+that run at full duty (an inference; not measured).
 
 How each family answers a point the control cannot hold:
 
@@ -949,17 +957,19 @@ How each family answers a point the control cannot hold:
   seconds on a mild day where the control alone held the limit.
 
 Steady results of every family carry ``efficiency_extrapolated`` (bool):
-the point lies outside the (PR, N) data hull of a default efficiency model.
-Scalar and user efficiencies give ``False``.
+the point lies outside the data of a default efficiency map (30–110 rev/s and
+the hull in pressure ratio and evaporating temperature). Scalar and user
+efficiencies give ``False``.
 
 Until November 2026 the envelope had a third limit, an isentropic-efficiency
 floor (``ETA_ISEN_MIN`` = 0.30, ``failure_reason == "eta_isen_below_min"``,
 ``capacity_binding == "compressor_efficiency"``): the BITZER quadratic map,
 read outside its data towards low speed, fell to 0.14, and points at which it
-was extrapolated and below 0.30 were refused. The semi-empirical forms that
-replaced the map stay positive and bounded by construction, and the floor, its
-failure reason and its binding are removed: the lower side of the envelope is
-the discharge-temperature limit alone.
+was extrapolated and below 0.30 were refused. The floor, its failure reason
+and its binding are removed. The maps that ship now are polynomials with no
+floor of their own: a nonpositive value makes the point infeasible by the
+range rule, and the lower side of the envelope is the discharge-temperature
+limit alone.
 
 Effect of the discharge limit and control on the adopted catalogues when they
 were introduced (a record of 2026-11-13, with the efficiency map, the

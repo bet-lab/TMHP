@@ -831,15 +831,16 @@ the recommended lever to pull when you hit each one.
     at the smallest duty that runs). A point the control *does* hold runs with
     ``discharge_control == True``; its ``dT_ref_superheat [K]`` and
     ``x_ref_cmp_in [-]`` say how. The defaults are compressor protection settings
-    (:mod:`tmhp.compressor_envelope`). The cycle model puts all compressor
-    loss into the gas, so the discharge it computes is an upper estimate. With
-    the default compressor type the isentropic efficiency at pressure ratios
-    of 7 to 11 is 0.76--0.79 (the rotary forms followed past their data,
-    which end at 6.84), and the default R32 boiler discharges at up to about
-    170 °C uncontrolled there; the control holds 150 °C with a suction quality
-    of 0.98. At low speed the efficiency falls and the discharge runs hotter:
-    the 15 kW R32 boiler at −20 °C against a 60 °C tank holds the limit at
-    suction quality 0.9 down to 2.1 kW (24 rev/s) and not below, and at
+    (:mod:`tmhp.compressor_envelope`). The share of the compressor loss that
+    reaches the gas is that of the one compressor the default maps were
+    measured on (:doc:`/validation/defaults`). With the default maps the
+    isentropic efficiency of the default 15 kW R32 boiler is 0.65 at A−7/W65
+    and 0.61 at A−15/W65 (pressure ratios 8.3 and 10.9), and it discharges at
+    172 and 196 °C uncontrolled there; the control holds 150 °C with a suction
+    quality of 0.97 and 0.93. At low speed the efficiency falls and the
+    discharge runs hotter: the same boiler at −20 °C against a 60 °C tank
+    holds the limit at suction quality 0.9 down to 2.2 kW (16 rev/s) and not
+    below, and at
     −25 °C against 55 °C a small request is refused for the discharge
     temperature while larger ones are refused for the pressure ratio. Real
     units at such conditions use injection (liquid or vapour) or two-stage

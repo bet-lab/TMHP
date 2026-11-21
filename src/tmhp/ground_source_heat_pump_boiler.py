@@ -80,13 +80,10 @@ from ._tank_solve import solve_lumped_tank
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .borehole_capacity import configure_borehole_dynamics
 from .compressor_efficiency import (
-    COMPRESSOR_TYPES,
-    CompressorSpec,
     InvalidCompressorEfficiency,
+    SuctionState,
     _eval_eff,
     reject_invalid_efficiency,
-    resolve_compressor_type,
-    suction_state,
 )
 from .compressor_envelope import (
     BINDING_CYCLE,
@@ -516,9 +513,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # (None: no cycling, the row over-delivers at the minimum speed).
         Cd_cycling: CyclingDegradation | float | None = CC_WATER_DEFAULT,
         source_fluid: str | SourceFluid | None = None,
-        # Compressor type whose default efficiency models are used where
-        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
-        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
         # What a dynamic run does where the nameplate duty meets the condensing
         # limit: "stop" (the charge ends there) or "reduce_duty" (an inverter:
         # the compressor slows down and keeps charging). See the class docstring.
@@ -534,7 +528,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             )
         #: The stretch on the condensing limit against the ground as one step finds it (:meth:`_charge_stretch`).
         self._charge_stretch_cache: tuple[int, float | None, str | None] | None = None
-        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
         # Liquid of the ground loop: its properties enter the source-side
@@ -753,7 +746,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 "eta_cmp_vol": eta_cmp_vol,
                 "eta_cmp": eta_cmp,
             },
-            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
@@ -1145,7 +1137,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             if h_cmp_in - h_exp_in <= 0:
                 return None
 
-            suction = suction_state(cs_i["P_ref_cmp_in [Pa]"], rho_cmp_in, h_cmp_in, h_cmp_out_isen)
+            suction = SuctionState(T_ground_sat_K)
 
             def _residual_rps(rps):
                 eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps, suction)

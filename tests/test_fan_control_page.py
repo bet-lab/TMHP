@@ -90,29 +90,43 @@ def test_the_table_is_what_the_model_gives(cop) -> None:
 
 def test_the_search_runs_the_indoor_fan_flat_out_and_the_losses_quoted_are_the_models(cop) -> None:
     base = _build()
-    outdoor = {}
+    largest = base.dV_iu_fan_a_max
+    at_largest = _build(dV_iu_fan_a_min=largest, dV_iu_fan_a_max=largest)
+    page = _flat((DOCS / "models" / "ashp.rst").read_text())
+    outdoor, indoor = {}, {}
     for label, load, T0, room in CASES:
         row = base.analyze_steady(Q_r_iu=load, T0=T0, T_a_room=room, return_dict=True, verbose=False)
-        assert row["dV_iu_a [m3/s]"] == pytest.approx(base.dV_iu_fan_a_max, rel=1e-4)
+        indoor[label] = float(row["dV_iu_a [m3/s]"])
         outdoor[label] = float(row["dV_ou_a [m3/s]"])
-    # 'the search slows it with the load ... (0.61 to 0.47 m3/s from nameplate to half load in cooling)'
+        # Below the largest flow only where the input there is the same, to the tolerance of the search.
+        held = at_largest.analyze_steady(Q_r_iu=load, T0=T0, T_a_room=room, return_dict=True, verbose=False)
+        assert abs(held["E_tot [W]"] - row["E_tot [W]"]) < SEARCH_TOLERANCE_W, label
+    # 'at its largest flow, 0.232 m3/s, in three of the four cases. In heating at 2 kW it stops at 0.229 m3/s'
+    below = [label for label, flow in indoor.items() if flow != pytest.approx(largest, rel=1e-4)]
+    assert below == ["Heating 2 kW"], indoor
+    assert f"indoor fan at its largest flow, {largest:.3f} m³/s, in three of the four cases" in page
+    assert f"In heating at 2 kW it stops at {indoor['Heating 2 kW']:.3f} m³/s" in page
+    # 'the search slows it with the load ... (0.61 to 0.43 m3/s from nameplate to half load in cooling)'
     assert outdoor["Cooling 2 kW"] < outdoor["Cooling 4 kW"] and outdoor["Heating 2 kW"] < outdoor["Heating 4 kW"]
     assert (
         f"({outdoor['Cooling 4 kW']:.2f} to {outdoor['Cooling 2 kW']:.2f} m³/s from nameplate to half load in cooling)"
-    ) in _flat((DOCS / "models" / "ashp.rst").read_text())
-    assert f"{base.dV_iu_fan_a_max:.3f} m³/s" in (DOCS / "models" / "ashp.rst").read_text()
+    ) in page
+    # 'Below that, in heating, ... to 86 % of its largest airflow at 1.5 kW' (Indoor airflow), and it is a saving.
+    low = base.analyze_steady(Q_r_iu=-1500.0, T0=7.0, T_a_room=20.0, return_dict=True, verbose=False)
+    held = at_largest.analyze_steady(Q_r_iu=-1500.0, T0=7.0, T_a_room=20.0, return_dict=True, verbose=False)
+    assert low["capacity_clamped"] is None and held["E_tot [W]"] > low["E_tot [W]"] + SEARCH_TOLERANCE_W
+    assert f"to {100.0 * low['dV_iu_a [m3/s]'] / largest:.0f} % of its largest airflow at 1.5 kW" in page
     least, half, full = (cop[k] for k in ("Least power (the model)", HALF, "Both fans held at their largest flow"))
     lower_half = [round((1.0 - b / a) * 100.0) for a, b in zip(least, half, strict=True)]
     lower_full = [round((1.0 - b / a) * 100.0) for a, b in zip(least, full, strict=True)]
-    page = _flat((DOCS / "models" / "ashp.rst").read_text())
     assert (
         f"the COP is {lower_half[0]} % and {lower_half[1]} % lower at half load and "
         f"{lower_half[2]} % and {lower_half[3]} % lower at nameplate load"
     ) in page
     assert f"costs {lower_full[0]} % and {lower_full[1]} % at half load" in page
-    # ... "and under 0.3 % at nameplate load" (0.27 % in heating; in cooling the search is at full flow itself).
-    assert "and under 0.3 % at nameplate load" in page
-    assert all(abs(1.0 - b / a) < 0.003 for a, b in zip(least[2:], full[2:], strict=True))
+    # ... "and at most 0.4 % at nameplate load" (in heating; in cooling the search is at full flow itself).
+    worst = max(abs(1.0 - b / a) for a, b in zip(least[2:], full[2:], strict=True))
+    assert f"and at most {100.0 * worst:.1f} % at nameplate load" in page
     scope = _flat((DOCS / "concepts" / "scope-and-limits.rst").read_text())
     assert (
         f"the COP is {min(lower_half[:2])} to {max(lower_half[:2])} % lower at half load and "

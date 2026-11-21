@@ -10,8 +10,8 @@
  "outputs": [
   "docs/source/_static/mollier_cycle_R32.svg"
  ],
- "coefficient_version": "semi-empirical-2026-11-15",
- "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
+ "coefficient_version": "ossorio-r290-te-2026-11-21",
+ "git_head": "3016d725c0c6a542817c894e3973469e2e56955e",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -21,18 +21,18 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
- "python": "3.14.7",
+ "src_tmhp_tree": "11e32032acec1bf19aef6b77ef00267be4e9904e",
+ "validation_parity_tree": "f806d541a72190c373b8a97ae4606cc02bf07ebe",
+ "python": "3.11.15",
  "coolprop": "7.2.0",
- "platform": "Darwin-arm64",
- "run_at": "2026-11-16T03:05:36+00:00",
+ "platform": "Linux-x86_64",
+ "run_at": "2026-11-21T10:07:45+00:00",
  "data": {
-  "cop_sys [-]": 2.2484475082796695,
-  "E_cmp [W]": 3500.326444713959,
-  "Q_ref_tank [W]": 8000.000000000001,
-  "T_ref_evap_sat [°C]": 6.43241238827494,
+  "cop_sys [-]": 2.7791093339667508,
+  "E_cmp [W]": 2789.8037087920225,
+  "Q_ref_tank [W]": 7999.999999999998,
+  "T_ref_evap_sat [°C]": 6.900205506485236,
   "T_ref_cond_sat_v [°C]": 63.73809112941137,
-  "T_ref_cmp_out [°C]": 133.1721532914355
+  "T_ref_cmp_out [°C]": 124.68832989204196
  }
 }

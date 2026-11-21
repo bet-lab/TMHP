@@ -696,25 +696,47 @@ The capacity ratio is the duty the model delivers at the catalogue request
 divided by the published duty. The capacity score includes short points.
 A point that falls more than 1 % short contributes to the capacity score and
 is excluded from the COP score.
+Capacity scores are grouped by catalogue status and model class. The held
+group is diagnostic. In ``summary.csv``, the ``class_`` columns describe
+the model class and status of the catalogue on that row. In ``manifest.json``,
+``capacity_by_status_and_model_class`` uses the status keys ``adopted``
+and ``hold`` for the groups present in the results.
 
 .. list-table::
     :header-rows: 1
 
     * - Model class
+      - Scope
       - Short points
       - Mean ratio
       - Minimum ratio
-      - Mean probe headroom
+      - Ceilings (mean headroom)
+      - Lower bounds
+      - No estimate
     * - Air-to-water
+      - Adopted
       - 17 / 153
       - 98.72 %
       - 72.24 %
-      - 132.11 % (152 points)
-    * - Air-to-air, including held catalogues
-      - 0 / 604
+      - 81 (116.44 %)
+      - 71 (150 %)
+      - 1
+    * - Air-to-air
+      - Adopted
+      - 0 / 360
       - 100.00 %
       - 100.00 %
-      - 161.54 % (604 points)
+      - 360 (158.77 %)
+      - 0
+      - 0
+    * - Air-to-air
+      - Held
+      - 0 / 244
+      - 100.00 %
+      - 100.00 %
+      - 244 (165.62 %)
+      - 0
+      - 0
 
 Compressor speed binds 12 of the air-to-water points, and the condensing
 temperature limit binds five. Probe headroom is the probed duty divided by
@@ -723,15 +745,19 @@ the published duty. For air-to-air, the probe uses
 air-to-water, it requests 1.5 times the published duty at the same outdoor
 temperature, entering water temperature and water flow. This overload reaches
 more limits than a 1.25× request and avoids the larger extrapolation of a 2×
-request. If the model meets the overload, the result is a lower bound on
-maximum capacity. When the overload returns a slightly lower duty within the
-relative validation tolerance of 10⁻⁶, the probe records the larger duty
-already delivered at the ordinary request. One overload fell below that
-tolerance, so its probe value is missing and the mean uses 152 estimates.
+request. Meeting the overload within the relative validation tolerance of
+10⁻⁶ establishes a lower bound at the requested multiplier (150 % headroom).
+A smaller return beyond that tolerance gives a ceiling. For either model,
+if the probe returns a lower duty than the ordinary solve within the same
+tolerance, the probe records the duty from the ordinary solve. A larger drop
+leaves the estimate missing. This happened at one air-to-water point. All 604
+air-to-air probes matched their direct maximum-capacity result.
 
 Among scored air-to-water points, COP MAPE and bias were 8.1 % and −6.1 %
 without discharge control (127 points), 6.7 % and +3.1 % with reduced
 superheat (5 points), and 18.0 % and +18.0 % with wet suction (4 points).
+Scored adopted points with a missing control flag, or with control active
+and missing suction quality, are counted in the ``unknown`` stratum.
 
 
 Cooling and latent load

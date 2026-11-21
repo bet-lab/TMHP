@@ -1262,7 +1262,9 @@ def resolve_step_operation(
     stretch's cycle is given the run time that carries the step's mean load at
     its own duty. A step that does not get to the limit is resolved exactly as
     without these arguments, with the cut-out at the limit's knee. If the
-    cycle on the limit has no operating point, the step keeps the stop.
+    cycle on the limit has no operating point, the step keeps the stop. The
+    round-off confirmation below (the implicit solve of the full step) assumes
+    one heat rate for the step and is not applied to a step on the limit.
 
     Returns the :class:`InStepRun` and the cycle result (``None`` if the
     compressor never had to run in this step).

@@ -31,6 +31,7 @@ from tmhp.dynamic_context import (
     STOP_CONDENSING_LIMIT,
     DutyLimit,
     merge_running_rows,
+    resolve_step_operation,
     simulate_thermostat_step,
 )
 from tmhp.operating_limits import OperatingLimitWarning
@@ -197,6 +198,118 @@ def test_merged_row_is_the_run_time_weighted_mean():
     assert row["capacity_clamped"] == "max" and row["capacity_binding"] == BINDING_CONDENSING
     assert row["Q_request [W]"] == 10_000.0
     assert merge_running_rows(full, 0.3, reduced, 0.1, ("Q_ref_tank [W]",))["cmp_rpm [rpm]"] == 3000.0
+
+
+# ---------------------------------------------------------------------------
+# one step: the cycles of its two stretches
+# ---------------------------------------------------------------------------
+
+
+def _resolve(T_start=56.0, T_upper=63.0, dt=3600.0, floor=2_000.0, on_limit_runs=True, calls=None, **kw):
+    """``resolve_step_operation`` on the tank of the event tests, with a cycle of COP 3 (2.5 on the limit)."""
+    calls = {} if calls is None else calls
+
+    def residual_free(T_K):
+        return (C * T_K - C * (T_start + 273.15)) / C
+
+    def solve_cycle(T_C, fraction):
+        calls.setdefault("full", []).append((T_C, fraction))
+        return {"hp_is_on": True, "Q_ref_tank [W]": Q_ON, "E_tot [W]": Q_ON / 3.0, "T_ref_cond_sat_l [°C]": T_C + 5.0}
+
+    def solve_cycle_at_duty(T_C, q, fraction):
+        calls.setdefault("limit", []).append((T_C, q, fraction))
+        if not on_limit_runs:
+            return {"hp_is_on": False, "failure_reason": "cycle_invalid"}
+        row = {"hp_is_on": True, "Q_ref_tank [W]": q, "E_tot [W]": q / 2.5, "T_ref_cond_sat_l [°C]": 65.0}
+        row.update({"capacity_clamped": "max", "capacity_binding": BINDING_CONDENSING, "Q_request [W]": Q_ON})
+        return row
+
+    def min_duty():
+        calls["floor"] = calls.get("floor", 0) + 1
+        return floor
+
+    args = dict(
+        T_start_K=T_start + 273.15,
+        call_start=True,
+        running_prev=False,
+        phase_age_s=math.inf,
+        scheduled=True,
+        T_lower=55.0,
+        T_upper=T_upper,
+        dt=dt,
+        C_curr=C,
+        C_next=C,
+        C_tank=C,
+        residual_free=residual_free,
+        solve_cycle=solve_cycle,
+        Q_request=Q_ON,
+        duty_line=(LIMIT.T_zero_C, LIMIT.K),
+        min_duty=min_duty,
+        solve_cycle_at_duty=solve_cycle_at_duty,
+        rate_keys=("Q_ref_tank [W]", "E_tot [W]"),
+    )
+    args.update(kw)
+    return (*resolve_step_operation(**args), calls)
+
+
+def test_a_step_below_the_knee_costs_nothing_more():
+    """The floor (cycle solves) and the cycle on the limit are asked for only when the step gets there."""
+    run, row, calls = _resolve(T_upper=59.0)
+    assert run.reduced_fraction == 0.0 and row["Q_ref_tank [W]"] == Q_ON
+    assert "floor" not in calls and "limit" not in calls and len(calls["full"]) == 1
+    # The same step without the limit's arguments: the same run.
+    plain, _, _ = _resolve(T_upper=59.0, duty_line=None)
+    assert run == plain
+
+
+def test_a_step_on_the_limit_solves_each_stretch_once_at_its_mean():
+    run, row, calls = _resolve()
+    t_full, t_reduced = 240.0, TAU * math.log(2.5)
+    assert calls["floor"] == 1 and len(calls["full"]) == 1 and len(calls["limit"]) == 1
+    T_full, _ = calls["full"][0]
+    T_reduced, q_reduced, _ = calls["limit"][0]
+    assert T_full == pytest.approx(58.0) and q_reduced == pytest.approx(LIMIT.duty(T_reduced))
+    assert q_reduced * t_reduced == pytest.approx(3.0 * C, rel=1e-12)
+    # The row is the mean running cycle: times the run time, the step's heat and electricity.
+    run_s = run.runtime_fraction * 3600.0
+    assert run_s == pytest.approx(t_full + t_reduced)
+    assert row["Q_ref_tank [W]"] * run_s == pytest.approx(7.0 * C, rel=1e-12)
+    assert row["E_tot [W]"] * run_s == pytest.approx(4.0 * C / 3.0 + 3.0 * C / 2.5, rel=1e-12)
+    assert row["capacity_clamped"] == "max" and row["Q_max [W]"] == pytest.approx(row["Q_ref_tank [W]"])
+    # Each stretch's source sees the run time that carries the step's mean load at its duty.
+    load = 7.0 * C / 3600.0
+    assert calls["full"][0][1] == pytest.approx(load / Q_ON) and calls["limit"][0][2] == pytest.approx(load / q_reduced)
+
+
+def test_electricity_of_the_stub_charge_does_not_depend_on_the_step():
+    """The whole charge in one step against 36 steps of 100 s: heat exact, electricity to the midpoint rule."""
+
+    def charge(parts):
+        T, call, running, age, heat, power = 56.0, True, False, math.inf, 0.0, 0.0
+        dt = 3600.0 / parts
+        for _ in range(parts):
+            run, row, _ = _resolve(T_start=T, dt=dt, call_start=call, running_prev=running, phase_age_s=age)
+            if row is not None and run.runtime_fraction > 0.0:
+                heat += row["Q_ref_tank [W]"] * run.runtime_fraction * dt
+                power += row["E_tot [W]"] * run.runtime_fraction * dt
+                T += row["Q_ref_tank [W]"] * run.runtime_fraction * dt / C
+            call, running, age = run.call_end, run.running_end, run.phase_age_end_s
+        return T, heat, power
+
+    one, many = charge(1), charge(36)
+    assert many[0] == pytest.approx(one[0], abs=1e-6) == pytest.approx(63.0, abs=1e-6)
+    assert many[1] == pytest.approx(one[1], rel=1e-9)
+    assert many[2] == pytest.approx(one[2], rel=1e-9)  # this stub's power is linear in the duty: exact
+
+
+def test_without_a_floor_or_a_cycle_on_the_limit_the_step_keeps_the_stop():
+    """No continuous duty below the request, or no operating point on the limit: the stop at the knee."""
+    stop, _, _ = _resolve(duty_line=None, T_limit_C=LIMIT.knee_C(Q_ON))
+    assert stop.limit_stop and stop.runtime_fraction * 3600.0 == pytest.approx(240.0)
+    for kw in (dict(floor=None), dict(floor=Q_ON), dict(on_limit_runs=False)):
+        run, row, _ = _resolve(**kw)
+        assert run == stop, kw
+        assert row["Q_ref_tank [W]"] == Q_ON and "capacity_clamped" not in row
 
 
 # ---------------------------------------------------------------------------

@@ -548,8 +548,9 @@ class InStepRun:
         Reduced-duty charging was withheld in this step
         (:func:`resolve_step_operation`): it was resolved without the duty
         limit, exactly as for a compressor that stops at the cut-out, and that
-        cut-out acted in it (``limit_stop``) -- the compressor stopped, or
-        stayed off, where it would otherwise have charged on. Like
+        cut-out, below the boiling point, acted in it -- the compressor
+        stopped, or stayed off, where it would otherwise have charged on. A
+        stop at the boiling point is not marked. Like
         ``limit_stop_C`` it labels the run and is not part of comparing two.
     """
 
@@ -1381,7 +1382,10 @@ def resolve_step_operation(
     events and the same cycle solves -- and the run says so where that
     cut-out then acts (``reduced_withheld``; ``reduced_fraction`` is 0; with
     the duty its cycle delivers a withheld step may also end below the
-    cut-out, and is then an ordinary step). Whether a step charges
+    cut-out, and is then an ordinary step; and where ``T_limit_C`` is the
+    boiling point the stop that acts is that one, which is not marked). A
+    step whose knee lies at or above the boiling point never gets to the
+    limit and is resolved as without these arguments. Whether a step charges
     on the limit therefore depends on what the caller says of its conditions,
     not on the step or on where in the stretch the tank is. One check of the
     step itself stands behind that, so that no step is credited with heat its
@@ -1455,6 +1459,12 @@ def resolve_step_operation(
     )
     reduce = duty_line is not None and min_duty is not None and solve_cycle_at_duty is not None
     if reduce:
+        assert duty_line is not None
+        # A knee at or above the boiling point is never reached: the boiling
+        # cut-out ends the run first, and the step is resolved as without
+        # these arguments (nothing is asked about the stretch, nothing withheld).
+        reduce = DutyLimit(*duty_line).knee_C(Q_request) < T_WATER_BOIL_C
+    if reduce:
         assert duty_line is not None and min_duty is not None and solve_cycle_at_duty is not None
         line, floor, at_duty = duty_line, min_duty, solve_cycle_at_duty
         # Up to the knee the compressor is the one that stops there: the step
@@ -1492,7 +1502,10 @@ def resolve_step_operation(
                 run_limit_s=run_limit_s,
                 Q_hold=Q_hold,
             )
-            return dataclasses.replace(stopped, reduced_withheld=stopped.limit_stop), cycle
+            # Marked where the cut-out the charging would have gone past is the
+            # one that acted; a stop at the boiling point is not one of those.
+            at_cutout = in_step_stop_reason(stopped, T_limit_stop, run_limit_s) == STOP_CONDENSING_LIMIT
+            return dataclasses.replace(stopped, reduced_withheld=at_cutout), cycle
 
     provisional = simulate_thermostat_step(Q_on=Q_request, **kwargs)  # type: ignore[arg-type]
     if reduce and provisional.limit_stop:

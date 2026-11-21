@@ -688,6 +688,42 @@ def test_a_full_duty_cycle_without_an_operating_point_is_the_stops_to_resolve(fu
     assert "limit" not in calls
 
 
+@pytest.mark.parametrize("floor", [None, 2_000.0], ids=["stretch withheld", "stretch qualified"])
+@pytest.mark.parametrize("T_zero", [106.0, 105.0], ids=["knee above the boiling point", "knee at the boiling point"])
+def test_a_stop_at_the_boiling_point_is_not_reduced_duty_charging_withheld(floor, T_zero):
+    """The nameplate duty meets the limit at or above 100 degC: the boiling point ends the run, not this limit.
+
+    The step never gets to the limit, so nothing is asked about its stretch, nothing is withheld,
+    and the step is the one resolved without the reduced-duty arguments.
+    """
+    kw = dict(T_start=96.0, T_lower=90.0, T_upper=99.5, dt=3600.0, min_on_time_s=5_000.0, T_limit_C=T_WATER_BOIL_C)
+    stop, stop_row, stop_calls = _resolve_stop(**kw)
+    assert stop.limit_stop and in_step_stop_reason(stop, T_WATER_BOIL_C) == STOP_BOILING_LIMIT
+    run, row, calls = _resolve(duty_line=(T_zero, LIMIT.K), floor=floor, **kw)
+    _same_step((run, row), (stop, stop_row))
+    assert not run.reduced_withheld and run.limit_stop_C is None
+    assert in_step_stop_reason(run, T_WATER_BOIL_C) == STOP_BOILING_LIMIT
+    assert "floor" not in calls and "limit" not in calls and calls["full"] == stop_calls["full"]
+
+
+def test_a_withheld_step_that_the_boiling_point_stops_is_not_flagged():
+    """The knee lies below 100 degC but the cut-out of the compressor that stops is the boiling point.
+
+    (A caller's cut-out above the knee: the delivered duty of a frosting coil meets the limit at a
+    colder tank than the nameplate duty does.) Withheld, the step is the stop's and runs on to
+    100 degC; the stop that acted there is the boiling point, and the run is not marked.
+    """
+    kw = dict(T_start=96.0, T_lower=90.0, T_upper=99.5, dt=3600.0, min_on_time_s=5_000.0, T_limit_C=T_WATER_BOIL_C)
+    stop, stop_row, _ = _resolve_stop(**kw)
+    run, row, calls = _resolve(duty_line=(103.0, LIMIT.K), floor=None, **kw)  # knee 98 degC
+    _same_step((run, row), (stop, stop_row))
+    assert calls["floor"] == 1 and run.limit_stop and not run.reduced_withheld
+    assert in_step_stop_reason(run, T_WATER_BOIL_C) == STOP_BOILING_LIMIT
+    # The same step with the cut-out at the knee: the condensing cut-out acts, and the run says so.
+    at_knee, _, _ = _resolve(duty_line=(103.0, LIMIT.K), floor=None, **{**kw, "T_limit_C": 98.0})
+    assert at_knee.reduced_withheld and in_step_stop_reason(at_knee, 98.0) == STOP_CONDENSING_LIMIT
+
+
 def test_cycles_that_name_the_condensing_limit_or_none_are_on_it():
     for kw in (dict(on_limit_binding=None), dict(full_binding=BINDING_CONDENSING), dict()):
         run, _, _ = _resolve(**kw)
@@ -1613,3 +1649,35 @@ def test_the_verdict_follows_the_source_state_of_each_step():
     last_withheld = max(i for i, reason in enumerate(withheld) if reason)
     assert any(on_limit[last_withheld + 1 :])
     assert max(row["T_tank_w [°C]"] for row in rows) > condensing_tank_cutout(m) + 1.0
+
+
+def test_a_boiling_stop_of_a_model_is_not_flagged_as_withheld():
+    """R600a with ``T_cond_max=110``: the nameplate cut-out is 103 degC, and the boiling point ends the run.
+
+    The row is the one of ``"stop"`` (same band, 97-100 degC), its stop is ``boiling_limit``, and
+    ``reduced_duty_withheld`` is ``None``: the stretch on the condensing limit lies above 100 degC
+    and is never asked about.
+    """
+    kwargs = dict(
+        ref="R600a",
+        T_cond_max=110.0,
+        PR_cycle_max=15.0,
+        T_dis_max=None,
+        min_on_time_s=5000.0,
+        T_tank_w_lower_bound=97.0,
+        T_tank_w_upper_bound=100.0,
+    )
+    m = _quiet(tmhp.WaterSourceHeatPumpBoiler, **kwargs, condensing_limit_control="reduce_duty")
+    stop = _quiet(tmhp.WaterSourceHeatPumpBoiler, **kwargs)
+    assert condensing_tank_cutout(m) > T_WATER_BOIL_C
+    assert (stop.T_tank_w_lower_bound, stop.T_tank_w_upper_bound) == (m.T_tank_w_lower_bound, m.T_tank_w_upper_bound)
+    asked = []
+    inner = m._charge_stretch
+    m._charge_stretch = lambda ctx: (asked.append(ctx.n), inner(ctx))[1]
+    args = (2400.0, 1200.0, 96.0, np.zeros(2), np.full(2, 15.0))
+    df = _quiet(m.analyze_dynamic, *args, T_source_w_schedule=np.full(2, 8.0))
+    reference = _quiet(stop.analyze_dynamic, *args, T_source_w_schedule=np.full(2, 8.0))
+    _assert_rows_are_those_of(df, reference)
+    assert df["hp_stop_reason"].iloc[0] == STOP_BOILING_LIMIT
+    assert df["reduced_duty_withheld"].isna().all() and (df["reduced_duty_fraction [-]"] == 0.0).all()
+    assert not asked

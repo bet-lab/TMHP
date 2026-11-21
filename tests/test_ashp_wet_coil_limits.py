@@ -353,20 +353,37 @@ def test_a_number_of_another_type_is_read_on_a_cooling_row(hp):
         np.str_("0.5"),
         " 0.5 ",
         np.array(0.5),
+        np.array([0.5]),
+        [0.5],
+        (np.float32(0.5),),
         np.float16(0.5),
         np.int64(1),
     ],
-    ids=["Decimal", "Fraction", "bytes", "np.bytes_", "np.str_", "padded text", "0-d array", "float16", "int64"],
+    ids=[
+        "Decimal",
+        "Fraction",
+        "bytes",
+        "np.bytes_",
+        "np.str_",
+        "padded text",
+        "0-d array",
+        "one-element array",
+        "one-element list",
+        "one-element tuple",
+        "float16",
+        "int64",
+    ],
 )
 def test_an_entry_that_reads_as_one_real_number_is_a_humidity(hp, entry):
     """Whatever a float conversion of a single value reads: a column from a database or a file holds such things."""
     schedule = np.empty(1, dtype=object)
     schedule[0] = entry
     frame = _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
-    assert frame["RH_room [-]"].iloc[0] == float(entry)
+    value = float(np.asarray(entry).ravel()[0]) if isinstance(entry, (list, tuple, np.ndarray)) else float(entry)
+    assert frame["RH_room [-]"].iloc[0] == value
     # Given the usual way, too.
     usual = _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=[entry])
-    assert usual["RH_room [-]"].iloc[0] == float(entry)
+    assert usual["RH_room [-]"].iloc[0] == value
 
 
 def test_a_column_of_decimals_is_a_humidity_schedule(hp):
@@ -378,13 +395,13 @@ def test_a_column_of_decimals_is_a_humidity_schedule(hp):
 @pytest.mark.parametrize(
     "entry",
     [
-        np.array([0.5]),
+        np.array([0.5, 0.6]),
         [0.5, 0.6],
-        0.5 + 0j,
+        0.5 + 1j,
         # NumPy converts these to a float by dropping what makes them something else:
         # the imaginary part of a complex number, the unit of a time span.
         np.complex128(0.5 + 1j),
-        np.complex64(0.5),
+        np.complex64(0.5 + 1j),
         np.array(0.5 + 1j),
         np.timedelta64(1, "s"),
         np.datetime64("2026-11-21"),
@@ -518,6 +535,38 @@ def test_a_masked_entry_of_the_schedule_is_missing_not_the_number_under_the_mask
         hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=np.ma.masked, verbose=False)
 
 
+OFF_THEN_COOLING = (2 * 3600, 3600, [0.0, 2000.0], [35.0, 35.0], [27.0, 27.0])
+
+
+@pytest.mark.parametrize(
+    "unread",
+    [1j, np.complex128(1j), np.timedelta64(5, "ns"), np.datetime64("2026-11-21"), True, np.bool_(True), "n/a", None],
+    ids=["complex", "np.complex128", "timedelta64", "datetime64", "bool", "np.bool_", "text", "None"],
+)
+def test_what_an_unread_step_holds_does_not_change_how_a_cooling_step_is_read(hp, unread):
+    """Each entry on its own: NumPy would read a list holding one complex number or time span as all of that type."""
+    reference = _quiet(hp.analyze_dynamic, *OFF_THEN_COOLING, RH_room_schedule=[0.3, 0.6])
+    for schedule in ([unread, 0.6], (unread, 0.6), pd.Series([unread, 0.6], dtype=object)):
+        frame = _quiet(hp.analyze_dynamic, *OFF_THEN_COOLING, RH_room_schedule=schedule)
+        assert frame["RH_room [-]"].iloc[1] == 0.6
+        assert frame["E_tot [W]"].iloc[1] == reference["E_tot [W]"].iloc[1]
+    whole = _quiet(hp.analyze_dynamic, *OFF_THEN_COOLING, RH_room_schedule=[unread, 1])
+    assert whole["RH_room [-]"].iloc[1] == 1.0
+
+
+def test_a_complex_number_without_an_imaginary_part_is_the_real_number_it_equals(hp):
+    """An array or a column that holds one complex number is complex throughout: 0.6 becomes 0.6+0j there."""
+    for schedule in (np.array([1j, 0.6]), pd.Series([1j, 0.6]), [0.3 + 0j, 0.6 + 0j], [1j, np.complex64(0.5)]):
+        frame = _quiet(hp.analyze_dynamic, *OFF_THEN_COOLING, RH_room_schedule=schedule)
+        assert frame["RH_room [-]"].iloc[1] == pytest.approx(float(np.real(np.asarray(schedule)[1])), rel=1e-12)
+    # With an imaginary part it is not a humidity, and nothing is dropped to make it one.
+    for entry in (0.6 + 1e-300j, np.complex128(0.6 + 1j), complex(0.6, float("nan"))):
+        with pytest.raises(
+            ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 1"
+        ):
+            _quiet(hp.analyze_dynamic, *OFF_THEN_COOLING, RH_room_schedule=[0.3, entry])
+
+
 def _nanoseconds(values, kind="timedelta64[ns]"):
     return np.array(values, dtype=kind)
 
@@ -532,7 +581,7 @@ def _nanoseconds(values, kind="timedelta64[ns]"):
         _nanoseconds(["2026-11-21", "2026-11-22"], "datetime64[ns]"),
         np.array([1, 0], dtype="timedelta64[s]"),
         np.ma.array(_nanoseconds([1, 0]), mask=[False, False]),
-        np.array([0.5 + 0j, 0.6 + 0j]),
+        np.array([0.5 + 1j, 0.6 + 0j]),
         np.array([True, False]),
         pd.Series(pd.to_timedelta([1, 0], unit="ns")),
         pd.DataFrame({"span": pd.to_timedelta([1, 0], unit="ns")}),

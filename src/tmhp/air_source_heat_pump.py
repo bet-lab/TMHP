@@ -568,11 +568,19 @@ def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
     read the same way -- a list, a tuple, an array, a pandas Series, and a
     one-column array or DataFrame, whose rows are the steps -- but the
     entries stay what they are (a missing value, text), for the caller to
-    convert where it reads them. The values are taken, never the labels: a
-    DataFrame is its cells, not its column names. A masked entry of a NumPy
-    masked array is a missing one (``None``), not the number the array keeps
-    under the mask. Anything that is not one entry per step is refused: a
-    mapping, text, a single number, a table of several columns.
+    convert where it reads them, each on its own:
+
+    - a list or a tuple gives its items as they are. NumPy is not asked what
+      the whole of it is: it would read a list holding one complex number or
+      one time span as all of that type, and a valid number on another step
+      would no longer be one;
+    - an array gives its elements, with the type the array has
+      (:func:`_array_entries`), and a masked element as a missing one
+      (``None``), not the number the array keeps under the mask;
+    - a Series or a DataFrame gives its values, never its labels.
+
+    Anything that is not one entry per step is refused: a mapping, text, a
+    single number, a table of several columns.
     """
     shape = "a mapping" if isinstance(schedule, Mapping) else "text" if isinstance(schedule, (str, bytes)) else None
     if shape is None:
@@ -584,19 +592,14 @@ def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
             entries[np.ma.getmaskarray(schedule)] = None
         elif isinstance(schedule, np.ndarray):
             entries = _array_entries(schedule)
+        elif isinstance(schedule, (list, tuple)):
+            entries = np.empty(len(schedule), dtype=object)
+            for index, item in enumerate(schedule):
+                entries[index] = item
         else:
-            # Anything else that holds one entry per step (a list, a Series, a
-            # frame). Its own objects are kept -- unless NumPy reads the whole
-            # of it as time spans, dates, complex numbers or booleans (a list
-            # of such arrays, a Series of time spans), which is then taken as
-            # that array is.
-            natural = None
-            with contextlib.suppress(Exception):
-                natural = np.asarray(schedule)
-            if natural is not None and natural.dtype.kind not in _PLAIN_KINDS:
-                entries = _array_entries(natural)
-            else:
-                entries = np.asarray(schedule, dtype=object)
+            # A Series, a DataFrame, another array-like: its values as objects
+            # (pandas hands a time span out as a Timedelta, not as an integer).
+            entries = np.asarray(schedule, dtype=object)
         while entries.ndim > 1 and entries.shape[-1] == 1:
             entries = entries[..., 0]  # one value per step in a column (or a column of columns)
         if entries.ndim == 1:
@@ -605,34 +608,52 @@ def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
     raise ValueError(f"{name} must hold one entry per step, got {shape}")
 
 
+def _single_value(entry: Any) -> Any:
+    """``entry`` out of the one-element containers it may be wrapped in, as the scalar it is.
+
+    A step given as a row of one value (``[[0.5], [0.6]]``) or as an array of
+    one element is that value. An array element is taken as the NumPy scalar
+    it is (``item()`` would hand a time span in nanoseconds out as an
+    integer); a masked one stays masked.
+    """
+    while True:
+        if isinstance(entry, (list, tuple)) and len(entry) == 1:
+            entry = entry[0]
+        elif isinstance(entry, np.ndarray) and entry.size == 1 and not np.ma.is_masked(entry):
+            entry = entry.reshape(())[()]
+            if isinstance(entry, np.ndarray):  # an object array that held an array
+                return entry
+        else:
+            return entry
+
+
 def _room_humidity_of_step(value: Any, step: int) -> float:
     """The room humidity a cooling step of a schedule holds, as a fraction in [0, 1], or ``ValueError``.
 
     A schedule is kept as it was given and only the cooling steps are read
     (heating and off steps may hold anything), so the entry is converted
-    here. It is a humidity when it reads as one real number, as it did when
-    the schedule was converted to floats as a whole: a number of any numeric
-    type (a NumPy scalar, a ``Decimal``, a ``Fraction``), text or bytes that
-    read as one (a column from a file), or a zero-dimensional array holding
-    such a value. Refused, with the step it stands at: a missing value (NaN,
+    here, on its own. It is a humidity when it is one real number, as it was
+    when the schedule was converted to floats as a whole: a number of any
+    numeric type (a NumPy scalar, a ``Decimal``, a ``Fraction``), text or
+    bytes that read as one (a column from a file), a complex number whose
+    imaginary part is zero (an array or a column that holds a complex number
+    anywhere is complex throughout), or such a value in a container of one
+    element. Refused, with the step it stands at: a missing value (NaN,
     ``None``, ``pd.NA``), a masked entry, a boolean (as ``RH_room=True``
-    is), an array of one or more elements, any other object, and a number
-    outside 0-1. So is a value NumPy would turn into a float by dropping
-    what makes it something else: a complex number (its imaginary part), a
-    date or a time span (its unit).
+    is), several values, any other object, and a number outside 0-1. So is a
+    value that only becomes a float by dropping what makes it something
+    else: a complex number with an imaginary part, a date or a time span.
     """
-    entry, number = value, math.nan
-    if isinstance(entry, np.ndarray) and entry.ndim == 0 and not np.ma.is_masked(entry):
-        # A zero-dimensional array: the value it holds, as the NumPy scalar it is
-        # (``item()`` would hand a time span in nanoseconds out as an integer).
-        entry = entry[()]
+    entry: Any = _single_value(value)
+    number = math.nan
+    if isinstance(entry, numbers.Complex) and not isinstance(entry, numbers.Real):
+        # Python's and NumPy's complex numbers: the real number they equal, if they equal one.
+        entry = entry.real if entry.imag == 0 else None
     if isinstance(entry, np.generic):
-        # Of NumPy's scalars, the real numbers and text; not booleans, complex numbers, dates, time spans.
+        # Of NumPy's scalars, the real numbers and text; not booleans, dates, time spans.
         readable = _is_real_number(entry) or isinstance(entry, np.character)
     else:
-        readable = not isinstance(entry, (bool, np.ndarray)) and (
-            not isinstance(entry, numbers.Complex) or isinstance(entry, numbers.Real)
-        )
+        readable = entry is not None and not isinstance(entry, (bool, np.ndarray, list, tuple))
     if readable:
         with contextlib.suppress(TypeError, ValueError):
             number = float(entry)

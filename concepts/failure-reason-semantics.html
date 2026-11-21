@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-21T10:55:52+00:00" />
+    <meta property="article:modified_time" content="2026-11-21T23:41:58+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -291,7 +291,8 @@ failure (see <em>A request above a limit</em> below).</p></td>
 (default 150 °C for R32, 135 °C for every other refrigerant;
 <code class="docutils literal notranslate"><span class="pre">T_dis_max=None</span></code> switches the check off) even under the
 discharge-temperature control (suction superheat down to 0 K, then
-wet suction down to <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>, default 0.9), at every duty the
+wet suction down to <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>, by default 0.9 for every
+refrigerant for now), at every duty the
 model tried: the request, smaller duties down to the speed floor
 and, for ASHP and the boilers’ <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>, larger ones. A
 request that a <em>smaller</em> duty meets is not a failure: it returns that

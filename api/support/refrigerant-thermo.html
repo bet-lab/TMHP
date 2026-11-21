@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-11-21T10:55:52+00:00" />
+    <meta property="article:modified_time" content="2026-11-21T23:41:58+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -222,7 +222,9 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.compressor_envelope.raise_duty_within_envelope"><code class="docutils literal notranslate"><span class="pre">raise_duty_within_envelope()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.remembering_smallest_duties"><code class="docutils literal notranslate"><span class="pre">remembering_smallest_duties()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.remember_smallest_duty"><code class="docutils literal notranslate"><span class="pre">remember_smallest_duty()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.X_SUCTION_MIN"><code class="docutils literal notranslate"><span class="pre">X_SUCTION_MIN</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT"><code class="docutils literal notranslate"><span class="pre">X_SUCTION_MIN_DEFAULT</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.default_x_suction_min"><code class="docutils literal notranslate"><span class="pre">default_x_suction_min()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.resolve_x_suction_min"><code class="docutils literal notranslate"><span class="pre">resolve_x_suction_min()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.discharge_controlled"><code class="docutils literal notranslate"><span class="pre">discharge_controlled()</span></code></a></li>
 </ul>
@@ -827,8 +829,8 @@ than R410A”) opens at 150 degC at most. Unit controllers act earlier on
 the discharge <em>pipe</em> temperature (Daikin room units reduce frequency from
 about 100 degC and stop at 110–120 degC). A point whose computed
 discharge temperature exceeds the limit is <strong>not an operating point</strong>
-(<a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX" title="tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_ABOVE_MAX</span></code></a>). The defaults
-(<a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C" title="tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_MAX_C</span></code></a>, <a class="reference internal" href="#tmhp.compressor_envelope.default_discharge_temp_max" title="tmhp.compressor_envelope.default_discharge_temp_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_discharge_temp_max()</span></code></a>) are the
+(<a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX" title="tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_ABOVE_MAX</span></code></a>). The defaults, one per refrigerant
+(<a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C" title="tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_MAX_C</span></code></a>, <a class="reference internal" href="#tmhp.compressor_envelope.default_discharge_temp_max" title="tmhp.compressor_envelope.default_discharge_temp_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_discharge_temp_max()</span></code></a>), are the
 <em>protection</em> values – R32 150 degC, every other fluid 135 degC – not the
 controllers’ earlier set points: the cycle’s discharge state is the gas
 leaving the compression (the default models send the share of the loss
@@ -847,7 +849,9 @@ operating point is therefore re-solved, compressor speed included, first
 with the suction superheat reduced from its value towards 0 K until the
 discharge temperature equals <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>, then – if 0 K is not enough –
 with a two-phase suction of quality <code class="docutils literal notranslate"><span class="pre">x</span></code> lowered towards
-<code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code> (default <a class="reference internal" href="#tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT" title="tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT"><code class="xref py py-data docutils literal notranslate"><span class="pre">X_SUCTION_MIN_DEFAULT</span></code></a> = 0.9). Wet
+<code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>. Its default <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> is the refrigerant’s value
+(<a class="reference internal" href="#tmhp.compressor_envelope.X_SUCTION_MIN" title="tmhp.compressor_envelope.X_SUCTION_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">X_SUCTION_MIN</span></code></a>, <a class="reference internal" href="#tmhp.compressor_envelope.default_x_suction_min" title="tmhp.compressor_envelope.default_x_suction_min"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_x_suction_min()</span></code></a>; provisionally 0.9
+for every fluid), and a number given by the caller takes precedence. Wet
 suction is modelled as a homogeneous two-phase state at the evaporating
 pressure (see <a class="reference internal" href="#tmhp.refrigerant.calc_ref_state" title="tmhp.refrigerant.calc_ref_state"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.refrigerant.calc_ref_state()</span></code></a>); the evaporator
 outlet is then two-phase, the swept mass flow follows the homogeneous
@@ -857,6 +861,20 @@ suction, so applying them to wet suction is an approximation. Only a point
 that is still above the limit at <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code> is outside the envelope.
 <code class="docutils literal notranslate"><span class="pre">x_suction_min=1</span></code> keeps the superheat stage only; <code class="docutils literal notranslate"><span class="pre">None</span></code> switches the
 control off.</p>
+<p>Known limitation: this control is the model’s assumption, not a confirmed
+description of how heat pumps hold their discharge temperature. Neither
+the order (superheat to 0 K, then suction quality, then a smaller duty),
+nor stopping at the driest suction state that meets <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code>, nor
+bounding the wet suction by its quality has been confirmed against a
+manufacturer’s control. One patent describes a similar order
+(Daikin, US 6,581,397 B1, FIG. 10: wet the suction down to quality
+0.85–0.75 once the discharge pipe exceeds 125–135 degC, then lower the
+compressor frequency) without naming the compressor type or the test.
+Units also hold a discharge or discharge-superheat target with the
+expansion valve, and compressor makers bound liquid return by the oil or
+shell superheat rather than by the suction quality. The per-refrigerant
+quality floors are placeholders until the literature collected on issue
+#216 is reviewed (issue #229).</p>
 <p>How a family answers a point the control cannot bring inside the limit: the space-conditioning models
 (ASHP, GSHP) reject the candidate inside the operating-point search, so the
 search moves to a smaller lift if one carries the duty, and otherwise the
@@ -1070,8 +1088,12 @@ the data of a default map.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TEMP_MAX_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'R32':</span> <span class="pre">150.0}</span></span><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">DISCHARGE_TEMP_MAX_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'IsoButane':</span> <span class="pre">135.0,</span> <span class="pre">'R1234yf':</span> <span class="pre">135.0,</span> <span class="pre">'R1234ze(E)':</span> <span class="pre">135.0,</span> <span class="pre">'R134a':</span> <span class="pre">135.0,</span> <span class="pre">'R290':</span> <span class="pre">135.0,</span> <span class="pre">'R32':</span> <span class="pre">150.0,</span> <span class="pre">'R407C':</span> <span class="pre">135.0,</span> <span class="pre">'R410A':</span> <span class="pre">135.0,</span> <span class="pre">'R600a':</span> <span class="pre">135.0,</span> <span class="pre">'R717':</span> <span class="pre">135.0}</span></span><a class="headerlink" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C" title="Link to this definition">¶</a></dt>
 <dd><p>Default discharge-temperature limit by refrigerant [degC]; see the module docstring.</p>
+<p>Only R410A (Danfoss SH / PSH, 135 degC) and R32 (Danfoss DSF, 150 degC)
+rest on a protection value published for the fluid. Every other entry is
+the 135 degC of <a class="reference internal" href="#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_DEFAULT_C" title="tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_DEFAULT_C"><code class="xref py py-data docutils literal notranslate"><span class="pre">DISCHARGE_TEMP_MAX_DEFAULT_C</span></code></a>, set provisionally so
+that each refrigerant has its own value to replace (issue #229).</p>
 </dd></dl>
 
 <dl class="py data">
@@ -1754,28 +1776,61 @@ the ones that share the search.</p>
 </dd></dl>
 
 <dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.X_SUCTION_MIN">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">X_SUCTION_MIN</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'IsoButane':</span> <span class="pre">0.9,</span> <span class="pre">'R1234yf':</span> <span class="pre">0.9,</span> <span class="pre">'R1234ze(E)':</span> <span class="pre">0.9,</span> <span class="pre">'R134a':</span> <span class="pre">0.9,</span> <span class="pre">'R290':</span> <span class="pre">0.9,</span> <span class="pre">'R32':</span> <span class="pre">0.9,</span> <span class="pre">'R407C':</span> <span class="pre">0.9,</span> <span class="pre">'R410A':</span> <span class="pre">0.9,</span> <span class="pre">'R600a':</span> <span class="pre">0.9,</span> <span class="pre">'R717':</span> <span class="pre">0.9}</span></span><a class="headerlink" href="#tmhp.compressor_envelope.X_SUCTION_MIN" title="Link to this definition">¶</a></dt>
+<dd><p>Default lowest suction vapour quality of the discharge-temperature control, by refrigerant [-].</p>
+<p>Two-phase suction (wet compression) is one of the methods experimentally used
+to hold the discharge temperature of R32 compressors (Wang et al.,
+International Compressor Engineering Conference 2014, paper 1595; Zheng et
+al., International Refrigeration and Air Conditioning Conference 2016, paper
+1766; Seong et al., Appl. Sci. 2017), alongside liquid and two-phase
+injection; a lower suction quality lowers the discharge temperature but
+raises the risk of over-wet compression and liquid slugging.</p>
+<p>Every value is a provisional placeholder: 0.9, the single default this
+table replaced, for every fluid. It has no quantitative basis and is not a
+reliability limit. The sources collected on issue #216 disagree: for R32,
+a Daikin patent rates quality 0.75 and above as reliable
+(US 6,581,397 B1), a 3.5 kW water-to-water unit lost refrigerant flow below
+0.84–0.91 (Seong et al. 2017), and a measured efficiency relation holds
+above 0.9 (Cheng et al., Appl. Sci. 2023). Values based on that literature
+are to replace these (issue #229). A number given as the constructor
+argument <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code> takes precedence; <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> (the default) takes
+the value here.</p>
+</dd></dl>
+
+<dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT">
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">X_SUCTION_MIN_DEFAULT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></span><a class="headerlink" href="#tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT" title="Link to this definition">¶</a></dt>
-<dd><p>Default lowest suction vapour quality the discharge-temperature control may use.</p>
-<p>Two-phase suction (wet compression) is one of the methods experimentally used
-to hold the discharge temperature of R32 scroll compressors (Wang et al.,
-International Compressor Engineering Conference 2014, paper 1595; Yang et
-al., Int. J. Refrig. 2015), alongside liquid and two-phase injection; lower
-suction quality lowers the discharge temperature but raises the risk of
-over-wet compression and liquid slugging. No published lower bound on the
-suction quality was found: 0.9 is a conservative default without a
-quantitative basis (at most 10 % liquid by mass, of the order of the
-liquid-injection ratios used for discharge-temperature control). Override it
-with the constructor argument <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>.</p>
+<dd><p>Default for every refrigerant not in <a class="reference internal" href="#tmhp.compressor_envelope.X_SUCTION_MIN" title="tmhp.compressor_envelope.X_SUCTION_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">X_SUCTION_MIN</span></code></a> [-].</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.default_x_suction_min">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">default_x_suction_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#default_x_suction_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.default_x_suction_min" title="Link to this definition">¶</a></dt>
+<dd><p>Default lowest suction quality of the discharge-temperature control for refrigerant <code class="docutils literal notranslate"><span class="pre">ref</span></code> [-].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ref</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.resolve_x_suction_min">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">resolve_x_suction_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#resolve_x_suction_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.resolve_x_suction_min" title="Link to this definition">¶</a></dt>
-<dd><p>Constructor argument -&gt; lowest suction quality of the control (<code class="docutils literal notranslate"><span class="pre">None</span></code>: no control).</p>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">resolve_x_suction_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#resolve_x_suction_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.resolve_x_suction_min" title="Link to this definition">¶</a></dt>
+<dd><p>Constructor argument -&gt; lowest suction quality of the control.</p>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> takes the refrigerant’s default (<a class="reference internal" href="#tmhp.compressor_envelope.default_x_suction_min" title="tmhp.compressor_envelope.default_x_suction_min"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_x_suction_min()</span></code></a>),
+a number given by the caller takes precedence over it, and <code class="docutils literal notranslate"><span class="pre">None</span></code>
+switches the control off.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'auto'</span></code>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
+<li><p><strong>ref</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>

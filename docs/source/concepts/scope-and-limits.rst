@@ -132,7 +132,7 @@ The refrigerant cycle
         COP bias against the catalogues. The 124 scored points without
         discharge control average −6.7 %. The duty at the edge of the limit
         is an upper estimate when liquid reduces compressor efficiency
-        (:ref:`discharge-control-against-catalogues`)
+        (:ref:`discharge control against the catalogues <discharge-control-against-catalogues>`)
     * - No pressure drop
       - Heat exchangers and lines are isobaric and the expansion is
         isenthalpic; superheat and subcooling are set values, not the result

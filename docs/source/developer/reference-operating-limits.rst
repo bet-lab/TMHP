@@ -566,7 +566,8 @@ as one start). A compressor held at the stop runs at its lowest speed, and
 the cycle there can have a little more than the smallest duty the stop was
 found with (6 parts in a million for that unit); the hold is then on for the
 share of the time that duty needs, so the heat of the step is the loss it
-covers and the tank stays at the stop. The multi-node tanks of GSHPB, which keep ``"stop"``, hold the water
+covers and the tank stays at the stop. Only the on-time of the hold is
+adjusted; the time the compressor ran continuously is that of the events. The multi-node tanks of GSHPB, which keep ``"stop"``, hold the water
 around their coil as a mean whatever the rest time, as before, and so does a
 step with reduced-duty charging withheld at its nameplate cut-out (it is the
 step of ``"stop"``). If the tank

@@ -774,6 +774,40 @@ def test_a_hold_is_credited_with_the_heat_its_events_took():
     assert less.runtime_fraction == exact.runtime_fraction
 
 
+def test_only_the_hold_gives_up_run_time_for_a_cycle_that_has_more():
+    """The same cycle in a step that runs on the limit without holding, and in one that gets to the stop and holds.
+
+    A compressor that runs through the step on the limit ran through it: its run time is the
+    step, whatever its cycle has. Where the step gets to the stop and holds the tank there, the
+    hold is what gives: its on-time is shorter by what the stretch's cycle delivered beyond the
+    events' heat, and the time the compressor ran continuously before it is the events'.
+    """
+    more = 1.0 + 6.4e-6
+    # 100 s on the limit from 61 degC: the stop (64 degC) is not reached.
+    through, _, _ = _resolve(T_start=61.0, dt=100.0)
+    assert through.runtime_fraction == 1.0 and through.reduced_fraction == 1.0 and through.hold_fraction == 0.0
+    with_more, row, _ = _resolve(T_start=61.0, dt=100.0, on_limit_share=more)
+    assert with_more.runtime_fraction == 1.0 and with_more.reduced_fraction == 1.0
+    assert row["Q_ref_tank [W]"] == pytest.approx(LIMIT.duty(with_more.T_reduced_mean_C) * more, rel=1e-12)
+    # 1200 s from 63.9 degC with a loss of 500 W: along the limit to the stop, then the hold.
+    loss, dt = 500.0, 1200.0
+
+    def with_loss(T_K):
+        return (C * T_K - C * (63.9 + 273.15) + dt * loss) / C
+
+    mixed = dict(T_start=63.9, T_upper=64.5, dt=dt, residual_free=with_loss)
+    exact, row_exact, _ = _resolve(**mixed)
+    continuous = exact.runtime_fraction - exact.hold_fraction
+    assert exact.limit_stop and exact.hold_fraction > 0.0 and continuous > 0.0
+    run, row, _ = _resolve(on_limit_share=more, **mixed)
+    assert run.runtime_fraction - run.hold_fraction == pytest.approx(continuous, rel=1e-12)
+    assert run.hold_fraction < exact.hold_fraction
+    assert run.runtime_fraction * row["Q_ref_tank [W]"] == pytest.approx(
+        exact.runtime_fraction * row_exact["Q_ref_tank [W]"], rel=1e-12
+    )
+    assert run.reduced_fraction == run.runtime_fraction
+
+
 # ---------------------------------------------------------------------------
 # the three boiler families
 # ---------------------------------------------------------------------------

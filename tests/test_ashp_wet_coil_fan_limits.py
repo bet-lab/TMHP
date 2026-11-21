@@ -310,3 +310,14 @@ def test_wet_ceiling_search_ends_where_everything_is_refused_from_below(default)
     x, state, reason = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3)
     assert x is None and state is None and reason == default._MIN_AIRFLOW
     assert len(set(calls)) == 1 + len(default._CEILING_LADDER)
+
+
+def test_wet_ceiling_search_looks_above_a_bisection_step_that_ended_short(default):
+    # The rung at 60 % of the top (19 kW) is refused from below and the one at 80 % (25.3 kW) ends
+    # short: the band is bisected for between them. The first middle (22.2 kW) ends short as
+    # well -- which does not say the band is under it -- and 22.6 to 23.5 kW run above it.
+    trial, _ = _searched_trial(default, runs=((22_600.0, 23_500.0),), floor=20_000.0)
+    x, state, reason = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3)
+    assert x is not None and state is not None
+    assert state["Q_ref_iu [W]"] == pytest.approx(23_500.0, rel=1.5e-3) and state["Q_ref_iu [W]"] <= 23_500.0
+    assert default._binding_of(reason) == "compressor"

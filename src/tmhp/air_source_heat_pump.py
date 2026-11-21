@@ -2727,8 +2727,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         limit either, and is looked above like a duty that was not found.
         Where no rung runs, the gaps between the rungs are looked into from
         the top -- bisected above a duty refused from below, tried at
-        :attr:`_CEILING_PROBES` where the lower rung gives no side -- and
-        the search goes on from the first duty that runs.
+        :attr:`_CEILING_PROBES` where the lower rung gives no side, and
+        above a bisection step that names no limit -- and the search goes
+        on from the first duty that runs.
 
         The search samples the duty; it does not enumerate it. A band of
         duties narrower than ``rel_tol``, or one narrower than a fifth of a
@@ -2777,41 +2778,55 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if reason in self._LIMIT_REASONS:
                 q_limit, reason_limit, x_limit, limited = q, reason, x, True
             refused.append((q, reason))
+
+        def running_between(q_under: float, q_over: float, sided: bool, look_above: bool = True):
+            """A duty found to run between two refused duties, as ``(q, x, state)``; ``None`` when none is.
+
+            ``sided``: the lower duty is refused from below, so the gap is
+            bisected by which side refuses the trial. Otherwise it is tried
+            at :attr:`_CEILING_PROBES`, from the top, until a duty runs or
+            is refused from below. A bisection step that names no limit --
+            the search ended short of it, or did not find it -- does not say
+            the band is under it: the gap above it is tried the same way
+            (once: ``look_above``) before the bisection goes on below.
+            """
+            nonlocal q_limit, reason_limit, x_limit, limited, last_reason
+            probes = [] if sided else [q_under + f * (q_over - q_under) for f in self._CEILING_PROBES]
+            while probes or (sided and q_over - q_under > rel_tol * q_over):
+                q = 0.5 * (q_under + q_over) if sided else probes.pop(0)
+                x, perf, reason = settled(q, x_limit)
+                if x is not None and perf is not None:
+                    return q, x, perf
+                if reason == self._MIN_AIRFLOW:
+                    q_under, sided, probes = q, True, []
+                    continue
+                last_reason = reason
+                if reason in self._LIMIT_REASONS:
+                    if q < q_limit:
+                        q_limit, reason_limit, x_limit, limited = q, reason, x, True
+                elif sided and look_above:
+                    found = running_between(q, q_over, False, look_above=False)
+                    if found is not None:
+                        return found
+                q_over = q
+            return None
+
         if perf_lo is None:
             # No rung runs. The duties that run, if any, are a band no rung
             # fell in (both fans at one airflow, outdoor 15 degC, room 35
             # degC saturated: 12.5 to 14.2 kW of a 4 kW unit), so each gap
             # between two rungs under the smallest duty a limit refuses is
-            # looked into, from the top. A duty refused from below (the
-            # fans' smallest airflows) says which side the band is on, and
-            # the gap above it is bisected by which side refuses the trial.
-            # Any other lower rung says nothing of the kind -- the search
-            # ended short of it, or did not find it -- and the gap is tried
-            # at :attr:`_CEILING_PROBES`, from the top, until a duty runs or
-            # is refused from below. Two rungs refused from below end the
-            # sweep: nothing under them runs.
+            # looked into, from the top. Two rungs refused from below (the
+            # fans' smallest airflows) end the sweep: nothing under them
+            # runs.
             for (q_over, reason_over), (q_under, reason_under) in zip(refused, refused[1:], strict=False):
                 if q_over > q_limit:
                     continue
                 if reason_under == self._MIN_AIRFLOW and reason_over == self._MIN_AIRFLOW:
                     break
-                sided = reason_under == self._MIN_AIRFLOW
-                # Duties to try: the probes of a gap with no side, then the
-                # middles of the gap above a duty refused from below.
-                probes = [] if sided else [q_under + f * (q_over - q_under) for f in self._CEILING_PROBES]
-                while probes or (sided and q_over - q_under > rel_tol * q_over):
-                    q = 0.5 * (q_under + q_over) if sided else probes.pop(0)
-                    x, perf, reason = settled(q, x_limit)
-                    if x is not None and perf is not None:
-                        q_lo, x_lo, perf_lo = q, x, perf
-                        break
-                    if reason == self._MIN_AIRFLOW:
-                        q_under, sided, probes = q, True, []
-                        continue
-                    q_over, last_reason = q, reason
-                    if reason in self._LIMIT_REASONS:
-                        q_limit, reason_limit, x_limit, limited = q, reason, x, True
-                if perf_lo is not None:
+                found = running_between(q_under, q_over, reason_under == self._MIN_AIRFLOW)
+                if found is not None:
+                    q_lo, x_lo, perf_lo = found
                     break
         if x_lo is None or perf_lo is None:
             return None, None, reason_limit if limited else last_reason

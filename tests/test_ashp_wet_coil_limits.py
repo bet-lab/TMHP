@@ -787,6 +787,57 @@ def test_a_record_array_with_a_value_out_of_range_is_refused_with_the_humidity_m
             hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=value, verbose=False)
 
 
+class _OutOfMemory:
+    """A schedule (or an entry) that runs out of memory where it is read: not a matter of its contents."""
+
+    def __init__(self, where):
+        self.where = where
+
+    def __len__(self):
+        if self.where == "len":
+            raise MemoryError("len")
+        return 1
+
+    def __array__(self, dtype=None, copy=None):
+        if self.where == "array":
+            raise MemoryError("array")
+        return np.array([0.5], dtype=dtype)
+
+    def __float__(self):
+        raise MemoryError("float")
+
+    def __repr__(self):
+        if self.where == "repr":
+            raise MemoryError("repr")
+        return "_OutOfMemory()"
+
+
+@pytest.mark.parametrize("where", ["len", "array"])
+def test_running_out_of_memory_on_a_schedule_is_not_reported_as_a_bad_schedule(hp, where):
+    with pytest.raises(MemoryError, match=where):
+        _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=_OutOfMemory(where))
+
+
+@pytest.mark.parametrize("where", ["float", "repr"])
+def test_running_out_of_memory_on_an_entry_is_not_reported_as_a_bad_humidity(hp, where):
+    schedule = np.empty(1, dtype=object)
+    schedule[0] = _OutOfMemory(where)
+    with pytest.raises(MemoryError):
+        _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
+
+
+def test_a_schedule_too_large_to_copy_is_a_memory_error(hp, monkeypatch):
+    """The copy of a real array failing: the allocation error is the error, whatever the array holds."""
+    import tmhp.air_source_heat_pump as module
+
+    def no_memory(array):
+        raise MemoryError("Unable to allocate 7.28 TiB for an array")
+
+    monkeypatch.setattr(module, "_array_entries", no_memory)
+    with pytest.raises(MemoryError, match="Unable to allocate"):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=np.array([0.5, 0.6]))
+
+
 # ---------------------------------------------------------------------------
 # 3. Exergy columns of a row whose coil removes water
 # ---------------------------------------------------------------------------

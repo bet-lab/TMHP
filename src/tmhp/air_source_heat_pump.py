@@ -528,12 +528,31 @@ def _is_real_number(value: Any) -> bool:
     return isinstance(value, numbers.Real) and not isinstance(value, bool)
 
 
+@contextlib.contextmanager
+def _unreadable_is_not_an_error() -> Iterator[None]:
+    """Let the block fail quietly where a value given as a humidity cannot be read.
+
+    A humidity may be any object a caller's table holds, and reading it --
+    its length, its conversion to a float, its ``repr`` -- can raise
+    anything; that only means it is not a humidity, which the caller then
+    says. Running out of memory is not about the value: ``MemoryError``
+    passes through, so that a schedule too large to copy is reported as
+    that and not as a bad schedule.
+    """
+    try:
+        yield
+    except MemoryError:
+        raise
+    except Exception:  # noqa: S110 -- the caller reports the value as not a humidity
+        pass
+
+
 def _shown(value: Any) -> str:
     """``repr(value)`` for an error message, or the name of its type where it has no usable ``repr``."""
-    try:
-        return repr(value)
-    except Exception:
-        return f"<{type(value).__name__}>"
+    shown = f"<{type(value).__name__}>"
+    with _unreadable_is_not_an_error():
+        shown = repr(value)
+    return shown
 
 
 def _check_room_humidity(value: float) -> float:
@@ -545,7 +564,7 @@ def _check_room_humidity(value: float) -> float:
     too large for a float), it is not a humidity: the error is this one.
     """
     number = math.nan
-    with contextlib.suppress(Exception):
+    with _unreadable_is_not_an_error():
         if _is_real_number(value) and 0.0 <= value <= 1.0:
             number = float(value)
     if not 0.0 <= number <= 1.0:
@@ -606,7 +625,7 @@ def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
         # below for what it is, not here.
         length = None
         if hasattr(schedule, "__len__"):
-            with contextlib.suppress(Exception):
+            with _unreadable_is_not_an_error():
                 length = len(schedule)
         elif isinstance(schedule, Iterable):
             # A generator: its items, once -- as many as the run has steps, and one to see that it goes on.
@@ -632,6 +651,8 @@ def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
                 # A Series, a DataFrame, another array-like: its values as objects
                 # (pandas hands a time span out as a Timedelta, not as an integer).
                 entries = np.asarray(schedule, dtype=object)
+        except MemoryError:
+            raise  # too large to copy: that, not a bad schedule
         except Exception as error:
             # Not something entries can be taken from, whatever it raised on the way.
             raise ValueError(
@@ -692,7 +713,7 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
     number = math.nan
     # Whatever reading the entry raises -- an integer too large for a float, a
     # ``__float__`` of its own that fails -- it is not a humidity.
-    with contextlib.suppress(Exception):
+    with _unreadable_is_not_an_error():
         number = _entry_as_float(value)
     if not 0.0 <= number <= 1.0:
         raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {_shown(value)} at step {step}")

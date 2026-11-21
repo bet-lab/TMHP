@@ -436,7 +436,7 @@ def run(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
     out_dir: Path = args.out_dir.resolve()
-    units = tuple(args.unit) if args.unit else UNITS
+    slugs = tuple(args.unit) if args.unit else UNITS
     point_ids = tuple(args.point_id) if args.point_id else None
     partial = bool(args.unit or args.point_id)
     if partial and out_dir == OUT_DIR.resolve():
@@ -447,7 +447,7 @@ def run(argv: list[str] | None = None) -> None:
     # is on disk when the run ends.
     state = run_state()
 
-    points = pd.concat([run_unit(slug, point_ids=point_ids) for slug in units], ignore_index=True)
+    points = pd.concat([run_unit(slug, point_ids=point_ids) for slug in slugs], ignore_index=True)
 
     worst = shipped_dry_gate(points)
     print(f"dry pass against the committed parity results: largest relative COP difference {worst:.3e}")
@@ -462,7 +462,7 @@ def run(argv: list[str] | None = None) -> None:
     bands.to_csv(out_dir / BANDS_NAME, index=False)
     units.to_csv(out_dir / UNITS_NAME, index=False)
     manifest = {
-        "units": list(units),
+        "units": list(slugs),
         "partial_run": partial,
         "units_not_run_no_indoor_wet_bulb": list(UNITS_WITHOUT_WET_BULB),
         "passes": {name: {"wet_coil": wet, "UA_iu_scale": scale} for name, (wet, scale) in PASSES.items()},
@@ -482,7 +482,7 @@ def run(argv: list[str] | None = None) -> None:
             "model": "validation.parity.run._build_model(catalog, None, 'cooling'): the shipped parity construction",
             "passes": manifest["passes"],
             "RH_room": "from the row's indoor dry bulb and wet bulb, one standard atmosphere (wet passes); None (dry)",
-            "units": list(units),
+            "units": list(slugs),
         },
         "sensible heat ratio of the wet indoor coil against the catalogue's, and the COP bias dry against wet",
         command="python -m validation.wet_coil_shr.simulate",

@@ -132,6 +132,7 @@ def test_tables_and_headline_are_those_of_the_committed_rows(committed):
         old = pd.read_csv(OUT / name, float_precision="round_trip")
         assert not _mismatches(fresh, old), name
     manifest = json.loads((OUT / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["units"] == list(study.UNITS) and manifest["partial_run"] is False
     for key, value in study.headline(committed).items():
         assert value == pytest.approx(manifest["headline"][key], rel=1e-6, abs=1e-9), key
 
@@ -203,7 +204,9 @@ def test_main_records_the_blob_of_the_bytes_it_ran(tmp_path, capsys):
     committed = _git("rev-parse", f"{record['git_head']}:{study.SCRIPT}")
     assert record["study_script_uncommitted"] is (record["study_script_blob"] != committed)
     assert len(pd.read_csv(tmp_path / study.CSV_NAME)) == 1
-    assert json.loads((tmp_path / "run_manifest.json").read_text(encoding="utf-8"))["partial_run"] is True
+    manifest = json.loads((tmp_path / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["partial_run"] is True and manifest["units"] == ["daikin_rxm20a"]
+    assert record["model_settings"]["units"] == ["daikin_rxm20a"]
 
 
 def test_main_runs_the_file_as_it_is_and_records_exactly_that(tmp_path):

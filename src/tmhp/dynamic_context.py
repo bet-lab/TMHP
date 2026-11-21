@@ -1392,7 +1392,9 @@ def resolve_step_operation(
     as holding it but this one (the condensing limit: ``capacity_binding`` is
     absent or ``"condensing_temperature"``). A step in which one does not --
     it has no operating point, or another limit holds it although the caller
-    gave a duty -- is withheld the same way.
+    gave a duty -- is withheld the same way. That includes a full-duty cycle
+    that fails outright: whether the compressor then runs at all is for the
+    step resolved without these arguments to say, with its own cycle solves.
 
     A compressor stopped at the limit's stop rests for its minimum rest time
     before it restarts (``duty_limit`` of :func:`simulate_thermostat_step`).
@@ -1465,7 +1467,7 @@ def resolve_step_operation(
         def to_the_limit() -> tuple[InStepRun, dict | None]:
             """The step on the duty limit; or, reduced-duty charging withheld, as it is resolved without it."""
             on_limit = _resolve_duty_limited(
-                {**kwargs, "T_limit_C": T_WATER_BOIL_C}, kwargs, Q_request, line, floor, solve_cycle, at_duty, rate_keys
+                {**kwargs, "T_limit_C": T_WATER_BOIL_C}, Q_request, line, floor, solve_cycle, at_duty, rate_keys
             )
             if on_limit is not None:
                 return on_limit
@@ -1546,7 +1548,6 @@ def resolve_step_operation(
 
 def _resolve_duty_limited(
     kwargs: dict,
-    kwargs_stop: dict,
     Q_request: float,
     duty_line: tuple[float, float],
     min_duty: Callable[[], float | None],
@@ -1558,7 +1559,7 @@ def _resolve_duty_limited(
 
     The reduced-duty part of :func:`resolve_step_operation` (which describes
     it). ``kwargs`` are the thermostat's arguments with the cut-out at the
-    boiling point, ``kwargs_stop`` those with the cut-out at the knee.
+    boiling point.
     ``None`` when reduced-duty charging is withheld: ``min_duty()`` gives no
     continuous duty below the request, or a cycle of the step does not
     deliver the duty the events took for its stretch -- the request below the
@@ -1612,27 +1613,25 @@ def _resolve_duty_limited(
         fraction = equivalent_fraction(load, Q_request)
         full_result = solve_cycle(T_eval, fraction)
         q_full = delivered_tank_heat(full_result)
-        T_first = provisional.T_on_first_C
-        if q_full <= 0.0 and T_first is not None and T_eval - T_first > CYCLE_RETRY_SPAN_K:
-            retry = solve_cycle(T_first, fraction)
-            if delivered_tank_heat(retry) > 0.0:
-                full_result, q_full = retry, delivered_tank_heat(retry)
-        if q_full <= 0.0:
-            # No cycle at the full duty: the compressor does not run, as without the limit.
-            return simulate_thermostat_step(Q_on=0.0, **kwargs_stop), full_result
         if not delivers(full_result, Q_request):
-            # Another limit holds the cycle below the request before the tank
-            # gets to this one: the stretch above the knee is not this limit's
-            # from its start.
+            # No operating point at the full duty, or another limit holds the
+            # cycle below the request before the tank gets to this one: the
+            # stretch above the knee is not this limit's from its start, and
+            # the step is resolved without it (with its own cycle solves: the
+            # mean and the run time its events give, and the start of the run
+            # where the cycle has no operating point at that mean).
             return None
     run = simulate_thermostat_step(Q_on=q_full, **on_limit)
     if run.T_on_mean_C is None:
         return run, full_result
     f_full, f_reduced, q_reduced, load = stretches(run, q_full)
+    if f_full > 0.0 and full_result is None:
+        # A full-duty stretch the first events did not have: its cycle, read the same way.
+        assert run.T_full_mean_C is not None
+        full_result = solve_cycle(run.T_full_mean_C, equivalent_fraction(load, q_full))
+        if not delivers(full_result, q_full):
+            return None
     if f_reduced <= 0.0:
-        if full_result is None:
-            assert run.T_full_mean_C is not None
-            full_result = solve_cycle(run.T_full_mean_C, equivalent_fraction(load, q_full))
         return run, full_result
     assert run.T_reduced_mean_C is not None
     reduced_result = solve_cycle_at_duty(run.T_reduced_mean_C, q_reduced, equivalent_fraction(load, q_reduced))
@@ -1640,13 +1639,8 @@ def _resolve_duty_limited(
         # No operating point on the limit, or another limit holds the cycle
         # off the duty the events integrated.
         return None
-    if f_full <= 0.0:
-        return run, reduced_result
     if full_result is None:
-        assert run.T_full_mean_C is not None
-        full_result = solve_cycle(run.T_full_mean_C, equivalent_fraction(load, q_full))
-        if not delivers(full_result, q_full):
-            return None
+        return run, reduced_result
     return run, merge_running_rows(full_result, f_full, reduced_result, f_reduced, rate_keys)
 
 

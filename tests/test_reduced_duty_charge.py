@@ -361,6 +361,7 @@ def _resolve(
     on_limit_share=1.0,
     full_binding=None,
     on_limit_binding=BINDING_CONDENSING,
+    full_runs=None,
     **kw,
 ):
     """``resolve_step_operation`` on the tank of the event tests, with a cycle of COP 3 (2.5 on the limit).
@@ -368,7 +369,9 @@ def _resolve(
     ``q_cycle`` is what the full-duty cycle delivers [W]; ``on_limit_share`` the part of the duty
     asked on the limit that the cycle there delivers (less than 1: another limit holds it).
     ``full_binding`` and ``on_limit_binding`` are the limits those two cycles name in
-    ``capacity_binding`` (``None``: none).
+    ``capacity_binding`` (``None``: none). ``full_runs(T_C, fraction)`` says whether the full-duty
+    cycle has an operating point there (default: always); a failed one is an off-mode row that
+    carries what it was solved at.
     """
     calls = {} if calls is None else calls
 
@@ -377,6 +380,8 @@ def _resolve(
 
     def solve_cycle(T_C, fraction):
         calls.setdefault("full", []).append((T_C, fraction))
+        if full_runs is not None and not full_runs(T_C, fraction):
+            return {"hp_is_on": False, "failure_reason": "cycle_invalid", "solved at": (T_C, fraction)}
         row = {
             "hp_is_on": True,
             "Q_ref_tank [W]": q_cycle,
@@ -654,6 +659,33 @@ def test_a_cycle_of_the_step_that_names_another_limit_withholds_it(held, dt):
     _same_step((run, row), (stop, stop_row))
     assert run.reduced_fraction == 0.0 and run.reduced_withheld == stop.limit_stop
     assert row.get("capacity_binding") == held.get("full_binding")
+
+
+@pytest.mark.parametrize(
+    "full_runs",
+    [lambda T_C, fraction: False, lambda T_C, fraction: fraction < 0.1, lambda T_C, fraction: T_C < 57.0],
+    ids=["never", "not at the load of a run on the limit", "only where the run starts"],
+)
+@pytest.mark.parametrize("dt", [3600.0, 600.0])
+@pytest.mark.parametrize("cut_out", [60.0, 61.0], ids=["cut-out at the knee", "cut-out above the knee"])
+def test_a_full_duty_cycle_without_an_operating_point_is_the_stops_to_resolve(full_runs, dt, cut_out):
+    """The step gets to the limit, and the cycle of its full-duty stretch has no operating point.
+
+    Nothing of the limit can be resolved then, and the step is the one the compressor that stops
+    takes: the same cycle solves (at the mean and with the run time *its* events give, then at the
+    start of the run), the same row, the same run. A cycle that fails at the larger load of a run
+    on the limit and runs at the stop's own is a step in which the compressor runs.
+    (A caller's cut-out above the knee of the request is the air-source boiler's with a frosting
+    coil.)
+    """
+    kw = dict(dt=dt, T_limit_C=cut_out, full_runs=full_runs)
+    stop, stop_row, stop_calls = _resolve_stop(**kw)
+    run, row, calls = _resolve(**kw)
+    _same_step((run, row), (stop, stop_row))
+    assert run.reduced_fraction == 0.0 and run.reduced_withheld == stop.limit_stop
+    # The stop's own solves close the step's: whatever was tried on the limit, the row is from these.
+    assert calls["full"][-len(stop_calls["full"]) :] == stop_calls["full"]
+    assert "limit" not in calls
 
 
 def test_cycles_that_name_the_condensing_limit_or_none_are_on_it():

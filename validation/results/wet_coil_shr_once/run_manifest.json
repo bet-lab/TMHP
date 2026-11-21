@@ -1,0 +1,85 @@
+{
+ "units": [
+  "daikin_rxm20a",
+  "daikin_rxm25a",
+  "daikin_rxm35a",
+  "daikin_rxm42a",
+  "daikin_rxm50a"
+ ],
+ "units_not_run_no_indoor_wet_bulb": [
+  "fujitsu_asuh09lpas",
+  "fujitsu_asuh12lpas"
+ ],
+ "passes": {
+  "dry": {
+   "wet_coil": false,
+   "UA_iu_scale": 1.0
+  },
+  "wet": {
+   "wet_coil": true,
+   "UA_iu_scale": 1.0
+  },
+  "wet_ua50": {
+   "wet_coil": true,
+   "UA_iu_scale": 0.5
+  },
+  "wet_ua200": {
+   "wet_coil": true,
+   "UA_iu_scale": 2.0
+  }
+ },
+ "shr_bands": [
+  [
+   "below 0.75",
+   0.0,
+   0.75
+  ],
+  [
+   "0.75 to 0.95",
+   0.75,
+   0.95
+  ],
+  [
+   "0.95 and above",
+   0.95,
+   2.0
+  ]
+ ],
+ "dry_pass_vs_committed_parity_max_rel_cop_difference": 0.0,
+ "headline": {
+  "cooling_rows": 180,
+  "rows_scored_dry": 180,
+  "rows_scored_wet": 180,
+  "rows_model_coil_dry_in_wet_pass": 1,
+  "shr_catalog_mean": 0.7892222222222223,
+  "shr_model_net_mean": 0.8138939566604901,
+  "shr_model_gross_mean": 0.8149163183594842,
+  "shr_error_mean": 0.024671734438267923,
+  "shr_abs_error_mean": 0.047211761702253156,
+  "shr_error_min": -0.15710475056224338,
+  "shr_error_max": 0.0968699615748867,
+  "shr_correlation": 0.9421207381844893,
+  "rows_published_ratio_one": 8,
+  "rows_published_ratio_below_coil_line_minimum": 0,
+  "rows_with_catalogue_adp": 172,
+  "model_coil_above_catalogue_adp_K_mean": 1.043782573961823,
+  "model_coil_above_catalogue_adp_K_min": -2.1989037766969695,
+  "model_coil_above_catalogue_adp_K_max": 3.6955418857186677,
+  "T_evap_rise_wet_minus_dry_K_mean": 3.137883028802634,
+  "power_change_wet_vs_dry_pct_mean": -11.88163399507503,
+  "bias_shr_correlation_dry": -0.39514089684387554,
+  "bias_shr_correlation_wet": -0.7280359186987151,
+  "cop_bias_pct_dry": -1.7775390776477031,
+  "cop_MAPE_pct_dry": 6.342382169747781,
+  "scored_dry": 180,
+  "cop_bias_pct_wet": 12.833355072509411,
+  "cop_MAPE_pct_wet": 16.077679713682983,
+  "scored_wet": 180,
+  "cop_bias_pct_wet_ua50": 2.628876892396379,
+  "cop_MAPE_pct_wet_ua50": 11.996589837309743,
+  "scored_wet_ua50": 180,
+  "cop_bias_pct_wet_ua200": 16.199584508347616,
+  "cop_MAPE_pct_wet_ua200": 17.793024230617373,
+  "scored_wet_ua200": 180
+ }
+}

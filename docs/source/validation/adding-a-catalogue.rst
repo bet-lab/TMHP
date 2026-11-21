@@ -196,10 +196,13 @@ Latent load
 ===========
 
 Cooling grids publish total capacity and sensible capacity; the difference is
-dehumidification. TMHP's indoor coil is a dry sensible exchanger, so a row with
-a low sensible heat ratio asks the model to carry a latent duty it does not
-compute. The Daikin catalogues record each cooling point's sensible heat ratio
-in its ``note`` field for exactly this reason. Report such rows; do not quietly
-drop them.
+dehumidification. The parity harness runs the dry indoor coil, so a row with
+a low sensible heat ratio asks the model to carry as sensible heat a duty that
+is partly latent. The Daikin catalogues record each cooling point's sensible
+heat ratio in its ``note`` field for exactly this reason, and its indoor wet
+bulb with it. Record both: the wet-coil study
+(``validation/wet_coil_shr/simulate.py``; :doc:`index`, *Cooling and latent
+load*) needs the wet bulb to run a row at the humidity it was published at.
+Report such rows; do not quietly drop them.
 
 Heating rows have no latent component and need no qualification.

@@ -918,6 +918,72 @@ def test_a_cycle_that_has_more_changes_neither_the_run_time_nor_the_heat_of_the_
     assert heat == pytest.approx(C * (LIMIT.stop_C - 63.9) + loss * dt, rel=1e-9)
 
 
+def _curved_loss_step(curve, dt, T_start=64.5):
+    """A step from 0.5 K above the stop, the call standing, on a tank whose loss is not a straight line.
+
+    The loss is ``500 + curve (64.5 - T)^2`` W. The kernel fits a straight line through it at the
+    lower bound (64.2 degC) and the upper one (66 degC), which at the stop (64 degC) is
+    ``0.4 curve`` W off; the balance that closes the step is the tank's own (``residual``).
+    Returns the run, the row, the residual, the heat [J] that balance needs for the step to end
+    at the stop, and the heat the fitted line gives for the same.
+    """
+
+    def loss(T_C):
+        return 500.0 + curve * (64.5 - T_C) ** 2
+
+    def residual(T_K):
+        return (C * T_K - C * (T_start + 273.15) + dt * loss(T_K - 273.15)) / C
+
+    run, row, _ = _resolve(T_start=T_start, T_lower=64.2, T_upper=66.0, dt=dt, residual_free=residual)
+    on_the_line = loss(64.2) + (loss(66.0) - loss(64.2)) / 1.8 * (LIMIT.stop_C - 64.2)
+    by_the_line = on_the_line * dt - C * (T_start - LIMIT.stop_C)
+    return run, row, residual, C * residual(LIMIT.stop_C + 273.15), by_the_line
+
+
+def test_the_hold_after_cooling_is_decided_by_the_closing_balance_not_by_the_fitted_line():
+    """Stop-time review: the two balances can disagree on whether the step needs heat at all.
+
+    The loss curves above the fitted line here: at the stop the line has 497 W, the tank 505 W.
+    In a 602 s step the line asks for -806 J (the tank not yet down at the stop: no start) while
+    the tank's own closing balance needs +4010 J. Decided by the line, the compressor did not
+    start and the step closed 0.007 K below the stop with the call standing. The heat is the
+    closing balance's, and so is the decision.
+    """
+    dt = 602.0
+    run, row, residual, needed, by_the_line = _curved_loss_step(20.0, dt)
+    assert needed == pytest.approx(505.0 * dt - 0.5 * C) and needed > 0.0
+    assert by_the_line == pytest.approx(497.0 * dt - 0.5 * C) and by_the_line < 0.0
+    assert run.starts == 1 and run.running_end and run.call_end and run.limit_stop
+    assert run.reduced_fraction == run.runtime_fraction > 0.0
+    heat = run.runtime_fraction * dt * row["Q_ref_tank [W]"]
+    assert heat == pytest.approx(needed, rel=1e-12)
+    # The step closes at the stop by the tank's own balance.
+    assert residual(LIMIT.stop_C + 273.15) - heat / C == pytest.approx(0.0, abs=1e-12)
+
+
+def test_no_start_where_the_closing_balance_needs_no_heat_although_the_fitted_line_does():
+    """The other sign: the loss curves below the fitted line, 503 W on the line and 495 W at the stop.
+
+    In a 605 s step the line asks for +4315 J, the tank's own balance for -525 J: without any
+    heat the step closes above the stop. The compressor does not start in it; with the line's
+    heat the tank would have closed 0.008 K above the stop, and the next step would have counted
+    a stop and a second start.
+    """
+    dt = 605.0
+    run, row, residual, needed, by_the_line = _curved_loss_step(-20.0, dt)
+    assert needed == pytest.approx(495.0 * dt - 0.5 * C) and needed < 0.0
+    assert by_the_line == pytest.approx(503.0 * dt - 0.5 * C) and by_the_line > 0.0
+    assert run.starts == 0 and run.runtime_fraction == 0.0 and not run.running_end
+    assert run.call_end and run.limit_stop and row is None
+    # Without heat the tank's own balance closes the step above the stop (its root, by bisection).
+    lo, hi = LIMIT.stop_C + 273.15, 64.5 + 273.15
+    assert residual(lo) < 0.0 < residual(hi)
+    for _ in range(60):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if residual(mid) < 0.0 else (lo, mid)
+    assert 0.0 < lo - 273.15 - LIMIT.stop_C < 0.01
+
+
 def test_the_rates_of_a_cycle_that_has_more_are_lowered_by_no_more_than_the_tolerance():
     """How far the scaling goes: a cycle is taken at the duty asked only inside ``DUTY_MATCH_RTOL``.
 

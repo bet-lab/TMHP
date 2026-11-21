@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import math
 import warnings
+from decimal import Decimal
+from fractions import Fraction
 
 import numpy as np
 import pandas as pd
@@ -341,8 +343,40 @@ def test_a_number_of_another_type_is_read_on_a_cooling_row(hp):
         assert hp.max_capacity(35.0, 27.0, mode="cooling", RH_room=value)["SHR_iu [-]"] < 1.0
 
 
-@pytest.mark.parametrize("entry", [np.array([0.5]), [0.5, 0.6], b"0.5", 0.5 + 0j, object()])
-def test_an_entry_that_is_not_a_number_or_text_is_refused_on_a_cooling_row(hp, entry):
+@pytest.mark.parametrize(
+    "entry",
+    [
+        Decimal("0.5"),
+        Fraction(1, 2),
+        b"0.5",
+        np.bytes_(b"0.5"),
+        np.str_("0.5"),
+        " 0.5 ",
+        np.array(0.5),
+        np.float16(0.5),
+        np.int64(1),
+    ],
+    ids=["Decimal", "Fraction", "bytes", "np.bytes_", "np.str_", "padded text", "0-d array", "float16", "int64"],
+)
+def test_an_entry_that_reads_as_one_real_number_is_a_humidity(hp, entry):
+    """Whatever a float conversion of a single value reads: a column from a database or a file holds such things."""
+    schedule = np.empty(1, dtype=object)
+    schedule[0] = entry
+    frame = _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
+    assert frame["RH_room [-]"].iloc[0] == float(entry)
+    # Given the usual way, too.
+    usual = _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=[entry])
+    assert usual["RH_room [-]"].iloc[0] == float(entry)
+
+
+def test_a_column_of_decimals_is_a_humidity_schedule(hp):
+    column = pd.Series([Decimal("0.5"), Decimal("0.6")])
+    frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=column)
+    assert list(frame["RH_room [-]"]) == [0.5, 0.6]
+
+
+@pytest.mark.parametrize("entry", [np.array([0.5]), [0.5, 0.6], 0.5 + 0j, object(), np.array(float("nan"))])
+def test_an_entry_that_is_not_one_real_number_is_refused_on_a_cooling_row(hp, entry):
     schedule = np.empty(1, dtype=object)
     schedule[0] = entry
     with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 0"):

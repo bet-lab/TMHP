@@ -566,17 +566,21 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
 
     A schedule is kept as it was given and only the cooling steps are read
     (heating and off steps may hold anything), so the entry is converted
-    here: a real number of any numeric type, or text that reads as one (a
-    column read from a file). Anything else -- a missing value, a masked
-    entry, a boolean, an array, a number outside 0-1 -- is refused with the
-    step it stands at.
+    here. It is a humidity when it reads as one real number, as it did when
+    the schedule was converted to floats as a whole: a number of any numeric
+    type (a NumPy scalar, a ``Decimal``, a ``Fraction``), text or bytes that
+    read as one (a column from a file), or a zero-dimensional array holding
+    such a value. Refused, with the step it stands at: a missing value (NaN,
+    ``None``, ``pd.NA``), a masked entry, a boolean (as ``RH_room=True``
+    is), an array of one or more elements, a complex number or any other
+    object, and a number outside 0-1.
     """
-    number = math.nan
-    if _is_real_number(value):
-        number = float(value)
-    elif isinstance(value, str):
-        with contextlib.suppress(ValueError):
-            number = float(value)
+    entry, number = value, math.nan
+    if isinstance(entry, np.ndarray) and entry.ndim == 0 and not np.ma.is_masked(entry):
+        entry = entry.item()  # a zero-dimensional array: the value it holds
+    if not isinstance(entry, (bool, np.bool_, np.ndarray)):
+        with contextlib.suppress(TypeError, ValueError):
+            number = float(entry)
     if not 0.0 <= number <= 1.0:
         raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {value!r} at step {step}")
     return number

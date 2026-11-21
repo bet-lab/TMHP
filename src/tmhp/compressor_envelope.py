@@ -33,8 +33,8 @@ Discharge temperature (``T_dis_max``)
     the discharge *pipe* temperature (Daikin room units reduce frequency from
     about 100 degC and stop at 110--120 degC). A point whose computed
     discharge temperature exceeds the limit is **not an operating point**
-    (:data:`DISCHARGE_TEMP_ABOVE_MAX`). The defaults
-    (:data:`DISCHARGE_TEMP_MAX_C`, :func:`default_discharge_temp_max`) are the
+    (:data:`DISCHARGE_TEMP_ABOVE_MAX`). The defaults, one per refrigerant
+    (:data:`DISCHARGE_TEMP_MAX_C`, :func:`default_discharge_temp_max`), are the
     *protection* values -- R32 150 degC, every other fluid 135 degC -- not the
     controllers' earlier set points: the cycle's discharge state is the gas
     leaving the compression (the default models send the share of the loss
@@ -54,7 +54,9 @@ Discharge temperature (``T_dis_max``)
     with the suction superheat reduced from its value towards 0 K until the
     discharge temperature equals ``T_dis_max``, then -- if 0 K is not enough --
     with a two-phase suction of quality ``x`` lowered towards
-    ``x_suction_min`` (default :data:`X_SUCTION_MIN_DEFAULT` = 0.9). Wet
+    ``x_suction_min``. Its default ``"auto"`` is the refrigerant's value
+    (:data:`X_SUCTION_MIN`, :func:`default_x_suction_min`; provisionally 0.9
+    for every fluid), and a number given by the caller takes precedence. Wet
     suction is modelled as a homogeneous two-phase state at the evaporating
     pressure (see :func:`tmhp.refrigerant.calc_ref_state`); the evaporator
     outlet is then two-phase, the swept mass flow follows the homogeneous
@@ -64,6 +66,21 @@ Discharge temperature (``T_dis_max``)
     that is still above the limit at ``x_suction_min`` is outside the envelope.
     ``x_suction_min=1`` keeps the superheat stage only; ``None`` switches the
     control off.
+
+    Known limitation: this control is the model's assumption, not a confirmed
+    description of how heat pumps hold their discharge temperature. Neither
+    the order (superheat to 0 K, then suction quality, then a smaller duty),
+    nor stopping at the driest suction state that meets ``T_dis_max``, nor
+    bounding the wet suction by its quality has been confirmed against a
+    manufacturer's control. One patent describes a similar order
+    (Daikin, US 6,581,397 B1, FIG. 10: wet the suction down to quality
+    0.85--0.75 once the discharge pipe exceeds 125--135 degC, then lower the
+    compressor frequency) without naming the compressor type or the test.
+    Units also hold a discharge or discharge-superheat target with the
+    expansion valve, and compressor makers bound liquid return by the oil or
+    shell superheat rather than by the suction quality. The per-refrigerant
+    quality floors are placeholders until the literature collected on issue
+    #216 is reviewed (issue #229).
 
     How a family answers a point the control cannot bring inside the limit: the space-conditioning models
     (ASHP, GSHP) reject the candidate inside the operating-point search, so the
@@ -295,7 +312,9 @@ __all__ = [
     "raise_duty_within_envelope",
     "remembering_smallest_duties",
     "remember_smallest_duty",
+    "X_SUCTION_MIN",
     "X_SUCTION_MIN_DEFAULT",
+    "default_x_suction_min",
     "resolve_x_suction_min",
     "discharge_controlled",
 ]
@@ -329,7 +348,23 @@ BINDING_CYCLE = "cycle"
 BINDING_COMPRESSOR = "compressor"
 
 #: Default discharge-temperature limit by refrigerant [degC]; see the module docstring.
-DISCHARGE_TEMP_MAX_C: Mapping[str, float] = {"R32": 150.0}
+#:
+#: Only R410A (Danfoss SH / PSH, 135 degC) and R32 (Danfoss DSF, 150 degC)
+#: rest on a protection value published for the fluid. Every other entry is
+#: the 135 degC of :data:`DISCHARGE_TEMP_MAX_DEFAULT_C`, set provisionally so
+#: that each refrigerant has its own value to replace (issue #229).
+DISCHARGE_TEMP_MAX_C: Mapping[str, float] = {
+    "R410A": 135.0,
+    "R32": 150.0,
+    "R407C": 135.0,
+    "R290": 135.0,
+    "R134a": 135.0,
+    "R1234yf": 135.0,
+    "R1234ze(E)": 135.0,
+    "R600a": 135.0,
+    "IsoButane": 135.0,
+    "R717": 135.0,
+}
 #: Default for every refrigerant not in :data:`DISCHARGE_TEMP_MAX_C` [degC].
 DISCHARGE_TEMP_MAX_DEFAULT_C = 135.0
 
@@ -359,18 +394,39 @@ CONDENSING_PRESSURE_MAX_REDUCED = 0.9
 #: limit has, and it keeps the verdict the same on every platform.
 CONDENSING_TOL_K = 0.01
 
-#: Default lowest suction vapour quality the discharge-temperature control may use.
+#: Default lowest suction vapour quality of the discharge-temperature control, by refrigerant [-].
 #:
 #: Two-phase suction (wet compression) is one of the methods experimentally used
-#: to hold the discharge temperature of R32 scroll compressors (Wang et al.,
-#: International Compressor Engineering Conference 2014, paper 1595; Yang et
-#: al., Int. J. Refrig. 2015), alongside liquid and two-phase injection; lower
-#: suction quality lowers the discharge temperature but raises the risk of
-#: over-wet compression and liquid slugging. No published lower bound on the
-#: suction quality was found: 0.9 is a conservative default without a
-#: quantitative basis (at most 10 % liquid by mass, of the order of the
-#: liquid-injection ratios used for discharge-temperature control). Override it
-#: with the constructor argument ``x_suction_min``.
+#: to hold the discharge temperature of R32 compressors (Wang et al.,
+#: International Compressor Engineering Conference 2014, paper 1595; Zheng et
+#: al., International Refrigeration and Air Conditioning Conference 2016, paper
+#: 1766; Seong et al., Appl. Sci. 2017), alongside liquid and two-phase
+#: injection; a lower suction quality lowers the discharge temperature but
+#: raises the risk of over-wet compression and liquid slugging.
+#:
+#: Every value is a provisional placeholder: 0.9, the single default this
+#: table replaced, for every fluid. It has no quantitative basis and is not a
+#: reliability limit. The sources collected on issue #216 disagree: for R32,
+#: a Daikin patent rates quality 0.75 and above as reliable
+#: (US 6,581,397 B1), a 3.5 kW water-to-water unit lost refrigerant flow below
+#: 0.84--0.91 (Seong et al. 2017), and a measured efficiency relation holds
+#: above 0.9 (Cheng et al., Appl. Sci. 2023). Values based on that literature
+#: are to replace these (issue #229). A number given as the constructor
+#: argument ``x_suction_min`` takes precedence; ``"auto"`` (the default) takes
+#: the value here.
+X_SUCTION_MIN: Mapping[str, float] = {
+    "R410A": 0.9,
+    "R32": 0.9,
+    "R407C": 0.9,
+    "R290": 0.9,
+    "R134a": 0.9,
+    "R1234yf": 0.9,
+    "R1234ze(E)": 0.9,
+    "R600a": 0.9,
+    "IsoButane": 0.9,
+    "R717": 0.9,
+}
+#: Default for every refrigerant not in :data:`X_SUCTION_MIN` [-].
 X_SUCTION_MIN_DEFAULT = 0.9
 
 #: ``rps_max`` default [rev/s]: 7200 rpm, the upper end of the speed ranges inverter rotary compressors
@@ -426,13 +482,27 @@ def resolve_discharge_temp_max(value: float | Literal["auto"] | None, ref: str) 
     return limit
 
 
-def resolve_x_suction_min(value: float | None) -> float | None:
-    """Constructor argument -> lowest suction quality of the control (``None``: no control)."""
+def default_x_suction_min(ref: str) -> float:
+    """Default lowest suction quality of the discharge-temperature control for refrigerant ``ref`` [-]."""
+    return float(X_SUCTION_MIN.get(_fluid_name(ref), X_SUCTION_MIN_DEFAULT))
+
+
+def resolve_x_suction_min(value: float | Literal["auto"] | None, ref: str) -> float | None:
+    """Constructor argument -> lowest suction quality of the control.
+
+    ``"auto"`` takes the refrigerant's default (:func:`default_x_suction_min`),
+    a number given by the caller takes precedence over it, and ``None``
+    switches the control off.
+    """
     if value is None:
         return None
+    if isinstance(value, str):
+        if value != "auto":
+            raise ValueError(f"x_suction_min must be a vapour quality in (0, 1], 'auto' or None, got {value!r}")
+        return default_x_suction_min(ref)
     x = float(value)
     if not (math.isfinite(x) and 0.0 < x <= 1.0):
-        raise ValueError(f"x_suction_min must be a vapour quality in (0, 1] or None, got {value!r}")
+        raise ValueError(f"x_suction_min must be a vapour quality in (0, 1], 'auto' or None, got {value!r}")
     return x
 
 

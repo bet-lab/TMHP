@@ -26,10 +26,14 @@ from tmhp.compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     RPS_MAX_ABSOLUTE,
+    X_SUCTION_MIN,
+    X_SUCTION_MIN_DEFAULT,
     default_discharge_temp_max,
     default_rps_max,
+    default_x_suction_min,
     discharge_temp_exceeded,
     resolve_discharge_temp_max,
+    resolve_x_suction_min,
 )
 
 pytestmark = [
@@ -83,6 +87,44 @@ def test_discharge_limit_resolution():
         resolve_discharge_temp_max("off", "R32")  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="finite"):
         resolve_discharge_temp_max(math.nan, "R32")
+
+
+@pytest.mark.parametrize("ref", ["R32", "HEOS::R32", "R410A", "R290", "R134a", "R717", "R1233zd(E)"])
+def test_default_suction_quality_floor_by_refrigerant(ref):
+    """Every value is the provisional 0.9 (#216); a fluid outside the table takes X_SUCTION_MIN_DEFAULT."""
+    assert default_x_suction_min(ref) == 0.9
+    assert resolve_x_suction_min("auto", ref) == 0.9
+
+
+def test_suction_quality_floor_resolution():
+    assert resolve_x_suction_min(None, "R32") is None
+    assert resolve_x_suction_min(0.8, "R32") == 0.8  # the caller's number takes precedence
+    assert resolve_x_suction_min(1, "R32") == 1.0
+    with pytest.raises(ValueError, match="x_suction_min"):
+        resolve_x_suction_min("off", "R32")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="x_suction_min"):
+        resolve_x_suction_min(0.0, "R32")
+    with pytest.raises(ValueError, match="x_suction_min"):
+        resolve_x_suction_min(math.nan, "R32")
+
+
+def test_suction_quality_floor_follows_the_table(monkeypatch):
+    """``"auto"`` reads the table when the model is built, so replacing a value there changes the default."""
+    import tmhp.compressor_envelope as envelope
+
+    monkeypatch.setattr(envelope, "X_SUCTION_MIN", {**X_SUCTION_MIN, "R32": 0.8})
+    monkeypatch.setattr(envelope, "X_SUCTION_MIN_DEFAULT", 0.85)
+    assert default_x_suction_min("R32") == 0.8
+    assert default_x_suction_min("R1233zd(E)") == 0.85
+    assert _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32").x_suction_min == 0.8
+    assert _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", x_suction_min=0.95).x_suction_min == 0.95
+
+
+def test_every_refrigerant_with_an_envelope_has_its_own_discharge_and_quality_default():
+    from tmhp.compressor_envelope import CONDENSING_TEMP_MAX_C, DISCHARGE_TEMP_MAX_C
+
+    assert set(DISCHARGE_TEMP_MAX_C) == set(CONDENSING_TEMP_MAX_C) == set(X_SUCTION_MIN)
+    assert X_SUCTION_MIN_DEFAULT == 0.9
 
 
 def test_discharge_exceeded_counts_undefined_discharge():
@@ -505,9 +547,13 @@ def test_steady_solve_evaluates_each_outdoor_approach_once(monkeypatch):
 def test_control_arguments_on_every_family(cls):
     hp = _quiet(cls, ref="R32")
     assert hp.x_suction_min == 0.9
+    assert _quiet(cls, ref="R32", x_suction_min="auto").x_suction_min == 0.9
+    assert _quiet(cls, ref="R32", x_suction_min=0.85).x_suction_min == 0.85
     assert _quiet(cls, ref="R32", x_suction_min=None).x_suction_min is None
     with pytest.raises(ValueError, match="x_suction_min"):
         _quiet(cls, ref="R32", x_suction_min=0.0)
+    with pytest.raises(ValueError, match="x_suction_min"):
+        _quiet(cls, ref="R32", x_suction_min="off")
     with pytest.raises(ValueError, match="T_dis_max"):
         _quiet(cls, ref="R32", T_dis_max="off")
 

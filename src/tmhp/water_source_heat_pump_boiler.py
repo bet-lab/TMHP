@@ -64,7 +64,6 @@ from .compressor_envelope import (
     CONTROL_STOP,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
-    X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     condensing_stretch,
     condensing_tank_cutout,
@@ -334,7 +333,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         *,
         rps_rated: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
-        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        x_suction_min: float | Literal["auto"] | None = "auto",
         T_cond_max: float | Literal["auto"] | None = "auto",
         m_dot_ref_rated: float | None = None,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
@@ -492,7 +491,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.T_cond_max: float | None = resolve_condensing_temp_max(T_cond_max, ref)
         limit_tank_setpoints_to_envelope(self, "WaterSourceHeatPumpBoiler")
         # Discharge-temperature control: lowest suction quality (None: no control)
-        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min, ref)
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).
         self._x_suction: float = 1.0
         # Records the PR-envelope event of the most recent _calc_state call

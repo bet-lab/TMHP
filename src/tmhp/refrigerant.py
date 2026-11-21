@@ -240,8 +240,7 @@ def calc_ref_state(
         if rps is None:
             raise ValueError("a state-dependent eta_cmp_isen needs rps")
         P_evap, P_cond = state["P_ref_cmp_in [Pa]"], state["P_ref_cmp_out [Pa]"]
-        suction = SuctionState(P_evap, state["rho_ref_cmp_in [kg/m3]"], h2_isen - state["h_ref_cmp_in [J/kg]"])
-        val_eta_cmp_isen = eta_cmp_isen(P_cond / P_evap, rps, suction)
+        val_eta_cmp_isen = eta_cmp_isen(P_cond / P_evap, rps, SuctionState(T_evap_K))
     elif callable(eta_cmp_isen):
         import inspect
 

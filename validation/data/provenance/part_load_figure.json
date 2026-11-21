@@ -86,8 +86,8 @@
   "validation/data/part_load_figure/sweep.csv",
   "validation/data/part_load_figure/trajectory.csv"
  ],
- "coefficient_version": "semi-empirical-2026-11-15",
- "git_head": "38a816409d7297626ac74e3601140eedf222b652",
+ "coefficient_version": "ossorio-r290-te-2026-11-21",
+ "git_head": "58d481ed56df01ddc6fbaa7efb3acad563a771e5",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -97,10 +97,10 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "b9d0539696d978d2c447ce9993462eeffa73255d",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
- "python": "3.14.7",
+ "src_tmhp_tree": "11e32032acec1bf19aef6b77ef00267be4e9904e",
+ "validation_parity_tree": "f806d541a72190c373b8a97ae4606cc02bf07ebe",
+ "python": "3.11.15",
  "coolprop": "7.2.0",
- "platform": "Darwin-arm64",
- "run_at": "2026-11-21T04:51:25+00:00"
+ "platform": "Linux-x86_64",
+ "run_at": "2026-11-21T10:07:08+00:00"
 }

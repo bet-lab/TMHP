@@ -27,9 +27,8 @@ Fields
 
     ``compressor_type`` is the compressor kind the manufacturer documents
     (:data:`PUBLISHED_COMPRESSOR_TYPES`: ``rotary``, ``scroll``, ``swing``). It
-    selects among the library's type-specific default efficiency models
-    through one fixed mapping (:data:`MODEL_COMPRESSOR_TYPE`); it carries no
-    coefficient. ``injection`` (:data:`INJECTION_KINDS`: ``none``, ``vapor``,
+    is a reporting fact: the library has one default efficiency map for every
+    compressor (#217), so it never reaches the model. ``injection`` (:data:`INJECTION_KINDS`: ``none``, ``vapor``,
     ``flash``) records whether the circuit injects vapour into the
     compressor. The single-stage model has no injection, so it is never passed
     to the model; it only splits the reported headline into the machines the
@@ -76,18 +75,6 @@ PUBLISHED_COMPRESSOR_TYPES = frozenset({"rotary", "scroll", "swing"})
 #: Injection kinds a catalogue may publish (``published_inputs.injection``).
 #: Reporting only: the single-stage model has no injection port.
 INJECTION_KINDS = frozenset({"none", "vapor", "flash"})
-#: The one mapping from a published compressor kind to the library's model type
-#: (:data:`tmhp.compressor_efficiency.COMPRESSOR_TYPES`). Every validation
-#: machine is inverter driven, and the documents do not say whether the JD
-#: rotaries are single or twin, while the library has one inverter rotary type,
-#: so ``rotary`` maps to it. A swing compressor (Daikin's rolling-piston rotary
-#: with the vane integral to the piston) runs on the same model. Scroll maps
-#: to scroll.
-MODEL_COMPRESSOR_TYPE: dict[str, str] = {
-    "rotary": "rotary_twin_inverter",
-    "swing": "rotary_twin_inverter",
-    "scroll": "scroll",
-}
 #: Rating standards a catalogue may declare. They define the test conditions
 #: and the COP boundary (net vs gross capacity, indoor fan heat), so results are
 #: never pooled across them -- ``run.py`` reports one headline per standard.
@@ -159,12 +146,6 @@ class Catalog:
         injection = self.published_inputs.get("injection")
         if injection is not None and injection not in INJECTION_KINDS:
             raise ValueError(f"{self.slug}: injection must be one of {sorted(INJECTION_KINDS)}; got {injection!r}")
-
-    @property
-    def model_compressor_type(self) -> str | None:
-        """The library compressor type for the published one, or ``None`` (library default)."""
-        kind = self.published_inputs.get("compressor_type")
-        return None if kind is None else MODEL_COMPRESSOR_TYPE[kind]
 
     @property
     def injected(self) -> bool | None:

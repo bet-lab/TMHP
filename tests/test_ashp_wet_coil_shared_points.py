@@ -16,6 +16,11 @@ each samples the duty its own way and could miss a point another had found:
 
 A point one search has verified is now a candidate of the others, and a row is that of its step
 solved alone, whatever came before.
+
+The ceiling is such a point for the request that asks for it. A request equal to what
+``max_capacity`` reported -- or under it by less than the search of the ceiling tells apart -- was
+answered with the unit off, or a little short, where the search of the request did not arrive at
+the point the ceiling search had verified (section 6).
 """
 
 from __future__ import annotations
@@ -423,3 +428,163 @@ def test_coil_above_the_dew_point_is_the_dry_coil_equation_but_not_the_dry_searc
     # Room air with no water vapour is solved as the dry coil is.
     none = _steady(unit, 1150.0, 0.0, 27.0, RH_room=0.0)
     assert none["Q_ref_iu [W]"] == 0.0 and none["failure_reason"] == "cycle_invalid"
+
+
+# ---------------------------------------------------------------------------
+# 6. A request at the ceiling of its condition runs at it
+# ---------------------------------------------------------------------------
+
+#: Relative width a searched ceiling is known to (the default ``rel_tol`` of ``max_capacity``).
+CEILING_REL_TOL = 1e-3
+
+
+def _assert_ceiling_row(row: dict, request: float, ceiling: dict) -> None:
+    """``row`` is the unit at the ceiling ``max_capacity`` reported, to the last bit, with nothing unmet under it."""
+    assert row["failure_reason"] == "none" and row["converged"] and row["hp_is_on"]
+    assert row["capacity_clamped"] == "max" and row["capacity_binding"] == ceiling["binding"]
+    assert row["Q_ref_iu [W]"] == ceiling["Q_max [W]"] and row["Q_max [W]"] == ceiling["Q_max [W]"]
+    assert row["E_tot [W]"] == ceiling["E_tot [W]"]
+    assert row["Q_request [W]"] == request
+    unmet = request - ceiling["Q_max [W]"]
+    assert row["Q_unmet [W]"] == (pytest.approx(unmet, rel=1e-9) if unmet > 1e-9 * request else 0.0)
+
+
+@pytest.fixture(scope="module")
+def hot_day():
+    """Default 10 kW unit at 46 degC outdoor, room 27 degC at 30 %: the ceiling is the condensing-temperature limit."""
+    unit = _build(hp_capacity=10000.0)
+    ceiling = unit.max_capacity(46.0, 27.0, mode="cooling", RH_room=0.3)
+    assert ceiling["binding"] == "condensing_temperature"
+    assert ceiling["Q_max [W]"] == pytest.approx(13771.58, rel=1e-6)
+    return unit, ceiling
+
+
+@pytest.mark.parametrize("under", [1e-3, 1e-4])
+def test_request_the_search_delivers_under_the_ceiling_is_delivered_as_before(hot_day, under):
+    unit, ceiling = hot_day
+    request = ceiling["Q_max [W]"] * (1.0 - under)
+    row = _steady(unit, request, 46.0, 27.0, RH_room=0.3)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] is None
+    assert row["Q_ref_iu [W]"] == pytest.approx(request, rel=1e-12) and row["Q_unmet [W]"] == 0.0
+
+
+@pytest.mark.parametrize("under", [1e-5, 1e-6, 1e-7, "one float step", 0.0])
+def test_request_at_the_ceiling_or_a_hair_under_it_runs_at_the_ceiling(hot_day, under):
+    # 0 W and "condensing_temp_above_max" were the answer to all five: the search of the request
+    # starts from its least-lift point solved loosely, which a request this close to the limit
+    # reads as beyond it, and the ceiling was taken only for a request strictly above it.
+    unit, ceiling = hot_day
+    top = ceiling["Q_max [W]"]
+    request = math.nextafter(top, 0.0) if under == "one float step" else top * (1.0 - under)
+    row = _steady(unit, request, 46.0, 27.0, RH_room=0.3)
+    _assert_ceiling_row(row, request, ceiling)
+    assert row["Q_unmet [W]"] == 0.0
+    # Over the request by no more than the search of the ceiling tells apart.
+    assert 0.0 <= row["Q_ref_iu [W]"] - request <= CEILING_REL_TOL * top
+
+
+@pytest.mark.parametrize("over", ["one float step", 1.05])
+def test_request_above_the_ceiling_runs_at_it_as_before(hot_day, over):
+    unit, ceiling = hot_day
+    top = ceiling["Q_max [W]"]
+    request = math.nextafter(top, math.inf) if over == "one float step" else top * over
+    _assert_ceiling_row(_steady(unit, request, 46.0, 27.0, RH_room=0.3), request, ceiling)
+
+
+def test_ceiling_row_is_the_same_from_under_at_and_above_the_ceiling(hot_day):
+    unit, ceiling = hot_day
+    top = ceiling["Q_max [W]"]
+    above = _steady(unit, 1.05 * top, 46.0, 27.0, RH_room=0.3)
+    for request in (top * (1.0 - 1e-5), top):
+        row = _steady(unit, request, 46.0, 27.0, RH_room=0.3)
+        assert set(row) == set(above)
+        differing = {key for key in row if not (row[key] == above[key] or (row[key] != row[key]))}
+        assert differing == {"Q_request [W]", "Q_unmet [W]"}
+
+
+def test_request_at_a_flat_out_ceiling_is_delivered_the_ceiling():
+    # Default 2 kW unit at 20/20 degC, 30 %: the ceiling is the unit flat out. A request for it was
+    # delivered 0.32 W short (3,743.17 of 3,743.49 W, with that reported unmet) -- the flat-out
+    # state of the search's loosely solved starting point -- while one float step more got all of it.
+    unit = _build(hp_capacity=2000.0)
+    ceiling = unit.max_capacity(20.0, 20.0, mode="cooling", RH_room=0.3)
+    top = ceiling["Q_max [W]"]
+    assert ceiling["binding"] == "compressor" and top == pytest.approx(3743.486, rel=1e-6)
+    for request in (top * (1.0 - 1e-5), math.nextafter(top, 0.0), top, math.nextafter(top, math.inf)):
+        row = _steady(unit, request, 20.0, 20.0, RH_room=0.3)
+        _assert_ceiling_row(row, request, ceiling)
+        assert row["Q_unmet [W]"] == 0.0
+        assert row["cmp_rpm [rpm]"] / 60.0 == pytest.approx(unit.rps_max, rel=1e-9)
+
+
+@pytest.mark.parametrize(
+    ("capacity", "outdoor", "humidity", "top"), [(2500.0, 8.0, 0.9, 9612.94), (4000.0, 0.0, 0.5, 11869.94)]
+)
+def test_request_at_the_flat_out_ceiling_of_both_fans_held_runs_at_it(capacity, outdoor, humidity, top):
+    # Both fans at one flow, on the pressure-ratio floor: the request is refused from below and no
+    # larger duty runs, so the flat-out state the ceiling search starts with is taken. It was taken
+    # for a request under it (met by cycling at it) and for one above it (the unit runs there) --
+    # and the request equal to it was answered with the unit off, "hx_not_converged".
+    unit = _held(capacity, "iu", "ou")
+    room = dict(T0=outdoor, T_a_room=35.0, RH_room=humidity)
+    ceiling = unit.max_capacity(outdoor, 35.0, mode="cooling", RH_room=humidity)
+    exact = ceiling["Q_max [W]"]
+    assert ceiling["binding"] == "compressor" and exact == pytest.approx(top, rel=1e-6)
+    for request in (exact, math.nextafter(exact, math.inf)):
+        row = _steady(unit, request, **room)
+        _assert_ceiling_row(row, request, ceiling)
+        assert row["Q_unmet [W]"] == 0.0
+    # Under it, by one float step or by 1e-5: met in full by cycling at that state, as before.
+    for request in (math.nextafter(exact, 0.0), exact * (1.0 - 1e-5)):
+        row = _steady(unit, request, **room)
+        assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
+        assert row["Q_ref_iu [W]"] == pytest.approx(request, rel=1e-12) and row["Q_unmet [W]"] == 0.0
+        assert row["Q_min [W]"] == exact
+
+
+@pytest.mark.parametrize("humidity", [None, 0.0])
+def test_dry_request_at_its_ceiling_does_not_take_the_wet_rule(humidity, monkeypatch):
+    # Without a room humidity, and with dry room air, a request at the ceiling is answered by the
+    # dry model's own searches (issue #205 leaves them as they are): the ceiling is taken for a
+    # request strictly above it only, and one equal to it is searched for a duty under it.
+    unit = _build(hp_capacity=2000.0)
+    ceiling = unit.max_capacity(20.0, 20.0, mode="cooling", RH_room=humidity)
+    top = ceiling["Q_max [W]"]
+    assert ceiling["binding"] == "compressor"
+    searched = []
+    original = unit._largest_deliverable_duty
+
+    def noting(sign, q_top, *args):
+        searched.append(q_top)
+        return original(sign, q_top, *args)
+
+    monkeypatch.setattr(unit, "_largest_deliverable_duty", noting)
+    row = _steady(unit, top, 20.0, 20.0, RH_room=humidity)
+    assert searched == [top]
+    assert row["failure_reason"] == "none"
+    reference = _steady(_build(hp_capacity=2000.0), top, 20.0, 20.0)
+    humidity_keys = {"RH_room [-]", "w_iu_a_in [kg/kg]", "w_iu_a_out [kg/kg]"}
+    for key in reference:
+        if key not in humidity_keys and reference[key] == reference[key]:
+            assert row[key] == reference[key], key
+
+
+def test_dynamic_rows_at_and_around_the_ceiling_do_not_depend_on_the_steps_before(hot_day):
+    # The ceiling, a hair under it, a request the search delivers and one above the ceiling, in
+    # both orders and each alone: every row is that of its step solved alone, and the steady row.
+    unit, ceiling = hot_day
+    top = ceiling["Q_max [W]"]
+    room = (46.0, 27.0, 0.3)
+    loads = (5000.0, top * (1.0 - 1e-5), top, top * (1.0 - 1e-3), 1.05 * top)
+    as_given = _rows_by_load(_dynamic(unit, loads, *room), loads)
+    reverse = loads[::-1]
+    reversed_rows = _rows_by_load(_dynamic(unit, reverse, *room), reverse)
+    for load in loads:
+        alone = _rows_by_load(_dynamic(unit, [load], *room), [load])[load]
+        _assert_same_row(as_given[load], alone)
+        _assert_same_row(reversed_rows[load], alone)
+        steady = pd.Series(_steady(unit, load, room[0], room[1], RH_room=room[2]), dtype=object)
+        _assert_same_row(alone, steady)
+    for load in loads[1:3]:
+        assert as_given[load]["capacity_clamped"] == "max" and as_given[load]["Q_ref_iu [W]"] == top
+        assert as_given[load]["Q_unmet [W]"] == 0.0

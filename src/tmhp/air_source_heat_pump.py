@@ -2326,6 +2326,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
     _CEILING_LADDER: tuple[float, ...] = (0.8, 0.6, 0.45, 0.3, 0.2, 0.12, 0.06)
     #: Relative width at which the bisection for a refused request stops.
     _REDUCTION_REL_TOL = 1e-3
+    #: Relative width the ceiling a wet cooling request is answered from is
+    #: searched to: the ``rel_tol`` of :meth:`max_capacity` (its default). The
+    #: search does not tell duties that close apart, so a request the unit
+    #: does not deliver that is under the ceiling by no more than this is the
+    #: ceiling's (:meth:`_capacity_limited_operating_point`). A search step,
+    #: not a physical constant.
+    _CEILING_REL_TOL = 1e-3
 
     def _largest_airflow_approaches(
         self, x_iu: float, x_ou: float, perf: dict, wet: tuple[float, float] | None = None
@@ -3228,7 +3235,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         ceiling is searched upwards from it; and a flat-out ceiling of a
         unit with a fan held at one flow, on the pressure-ratio floor, is
         what the ordinary search delivers there. The answer is the same
-        whatever was solved before.
+        whatever was solved before. A request for the ``Q_max [W]``
+        returned, with the same ``RH_room``, runs at this state
+        (:meth:`analyze_steady`).
 
         A fan held at one flow (``dV_*_fan_a_min == dV_*_fan_a_max``) leaves
         its coil one approach temperature per duty. On the pressure-ratio
@@ -3423,19 +3432,48 @@ class AirSourceHeatPump(ReferenceStateMixin):
         ``capacity_binding``. ``None`` when the request needs no such state
         or none exists.
 
+        A cooling request solved with a room humidity is also the ceiling's
+        where it is under the ceiling by no more than the ceiling is searched
+        to (:attr:`_CEILING_REL_TOL`, 0.1 %) -- the request equal to it
+        first of all. The caller comes here with a request the ordinary
+        search did not deliver, and that search starts from the request's
+        least-lift point solved to a looser tolerance than the ceiling's
+        (:attr:`_LEAST_LIFT_SEED_RTOL`, with a step into the fans' flow range
+        of 1e-4 of the approaches). Close under the ceiling it reads the
+        request as beyond the limit that sets the ceiling, or as short of it
+        flat out, although the ceiling search has verified an operating
+        point there. Measured on default units of 2 to 10 kW at 180
+        conditions (20 to 46 degC outdoor, room 20 to 32 degC at 30 to 80 %):
+        the request equal to the ceiling was answered with the unit off at 4
+        (the limit for the reason) and up to 0.012 % short at 143, and the
+        sliver of requests not delivered reached from 6.5e-6 to 6.4e-5 of
+        the ceiling under it (every request 1e-4 under was delivered) --
+        while a request one float step above the ceiling ran at it. Such a
+        request runs at the ceiling now: the state :meth:`max_capacity`
+        reported, re-solved at its approaches (:meth:`_delivering_state`),
+        with ``Q_ref_iu [W]`` equal to its ``Q_max [W]`` and nothing unmet.
+        That is more than was asked by at most the 0.1 % the ceiling is
+        known to (by the width of the sliver, in those conditions). A
+        request the ordinary search delivers never comes here, and the dry
+        coil's requests, and heating's, are answered as they were (the
+        ceiling strictly above the request, else a search below it).
+
         ``ceiling`` is the ceiling of the condition where the caller has
         it in hand (the result of :meth:`max_capacity`); it is solved here
         otherwise.
         """
         mode = "cooling" if Q_r_iu > 0 else "heating"
         request = abs(Q_r_iu)
+        wet = self._coil_may_be_wet and Q_r_iu > 0
         if ceiling is not None:
             pass
         elif self._RH_room is None:
             ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode=mode)
         else:
             # The ceiling of the same room: its humidity goes with it.
-            ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode=mode, RH_room=self._RH_room)
+            ceiling = self.max_capacity(
+                T0=T0, T_a_room=T_a_room, mode=mode, rel_tol=self._CEILING_REL_TOL, RH_room=self._RH_room
+            )
         # Anything else ("infeasible", a caller's own label) is not a ceiling.
         if ceiling.get("binding") not in self._CEILING_BINDINGS:
             return None
@@ -3443,7 +3481,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
         q_ceiling = float(ceiling.get("Q_max_frost_free [W]", ceiling["Q_max [W]"]))
         if not math.isfinite(q_ceiling) or not q_ceiling > 0:
             return None
-        if q_ceiling < request:
+        # The request is the ceiling's: above it, or -- a wet cooling request
+        # -- not under it by more than the ceiling is searched to.
+        at_ceiling = q_ceiling < request or (wet and request >= q_ceiling * (1.0 - self._CEILING_REL_TOL))
+        if at_ceiling:
             x = (ceiling["dT_ref_evap [K]"], ceiling["dT_ref_cond [K]"])
             binding = ceiling["binding"]
         else:
@@ -3681,11 +3722,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
         - above the request, it is the duty the request is met by cycling
           at (returned with ``capacity_clamped == "min"``, as
           :meth:`_smallest_continuous_operating_point` returns its state);
-        - under the request -- the least-lift point of a request a little
-          above the flat-out duty can read as refused from below -- it is
-          where the unit runs for it, as for any request above its ceiling
-          (``capacity_clamped == "max"``,
-          :meth:`_capacity_limited_operating_point`).
+        - at the request or under it -- the least-lift point of the flat-out
+          duty itself, and of a request a little above it, can read as
+          refused from below -- it is where the unit runs for it, as for
+          any request at or above its ceiling (``capacity_clamped ==
+          "max"``, :meth:`_capacity_limited_operating_point`). The request
+          equal to the flat-out duty was answered with the unit off, between
+          two float neighbours that ran.
 
         The flat-out state is a function of the condition, so the answer is
         the same whatever was solved before. It is one solve
@@ -3706,16 +3749,14 @@ class AirSourceHeatPump(ReferenceStateMixin):
         _, to_the_top = self._climb_to_continuous_duty(Q_r_iu, T0, T_a_room)
         if to_the_top:
             return None
-        ceiling = self._solve_max_capacity(T0, T_a_room, "cooling", 1e-3, None, flat_out_only=True)
+        ceiling = self._solve_max_capacity(T0, T_a_room, "cooling", self._CEILING_REL_TOL, None, flat_out_only=True)
         if ceiling.get("binding") not in self._CEILING_BINDINGS:
             return None
         q_ceiling = float(ceiling["Q_max [W]"])
         if not (math.isfinite(q_ceiling) and q_ceiling > 0.0):
             return None
-        if q_ceiling < request:
-            return self._capacity_limited_operating_point(Q_r_iu, T0, T_a_room, ceiling=ceiling)
         if not q_ceiling > request:
-            return None
+            return self._capacity_limited_operating_point(Q_r_iu, T0, T_a_room, ceiling=ceiling)
         x = (float(ceiling["dT_ref_evap [K]"]), float(ceiling["dT_ref_cond [K]"]))
         state = self._delivering_state(x, q_ceiling, T0, T_a_room)
         if state is None:
@@ -3894,7 +3935,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
             With ``RH_room`` in cooling both ends of the range are the wet
             coil's. A request above its ceiling runs there
             (``capacity_clamped == "max"``; :meth:`max_capacity` with the
-            same ``RH_room``). In mild weather, on the pressure-ratio floor,
+            same ``RH_room``). So does a request equal to the ceiling, and
+            one the search does not deliver that is under it by no more
+            than the 0.1 % the ceiling is searched to: the row is the
+            ceiling's, ``Q_ref_iu [W]`` equal to the ``Q_max [W]``
+            :meth:`max_capacity` reports and ``Q_unmet [W]`` zero, which is
+            up to that 0.1 % more than was asked (measured on default
+            units: 0.006 %). In mild weather, on the pressure-ratio floor,
             the fans' smallest airflows leave no continuous operation below
             some duty; a smaller request is met by cycling at that duty
             (``capacity_clamped == "min"``, ``Q_min [W]``). Where the

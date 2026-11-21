@@ -191,6 +191,16 @@ Condensing pressure (``T_cond_max``)
     the thermostat's cap is the stop at one stated reference source
     (:func:`limit_tank_setpoints_to_charge_limit`).
 
+    That treatment covers the source states in which the condensing limit is
+    the one that governs the stretch from the nameplate cut-out to that stop.
+    Each source state is checked once, with three cycles
+    (:func:`condensing_stretch`). Where another limit governs somewhere on
+    the stretch -- the source fluid's freezing limit, a discharge-temperature
+    ceiling, the compressor's speed ceiling at a cold source -- reduced-duty
+    charging is withheld for the step: it is solved exactly as ``"stop"``
+    solves it, and the row names what withheld it
+    (``reduced_duty_withheld``).
+
 Speed (``rps_min`` / ``rps_max``)
     ``rps_min`` is the inverter's floor (15 rev/s). ``rps_max`` defaults to
     :func:`default_rps_max` of the rated speed the model solves at its rating
@@ -258,6 +268,9 @@ __all__ = [
     "steady_smallest_duty",
     "limit_tank_setpoints_to_charge_limit",
     "on_condensing_limit",
+    "condensing_stretch",
+    "DUTY_MATCH_RTOL",
+    "WITHHELD_NO_SMALLER_DUTY",
     "BINDING_DISCHARGE",
     "BINDING_CONDENSING",
     "BINDING_PRESSURE_RATIO",
@@ -825,7 +838,7 @@ def limit_tank_setpoints_to_charge_limit(
     the compressor then stops at that stop
     (``hp_stop_reason == "condensing_limit"``) and, while the call stands,
     holds the tank there or, with a minimum rest time, rests and restarts
-    (``rest_before_restart`` of
+    (``duty_limit`` of
     :func:`tmhp.dynamic_context.simulate_thermostat_step`). A set point at or
     below the nameplate cut-out needs no cycle solve and is left alone. For a
     blend the warning names the bubble point the tank is held below as well as
@@ -857,6 +870,100 @@ def limit_tank_setpoints_to_charge_limit(
         OperatingLimitWarning,
         stacklevel=3,
     )
+
+
+DUTY_MATCH_RTOL: float = 1e-3
+"""Fraction by which a cycle may miss the duty the condensing limit leaves and
+still count as running on that limit (:func:`condensing_stretch`).
+
+A cycle asked for the limit's duty at a tank temperature on the limit delivers
+it to the solver's last digits when the condensing limit is the one that
+governs (measured ratio 1.000000 on the documented charges of the three boiler
+families). One that delivers less by more than this was reduced further, by
+another limit.
+"""
+
+#: :func:`condensing_stretch`: no continuous duty below the nameplate runs on
+#: the condensing limit at this source, so there is no stretch to charge on.
+WITHHELD_NO_SMALLER_DUTY = "no_smaller_duty"
+
+
+def condensing_stretch(
+    solve: Callable[[float, float], Any],
+    T_zero_C: float,
+    K: float,
+    Q_knee: float,
+    min_duty: Callable[[], float | None],
+    delivered_key: str = "Q_ref_tank [W]",
+) -> tuple[float | None, str | None]:
+    """The stretch a reduced-duty step charges on at one source state: ``(Q_min, None)``, or ``(None, what withholds it)``.
+
+    A step of ``condensing_limit_control="reduce_duty"`` integrates the tank
+    along the condensing limit's duty, ``K (T_zero_C - T)`` [W]
+    (:class:`tmhp.dynamic_context.DutyLimit`), from the knee -- the tank
+    temperature at which that duty is ``Q_knee``, the nameplate duty -- to the
+    stop, where it is ``Q_min``, the smallest continuous duty (``min_duty()``:
+    :func:`smallest_duty_on_condensing_limit` at this source; neither point
+    above the boiling point of the stored water). That is the tank's path only
+    if the condensing limit is the limit that governs the whole stretch. This
+    function checks it for one source state, with three cycles: ``solve(T,
+    q)`` -- the step's cycle at tank temperature ``T`` [degC] asked for duty
+    ``q`` [W], solved with the source as the step finds it -- at the knee, at
+    the middle of the stretch and at the stop, each asked for the limit's
+    duty there. The stretch qualifies if each of them runs, delivers that
+    duty to :data:`DUTY_MATCH_RTOL`, and names no limit but the condensing
+    one; ``Q_min`` is then returned.
+
+    Otherwise reduced-duty charging is withheld at this source state, and the
+    first check that fails says by what (later ones are not made; the knee
+    comes first, before the search for ``Q_min``, which is the costly part):
+
+    - a cycle that does not run: its ``failure_reason``
+      (``"source_fluid_freezing"``, ``"discharge_temp_above_max"``, ...);
+    - a cycle held at another duty, or naming another limit: its
+      ``capacity_binding`` (``"discharge_temperature"``,
+      ``"source_fluid_freezing"``, ...), and :data:`BINDING_COMPRESSOR` for one
+      that names none -- the compressor at its speed ceiling, which a cold
+      source leaves short of the nameplate duty at the knee;
+    - no ``Q_min`` below ``Q_knee`` (``None``, or not smaller):
+      :data:`WITHHELD_NO_SMALLER_DUTY`.
+
+    The answer is a property of the machine and the source state: it does not
+    depend on the step, nor on where the tank is. The boilers keep it for as
+    long as the source state stays the same. Three points are a sample: a
+    limit that acts only strictly between two of them is not seen. The check
+    assumes that a limit which leaves the knee, the middle and the stop alone
+    leaves the stretch between them alone. The solves run silently.
+    """
+
+    def other_limit(T: float) -> str | None:
+        """What but the condensing limit governs the cycle asked for the limit's duty at ``T`` (``None``: nothing)."""
+        duty = K * (T_zero_C - T)
+        with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
+            warnings.simplefilter("ignore")
+            out = solve(T, duty)
+        result: Mapping[str, Any] = out if isinstance(out, Mapping) else {}
+        if not _running(result):
+            reason = result.get("failure_reason")
+            return str(reason) if reason and reason != "none" else BINDING_CYCLE
+        binding = result.get("capacity_binding")
+        if not abs(_delivered(result, delivered_key) - duty) <= DUTY_MATCH_RTOL * duty:
+            return str(binding) if binding else BINDING_COMPRESSOR
+        return str(binding) if binding and binding != BINDING_CONDENSING else None
+
+    T_knee = min(T_zero_C - Q_knee / K, T_WATER_BOIL_C)
+    withheld = other_limit(T_knee)
+    if withheld is not None:
+        return None, withheld
+    Q_min = min_duty()
+    if Q_min is None or not (math.isfinite(Q_min) and 0.0 <= Q_min < Q_knee):
+        return None, WITHHELD_NO_SMALLER_DUTY
+    T_stop = max(T_knee, min(T_zero_C - Q_min / K, T_WATER_BOIL_C))
+    for T in (0.5 * (T_knee + T_stop), T_stop):
+        withheld = other_limit(T)
+        if withheld is not None:
+            return None, withheld
+    return Q_min, None
 
 
 def on_condensing_limit(model: Any, result: dict, request: float, delivered_key: str = "Q_ref_tank [W]") -> dict:

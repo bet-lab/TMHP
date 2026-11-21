@@ -73,6 +73,7 @@ from .compressor_efficiency import (
     suction_state,
 )
 from .compressor_envelope import (
+    BINDING_CYCLE,
     CONDENSING_TEMP_ABOVE_MAX,
     CONTROL_REDUCE_DUTY,
     CONTROL_STOP,
@@ -82,6 +83,7 @@ from .compressor_envelope import (
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
+    condensing_stretch,
     condensing_tank_cutout,
     condensing_tank_reach,
     discharge_controlled,
@@ -123,6 +125,7 @@ from .defrost import (
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
     REDUCED_DUTY_FRACTION_KEY,
+    REDUCED_DUTY_WITHHELD_KEY,
     T_WATER_BOIL_C,
     TANK_LEVEL_MIN,
     ControlState,
@@ -397,9 +400,15 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     reports there, down to the smallest duty it runs at continuously. The
     tank's first-order approach to the limit is solved inside each step
     (:func:`tmhp.dynamic_context.resolve_step_operation`, which also says how
-    far the result is independent of the step and what happens where another
-    limit governs); rows carry
-    ``reduced_duty_fraction [-]``. The set points are then capped where the
+    far the result is independent of the step); rows carry
+    ``reduced_duty_fraction [-]``. That covers the outdoor states in which the
+    condensing limit governs the whole stretch down to that duty, checked once
+    per outdoor state with three cycles
+    (:func:`tmhp.compressor_envelope.condensing_stretch`). Where another limit
+    governs on it (the speed ceiling in cold air, a discharge-temperature
+    limit), reduced-duty charging is withheld: the step is solved exactly as
+    ``"stop"`` solves it, and ``reduced_duty_withheld`` names what withheld
+    it. The set points are then capped where the
     smallest continuous duty meets the limit, evaluated at the rating point's outdoor air
     (``charge_limit_reference_C``); each step applies the limit of its own
     source. ``analyze_steady`` is the same with either value. With a
@@ -556,8 +565,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     ):
         validate_ctor("ASHPB", locals())
         self.condensing_limit_control: str = resolve_condensing_limit_control(condensing_limit_control)
-        #: Smallest continuous duty on the condensing limit of the step's outdoor state (reduced-duty charging).
-        self._charge_floor_cache: tuple[tuple[float, float | None], float | None] | None = None
+        #: The stretch on the condensing limit of the step's outdoor state (:meth:`_charge_stretch`).
+        self._charge_stretch_cache: tuple[tuple[float, float | None], float | None, str | None] | None = None
         self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
@@ -2383,26 +2392,45 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         K = multiplier * self.K_tank_hx
         return T_reach - q_defrost / K, K
 
-    def _smallest_delivered_duty(self, ctx: StepContext) -> float | None:
-        """Smallest heat the compressor delivers continuously on the condensing limit in this step [W].
+    def _charge_stretch(self, ctx: StepContext) -> tuple[float | None, str | None]:
+        """The stretch on the condensing limit in this step: its smallest delivered duty [W], or what withholds it.
 
-        The frost-free floor (:func:`smallest_duty_on_condensing_limit`, the
-        step's cycle at the lowest duty that runs) as the mean over frosting
-        and defrost. It depends on the outdoor state only, and is kept for it.
+        The duty is the frost-free floor
+        (:func:`smallest_duty_on_condensing_limit`, the step's cycle at the
+        lowest duty that runs) as the mean over frosting and defrost. It is
+        returned with ``None`` when the condensing limit governs the stretch
+        from the nameplate duty down to it (:func:`condensing_stretch`,
+        three cycles of this step's outdoor state, as the mean over frosting
+        and defrost like the step's own). Otherwise reduced-duty charging is
+        withheld: ``None`` and what withholds it. Both depend on the outdoor
+        state only, and are kept for it.
         """
         key = (float(ctx.T0), self._RH_out_step)
-        cached = self._charge_floor_cache
+        cached = self._charge_stretch_cache
         if cached is None or cached[0] != key:
-            floor = smallest_duty_on_condensing_limit(
-                self,
-                lambda T_tank_w: smallest_continuous_duty(self, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q)),
+
+            def delivered_floor() -> float | None:
+                floor = smallest_duty_on_condensing_limit(
+                    self,
+                    lambda T_tank_w: smallest_continuous_duty(
+                        self, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q)
+                    ),
+                )
+                if floor is None:
+                    return None
+                multiplier, q_defrost = self._frost_mean_terms(ctx)
+                return max(0.0, multiplier * floor - q_defrost)
+
+            line = self._duty_line(ctx)
+            assert line is not None
+            cached = (
+                key,
+                *condensing_stretch(
+                    lambda T_tank_w, q: self._solve_cycle_at(ctx, T_tank_w, q), *line, self.hp_capacity, delivered_floor
+                ),
             )
-            cached = (key, floor)
-            self._charge_floor_cache = cached
-        if cached[1] is None:
-            return None
-        multiplier, q_defrost = self._frost_mean_terms(ctx)
-        return max(0.0, multiplier * cached[1] - q_defrost)
+            self._charge_stretch_cache = cached
+        return cached[1], cached[2]
 
     def _solve_cycle_on_limit(self, ctx: StepContext, T_tank_w: float, Q_delivered: float) -> dict:
         """Cycle of the stretch a step runs on the condensing limit: ``Q_delivered`` [W] at ``T_tank_w`` [°C]."""
@@ -2841,7 +2869,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         that temperature at the duty the limit leaves, and stops where it
         leaves less than its smallest continuous duty; the row then has
         ``reduced_duty_fraction [-]``, the part of the step run on the limit,
-        and its rates are the mean of the two stretches. The heat, power and
+        and its rates are the mean of the two stretches. In an outdoor state
+        in which another limit governs on that stretch the step is the one
+        ``"stop"`` solves, and ``reduced_duty_withheld`` names what withheld
+        the charging (:meth:`_charge_stretch`). The heat, power and
         refrigerant-flow rates in ``result_row`` are averages over ``dt_s``
         (the running cycle times ``runtime_fraction [-]``), so
         ``rate * dt_s`` is the step's energy; ``hp_is_on`` says the
@@ -2963,16 +2994,17 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         cutout = condensing_tank_cutout(self)
         T_limit_C = T_WATER_BOIL_C if cutout is None else min(T_WATER_BOIL_C, cutout)
         # Reduced-duty charging: past the cut-out the compressor runs on the
-        # condensing limit, down to its smallest continuous duty.
+        # condensing limit, down to its smallest continuous duty -- where that
+        # limit governs the stretch in this step's outdoor state; where it
+        # does not, the step is the one "stop" solves (T_limit_C).
         reducing = self.condensing_limit_control == CONTROL_REDUCE_DUTY
         on_limit: dict[str, Any] = {}
         if reducing and cutout is not None:
             on_limit = dict(
                 duty_line=self._duty_line(ctx),
-                min_duty=lambda: self._smallest_delivered_duty(ctx),
+                min_duty=lambda: self._charge_stretch(ctx)[0],
                 solve_cycle_at_duty=lambda T_C, q, _fraction: self._solve_cycle_on_limit(ctx, T_C, q),
                 rate_keys=self._RUNTIME_SCALED_KEYS,
-                duty_limit_failure=CONDENSING_TEMP_ABOVE_MAX,
             )
         run, cycle_result = resolve_step_operation(
             T_start_K=ctx.T_tank_w_K,
@@ -2993,7 +3025,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             Q_request=self.hp_capacity,
             min_on_time_s=self.min_on_time_s,
             min_off_time_s=self.min_off_time_s,
-            T_limit_C=T_WATER_BOIL_C if on_limit else T_limit_C,
+            T_limit_C=T_limit_C,
             **on_limit,
         )
         hp_result = step_hp_result(
@@ -3006,6 +3038,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         if reducing:
             ran = bool(hp_result.get("hp_is_on", False))
             hp_result[REDUCED_DUTY_FRACTION_KEY] = float(run.reduced_fraction) if ran else 0.0
+            # What withheld reduced-duty charging in a step that got to the
+            # limit (the stretch's verdict, or a cycle that did not run on it).
+            withheld = (self._charge_stretch(ctx)[1] or BINDING_CYCLE) if run.reduced_withheld else None
+            hp_result[REDUCED_DUTY_WITHHELD_KEY] = withheld
         hp_is_on = bool(hp_result.get("hp_is_on", False))
         Q_ref_cond = delivered_tank_heat(hp_result)
 

@@ -6,9 +6,15 @@ largest duty inside the limit, ``K_tank_hx * (T_reach - T)``, down to its smalle
 duty. The tank then approaches ``T_reach`` as a first-order lag, which the in-step thermostat
 (:func:`tmhp.dynamic_context.simulate_thermostat_step`, ``duty_limit``) follows in closed form,
 so the end temperature, the heat and the electricity of a charge on that limit do not depend on
-the step. The last part of this file is the review of that first version: another limit governing
-above the cut-out, the valid tank range of the search for the smallest duty, the stop that acted,
-the rest after a stop, and how far the step-size statement holds in a tank that loses heat.
+the step.
+
+That holds where the condensing limit is the limit that governs the stretch from the nameplate
+cut-out to the stop. Each source state is checked for it once, with three cycles
+(:func:`tmhp.compressor_envelope.condensing_stretch`); where another limit governs somewhere on
+the stretch, reduced-duty charging is withheld and the step is the one ``"stop"`` solves. The
+later parts of this file cover that rule, the valid tank range of the search for the smallest
+duty, the stop that acted, the rest after a stop, and how far the step-size statement holds in a
+tank that loses heat.
 
 The default (``"stop"``) is the behaviour of ``tests/test_step_envelope_stop.py`` and its
 neighbours, which run unchanged.
@@ -26,7 +32,12 @@ import pytest
 
 import tmhp
 from tmhp.compressor_envelope import (
+    BINDING_COMPRESSOR,
     BINDING_CONDENSING,
+    BINDING_CYCLE,
+    DUTY_MATCH_RTOL,
+    WITHHELD_NO_SMALLER_DUTY,
+    condensing_stretch,
     condensing_tank_cutout,
     condensing_tank_reach,
 )
@@ -382,6 +393,8 @@ def _resolve(T_start=56.0, T_upper=63.0, dt=3600.0, floor=2_000.0, on_limit_runs
         residual_free=residual_free,
         solve_cycle=solve_cycle,
         Q_request=Q_ON,
+        # The cut-out of the compressor that stops instead: where the nameplate duty meets the limit.
+        T_limit_C=LIMIT.knee_C(Q_ON),
         duty_line=(LIMIT.T_zero_C, LIMIT.K),
         min_duty=min_duty,
         solve_cycle_at_duty=solve_cycle_at_duty,
@@ -389,6 +402,11 @@ def _resolve(T_start=56.0, T_upper=63.0, dt=3600.0, floor=2_000.0, on_limit_runs
     )
     args.update(kw)
     return (*resolve_step_operation(**args), calls)
+
+
+def _resolve_stop(**kw):
+    """The same step by a compressor that stops at the cut-out: no reduced-duty argument reaches the kernel."""
+    return _resolve(duty_line=None, min_duty=None, solve_cycle_at_duty=None, rate_keys=(), **kw)
 
 
 def test_a_step_below_the_knee_costs_nothing_more():
@@ -441,30 +459,107 @@ def test_electricity_of_the_stub_charge_does_not_depend_on_the_step():
     assert many[2] == pytest.approx(one[2], rel=1e-9)  # this stub's power is linear in the duty: exact
 
 
-def test_without_a_floor_or_a_cycle_on_the_limit_the_step_keeps_the_stop():
-    """No continuous duty below the request, or a cycle the limit itself refuses on its line: the stop at the knee.
+#: Fields of an :class:`InStepRun` that say what the compressor did (the labels are compared separately).
+RUN_FIELDS = (
+    "runtime_fraction",
+    "running_start",
+    "running_end",
+    "call_end",
+    "starts",
+    "phase_age_end_s",
+    "T_on_mean_C",
+    "heat_unavailable",
+    "T_on_first_C",
+    "limit_stop",
+    "reduced_fraction",
+    "T_reduced_mean_C",
+    "T_full_mean_C",
+)
 
-    (The follow-up review changed the third case on purpose. The first version kept the stop for
-    any cycle without an operating point on the limit. A cycle that fails there for another
-    reason than the condensing limit is not a condensing stop: the run still ends at the knee,
-    with the same run time and the same cycle, but the step ends off and without a cut-out, and
-    the step after it reports the cycle's failure.)
+
+def _same_step(a, b):
+    """Two steps resolved the same way: every field of the run, both ways, and the same cycle row."""
+    (run_a, row_a), (run_b, row_b) = a, b
+    for name in RUN_FIELDS:
+        assert getattr(run_a, name) == getattr(run_b, name), name
+    assert row_a == row_b and row_b == row_a
+
+
+@pytest.mark.parametrize(
+    "withheld",
+    [dict(floor=None), dict(floor=Q_ON), dict(on_limit_runs=False)],
+    ids=["the caller withholds it", "no duty below the request", "no cycle on the limit"],
+)
+@pytest.mark.parametrize("dt", [3600.0, 600.0, 60.0])
+@pytest.mark.parametrize("T_start", [56.0, 59.99, 60.0, 61.0])
+def test_a_withheld_step_is_the_step_of_the_compressor_that_stops(withheld, dt, T_start):
+    """Reduced-duty charging withheld: the run and the cycle of the kernel called without it.
+
+    The reference is the same step resolved with no reduced-duty argument at all, the path of
+    ``condensing_limit_control="stop"``. A step that does not get to the limit is not withheld
+    (nothing was asked of the caller), and is the reference's step too.
     """
-    stop, _, _ = _resolve(duty_line=None, T_limit_C=LIMIT.knee_C(Q_ON))
-    assert stop.limit_stop and stop.runtime_fraction * 3600.0 == pytest.approx(240.0)
-    refused = dict(on_limit_runs=False, duty_limit_failure="cycle_invalid")  # the stub's failure is the limit's own
-    for kw in (dict(floor=None), dict(floor=Q_ON), refused):
-        run, row, _ = _resolve(**kw)
-        assert run == stop, kw
-        assert row["Q_ref_tank [W]"] == Q_ON and "capacity_clamped" not in row
-    # Another failure than the limit's, above a stretch that ran at the full duty.
-    run, row, _ = _resolve(on_limit_runs=False)
-    assert run.runtime_fraction == stop.runtime_fraction and run.T_on_mean_C == stop.T_on_mean_C
-    assert row["Q_ref_tank [W]"] == Q_ON and "capacity_clamped" not in row
-    assert not run.limit_stop and in_step_stop_reason(run, T_WATER_BOIL_C) is None
-    assert not run.running_end and run.call_end and run.starts == stop.starts
-    after, row_after, _ = _resolve(T_start=LIMIT.knee_C(Q_ON) + 1e-9, dt=600.0, on_limit_runs=False)
-    assert after.heat_unavailable and row_after["failure_reason"] == "cycle_invalid"
+    stop, stop_row, stop_calls = _resolve_stop(T_start=T_start, dt=dt)
+    run, row, calls = _resolve(T_start=T_start, dt=dt, **withheld)
+    _same_step((run, row), (stop, stop_row))
+    assert run.reduced_fraction == 0.0 and run.limit_stop_C is None
+    gets_there = stop.limit_stop
+    assert run.reduced_withheld == gets_there and not stop.reduced_withheld
+    assert ("floor" in calls) == gets_there
+    if "on_limit_runs" not in withheld:
+        # Withheld by the caller: the cycle solves of the reference, and not one more.
+        assert calls.get("full") == stop_calls.get("full") and "limit" not in calls
+    if gets_there:
+        assert in_step_stop_reason(run, LIMIT.knee_C(Q_ON)) == STOP_CONDENSING_LIMIT
+
+
+def test_a_withheld_step_holds_at_the_cut_out_as_the_stop_does():
+    """Withheld, the compressor holds the tank at the nameplate cut-out whatever its minimum rest time.
+
+    (On the limit a stop is followed by the minimum rest time; a withheld step is not on it.)
+    """
+    kw = dict(T_start=59.5, dt=3600.0, min_off_time_s=600.0)
+
+    def residual_free(T_K):  # a loss of 500 W
+        return (C * T_K - C * (59.5 + 273.15) + 500.0 * 3600.0) / C
+
+    stop, stop_row, _ = _resolve_stop(residual_free=residual_free, **kw)
+    run, row, _ = _resolve(floor=None, residual_free=residual_free, **kw)
+    _same_step((run, row), (stop, stop_row))
+    assert run.reduced_withheld and run.running_end and run.starts == 1  # held as one run
+    on_limit, _, _ = _resolve(residual_free=residual_free, T_upper=64.5, **kw)
+    assert not on_limit.reduced_withheld and on_limit.starts > 1 and on_limit.reduced_fraction > 0.0
+
+
+def test_the_verdict_of_a_charge_does_not_depend_on_the_step():
+    """One hour in 1, 6 and 60 steps: withheld, the tank, the heat and the labels are the stop's at every step.
+
+    The verdict is the caller's (``min_duty``), asked whenever a step gets to the limit; the
+    kernel adds no condition of its own to it.
+    """
+
+    def charge(parts, resolve, **kw):
+        T, call, running, age, heat, labels = 56.0, True, False, math.inf, 0.0, []
+        dt = 3600.0 / parts
+        for _ in range(parts):
+            run, row, _ = resolve(T_start=T, dt=dt, call_start=call, running_prev=running, phase_age_s=age, **kw)
+            if row is not None and run.runtime_fraction > 0.0:
+                heat += row["Q_ref_tank [W]"] * run.runtime_fraction * dt
+                T += row["Q_ref_tank [W]"] * run.runtime_fraction * dt / C
+            call, running, age = run.call_end, run.running_end, run.phase_age_end_s
+            labels.append((run.reduced_withheld, run.reduced_fraction > 0.0))
+        return T, heat, labels
+
+    for parts in (1, 6, 60):
+        T_stop, heat_stop, _ = charge(parts, _resolve_stop)
+        T_end, heat, labels = charge(parts, _resolve, floor=None)
+        assert (T_end, heat) == (T_stop, heat_stop), parts
+        assert T_end == pytest.approx(60.0, abs=1e-9) and heat == pytest.approx(4.0 * C, rel=1e-12), parts
+        assert not any(reduced for _, reduced in labels), parts
+        assert labels[-1][0], parts  # the step that got to the limit says so
+        # ... and with the stretch qualified the same charge goes on to the set point, at every step.
+        T_on, _, on_labels = charge(parts, _resolve)
+        assert T_on == pytest.approx(63.0, abs=1e-6) and not any(withheld for withheld, _ in on_labels), parts
 
 
 def test_a_cycle_already_below_the_floor_keeps_the_stop():
@@ -473,10 +568,10 @@ def test_a_cycle_already_below_the_floor_keeps_the_stop():
     The step is then the stop's (cut-out at the knee of the request, 60 degC, below this limit's
     stop at 64 degC), so no step resolved on the limit runs above the stop at less than the floor.
     """
-    stop, stop_row, _ = _resolve(duty_line=None, T_limit_C=LIMIT.knee_C(Q_ON), T_upper=64.5, q_cycle=1_500.0)
+    stop, stop_row, _ = _resolve_stop(T_upper=64.5, q_cycle=1_500.0)
     run, row, calls = _resolve(T_upper=64.5, q_cycle=1_500.0)
-    assert run == stop and row == stop_row
-    assert run.reduced_fraction == 0.0 and "limit" not in calls
+    _same_step((run, row), (stop, stop_row))
+    assert run.reduced_fraction == 0.0 and run.reduced_withheld and "limit" not in calls
     # ... and a cycle above the floor is resolved on the limit, never above its stop.
     run, row, calls = _resolve(T_upper=64.5, q_cycle=2_500.0)
     assert run.reduced_fraction > 0.0 and run.T_reduced_mean_C <= LIMIT.stop_C
@@ -728,7 +823,7 @@ def test_a_warmer_source_than_the_reference_holds_at_its_own_stop():
     assert df["T_tank_w [°C]"].iloc[-1] == pytest.approx(df["T_tank_w [°C]"].iloc[-2], abs=0.01)
     # The step's stop is where its smallest continuous duty meets the limit: the tank never
     # passes it, and no step runs on the limit at less than that duty.
-    floor = m._charge_floor_cache[1]
+    floor = m._charge_stretch_cache[1]
     stop = condensing_tank_reach(m) - floor / m.K_tank_hx
     assert df["T_tank_w [°C]"].max() <= stop + 1e-3
     on_limit = df["reduced_duty_fraction [-]"] > 0.0
@@ -766,7 +861,7 @@ def test_a_draw_larger_than_the_duty_at_the_stop_is_met_along_the_limit():
         assert last["Q_ref_tank [W]"] == pytest.approx(line, rel=0.01), dt
         assert last["Q_ref_tank [W]"] > 1.5 * 6_300.0  # well above the duty at the stop
         # Never on the limit at less than the smallest continuous duty, never running above the stop.
-        floor = m._charge_floor_cache[1]
+        floor = m._charge_stretch_cache[1]
         stop = condensing_tank_reach(m) - floor / m.K_tank_hx
         on_limit = df["reduced_duty_fraction [-]"] > 0.0
         assert (df.loc[on_limit, "Q_max [W]"] >= floor * (1.0 - 1e-6)).all(), dt
@@ -825,171 +920,6 @@ def test_scenario_classes_take_the_same_path():
         assert df["T_tank_w [°C]"].max() == pytest.approx(62.0, abs=0.05), name
 
 
-# ---------------------------------------------------------------------------
-# review of 719b880a: another limit on the way, the stop that acted, the rest after a stop
-# ---------------------------------------------------------------------------
-
-OTHER = "source_fluid_freezing"
-REFUSED = "condensing_temp_above_max"
-
-
-def _resolve_two_limits(other, T_start=61.0, T_upper=64.5, dt=300.0, failure=OTHER, calls=None, **kw):
-    """``resolve_step_operation`` on the tank of the event tests with a second limit on the cycle.
-
-    ``other(T_C)`` is the largest duty that limit leaves at tank temperature ``T_C`` [W]; zero or
-    less means no operating point, and the cycle fails with ``failure``. The cycle delivers the
-    smallest of what it is asked for, the condensing limit's duty and the other limit's, at COP 3.
-    """
-    calls = {} if calls is None else calls
-
-    def residual_free(T_K):
-        return (C * T_K - C * (T_start + 273.15)) / C
-
-    def cycle(T_C, asked):
-        allowed = other(T_C)
-        if allowed <= 0.0:
-            return {"hp_is_on": False, "failure_reason": failure}
-        on_line = LIMIT.duty(T_C)
-        q = min(asked, on_line, allowed)
-        row = {"hp_is_on": True, "Q_ref_tank [W]": q, "E_tot [W]": q / 3.0}
-        if q < Q_ON:
-            binding = OTHER if allowed < min(asked, on_line) else BINDING_CONDENSING
-            row.update({"capacity_clamped": "max", "capacity_binding": binding, "Q_request [W]": Q_ON})
-        return row
-
-    def solve_cycle(T_C, fraction):
-        calls.setdefault("full", []).append(T_C)
-        return cycle(T_C, Q_ON)
-
-    def solve_cycle_at_duty(T_C, q, fraction):
-        calls.setdefault("limit", []).append((T_C, q))
-        return cycle(T_C, q)
-
-    args = dict(
-        T_start_K=T_start + 273.15,
-        call_start=True,
-        running_prev=False,
-        phase_age_s=math.inf,
-        scheduled=True,
-        T_lower=55.0,
-        T_upper=T_upper,
-        dt=dt,
-        C_curr=C,
-        C_next=C,
-        C_tank=C,
-        residual_free=residual_free,
-        solve_cycle=solve_cycle,
-        Q_request=Q_ON,
-        duty_line=(LIMIT.T_zero_C, LIMIT.K),
-        min_duty=lambda: LIMIT.Q_min,
-        solve_cycle_at_duty=solve_cycle_at_duty,
-        rate_keys=("Q_ref_tank [W]", "E_tot [W]"),
-        duty_limit_failure=REFUSED,
-    )
-    args.update(kw)
-    return (*resolve_step_operation(**args), calls)
-
-
-def _charge_two_limits(other, parts, total, T_start=61.0, **kw):
-    """Tank temperature, heat [J], time on the condensing limit [s] and rows of ``total`` seconds in ``parts`` steps."""
-    T, call, running, age, heat, on_limit, rows = T_start, True, False, math.inf, 0.0, 0.0, []
-    dt = total / parts
-    for _ in range(parts):
-        run, row, _ = _resolve_two_limits(
-            other, T_start=T, dt=dt, call_start=call, running_prev=running, phase_age_s=age, **kw
-        )
-        if row is not None and row.get("hp_is_on") and run.runtime_fraction > 0.0:
-            q = row["Q_ref_tank [W]"] * run.runtime_fraction * dt
-            heat, T = heat + q, T + q / C
-            # The compressor is never above the tank temperature its step ends at (the tank only warms here).
-            assert run.T_on_max_C <= T + 1e-9
-        on_limit += run.reduced_fraction * dt
-        call, running, age = run.call_end, run.running_end, run.phase_age_end_s
-        rows.append((run, row))
-    return T, heat, on_limit, rows
-
-
-def test_another_limit_below_the_condensing_one_governs_the_run():
-    """Above the nameplate cut-out a second limit leaves 3 kW where the condensing limit would leave 8 kW.
-
-    Review, blocker 1: the events took the condensing limit's duty for the run (7.3 kW in the
-    reported case) while the cycle delivered what the other limit left (3.1 kW), reported the step
-    as run on the condensing limit, and did not solve the run again. Now the events are those of
-    the duty the cycle delivers; the run is on the condensing limit only above the tank temperature
-    at which *that* duty meets it (63.5 degC for 3 kW).
-    """
-
-    def other(T_C):
-        return 3_000.0
-
-    run, row, calls = _resolve_two_limits(other, dt=300.0)
-    assert run.runtime_fraction == 1.0 and run.reduced_fraction == 0.0 and not run.limit_stop
-    assert row["Q_ref_tank [W]"] == 3_000.0 and row["capacity_binding"] == OTHER
-    # The cycle of the run is solved at the run's own mean (61 -> 62.5 degC), not at the mean the
-    # condensing limit's duty would have given.
-    assert any(solved == pytest.approx(61.75, abs=1e-6) for solved in calls["full"])
-    # A longer step gets to 63.5 degC after 500 s and runs on along the condensing limit to its stop.
-    run, row, _ = _resolve_two_limits(other, dt=1200.0)
-    t_limit = TAU * math.log(1.5 / 1.0)
-    assert run.runtime_fraction * 1200.0 == pytest.approx(500.0 + t_limit, rel=1e-9)
-    assert run.reduced_fraction * 1200.0 == pytest.approx(t_limit, rel=1e-9)
-    assert run.limit_stop and run.limit_stop_C == pytest.approx(64.0)
-    assert row["Q_ref_tank [W]"] * run.runtime_fraction * 1200.0 == pytest.approx(3.0 * C, rel=1e-9)
-    assert row["capacity_binding"] == OTHER  # the limit that governed most of the run
-    # The same 1200 s in one step and in 4, 12 and 120: the same tank, heat and time on the limit.
-    one = _charge_two_limits(other, 1, 1200.0)
-    assert one[0] == pytest.approx(64.0, abs=1e-9)
-    for parts in (4, 12, 120):
-        T_end, heat, on_limit, _ = _charge_two_limits(other, parts, 1200.0)
-        assert T_end == pytest.approx(one[0], abs=1e-6), parts
-        assert heat == pytest.approx(one[1], rel=1e-9), parts
-        assert on_limit == pytest.approx(one[2], abs=1e-6), parts
-
-
-def test_no_operating_point_above_the_cut_out_is_the_cycles_own_failure():
-    """A cycle that cannot run for another reason than the condensing limit keeps its failure reason.
-
-    Review, blocker 1: with the source 0.9 K colder the cycle's ``source_fluid_freezing`` failure
-    was reported as a stop at the condensing limit with ``failure_reason="none"``.
-    """
-    run, row, _ = _resolve_two_limits(lambda T_C: 0.0, dt=600.0)
-    assert run.runtime_fraction == 0.0 and run.heat_unavailable and not run.limit_stop
-    assert run.call_end and not run.running_end
-    assert row["failure_reason"] == OTHER and not row["hp_is_on"]
-    # A cycle the condensing limit itself refuses on its own line is the stop it always was.
-    run, row, _ = _resolve_two_limits(lambda T_C: 0.0, dt=600.0, failure=REFUSED)
-    assert run.runtime_fraction == 0.0 and run.limit_stop and not run.heat_unavailable and row is None
-    assert in_step_stop_reason(run, T_WATER_BOIL_C) == STOP_CONDENSING_LIMIT
-
-
-def test_an_envelope_that_closes_inside_the_run_is_not_overrun():
-    """A second limit whose duty falls with the tank temperature and ends at 62.4 degC.
-
-    One cycle stands for a run at one duty. Before a run is taken above every tank temperature at
-    which a cycle of the step ran, the cycle is solved at the run's warmest point; where it has no
-    operating point the run ends at the warmest temperature a cycle did run at. The charge then
-    closes on the temperature at which the envelope closes, from below, at any step.
-    """
-
-    def other(T_C):
-        return 6_000.0 - 2_000.0 * (T_C - 61.0) if T_C <= 62.4 else 0.0
-
-    ends = {}
-    for parts in (60, 12, 6, 1):
-        T_end, heat, on_limit, rows = _charge_two_limits(other, parts, 3600.0)
-        ends[parts] = T_end
-        assert 61.0 < T_end <= 62.4 + 1e-9, parts
-        assert on_limit == 0.0, parts  # the condensing limit never governed
-        ran = [row for run, row in rows if row is not None and row.get("hp_is_on") and run.runtime_fraction > 0.0]
-        assert ran and all(row["capacity_binding"] == OTHER for row in ran), parts
-        assert all(run.limit_stop_C is None for run, _ in rows), parts  # none of the two cut-outs acted
-        if parts > 1:
-            # Once the envelope has closed the steps report the cycle's failure, not a stop.
-            run, row = rows[-1]
-            assert run.heat_unavailable and row["failure_reason"] == OTHER, parts
-    assert ends[60] > 62.2 and ends[12] > 61.9 and ends[6] > 61.9
-
-
 def test_the_stop_that_acted_is_the_one_reported():
     """Review, should-fix 3: a stop at the boiling point was reported as a condensing stop.
 
@@ -998,7 +928,7 @@ def test_the_stop_that_acted_is_the_one_reported():
     """
     hot = DutyLimit(T_zero_C=102.0, K=2_000.0, Q_min=2_000.0)  # knee 97 degC, stop 101 degC: above boiling
     run = _sim(T_start_C=96.0, T_lower=90.0, T_upper=99.0, min_on_time_s=5_000.0, duty_limit=hot)
-    assert run.limit_stop and run.limit_stop_C == T_WATER_BOIL_C and run.T_on_max_C == pytest.approx(100.0)
+    assert run.limit_stop and run.limit_stop_C == T_WATER_BOIL_C
     assert in_step_stop_reason(run, 97.0) == STOP_BOILING_LIMIT  # 97 degC: the nameplate cut-out the caller has
     # The limit's own stop, below the boiling point ...
     run = _sim(T_upper=64.5)
@@ -1017,8 +947,8 @@ def test_a_minimum_rest_time_makes_the_restart_at_the_stop_a_real_event():
 
     The hold is a mean of on/off cycling reported as one run: the phase age grows by the whole
     step while the compressor is on for a share of it. With a minimum rest time that cycling is
-    not what the compressor can do, and reduced-duty charging resolves it as it happens: stop at
-    the stop, rest, restart (a counted start), run back along the limit.
+    not what the compressor can do, and a step on the duty limit resolves it as it happens: stop
+    at the stop, rest, restart (a counted start), run back along the limit.
     """
     loss = ((50.0, -500.0), (70.0, -500.0))
     kw = dict(T_start_C=63.9, T_upper=64.5, free_heat=loss, dt=3600.0)
@@ -1027,7 +957,7 @@ def test_a_minimum_rest_time_makes_the_restart_at_the_stop_a_real_event():
     rest = 600.0  # the tank cools 0.5 K
     t_back = TAU * math.log((64.75 - 63.5) / (64.75 - 64.0))
     cycles = int((3600.0 - t_first) // (rest + t_back))
-    run = _sim(min_off_time_s=rest, rest_before_restart=True, **kw)
+    run = _sim(min_off_time_s=rest, **kw)
     assert run.starts == 1 + cycles == 5
     assert run.runtime_fraction * 3600.0 == pytest.approx(t_first + cycles * t_back, rel=1e-9)
     assert run.reduced_fraction == run.runtime_fraction
@@ -1035,19 +965,15 @@ def test_a_minimum_rest_time_makes_the_restart_at_the_stop_a_real_event():
     assert run.phase_age_end_s == pytest.approx(3600.0 - t_first - cycles * (rest + t_back), rel=1e-9)
     assert run.phase_age_end_s < rest  # resting, and for less than the minimum rest time
     # Without a minimum rest time the hold stands (what the cycling tends to as the rest goes to zero) ...
-    hold = _sim(min_off_time_s=0.0, rest_before_restart=True, **kw)
-    assert hold == _sim(**kw)
+    hold = _sim(min_off_time_s=0.0, **kw)
     assert hold.starts == 1 and hold.running_end and hold.phase_age_end_s == 3600.0
     assert hold.runtime_fraction * 3600.0 == pytest.approx(t_first + (3600.0 - t_first) * 500.0 / 2_000.0, rel=1e-9)
     # ... and a shorter rest gives more starts and a run time that tends to the hold's.
-    short = _sim(min_off_time_s=60.0, rest_before_restart=True, **kw)
+    short = _sim(min_off_time_s=60.0, **kw)
     assert short.starts > run.starts and run.runtime_fraction < short.runtime_fraction < hold.runtime_fraction
-    # The default leaves the hold alone whatever the rest time: the multi-node tank's hold, as on main.
-    assert _sim(min_off_time_s=rest, **kw) == _sim(**kw)
+    # Without a duty limit the hold at the cut-out stands whatever the rest time, as on main.
     plain = dict(kw, duty_limit=None, T_limit_C=64.0)
     assert _sim(min_off_time_s=rest, **plain) == _sim(**plain)
-    rested = _sim(min_off_time_s=rest, rest_before_restart=True, **plain)
-    assert rested.starts > 1 and rested.runtime_fraction < _sim(**plain).runtime_fraction
 
 
 def test_the_search_for_the_smallest_duty_stays_below_the_boiling_point():
@@ -1072,120 +998,6 @@ def test_the_search_for_the_smallest_duty_stays_below_the_boiling_point():
     model.T_cond_max = 80.0
     assert smallest_duty_on_condensing_limit(model, floor_at) == 1_800.0
     assert seen[-1] == pytest.approx(80.0 - 1_800.0 / 2140.0, abs=0.01)
-
-
-def test_merged_row_names_the_limit_that_governed_most_of_the_run():
-    full = {"Q_ref_tank [W]": 3_000.0, "E_tot [W]": 1_000.0, "hp_is_on": True}
-    full.update({"capacity_clamped": "max", "capacity_binding": OTHER, "Q_request [W]": 10_000.0})
-    reduced = {"Q_ref_tank [W]": 2_500.0, "E_tot [W]": 900.0, "hp_is_on": True}
-    reduced.update({"capacity_clamped": "max", "capacity_binding": BINDING_CONDENSING, "Q_request [W]": 10_000.0})
-    keys = ("Q_ref_tank [W]", "E_tot [W]")
-    assert merge_running_rows(full, 0.6, reduced, 0.2, keys)["capacity_binding"] == OTHER
-    assert merge_running_rows(full, 0.2, reduced, 0.6, keys)["capacity_binding"] == BINDING_CONDENSING
-
-
-# ---- the same on the models ----
-
-
-def test_source_freezing_above_the_cut_out_is_followed_at_its_own_duty():
-    """Review, blocker 1, water-source: source water at 4 degC, tank at 68.1 degC, set points above.
-
-    The source water's freezing limit leaves 3.1 kW where the condensing limit would leave 7.3 kW.
-    The rows that limit governs are not on the condensing limit, and ten minutes come out the same
-    in 60 s steps and in one step (before: 72.480 degC / 0.519 kWh against 72.146 degC / 0.480 kWh).
-    """
-    kw = dict(T_dis_max=None, T_tank_w_lower_bound=75.0, T_tank_w_upper_bound=76.0)
-    totals = {}
-    for dt in (60.0, 600.0):
-        m = _quiet(tmhp.WaterSourceHeatPumpBoiler, condensing_limit_control="reduce_duty", **kw)
-        n = int(600.0 / dt)
-        df = _quiet(
-            m.analyze_dynamic, n * dt, dt, 68.1, np.zeros(n), np.full(n, 7.0), T_source_w_schedule=np.full(n, 4.0)
-        )
-        assert (df["failure_reason"] == "none").all() and df["hp_stop_reason"].isna().all(), dt
-        totals[dt] = (
-            float(df["T_tank_w [°C]"].iloc[-1]),
-            float(df["Q_ref_tank [W]"].sum() * dt),
-            float(df["E_tot [W]"].sum() * dt),
-        )
-        if dt == 60.0:
-            first = df.iloc[0]
-            assert first["capacity_binding"] == "source_fluid_freezing" and first["reduced_duty_fraction [-]"] == 0.0
-            assert first["Q_ref_tank [W]"] < 0.5 * m.K_tank_hx * (condensing_tank_reach(m) - 68.1)
-            # Only a row that condenses on the limit counts as run on it.
-            on_limit = df["reduced_duty_fraction [-]"] > 0.0
-            freezing = df["capacity_binding"] == "source_fluid_freezing"
-            assert (df.loc[freezing, "reduced_duty_fraction [-]"] < 1.0).all()
-            assert (df.loc[on_limit, "T_ref_cond_sat_v [°C]"] > m.T_cond_max - 0.5).all()
-    fine, coarse = totals[60.0], totals[600.0]
-    assert coarse[0] == pytest.approx(fine[0], abs=0.05)
-    assert coarse[1] == pytest.approx(fine[1], rel=0.01)
-    assert coarse[2] == pytest.approx(fine[2], rel=0.01)
-
-
-def test_a_source_too_cold_to_run_at_all_keeps_its_failure_reason():
-    """Review, blocker 1: at 3.1 degC the freezing limit leaves no duty, and the row has to say so."""
-    m = _quiet(
-        tmhp.WaterSourceHeatPumpBoiler,
-        condensing_limit_control="reduce_duty",
-        T_dis_max=None,
-        T_tank_w_lower_bound=75.0,
-        T_tank_w_upper_bound=76.0,
-    )
-    df = _quiet(
-        m.analyze_dynamic, 600.0, 300.0, 68.1, np.zeros(2), np.full(2, 7.0), T_source_w_schedule=np.full(2, 3.1)
-    )
-    assert (df["failure_reason"] == "source_fluid_freezing").all()
-    assert df["hp_stop_reason"].isna().all() and not df["hp_is_on"].any()
-    assert (df["reduced_duty_fraction [-]"] == 0.0).all()
-
-
-def test_discharge_limit_above_the_cut_out_is_followed_and_not_overrun():
-    """Review, blocker 1, air-source: R32 at -7 degC with ``T_dis_max=105``.
-
-    The discharge-temperature limit leaves less than the condensing limit from 57 degC and no
-    operating point above about 59 degC. The charge follows that limit (its rows are not on the
-    condensing limit), ends where the cycle stops existing with the cycle's own failure reason,
-    and comes out the same in 60 s steps, in 300 s steps and in one 600 s step. (A step that gets to
-    where its full-duty cycle meets the condensing limit does not stop there while the cycle still
-    runs at less: the rest of the step is resolved from that tank temperature.)
-    """
-    kw = dict(ISSUE, T_dis_max=105.0)
-    out = {}
-    for dt in (60.0, 300.0, 600.0):
-        m = _quiet(tmhp.AirSourceHeatPumpBoiler, condensing_limit_control="reduce_duty", **kw)
-        n = int(600.0 / dt)
-        df = _quiet(m.analyze_dynamic, n * dt, dt, 56.0, np.zeros(n), np.full(n, -7.0))
-        ran = df["runtime_fraction [-]"] > 0.0
-        assert ran.any(), dt
-        assert (df.loc[ran, "capacity_binding"] == "discharge_temperature").all(), dt
-        assert (df["reduced_duty_fraction [-]"] == 0.0).all(), dt
-        assert (df.loc[ran, "T_ref_cmp_out [°C]"] <= 105.0 + 0.011).all(), dt
-        assert (df.loc[ran, "T_ref_cond_sat_v [°C]"] <= 65.0 + 0.011).all(), dt
-        out[dt] = df
-    fine = out[60.0]
-    # Where the cycle stops existing the rows carry its failure, not a condensing stop.
-    off = fine["runtime_fraction [-]"] == 0.0
-    assert off.any() and (fine.loc[off, "failure_reason"] == "discharge_temp_above_max").all()
-    assert fine.loc[off, "hp_stop_reason"].isna().all()
-
-    def totals(df, dt):
-        return (
-            float(df["T_tank_w [°C]"].iloc[-1]),
-            float(df["Q_ref_tank [W]"].sum() * dt),
-            float(df["E_tot [W]"].sum() * dt),
-        )
-
-    end_fine, heat_fine, power_fine = totals(fine, 60.0)
-    T_top = float(fine["T_tank_w [°C]"].max())
-    for dt in (300.0, 600.0):
-        end, heat, power = totals(out[dt], dt)
-        assert end == pytest.approx(end_fine, abs=0.1), dt
-        assert heat == pytest.approx(heat_fine, rel=0.03) and power == pytest.approx(power_fine, rel=0.03), dt
-        # No step size takes the tank above where the fine steps end the charge.
-        assert out[dt]["T_tank_w [°C]"].max() <= T_top + 0.1, dt
-    # The one 600 s step went on past 57.99 degC, where its full-duty cycle meets the condensing limit.
-    assert totals(out[600.0], 600.0)[0] > 58.5
 
 
 @pytest.mark.parametrize("family", list(FAMILIES))
@@ -1219,11 +1031,17 @@ def test_a_limit_met_above_the_boiling_point_constructs_and_keeps_the_band(famil
 
 
 def test_a_stop_at_the_boiling_point_is_reported_as_one():
-    """Review, should-fix 3: the stop the step applied was 100 degC, the row said ``condensing_limit``."""
+    """Review, should-fix 3: the stop the step applied was 100 degC, the row said ``condensing_limit``.
+
+    (R600a with ``T_cond_max=102`` and source water at 16 degC, where the condensing limit governs
+    the stretch. The first version of this test ran at 8 degC with ``T_cond_max=101``: there the
+    compressor's speed ceiling leaves 7976 W of the 8000 W nameplate at the knee, and reduced-duty
+    charging is withheld.)
+    """
     m = _quiet(
         tmhp.WaterSourceHeatPumpBoiler,
         ref="R600a",
-        T_cond_max=101.0,
+        T_cond_max=102.0,
         PR_cycle_max=15.0,
         T_dis_max=None,
         min_on_time_s=5000.0,
@@ -1231,16 +1049,18 @@ def test_a_stop_at_the_boiling_point_is_reported_as_one():
         T_tank_w_upper_bound=100.0,
         condensing_limit_control="reduce_duty",
     )
+    T_init = condensing_tank_cutout(m) - 0.1
     df = _quiet(
-        m.analyze_dynamic, 2400.0, 2400.0, 93.891079, np.zeros(1), np.full(1, 15.0), T_source_w_schedule=np.full(1, 8.0)
+        m.analyze_dynamic, 2400.0, 2400.0, T_init, np.zeros(1), np.full(1, 15.0), T_source_w_schedule=np.full(1, 16.0)
     )
     row = df.iloc[0]
-    # With the source at 8 degC the smallest duty meets the limit above 100 degC ...
-    floor = m._charge_floor_cache[1]
+    # The smallest duty meets the limit above 100 degC ...
+    floor = m._charge_stretch_cache[1]
     assert condensing_tank_reach(m) - floor / m.K_tank_hx > T_WATER_BOIL_C
     # ... so the minimum run time carried the compressor to the boiling point, which stopped it.
     assert row["hp_stop_reason"] == STOP_BOILING_LIMIT and row["failure_reason"] == "none"
     assert row["reduced_duty_fraction [-]"] > 0.0 and row["T_tank_w [°C]"] <= T_WATER_BOIL_C
+    assert row["reduced_duty_withheld"] is None
 
 
 def test_run_time_and_compressor_state_agree_at_the_stop():
@@ -1370,264 +1190,301 @@ def test_the_blend_warning_names_the_bubble_point():
     assert not any("bubble point" in str(w.message) for w in caught)
 
 
-def test_a_run_goes_on_past_the_knee_of_its_first_duty_where_the_cycle_still_runs():
-    """A second limit whose duty falls with the tank temperature, below the condensing limit's all the way.
+# ---------------------------------------------------------------------------
+# the stretch on the limit qualifies, or reduced-duty charging is withheld
+# ---------------------------------------------------------------------------
 
-    Stop-time review of the fix above: a step that got to where its full-duty cycle meets the
-    condensing limit stopped there, although the cycle still ran at the lower duty the other limit
-    left, and the next step went on from it; one long step so ended lower than short ones (57.99
-    against 58.99 degC in the air-source case). The rest of the step is now resolved from that
-    tank temperature, with the duty the other limit leaves there, and joined to the run.
+OTHER = "discharge_temperature"
+FAILS = "source_fluid_freezing"
+#: Knee, middle and stop of the stretch of ``LIMIT`` for the nameplate duty ``Q_ON`` [degC].
+KNEE, MIDDLE, STOP = 60.0, 62.0, 64.0
+
+
+def _qualify(second=None, floor=LIMIT.Q_min, line=LIMIT):
+    """``condensing_stretch`` on the limit of the event tests, with a second limit on the cycle.
+
+    ``second(T_C)`` is what that limit leaves at tank temperature ``T_C``: ``(duty [W], name)``,
+    or ``None`` where it leaves no operating point (the cycle then fails with ``FAILS``). The
+    cycle delivers what it is asked for, or that duty if it is less; a ``name`` of ``None`` is the
+    compressor's speed ceiling, which names no limit. Returns the verdict, the cycles solved as
+    ``(T_C, asked)`` and how often the smallest duty was looked for.
     """
+    solved, searches = [], []
 
-    def other(T_C):
-        return 9_000.0 - 1_500.0 * (T_C - 58.0)  # 9 kW at 58 degC, 3 kW at 62 degC
-
-    # From 56 degC one hour in one step: the cycle delivers 9 kW at the mean of the first run, whose
-    # knee lies at 60.5 degC. The other limit leaves 5.25 kW there, and 2 kW (the smallest duty) at 62.67 degC.
-    fine = _charge_two_limits(other, 360, 3600.0, T_start=56.0)
-    one = _charge_two_limits(other, 1, 3600.0, T_start=56.0)
-    run, row = one[3][0]
-    first_knee = LIMIT.knee_C(min(Q_ON, other(57.0)))
-    assert run.T_on_max_C > first_knee + 1.0
-    # The charge ends where the other limit leaves no more than the smallest continuous duty (62.67 degC).
-    assert fine[0] == pytest.approx(62.67, abs=0.05)
-    assert one[0] == pytest.approx(fine[0], abs=0.15)
-    assert one[1] == pytest.approx(fine[1], rel=0.02)
-    # The row is the run-time-weighted mean of the stages' cycles: its heat is the step's.
-    assert row["Q_ref_tank [W]"] * run.runtime_fraction * 3600.0 == pytest.approx(one[1], rel=1e-12)
-    assert row["capacity_binding"] == OTHER and run.reduced_fraction == 0.0 and one[2] == 0.0
-    # The joined run is one run: one start, and no cut-out is reported for the knees it passed.
-    assert run.starts == 1 and run.running_start
-    for parts in (36, 6):
-        T_end, heat, _, _ = _charge_two_limits(other, parts, 3600.0, T_start=56.0)
-        assert T_end == pytest.approx(fine[0], abs=0.15), parts
-        assert heat == pytest.approx(fine[1], rel=0.02), parts
-
-
-def test_a_row_of_several_stretches_names_the_limit_with_the_longest_run_time_in_total():
-    """Stop-time review of the stages: merging two cycles at a time named the limit of the last pair.
-
-    Three stretches, 40 s under one limit, 35 s under another, 25 s under the first again: the first
-    governed 65 s. Merged two at a time, the last two give the second limit (35 against 25 s) and
-    that pair (60 s) then outweighs the first stretch (40 s). A merged row remembers its cycles, so
-    merging it again weighs every cycle with its own run time, whatever the grouping.
-    """
-    keys = ("Q_ref_tank [W]", "E_tot [W]")
-
-    def cycle(q, binding, speed):
-        row = {"hp_is_on": True, "Q_ref_tank [W]": q, "E_tot [W]": q / 3.0, "cmp_rpm [rpm]": speed}
-        row.update({"capacity_clamped": "max", "capacity_binding": binding, "Q_request [W]": 10_000.0})
+    def solve(T_C, asked):
+        solved.append((T_C, asked))
+        row = {"hp_is_on": True, "failure_reason": "none", "Q_ref_tank [W]": asked}
+        left = (math.inf, None) if second is None else second(T_C)
+        if left is None:
+            return {"hp_is_on": False, "failure_reason": FAILS}
+        duty, name = left
+        if duty < asked:
+            row.update({"Q_ref_tank [W]": duty, "capacity_clamped": "max"})
+        if name is not None and duty <= asked:
+            row["capacity_binding"] = name
         return row
 
-    a1, b, a2 = cycle(9_000.0, "first", 6000.0), cycle(6_000.0, "second", 4000.0), cycle(4_000.0, "first", 3000.0)
-    left = merge_running_rows(merge_running_rows(a1, 40.0, b, 35.0, keys), 75.0, a2, 25.0, keys)
-    right = merge_running_rows(a1, 40.0, merge_running_rows(b, 35.0, a2, 25.0, keys), 60.0, keys)
-    assert merge_running_rows(b, 35.0, a2, 25.0, keys)["capacity_binding"] == "second"  # the pair alone
-    for row in (left, right):
-        assert row["capacity_binding"] == "first"
-        assert row["Q_ref_tank [W]"] == pytest.approx((40 * 9_000.0 + 35 * 6_000.0 + 25 * 4_000.0) / 100.0)
-        assert row["Q_max [W]"] == pytest.approx(row["Q_ref_tank [W]"])
-        assert row["cmp_rpm [rpm]"] == 6000.0  # the state of the one cycle that ran longest
-    assert dict(left) == pytest.approx(dict(right))
-    # The weights of a merged row are rescaled to the weight it is given (fractions here, seconds above).
-    scaled = merge_running_rows(a1, 0.4, merge_running_rows(b, 35.0, a2, 25.0, keys), 0.6, keys)
-    assert scaled["capacity_binding"] == "first" and scaled["Q_ref_tank [W]"] == pytest.approx(left["Q_ref_tank [W]"])
+    def min_duty():
+        searches.append(len(solved))
+        return floor
+
+    return condensing_stretch(solve, line.T_zero_C, line.K, Q_ON, min_duty), solved, searches
 
 
-def test_a_cycle_at_the_speed_ceiling_counts_as_under_a_limit():
-    """A cycle at the compressor's speed ceiling has ``capacity_clamped == "max"`` and names no binding.
+def test_a_stretch_the_condensing_limit_governs_qualifies():
+    """Three cycles: the knee, the middle and the stop, each asked for the limit's duty there."""
+    verdict, solved, searches = _qualify()
+    assert verdict == (LIMIT.Q_min, None)
+    assert [T for T, _ in solved] == pytest.approx([KNEE, MIDDLE, STOP])
+    assert [q for _, q in solved] == pytest.approx([10_000.0, 6_000.0, 2_000.0])
+    assert searches == [1]  # the smallest duty is looked for once, after the knee
+    # A cycle on the limit names the condensing limit, or none: both qualify.
+    named = _qualify(lambda T_C: (LIMIT.duty(T_C), BINDING_CONDENSING))
+    assert named[0] == (LIMIT.Q_min, None)
 
-    The boiler completes such a row with ``capacity_binding = "compressor"``. Merged with a shorter
-    stretch under another limit, the row has to stay one the boiler completes that way (before: it
-    took the other stretch's binding, whatever the run times).
+
+@pytest.mark.parametrize("where, T_other", [("knee", KNEE), ("middle", MIDDLE), ("stop", STOP)])
+def test_another_limit_anywhere_on_the_stretch_withholds_it(where, T_other):
+    """A second limit that holds the cycle below the condensing limit's duty at one of the three points."""
+
+    def second(T_C):
+        return (0.9 * LIMIT.duty(T_C), OTHER) if abs(T_C - T_other) < 0.5 else (math.inf, None)
+
+    verdict, solved, searches = _qualify(second)
+    assert verdict == (None, OTHER)
+    # The first point that fails ends the check: no solve after it, and at the knee no search either.
+    n = {"knee": 1, "middle": 2, "stop": 3}[where]
+    assert len(solved) == n and solved[-1][0] == pytest.approx(T_other)
+    assert searches == ([] if where == "knee" else [1])
+
+
+@pytest.mark.parametrize("where, T_other", [("knee", KNEE), ("middle", MIDDLE), ("stop", STOP)])
+def test_a_cycle_that_does_not_run_withholds_it_with_its_failure(where, T_other):
+    verdict, solved, _ = _qualify(lambda T_C: None if abs(T_C - T_other) < 0.5 else (math.inf, None))
+    assert verdict == (None, FAILS)
+    assert len(solved) == {"knee": 1, "middle": 2, "stop": 3}[where]
+
+
+def test_what_withholds_the_stretch_is_named():
+    # The compressor at its speed ceiling names no limit: short of the nameplate at the knee.
+    assert _qualify(lambda T_C: (9_500.0, None))[0] == (None, BINDING_COMPRESSOR)
+    # A cycle that delivers the duty but names another limit is on that limit.
+    assert _qualify(lambda T_C: (LIMIT.duty(T_C), OTHER))[0] == (None, OTHER)
+    # A cycle that fails without a reason of its own.
+    silent, _, _ = _qualify(lambda T_C: None)
+    assert silent == (None, FAILS)
+    no_reason = condensing_stretch(lambda T_C, q: {"hp_is_on": False}, 65.0, 2_000.0, Q_ON, lambda: 2_000.0)
+    assert no_reason == (None, BINDING_CYCLE)
+    # No continuous duty below the nameplate: no stretch, after the one solve at the knee.
+    for floor in (None, Q_ON, 1.5 * Q_ON, math.nan):
+        verdict, solved, searches = _qualify(floor=floor)
+        assert verdict == (None, WITHHELD_NO_SMALLER_DUTY) and len(solved) == 1 and searches == [1], floor
+
+
+def test_the_duty_delivered_is_matched_to_the_stated_tolerance():
+    """A cycle within ``DUTY_MATCH_RTOL`` of the limit's duty is on the limit; one further off is not."""
+
+    def short(by):
+        return lambda T_C: (LIMIT.duty(T_C) * (1.0 - by), None)
+
+    assert _qualify(short(0.5 * DUTY_MATCH_RTOL))[0] == (LIMIT.Q_min, None)
+    assert _qualify(short(2.0 * DUTY_MATCH_RTOL))[0] == (None, BINDING_COMPRESSOR)
+    # More than asked is as far off the limit's line as less.
+    over, _, _ = _qualify()
+    assert over == (LIMIT.Q_min, None)
+    above = condensing_stretch(
+        lambda T_C, q: {"hp_is_on": True, "Q_ref_tank [W]": q * (1.0 + 2.0 * DUTY_MATCH_RTOL)},
+        LIMIT.T_zero_C,
+        LIMIT.K,
+        Q_ON,
+        lambda: LIMIT.Q_min,
+    )
+    assert above == (None, BINDING_COMPRESSOR)
+
+
+def test_no_point_of_the_check_is_above_the_boiling_point():
+    """A limit high enough that the smallest duty meets it above 100 degC: the stretch ends at the boiling point."""
+    hot = DutyLimit(T_zero_C=102.0, K=2_000.0, Q_min=2_000.0)  # knee 97 degC, stop 101 degC
+    verdict, solved, _ = _qualify(line=hot)
+    assert verdict == (2_000.0, None)
+    assert [T for T, _ in solved] == pytest.approx([97.0, 98.5, T_WATER_BOIL_C])
+    assert solved[-1][1] == pytest.approx(hot.K * (hot.T_zero_C - T_WATER_BOIL_C))  # the limit's duty there, 4 kW
+
+
+# ---- the same on the models ----
+
+#: Columns only a ``reduce_duty`` model writes.
+REDUCE_ONLY = {"reduced_duty_fraction [-]", "reduced_duty_withheld"}
+
+
+def _same_cell(a, b):
+    both_nan = isinstance(a, float) and isinstance(b, float) and math.isnan(a) and math.isnan(b)
+    return both_nan or (a is None and b is None) or a == b
+
+
+def _assert_rows_are_those_of(df, reference):
+    """Every column of ``reference`` in ``df`` with the same values, and no other column in ``df`` (no tolerance)."""
+    assert set(df.columns) - REDUCE_ONLY == set(reference.columns)
+    assert len(df) == len(reference)
+    for column in reference.columns:
+        differing = [
+            i for i, (a, b) in enumerate(zip(df[column], reference[column], strict=True)) if not _same_cell(a, b)
+        ]
+        assert not differing, (column, differing[:3])
+
+
+def _stop_model_with_the_band_of(cls, kwargs, model):
+    """A ``"stop"`` model with the thermostat band ``model`` keeps.
+
+    The constructor of a ``"stop"`` model caps the band at the nameplate cut-out; the band of the
+    ``reduce_duty`` model is written over it afterwards. No reduced-duty argument reaches the
+    kernel from this model: it is the reference a withheld step has to reproduce.
     """
-    from tmhp._boiler_results import complete_capacity_keys
-
-    keys = ("Q_ref_tank [W]", "E_tot [W]")
-    ceiling = {"hp_is_on": True, "Q_ref_tank [W]": 13_000.0, "E_tot [W]": 5_000.0, "capacity_clamped": "max"}
-    other = {"hp_is_on": True, "Q_ref_tank [W]": 9_500.0, "E_tot [W]": 4_000.0, "capacity_clamped": "max"}
-    other.update({"capacity_binding": "discharge_temperature", "Q_max [W]": 9_500.0, "Q_request [W]": 15_000.0})
-    row = merge_running_rows(ceiling, 363.0, other, 103.0, keys)
-    assert row["capacity_clamped"] == "max" and "capacity_binding" not in row
-    assert complete_capacity_keys(dict(row), 15_000.0)["capacity_binding"] == "compressor"
-    assert row["Q_max [W]"] == pytest.approx((363 * 13_000.0 + 103 * 9_500.0) / 466.0)
-    # The shorter of the two governs when it is the one at the ceiling's side ...
-    row = merge_running_rows(ceiling, 100.0, other, 300.0, keys)
-    assert row["capacity_binding"] == "discharge_temperature" and row["Q_request [W]"] == 15_000.0
-    # ... and a cycle that is not held at all leaves the keys to the one that is.
-    free = {"hp_is_on": True, "Q_ref_tank [W]": 15_000.0, "E_tot [W]": 5_500.0, "capacity_clamped": None}
-    assert merge_running_rows(free, 400.0, other, 50.0, keys)["capacity_binding"] == "discharge_temperature"
-    assert "capacity_binding" not in merge_running_rows(free, 400.0, ceiling, 50.0, keys)
+    stop = _quiet(cls, **kwargs)
+    assert stop.condensing_limit_control == "stop" and stop.T_tank_w_upper_bound <= condensing_tank_cutout(stop)
+    stop.T_tank_w_lower_bound, stop.T_tank_w_upper_bound = model.T_tank_w_lower_bound, model.T_tank_w_upper_bound
+    return stop
 
 
-def test_one_long_step_names_the_limit_that_governed_most_of_its_run():
-    """R32 at -7 degC with ``T_dis_max=105``, half an hour from 50 degC in one step and in 60 s steps.
-
-    Up to about 55.5 degC the compressor is at its speed ceiling, above it the discharge limit holds
-    it. The one step is resolved in several stages; its row has to name the limit the run spent
-    most of its time under, as the rows of the short steps do in total.
-    """
-    kw = dict(ISSUE, T_dis_max=105.0)
-    under = {}
-    for dt in (60.0, 1800.0):
-        m = _quiet(tmhp.AirSourceHeatPumpBoiler, condensing_limit_control="reduce_duty", **kw)
-        n = int(1800.0 / dt)
-        df = _quiet(m.analyze_dynamic, n * dt, dt, 50.0, np.zeros(n), np.full(n, -7.0))
-        ran = df["runtime_fraction [-]"] > 0.0
-        seconds = (df.loc[ran, "runtime_fraction [-]"] * dt).groupby(df.loc[ran, "capacity_binding"]).sum()
-        under[dt] = seconds.to_dict()
-    fine, one = under[60.0], under[1800.0]
-    assert set(fine) == {"compressor", "discharge_temperature"} and fine["compressor"] > fine["discharge_temperature"]
-    assert list(one) == ["compressor"]
-    assert sum(one.values()) == pytest.approx(sum(fine.values()), rel=0.03)
-
-
-def test_a_limit_just_below_the_condensing_one_is_followed_to_where_it_ends():
-    """Stop-time review of the stages: a second limit 100 W below the condensing limit all the way.
-
-    A run at one duty ends where that duty meets the condensing limit, and with the two limits this
-    close each run gets a few hundredths of a kelvin further: one 3600 s step used up its stages
-    and reported a cut-out at 63.51 degC with 2.9 kW still to be had, where 360 steps reach
-    63.95 degC (the limit leaves the smallest duty, 2 kW, there). The other limit is now followed as
-    what it is, a duty that falls with the tank temperature: a straight line through the cycle at
-    the start of the run and the one at its mean, integrated in closed form like the condensing limit.
-    """
-
-    def other(T_C):
-        return LIMIT.duty(T_C) - 100.0
-
-    floor_C = LIMIT.stop_C - 100.0 / LIMIT.K  # 63.95 degC
-    ends = {}
-    for parts in (360, 36, 6, 1):
-        tank, call, running, age, heat, dt = 61.0, True, False, math.inf, 0.0, 3600.0 / parts
-        for _ in range(parts):
-            run, row, _ = _resolve_two_limits(
-                other, T_start=tank, dt=dt, call_start=call, running_prev=running, phase_age_s=age
-            )
-            assert run.reduced_fraction == 0.0, parts  # never on the condensing limit: 100 W below it
-            # ... and never stopped by it: the other limit ends the charge 0.05 K below the condensing
-            # cut-out (64 degC), and neither that end nor the steps after it are a condensing stop.
-            assert in_step_stop_reason(run, T_WATER_BOIL_C) is None, (parts, tank, run)
-            assert not run.heat_unavailable, parts  # nor a cycle that failed: it runs, at too little
-            if row is not None and row.get("hp_is_on") and run.runtime_fraction > 0.0:
-                assert row["capacity_binding"] == OTHER, parts
-                step_heat = row["Q_ref_tank [W]"] * run.runtime_fraction * dt
-                heat, tank = heat + step_heat, tank + step_heat / C
-            call, running, age = run.call_end, run.running_end, run.phase_age_end_s
-        ends[parts] = (tank, heat)
-        assert tank == pytest.approx(floor_C, abs=0.005), parts
-    for parts in (36, 6, 1):
-        assert ends[parts][1] == pytest.approx(ends[360][1], rel=0.005), parts
-    # The one step: the run follows the limit's line from 61 degC, C dT/dt = 2000 (64.95 - T).
-    run, row = _charge_two_limits(other, 1, 3600.0)[3][0]
-    t_floor = TAU * math.log((64.95 - 61.0) / (64.95 - floor_C))
-    assert run.runtime_fraction * 3600.0 == pytest.approx(t_floor, rel=1e-3)
-    assert row["Q_ref_tank [W]"] * run.runtime_fraction * 3600.0 == pytest.approx((floor_C - 61.0) * C, rel=1e-3)
-
-
-def test_running_out_of_stages_is_not_reported_as_a_cut_out(monkeypatch):
-    """A step whose resolution runs out of stages has not met a cut-out: the next step takes the charge on."""
-    import tmhp.dynamic_context as dc
-
-    def other(T_C):
-        return 9_000.0 - 1_500.0 * (T_C - 58.0)
-
-    monkeypatch.setattr(dc, "_DUTY_LIMIT_STAGES", 0)
-    run, row, _ = _resolve_two_limits(other, T_start=56.0, dt=3600.0)
-    # The first run ends at 60.5 degC, where its 9 kW meet the condensing limit and 5.25 kW could still be had.
-    assert run.T_on_max_C == pytest.approx(60.5) and row["Q_ref_tank [W]"] == pytest.approx(9_000.0)
-    assert not run.limit_stop and run.limit_stop_C is None
-    assert in_step_stop_reason(run, T_WATER_BOIL_C) is None
-    assert run.call_end  # the call stands: the next step goes on from there
-
-
-#: Second limits of several shapes on the tank of the event tests: name -> (duty left [W] by tank temperature
-#: [degC], start [degC], tolerances on the end temperature [K], the heat [-] and the time on the condensing limit [s]).
-OTHER_LIMITS = {
-    "just below the condensing limit": (lambda T_C: LIMIT.duty(T_C) - 100.0, 61.0, 0.005, 0.005, 0.0),
-    "falling, met below the cut-out": (lambda T_C: 9_000.0 - 1_500.0 * (T_C - 58.0), 56.0, 0.005, 0.005, 0.0),
-    "taking over above the start": (lambda T_C: 6_000.0 - 4_000.0 * (T_C - 62.0), 61.0, 0.005, 0.005, 15.0),
-    "shallow, meeting the condensing limit": (lambda T_C: 5_000.0 - 500.0 * (T_C - 61.0), 61.0, 0.005, 0.005, 1.0),
-    "curved": (lambda T_C: 7_000.0 - 900.0 * (T_C - 61.0) ** 2, 61.0, 0.06, 0.025, 40.0),
-    "rising": (lambda T_C: 3_000.0 + 50.0 * (T_C - 61.0), 61.0, 0.005, 0.005, 6.0),
-    "ending abruptly": (lambda T_C: 6_000.0 - 2_000.0 * (T_C - 61.0) if T_C <= 62.4 else 0.0, 61.0, 0.03, 0.02, 0.0),
+R32_COLD = dict(ref="R32", hp_capacity=15000.0)
+#: The reviewers' cases: name -> (class, arguments, start tank, outdoor, source water, horizon, what withholds).
+COMPETING = {
+    "source water at 4 degC: its freezing limit": (
+        tmhp.WaterSourceHeatPumpBoiler,
+        dict(T_dis_max=None, T_tank_w_lower_bound=75.0, T_tank_w_upper_bound=76.0),
+        67.0,
+        7.0,
+        4.0,
+        600.0,
+        "source_fluid_freezing",
+    ),
+    "source water at 3.1 degC: no cycle": (
+        tmhp.WaterSourceHeatPumpBoiler,
+        dict(T_dis_max=None, T_tank_w_lower_bound=75.0, T_tank_w_upper_bound=76.0),
+        68.1,
+        7.0,
+        3.1,
+        600.0,
+        "source_fluid_freezing",
+    ),
+    "discharge limit of 105 degC at -7 degC": (
+        tmhp.AirSourceHeatPumpBoiler,
+        dict(R32_COLD, T_dis_max=105.0, T_tank_w_lower_bound=60.0, T_tank_w_upper_bound=62.0),
+        57.0,
+        -7.0,
+        None,
+        600.0,
+        "discharge_temperature",
+    ),
+    "discharge limit of 115 degC at -12 degC": (
+        tmhp.AirSourceHeatPumpBoiler,
+        dict(R32_COLD, T_dis_max=115.0, T_tank_w_lower_bound=61.0, T_tank_w_upper_bound=63.3),
+        57.5,
+        -12.0,
+        None,
+        600.0,
+        "compressor",
+    ),
 }
 
 
-@pytest.mark.parametrize("shape", list(OTHER_LIMITS))
-def test_a_second_limit_of_any_shape_comes_out_the_same_at_any_step(shape):
-    """One hour under a second limit in 360, 36 and 6 steps and in one: the same tank, heat and time on the condensing limit.
+@pytest.mark.parametrize("case", list(COMPETING))
+def test_where_another_limit_governs_the_rows_are_those_of_the_stop(case):
+    """The reviewers' competing-limit cases: reduced-duty charging withheld at every step size.
 
-    On every step: the heat of the row is the heat the events integrated (nothing but the
-    compressor moves this tank, so the warmest tank the events saw it run at is the tank its heat
-    gives: to 0.005 K), and a cut-out is reported only where nothing above the smallest continuous
-    duty is left to be had. (Stop-time review: a run cut short where the other limit closes kept
-    the cycle of the longer run, whose mean duty was another.)
+    Each run is compared with a ``"stop"`` model that keeps the same thermostat band: the same
+    columns, and every value the same. The rows that got to the limit name what withheld the
+    charging, the others (the tank still below the cut-out) name nothing; none is on the limit.
     """
-    other, T_init, T_tol, Q_tol, t_tol = OTHER_LIMITS[shape]
-    out = {}
-    for parts in (360, 36, 6, 1):
-        tank, call, running, age, heat, on_limit, dt = T_init, True, False, math.inf, 0.0, 0.0, 3600.0 / parts
-        for _ in range(parts):
-            run, row, _ = _resolve_two_limits(
-                other, T_start=tank, dt=dt, call_start=call, running_prev=running, phase_age_s=age
-            )
-            if row is not None and row.get("hp_is_on") and run.runtime_fraction > 0.0:
-                step_heat = row["Q_ref_tank [W]"] * run.runtime_fraction * dt
-                heat, tank = heat + step_heat, tank + step_heat / C
-                assert run.T_on_max_C <= tank + 0.005, (shape, parts, run.T_on_max_C - tank)
-            if run.limit_stop:
-                top = tank if run.T_on_max_C is None else max(tank, run.T_on_max_C)
-                left = min(other(top), LIMIT.duty(top))
-                assert left <= LIMIT.Q_min * 1.002, (shape, parts, top, left)
-                # A condensing stop is the condensing limit's: reported with the tank at that limit's
-                # stop (64 degC) only, never where the second limit ended the run below it.
-                assert in_step_stop_reason(run, T_WATER_BOIL_C) == STOP_CONDENSING_LIMIT
-                assert top == pytest.approx(LIMIT.stop_C, abs=0.005), (shape, parts, top)
-            else:
-                assert in_step_stop_reason(run, T_WATER_BOIL_C) is None
-            on_limit += run.reduced_fraction * dt
-            call, running, age = run.call_end, run.running_end, run.phase_age_end_s
-        out[parts] = (tank, heat, on_limit)
-    fine = out[360]
-    for parts in (36, 6, 1):
-        assert out[parts][0] == pytest.approx(fine[0], abs=T_tol), (shape, parts)
-        assert out[parts][1] == pytest.approx(fine[1], rel=Q_tol), (shape, parts)
-        assert out[parts][2] == pytest.approx(fine[2], abs=t_tol), (shape, parts)
-    # Only the shallow and the rising limit let the tank get to the condensing limit's stop.
-    assert (fine[0] == pytest.approx(LIMIT.stop_C, abs=0.005)) == (
-        shape in ("shallow, meeting the condensing limit", "rising")
-    )
+    cls, kwargs, T_init, T0, T_source, horizon, reason = COMPETING[case]
+    totals = {}
+    for dt in (60.0, 600.0):
+        m = _quiet(cls, **kwargs, condensing_limit_control="reduce_duty")
+        stop = _stop_model_with_the_band_of(cls, kwargs, m)
+        n = int(horizon / dt)
+        schedule = {} if T_source is None else {"T_source_w_schedule": np.full(n, T_source)}
+        df = _quiet(m.analyze_dynamic, n * dt, dt, T_init, np.zeros(n), np.full(n, T0), **schedule)
+        reference = _quiet(stop.analyze_dynamic, n * dt, dt, T_init, np.zeros(n), np.full(n, T0), **schedule)
+        assert REDUCE_ONLY.isdisjoint(reference.columns)
+        _assert_rows_are_those_of(df, reference)
+        assert (df["reduced_duty_fraction [-]"] == 0.0).all(), dt
+        withheld = df["reduced_duty_withheld"]
+        assert set(withheld.dropna()) == {reason}, dt
+        # A step that got to the limit is one the stop's cut-out acted in, and says what withheld it.
+        got_there = df["hp_stop_reason"] == STOP_CONDENSING_LIMIT
+        assert got_there.any() and (withheld[got_there] == reason).all() and withheld[~got_there].isna().all(), dt
+        totals[dt] = (
+            float(df["T_tank_w [°C]"].iloc[-1]),
+            float(df["Q_ref_tank [W]"].sum() * dt),
+            float(df["E_tot [W]"].sum() * dt),
+            float(reference["Q_ref_tank [W]"].sum() * dt),
+        )
+    # The call stands above the cut-out: the charge ends there, the same at both step sizes.
+    (T_fine, Q_fine, E_fine, _), (T_coarse, Q_coarse, E_coarse, _) = totals[60.0], totals[600.0]
+    assert T_coarse == pytest.approx(T_fine, abs=0.05)
+    assert Q_coarse == pytest.approx(Q_fine, rel=0.01, abs=1.0) and E_coarse == pytest.approx(E_fine, rel=0.01, abs=1.0)
 
 
-@pytest.mark.parametrize("above", [1_500.0, 0.0], ids=["too little above", "no operating point above"])
-def test_a_hand_over_with_nothing_to_run_on_is_not_a_condensing_stop(above):
-    """Stop-time review: the run gets to where its duty meets the condensing limit, and nothing runs on from there.
+def test_a_qualified_source_state_is_checked_once_with_three_cycles():
+    """One outdoor state over many steps: one search for the smallest duty and three qualification solves."""
+    m = _quiet(tmhp.AirSourceHeatPumpBoiler, **ISSUE, condensing_limit_control="reduce_duty")
+    asked = []
+    inner = m._solve_cycle_at
 
-    A second limit leaves 9 kW up to 60.5 degC -- exactly where 9 kW meet the condensing limit --
-    and above it less than the smallest continuous duty, or no operating point. The run ends at
-    60.5 degC. That is 3.5 K below the condensing limit's stop (64 degC), so it is not a
-    condensing stop: the step ends the way the rest of it was resolved (the compressor off, the
-    call standing), and the step after it says why if the cycle has no operating point.
+    def spy(ctx, T_tank_w, Q_delivered=None):
+        asked.append((ctx.n, T_tank_w, Q_delivered))
+        return inner(ctx, T_tank_w, Q_delivered)
+
+    m._solve_cycle_at = spy
+    n = 20
+    df = _quiet(m.analyze_dynamic, n * 60.0, 60.0, 56.0, np.zeros(n), np.full(n, 15.0))
+    on_limit = df["reduced_duty_fraction [-]"] > 0.0
+    assert on_limit.sum() > 3 and df["reduced_duty_withheld"].isna().all()
+    # The step's own cycles on the limit: one per step that ran on it. The other solves at a duty
+    # of their own are the qualification's, all in the first step that got to the limit.
+    at_duty = [(step, T, q) for step, T, q in asked if q is not None]
+    first = int(np.argmax(on_limit.to_numpy()))
+    floor, reason = m._charge_stretch_cache[1:]
+    assert reason is None
+    knee, reach = condensing_tank_cutout(m), condensing_tank_reach(m)
+    stop = reach - floor / m.K_tank_hx
+    qualification = at_duty[:3]
+    assert [step for step, _, _ in qualification] == [first] * 3
+    assert [T for _, T, _ in qualification] == pytest.approx([knee, 0.5 * (knee + stop), stop])
+    assert [q for _, _, q in qualification] == pytest.approx([m.hp_capacity, 0.5 * (m.hp_capacity + floor), floor])
+    assert len(at_duty) == 3 + int(on_limit.sum())
+
+
+def test_the_verdict_follows_the_source_state_of_each_step():
+    """Outdoor air moving across the point where the compressor's speed ceiling starts to hold the knee.
+
+    R32, 15 kW: at 0 degC the condensing limit governs the stretch; at -7 degC the compressor at
+    its speed ceiling is short of the nameplate duty at the knee, and the charging is withheld.
+    Every step is that of its own outdoor state: on the limit at 0 degC, and at -7 degC the step
+    a ``"stop"`` model with the same band takes from the same state.
     """
-
-    def other(T_C):
-        return 9_000.0 if T_C <= 60.5 else above
-
-    run, row, _ = _resolve_two_limits(other, T_start=56.0, dt=3600.0)
-    assert run.runtime_fraction * 3600.0 == pytest.approx(4.5 * C / 9_000.0, rel=1e-9)
-    assert run.T_on_max_C == pytest.approx(60.5) and row["Q_ref_tank [W]"] == pytest.approx(9_000.0)
-    assert row["capacity_binding"] == OTHER and run.reduced_fraction == 0.0
-    assert in_step_stop_reason(run, T_WATER_BOIL_C) is None and not run.limit_stop
-    assert not run.running_end and run.call_end and run.starts == 1
-    assert run.phase_age_end_s == pytest.approx(3600.0 - 4.5 * C / 9_000.0, rel=1e-9)  # off since it got there
-    # The step after it, from 60.5 degC: off, and the cycle's failure if that is why.
-    after, row_after, _ = _resolve_two_limits(
-        other, T_start=60.5 + 1e-9, dt=600.0, running_prev=False, phase_age_s=run.phase_age_end_s
-    )
-    assert after.runtime_fraction == 0.0 and in_step_stop_reason(after, T_WATER_BOIL_C) is None
-    if above > 0.0:
-        assert not after.heat_unavailable and row_after is None
-    else:
-        assert after.heat_unavailable and row_after["failure_reason"] == OTHER
+    kwargs = dict(R32_COLD, T_tank_w_lower_bound=60.0, T_tank_w_upper_bound=62.0)
+    m = _quiet(tmhp.AirSourceHeatPumpBoiler, **kwargs, condensing_limit_control="reduce_duty")
+    stop = _stop_model_with_the_band_of(tmhp.AirSourceHeatPumpBoiler, kwargs, m)
+    outdoor = [0.0, -7.0, -7.0, 0.0, -7.0, 0.0, 0.0]
+    state, rows = m.make_initial_state(57.0), []
+    for i, T0 in enumerate(outdoor):
+        inputs = dict(n=i, current_time_s=i * 120.0, T0=T0, dV_mix_w_out=0.0, T_sup_w=15.0, T_sur=20.0)
+        state_next, row = _quiet(m.step, state, inputs, 120.0)
+        if T0 < -5.0:
+            _, reference = _quiet(stop.step, state, inputs, 120.0)
+            assert set(row) - REDUCE_ONLY == set(reference), i
+            assert all(_same_cell(row[key], reference[key]) for key in reference), i
+            assert row["reduced_duty_fraction [-]"] == 0.0, i
+            assert row["reduced_duty_withheld"] == (BINDING_COMPRESSOR if row["hp_stop_reason"] else None), i
+        else:
+            assert row["reduced_duty_withheld"] is None, i
+        rows.append(row)
+        state = state_next
+    on_limit = [row["reduced_duty_fraction [-]"] > 0.0 for row in rows]
+    withheld = [row["reduced_duty_withheld"] for row in rows]
+    # Both kinds of step occur, and a step after a withheld one charges on the limit again.
+    assert BINDING_COMPRESSOR in withheld and any(on_limit)
+    last_withheld = max(i for i, reason in enumerate(withheld) if reason)
+    assert any(on_limit[last_withheld + 1 :])
+    assert max(row["T_tank_w [°C]"] for row in rows) > condensing_tank_cutout(m) + 1.0

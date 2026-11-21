@@ -528,16 +528,29 @@ def _is_real_number(value: Any) -> bool:
     return isinstance(value, numbers.Real) and not isinstance(value, bool)
 
 
+def _shown(value: Any) -> str:
+    """``repr(value)`` for an error message, or the name of its type where it has no usable ``repr``."""
+    try:
+        return repr(value)
+    except Exception:
+        return f"<{type(value).__name__}>"
+
+
 def _check_room_humidity(value: float) -> float:
     """``RH_room`` as a float, or ``ValueError`` (the check ``RH_out`` gets in :mod:`tmhp.defrost`).
 
     A real number in 0-1 of any numeric type; not a boolean, text, a missing
     value (NaN, ``None`` is the caller's "no humidity") or NumPy's masked
-    constant.
+    constant. Whatever comparing or converting the value raises (an integer
+    too large for a float), it is not a humidity: the error is this one.
     """
-    if not _is_real_number(value) or not 0.0 <= value <= 1.0:
-        raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {value!r}")
-    return float(value)
+    number = math.nan
+    with contextlib.suppress(Exception):
+        if _is_real_number(value) and 0.0 <= value <= 1.0:
+            number = float(value)
+    if not 0.0 <= number <= 1.0:
+        raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {_shown(value)}")
+    return number
 
 
 #: NumPy array kinds whose elements are numbers or text as Python objects too: floating point,
@@ -593,7 +606,7 @@ def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
         # below for what it is, not here.
         length = None
         if hasattr(schedule, "__len__"):
-            with contextlib.suppress(TypeError):
+            with contextlib.suppress(Exception):
                 length = len(schedule)
         elif isinstance(schedule, Iterable):
             # A generator: its items, once -- as many as the run has steps, and one to see that it goes on.
@@ -604,20 +617,26 @@ def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
         if length is not None and length != steps:
             # Before anything is converted: a sequence of the wrong length may be far too long to copy.
             raise ValueError(f"{name} length ({length}) != tN ({steps})")
-        if isinstance(schedule, np.ma.MaskedArray):
-            # np.asarray would drop the mask and hand out the data beneath it.
-            entries = _array_entries(np.asarray(schedule.data))
-            entries[np.ma.getmaskarray(schedule)] = None
-        elif isinstance(schedule, np.ndarray):
-            entries = _array_entries(schedule)
-        elif isinstance(schedule, (list, tuple)):
-            entries = np.empty(len(schedule), dtype=object)
-            for index, item in enumerate(schedule):
-                entries[index] = item
-        else:
-            # A Series, a DataFrame, another array-like: its values as objects
-            # (pandas hands a time span out as a Timedelta, not as an integer).
-            entries = np.asarray(schedule, dtype=object)
+        try:
+            if isinstance(schedule, np.ma.MaskedArray):
+                # np.asarray would drop the mask and hand out the data beneath it.
+                entries = _array_entries(np.asarray(schedule.data))
+                entries[np.ma.getmaskarray(schedule)] = None
+            elif isinstance(schedule, np.ndarray):
+                entries = _array_entries(schedule)
+            elif isinstance(schedule, (list, tuple)):
+                entries = np.empty(len(schedule), dtype=object)
+                for index, item in enumerate(schedule):
+                    entries[index] = item
+            else:
+                # A Series, a DataFrame, another array-like: its values as objects
+                # (pandas hands a time span out as a Timedelta, not as an integer).
+                entries = np.asarray(schedule, dtype=object)
+        except Exception as error:
+            # Not something entries can be taken from, whatever it raised on the way.
+            raise ValueError(
+                f"{name} must hold one entry per step, got {type(schedule).__name__} ({type(error).__name__})"
+            ) from error
         while entries.ndim > 1 and entries.shape[-1] == 1:
             entries = entries[..., 0]  # one value per step in a column (or a column of columns)
         if entries.ndim == 1:
@@ -670,8 +689,19 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
     value that only becomes a float by dropping what makes it something
     else: a complex number with an imaginary part, a date or a time span.
     """
-    entry: Any = _single_value(value)
     number = math.nan
+    # Whatever reading the entry raises -- an integer too large for a float, a
+    # ``__float__`` of its own that fails -- it is not a humidity.
+    with contextlib.suppress(Exception):
+        number = _entry_as_float(value)
+    if not 0.0 <= number <= 1.0:
+        raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {_shown(value)} at step {step}")
+    return number
+
+
+def _entry_as_float(value: Any) -> float:
+    """The one real number a schedule entry is, as a float; NaN where it is not one (:func:`_room_humidity_of_step`)."""
+    entry: Any = _single_value(value)
     if isinstance(entry, numbers.Complex) and not isinstance(entry, numbers.Real):
         # Python's and NumPy's complex numbers: the real number they equal, if they equal one.
         entry = entry.real if entry.imag == 0 else None
@@ -680,12 +710,7 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
         readable = _is_real_number(entry) or isinstance(entry, np.character)
     else:
         readable = entry is not None and not isinstance(entry, (bool, np.ndarray, list, tuple))
-    if readable:
-        with contextlib.suppress(TypeError, ValueError):
-            number = float(entry)
-    if not 0.0 <= number <= 1.0:
-        raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {value!r} at step {step}")
-    return number
+    return float(entry) if readable else math.nan
 
 
 class AirSourceHeatPump(ReferenceStateMixin):

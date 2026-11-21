@@ -736,6 +736,57 @@ def test_a_value_nested_a_few_containers_deep_is_still_read(hp):
         _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
 
 
+class _FloatRaises:
+    def __init__(self, error):
+        self.error = error
+
+    def __float__(self):
+        raise self.error
+
+
+class _ReprRaises:
+    def __repr__(self):
+        raise RuntimeError("no repr")
+
+
+def _too_large_for_a_float():
+    record = np.empty(1, dtype=[("rh", object)])
+    record[0] = (10**400,)
+    return {
+        "huge int": 10**400,
+        "huge negative int": -(10**400),
+        "huge Fraction": Fraction(10**400),
+        "record of a huge int": record[0],
+        "list of a huge int": [10**400],
+        "__float__ overflows": _FloatRaises(OverflowError("too large")),
+        "__float__ divides by zero": _FloatRaises(ZeroDivisionError("division by zero")),
+        "__float__ fails": _FloatRaises(RuntimeError("broken")),
+        "no repr": _ReprRaises(),
+    }
+
+
+@pytest.mark.parametrize("name", list(_too_large_for_a_float()))
+def test_an_entry_that_cannot_be_made_a_float_is_refused_as_a_humidity(hp, name):
+    """Whatever the conversion raises -- an integer too large for a float overflows -- it is not a humidity."""
+    entry = _too_large_for_a_float()[name]
+    schedule = np.empty(1, dtype=object)
+    schedule[0] = entry
+    with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 0"):
+        _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
+    frame = _quiet(hp.analyze_dynamic, 3600, 3600, [0.0], [35.0], [27.0], RH_room_schedule=schedule)
+    assert frame["failure_reason"].iloc[0] == "none"
+
+
+def test_a_record_array_with_a_value_out_of_range_is_refused_with_the_humidity_message(hp):
+    records = np.empty(2, dtype=[("rh", object)])
+    records[0], records[1] = (10**400,), (0.5,)
+    with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 0"):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=records)
+    for value in (10**400, -(10**400), Fraction(10**400)):
+        with pytest.raises(ValueError, match="Room relative humidity must be a fraction"):
+            hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=value, verbose=False)
+
+
 # ---------------------------------------------------------------------------
 # 3. Exergy columns of a row whose coil removes water
 # ---------------------------------------------------------------------------

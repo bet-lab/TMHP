@@ -179,12 +179,13 @@ def test_coil_solver_above_the_dew_point_is_the_dry_coil_exactly():
 
 
 def test_without_room_humidity_the_issue_example_is_the_dry_coil_of_before(dry):
-    # Values of main 5552d106 (before the wet coil), default 4 kW unit, 35/27 °C, 4 kW.
-    assert dry["T_iu_a_mid [°C]"] == pytest.approx(12.391108632378348, rel=1e-9)
-    assert dry["T_ref_evap_sat [°C]"] == pytest.approx(10.82934642707579, rel=1e-9)
-    assert dry["E_tot [W]"] == pytest.approx(931.4959798560261, rel=1e-9)
-    assert dry["cop_sys [-]"] == pytest.approx(4.269341845880731, rel=1e-9)
-    assert dry["Q_a_iu_out [W]"] - dry["Q_a_iu_in [W]"] == pytest.approx(-3976.874766068, rel=1e-9)
+    # Values of main 4a87c337 (without the wet coil; the default efficiency map of #223), default
+    # 4 kW unit, 35/27 °C, 4 kW. On the map before it (main 5552d106): 931.50 W, a COP of 4.269.
+    assert dry["T_iu_a_mid [°C]"] == pytest.approx(12.391192110216764, rel=1e-9)
+    assert dry["T_ref_evap_sat [°C]"] == pytest.approx(10.829430747886363, rel=1e-9)
+    assert dry["E_tot [W]"] == pytest.approx(996.7479917389477, rel=1e-9)
+    assert dry["cop_sys [-]"] == pytest.approx(3.989849399418827, rel=1e-9)
+    assert dry["Q_a_iu_out [W]"] - dry["Q_a_iu_in [W]"] == pytest.approx(-3976.8743762115623, rel=1e-9)
     # ... and the new keys say so: all sensible, no water, no humidity known.
     assert dry["Q_iu_latent [W]"] == 0.0 and dry["m_dot_iu_condensate [kg/s]"] == 0.0 and dry["SHR_iu [-]"] == 1.0
     assert dry["Q_iu_sensible [W]"] == pytest.approx(dry["Q_ref_iu [W]"], rel=COIL_TOL)
@@ -460,14 +461,18 @@ def test_cycling_mean_of_a_wet_coil_keeps_the_balances(hp):
     # The mean of the running machine's rates: its total coil heat is Q_min, and the split is its own.
     ratio = row["capacity_ratio [-]"]
     assert row["Q_iu_sensible [W]"] + row["Q_iu_latent [W]"] == pytest.approx(ratio * row["Q_min [W]"], rel=COIL_TOL)
-    # The machine that runs without the cycling mean (its fans settle a little differently: the
-    # search weighs the cycling cost) has the same sensible share and, scaled, the same rates.
+    # The machine that runs without the cycling mean is at its minimum speed as well, with nearly the
+    # same sensible share and, scaled, nearly the same rates. Not the same: the search weighs the
+    # cycling cost, its fans settle elsewhere (an evaporator 0.45 K colder here), and the capacity at
+    # the minimum speed moves with the evaporating temperature -- 1 939 W in the cycling row, 1 986 W
+    # without the mean, shares 3 % apart. (The dry coil's two differ the same way: 0.1 % at this
+    # condition, 17 % at 15 °C outdoor.)
     running = _quiet(AirSourceHeatPump, Cd_cycling=None).analyze_steady(**request)
     assert running["capacity_clamped"] == "min" and running["Q_ref_iu [W]"] > 150.0
-    assert running["Q_ref_iu [W]"] == pytest.approx(row["Q_min [W]"], rel=5e-3)
-    assert row["SHR_iu [-]"] == pytest.approx(running["SHR_iu [-]"], rel=5e-3)
+    assert running["Q_ref_iu [W]"] == pytest.approx(row["Q_min [W]"], rel=5e-2)
+    assert row["SHR_iu [-]"] == pytest.approx(running["SHR_iu [-]"], rel=5e-2)
     for key in ("Q_iu_sensible [W]", "Q_iu_latent [W]", "m_dot_iu_condensate [kg/s]"):
-        assert row[key] / 150.0 == pytest.approx(running[key] / running["Q_ref_iu [W]"], rel=5e-3), key
+        assert row[key] / 150.0 == pytest.approx(running[key] / running["Q_ref_iu [W]"], rel=5e-2), key
 
 
 def test_frost_mean_keeps_the_room_side_balance(hp):

@@ -81,8 +81,9 @@ def test_weak_coil_ceiling_is_found_at_any_humidity(weak, humidity):
 
 
 def test_weak_coil_ceiling_at_high_humidity_is_the_reviewed_figure(weak):
+    # What the compressor delivers flat out: 7 322.25 W on the efficiency models before #223.
     ceiling = weak.max_capacity(35.0, 27.0, mode="cooling", RH_room=0.8)
-    assert ceiling["Q_max [W]"] == pytest.approx(7322.25, abs=0.05)
+    assert ceiling["Q_max [W]"] == pytest.approx(7131.47, abs=0.05)
     assert 0.0 < ceiling["SHR_iu [-]"] < 1.0
 
 
@@ -119,9 +120,10 @@ def large_ceiling(large):
 
 def test_ceiling_is_above_every_duty_that_runs(large, large_ceiling):
     # 22.6 kW was reported with binding "cycle_invalid": the least-lift point of one
-    # duty in the middle of the ladder was not found, and was taken for the ceiling.
+    # duty in the middle of the ladder was not found, and was taken for the ceiling
+    # (29.69 kW then, on the efficiency models before #223).
     assert large_ceiling["binding"] == "cycle"
-    assert large_ceiling["Q_max [W]"] == pytest.approx(29689.70, rel=2e-3)
+    assert large_ceiling["Q_max [W]"] == pytest.approx(28826.05, rel=2e-3)
     for duty in (22741.05, 26000.0, 0.999 * large_ceiling["Q_max [W]"]):
         row = large.analyze_steady(duty, **SATURATED_ROOM, verbose=False)
         assert row["failure_reason"] == "none" and row["capacity_clamped"] is None, duty
@@ -138,14 +140,14 @@ def test_request_above_the_ceiling_runs_at_it(large, large_ceiling):
 
 
 def test_least_lift_point_on_the_pressure_ratio_floor_is_found(large):
-    # The outdoor coil at its largest airflow is 0.8 % short of this duty at the condensing
+    # The outdoor coil at its largest airflow is 3.9 % short of this duty at the condensing
     # temperature the pressure-ratio floor holds (41.4 degC, 21.4 K above the outdoor air),
-    # whatever smaller approach is asked for: the approach that closes the coil is 21.6 K.
+    # whatever smaller approach is asked for: the approach that closes the coil is 22.4 K.
     with large._solving_with_room_humidity(1.0, 35.0, cooling=True):
         x, state, reason = large._largest_airflow_point(22741.05, 20.0, 35.0)
     assert reason is None and state is not None and x is not None
     assert state["Q_ref_iu [W]"] == pytest.approx(22741.05, rel=1e-9)
-    assert x[1] == pytest.approx(21.6, abs=0.1)
+    assert x[1] == pytest.approx(22.4, abs=0.1)
     assert state["pr_cmp [-]"] > large.PR_cycle_min
 
 
@@ -204,7 +206,11 @@ def test_wet_ceiling_search_takes_the_top_when_it_runs(large):
 # 4. Below the smallest duty the fans' minimum flows leave on the pressure-ratio floor
 # ---------------------------------------------------------------------------
 
-MILD = dict(T0=15.0, T_a_room=27.0)
+#: Outdoor 10 degC: the default unit runs 1.2 kW continuously with the dry coil, and with the wet
+#: coil the fans' smallest airflows refuse it. (At 15 degC outdoor, where this was first written,
+#: the compressor's minimum speed is the lower end of both coils on the efficiency map of #223:
+#: 1.32 kW dry, 1.51 kW at 80 %.)
+MILD = dict(T0=10.0, T_a_room=27.0)
 
 
 def test_request_below_the_smallest_continuous_wet_duty_is_met_by_cycling(hp):
@@ -212,16 +218,21 @@ def test_request_below_the_smallest_continuous_wet_duty_is_met_by_cycling(hp):
     assert dry["failure_reason"] == "none" and dry["capacity_clamped"] is None
     assert dry["pr_cmp [-]"] == pytest.approx(hp.PR_cycle_min, rel=1e-9)
 
+    # The ordinary search has no point for the wet request, and names the fans' smallest airflows.
+    with hp._solving_with_room_humidity(0.8, MILD["T_a_room"], cooling=True):
+        refused = hp._optimize_operation(Q_r_iu=1200.0, **MILD)
+    assert refused.least_lift_reason == hp._MIN_AIRFLOW
+
     row = hp.analyze_steady(1200.0, **MILD, RH_room=0.8, verbose=False)
     assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
     assert row["Q_ref_iu [W]"] == pytest.approx(1200.0, rel=1e-9) and row["Q_unmet [W]"] == 0.0
     # The smallest duty that runs continuously: both fans near their smallest flows, the ratio on its floor.
-    assert row["Q_min [W]"] == pytest.approx(1350.0, rel=5e-3)
+    assert row["Q_min [W]"] == pytest.approx(1543.75, rel=5e-3)
     assert row["pr_cmp [-]"] == pytest.approx(hp.PR_cycle_min, rel=1e-9)
     ratio = 1200.0 / row["Q_min [W]"]
     assert row["capacity_ratio [-]"] == pytest.approx(ratio, rel=1e-9)
     assert row["runtime_fraction [-]"] == pytest.approx(ratio / hp.cycling.part_load_factor(ratio), rel=1e-9)
-    assert row["runtime_fraction [-]"] == pytest.approx(0.9143, abs=5e-3)
+    assert row["runtime_fraction [-]"] == pytest.approx(0.8232, abs=5e-3)
     assert row["Q_iu_latent [W]"] > 0.0
     assert row["Q_iu_sensible [W]"] + row["Q_iu_latent [W]"] == pytest.approx(1200.0, rel=2e-5)
 
@@ -245,7 +256,7 @@ def test_without_cycling_the_unit_runs_at_its_smallest_continuous_wet_duty():
     steady = _quiet(AirSourceHeatPump, Cd_cycling=None)
     row = steady.analyze_steady(1200.0, **MILD, RH_room=0.8, verbose=False)
     assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
-    assert row["Q_ref_iu [W]"] == pytest.approx(1350.0, rel=5e-3) and row["Q_unmet [W]"] == 0.0
+    assert row["Q_ref_iu [W]"] == pytest.approx(1543.75, rel=5e-3) and row["Q_unmet [W]"] == 0.0
 
 
 @pytest.fixture(scope="module")
@@ -278,13 +289,14 @@ def test_fans_that_leave_no_continuous_duty_are_named_as_a_coil_limit(stiff):
 def test_stiff_fans_cycle_at_a_smallest_continuous_duty_above_twice_the_nameplate(stiff):
     # At 5 degC this unit was answered as off with "hx_not_converged" -- "no larger duty runs
     # either" -- while it ran 10 kW on request: the search for the smallest continuous duty
-    # ended at twice the nameplate (8 kW), under the 9.53 kW at which the coils first balance.
+    # ended at twice the nameplate (8 kW), under the 9.34 kW at which the coils first balance
+    # (9.53 kW on the efficiency models before #223).
     running = stiff.analyze_steady(10000.0, 5.0, 27.0, RH_room=0.9, verbose=False)
     assert running["failure_reason"] == "none" and running["capacity_clamped"] is None
     row = stiff.analyze_steady(200.0, 5.0, 27.0, RH_room=0.9, verbose=False)
     assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
     assert row["Q_ref_iu [W]"] == pytest.approx(200.0, rel=1e-9) and row["Q_unmet [W]"] == 0.0
-    assert row["Q_min [W]"] == pytest.approx(9531.25, rel=5e-3)
+    assert row["Q_min [W]"] == pytest.approx(9343.75, rel=5e-3)
     ceiling = stiff.max_capacity(5.0, 27.0, mode="cooling", RH_room=0.9)
     assert ceiling["binding"] == "compressor" and ceiling["Q_max [W]"] > row["Q_min [W]"]
 

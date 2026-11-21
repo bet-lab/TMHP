@@ -374,58 +374,58 @@ What the model assumes:
       - 4000 / 0
       - 1.00
       - 0
-      - 931
-      - 4.27
+      - 997
+      - 3.99
     * - 0.4
       - 12.3
       - 11.7
       - 3790 / 210
       - 0.95
       - 0.31
-      - 904
-      - 4.40
+      - 972
+      - 4.09
     * - 0.5
       - 15.7
       - 13.9
       - 3241 / 759
       - 0.81
       - 1.11
-      - 835
-      - 4.76
+      - 909
+      - 4.37
     * - 0.6
       - 18.6
       - 16.0
       - 2730 / 1270
       - 0.68
       - 1.86
-      - 772
-      - 5.15
+      - 854
+      - 4.66
     * - 0.7
       - 21.1
       - 17.9
       - 2253 / 1747
       - 0.56
       - 2.56
-      - 714
-      - 5.57
+      - 805
+      - 4.94
     * - 0.8
       - 23.3
       - 19.7
       - 1807 / 2193
       - 0.45
       - 3.22
-      - 662
-      - 6.01
+      - 760
+      - 5.23
 
 At a fixed total duty a wetter room needs a smaller temperature difference at
 the coil, so the evaporating temperature rises — while less of the duty is
-sensible cooling. In this example the electrical input falls with it (931 W
-dry, 835 W at 50 %), as it does on 179 of the 180 Daikin catalogue rows
+sensible cooling. In this example the electrical input falls with it (997 W
+dry, 909 W at 50 %), as it does on 179 of the 180 Daikin catalogue rows
 (:doc:`/validation/index`, *Cooling and latent load*). That is what these
 conditions give, not a rule. Where the pressure ratio is on its floor a warmer
 evaporator lifts the condensing temperature with it, and the input can rise:
-a 2.5 kW unit delivering 2 kW at 15 °C outdoor and 35 °C room draws 171.6 W
-dry and 177.8 W at 90 % room humidity. The request stays what it was:
+a 2.5 kW unit delivering 2 kW at 15 °C outdoor and 35 °C room draws 249.0 W
+dry and 251.1 W at 90 % room humidity. The request stays what it was:
 ``Q_r_iu`` is the coil's total heat, so a zone model that needs a given
 *sensible* cooling has to ask for more than that when the coil is wet (there
 is no request-on-room-load option), and takes ``Q_room_sensible [W]`` off its
@@ -439,7 +439,7 @@ coil carries more at a given evaporating temperature:
   ``Q_unmet [W]``). An indoor coil that sets the ceiling of the dry model sets
   a higher one wet: with ``UA_iu_rated=150`` the default unit delivers
   3 465 W dry at 35/27 °C, 5 835 W at 50 % room humidity (the coil at its
-  largest airflow and widest approach in both) and 7 322 W at 80 %, where the
+  largest airflow and widest approach in both) and 7 131 W at 80 %, where the
   compressor's speed binds instead. The ceiling is found by the same search
   as the dry one, on the duty; where the least-lift point of a duty names no
   limit of the machine the search starts it again from other approaches and
@@ -449,21 +449,21 @@ coil carries more at a given evaporating temperature:
   assumes; where that point is refused by the fans' smallest airflows the
   duty is solved by the ordinary search before it counts as refused (default
   unit with its outdoor fan held at its largest flow, 15 °C outdoor and a
-  saturated 35 °C room: 14.18 kW, the outdoor coil at its widest approach).
+  saturated 35 °C room: 13.68 kW, the outdoor coil at its widest approach).
 - *The smallest continuous duty in mild weather.* At a low outdoor temperature
   the cycle sits on the pressure-ratio floor (1.5), which holds the condensing
   temperature well above the outdoor air, and each coil has to carry its duty
   at no less than its fan's smallest airflow. The evaporating temperature that
   would make room for the outdoor coil makes a wet indoor coil carry more
   than a small duty, so below some duty no pair of approaches runs
-  continuously: 1.35 kW for the default unit at 15 °C outdoor, 27 °C room and
-  80 % (the dry coil runs down to its minimum speed there, 1.07 kW). A
+  continuously: 1.54 kW for the default unit at 10 °C outdoor, 27 °C room and
+  80 % (the dry coil runs down to its minimum speed there, 1.15 kW). A
   smaller request is met by cycling at that duty, exactly as below the minimum
   speed (``capacity_clamped == "min"``, ``Q_min [W]``; 1 200 W: runtime
-  fraction 0.914). Fans with a high smallest flow put that duty above the
-  nameplate: with both at 60 % of the largest flow it is 8.03 kW at 15 °C
+  fraction 0.823). Fans with a high smallest flow put that duty above twice
+  the nameplate: with both at 65 % of the largest flow it is 8.44 kW at 15 °C
   outdoor and a saturated 35 °C room, and a 4 kW request cycles there
-  (runtime fraction 0.570). Where no larger duty runs either — fans with
+  (runtime fraction 0.546). Where no larger duty runs either — fans with
   almost no flow range, in cold weather — the unit is off with
   ``failure_reason == "hx_not_converged"``: a coil cannot carry so little
   inside its fan's flow range.
@@ -471,9 +471,9 @@ coil carries more at a given evaporating temperature:
   This is the wet coil's behaviour only. Without ``RH_room`` the model is
   left as it was, result for result: a request the fans' smallest airflows
   refuse on the pressure-ratio floor is answered there with the unit off and
-  ``failure_reason == "cycle_invalid"`` (default unit, 27 °C room, 5 °C
-  outdoor: 1 100 W, 27.5 % of the nameplate, runs and 1 050 W is refused),
-  where the 1 050 W request with a room humidity of 20 % cycles at 1.08 kW.
+  ``failure_reason == "cycle_invalid"`` (default unit, 27 °C room, 0 °C
+  outdoor: 1 200 W, 30 % of the nameplate, runs and 1 150 W is refused),
+  where the 1 150 W request with a room humidity of 20 % cycles at 1.24 kW.
 
 What it leaves out, beyond the assumptions above:
 

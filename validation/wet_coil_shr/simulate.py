@@ -42,8 +42,8 @@ Passes
              provisional rule that was not derived for a wet coil.
 
 In these four everything else is the harness's: the model of each unit is
-built by ``validation.parity.run._build_model`` (nameplate, refrigerant,
-published airflow and compressor type, the library defaults otherwise), the
+built by ``validation.parity.run._build_model`` (nameplate, refrigerant and
+published airflow, the library defaults otherwise), the
 request is the published total capacity, and a row is scored as there -- not
 where the model falls more than 1 % short of the published duty, and not where
 it meets it only as an on/off mean.
@@ -59,8 +59,8 @@ it meets it only as an on/off mean.
              (:data:`NET_MATCH_TOL`), and the 1 % shortfall test is applied to
              the net delivery. The COP is then the published capacity over
              the model's input. FTXM42A point 23: a request of 4 200 W
-             delivers 4 177.7 W net at a COP of 4.565; matched, the request is
-             4 222.3 W and the COP 4.556.
+             delivers 4 177.7 W net at a COP of 4.237; matched, the request is
+             4 222.3 W and the COP 4.229.
 
 Boundaries of the comparison
 ----------------------------
@@ -80,7 +80,7 @@ Boundaries of the comparison
   published ratio on the coil's boundary first -- ``(SHC + E_fan) /
   (TC + E_fan)`` with the model's indoor fan power of the ``wet_net`` pass,
   the catalogues not printing one -- and is a few hundredths of a kelvin
-  higher (FTXM42A point 23: 11.059 and 11.099 degC). Neither involves a cycle
+  higher (FTXM42A point 23: 11.059 and 11.098 degC). Neither involves a cycle
   solve (nor the model's saturation limit on the leaving air, which none of
   the adopted rows reaches: ``rows_leaving_air_saturated`` of the headline).
   A straight coil line has a lowest ratio for a room state

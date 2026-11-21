@@ -2260,8 +2260,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: point -- the point of the largest capacity, above which no duty runs
     #: -- this is what one search found: a larger duty can run at other
     #: approaches (a 10 kW unit whose outdoor fan runs at no less than 90 %
-    #: of its largest flow, outdoor -10 degC, room 21 degC saturated: 18.5 to
-    #: 21 kW end so at the widest indoor approach, and 22.5 kW runs at a
+    #: of its largest flow, outdoor -10 degC, room 21 degC saturated: 17.4 to
+    #: 20.5 kW end so at the widest indoor approach, and 22.5 kW runs at a
     #: narrower one). It names no limit of the machine
     #: (:attr:`_LIMIT_REASONS`), so the ceiling search looks above it before
     #: it settles; the binding of a ceiling it does settle under is the
@@ -2305,12 +2305,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
         to: on the pressure-ratio floor the condensing temperature is held
         above the outdoor air by more than the approach asked for (room 35
         °C, outdoor 20 °C: 21.4 K whatever approach below it is asked), so a
-        coil that is short there -- by 0.8 % for a 10 kW unit at 22.7 kW --
-        needs that difference times duty over capacity, 21.6 K. Scaling the
-        approach asked for instead moves it 0.8 % a step from wherever the
-        search started and does not arrive. Without ``wet`` (the dry coil,
-        heating) the approach asked for is scaled, as before: the dry search
-        is left as it is (issue #168).
+        coil that is short there -- by 3.9 % for a 10 kW unit at 22.7 kW --
+        needs that difference times duty over capacity, 22.3 K. Scaling the
+        approach asked for instead moves it by that shortfall a step from
+        wherever the search started, which need not arrive (it did not at
+        the 0.8 % a step of the efficiency models before #223). Without
+        ``wet`` (the dry coil, heating) the approach asked for is scaled, as
+        before: the dry search is left as it is (issue #168).
         """
         if "_iu_diag" in perf:
             pairs = []
@@ -2662,8 +2663,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         (:meth:`_optimize_operation`, which solves both coils' flow limits
         together for such fans: :class:`_NarrowFanSearch`). Default 4 kW
         unit with its outdoor fan held at its largest flow, outdoor 15 degC,
-        room 35 degC saturated: the least-lift point exists between 12.5 and
-        14.2 kW only, while every duty from 3.95 kW up runs.
+        room 35 degC saturated: the least-lift point exists between 12.2 and
+        13.7 kW only, while every duty from 3.93 kW up runs.
 
         Returns what a trial of the ceiling search returns
         (:meth:`_largest_deliverable_duty`): the approaches and the state
@@ -2708,7 +2709,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         coil, whose capacity is not proportional to its approach, there are
         more ways not to arrive. Taken for the ceiling, such a duty hides
         everything above it that runs (10 kW unit, outdoor 20 degC, room 35
-        degC saturated: 22.6 kW reported, 29.7 kW delivered on request).
+        degC saturated, on the efficiency models before #223: 22.6 kW
+        reported, 29.7 kW delivered on request).
 
         So a trial that names no limit is repeated from other starting
         approaches -- those of the neighbouring duties already solved, then
@@ -2743,9 +2745,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         bands with a gap between them in which the compressor is flat out at
         the widest indoor approach (a 7 kW unit whose outdoor fan runs at no
         less than 85 % of its largest flow, outdoor -10 degC, room 21 degC
-        saturated: 9.6 to 12.8 kW and 15.3 to 16.4 kW), and the ladder finds
+        saturated: 9.1 to 12.2 kW and 14.3 to 16.2 kW), and the ladder finds
         the lower one. The search that ends short of the top is flat out in
-        the upper one -- 16.45 kW there -- so that duty, a hair under it, is
+        the upper one -- 16.16 kW there -- so that duty, a hair under it, is
         tried as well where it lies above what the search found, and the
         bisection is repeated from it. It is one more duty to try: the
         ceiling is never below the one found without it.
@@ -2827,7 +2829,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         if perf_lo is None:
             # No rung runs. The duties that run, if any, are a band no rung
             # fell in (both fans at one airflow, outdoor 15 degC, room 35
-            # degC saturated: 12.5 to 14.2 kW of a 4 kW unit), so each gap
+            # degC saturated: 12.2 to 13.7 kW of a 4 kW unit), so each gap
             # between two rungs under the smallest duty a limit refuses is
             # looked into, from the top. Two rungs refused from below (the
             # fans' smallest airflows) end the sweep: nothing under them
@@ -3242,8 +3244,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         floor, which holds the condensing temperature well above the outdoor
         air, and the evaporating temperature that would make room for the
         outdoor coil's smallest airflow makes the wet indoor coil carry more
-        than a small duty at its own. Default 4 kW unit, outdoor 15 degC, room 27
-        degC at 80 %: no duty below 1.35 kW runs continuously (the dry coil
+        than a small duty at its own. Default 4 kW unit, outdoor 10 degC, room 27
+        degC at 80 %: no duty below 1.54 kW runs continuously (the dry coil
         runs 1.2 kW at the same pressure ratio, 1.5). The climb passes those
         duties the same way and the unit cycles at the smallest that runs.
         With high smallest airflows that duty lies above the ladder's top,
@@ -3309,8 +3311,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         (:meth:`_indoor_coil_limit`), above which no request has an operating
         point: fans with a high smallest airflow leave no continuous wet duty
         under twice the nameplate in mild weather (default 4 kW unit with
-        both smallest flows at 60 % of the largest, outdoor 15 degC, room 35
-        degC saturated: 8.03 kW), and the climb ends on a duty that runs or
+        both smallest flows at 65 % of the largest, outdoor 15 degC, room 35
+        degC saturated: 8.44 kW), and the climb ends on a duty that runs or
         on one refused from above. The dry coil's climb, and heating's, ends
         where it did.
         """

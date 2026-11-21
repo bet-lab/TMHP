@@ -3238,6 +3238,21 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ``Q_iu_sensible - E_iu_fan``) or receives (heating:
             ``Q_iu_sensible + E_iu_fan``), the indoor fan's heat counted.
 
+            With ``RH_room`` in cooling both ends of the range are the wet
+            coil's. A request above its ceiling runs there
+            (``capacity_clamped == "max"``; :meth:`max_capacity` with the
+            same ``RH_room``). In mild weather, on the pressure-ratio floor,
+            the fans' smallest airflows leave no continuous operation below
+            some duty; a smaller request is met by cycling at that duty
+            (``capacity_clamped == "min"``, ``Q_min [W]``), and where no
+            larger duty runs either the row is off with
+            ``failure_reason == "hx_not_converged"``. Without ``RH_room``
+            such a request is answered as before, with the unit off and
+            ``"cycle_invalid"``. On a row whose coil removes water
+            (``Q_iu_latent [W]`` > 0) the exergy columns ``Xc_iu_hx [W]``,
+            ``X_eff_iu_hx [-]`` and ``X_eff_sys [-]`` are NaN
+            (:meth:`postprocess_exergy`).
+
             ``Q_request [W]`` and ``Q_unmet [W]`` are on the basis of
             ``Q_r_iu``: refrigerant-side coil heat, total (sensible plus
             latent) and before the fan heat -- not the room-side

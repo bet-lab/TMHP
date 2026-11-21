@@ -198,11 +198,15 @@ Latent load
 Cooling grids publish total capacity and sensible capacity; the difference is
 dehumidification. The parity harness runs the dry indoor coil, so a row with
 a low sensible heat ratio asks the model to carry as sensible heat a duty that
-is partly latent. The Daikin catalogues record each cooling point's sensible
-heat ratio in its ``note`` field for exactly this reason, and its indoor wet
-bulb with it. Record both: the wet-coil study
-(``validation/wet_coil_shr/simulate.py``; :doc:`index`, *Cooling and latent
-load*) needs the wet bulb to run a row at the humidity it was published at.
+is partly latent. The air-to-air catalogues record each cooling point's
+sensible heat ratio in its ``note`` field for exactly this reason, and its
+indoor wet bulb with it (``"WB 19 C, SHR 0.74, wet coil"``). Record both: the
+wet-coil study (``validation/wet_coil_shr/simulate.py``; :doc:`index`, *Cooling
+and latent load*) needs the wet bulb to run a row at the humidity it was
+published at. Look for the wet bulb in the table's header before concluding
+that a source does not give one: Fujitsu prints it on a line of its own under
+the indoor dry bulbs (``°CDB 17.8 21.1 …`` / ``°CWB 12.2 15.6 …``), one per
+column, and the first transcription of those tables kept the dry bulbs only.
 Report such rows; do not quietly drop them.
 
 Heating rows have no latent component and need no qualification.

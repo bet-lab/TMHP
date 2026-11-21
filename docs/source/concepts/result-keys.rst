@@ -206,7 +206,7 @@ temperature of the row and can be negative; only their differences are heat rate
       - Enthalpy flow of the air entering the indoor unit, from ``T0``.
     * - ``Q_a_iu_out [W]``
       - ASHP, GSHP
-      - Enthalpy flow of the dry air leaving the indoor unit (after the fan), from ``T0``. ``Q_a_iu_out − Q_a_iu_in`` is the sensible heat the room receives (negative in cooling).
+      - Enthalpy flow of the dry air leaving the indoor unit (after the fan), from ``T0``. ``Q_a_iu_out − Q_a_iu_in`` is the sensible heat the room receives (negative in cooling): the coil's sensible heat with the indoor fan's heat counted, ``∓Q_room_sensible``. With a wet coil the latent heat ``Q_iu_latent`` is not in it.
     * - ``Q_iu_sensible [W]``
       - ASHP
       - Sensible heat across the indoor coil, air side, before the indoor fan: air heat capacity rate times ``|T_iu_a_in − T_iu_a_mid|``, ≥ 0. All of the coil heat for a dry coil and in heating.
@@ -744,13 +744,13 @@ without a running cycle carry NaN or 0.
       - Meaning
     * - ``X_a_iu_in [W]``
       - ASHP, GSHP (d)
-      - Flow exergy of the air entering the indoor coil.
+      - Flow exergy of the air entering the indoor coil: the thermal exergy of a dry air stream (heat capacity rate times ``(T − T0) − T0 ln(T / T0)``), also with a wet ASHP coil. A moist-air exergy (reference humidity, water vapour, condensate) is not modelled.
     * - ``X_a_iu_mid [W]``
       - ASHP, GSHP (d)
-      - Flow exergy of the air leaving the indoor coil, before the fan.
+      - Flow exergy of the air leaving the indoor coil, before the fan (thermal part, as ``X_a_iu_in``).
     * - ``X_a_iu_out [W]``
       - ASHP, GSHP (d)
-      - Flow exergy of the supply air.
+      - Flow exergy of the supply air (thermal part, as ``X_a_iu_in``).
     * - ``X_a_ou_in [W]``
       - ASHP, ASHPB (d)
       - Flow exergy of the air entering the outdoor coil.
@@ -798,7 +798,7 @@ without a running cycle carry NaN or 0.
       - Exergy efficiency of the indoor fan.
     * - ``X_eff_iu_hx [-]``
       - ASHP, GSHP (d)
-      - Exergy efficiency of the indoor coil.
+      - Exergy efficiency of the indoor coil. NaN on an ASHP row whose coil removes water (``Q_iu_latent [W]`` > 0): see ``Xc_iu_hx [W]``.
     * - ``X_eff_mix [-]``
       - ASHPB (d)
       - Exergy efficiency of the mixing valve.
@@ -819,7 +819,7 @@ without a running cycle carry NaN or 0.
       - Exergy efficiency of the tank heat exchanger (condenser).
     * - ``X_eff_sys [-]``
       - ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)
-      - Exergy efficiency of the whole system.
+      - Exergy efficiency of the whole system. ASHP: the thermal exergy the room air gains over the electrical input; NaN on a row whose coil removes water (the dehumidification is not in the air's thermal exergy), and negative in cooling where the outdoor air, the dead state, is colder than the room.
     * - ``X_eff_tank [-]``
       - ASHPB (d)
       - Exergy efficiency of the tank.
@@ -948,7 +948,7 @@ without a running cycle carry NaN or 0.
       - Exergy consumed (destroyed) in the indoor fan.
     * - ``Xc_iu_hx [W]``
       - ASHP, GSHP (d)
-      - Exergy consumed (destroyed) in the indoor coil.
+      - Exergy consumed (destroyed) in the indoor coil. NaN on an ASHP row whose coil removes water (``Q_iu_latent [W]`` > 0): the refrigerant side carries the latent heat and the air side only the thermal exergy of dry air, so ``X_in_iu_hx − X_out_iu_hx`` is not the coil's destruction there.
     * - ``Xc_mix [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Exergy consumed (destroyed) in the mixing valve.

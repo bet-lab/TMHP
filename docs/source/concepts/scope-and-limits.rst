@@ -196,7 +196,10 @@ Air side
         for a dry coil); ``RH_room [-]`` is NaN where no humidity was used.
         A dry coil's ``Q_ref_iu [W]`` is all sensible: at a low sensible heat
         ratio that is not a catalogue's *total* capacity. The exergy columns
-        of the indoor air stay those of a dry air stream
+        of the indoor air are the thermal exergy of a dry air stream; no
+        moist-air exergy balance is modelled, so on a row whose coil removes
+        water ``Xc_iu_hx [W]``, ``X_eff_iu_hx [-]`` and ``X_eff_sys [-]``
+        are NaN
     * - Fans at the flow of least power
       - Each operating point is the one of least total electrical input the
         fan limits allow, to the tolerance of the search: it sets both air

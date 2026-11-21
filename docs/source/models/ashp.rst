@@ -159,7 +159,13 @@ the outlet temperature and the fan heat, so within a row
 holds on each coil (``Q_ref_ou``, ``E_ou_fan`` on the outdoor side;
 ``Q_ref_iu``, ``E_iu_fan`` on the indoor side; the refrigerant heat is negative
 where the coil is the evaporator). ``Q_a_iu_in`` / ``Q_a_iu_out`` and the air
-exergy flows use the same mass flow. A row averaged over on/off cycling or
+exergy flows use the same mass flow. On a wet indoor coil
+(:ref:`ashp-wet-coil`) the left-hand side is the sensible part only: the
+air's temperature change carries the coil's sensible heat and the fan power,
+``-Q_room_sensible [W]``, and the refrigerant takes up the latent heat
+``Q_iu_latent [W]`` besides (default 4 kW unit, 35/27 °C, 50 % room humidity:
+−3 217.9 W on the air, of which 23.1 W of fan heat, and 759.0 W latent for
+the 4 000 W the refrigerant takes up). A row averaged over on/off cycling or
 frost keeps the identity on the indoor side; on the outdoor side the fan power
 is averaged with the runtime fraction and the airflow with the capacity ratio,
 so the two sides differ by that share of the fan power.
@@ -284,7 +290,9 @@ water:
 :meth:`~tmhp.AirSourceHeatPump.max_capacity` takes the same argument and
 ``analyze_dynamic`` a ``RH_room_schedule``. Heating ignores it (the indoor coil
 is the condenser there), and ``None`` — the default — is the dry coil, with
-every result as before.
+every result as before. A schedule is read on cooling steps only: on heating
+and off steps its value may be anything, missing (NaN) included, and on a
+cooling step a value outside 0–1 stops the run.
 
 The coil is the apparatus-dew-point / bypass-factor coil, the family
 EnergyPlus uses for DX cooling coils, written so that it reduces to the dry
@@ -324,8 +332,10 @@ What the model assumes:
 - **Leaving air no wetter than saturated.** The saturation curve is convex,
   so for a room close to saturation, or a coil far below the dew point, the
   straight line passes above it. The leaving air is then put on the curve at
-  the same enthalpy — the correction EnergyPlus applies to the outlet of its
-  DX cooling coils: the total heat and the airflow are unchanged, the supply
+  the same enthalpy — as the DX cooling coil of EnergyPlus corrects a
+  supersaturated outlet (``CalcDoe2DXCoil``; the coil is the
+  apparatus-dew-point / bypass-factor coil of its Engineering Reference): the
+  total heat and the airflow are unchanged, the supply
   air is warmer and drier than on the line and more of the heat is latent
   (:func:`tmhp.heat_exchanger.saturated_leaving_state`). The default unit at
   35/27 °C reaches it at its capacity ceiling from 80 % room humidity, and at
@@ -402,12 +412,54 @@ What the model assumes:
       - 6.01
 
 At a fixed total duty a wetter room needs a smaller temperature difference at
-the coil, so the evaporating temperature rises and the electrical input falls
-— while less of the duty is sensible cooling. The request stays what it was:
+the coil, so the evaporating temperature rises — while less of the duty is
+sensible cooling. In this example the electrical input falls with it (931 W
+dry, 835 W at 50 %), as it does on 179 of the 180 Daikin catalogue rows
+(:doc:`/validation/index`, *Cooling and latent load*). That is what these
+conditions give, not a rule. Where the pressure ratio is on its floor a warmer
+evaporator lifts the condensing temperature with it, and the input can rise:
+a 2.5 kW unit delivering 2 kW at 15 °C outdoor and 35 °C room draws 171.6 W
+dry and 177.8 W at 90 % room humidity. The request stays what it was:
 ``Q_r_iu`` is the coil's total heat, so a zone model that needs a given
 *sensible* cooling has to ask for more than that when the coil is wet (there
 is no request-on-room-load option), and takes ``Q_room_sensible [W]`` off its
 air node and ``m_dot_iu_condensate [kg/s]`` off its moisture balance.
+
+**The two ends of the operating range** move with the humidity, because the
+coil carries more at a given evaporating temperature:
+
+- *The ceiling.* ``max_capacity(..., RH_room=...)`` is the ceiling of the wet
+  coil, and a request above it runs there (``capacity_clamped == "max"``,
+  ``Q_unmet [W]``). An indoor coil that sets the ceiling of the dry model sets
+  a higher one wet: with ``UA_iu_rated=150`` the default unit delivers
+  3 465 W dry at 35/27 °C, 5 835 W at 50 % room humidity (the coil at its
+  largest airflow and widest approach in both) and 7 322 W at 80 %, where the
+  compressor's speed binds instead. The ceiling is found by the same search
+  as the dry one, on the duty; where the least-lift point of a duty names no
+  limit of the machine the search starts it again from other approaches and
+  looks above it before it settles, so that a point it merely failed to find
+  is not reported as the ceiling.
+- *The smallest continuous duty in mild weather.* At a low outdoor temperature
+  the cycle sits on the pressure-ratio floor (1.5), which holds the condensing
+  temperature well above the outdoor air, and each coil has to carry its duty
+  at no less than its fan's smallest airflow. The evaporating temperature that
+  would make room for the outdoor coil makes a wet indoor coil carry more
+  than a small duty, so below some duty no pair of approaches runs
+  continuously: 1.35 kW for the default unit at 15 °C outdoor, 27 °C room and
+  80 % (the dry coil runs down to its minimum speed there, 1.07 kW). A
+  smaller request is met by cycling at that duty, exactly as below the minimum
+  speed (``capacity_clamped == "min"``, ``Q_min [W]``; 1 200 W: runtime
+  fraction 0.914). Where no larger duty runs either — fans with almost no
+  flow range, in cold weather — the unit is off with
+  ``failure_reason == "hx_not_converged"``: a coil cannot carry so little
+  inside its fan's flow range.
+
+  This is the wet coil's behaviour only. Without ``RH_room`` the model is
+  left as it was, result for result: a request the fans' smallest airflows
+  refuse on the pressure-ratio floor is answered there with the unit off and
+  ``failure_reason == "cycle_invalid"`` (default unit, 27 °C room, 5 °C
+  outdoor: the requests below 30 % of the nameplate), where the same request
+  with a room humidity of 20 % cycles at 1.08 kW.
 
 What it leaves out, beyond the assumptions above:
 
@@ -419,20 +471,19 @@ What it leaves out, beyond the assumptions above:
   mean over an on/off period with the latent heat scaled like every other
   rate; the water that evaporates off a wet coil while the compressor is off
   (the latent degradation of EnergyPlus) is not modelled.
-- **Low load in mild weather.** At a low outdoor temperature the cycle sits on
-  the pressure-ratio floor, which holds the evaporator cold, and a coil that
-  cold carries more than the minimum-speed duty even at its smallest airflow.
-  Such a request has no operating point and is answered with the unit off
-  (``failure_reason == "cycle_invalid"``), not with an on/off mean. The dry
-  coil has the same limit (default 4 kW unit, 27 °C room, 5 °C outdoor: the
-  requests below 30 % of the nameplate); a wet coil carries more and meets it
-  in warmer weather (the same unit at 80 % room humidity, 15 °C outdoor: the
-  requests below 35 % of the nameplate; none at 20 °C outdoor).
-- **Exergy.** ``X_a_iu_*``, ``Xc_iu_hx [W]``, ``X_eff_iu_hx [-]`` and
-  ``X_eff_sys [-]`` are the thermal exergy of a dry air stream. With a wet
-  coil they leave out the latent part (the moist air's chemical exergy and
-  the condensate), so the indoor coil's destruction is overstated and the
-  system efficiency understated by what the dehumidification is worth.
+- **Exergy.** ``X_a_iu_*`` are the thermal exergy of a dry air stream, with
+  or without a wet coil. A moist-air exergy balance — a reference humidity
+  for the dead state, the chemical exergy of the water vapour, the
+  condensate — is not modelled. On a row whose coil removes water the
+  refrigerant side of the indoor coil carries the latent heat and the air
+  side only the temperature change, so their difference is not the coil's
+  destruction (a 2.5 kW unit at 2 kW, 15 °C outdoor, 35 °C room and 90 %:
+  −2.6 W). ``Xc_iu_hx [W]``, ``X_eff_iu_hx [-]`` and ``X_eff_sys [-]`` are
+  therefore NaN on those rows; rows that remove no water keep their values.
+  (``X_eff_sys [-]`` is the thermal exergy the room air gains over the
+  electrical input, and is negative on the dry coil too wherever the outdoor
+  air, the dead state, is colder than the room: cooling a room towards the
+  dead state lowers its air's exergy.)
 - **Rating and defaults.** The reference state, the default inputs and
   :meth:`~tmhp.AirSourceHeatPump.operating_range` are those of the dry coil.
 - Heating humidification and condensate on the outdoor coil above the frost
@@ -811,7 +862,8 @@ the indoor fan's heat counted (3 977 W of a 4 000 W dry-coil request at
 35/27 °C), and, with a wet coil, ``Q_iu_latent [W]``.
 
 The space-conditioning system metric is
-``abs(Q_a_iu_out [W] - Q_a_iu_in [W]) / E_tot [W]``. Both air energy
+``abs(Q_a_iu_out [W] - Q_a_iu_in [W]) / E_tot [W]`` — with a wet coil that
+sensible difference plus ``Q_iu_latent [W]``, over ``E_tot [W]``. Both air energy
 flows use the actual indoor airflow and the same outdoor reference temperature.
 The final outlet already includes indoor fan heat: net cooling equals coil
 duty minus indoor fan power, while net heating equals coil duty plus that

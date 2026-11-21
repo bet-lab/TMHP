@@ -294,8 +294,8 @@ from +29.8 % (221 of 244 points evaluated) in the previous release to +33.6 %
 The biases are stated here, not corrected. **Air-to-air cooling is centred
 overall and moves with outdoor temperature**, from +7.6 % at 20 °C to −9.1 %
 at 40 °C outdoor. The dry indoor coil (see `Cooling and latent load`_) does
-not make it optimistic: the cooling rows with no latent load (sensible heat
-ratio 0.95 or above, 25 rows) are the most pessimistic, at −7.5 %, and those
+not make it optimistic: the cooling rows with the least latent load (sensible
+heat ratio 0.95 or above, 25 rows) are the most pessimistic, at −7.5 %, and those
 with the most latent load (below 0.75, 79 rows) the least, at +1.1 %. Run
 with the room humidity of each row, the wet coil is the more optimistic of the
 two, at +12.8 % over the same rows (② below). At the rating point the
@@ -351,8 +351,9 @@ Fujitsu result was checked before being published rather than after.
     same total heat it has to run colder than a coil that also condenses
     water, which costs lift and COP; run with the wet coil, the Daikin rows
     are more optimistic, not less, and the correlation is stronger
-    (`Cooling and latent load`_). The Fujitsu rows could not be run that way:
-    their indoor wet bulb is not in the catalogue files.
+    (`Cooling and latent load`_). The held Fujitsu rows, run the same way
+    at the indoor wet bulb their tables print, go the same direction: from
+    +27.4 % to +34.0 % and from +38.5 % to +48.7 %.
 
     **③ Maximum-capacity tables, heating half.** Fujitsu's heating grid is
     published at maximum capacity, with the compressor pinned at full speed
@@ -701,8 +702,9 @@ The parity results on this page are those of the dry indoor coil: the model
 carries the whole published cooling capacity as sensible heat. Manufacturer
 cooling grids publish total capacity, part of which is dehumidification, and
 each cooling point in the catalogue files records its sensible heat ratio for
-this reason (the Daikin files its indoor wet bulb as well). Heating points
-have no latent component.
+this reason, and its indoor wet bulb with it. The catalogues print the
+sensible and the total capacity; the ratio in the files is their quotient,
+rounded to two decimals. Heating points have no latent component.
 
 ``AirSourceHeatPump`` can also be given the room humidity, and its indoor coil
 then condenses water below the room's dew point (:ref:`ashp-wet-coil`). A
@@ -711,9 +713,8 @@ the indoor dry bulb and wet bulb each row is published at
 (``validation/wet_coil_shr/simulate.py``, results in
 ``validation/results/wet_coil_shr_once/``). Its dry pass is the shipped one,
 row for row. The model's sensible heat ratio is taken net of the indoor fan's
-heat, as the published capacities are. The two held Fujitsu units record a
-sensible heat ratio but no indoor wet bulb, so their 144 cooling rows are not
-in it.
+heat, as the published capacities are. The two held Fujitsu units are run the
+same way and reported apart, at the end of this section.
 
 .. list-table:: Daikin cooling points with the dry and the wet indoor coil, by published sensible heat ratio
     :header-rows: 1
@@ -759,10 +760,13 @@ less with the size of the unit than the catalogue does: 0.04 low for the
 the model's evaporating temperature is on average 1.0 K above the coil
 temperature at which its own coil line gives the published ratio (−2.2 to
 +3.7 K by row; 0.4 K below it for the 2.0 kW unit, 3.0 K above for the 5.0 kW
-unit).
+unit). The band at 0.95 and above is not a dry band: 17 of its 25 rows publish
+a ratio below 1, and the model's coil condenses water on 24 of them.
 
-**COP.** For the same total heat the wet coil runs its evaporator 3.1 K warmer
-than the dry one and draws 11.9 % less. The bias goes from −1.8 % to +12.8 %
+**COP.** Over these rows the wet coil runs its evaporator 3.1 K warmer than
+the dry one for the same total heat and draws 11.9 % less — less on 179 of the
+180 rows, which is what these conditions give and not a property of a wet coil
+(:ref:`ashp-wet-coil`). The bias goes from −1.8 % to +12.8 %
 and the mean absolute error from 6.3 % to 16.1 %, and the optimism grows with
 the latent load: +24.7 % where the published ratio is below 0.75, and the
 correlation of the bias with the ratio goes from *r* = −0.40 to −0.73. The dry
@@ -773,8 +777,57 @@ does not say where: the indoor conductance rule (0.16 W/K
 per W of nameplate, provisional, not derived for a wet coil), the compressor
 level and the airflow all enter. As a sensitivity, not a calibration: with the
 indoor coil's rated conductance halved the wet-coil bias is +2.6 % and the
-ratio 0.71 (0.08 low); doubled, +16.2 % and 0.86 (0.07 high). No single
-conductance fits both the ratio and the COP.
+ratio 0.71 (0.08 low); doubled, +16.2 % and 0.86 (0.07 high). A smaller coil
+runs colder, which lowers the ratio and the COP together: the three values
+show that trade-off, and none of them is a best one.
+
+**The capacity the comparison runs at.** The harness passes the published
+capacity as the request, which the model takes as the heat of the coil, before
+the indoor fan's heat; the published capacity is the net one. Over the wet
+rows the room therefore receives 20.3 W (0.62 %) less than published on
+average, and more than 1 % less on 1 row. With the request raised until the
+net delivery is the published capacity (20.3 W more on average) the COP is
+0.25 % lower: the bias is −2.3 % dry and +12.5 % wet, on all 180 rows, and
+nothing above turns on the difference. The coil temperature a published ratio
+implies is computed with that ratio taken as the coil's own; putting the
+ratio on the coil's boundary with the model's fan heat raises it by 0.04 K on
+average.
+
+**The held Fujitsu units.** The manual prints the indoor condition of its
+cooling tables as six dry bulb / wet bulb pairs, so the 144 cooling rows of
+the two units are run wet as well. They are held catalogues (AHRI 210/240; the
+manual states neither what its input power includes nor whether its capacities
+are net of the indoor fan's heat), and nothing of theirs enters a figure
+above.
+
+.. list-table:: Held Fujitsu cooling points with the dry and the wet indoor coil
+    :header-rows: 1
+    :widths: 22 12 16 16 17 17
+
+    * - Unit
+      - Points
+      - Published SHR, mean
+      - Model SHR, wet coil
+      - COP bias, dry coil
+      - COP bias, wet coil
+    * - ASUH09LPAS
+      - 72
+      - 0.66
+      - 0.78
+      - +27.4 %
+      - +34.0 %
+    * - ASUH12LPAS
+      - 72
+      - 0.69
+      - 0.75
+      - +38.5 %
+      - +48.7 %
+
+The wet coil adds to the bias the dry coil already has there. The published
+ratio is not reproduced: it lies between 0.58 and 0.74 on 138 of the 144 rows
+and hardly follows the room state, where the model's does (*r* = 0.32, mean
+absolute difference 0.130), and 21 rows publish a ratio lower than a straight
+coil line can give at their room state.
 
 The wet coil is an option of the model, not the basis of this page: every
 other figure here, and the results under ``validation/results/``, are the dry

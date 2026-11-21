@@ -608,3 +608,10 @@ def test_docs_prose_quotes_the_study(committed, held):
     # The same figure where the residuals are read.
     page = " ".join((REPO_ROOT / "docs" / "source" / "validation" / "index.rst").read_text(encoding="utf-8").split())
     assert f"at {_signed(numbers['cop_bias_pct_wet'])} % over the same rows" in page
+    # ... and where the held units are named beside it.
+    by_unit = study.by_unit(held).set_index("slug")
+    small, large = by_unit.loc["fujitsu_asuh09lpas"], by_unit.loc["fujitsu_asuh12lpas"]
+    assert (
+        f"from {_signed(small.cop_bias_pct_dry)} % to {_signed(small.cop_bias_pct_wet)} % and from "
+        f"{_signed(large.cop_bias_pct_dry)} % to {_signed(large.cop_bias_pct_wet)} %"
+    ) in page

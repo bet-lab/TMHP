@@ -188,6 +188,23 @@ Air side
       - ``Q_ref_iu [W]`` in cooling is below a catalogue's *total* capacity at
         a low sensible heat ratio (:doc:`/validation/index`, *Cooling and
         latent load*)
+    * - Fans at the flow of least power
+      - Each operating point is the one of least total electrical input the
+        fan limits allow, to the tolerance of the search: it sets both air
+        flows of an ``AirSourceHeatPump`` and the outdoor air flow of an
+        ``AirSourceHeatPumpBoiler``. A unit follows its own controller and
+        the fan step its user selects, so this is the favourable end of what
+        the fans leave open, not a prediction of a controller. At the four
+        points of :ref:`ashp-fan-control` the default 4 kW air-to-air unit
+        runs its indoor fan at its largest flow; with the
+        indoor flow held at half of that, the COP is 19 to 21 % lower at
+        half load and 27 to 34 % lower at nameplate load, which the unit
+        then falls 1 to 3 % short of
+      - Not flagged. ``dV_iu_a [m3/s]`` and ``dV_ou_a [m3/s]`` are the flows
+        the search chose. Equal limits hold a fan at one flow:
+        ``dV_iu_fan_a_min`` / ``dV_iu_fan_a_max`` and ``dV_ou_fan_a_min`` /
+        ``dV_ou_fan_a_max`` (ASHP), ``dV_fan_a_min`` / ``dV_fan_a_max``
+        (ASHPB)
     * - Frost as a correlation (ASHP, ASHPB)
       - Below 5 °C outdoor the EnergyPlus frost multipliers are applied to a
         frost-free cycle. They depend on outdoor temperature and humidity,

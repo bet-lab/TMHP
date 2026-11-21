@@ -634,9 +634,10 @@ charges above. It costs more where the search has to go further: a trial the
 limit refuses is retried half-way back, and where the envelope refuses the
 probe from below the smallest duty is itself searched (35 solves at −7 °C
 outdoor with ``T_dis_max = 105 °C``). Where another limit governs, a step
-solves three or four cycles, each with that limit's own duty search: 8 to 13
-solves per step in the source-freezing case above (3 with ``"stop"``), up to
-39 in the discharge-limit case (up to 8 with ``"stop"``).
+solves three or four cycles, and up to three more where a run has to be
+confirmed against an envelope that closes, each with that limit's own duty
+search: 6 to 11 solves per step in the source-freezing case above (3 with
+``"stop"``), up to 48 in the discharge-limit case (up to 8 with ``"stop"``).
 
 *The row.* A step with both stretches reports the run-time-weighted mean of
 their two cycles for every rate (heat, power, flow), ``cop_ref`` and

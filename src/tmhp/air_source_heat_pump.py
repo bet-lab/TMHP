@@ -17,6 +17,7 @@ heat exchange at the indoor unit.
 """
 
 import contextlib
+import itertools
 import math
 import numbers
 from collections.abc import Callable, Iterable, Iterator, Mapping
@@ -561,7 +562,7 @@ def _array_entries(array: np.ndarray) -> np.ndarray:
     return entries.reshape(array.shape)
 
 
-def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
+def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
     """The entries of a per-step schedule as given, one per step, without converting them to numbers.
 
     What ``np.array(schedule, dtype=float)`` reads as one value per step is
@@ -580,12 +581,21 @@ def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
     - a Series or a DataFrame gives its values, never its labels.
 
     Anything that is not one entry per step is refused: a mapping, text, a
-    single number, a table of several columns.
+    single number, a table of several columns. ``steps`` is the number of
+    steps of the run: an iterator is read for one item more than that and no
+    further, so that one without an end (``itertools.repeat(0.5)``) is found
+    too long instead of being read for ever.
     """
     shape = "a mapping" if isinstance(schedule, Mapping) else "text" if isinstance(schedule, (str, bytes)) else None
     if shape is None:
         if not hasattr(schedule, "__len__") and isinstance(schedule, Iterable):
-            schedule = list(schedule)  # a generator: its items, once
+            # A generator: its items, once -- as many as the run has steps, and one to see that it goes on.
+            schedule = list(itertools.islice(schedule, steps + 1))
+            if len(schedule) > steps:
+                raise ValueError(f"{name} holds more entries than the run has steps (tN = {steps})")
+        elif hasattr(schedule, "__len__") and len(schedule) != steps:
+            # Before anything is converted: a sequence of the wrong length may be far too long to copy.
+            raise ValueError(f"{name} length ({len(schedule)}) != tN ({steps})")
         if isinstance(schedule, np.ma.MaskedArray):
             # np.asarray would drop the mask and hand out the data beneath it.
             entries = _array_entries(np.asarray(schedule.data))
@@ -608,23 +618,29 @@ def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
     raise ValueError(f"{name} must hold one entry per step, got {shape}")
 
 
+#: One-element containers a schedule entry is taken out of. A row of one value in a column of a
+#: table is two deep; anything deeper than this is not followed -- a container may hold itself.
+_MAX_ENTRY_NESTING = 8
+
+
 def _single_value(entry: Any) -> Any:
     """``entry`` out of the one-element containers it may be wrapped in, as the scalar it is.
 
     A step given as a row of one value (``[[0.5], [0.6]]``) or as an array of
     one element is that value. An array element is taken as the NumPy scalar
     it is (``item()`` would hand a time span in nanoseconds out as an
-    integer); a masked one stays masked.
+    integer); a masked one stays masked. At most :data:`_MAX_ENTRY_NESTING`
+    containers are opened: what is still a container then -- a list that
+    contains itself, say -- is returned as it is, which is not a number.
     """
-    while True:
+    for _ in range(_MAX_ENTRY_NESTING):
         if isinstance(entry, (list, tuple)) and len(entry) == 1:
             entry = entry[0]
         elif isinstance(entry, np.ndarray) and entry.size == 1 and not np.ma.is_masked(entry):
             entry = entry.reshape(())[()]
-            if isinstance(entry, np.ndarray):  # an object array that held an array
-                return entry
         else:
-            return entry
+            break
+    return entry
 
 
 def _room_humidity_of_step(value: Any, step: int) -> float:
@@ -3695,7 +3711,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # was recorded (NaN, None, pd.NA, text).
         RH_room_steps: np.ndarray | None = None
         if RH_room_schedule is not None:
-            RH_room_steps = _schedule_entries(RH_room_schedule, "RH_room_schedule")
+            RH_room_steps = _schedule_entries(RH_room_schedule, "RH_room_schedule", tN)
             if len(RH_room_steps) != tN:
                 raise ValueError(f"RH_room_schedule length ({len(RH_room_steps)}) != tN ({tN})")
 

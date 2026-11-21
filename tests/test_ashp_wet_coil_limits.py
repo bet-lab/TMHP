@@ -631,6 +631,79 @@ def test_arrays_of_numbers_and_of_text_are_read_as_before(hp, dtype):
     assert list(frame["RH_room [-]"]) == [1.0, 0.0]
 
 
+def _containers_that_hold_themselves():
+    itself: list = []
+    itself.append(itself)
+    first: list = []
+    second = [first]
+    first.append(second)
+    boxed = np.empty(1, dtype=object)
+    boxed[0] = [boxed]
+    return {"a list in itself": itself, "two lists in each other": first, "an array in a list in itself": boxed}
+
+
+@pytest.mark.parametrize("name", list(_containers_that_hold_themselves()))
+def test_an_entry_that_contains_itself_is_refused_and_does_not_hang(hp, name):
+    import faulthandler
+
+    entry = _containers_that_hold_themselves()[name]
+    schedule = np.empty(1, dtype=object)
+    schedule[0] = entry
+    faulthandler.dump_traceback_later(60, exit=True)  # a hang ends the test run instead of blocking it
+    try:
+        with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\]"):
+            _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
+        # On a step that is not cooling it is not looked at.
+        frame = _quiet(hp.analyze_dynamic, 3600, 3600, [-2000.0], [7.0], [20.0], RH_room_schedule=schedule)
+        assert frame["failure_reason"].iloc[0] == "none"
+    finally:
+        faulthandler.cancel_dump_traceback_later()
+
+
+@pytest.mark.parametrize("endless", ["repeat", "count", "cycle"])
+def test_a_schedule_without_an_end_is_too_long_not_read_for_ever(hp, endless):
+    import faulthandler
+    import itertools
+
+    schedule = {
+        "repeat": itertools.repeat(0.5),
+        "count": (0.5 for _ in itertools.count()),
+        "cycle": itertools.cycle([0.5, 0.6]),
+    }[endless]
+    faulthandler.dump_traceback_later(60, exit=True)
+    try:
+        with pytest.raises(ValueError, match=r"RH_room_schedule holds more entries than the run has steps \(tN = 2\)"):
+            _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=schedule)
+    finally:
+        faulthandler.cancel_dump_traceback_later()
+    # One that ends where the run does is read; a short one is told its length.
+    frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=itertools.islice(itertools.repeat(0.5), 2))
+    assert list(frame["RH_room [-]"]) == [0.5, 0.5]
+    with pytest.raises(ValueError, match=r"RH_room_schedule length \(1\) != tN \(2\)"):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=iter([0.5]))
+    # A sized schedule of the wrong length is refused by its length, before it is copied.
+    faulthandler.dump_traceback_later(60, exit=True)
+    try:
+        with pytest.raises(ValueError, match=r"RH_room_schedule length \(1000000000000\) != tN \(2\)"):
+            _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=range(10**12))
+    finally:
+        faulthandler.cancel_dump_traceback_later()
+
+
+def test_a_value_nested_a_few_containers_deep_is_still_read(hp):
+    schedule = np.empty(1, dtype=object)
+    schedule[0] = [[(np.array([0.5]),)]]
+    frame = _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
+    assert frame["RH_room [-]"].iloc[0] == 0.5
+    # Beyond the depth any real schedule has, it is refused rather than followed.
+    deep: object = 0.5
+    for _ in range(100):
+        deep = [deep]
+    schedule[0] = deep
+    with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\]"):
+        _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
+
+
 # ---------------------------------------------------------------------------
 # 3. Exergy columns of a row whose coil removes water
 # ---------------------------------------------------------------------------

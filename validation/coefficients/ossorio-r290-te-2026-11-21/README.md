@@ -114,25 +114,22 @@ layout lint, density and spacing checks pass on it.
 `validation/compressor_maps/ossorio_te/te_error_figures.py` compares the 7-term PR–N form with and without the T_e term
 on the same 134 points (10-fold CV with the folds of `fit.py`; F test of the one added term):
 
-| map | RMSE, PR–N / with T_e | 10-fold CV RMSE, PR–N / with T_e | F (1, 126), p |
-|---|---|---|---|
-| eta_ov | 0.0335 / 0.0206 | 0.0345 / 0.0221 (−36 %) | 206, 3e-28 |
-| eta_v | 0.0142 / 0.0075 | 0.0148 / 0.0081 (−45 %) | 331, 5e-37 |
-| f_loss | 0.0137 / 0.0136 | 0.0149 / 0.0148 (−1 %) | 2.5, 0.12 |
+| map | RMSE, PR–N / with T_e | MAPE, PR–N / with T_e | 10-fold CV RMSE, PR–N / with T_e | F (1, 126), p |
+|---|---|---|---|---|
+| eta_ov | 0.0335 / 0.0206 | 4.7 % / 2.9 % | 0.0345 / 0.0221 (−36 %) | 206, 3e-28 |
+| eta_v | 0.0142 / 0.0075 | 1.3 % / 0.6 % | 0.0148 / 0.0081 (−45 %) | 331, 5e-37 |
+| f_loss | 0.0137 / 0.0136 | 9.3 % / 9.1 % | 0.0149 / 0.0148 (−1 %) | 2.5, 0.12 |
 
 | file | caption |
 |---|---|
-| `te_error_residual_map` | a–l: measured minus map on the axes of `map_heatmaps` (PR and N at T_e = −20 / 0 / 20 °C), for η_ov (a–f) and η_v (g–l), with the PR–N map (a–c, g–i) and with the T_e term (d–f, j–l). The panel title gives the RMSE at that T_e. At −20 and 0 °C the PR–N map leaves a residual that runs with PR; the T_e term removes most of it. At 20 °C (one test condition, five speeds) the η_ov residual changes sign with speed and its RMSE falls only from 0.042 to 0.039: the additive T_e term does not carry a speed–T_e interaction. |
-| `te_error_by_level` | a, b: mean ± standard deviation of measured minus map at each tested T_e, for η_ov and η_v, with the PR–N map (circles) and with the T_e term (triangles). |
-| `te_error_parity` | a–d: measured against map for η_ov and η_v, coloured by T_e, with the PR–N map (a, c) and with the T_e term (b, d). Without the term the warm points sit above the line and the cold points below it. |
-| `te_error_summary` | RMSE of the fit and 10-fold CV RMSE of both forms for η_ov, η_v and f_loss, with the change in CV RMSE and the F test of the T_e term. |
+| `te_error_parity` | a–d: measured against map for η_ov (a, b) and η_v (c, d), coloured by T_e. Left column: the PR–N map; right column: with the T_e term (adopted). Each panel gives the RMSE and MAPE against the 134 points. Without the term the warm points sit above the line and the cold points below it. |
 
 ## Reproduce
 
     uv run python -m validation.compressor_maps.ossorio_te.fit       # points.csv, coefficients.json
     uv run python -m validation.compressor_maps.ossorio_te.emit      # constants of the library module
     uv run python -m validation.compressor_maps.ossorio_te.figures   # figures/ (data figures; map_pipeline: see above)
-    uv run python -m validation.compressor_maps.ossorio_te.te_error_figures   # figures/te_error_*
+    uv run python -m validation.compressor_maps.ossorio_te.te_error_figures   # figures/te_error_parity
 
 `tests/test_compressor_default_map.py` checks three things: the library block equals this archive,
 the archive refits from `points.csv`, and the maps reproduce the archived errors.

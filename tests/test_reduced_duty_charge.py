@@ -1011,7 +1011,14 @@ def test_a_hold_after_cooling_the_time_left_cannot_supply_is_a_run_to_the_end_of
     left = dt - t_cool
     assert needed == pytest.approx(37_500.0) and needed > LIMIT.Q_min * left
     # The run: on for all that is left, at the duty of the stop; one start, running at the end.
-    assert run.starts == 1 and run.running_end and run.call_end and run.limit_stop
+    assert run.starts == 1 and run.running_end and run.call_end
+    # ``limit_stop`` is the 534 s before it: called, the compressor stayed off above its stop (the
+    # flag says the cut-out acted in the step -- "stopped it, or kept it from starting" -- as for
+    # any step that waits above the stop and then runs on). The same step cut short of the stop
+    # has the flag with no run at all.
+    assert run.limit_stop and run.limit_stop_C == LIMIT.stop_C
+    waited, _, _, _, _ = _curved_loss_step(500.0, 500.0)
+    assert waited.limit_stop and waited.runtime_fraction == 0.0 and waited.starts == 0
     assert run.runtime_fraction * dt == pytest.approx(left, rel=1e-9) == run.reduced_fraction * dt
     assert run.phase_age_end_s == pytest.approx(left, rel=1e-9)
     heat = run.runtime_fraction * dt * row["Q_ref_tank [W]"]

@@ -1084,6 +1084,10 @@ def _simulate_duty_limited_step(
     of its heat by that fraction and its step closes that much below the
     cut-out -- 3.6 of 4010 J and 6e-6 K in the case tested -- which is the side
     on which the next step charges on without a stop or a start.
+    Such a step, like every step in which a called tank waits above the
+    cut-out, has ``limit_stop`` set: the flag says the cut-out acted in the
+    step -- it kept the compressor from starting while the tank cooled -- not
+    that the run which followed ended in a stop.
     The run itself is reported as the events have it, at the cut-out and at
     the duty the limit leaves there: its cycle is solved, and checked, at that
     point, not at the temperatures between it and where the closing balance

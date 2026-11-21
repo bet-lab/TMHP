@@ -606,6 +606,12 @@ limit's duty (``"source_fluid_freezing"``, ``"discharge_temperature"``;
 first that did not run (``"source_fluid_freezing"``,
 ``"discharge_temp_above_max"``); ``"no_smaller_duty"`` where no continuous
 duty below the nameplate runs at all. On every other row the key is ``None``.
+That includes every row whose stop was the boiling point
+(``hp_stop_reason == "boiling_limit"``): a machine whose nameplate duty meets
+the condensing limit at or above 100 °C (the water-source unit with R600a and
+``T_cond_max = 108 °C``: nameplate cut-out 101.0 °C) never gets to that limit,
+its steps are those of ``"stop"``, and nothing is asked about a stretch or
+withheld.
 
 Measured (R32, 15 kW; ``tests/test_reduced_duty_charge.py`` compares each of
 these with a ``"stop"`` model given the same band, every column, no

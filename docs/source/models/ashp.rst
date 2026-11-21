@@ -35,6 +35,90 @@ Source-side mechanics
 Outdoor coil with variable-speed fan and an ε-NTU air-side heat
 exchanger — the shared air-source environmental-side model.
 
+.. _ashp-fan-control:
+
+Fan flows: the point of least power
+===================================
+
+The model has no fan controller. At each call it searches the two approach
+temperatures for the operating point of least total electrical input
+(compressor and both fans) that carries the duty; each coil's air flow
+follows from its approach, inside the fan's flow limits. The search stops
+within 0.1 W of that input. Where no point carries the duty it ranks by the
+shortfall instead, and on the minimum speed by the input per unit of heat
+with the cycling loss. A real unit runs the indoor fan at the step its user
+selects and the outdoor fan on its controller's map, so the result is close
+to the best the fans can do in this model, not a prediction of a
+controller.
+
+How much rides on it, for the default 4 kW unit (cooling at 35 °C outdoor and
+a 27 °C room, heating at 7 °C outdoor and a 20 °C room). The search runs the
+indoor fan at its largest flow, 0.232 m³/s, in all four cases:
+
+.. list-table:: System COP by fan flow
+   :header-rows: 1
+   :widths: 40 15 15 15 15
+
+   * - Fan flows
+     - Cooling 2 kW
+     - Heating 2 kW
+     - Cooling 4 kW
+     - Heating 4 kW
+   * - Least power (the model)
+     - 5.82
+     - 5.91
+     - 4.27
+     - 4.65
+   * - Indoor fan held at 70 % of its largest flow
+     - 5.33
+     - 5.47
+     - 3.53
+     - 4.05
+   * - Indoor fan held at 50 %
+     - 4.59
+     - 4.80
+     - 2.82
+     - 3.40
+   * - Both fans held at their largest flow
+     - 5.60
+     - 5.50
+     - 4.27
+     - 4.64
+
+With the indoor flow at half, the COP is 21 % and 19 % lower at half load and
+34 % and 27 % lower at nameplate load: the coil needs a larger temperature
+difference to carry the duty, and the compressor pays for it. Holding both
+fans at full flow costs 4 % and 7 % at half load — the outdoor fan draws
+more than the compressor saves — and under 0.3 % at nameplate load. At half
+the indoor flow the unit no longer carries its nameplate either: its coil
+takes 3.90 kW in cooling and gives 3.98 kW in heating (refrigerant side),
+and the figures in that row are at those duties. A fan is held at one flow
+with equal limits:
+
+.. code-block:: python
+
+   from tmhp import AirSourceHeatPump
+
+   largest = AirSourceHeatPump().dV_iu_fan_a_max
+   low_fan = AirSourceHeatPump(dV_iu_fan_a_min=0.5 * largest, dV_iu_fan_a_max=0.5 * largest)
+
+**Rated conditions and use.** A capacity table or a certified rating is
+measured at an indoor airflow the manufacturer declares, and the catalogue
+comparison of :doc:`/validation/index` gives the model that published airflow
+as the indoor fan's largest flow. The indoor fan at its largest flow is
+therefore the condition the catalogues were measured at: that comparison is
+like with like. In use the indoor fan runs at the step its user selects, or at
+what an automatic setting picks, and the COP falls as the rows above show. The
+outdoor fan is the unit's own to control in either case, and the search slows
+it with the load as a controller does (0.61 to 0.47 m³/s from nameplate to
+half load in cooling).
+
+For a seasonal figure of a unit whose fan setting is known, hold the fan
+there; where it is not, the model's figure is the favourable end of what the
+fan setting leaves open. A building simulation that knows the room airflow
+of each hour cannot pass it per call yet: the flow limits are constructor
+arguments.
+
 .. _ashp-air-density:
 
 Air density

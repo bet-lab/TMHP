@@ -27,7 +27,8 @@ import pytest
 from validation.indoor_ua_wet_coil import simulate as study
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-OUT = REPO_ROOT / "validation" / "results" / "indoor_ua_wet_coil_once"
+RESULTS = REPO_ROOT / "validation" / "results"
+OUT = RESULTS / "indoor_ua_wet_coil_once"
 
 HINT = "모델 동작이 바뀌었다. `python -m validation.indoor_ua_wet_coil.simulate` 로 이 연구를 다시 만들어라"
 
@@ -81,9 +82,7 @@ def _mismatches(fresh: pd.DataFrame, old: pd.DataFrame) -> list[str]:
 
 def test_coil_from_ratio_is_the_inverse_of_the_models_coil():
     """FTXM35A at its rating point: 3.5 kW net at a ratio of 0.82, 27 / 19 degC, 0.2067 m3/s, a 20.67 W fan."""
-    from validation.wet_coil_shr.simulate import catalogue_ratio_on_the_coil, room_humidity
-
-    rh = room_humidity(27.0, 19.0)
+    rh = study.room_humidity(27.0, 19.0)
     q_W, fan_W, airflow = 3500.0, 20.67, 0.2067
     coil = study._coil_of_published(27.0, rh, q_W, airflow, 0.82, fan_W)
     assert coil["solve"] == "ok"
@@ -91,7 +90,7 @@ def test_coil_from_ratio_is_the_inverse_of_the_models_coil():
     assert coil["contact_factor"] == pytest.approx(0.833, abs=1e-3) and coil["UA_W_K"] == pytest.approx(437.4, abs=0.1)
     assert coil["conductance_W_K"] == pytest.approx(coil["contact_factor"] * coil["C_air_W_K"], rel=1e-12)
     # The model's coil, given that conductance at that airflow and coil temperature, carries the heat at the ratio.
-    on_coil = catalogue_ratio_on_the_coil(0.82, q_W, fan_W)
+    on_coil = study.catalogue_ratio_on_the_coil(0.82, q_W, fan_W)
     assert study.coil_closure(27.0, rh, q_W + fan_W, airflow, coil) == pytest.approx(on_coil, abs=1e-9)
     # A higher ratio is a warmer coil and, for the same heat, a larger conductance.
     warmer = study._coil_of_published(27.0, rh, q_W, airflow, 0.82 + study.SHR_ROUNDING, fan_W)
@@ -104,6 +103,33 @@ def test_coil_from_ratio_is_the_inverse_of_the_models_coil():
     starved = study._coil_of_published(27.0, rh, q_W, airflow / 2.0, 0.82, fan_W)
     assert starved["solve"] == "contact_factor_one" and math.isnan(starved["UA_W_K"])
     assert math.isnan(study.coil_closure(27.0, rh, q_W + fan_W, airflow / 2.0, starved))
+
+
+def test_the_study_computes_with_nothing_outside_its_record():
+    """What a run records is the model, the harness, the catalogues and this script: it imports nothing else that computes.
+
+    The reading of a row and the coil line are also in the wet-coil study; this study has its own, and the
+    two give the same values.
+    """
+    import re
+
+    from validation.wet_coil_shr import simulate as wet_study
+
+    source = (REPO_ROOT / study.SCRIPT).read_text(encoding="utf-8")
+    imported = set(re.findall(r"^\s*(?:from|import)\s+(validation[\w.]*)", source, flags=re.M))
+    # The harness (within the recorded source state) and the helper that writes the record.
+    assert imported == {"validation", "validation.parity.run", "validation.parity.spec"}, imported
+    assert re.findall(r"^\s*from validation import (\w+)", source, flags=re.M) == ["study_provenance"]
+    for note in ("WB 19 C, SHR 0.74, wet coil", "WB 19.4 C, SHR 0.66, wet coil", "outdoor WB"):
+        assert study.parse_note(note) == wet_study.parse_note(note)
+    for t_db, t_wb, shr in ((27.0, 19.0, 0.74), (20.0, 14.0, 0.93), (32.0, 24.0, 0.59), (26.7, 19.4, 0.66)):
+        rh = study.room_humidity(t_db, t_wb)
+        assert rh == wet_study.room_humidity(t_db, t_wb)
+        assert study.apparatus_dew_point(t_db, rh, shr) == wet_study.apparatus_dew_point(t_db, rh, shr)
+    assert math.isnan(study.apparatus_dew_point(27.0, study.room_humidity(27.0, 19.0), 0.55))
+    assert study.catalogue_ratio_on_the_coil(0.74, 4200.0, 22.0) == wet_study.catalogue_ratio_on_the_coil(
+        0.74, 4200.0, 22.0
+    )
 
 
 def test_rules_give_back_what_they_were_fitted_to():
@@ -179,8 +205,10 @@ def test_tables_and_manifest_are_those_of_the_committed_rows(committed):
     assert set(points.status) == {"adopted"} and set(held.status) == {"hold"}
     assert study.parity_gate(points, "dry") <= 1e-6 and study.parity_gate(held, "dry") <= 1e-6
     assert study.parity_gate(heating, "heat") <= 1e-6
-    # The wet pass is the wet pass of the study this one starts from.
-    assert study.wet_study_difference(points, "wet_coil_shr_once.csv") <= 1e-6
+    # The wet pass is the wet pass of the study this one starts from, row for row.
+    wet_study = pd.read_csv(RESULTS / "wet_coil_shr_once" / "wet_coil_shr_once.csv", float_precision="round_trip")
+    both = points.merge(wet_study[["slug", "point_id", "cop_wet"]], on=["slug", "point_id"], suffixes=("", "_other"))
+    assert len(both) == 180 and ((both.cop_wet - both.cop_wet_other).abs() <= 1e-6 * both.cop_wet_other).all()
     loo = study.with_model_results(study.leave_one_out(units), points)
     for_held = study.with_model_results(study.rules_for_held(units, held_units), held)
     for name, fresh in (

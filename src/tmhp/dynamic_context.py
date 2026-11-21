@@ -8,6 +8,7 @@ and future models can share the same infrastructure.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -22,6 +23,7 @@ __all__ = [
     "ControlState",
     "CycleSolveOutcome",
     "DutyLimit",
+    "DUTY_MATCH_RTOL",
     "DynamicState",
     "InStepRun",
     "EVENT_TIME_TOL_S",
@@ -523,6 +525,17 @@ class InStepRun:
         the compressor, or kept it from starting, while the thermostat (its
         call, or a minimum run time) would have had it run: a protection stop,
         not the thermostat reaching its upper bound.
+    T_on_max_C : float | None
+        Highest tank temperature at which the compressor ran in the step
+        [°C]; ``None`` if it did not run.
+    limit_stop_C : float | None
+        The tank cut-out that did so [°C], where the caller cannot know it:
+        with reduced-duty charging the step is resolved with the lower of the
+        boiling point and the tank temperature at which the condensing limit
+        leaves the duty the compressor has, and :func:`in_step_stop_reason`
+        names the stop from it. ``None`` without a ``limit_stop``, and for a
+        run resolved with the cut-out the caller gave (``T_limit_C``), who
+        names it. It labels the run and is not part of comparing two runs.
     reduced_fraction : float
         Fraction of the step the compressor ran on the duty limit, below the
         duty it runs at otherwise (0 without a ``duty_limit``); part of
@@ -548,6 +561,8 @@ class InStepRun:
     reduced_fraction: float = 0.0
     T_reduced_mean_C: float | None = None
     T_full_mean_C: float | None = None
+    limit_stop_C: float | None = field(default=None, compare=False)
+    T_on_max_C: float | None = None
 
 
 @dataclass(frozen=True)
@@ -662,6 +677,7 @@ def simulate_thermostat_step(
     run_limit_s: float = math.inf,
     Q_hold: float = 0.0,
     duty_limit: DutyLimit | None = None,
+    rest_before_restart: bool = False,
 ) -> InStepRun:
     """Resolve the on/off thermostat inside one step at its switching events.
 
@@ -737,7 +753,9 @@ def simulate_thermostat_step(
         is then where the limit leaves no more than the smallest continuous
         duty (:attr:`DutyLimit.stop_C`, never above ``T_limit_C``; the knee
         when the floor is not below ``Q_on``), and a call that stands there is
-        held by cycling at that duty -- unless the tank loses more there than
+        held by cycling at that duty (or, with ``rest_before_restart`` and a
+        minimum rest time, followed through its rests and restarts) -- unless
+        the tank loses more there than
         that duty: the compressor then runs on, and the tank settles below the
         cut-out where the limit's duty is the loss. Above the cut-out the
         compressor never runs, so it never delivers less than ``Q_min`` on the
@@ -748,9 +766,25 @@ def simulate_thermostat_step(
         its mean temperature, exactly, whatever the step. Mixed tanks only:
         not combined with ``run_limit_s`` / ``Q_hold``. ``None``: the
         compressor delivers ``Q_on`` whenever it runs.
+    rest_before_restart : bool
+        What a compressor stopped at the tank cut-out does while the call
+        stands. ``False`` (the default): it holds the tank there as described
+        under ``T_limit_C`` -- a mean of on/off cycling without a differential,
+        reported as one run: one start, ``running_end`` true, and
+        ``phase_age_end_s`` counting from that start although the compressor
+        was on for ``runtime_fraction`` of the time; the minimum run and rest
+        times are not applied to the cycling inside the hold. ``True``: with a
+        minimum rest time (``min_off_time_s > 0``) the stop is a real one. The
+        compressor rests for that time while the tank cools, restarts (an
+        event: a counted start, the phase age from it) and runs back to the
+        cut-out, so the run time, the starts and the timers describe the same
+        compressor. Without a minimum rest time the hold stands: it is what
+        that cycling tends to as the rest time goes to zero. Reduced-duty
+        charging (:func:`resolve_step_operation`) sets it.
 
     A stop or a blocked start either cut-out causes while the thermostat
-    would have run sets ``limit_stop``.
+    would have run sets ``limit_stop`` (with a ``duty_limit`` also
+    ``limit_stop_C``, the cut-out the limit gave).
 
     More than 1000 switching events in one step (a band too narrow for the
     step) are closed by the fast-cycling limit: the tank holds the
@@ -776,6 +810,7 @@ def simulate_thermostat_step(
             min_off_time_s=min_off_time_s,
             T_limit_C=T_limit_C,
             duty_limit=duty_limit,
+            rest_before_restart=rest_before_restart,
         )
     # The call's upper bound. The cut-out is never below it for a tank
     # whose coil water is the tank (it is the boiling point or the envelope
@@ -792,6 +827,8 @@ def simulate_thermostat_step(
     # Holding heat at the coil cut-out of a multi-node tank: as given.
     q_hold_coil = float(Q_hold) if math.isfinite(Q_hold) and Q_hold > 0.0 else 0.0
     run_limit = float(run_limit_s) if run_limit_s >= 0.0 else 0.0
+    # A stop at the cut-out is followed by the minimum rest time, not by a hold.
+    rests = rest_before_restart and min_off_time_s > EVENT_TIME_TOL_S
 
     t = 0.0
     tw = T_start_C
@@ -807,6 +844,7 @@ def simulate_thermostat_step(
     holding = False
     q_hold = 0.0
     tw_on_first: float | None = None
+    tw_on_max = -math.inf
 
     for n_events in range(1_000_001):
         # --- instantaneous transitions at (t, tw) ---
@@ -833,7 +871,7 @@ def simulate_thermostat_step(
         at_limit = above_cut or at_tank_cut or at_coil_cut
         # The heat that holds the water where it is cut out (none above the tank cut-out).
         q_hold = 0.0 if above_cut else (q_hold_coil if at_coil_cut else q_hold_tank)
-        hold = want and at_limit and q_hold > 0.0 and q_on > 0.0
+        hold = want and at_limit and q_hold > 0.0 and q_on > 0.0 and not rests
         # Holding is decided again at every event: the call can end meanwhile.
         holding = False
         if running:
@@ -882,6 +920,7 @@ def simulate_thermostat_step(
             T_new = target if target is not None else _advance(tw, step, drive, slope, C)
             if tw_on_first is None:
                 tw_on_first = tw
+            tw_on_max = max(tw_on_max, tw, T_new)
             on_time += duty * step
             on_T_integral += duty * step * 0.5 * (tw + T_new)
             tw = T_new
@@ -891,6 +930,8 @@ def simulate_thermostat_step(
         if n_events >= 1000 and q_on > 0.0 and scheduled:
             # Fast-cycling limit: hold the tank where it is.
             duty = min(1.0, max(0.0, -(p_const + slope * tw) / q_on))
+            if duty > 0.0:
+                tw_on_max = max(tw_on_max, tw)
             on_time += duty * rem
             on_T_integral += duty * rem * tw
             age = 0.0
@@ -918,6 +959,10 @@ def simulate_thermostat_step(
             if want and above_cut:
                 # Called above the tank cut-out: the tank cools to it, then holds.
                 events.append((_time_to_reach(tw, T_limit_C, drive, slope, C), T_limit_C))
+            if rests and want and at_tank_cut:
+                # Resting at the cut-out: it may start once the tank is clear of it.
+                T_clear = T_limit_C - 2.0 * TEMPERATURE_TOL_K
+                events.append((_time_to_reach(tw, T_clear, drive, slope, C), T_clear))
         step, target = min((e for e in events if e[0] >= 0.0), key=lambda e: e[0])
         if step >= rem - EVENT_TIME_TOL_S:
             # An event at the step end belongs to the next step (EVENT_TIME_TOL_S).
@@ -930,6 +975,7 @@ def simulate_thermostat_step(
         if running:
             if tw_on_first is None:
                 tw_on_first = tw
+            tw_on_max = max(tw_on_max, tw, T_new)
             on_time += step
             on_T_integral += 0.5 * (tw + T_new) * step
         tw = T_new
@@ -949,6 +995,7 @@ def simulate_thermostat_step(
         heat_unavailable=unavailable,
         T_on_first_C=tw_on_first,
         limit_stop=limit_stop,
+        T_on_max_C=tw_on_max if on_time > 0.0 else None,
     )
 
 
@@ -982,6 +1029,7 @@ def _simulate_duty_limited_step(
     min_off_time_s: float,
     T_limit_C: float,
     duty_limit: DutyLimit,
+    rest_before_restart: bool = False,
 ) -> InStepRun:
     """:func:`simulate_thermostat_step` for a compressor that reduces its duty on ``duty_limit``.
 
@@ -1024,6 +1072,8 @@ def _simulate_duty_limited_step(
     q_cut = duty_at(T_cut)
     cut_on_limit = has_stretch and T_cut > knee + TEMPERATURE_TOL_K
     q_hold_tank = max(0.0, -(p_const + slope * T_cut)) if math.isfinite(T_cut) else 0.0
+    # A stop at the cut-out is followed by the minimum rest time, not by a hold.
+    rests = rest_before_restart and min_off_time_s > EVENT_TIME_TOL_S
 
     t = 0.0
     tw = T_start_C
@@ -1038,6 +1088,7 @@ def _simulate_duty_limited_step(
     limit_stop = False
     holding = False
     tw_on_first: float | None = None
+    tw_on_max = -math.inf
 
     for n_events in range(1_000_001):
         # --- instantaneous transitions at (t, tw): as simulate_thermostat_step ---
@@ -1063,7 +1114,7 @@ def _simulate_duty_limited_step(
         # one duty, the model without a limit; here the duty follows the tank.)
         outrun = want and at_cut and not above_cut and q_cut > 0.0 and q_hold >= q_cut
         at_limit = at_cut and not outrun
-        hold = want and at_limit and q_hold > 0.0 and q_cut > 0.0
+        hold = want and at_limit and q_hold > 0.0 and q_cut > 0.0 and not rests
         if (outrun or hold) and tw > T_cut:
             # Within the bound width above the cut-out the tank is at it (the
             # last digits of the previous step's root solve): the compressor
@@ -1106,6 +1157,7 @@ def _simulate_duty_limited_step(
             T_new = target if target is not None else min(_advance(tw, step, drive, slope, C), max(tw, T_cut))
             if tw_on_first is None:
                 tw_on_first = tw
+            tw_on_max = max(tw_on_max, tw, T_new)
             index = 1 if cut_on_limit else 0
             on_time[index] += share * step
             on_T_integral[index] += share * step * 0.5 * (tw + T_new)
@@ -1121,6 +1173,8 @@ def _simulate_duty_limited_step(
             q_here = 0.0 if above_cut else duty_at(T_here)
             share = min(1.0, max(0.0, -(p_const + slope * tw) / q_here)) if q_here > 0.0 else 0.0
             index = 1 if on_limit(T_here) else 0
+            if share > 0.0:
+                tw_on_max = max(tw_on_max, T_here)
             on_time[index] += share * rem
             on_T_integral[index] += share * rem * T_here
             age = 0.0
@@ -1152,6 +1206,10 @@ def _simulate_duty_limited_step(
                 events.append((_time_to_reach(tw, T_hi, rate_const, rate_slope, C), T_hi))
             if want and above_cut:
                 events.append((_time_to_reach(tw, T_cut, rate_const, rate_slope, C), T_cut))
+            if rests and want and at_cut and not above_cut:
+                # Resting at the cut-out: it may start once the tank is clear of it.
+                T_clear = T_cut - 2.0 * TEMPERATURE_TOL_K
+                events.append((_time_to_reach(tw, T_clear, rate_const, rate_slope, C), T_clear))
         step, target = min((e for e in events if e[0] >= 0.0), key=lambda e: e[0])
         if step >= rem - EVENT_TIME_TOL_S:
             step, target = rem, None
@@ -1165,6 +1223,7 @@ def _simulate_duty_limited_step(
             T_new = min(T_new, max(tw, T_cut))
             if tw_on_first is None:
                 tw_on_first = tw
+            tw_on_max = max(tw_on_max, tw, T_new)
             index = 1 if reduced else 0
             on_time[index] += step
             on_T_integral[index] += _temperature_integral(tw, T_new, step, rate_const, rate_slope, C)
@@ -1193,6 +1252,8 @@ def _simulate_duty_limited_step(
         reduced_fraction=min(1.0, max(0.0, on_time[1] / dt)) if dt > 0 else 0.0,
         T_reduced_mean_C=T_reduced_mean,
         T_full_mean_C=on_T_integral[0] / on_time[0] if on_time[0] > 0.0 else None,
+        limit_stop_C=T_cut if limit_stop else None,
+        T_on_max_C=tw_on_max if total > 0.0 else None,
     )
 
 
@@ -1243,6 +1304,7 @@ def resolve_step_operation(
     min_duty: Callable[[], float | None] | None = None,
     solve_cycle_at_duty: Callable[[float, float, float], dict] | None = None,
     rate_keys: tuple[str, ...] = (),
+    duty_limit_failure: str | None = None,
 ) -> tuple[InStepRun, dict | None]:
     """Compressor operation in one step and the cycle it ran.
 
@@ -1309,10 +1371,45 @@ def resolve_step_operation(
     :func:`step_hp_result` averages over the step like any other. Each
     stretch's cycle is given the run time that carries the step's mean load at
     its own duty. A step that does not get to the limit is resolved exactly as
-    without these arguments, with the cut-out at the limit's knee. If the
-    cycle on the limit has no operating point, the step keeps the stop. The
+    without these arguments, with the cut-out at the limit's knee. The
     round-off confirmation below (the implicit solve of the full step) assumes
     one heat rate for the step and is not applied to a step on the limit.
+
+    The events take the limit's duty for the stretch above the knee; the cycle
+    solved there says whether the compressor delivers it. It does (to
+    :data:`DUTY_MATCH_RTOL`) when the condensing limit is the one that governs.
+    When it does not, another limit holds the compressor below the condensing
+    limit's duty (the source fluid's freezing limit, the discharge
+    temperature), or leaves it no operating point, and the step is resolved
+    with what the cycle does, the way a step without these arguments is
+    resolved under such a limit -- at one duty, the one the cycle delivers:
+
+    - the cycle runs at less: the events are solved again with that duty, the
+      cycle of the stretch off the condensing limit is solved again at the
+      mean tank temperature of that run, and the run is on the condensing
+      limit only above the tank temperature at which *that* duty meets it
+      (possibly not in this step). ``reduced_fraction`` counts that time
+      alone, and the row keeps the ``capacity_binding`` of its cycle;
+    - the cycle has no operating point (for another reason than the limit
+      itself, ``duty_limit_failure``): the compressor does not run
+      (``heat_unavailable``) and the row is the cycle's off-mode row with its
+      ``failure_reason``, as for any step whose cycle cannot be solved. When
+      the stretch's mean lies more than :data:`CYCLE_RETRY_SPAN_K` above the
+      temperature the run starts from, the cycle at that start decides
+      instead (as for the full-duty stretch);
+    - either of the two above a stretch that did run at the full duty: the
+      compressor runs that stretch and stops where its duty meets the
+      condensing limit (``limit_stop``); the next step starts there.
+
+    A step resolved at one duty this way follows the other limit as the
+    default option does: with one cycle per step, so its result depends on the
+    step as far as that limit's duty changes with the tank temperature inside
+    it. A cycle the condensing limit itself refuses at the duty the limit's
+    line gives (``failure_reason == duty_limit_failure``) keeps the stop.
+
+    With these arguments a compressor stopped at a cut-out rests for its
+    minimum rest time before it restarts (``rest_before_restart`` of
+    :func:`simulate_thermostat_step`).
 
     Returns the :class:`InStepRun` and the cycle result (``None`` if the
     compressor never had to run in this step).
@@ -1377,22 +1474,24 @@ def resolve_step_operation(
         T_limit_given = T_limit_C
         T_limit_C = min(T_limit_C, DutyLimit(*duty_line).knee_C(Q_request))
         kwargs["T_limit_C"] = T_limit_C
+        # A stop at a cut-out is a real one: the minimum rest time follows it.
+        kwargs["rest_before_restart"] = True
     provisional = simulate_thermostat_step(Q_on=Q_request, **kwargs)  # type: ignore[arg-type]
     if reduce and provisional.limit_stop:
         on_limit = _resolve_duty_limited(
             {**kwargs, "T_limit_C": T_limit_given},
-            kwargs,
             Q_request,
             duty_line,  # type: ignore[arg-type]
             min_duty,  # type: ignore[arg-type]
             solve_cycle,
             solve_cycle_at_duty,  # type: ignore[arg-type]
             rate_keys,
+            duty_limit_failure,
         )
         if on_limit is not None:
             return on_limit
     if provisional.T_on_mean_C is None:
-        return provisional, None
+        return (_stopped_at(provisional, T_limit_C) if reduce else provisional), None
     T_eval = provisional.T_on_mean_C
     cycle_result = solve_cycle(T_eval, provisional.runtime_fraction)
     q = delivered_tank_heat(cycle_result)
@@ -1410,13 +1509,13 @@ def resolve_step_operation(
         # gets to the limit: resolve it there.
         on_limit = _resolve_duty_limited(
             {**kwargs, "T_limit_C": T_limit_given},
-            kwargs,
             Q_request,
             duty_line,  # type: ignore[arg-type]
             min_duty,  # type: ignore[arg-type]
             solve_cycle,
             solve_cycle_at_duty,  # type: ignore[arg-type]
             rate_keys,
+            duty_limit_failure,
         )
         if on_limit is not None:
             return on_limit
@@ -1448,34 +1547,73 @@ def resolve_step_operation(
         T_end = _solve_tank_end(residual_free, 0.0, dt, C_tank)
         if T_end is not None and T_end - 273.15 > T_lower + bound_tolerance(T_lower, T_hi):
             return InStepRun(0.0, False, False, False, 0, age_through, None, False), None
-    return run, cycle_result
+    return (_stopped_at(run, T_limit_C) if reduce else run), cycle_result
+
+
+def _stopped_at(run: InStepRun, T_cut_C: float) -> InStepRun:
+    """``run`` with the cut-out it was resolved with, if that cut-out acted (``limit_stop_C``)."""
+    return dataclasses.replace(run, limit_stop_C=T_cut_C) if run.limit_stop else run
+
+
+DUTY_MATCH_RTOL: float = 1e-3
+"""Fraction by which a cycle may fall short of the duty the condensing limit
+leaves and still count as running on that limit.
+
+A cycle asked for the limit's duty at a tank temperature on the limit delivers
+it to the solver's last digits when the condensing limit is the one that
+governs (measured ratio 1.000000 on the documented charges of the three boiler
+families). One that delivers less by more than this was reduced further, by
+another limit; :func:`resolve_step_operation` then resolves the step with the
+duty the cycle delivers.
+"""
+
+#: Event solves :func:`_resolve_duty_limited` makes at most: the request, the
+#: duty the cycle delivers instead, and that duty once its cycle is solved at
+#: the run's own mean temperature.
+_DUTY_LIMIT_PASSES = 3
+#: Trial temperatures :func:`_resolve_duty_limited` solves, each half-way, to
+#: find where an envelope that closes inside a run still has an operating
+#: point: the run ends within a quarter of the unconfirmed span of that point.
+_CLOSING_BISECTIONS = 2
 
 
 def _resolve_duty_limited(
     kwargs: dict,
-    kwargs_stop: dict,
     Q_request: float,
     duty_line: tuple[float, float],
     min_duty: Callable[[], float | None],
     solve_cycle: Callable[[float, float], dict],
     solve_cycle_at_duty: Callable[[float, float, float], dict],
     rate_keys: tuple[str, ...],
+    duty_limit_failure: str | None = None,
 ) -> tuple[InStepRun, dict | None] | None:
     """A step that gets to the duty limit: its run and the mean cycle of its two stretches.
 
     The reduced-duty part of :func:`resolve_step_operation` (which describes
-    it). ``kwargs`` are the thermostat's arguments with the caller's cut-out,
-    ``kwargs_stop`` those with the cut-out at the knee. ``None`` when the step
-    keeps the stop: no continuous duty below the request (or below what the
-    full-duty cycle delivers), or no operating point on the limit. A step
-    resolved here therefore never runs above the limit's stop, and never on
-    the limit at less than the smallest continuous duty.
+    it). ``kwargs`` are the thermostat's arguments with the caller's cut-out.
+    ``None`` when the step keeps the stop: no continuous duty below the
+    request (or below what the full-duty cycle delivers), or a cycle the limit
+    itself refuses on its own line. A step resolved here therefore never runs
+    above the limit's stop, and never on the limit at less than the smallest
+    continuous duty; the events are those of the duty its cycles deliver; and
+    a run another limit governs is not taken above a tank temperature at which
+    no cycle of the step ran unless the cycle there runs too.
     """
     floor = min_duty()
     if floor is None or not (math.isfinite(floor) and 0.0 <= floor < Q_request):
         return None
     limit = DutyLimit(duty_line[0], duty_line[1], float(floor))
     on_limit = {**kwargs, "duty_limit": limit}
+    # Warmest tank at which a cycle of this step has run [degC].
+    T_ran = -math.inf
+
+    def ran(cycle: Mapping[str, Any], T_C: float) -> float:
+        """Heat the cycle solved at ``T_C`` delivers [W]; a cycle that runs is remembered."""
+        nonlocal T_ran
+        q = delivered_tank_heat(cycle)
+        if q > 0.0:
+            T_ran = max(T_ran, T_C)
+        return q
 
     def stretches(run: InStepRun, q_full: float) -> tuple[float, float, float, float]:
         """Run fractions at the full duty and on the limit, the limit's mean duty, the step's mean load [W]."""
@@ -1488,53 +1626,140 @@ def _resolve_duty_limited(
         """Run time at duty ``q`` that carries the step's mean load: what the stretch's source sees."""
         return min(1.0, load / q) if q > 0.0 else 1.0
 
-    provisional = simulate_thermostat_step(Q_on=Q_request, **on_limit)
-    if provisional.T_on_mean_C is None:
-        return provisional, None
-    f_full, _, _, load = stretches(provisional, Q_request)
+    def no_cycle(cycle: dict | None) -> tuple[InStepRun, dict | None]:
+        """No operating point: the compressor does not run, and the row is the cycle's own (its failure)."""
+        return simulate_thermostat_step(Q_on=0.0, **kwargs), cycle
+
+    def up_to(q: float, T_cut_C: float) -> InStepRun:
+        """The step of a compressor with the one duty ``q`` and its cut-out at ``T_cut_C``."""
+        cut = min(kwargs["T_limit_C"], T_cut_C)
+        return _stopped_at(simulate_thermostat_step(Q_on=q, **{**kwargs, "T_limit_C": cut}), cut)
+
+    def confirmed(run: InStepRun, cycle: dict | None, q: float) -> tuple[InStepRun, dict | None] | None:
+        """A run at the one duty ``q`` another limit governs, not taken past where that limit closes.
+
+        One cycle stands for the run (the duty it delivers at one tank
+        temperature). Where the run goes above every tank temperature at which
+        a cycle of this step ran, the cycle is solved at the run's warmest
+        point; if it has no operating point there, the envelope closes inside
+        the run. The run then ends at the warmest temperature a cycle did run
+        at, looked for half-way to the closed point :data:`_CLOSING_BISECTIONS`
+        times -- or, when that is where the run starts, the compressor does
+        not run and the row is the failure of the coldest cycle that did not.
+        """
+        if cycle is None:
+            return None
+        T_top = run.T_on_max_C
+        if T_top is None or T_top <= T_ran + TEMPERATURE_TOL_K:
+            return run, cycle
+
+        def probe_at(T_C: float) -> dict:
+            # Asked for the most the condensing limit leaves there, so that a
+            # cycle that does not run names the limit that stops it.
+            most = limit.duty(T_C)
+            if most < Q_request:
+                return solve_cycle_at_duty(T_C, most, run.runtime_fraction)
+            return solve_cycle(T_C, run.runtime_fraction)
+
+        probe = probe_at(T_top)
+        if ran(probe, T_top) > 0.0:
+            return run, cycle
+        T_first = run.T_on_first_C
+        if T_first is None:
+            return no_cycle(probe)
+        T_closed = T_top
+        if T_ran >= T_first - TEMPERATURE_TOL_K:
+            for _ in range(_CLOSING_BISECTIONS):
+                T_mid = 0.5 * (T_ran + T_closed)
+                trial = probe_at(T_mid)
+                if ran(trial, T_mid) <= 0.0:
+                    T_closed, probe = T_mid, trial
+        if T_ran <= T_first + TEMPERATURE_TOL_K:
+            return no_cycle(probe)
+        # Stopped by the other limit, short of the condensing limit: not one of the cut-outs.
+        return dataclasses.replace(up_to(q, T_ran), limit_stop=False, limit_stop_C=None), cycle
+
+    def at_one_duty(q: float, cycle: dict | None) -> tuple[InStepRun, dict | None] | None:
+        """The step of a compressor with the one duty ``q``: it stops where that duty meets the limit."""
+        return confirmed(up_to(q, limit.knee_C(q)), cycle, q)
+
+    # Duty the compressor runs at off the condensing limit, and the cycle that
+    # delivers it (None: not solved yet for the run the events give).
+    q_run = Q_request
     full_result: dict | None = None
-    q_full = Q_request
-    if f_full > 0.0:
-        assert provisional.T_full_mean_C is not None
-        T_eval = provisional.T_full_mean_C
-        fraction = equivalent_fraction(load, Q_request)
-        full_result = solve_cycle(T_eval, fraction)
-        q_full = delivered_tank_heat(full_result)
-        T_first = provisional.T_on_first_C
-        if q_full <= 0.0 and T_first is not None and T_eval - T_first > CYCLE_RETRY_SPAN_K:
-            retry = solve_cycle(T_first, fraction)
-            if delivered_tank_heat(retry) > 0.0:
-                full_result, q_full = retry, delivered_tank_heat(retry)
-        if q_full <= 0.0:
-            # No cycle at the full duty: the compressor does not run, as without the limit.
-            return simulate_thermostat_step(Q_on=0.0, **kwargs_stop), full_result
-        if q_full <= limit.Q_min:
-            # Another limit already holds the cycle at or below the smallest
-            # duty found on this one: there is no stretch between the two to
-            # run on, and the step keeps the stop (at the knee of the request,
-            # which lies below this limit's stop).
-            return None
-    run = simulate_thermostat_step(Q_on=q_full, **on_limit)
-    if run.T_on_mean_C is None:
-        return run, full_result
-    f_full, f_reduced, q_reduced, load = stretches(run, q_full)
-    if f_reduced <= 0.0:
-        if full_result is None:
+    # A running cycle at ``q_run`` solved for a stretch the events took for the limit's.
+    spare: dict | None = None
+    for _ in range(_DUTY_LIMIT_PASSES):
+        run = simulate_thermostat_step(Q_on=q_run, **on_limit)
+        if run.T_on_mean_C is None:
+            return run, full_result
+        f_full, f_reduced, q_reduced, load = stretches(run, q_run)
+        if f_full > 0.0 and full_result is None:
             assert run.T_full_mean_C is not None
-            full_result = solve_cycle(run.T_full_mean_C, equivalent_fraction(load, q_full))
-        return run, full_result
-    assert run.T_reduced_mean_C is not None
-    reduced_result = solve_cycle_at_duty(run.T_reduced_mean_C, q_reduced, equivalent_fraction(load, q_reduced))
-    if delivered_tank_heat(reduced_result) <= 0.0:
-        return None
-    if f_full <= 0.0:
-        return run, reduced_result
-    if full_result is None:
-        assert run.T_full_mean_C is not None
-        full_result = solve_cycle(run.T_full_mean_C, equivalent_fraction(load, q_full))
-        if delivered_tank_heat(full_result) <= 0.0:
+            T_eval = run.T_full_mean_C
+            fraction = equivalent_fraction(load, q_run)
+            full_result = solve_cycle(T_eval, fraction)
+            q_full = ran(full_result, T_eval)
+            T_first = run.T_on_first_C
+            if q_full <= 0.0 and spare is None and T_first is not None and T_eval - T_first > CYCLE_RETRY_SPAN_K:
+                retry = solve_cycle(T_first, fraction)
+                if ran(retry, T_first) > 0.0:
+                    full_result, q_full = retry, delivered_tank_heat(retry)
+            if q_full <= 0.0:
+                if spare is not None:
+                    # A cycle did run at ``q_run`` in this step, at another tank temperature.
+                    return at_one_duty(q_run, spare)
+                # No cycle at the full duty: the compressor does not run, as without the limit.
+                return no_cycle(full_result)
+            if q_full <= limit.Q_min:
+                # Another limit already holds the cycle at or below the smallest
+                # duty found on this one: there is no stretch between the two to
+                # run on, and the step keeps the stop (at the knee of the request,
+                # which lies below this limit's stop).
+                return None
+            if q_full != q_run:
+                # The events again, with the duty the cycle delivers.
+                q_run = q_full
+                continue
+        if f_reduced <= 0.0:
+            cycle = full_result if full_result is not None else spare
+            return (run, cycle) if q_run == Q_request else confirmed(run, cycle, q_run)
+        assert run.T_reduced_mean_C is not None
+        reduced_result = solve_cycle_at_duty(run.T_reduced_mean_C, q_reduced, equivalent_fraction(load, q_reduced))
+        q_delivered = ran(reduced_result, run.T_reduced_mean_C)
+        if q_delivered > 0.0 and q_delivered >= q_reduced * (1.0 - DUTY_MATCH_RTOL):
+            # The condensing limit governs the stretch, as the events took it.
+            if f_full <= 0.0:
+                return run, reduced_result
+            return run, merge_running_rows(full_result, f_full, reduced_result, f_reduced, rate_keys)  # type: ignore[arg-type]
+        refused = duty_limit_failure is not None and reduced_result.get("failure_reason") == duty_limit_failure
+        if q_delivered <= 0.0 and refused:
+            # The limit itself refuses the duty its line gives here: the stop stands.
             return None
-    return run, merge_running_rows(full_result, f_full, reduced_result, f_reduced, rate_keys)
+        # Another limit governs above the knee: it holds the cycle below the
+        # duty the condensing limit leaves, or leaves it no operating point.
+        if f_full > 0.0:
+            # The compressor ran up to the knee at its full duty and stops
+            # there; the next step starts from it.
+            return at_one_duty(q_run, full_result)
+        if q_delivered <= 0.0:
+            T_first = run.T_on_first_C
+            if spare is None and T_first is not None and run.T_reduced_mean_C - T_first > CYCLE_RETRY_SPAN_K:
+                # The cycle that starts the run, when the run starts well below
+                # the mean the events gave it: the duty it delivers there, and
+                # the events again with it. The cycle is then solved at the
+                # mean of that slower run.
+                retry = solve_cycle_at_duty(T_first, limit.duty(T_first), equivalent_fraction(load, q_reduced))
+                if ran(retry, T_first) > limit.Q_min:
+                    q_run, full_result, spare = delivered_tank_heat(retry), None, retry
+                    continue
+            return no_cycle(reduced_result)
+        if q_delivered <= limit.Q_min:
+            return None  # as for the full-duty cycle above
+        # The whole run was taken for the limit's and is the other limit's: the
+        # events again with the duty that limit leaves.
+        q_run, full_result, spare = q_delivered, None, reduced_result
+    return at_one_duty(q_run, full_result if full_result is not None else spare)
 
 
 #: Ratio keys of a boiler row recomputed from merged rates: (key, heat, power).
@@ -1542,7 +1767,7 @@ _MERGED_RATIOS: tuple[tuple[str, str, str], ...] = (
     ("cop_ref [-]", "Q_ref_tank [W]", "E_cmp [W]"),
     ("cop_sys [-]", "Q_ref_tank [W]", "E_tot [W]"),
 )
-#: Capacity keys a merged row takes from the stretch on the limit.
+#: Capacity keys a merged row takes from one stretch (see :func:`merge_running_rows`).
 _MERGED_CAPACITY_KEYS: tuple[str, ...] = ("capacity_clamped", "capacity_binding", "Q_request [W]")
 
 
@@ -1560,10 +1785,14 @@ def merge_running_rows(
     one at a tie). The capacity keys are those of ``reduced`` (the step ran
     below its request for part of the time) with ``Q_max [W]`` the mean running
     duty, so ``Q_max [W] * runtime_fraction [-]`` is the row's step-average
-    heat as on every reduced step.
+    heat as on every reduced step. When ``full`` is itself held below the
+    request by a limit (it names one in ``capacity_binding``) and ran at least
+    as long, the capacity keys are its own: the row names the limit that
+    governed most of the run.
     """
     total = f_full + f_reduced
     row = dict(full if f_full >= f_reduced else reduced)
+    capacity = full if full.get("capacity_binding") and f_full >= f_reduced else reduced
     for key in rate_keys:
         a, b = full.get(key), reduced.get(key)
         if _finite_number(a) and _finite_number(b):
@@ -1573,8 +1802,8 @@ def merge_running_rows(
         if key in row and _finite_number(heat) and _finite_number(power) and float(power) > 0.0:  # type: ignore[arg-type]
             row[key] = float(heat) / float(power)  # type: ignore[arg-type]
     for key in _MERGED_CAPACITY_KEYS:
-        if key in reduced:
-            row[key] = reduced[key]
+        if key in capacity:
+            row[key] = capacity[key]
     if _finite_number(row.get("Q_ref_tank [W]")):
         row["Q_max [W]"] = float(row["Q_ref_tank [W]"])
     return row
@@ -1630,15 +1859,22 @@ REDUCED_DUTY_FRACTION_KEY: str = "reduced_duty_fraction [-]"
 def in_step_stop_reason(run: InStepRun, T_limit_C: float, run_limit_s: float = math.inf) -> str | None:
     """``hp_stop_reason`` of a step: why a cut-out stopped the compressor, ``None`` if none did.
 
-    A tank cut-out below the boiling point, or a coil cut-out (a finite
-    ``run_limit_s``), is the envelope stop the boiler passed
+    The stop is the one the step was resolved with (``run.limit_stop_C``;
+    ``T_limit_C``, the cut-out the boiler passed, for a run that does not
+    carry it). A tank cut-out below the boiling point, or a coil cut-out (a
+    finite ``run_limit_s``), is the envelope stop
     (:data:`STOP_CONDENSING_LIMIT`); otherwise it is the boiling point
-    (:data:`STOP_BOILING_LIMIT`). Such a stop is a normal end of the run (no
-    ``failure_reason``): the heat pump has charged the tank as far as its
-    compressor allows.
+    (:data:`STOP_BOILING_LIMIT`). With reduced-duty charging the stop that
+    acts is the lower of the boiling point and the tank temperature at which
+    the condensing limit leaves the smallest continuous duty, which a boiler
+    does not know before the step is resolved: the run says which it was.
+    Such a stop is a normal end of the run (no ``failure_reason``): the heat
+    pump has charged the tank as far as its compressor allows.
     """
     if not run.limit_stop:
         return None
+    if run.limit_stop_C is not None:
+        T_limit_C = run.limit_stop_C
     envelope = T_limit_C < T_WATER_BOIL_C or math.isfinite(run_limit_s)
     return STOP_CONDENSING_LIMIT if envelope else STOP_BOILING_LIMIT
 

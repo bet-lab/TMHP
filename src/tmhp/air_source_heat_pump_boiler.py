@@ -395,9 +395,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     compressor slows down and keeps charging at the largest duty inside the
     limit, ``K_tank_hx (T_reach - T)``, which is the duty ``analyze_steady``
     reports there, down to the smallest duty it runs at continuously. The
-    tank's first-order approach to the limit is solved inside each step, so
-    the result does not depend on the step
-    (:func:`tmhp.dynamic_context.resolve_step_operation`); rows carry
+    tank's first-order approach to the limit is solved inside each step
+    (:func:`tmhp.dynamic_context.resolve_step_operation`, which also says how
+    far the result is independent of the step and what happens where another
+    limit governs); rows carry
     ``reduced_duty_fraction [-]``. The set points are then capped where the
     smallest continuous duty meets the limit, evaluated at the rating point's outdoor air
     (``charge_limit_reference_C``); each step applies the limit of its own
@@ -2971,6 +2972,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 min_duty=lambda: self._smallest_delivered_duty(ctx),
                 solve_cycle_at_duty=lambda T_C, q, _fraction: self._solve_cycle_on_limit(ctx, T_C, q),
                 rate_keys=self._RUNTIME_SCALED_KEYS,
+                duty_limit_failure=CONDENSING_TEMP_ABOVE_MAX,
             )
         run, cycle_result = resolve_step_operation(
             T_start_K=ctx.T_tank_w_K,

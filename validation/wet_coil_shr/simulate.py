@@ -69,37 +69,15 @@ import hashlib
 import json
 import math
 import re
-import sys
-import types
 from pathlib import Path
 
 import pandas as pd
 
-
-def _source_of(code: types.CodeType, data: bytes, filename: str) -> bytes | None:
-    """``data`` if it is source that compiles to ``code``, else ``None``.
-
-    Nothing is executed: the bytes are compiled and the code objects compared
-    (instructions, constants, names and positions, in every function).
-    """
-    try:
-        same = compile(data, filename, "exec", dont_inherit=True) == code
-    except (SyntaxError, ValueError):
-        return None
-    return data if same else None
-
-
-#: The code object the interpreter is running as this module -- what was
-#: loaded, whatever the file on disk has become since -- and the source it was
-#: compiled from: the file as read here, at load, kept only if it compiles to
-#: that code (``None`` otherwise: edited while it was being loaded, or a stale
-#: bytecode cache). The provenance record takes the script's blob from these
-#: bytes (:func:`script_identity`), never from a later read of the file.
-_LOADED_CODE: types.CodeType = sys._getframe().f_code
-try:
-    _SOURCE_AT_LOAD: bytes | None = _source_of(_LOADED_CODE, Path(__file__).read_bytes(), __file__)
-except OSError:
-    _SOURCE_AT_LOAD = None
+#: The bytes this code was compiled from, when it runs through :func:`main`
+#: (which reads the file once, compiles those bytes and runs the result with
+#: this name set); ``None`` in a module the import system loaded, whose source
+#: bytes are not known. The provenance record takes the script's blob from it.
+_SOURCE: bytes | None = globals().get("_SOURCE")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "validation" / "results" / "wet_coil_shr_once"
@@ -391,22 +369,22 @@ def headline(points: pd.DataFrame) -> dict:
 
 
 def script_identity() -> dict:
-    """Git blob of the source of the code that is running as this script.
+    """Git blob of the source this code was compiled from.
 
-    The hash ``git hash-object`` gives a file with the bytes this module was
-    loaded from (:data:`_SOURCE_AT_LOAD`: read at load and compiled, without
-    being run, to the very code object the interpreter runs). The file on
-    disk is not read again, so an edit after the module was loaded cannot
-    change what is recorded. ``SystemExit`` when the source of the running
-    code is not known.
+    The hash ``git hash-object`` gives a file with the bytes in
+    :data:`_SOURCE`. Those are the bytes :func:`main` read, compiled and ran,
+    so the blob is that of the source that produced the results by
+    construction; the file on disk is not read here. ``SystemExit`` in a
+    module the import system loaded: what it was compiled from is not known
+    (it may come from a bytecode cache), so nothing is recorded for it.
     """
-    if _SOURCE_AT_LOAD is None:
+    if _SOURCE is None:
         raise SystemExit(
-            f"{__file__} did not compile to the code that is running when it was loaded "
-            "(edited during the load, or a stale bytecode cache); run it again. Nothing written"
+            "the study has to be run through main() (python -m validation.wet_coil_shr.simulate), which runs "
+            "the bytes it records; this module was loaded by the import system. Nothing written"
         )
-    header = b"blob %d\0" % len(_SOURCE_AT_LOAD)
-    return {"study_script_blob": hashlib.sha1(header + _SOURCE_AT_LOAD).hexdigest()}  # noqa: S324 -- git's blob id
+    header = b"blob %d\0" % len(_SOURCE)
+    return {"study_script_blob": hashlib.sha1(header + _SOURCE).hexdigest()}  # noqa: S324 -- git's blob id
 
 
 def run_state() -> dict:
@@ -429,24 +407,54 @@ def run_state() -> dict:
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Run the study with code compiled from one read of this file, whose bytes are what the record names.
+
+    The module the interpreter loaded is not what runs the study: its source
+    bytes are not known (the import system may have used a bytecode cache, or
+    the file may have changed since). The file is read once here; those bytes
+    are compiled and executed as a fresh copy of this script with
+    :data:`_SOURCE` set to them, and that copy's :func:`run` does the work.
+    The blob in the provenance record is therefore the blob of exactly the
+    source that computed the results.
+    """
+    path = Path(__file__)
+    source = path.read_bytes()
+    script: dict = {"__name__": "validation.wet_coil_shr.simulate", "__file__": str(path), "_SOURCE": source}
+    exec(compile(source, str(path), "exec", dont_inherit=True), script)  # noqa: S102 -- this script, run from the bytes read
+    script["run"](argv)
+
+
+def run(argv: list[str] | None = None) -> None:
+    """The study: parse ``argv``, run the passes, check the gate, write the files and the record."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out-dir", type=Path, default=OUT_DIR, help="where to write the study's files")
+    parser.add_argument(
+        "--unit", action="append", choices=UNITS, help="run only this catalogue (repeatable); needs its own --out-dir"
+    )
+    parser.add_argument(
+        "--point-id", action="append", type=int, help="run only this point id (repeatable); needs its own --out-dir"
+    )
     args = parser.parse_args(argv)
     out_dir: Path = args.out_dir.resolve()
+    units = tuple(args.unit) if args.unit else UNITS
+    point_ids = tuple(args.point_id) if args.point_id else None
+    partial = bool(args.unit or args.point_id)
+    if partial and out_dir == OUT_DIR.resolve():
+        parser.error("a partial run (--unit, --point-id) does not replace the committed study: give another --out-dir")
 
     # Captured before any catalogue is evaluated (as the parity harness does):
     # the record describes the code the numbers were computed with, not what
     # is on disk when the run ends.
     state = run_state()
 
-    points = pd.concat([run_unit(slug) for slug in UNITS], ignore_index=True)
+    points = pd.concat([run_unit(slug, point_ids=point_ids) for slug in units], ignore_index=True)
 
     worst = shipped_dry_gate(points)
     print(f"dry pass against the committed parity results: largest relative COP difference {worst:.3e}")
     if not worst <= 1e-6:
         raise SystemExit("GATE FAILED: the dry pass is not the shipped parity path; nothing written")
     if run_state() != state:
-        raise SystemExit("the model, the harness or this script changed while the study ran; nothing written")
+        raise SystemExit("the model or the harness changed while the study ran; nothing written")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     bands, units, numbers = by_band(points), by_unit(points), headline(points)
@@ -454,7 +462,8 @@ def main(argv: list[str] | None = None) -> None:
     bands.to_csv(out_dir / BANDS_NAME, index=False)
     units.to_csv(out_dir / UNITS_NAME, index=False)
     manifest = {
-        "units": list(UNITS),
+        "units": list(units),
+        "partial_run": partial,
         "units_not_run_no_indoor_wet_bulb": list(UNITS_WITHOUT_WET_BULB),
         "passes": {name: {"wet_coil": wet, "UA_iu_scale": scale} for name, (wet, scale) in PASSES.items()},
         "shr_bands": [list(band) for band in BANDS],
@@ -473,7 +482,7 @@ def main(argv: list[str] | None = None) -> None:
             "model": "validation.parity.run._build_model(catalog, None, 'cooling'): the shipped parity construction",
             "passes": manifest["passes"],
             "RH_room": "from the row's indoor dry bulb and wet bulb, one standard atmosphere (wet passes); None (dry)",
-            "units": list(UNITS),
+            "units": list(units),
         },
         "sensible heat ratio of the wet indoor coil against the catalogue's, and the COP bias dry against wet",
         command="python -m validation.wet_coil_shr.simulate",

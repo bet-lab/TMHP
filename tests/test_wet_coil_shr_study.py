@@ -179,19 +179,96 @@ def test_what_the_study_found(committed):
     assert bands.shr_error_wet_ua50["all"] < -0.05 and bands.shr_error_wet_ua200["all"] > 0.05
 
 
-def _one_row_run(monkeypatch, calls: list[str]):
-    """Make ``study.main`` a one-row run that logs when the code state is read and when the model runs."""
+def _blob(data: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()  # noqa: S324 -- git's blob id
+
+
+ONE_ROW = ["--unit", "daikin_rxm20a", "--point-id", "1"]
+
+
+def test_main_records_the_blob_of_the_bytes_it_ran(tmp_path, capsys):
+    """A real one-row run through ``main``: the record names this file's blob, read once and run."""
+    from validation.parity.run import _git
+
+    study.main([*ONE_ROW, "--out-dir", str(tmp_path)])
+    capsys.readouterr()
+    record = json.loads((tmp_path / "provenance.json").read_text(encoding="utf-8"))
+    source = (REPO_ROOT / study.SCRIPT).read_bytes()
+    assert record["study_script_blob"] == _blob(source)
+    blob = _git("hash-object", study.SCRIPT)
+    if blob:
+        assert record["study_script_blob"] == blob
+    committed = _git("rev-parse", f"{record['git_head']}:{study.SCRIPT}")
+    assert record["study_script_uncommitted"] is (record["study_script_blob"] != committed)
+    assert len(pd.read_csv(tmp_path / study.CSV_NAME)) == 1
+    assert json.loads((tmp_path / "run_manifest.json").read_text(encoding="utf-8"))["partial_run"] is True
+
+
+def test_main_runs_the_file_as_it_is_and_records_exactly_that(tmp_path):
+    """The blob recorded is the blob of the source whose code did the work, whatever module was loaded before.
+
+    A copy of the script whose ``run`` only reports which version it is and what it would record. The
+    copy is loaded, then the file is replaced by a second version: ``main`` of the *loaded* module
+    reads the file once, and both the code that runs and the blob it reports are the second version's.
+    """
+    import importlib.util
+
+    source = (REPO_ROOT / study.SCRIPT).read_text(encoding="utf-8")
+    probe = (
+        "\n\ndef run(argv=None):\n"
+        "    Path(argv[0]).write_text(json.dumps({'version': VERSION, **script_identity()}))\n"
+        "\n\nVERSION = %r\n"
+    )
+    first, second = ((source + probe % version).encode() for version in ("first", "second"))
+    copy = tmp_path / "simulate.py"
+    copy.write_bytes(first)
+    spec = importlib.util.spec_from_file_location("wet_coil_shr_copy", copy)
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+    assert loaded.VERSION == "first"
+
+    out = tmp_path / "report.json"
+    loaded.main([str(out)])
+    assert json.loads(out.read_text()) == {"version": "first", "study_script_blob": _blob(first)}
+
+    copy.write_bytes(second)
+    loaded.main([str(out)])
+    assert json.loads(out.read_text()) == {"version": "second", "study_script_blob": _blob(second)}
+    assert _blob(first) != _blob(second) and loaded.VERSION == "first"
+
+
+def test_a_module_loaded_by_the_import_system_records_nothing(tmp_path):
+    """Its source bytes are not known, so ``run`` called on it directly refuses before computing."""
+    assert study._SOURCE is None
+    with pytest.raises(SystemExit, match="has to be run through main"):
+        study.script_identity()
+    out = tmp_path / "out"
+    with pytest.raises(SystemExit, match="has to be run through main"):
+        study.run([*ONE_ROW, "--out-dir", str(out)])
+    assert not out.exists()
+
+
+def test_partial_run_cannot_replace_the_committed_study(capsys):
+    with pytest.raises(SystemExit):
+        study.main(ONE_ROW)  # no --out-dir: the default is the committed study's folder
+    assert "does not replace the committed study" in capsys.readouterr().err
+
+
+def _logged_run(monkeypatch, calls: list[str]):
+    """Make ``study.run`` log when the code state is read and when the model runs (source bytes: the file's)."""
     real_run_unit, real_state = study.run_unit, study.run_state
 
-    def run_unit(slug):
+    def run_unit(slug, point_ids=None):
         calls.append("run")
-        return real_run_unit(slug, point_ids=(1,))
+        return real_run_unit(slug, point_ids=point_ids)
 
     def run_state():
         calls.append("state")
         return real_state()
 
-    monkeypatch.setattr(study, "UNITS", ("daikin_rxm20a",))
+    monkeypatch.setattr(study, "_SOURCE", (REPO_ROOT / study.SCRIPT).read_bytes())
     monkeypatch.setattr(study, "run_unit", run_unit)
     monkeypatch.setattr(study, "run_state", run_state)
     return real_state
@@ -199,8 +276,8 @@ def _one_row_run(monkeypatch, calls: list[str]):
 
 def test_run_reads_the_code_state_before_it_computes_and_records_that(monkeypatch, tmp_path, capsys):
     calls: list[str] = []
-    real_state = _one_row_run(monkeypatch, calls)
-    study.main(["--out-dir", str(tmp_path)])
+    real_state = _logged_run(monkeypatch, calls)
+    study.run([*ONE_ROW, "--out-dir", str(tmp_path)])
     capsys.readouterr()
     assert calls[0] == "state" and calls.index("run") > 0, calls  # read before the first model run
     assert calls[-1] == "state" and calls.count("state") == 2, calls  # and checked again before writing
@@ -212,82 +289,20 @@ def test_run_reads_the_code_state_before_it_computes_and_records_that(monkeypatc
 
 def test_run_writes_nothing_when_the_code_changed_while_it_ran(monkeypatch, tmp_path, capsys):
     calls: list[str] = []
-    real_state = _one_row_run(monkeypatch, calls)
+    real_state = _logged_run(monkeypatch, calls)
 
     def changing_state():
         calls.append("state")
         state = real_state()
-        # The script is edited between the start of the run and its end.
-        return state if calls.count("state") == 1 else {**state, "study_script_blob": "0" * 40}
+        # The model is edited between the start of the run and its end.
+        return state if calls.count("state") == 1 else {**state, "dirty": True, "dirty_digest": "0" * 64}
 
     monkeypatch.setattr(study, "run_state", changing_state)
     out = tmp_path / "out"
     with pytest.raises(SystemExit, match="changed while the study ran; nothing written"):
-        study.main(["--out-dir", str(out)])
+        study.run([*ONE_ROW, "--out-dir", str(out)])
     capsys.readouterr()
     assert not out.exists()
-
-
-def _load_copy(path: Path):
-    """The study script loaded from ``path`` as a module of its own."""
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location("wet_coil_shr_copy", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def _blob(data: bytes) -> str:
-    import hashlib
-
-    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()  # noqa: S324 -- git's blob id
-
-
-def test_script_identity_is_the_blob_of_the_running_code(tmp_path, monkeypatch):
-    from validation.parity.run import _git
-
-    # The loaded module knows the source it runs: the file, compiled to the code object it executes.
-    path = REPO_ROOT / study.SCRIPT
-    assert path.read_bytes() == study._SOURCE_AT_LOAD
-    assert compile(study._SOURCE_AT_LOAD, str(path), "exec", dont_inherit=True) == study._LOADED_CODE
-    blob = _git("hash-object", study.SCRIPT)
-    if blob:
-        assert study.script_identity() == {"study_script_blob": blob}
-    state = study.run_state()
-    assert state["study_script_blob"] == _blob(path.read_bytes())
-    committed = _git("rev-parse", f"{state['git_head']}:{study.SCRIPT}")
-    assert state["study_script_uncommitted"] is (state["study_script_blob"] != committed)
-
-    # A copy, loaded and then edited on disk: what is recorded stays the source that was loaded.
-    source = path.read_bytes()
-    copy = tmp_path / "simulate.py"
-    copy.write_bytes(source)
-    loaded = _load_copy(copy)
-    assert loaded.script_identity() == {"study_script_blob": _blob(source)}
-    copy.write_bytes(source.replace(b'"wet_ua50": (True, 0.5)', b'"wet_ua50": (True, 0.4)'))
-    assert copy.read_bytes() != source
-    assert loaded.script_identity() == {"study_script_blob": _blob(source)}
-
-    # Without a source known to be the running code, nothing is recorded.
-    monkeypatch.setattr(loaded, "_SOURCE_AT_LOAD", None)
-    with pytest.raises(SystemExit, match="did not compile to the code that is running"):
-        loaded.script_identity()
-
-
-def test_source_is_accepted_only_if_it_compiles_to_the_running_code():
-    """The check behind ``_SOURCE_AT_LOAD``: bytes are compiled and compared, never run."""
-    code, name = study._LOADED_CODE, str(REPO_ROOT / study.SCRIPT)
-    source = (REPO_ROOT / study.SCRIPT).read_bytes()
-    assert study._source_of(code, source, name) == source
-    for edited in (
-        source.replace(b'"wet_ua50": (True, 0.5)', b'"wet_ua50": (True, 0.4)'),  # a constant
-        source.replace(b"    worst = 0.0\n", b"    worst = 1.0\n"),  # a function body
-        source + b"\nraise SystemExit('this must never run')\n",  # code that would act if it were executed
-        b"def broken(:\n",  # not Python
-    ):
-        assert edited != source
-        assert study._source_of(code, edited, name) is None
 
 
 # ---------------------------------------------------------------------------

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP aims at a useful accuracy from a nameplate ( Minimal input), not at reproducing one machine from its drawings. That bargain has a price: some things are outside the models and are refused, and..." />
 
-    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
+    <meta property="article:modified_time" content="2026-11-21T06:05:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -415,7 +415,25 @@ the sensible one</p></td>
 a low sensible heat ratio (<a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a>, <em>Cooling and
 latent load</em>)</p></td>
 </tr>
-<tr class="row-even"><td><p>Frost as a correlation (ASHP, ASHPB)</p></td>
+<tr class="row-even"><td><p>Fans at the flow of least power</p></td>
+<td><p>Each operating point is the one of least total electrical input the
+fan limits allow, to the tolerance of the search: it sets both air
+flows of an <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code> and the outdoor air flow of an
+<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>. A unit follows its own controller and
+the fan step its user selects, so this is the favourable end of what
+the fans leave open, not a prediction of a controller. At the four
+points of <a class="reference internal" href="../models/ashp.html#ashp-fan-control"><span class="std std-ref">Fan flows: the point of least power</span></a> the default 4 kW air-to-air unit
+runs its indoor fan at its largest flow; with the
+indoor flow held at half of that, the COP is 19 to 21 % lower at
+half load and 27 to 34 % lower at nameplate load, which the unit
+then falls 1 to 3 % short of</p></td>
+<td><p>Not flagged. <code class="docutils literal notranslate"><span class="pre">dV_iu_a</span> <span class="pre">[m3/s]</span></code> and <code class="docutils literal notranslate"><span class="pre">dV_ou_a</span> <span class="pre">[m3/s]</span></code> are the flows
+the search chose. Equal limits hold a fan at one flow:
+<code class="docutils literal notranslate"><span class="pre">dV_iu_fan_a_min</span></code> / <code class="docutils literal notranslate"><span class="pre">dV_iu_fan_a_max</span></code> and <code class="docutils literal notranslate"><span class="pre">dV_ou_fan_a_min</span></code> /
+<code class="docutils literal notranslate"><span class="pre">dV_ou_fan_a_max</span></code> (ASHP), <code class="docutils literal notranslate"><span class="pre">dV_fan_a_min</span></code> / <code class="docutils literal notranslate"><span class="pre">dV_fan_a_max</span></code>
+(ASHPB)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Frost as a correlation (ASHP, ASHPB)</p></td>
 <td><p>Below 5 °C outdoor the EnergyPlus frost multipliers are applied to a
 frost-free cycle. They depend on outdoor temperature and humidity,
 not on the coil the model solves, and a defrost is in the mean, not
@@ -655,7 +673,7 @@ what stops the rest (<a class="reference internal" href="failure-reason-semantic
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 16, 2026
+  Last updated Nov 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

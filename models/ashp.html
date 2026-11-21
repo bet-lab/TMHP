@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
+    <meta property="article:modified_time" content="2026-11-21T06:05:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -152,6 +152,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#overview">Overview</a></li>
 <li><a class="reference internal" href="#base-usage">Base usage</a></li>
 <li><a class="reference internal" href="#source-side-mechanics">Source-side mechanics</a></li>
+<li><a class="reference internal" href="#fan-flows-the-point-of-least-power">Fan flows: the point of least power</a></li>
 <li><a class="reference internal" href="#air-density">Air density</a></li>
 <li><a class="reference internal" href="#sink-side-mechanics">Sink-side mechanics</a></li>
 <li><a class="reference internal" href="#indoor-airflow">Indoor airflow</a></li>
@@ -270,6 +271,98 @@ pump’s job is space conditioning rather than DHW production.</p>
 <h2>Source-side mechanics<a class="headerlink" href="#source-side-mechanics" title="Link to this heading">¶</a></h2>
 <p>Outdoor coil with variable-speed fan and an ε-NTU air-side heat
 exchanger — the shared air-source environmental-side model.</p>
+</section>
+<section id="fan-flows-the-point-of-least-power">
+<span id="ashp-fan-control"></span><h2>Fan flows: the point of least power<a class="headerlink" href="#fan-flows-the-point-of-least-power" title="Link to this heading">¶</a></h2>
+<p>The model has no fan controller. At each call it searches the two approach
+temperatures for the operating point of least total electrical input
+(compressor and both fans) that carries the duty; each coil’s air flow
+follows from its approach, inside the fan’s flow limits. The search stops
+within 0.1 W of that input. Where no point carries the duty it ranks by the
+shortfall instead, and on the minimum speed by the input per unit of heat
+with the cycling loss. A real unit runs the indoor fan at the step its user
+selects and the outdoor fan on its controller’s map, so the result is close
+to the best the fans can do in this model, not a prediction of a
+controller.</p>
+<p>How much rides on it, for the default 4 kW unit (cooling at 35 °C outdoor and
+a 27 °C room, heating at 7 °C outdoor and a 20 °C room). The search runs the
+indoor fan at its largest flow, 0.232 m³/s, in all four cases:</p>
+<div class="table-wrapper colwidths-given docutils container" id="id1">
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">System COP by fan flow</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Fan flows</p></th>
+<th class="head"><p>Cooling 2 kW</p></th>
+<th class="head"><p>Heating 2 kW</p></th>
+<th class="head"><p>Cooling 4 kW</p></th>
+<th class="head"><p>Heating 4 kW</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Least power (the model)</p></td>
+<td><p>5.82</p></td>
+<td><p>5.91</p></td>
+<td><p>4.27</p></td>
+<td><p>4.65</p></td>
+</tr>
+<tr class="row-odd"><td><p>Indoor fan held at 70 % of its largest flow</p></td>
+<td><p>5.33</p></td>
+<td><p>5.47</p></td>
+<td><p>3.53</p></td>
+<td><p>4.05</p></td>
+</tr>
+<tr class="row-even"><td><p>Indoor fan held at 50 %</p></td>
+<td><p>4.59</p></td>
+<td><p>4.80</p></td>
+<td><p>2.82</p></td>
+<td><p>3.40</p></td>
+</tr>
+<tr class="row-odd"><td><p>Both fans held at their largest flow</p></td>
+<td><p>5.60</p></td>
+<td><p>5.50</p></td>
+<td><p>4.27</p></td>
+<td><p>4.64</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>With the indoor flow at half, the COP is 21 % and 19 % lower at half load and
+34 % and 27 % lower at nameplate load: the coil needs a larger temperature
+difference to carry the duty, and the compressor pays for it. Holding both
+fans at full flow costs 4 % and 7 % at half load — the outdoor fan draws
+more than the compressor saves — and under 0.3 % at nameplate load. At half
+the indoor flow the unit no longer carries its nameplate either: its coil
+takes 3.90 kW in cooling and gives 3.98 kW in heating (refrigerant side),
+and the figures in that row are at those duties. A fan is held at one flow
+with equal limits:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPump</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">largest</span> <span class="o">=</span> <span class="n">AirSourceHeatPump</span><span class="p">()</span><span class="o">.</span><span class="n">dV_iu_fan_a_max</span>
+</span><span data-line="4"><span class="n">low_fan</span> <span class="o">=</span> <span class="n">AirSourceHeatPump</span><span class="p">(</span><span class="n">dV_iu_fan_a_min</span><span class="o">=</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">largest</span><span class="p">,</span> <span class="n">dV_iu_fan_a_max</span><span class="o">=</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">largest</span><span class="p">)</span>
+</span></pre></div>
+</div>
+<p><strong>Rated conditions and use.</strong> A capacity table or a certified rating is
+measured at an indoor airflow the manufacturer declares, and the catalogue
+comparison of <a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a> gives the model that published airflow
+as the indoor fan’s largest flow. The indoor fan at its largest flow is
+therefore the condition the catalogues were measured at: that comparison is
+like with like. In use the indoor fan runs at the step its user selects, or at
+what an automatic setting picks, and the COP falls as the rows above show. The
+outdoor fan is the unit’s own to control in either case, and the search slows
+it with the load as a controller does (0.61 to 0.47 m³/s from nameplate to
+half load in cooling).</p>
+<p>For a seasonal figure of a unit whose fan setting is known, hold the fan
+there; where it is not, the model’s figure is the favourable end of what the
+fan setting leaves open. A building simulation that knows the room airflow
+of each hour cannot pass it per call yet: the flow limits are constructor
+arguments.</p>
 </section>
 <section id="air-density">
 <span id="ashp-air-density"></span><h2>Air density<a class="headerlink" href="#air-density" title="Link to this heading">¶</a></h2>
@@ -439,9 +532,9 @@ efficiencies are those of the running machine.</p></li>
 outdoor fan draw beyond <em>CR</em> times their continuous power — the cost of the
 starts.</p></li>
 </ul>
-<div class="table-wrapper colwidths-given docutils container" id="id1">
-<table class="docutils align-default" id="id1">
-<caption><span class="caption-text">EN 14825 degradation with <code class="docutils literal notranslate"><span class="pre">Cd</span> <span class="pre">=</span> <span class="pre">0.25</span></code></span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id2">
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">EN 14825 degradation with <code class="docutils literal notranslate"><span class="pre">Cd</span> <span class="pre">=</span> <span class="pre">0.25</span></code></span><a class="headerlink" href="#id2" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 22.0%" />
 <col style="width: 24.0%" />
@@ -656,9 +749,9 @@ power is averaged with the heat it delivers.</p></li>
 cycle the row was solved at; heat and flow rates of the row are that cycle’s
 times the delivered-heat factor, and state points are that cycle’s.</p></li>
 </ul>
-<div class="table-wrapper colwidths-given docutils container" id="id2">
-<table class="docutils align-default" id="id2">
-<caption><span class="caption-text">Frost adjustment at 84 % relative humidity</span><a class="headerlink" href="#id2" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id3">
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Frost adjustment at 84 % relative humidity</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 20.0%" />
 <col style="width: 20.0%" />
@@ -730,9 +823,9 @@ describes at that outdoor temperature — the nameplate, declared at 7 °C
 difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
 0.6 of its nameplate at −15 °C because that is its capacity there is at
 <span class="math notranslate nohighlight">\(r = 1\)</span>, not part-loaded. The default 4 kW unit against a 20 °C room:</p>
-<div class="table-wrapper colwidths-given docutils container" id="id3">
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-text">System COP under frost, by load (84 % relative humidity)</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id4">
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">System COP under frost, by load (84 % relative humidity)</span><a class="headerlink" href="#id4" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 28.0%" />
 <col style="width: 18.0%" />
@@ -1508,7 +1601,7 @@ changed.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 16, 2026
+  Last updated Nov 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

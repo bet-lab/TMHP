@@ -2722,12 +2722,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         A rung may also be refused from below, by the fans' smallest
         airflows (:attr:`_MIN_AIRFLOW`), which is no limit above it either.
-        Where no rung runs, the duties between the largest such rung and the
-        rung above it, refused otherwise, are bisected by which side refuses
-        the trial, and the search goes on from the first that runs. And a
-        trial may end with the compressor flat out where the duty was
+        And a trial may end with the compressor flat out where the duty was
         searched the ordinary way (:attr:`_SEARCH_FLAT_OUT`): that names no
         limit either, and is looked above like a duty that was not found.
+        Where no rung runs, the gaps between the rungs are looked into from
+        the top -- bisected above a duty refused from below, tried at
+        :attr:`_CEILING_PROBES` where the lower rung gives no side -- and
+        the search goes on from the first duty that runs.
+
+        The search samples the duty; it does not enumerate it. A band of
+        duties narrower than ``rel_tol``, or one narrower than a fifth of a
+        gap between two refused duties of which neither is refused from
+        below, can be missed, and the ceiling is then the top of the
+        highest band that was found (0 W when none was).
 
         ``trial(q, start)`` is the caller's: the least-lift point of the duty
         ``q``, with a flat-out compressor read as the reason ``"compressor"``.
@@ -2758,10 +2765,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         q_limit, reason_limit, x_limit = q_top, reason_hi, x if limited else None
         q_lo, x_lo, perf_lo = 0.0, None, None
         last_reason = reason_hi
-        # ``q_under``: the largest rung the fans' smallest airflows refuse
-        # under a duty refused otherwise, ``q_over`` (the rung above it).
-        q_under, q_over = 0.0, q_top
-        q_above, reason_above = q_top, reason_hi
+        # The duties refused so far, from the top, each with why.
+        refused: list[tuple[float, Any]] = [(q_top, reason_hi)]
         for fraction in self._CEILING_LADDER:
             q = fraction * q_top
             x, perf, reason = settled(q, x_limit)
@@ -2771,28 +2776,43 @@ class AirSourceHeatPump(ReferenceStateMixin):
             last_reason = reason
             if reason in self._LIMIT_REASONS:
                 q_limit, reason_limit, x_limit, limited = q, reason, x, True
-            elif reason == self._MIN_AIRFLOW and q_under == 0.0 and reason_above != self._MIN_AIRFLOW:
-                q_under, q_over = q, q_above
-            q_above, reason_above = q, reason
-        if perf_lo is None and 0.0 < q_under < q_limit:
-            # No rung runs, and one is refused from below under one refused
-            # otherwise: the duties that run, if any, lie between the two,
-            # in a band no rung fell in (both fans at one airflow, outdoor
-            # 15 degC, room 35 degC saturated: 12.5 to 14.2 kW of a 4 kW
-            # unit). Bisect by which side refuses the trial. Not where the
-            # top itself is refused from below: nothing under it runs.
-            while q_over - q_under > rel_tol * q_over:
-                mid = 0.5 * (q_under + q_over)
-                x, perf, reason = settled(mid, x_limit)
-                if x is not None and perf is not None:
-                    q_lo, x_lo, perf_lo = mid, x, perf
-                    break
-                if reason == self._MIN_AIRFLOW:
-                    q_under = mid
+            refused.append((q, reason))
+        if perf_lo is None:
+            # No rung runs. The duties that run, if any, are a band no rung
+            # fell in (both fans at one airflow, outdoor 15 degC, room 35
+            # degC saturated: 12.5 to 14.2 kW of a 4 kW unit), so each gap
+            # between two rungs under the smallest duty a limit refuses is
+            # looked into, from the top. A duty refused from below (the
+            # fans' smallest airflows) says which side the band is on, and
+            # the gap above it is bisected by which side refuses the trial.
+            # Any other lower rung says nothing of the kind -- the search
+            # ended short of it, or did not find it -- and the gap is tried
+            # at :attr:`_CEILING_PROBES`, from the top, until a duty runs or
+            # is refused from below. Two rungs refused from below end the
+            # sweep: nothing under them runs.
+            for (q_over, reason_over), (q_under, reason_under) in zip(refused, refused[1:], strict=False):
+                if q_over > q_limit:
                     continue
-                q_over, last_reason = mid, reason
-                if reason in self._LIMIT_REASONS:
-                    q_limit, reason_limit, x_limit, limited = mid, reason, x, True
+                if reason_under == self._MIN_AIRFLOW and reason_over == self._MIN_AIRFLOW:
+                    break
+                sided = reason_under == self._MIN_AIRFLOW
+                # Duties to try: the probes of a gap with no side, then the
+                # middles of the gap above a duty refused from below.
+                probes = [] if sided else [q_under + f * (q_over - q_under) for f in self._CEILING_PROBES]
+                while probes or (sided and q_over - q_under > rel_tol * q_over):
+                    q = 0.5 * (q_under + q_over) if sided else probes.pop(0)
+                    x, perf, reason = settled(q, x_limit)
+                    if x is not None and perf is not None:
+                        q_lo, x_lo, perf_lo = q, x, perf
+                        break
+                    if reason == self._MIN_AIRFLOW:
+                        q_under, sided, probes = q, True, []
+                        continue
+                    q_over, last_reason = q, reason
+                    if reason in self._LIMIT_REASONS:
+                        q_limit, reason_limit, x_limit, limited = q, reason, x, True
+                if perf_lo is not None:
+                    break
         if x_lo is None or perf_lo is None:
             return None, None, reason_limit if limited else last_reason
 

@@ -288,3 +288,25 @@ def test_ceiling_of_a_stiff_outdoor_fan_is_above_every_duty_that_runs_on_request
     above = stiff.analyze_steady(30000.0, **room, verbose=False)
     assert above["failure_reason"] == "none" and above["capacity_clamped"] == "max"
     assert above["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-9)
+
+
+def test_wet_ceiling_search_looks_between_two_rungs_that_give_no_side(default):
+    # The band of the stiff outdoor fan without the lower one: 22.2 to 23.4 kW run, the search
+    # ends short of every duty above the band and of 18.5 to 22.2 kW under it, and the fans'
+    # smallest airflows refuse what is below. The rungs at 80 % and 60 % of the top (25.3 and
+    # 19 kW) both end short -- neither says on which side the band is -- and the rung at 45 % is
+    # refused from below: bisecting between those two only, the band above them was never tried.
+    trial, calls = _searched_trial(default, runs=((22_163.0, 23_400.0),), floor=18_500.0)
+    x, state, reason = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3)
+    assert x is not None and state is not None
+    assert state["Q_ref_iu [W]"] == pytest.approx(23_400.0, rel=1.5e-3) and state["Q_ref_iu [W]"] <= 23_400.0
+    assert default._binding_of(reason) == "compressor"
+
+
+def test_wet_ceiling_search_ends_where_everything_is_refused_from_below(default):
+    # Nothing runs and every duty is refused by the fans' smallest airflows: no duty under the
+    # top can run, and the search does not go looking between the rungs.
+    trial, calls = _searched_trial(default, runs=(), floor=1.0e9)
+    x, state, reason = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3)
+    assert x is None and state is None and reason == default._MIN_AIRFLOW
+    assert len(set(calls)) == 1 + len(default._CEILING_LADDER)

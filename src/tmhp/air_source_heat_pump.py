@@ -1016,9 +1016,52 @@ class AirSourceHeatPump(ReferenceStateMixin):
         else:
             self._RH_room = self._w_room = None
         try:
-            yield
+            with contextlib.ExitStack() as stack:
+                if self._coil_may_be_wet:
+                    # The searches of one wet solve share what they find of its condition.
+                    stack.enter_context(self._sharing_wet_points())
+                yield
         finally:
             self._RH_room, self._w_room = outer
+
+    #: What the searches of a cooling condition solved with a room humidity
+    #: have found, while a solve or a dynamic run is in progress (``None``
+    #: outside one): the ordinary search of a duty, the low-load point and
+    #: the ceiling, each by ``(kind, T0, T_a_room, room humidity ratio, ...)``.
+    #: Every entry is what solving it again gives -- the searches are
+    #: functions of the condition and the duty -- so the memory saves time
+    #: and changes no result (:meth:`_sharing_wet_points`).
+    _wet_points: dict[tuple, Any] | None = None
+
+    @contextlib.contextmanager
+    def _sharing_wet_points(self) -> Iterator[None]:
+        """Keep what the wet coil's searches find while the block runs (:attr:`_wet_points`).
+
+        A wet cooling condition is searched three ways: the operating point
+        of a request (:meth:`_optimize_operation`), the smallest continuous
+        duty above a request refused from below
+        (:meth:`_smallest_continuous_operating_point`) and the ceiling
+        (:meth:`max_capacity`). Where one finds nothing it takes the point
+        another has verified (:meth:`_point_of_another_search`,
+        :meth:`_largest_duty_above_low_load_point`), so the same search can
+        be asked for several times in one solve. Inside the block each is
+        made once per condition. The memory ends with the outermost block --
+        one :meth:`analyze_steady` or :meth:`max_capacity` call, or one
+        :meth:`analyze_dynamic` run -- and nothing in it is read as anything
+        but what the same search would return again: a result does not
+        depend on what was solved before it.
+        """
+        outer = self._wet_points
+        if outer is None:
+            self._wet_points = {}
+        try:
+            yield
+        finally:
+            self._wet_points = outer
+
+    def _wet_point_key(self, kind: str, T0: float, T_a_room: float, *more: float) -> tuple:
+        """Key of an entry of :attr:`_wet_points` for the condition being solved."""
+        return (kind, float(T0), float(T_a_room), self._w_room, *more)
 
     @property
     def _coil_may_be_wet(self) -> bool:
@@ -2590,8 +2633,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
         is the least-lift point too, except for a unit with a narrow fan
         range (:meth:`_has_narrow_fan`) where the fans' smallest airflows
         refuse that point: the duty is then solved the ordinary way
-        (:meth:`_searched_point`). The search below -- the dry coil's, and
-        heating's -- is as it was.
+        (:meth:`_searched_point`). Where that search finds no duty -- and
+        some duty it tried was refused otherwise than from below -- the
+        point the low-load search of the condition ends on is one that
+        runs, and the largest duty is searched upwards from it
+        (:meth:`_largest_duty_above_low_load_point`). The search below --
+        the dry coil's, and heating's -- is as it was.
         """
 
         def trial(q: float, start: tuple[float, float] | None = None):
@@ -2620,7 +2667,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return x, perf, reason
 
         if self._coil_may_be_wet and sign > 0:
-            return self._largest_deliverable_wet_duty(wet_trial, q_top, rel_tol, delivered.get)
+            found = self._largest_deliverable_wet_duty(wet_trial, q_top, rel_tol, delivered.get)
+            if found[1] is None and found[2] != self._MIN_AIRFLOW:
+                # No duty found, and not because every duty tried is refused
+                # from below (nothing runs then, as far as the samples go).
+                # The point the low-load search of this condition ends on,
+                # if it has one, is a duty that runs.
+                above = self._largest_duty_above_low_load_point(q_top, T0, T_a_room, rel_tol, trial)
+                if above is not None:
+                    return above
+            return found
 
         x, perf, reason_hi = trial(q_top)
         if x is not None and perf is not None:
@@ -2646,6 +2702,164 @@ class AirSourceHeatPump(ReferenceStateMixin):
             else:
                 q_hi, reason_hi = mid, reason
         return x_lo, perf_lo, reason_hi
+
+    def _low_load_point(self, T0: float, T_a_room: float) -> tuple[tuple[float, float], dict] | None:
+        """The continuous operating point the smallest request of the low-load ladder leads to (wet cooling).
+
+        A point of the condition, not of a request: the smallest rung of
+        :attr:`_FLOOR_LADDER` (5 % of the nameplate) is solved the way
+        :meth:`analyze_steady` solves a request. Where it runs -- as asked,
+        or on the compressor's speed floor, delivering more -- the point is
+        that state; where the fans' smallest airflows refuse it
+        (:attr:`_MIN_AIRFLOW`) it is the smallest continuous duty the climb
+        from it finds (:meth:`_climb_to_continuous_duty`). It is the same
+        whichever request, and whichever search, asks for it, which is what
+        lets the searches of a condition use it as a candidate: the ceiling
+        search where it found no duty (:meth:`_largest_duty_above_low_load_point`),
+        the low-load search of a request its own climb found nothing above
+        (:meth:`_point_of_another_search`).
+
+        Returns ``((dT_ref_evap, dT_ref_cond), state)``; the state delivers
+        its own ``Q_ref_iu [W]`` in continuous operation at those approaches.
+        ``None`` when the rung neither runs nor is refused from below, or no
+        larger duty is found to run.
+        """
+        memo, key = self._wet_points, self._wet_point_key("low_load", T0, T_a_room)
+        if memo is not None and key in memo:
+            known = memo[key]
+            return None if known is None else (known[0], dict(known[1]))
+        point: tuple[tuple[float, float], dict] | None = None
+        q0 = self._FLOOR_LADDER[0] * self.hp_capacity
+        with contextlib.suppress(Exception):
+            opt = self._optimize_operation(Q_r_iu=q0, T0=T0, T_a_room=T_a_room)
+            if bool(getattr(opt, "success", False)) and float(opt.fun) < OBJ_CAPACITY_LIMITED:
+                x = (float(opt.x[0]), float(opt.x[1]))
+                state = self._calc_state(dT_ref_evap=x[0], dT_ref_cond=x[1], Q_r_iu=q0, T0=T0, T_a_room=T_a_room)
+                running = state is not None and state.get("converged", False)
+                if running and state is not None and state.get("capacity_clamped") != CAPACITY_CLAMPED_MAX:
+                    point = (x, state)
+            elif getattr(opt, "least_lift_reason", None) == self._MIN_AIRFLOW:
+                point = self._climb_to_continuous_duty(q0, T0, T_a_room)[0]
+        if memo is not None:
+            memo[key] = None if point is None else (point[0], dict(point[1]))
+        return point
+
+    def _largest_duty_above_low_load_point(
+        self,
+        q_top: float,
+        T0: float,
+        T_a_room: float,
+        rel_tol: float,
+        least_lift: Callable[[float], tuple[Any, Any, Any]],
+    ) -> tuple[tuple[float, float], dict, str | None] | None:
+        """The ceiling of a wet cooling condition, searched upwards from its low-load point.
+
+        Used where the ceiling search found no duty that runs
+        (:meth:`_largest_deliverable_wet_duty`). That search samples the
+        duty from the top; the low-load search samples it from the bottom,
+        with the ordinary search at every trial, and can end on a duty that
+        runs where the other found none -- both fans held at one flow on
+        the pressure-ratio floor leave a window of duties a fraction of a
+        percent wide (4 kW unit, outdoor 8 degC, room 35 degC saturated:
+        14.31 to 14.35 kW). That point (:meth:`_low_load_point`) is a
+        duty that runs, so the ceiling is not below it: the duties between
+        it and ``q_top`` are bisected with the ordinary search
+        (:meth:`_searched_point`) to ``rel_tol``, as the dry search bisects
+        above a rung that runs.
+
+        Returns what :meth:`_largest_deliverable_duty` returns for a duty
+        that runs -- the approaches, the state and why the next larger duty
+        tried has no operating point: :attr:`_SEARCH_FLAT_OUT` where its
+        search ended flat out, else the verdict of its least-lift point
+        (``least_lift(q)``, the caller's trial), ``"cycle_invalid"`` when
+        that names nothing. ``None`` when the condition has no low-load
+        point, or one above ``q_top``.
+        """
+        point = self._low_load_point(T0, T_a_room)
+        if point is None:
+            return None
+        x_lo, perf_lo = point
+        q_lo = abs(float(perf_lo["Q_ref_iu [W]"]))
+        if not (math.isfinite(q_lo) and 0.0 < q_lo <= q_top):
+            return None
+        q_hi, reason_hi = q_top, None
+        while q_hi - q_lo > rel_tol * q_hi:
+            mid = 0.5 * (q_lo + q_hi)
+            found = self._searched_point(mid, T0, T_a_room)
+            if found is not None and found[1] is not None and found[2] is None:
+                q_lo, x_lo, perf_lo = mid, found[0], found[1]
+            else:
+                q_hi, reason_hi = mid, None if found is None else found[2]
+        if reason_hi is None:
+            reason_hi = least_lift(q_hi)[2] or "cycle_invalid"
+        return x_lo, perf_lo, reason_hi
+
+    def _flat_out_point_on_the_floor(
+        self, x: tuple[float, float], state: dict, T0: float, T_a_room: float
+    ) -> tuple[tuple[float, float], dict]:
+        """The flat-out state of a wet cooling condition with a fan held at one flow, on the pressure-ratio floor.
+
+        The flat-out ceiling is the least-lift point of a request the
+        compressor cannot reach (:meth:`max_capacity`). On the
+        pressure-ratio floor the condensing temperature is held above the
+        outdoor air whatever approach is asked for, and the outdoor approach
+        of the least-lift point ends on its lower bound. The approach asked
+        for still sets the subcooling the cycle is solved with (it is cut to
+        the approach less ``dT_hx_min``), so at a wider one the same
+        compressor speed delivers more -- 1 to 1.5 % for the default units.
+        With a fan held at one flow the ordinary search of a request
+        (:class:`_NarrowFanSearch`) finds those states, and a request
+        between the two is delivered in full (10 kW unit with its indoor fan
+        held, outdoor -10 degC, room 35 degC saturated: 34.99 kW at the
+        least-lift point, 35.38 kW delivered on request). The ceiling is
+        therefore what that search delivers flat out, where it is more and
+        the state is one :meth:`_calc_state` reproduces as a request
+        (:meth:`_delivering_state`).
+
+        Only on the floor: off it the approach asked for is the condensing
+        temperature, and the least-lift point is the state of the largest
+        capacity (the search finds the same state there, or a smaller one).
+        Only for a fan held at one flow: with fans that modulate the
+        ordinary search of a request above the ceiling returns the
+        least-lift point itself (:meth:`_optimize_operation`, phase 1), so
+        no request is delivered above it.
+
+        Returns ``(x, state)`` unchanged where none of this applies.
+        """
+        on_the_floor = float(state.get("pr_cmp [-]", math.inf)) <= self.PR_cycle_min * (1.0 + 1e-9)
+        if not (on_the_floor and self._has_constant_speed_fan()):
+            return x, state
+        request = self._FLAT_OUT_FACTOR * self.hp_capacity
+        found = self._searched_point(request, T0, T_a_room)
+        if found is None or found[1] is None or found[2] != self._SEARCH_FLAT_OUT:
+            return x, state
+        larger = abs(float(found[1]["Q_ref_iu [W]"]))
+        if not larger > abs(float(state["Q_ref_iu [W]"])):
+            return x, state
+        if self._delivering_state(found[0], larger, T0, T_a_room) is None:
+            return x, state
+        return found[0], found[1]
+
+    def _delivering_state(self, x: tuple[float, float], Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
+        """The state at approaches ``x`` when ``Q_r_iu`` is asked of it, if it delivers exactly that.
+
+        A point another search hands over is used only when
+        :meth:`_calc_state` reproduces it: both coils close, the delivered
+        heat is the duty and the cycle's work is the difference of the two
+        coils' heat, each within 1e-9 of the duty. ``None`` otherwise.
+        """
+        duty = abs(float(Q_r_iu))
+        state = self._calc_state(dT_ref_evap=x[0], dT_ref_cond=x[1], Q_r_iu=Q_r_iu, T0=T0, T_a_room=T_a_room)
+        if state is None or not state.get("converged", False):
+            return None
+        delivered = float(state["Q_ref_iu [W]"])
+        other = float(state["Q_ref_ou [W]"])
+        work = float(state["E_cmp [W]"]) * float(state["eta_cmp [-]"])
+        cycle_work = (other - delivered) if Q_r_iu > 0 else (delivered - other)
+        residuals = (abs(delivered - duty), abs(cycle_work - work))
+        if not all(math.isfinite(value) and value <= 1e-9 * duty for value in residuals):
+            return None
+        return state
 
     def _searched_point(
         self, Q_r_iu: float, T0: float, T_a_room: float
@@ -3004,6 +3218,32 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ``Q_ref_iu [W]`` is: with ``RH_room`` in cooling it is sensible
             plus latent, and ``SHR_iu [-]`` is the sensible share of it there
             (1 for a dry coil and in heating, NaN when the unit cannot run).
+
+        Notes
+        -----
+        With ``RH_room`` in cooling the ceiling is searched together with the
+        other two searches of the condition, and each takes the others'
+        verified operating points for candidates: where the search on the
+        duty finds none, the duty the low-load search ends on (the one
+        :meth:`analyze_steady` cycles a small request at) runs, and the
+        ceiling is searched upwards from it; and a flat-out ceiling of a
+        unit with a fan held at one flow, on the pressure-ratio floor, is
+        what the ordinary search delivers there. The answer is the same
+        whatever was solved before.
+
+        A fan held at one flow (``dV_*_fan_a_min == dV_*_fan_a_max``) leaves
+        its coil one approach temperature per duty. On the pressure-ratio
+        floor, with both fans held, the duties that run in continuous
+        operation can then be a window a fraction of a percent wide (4 kW
+        unit, 8 degC outdoor, room 35 degC saturated: 14.31 to 14.35 kW),
+        or none. The searches sample the duty -- a ladder and a
+        bisection, to ``rel_tol`` here -- and can miss a window narrower
+        than the spacing of their samples. The result is then
+        ``Q_max [W] == 0`` with ``binding == "infeasible"`` (and
+        :meth:`analyze_steady` answers a request with the unit off,
+        ``failure_reason == "hx_not_converged"``) although a duty inside the
+        window would run. Give the fan a flow range, or request a duty
+        inside the window.
         """
         if mode not in ("heating", "cooling"):
             raise ValueError(f"mode must be 'heating' or 'cooling', got {mode!r}")
@@ -3016,8 +3256,22 @@ class AirSourceHeatPump(ReferenceStateMixin):
         with self._solving_with_room_humidity(RH_room, T_a_room, cooling=mode == "cooling"):
             return self._solve_max_capacity(T0, T_a_room, mode, rel_tol, RH_out)
 
-    def _solve_max_capacity(self, T0: float, T_a_room: float, mode: str, rel_tol: float, RH_out: float | None) -> dict:
-        """:meth:`max_capacity` for checked arguments, with the room humidity of the point already set."""
+    def _solve_max_capacity(
+        self,
+        T0: float,
+        T_a_room: float,
+        mode: str,
+        rel_tol: float,
+        RH_out: float | None,
+        *,
+        flat_out_only: bool = False,
+    ) -> dict:
+        """:meth:`max_capacity` for checked arguments, with the room humidity of the point already set.
+
+        ``flat_out_only`` answers with the flat-out ceiling or with none
+        (``binding == "infeasible"``): the search on the duty that follows
+        where the unit cannot run flat out is left out.
+        """
         empty = {
             "Q_max [W]": 0.0,
             "dT_ref_evap [K]": float("nan"),
@@ -3034,8 +3288,39 @@ class AirSourceHeatPump(ReferenceStateMixin):
         }
 
         sign = 1.0 if mode == "cooling" else -1.0
+        wet = self._coil_may_be_wet and sign > 0
+        # The ceiling of a wet condition is searched once while a solve or a
+        # run is in progress: it is the same for every request of it.
+        # (Not the flat-out answer alone, which is one solve and not the ceiling where it is none.)
+        memo = self._wet_points if wet and not flat_out_only else None
+        key = self._wet_point_key("ceiling", T0, T_a_room, float(rel_tol))
+        if memo is not None and key in memo:
+            return dict(memo[key])
+        ceiling = self._search_max_capacity(T0, T_a_room, mode, rel_tol, RH_out, empty, flat_out_only)
+        if memo is not None:
+            memo[key] = dict(ceiling)
+        return ceiling
+
+    def _search_max_capacity(
+        self,
+        T0: float,
+        T_a_room: float,
+        mode: str,
+        rel_tol: float,
+        RH_out: float | None,
+        empty: dict,
+        flat_out_only: bool = False,
+    ) -> dict:
+        """The search of :meth:`_solve_max_capacity`; ``empty`` is its answer where no duty runs."""
+        sign = 1.0 if mode == "cooling" else -1.0
         binding = "compressor"
         lo_x, lo_perf, _ = self._largest_airflow_point(sign * self._FLAT_OUT_FACTOR * self.hp_capacity, T0, T_a_room)
+        if lo_x is not None and lo_perf is not None and self._coil_may_be_wet and sign > 0:
+            # Flat out with a wet coil: on the pressure-ratio floor a fan held
+            # at one flow delivers more than at the least-lift point.
+            lo_x, lo_perf = self._flat_out_point_on_the_floor(lo_x, lo_perf, T0, T_a_room)
+        if (lo_x is None or lo_perf is None) and flat_out_only:
+            return empty
         if lo_x is None or lo_perf is None:
             # Not flat out: no request above the indoor coil's own limit has an
             # operating point, so the ceiling is that limit (known exactly) or
@@ -3124,7 +3409,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         }
     )
 
-    def _capacity_limited_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
+    def _capacity_limited_operating_point(
+        self, Q_r_iu: float, T0: float, T_a_room: float, *, ceiling: dict | None = None
+    ) -> dict | None:
         """The state a unit runs at when the request itself has no operating point.
 
         Above the ceiling (:meth:`max_capacity`) that is the ceiling. A
@@ -3136,10 +3423,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
         energy-balanced, with ``capacity_clamped == "max"``, ``Q_max [W]`` and
         ``capacity_binding``. ``None`` when the request needs no such state
         or none exists.
+
+        ``ceiling`` is the ceiling of the condition where the caller has
+        it in hand (the result of :meth:`max_capacity`); it is solved here
+        otherwise.
         """
         mode = "cooling" if Q_r_iu > 0 else "heating"
         request = abs(Q_r_iu)
-        if self._RH_room is None:
+        if ceiling is not None:
+            pass
+        elif self._RH_room is None:
             ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode=mode)
         else:
             # The ceiling of the same room: its humidity goes with it.
@@ -3166,21 +3459,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             q_ceiling = abs(float(below["Q_ref_iu [W]"]))
             if not 0 < q_ceiling < request:
                 return None
-        state = self._calc_state(
-            dT_ref_evap=x[0],
-            dT_ref_cond=x[1],
-            Q_r_iu=math.copysign(q_ceiling, Q_r_iu),
-            T0=T0,
-            T_a_room=T_a_room,
-        )
-        if state is None or not state.get("converged", False):
-            return None
-        delivered = float(state["Q_ref_iu [W]"])
-        other = float(state["Q_ref_ou [W]"])
-        work = float(state["E_cmp [W]"]) * float(state["eta_cmp [-]"])
-        cycle_work = (other - delivered) if mode == "cooling" else (delivered - other)
-        residuals = (abs(delivered - q_ceiling), abs(cycle_work - work))
-        if not all(math.isfinite(value) and value <= 1e-9 * q_ceiling for value in residuals):
+        state = self._delivering_state(x, math.copysign(q_ceiling, Q_r_iu), T0, T_a_room)
+        if state is None:
             return None
         state.update(
             {
@@ -3251,56 +3531,186 @@ class AirSourceHeatPump(ReferenceStateMixin):
         With high smallest airflows that duty lies above the ladder's top,
         and the wet climb goes on to the indoor coil's limit
         (:meth:`_floor_rungs`).
+
+        The climb (:meth:`_climb_to_continuous_duty`) starts from the
+        request, so two requests of one condition can close on duties that
+        differ within :attr:`_FLOOR_REL_TOL`. The dry model, as before,
+        searches a condition once inside a frost balance or a dynamic run
+        and reuses the state for the smaller requests that follow
+        (:meth:`_remembering_floors`): such a row can differ by that
+        tolerance from the same request solved alone. A wet cooling point is
+        always answered as if it were solved alone -- its trials are
+        remembered one by one instead (:attr:`_wet_points`), which changes
+        no result -- and where its own climb finds nothing the caller
+        takes the point another search of the condition has verified
+        (:meth:`_point_of_another_search`).
         """
         sign, request = math.copysign(1.0, Q_r_iu), abs(float(Q_r_iu))
+        wet = self._coil_may_be_wet and sign > 0
         # The floor belongs to the condition, not to the request: inside one
         # frost balance or one dynamic run (the model does not change there)
         # it is searched once per condition and reused for smaller requests.
-        memo, key = self._floor_memo, (sign, float(T0), float(T_a_room), self._w_room)
+        # Not with a wet coil, whose row is that of the request solved alone
+        # (see the docstring); its searches are remembered trial by trial.
+        memo, key = None if wet else self._floor_memo, (sign, float(T0), float(T_a_room), self._w_room)
         if memo is not None and key in memo and request < abs(float(memo[key]["Q_ref_iu [W]"])):
             return dict(memo[key])
-
-        def trial(q: float) -> tuple[dict | None, str | None]:
-            opt = self._optimize_operation(Q_r_iu=sign * q, T0=T0, T_a_room=T_a_room)
-            if not (bool(getattr(opt, "success", False)) and float(opt.fun) < OBJ_CAPACITY_LIMITED):
-                return None, getattr(opt, "least_lift_reason", None)
-            state = self._calc_state(
-                dT_ref_evap=opt.x[0], dT_ref_cond=opt.x[1], Q_r_iu=sign * q, T0=T0, T_a_room=T_a_room
-            )
-            if state is None or not state.get("converged", False) or state.get("capacity_clamped") is not None:
-                return None, None
-            return state, None
-
-        # ``q_lo`` is refused from below; ``q_hi`` runs (``running`` is its
-        # state) or is refused from above.
-        q_lo, q_hi, running = request, math.nan, None
-        for q in self._floor_rungs(sign, T_a_room):
-            if not q > request * (1.0 + self._FLOOR_REL_TOL):
-                continue
-            state, reason = trial(q)
-            if state is None and reason in self._CLIMBED_PAST:
-                q_lo = q
-                continue
-            q_hi, running = q, state
-            break
-        if not math.isfinite(q_hi):
+        found, _ = self._climb_to_continuous_duty(Q_r_iu, T0, T_a_room)
+        if found is None:
             return None
-        while q_hi - q_lo > self._FLOOR_REL_TOL * q_hi:
-            mid = 0.5 * (q_lo + q_hi)
-            state, reason = trial(mid)
-            if state is not None:
-                q_hi, running = mid, state
-            elif running is not None or reason in self._CLIMBED_PAST:
-                q_lo = mid
-            else:
-                q_hi = mid  # refused from above: the duties that run, if any, are below
-        if running is None:
-            return None
-        floor = dict(running)
+        floor = dict(found[1])
         floor["capacity_clamped"] = CAPACITY_CLAMPED_MIN
         if memo is not None:
             memo[key] = dict(floor)
         return floor
+
+    def _climb_to_continuous_duty(
+        self, Q_r_iu: float, T0: float, T_a_room: float
+    ) -> tuple[tuple[tuple[float, float], dict] | None, bool]:
+        """The climb and the bisection of :meth:`_smallest_continuous_operating_point`, from the request.
+
+        Returns ``(point, to_the_top)``. ``point`` is
+        ``((dT_ref_evap, dT_ref_cond), state)`` of the smallest duty found
+        to run in continuous operation above ``Q_r_iu``, or ``None``.
+        ``to_the_top`` says the climb passed every rung, the last included,
+        as refused from below: no duty tried above the request was refused
+        any other way.
+        The trials are the ordinary search of a duty; for a cooling
+        condition solved with a room humidity each is made once while
+        :attr:`_wet_points` is kept, and answered from it afterwards -- the
+        approaches it ended on, from which :meth:`_calc_state` gives the
+        state again.
+        """
+        sign, request = math.copysign(1.0, Q_r_iu), abs(float(Q_r_iu))
+        known: dict[float, tuple[tuple[float, float] | None, str | None]] | None = None
+        if self._coil_may_be_wet and sign > 0 and self._wet_points is not None:
+            known = self._wet_points.setdefault(self._wet_point_key("trials", T0, T_a_room), {})
+
+        def trial(q: float) -> tuple[dict | None, tuple[float, float] | None, str | None]:
+            if known is not None and q in known:
+                x, reason = known[q]
+                if x is None:
+                    return None, None, reason
+                return (
+                    self._calc_state(dT_ref_evap=x[0], dT_ref_cond=x[1], Q_r_iu=sign * q, T0=T0, T_a_room=T_a_room),
+                    x,
+                    None,
+                )
+            state, x, reason = searched(q)
+            if known is not None:
+                known[q] = (x, reason)
+            return state, x, reason
+
+        def searched(q: float) -> tuple[dict | None, tuple[float, float] | None, str | None]:
+            opt = self._optimize_operation(Q_r_iu=sign * q, T0=T0, T_a_room=T_a_room)
+            if not (bool(getattr(opt, "success", False)) and float(opt.fun) < OBJ_CAPACITY_LIMITED):
+                return None, None, getattr(opt, "least_lift_reason", None)
+            state = self._calc_state(
+                dT_ref_evap=opt.x[0], dT_ref_cond=opt.x[1], Q_r_iu=sign * q, T0=T0, T_a_room=T_a_room
+            )
+            if state is None or not state.get("converged", False) or state.get("capacity_clamped") is not None:
+                return None, None, None
+            return state, (opt.x[0], opt.x[1]), None
+
+        # ``q_lo`` is refused from below; ``q_hi`` runs (``running`` is its
+        # state, ``x_running`` its approaches) or is refused from above.
+        q_lo, q_hi, running, x_running = request, math.nan, None, None
+        for q in self._floor_rungs(sign, T_a_room):
+            if not q > request * (1.0 + self._FLOOR_REL_TOL):
+                continue
+            state, x, reason = trial(q)
+            if state is None and reason in self._CLIMBED_PAST:
+                q_lo = q
+                continue
+            q_hi, running, x_running = q, state, x
+            break
+        if not math.isfinite(q_hi):
+            return None, True
+        while q_hi - q_lo > self._FLOOR_REL_TOL * q_hi:
+            mid = 0.5 * (q_lo + q_hi)
+            state, x, reason = trial(mid)
+            if state is not None:
+                q_hi, running, x_running = mid, state, x
+            elif running is not None or reason in self._CLIMBED_PAST:
+                q_lo = mid
+            else:
+                q_hi = mid  # refused from above: the duties that run, if any, are below
+        if running is None or x_running is None:
+            return None, False
+        return ((float(x_running[0]), float(x_running[1])), running), False
+
+    def _point_of_another_search(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
+        """The state a wet cooling request runs at where its own searches found none, from another search's point.
+
+        For a request the fans' smallest airflows refuse
+        (:attr:`_MIN_AIRFLOW`) whose climb found no larger duty that runs
+        (:meth:`_climb_to_continuous_duty`). The climb samples the duties
+        above the request and can end with nothing where a duty runs: a
+        unit with both fans held at one flow, on the pressure-ratio floor,
+        runs in a window of duties a fraction of a percent wide, and at its
+        flat-out state. Before the request is answered with the unit off,
+        the points the other searches of the same condition end on are
+        taken for candidates:
+
+        - the low-load point (:meth:`_low_load_point`), the smallest
+          continuous duty found from the bottom of the ladder -- the duty a
+          smaller request of the condition cycles at;
+        - the ceiling (:meth:`max_capacity` with the same room humidity),
+          re-solved as a request of its own duty (:meth:`_delivering_state`).
+
+        A candidate that delivers more than the request is the duty the
+        request is met by cycling at (returned with
+        ``capacity_clamped == "min"``, as
+        :meth:`_smallest_continuous_operating_point` returns its state). A
+        ceiling under the request is where the unit runs for it, as for any
+        request above its ceiling (``capacity_clamped == "max"``,
+        :meth:`_capacity_limited_operating_point`). Both candidates are
+        functions of the condition, so the answer is the same whatever was
+        solved before.
+
+        What is asked of the other searches is kept to what can have an
+        answer, because a search that ends with nothing is the dearest kind
+        (seconds, where the request's own climb took a tenth of one):
+
+        - Where the climb passed every duty up to the indoor coil's limit
+          as refused from below, no duty above the request was refused any
+          other way: the unit is off in this weather, and nothing is asked.
+        - Where the condition has no low-load point either, the search of
+          the ceiling on the duty samples the same duties again from the
+          top. Only the flat-out ceiling is asked for then, which is one
+          solve (:meth:`_largest_airflow_point`) and not a search.
+
+        ``None`` when no candidate gives a state.
+        """
+        request = abs(float(Q_r_iu))
+        # Answered from the trials the request's own climb has just made.
+        _, to_the_top = self._climb_to_continuous_duty(Q_r_iu, T0, T_a_room)
+        if to_the_top:
+            return None
+        point = self._low_load_point(T0, T_a_room)
+        if point is None:
+            ceiling = self._solve_max_capacity(T0, T_a_room, "cooling", 1e-3, None, flat_out_only=True)
+        elif abs(float(point[1]["Q_ref_iu [W]"])) > request:
+            floor = dict(point[1])
+            floor["capacity_clamped"] = CAPACITY_CLAMPED_MIN
+            return floor
+        else:
+            ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode="cooling", RH_room=self._RH_room)
+        if ceiling.get("binding") not in self._CEILING_BINDINGS:
+            return None
+        q_ceiling = float(ceiling["Q_max [W]"])
+        if not (math.isfinite(q_ceiling) and q_ceiling > 0.0):
+            return None
+        if q_ceiling < request:
+            return self._capacity_limited_operating_point(Q_r_iu, T0, T_a_room, ceiling=ceiling)
+        if not q_ceiling > request:
+            return None
+        x = (float(ceiling["dT_ref_evap [K]"]), float(ceiling["dT_ref_cond [K]"]))
+        state = self._delivering_state(x, q_ceiling, T0, T_a_room)
+        if state is None:
+            return None
+        state["capacity_clamped"] = CAPACITY_CLAMPED_MIN
+        return state
 
     def _floor_rungs(self, sign: float, T_a_room: float) -> Iterator[float]:
         """Duties the climb for the smallest continuous duty tries, from the bottom [W].
@@ -3476,9 +3886,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
             same ``RH_room``). In mild weather, on the pressure-ratio floor,
             the fans' smallest airflows leave no continuous operation below
             some duty; a smaller request is met by cycling at that duty
-            (``capacity_clamped == "min"``, ``Q_min [W]``), and where no
-            larger duty runs either the row is off with
-            ``failure_reason == "hx_not_converged"``. Without ``RH_room``
+            (``capacity_clamped == "min"``, ``Q_min [W]``). Where the
+            search above the request finds no such duty, the points the
+            other searches of the condition end on are taken -- the smallest
+            continuous duty found from the bottom of the load range, then
+            the ceiling of :meth:`max_capacity`, which the request is met
+            by cycling at when it lies above the request and where the unit
+            runs when it lies under it -- and where no duty is
+            found to run the row is off with
+            ``failure_reason == "hx_not_converged"`` (a fan held at one flow
+            can leave a window of duties too narrow for the searches to hit:
+            see the notes of :meth:`max_capacity`). Without ``RH_room``
             such a request is answered as before, with the unit off and
             ``"cycle_invalid"``. On a row whose coil removes water
             (``Q_iu_latent [W]`` > 0) the exergy columns ``Xc_iu_hx [W]``,
@@ -3631,7 +4049,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         result = floor_state
                         failure_reason = "none"
                 if failure_reason == self._MIN_AIRFLOW:
-                    # No larger duty runs either. The limit is a coil's: it
+                    # The climb found no larger duty that runs. The points the
+                    # other searches of this condition end on are candidates:
+                    # one above the request is cycled at, a ceiling under it
+                    # is where the unit runs.
+                    with contextlib.suppress(Exception):
+                        other_state = self._point_of_another_search(Q_r_iu, T0, T_a_room)
+                        if other_state is not None:
+                            result = other_state
+                            failure_reason = "none"
+                if failure_reason == self._MIN_AIRFLOW:
+                    # No duty runs. The limit is a coil's: it
                     # cannot carry so little inside its fan's flow range.
                     failure_reason = "hx_not_converged"
 
@@ -3795,8 +4223,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         results_data: list[dict] = []
 
         # The model does not change during a run: the smallest continuous
-        # duty of a condition (where the envelope refuses lower speeds) is searched once.
-        with self._remembering_floors():
+        # duty of a condition (where the envelope refuses lower speeds) is searched once,
+        # and so is what the searches of a wet cooling condition find (no row depends on it).
+        with self._remembering_floors(), self._sharing_wet_points():
             for n in tqdm(range(tN), desc="ASHP Simulating"):
                 t_s: float = time[n]
                 hr: float = t_s * cu.s2h

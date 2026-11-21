@@ -1028,6 +1028,32 @@ def test_a_hold_after_cooling_the_time_left_cannot_supply_is_a_run_to_the_end_of
     assert after.phase_age_end_s == pytest.approx(left + dt, rel=1e-9)
 
 
+def test_the_closing_balance_does_not_start_a_compressor_the_events_do_not():
+    """Stop-time review: where the events' tank does not reach the stop in the step, nothing is asked.
+
+    The same tank (curve 20) in a 596 s step: on the fitted line the tank gets to the stop after
+    596.4 s, so the step has no event there, while the tank's own balance would need 980 J to
+    close at the stop, and closes 0.0017 K below it without. The closing balance sets the heat of
+    a start the events give and can take that start back; it does not make one. The step has no
+    run and leaves a called compressor off below its stop, which starts at the beginning of the
+    next step -- what the event model does with any tank whose free heat is not its straight
+    line, here as before this option had a hold correction (the same row on the branch at
+    35786d52), and with ``"stop"`` at its lower bound.
+    """
+    dt = 596.0
+    run, row, residual, needed, by_the_line = _curved_loss_step(20.0, dt)
+    assert needed == pytest.approx(980.0) and by_the_line < 0.0
+    t_cool = C / 24.0 * math.log(509.0 / 497.0)  # on the fitted line: 509 W at 64.5 degC, 24 W/K
+    assert dt < t_cool < dt + 1.0
+    assert run.starts == 0 and run.runtime_fraction == 0.0 and not run.running_end
+    assert run.call_end and run.limit_stop and row is None
+    T_end = _closing_temperature(residual, 0.0)
+    assert LIMIT.stop_C - T_end == pytest.approx(0.00167, abs=2e-5)
+    # The next step starts it at once, from below the stop: the one start of the run.
+    after, _, _, _, _ = _curved_loss_step(20.0, dt, T_start=T_end, running_prev=False, phase_age_s=run.phase_age_end_s)
+    assert after.starts == 1 and after.running_start and after.T_on_first_C == pytest.approx(T_end)
+
+
 def test_the_rates_of_a_cycle_that_has_more_are_lowered_by_no_more_than_the_tolerance():
     """How far the scaling goes: a cycle is taken at the duty asked only inside ``DUTY_MATCH_RTOL``.
 

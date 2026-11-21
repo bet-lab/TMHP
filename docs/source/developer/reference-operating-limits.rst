@@ -604,7 +604,13 @@ not a straight line (a subsystem) is not left without a start in a step its
 own balance closes below the stop. Where that balance needs more than the
 compressor gives at the stop's duty in what is left of the step, it runs
 through what is left instead of cycling; the step then closes below the stop
-with the compressor running, and the next step charges on from there. (The
+with the compressor running, and the next step charges on from there. The
+closing balance is asked only at a start the events give: it sets that
+start's heat and can take the start back, but a step in which the events'
+tank does not reach the stop has no start, even if the boiler's own balance
+would pass the stop in it. The compressor then starts at the beginning of the
+next step, as the event model has it for any switching point of a tank whose
+free heat is not a straight line, with either option. (The
 events have the tank lose more while it is warmer than the stop; the implicit
 balance that sets the end-of-step temperature takes the loss of the whole
 step at that temperature. With the heat of the events' hold the 15 kW R32

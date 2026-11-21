@@ -1096,6 +1096,14 @@ def _simulate_duty_limited_step(
     it a little below the cut-out (4e-6 K for the R32 unit with ``rps_min=8``
     at 45 °C outdoor, charging its last 0.2 K in a 1200 s step), where the
     next step charges on without a stop.
+    The closing balance is asked only at a start the events give: where the
+    events' tank, on the fitted line, does not reach the cut-out within the
+    step, the step has no start, also if the caller's own balance would pass
+    the cut-out in it (a free heat that is not the line). The compressor is
+    then off, called, below its cut-out when the step closes, and starts at
+    the beginning of the next -- the event model's answer for every switching
+    point of a tank that is not its straight line, with or without a duty
+    limit, and not changed here.
     A hold from the start of a step is not treated so either: its heat is the
     fitted line's at the cut-out, which is the closing balance's as far as the
     tank's free heat is a straight line (a tank with a subsystem whose heat is

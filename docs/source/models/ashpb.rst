@@ -198,7 +198,9 @@ withheld it on the rows in which the envelope stop acted. The thermostat band
 is not capped again, so the call above the envelope stop stands. The three
 cycles are a sample of the stretch. Each step that charges on the limit also
 checks its own cycles the same way, at the mean of its own stretch, and is
-withheld alone if one fails (``reduced_duty_withheld == "cycle"``). So the
+withheld alone if one fails (``reduced_duty_withheld == "cycle"``, a value
+that names no limit and is written in other situations too; the reference
+lists them). So the
 verdict of an outdoor state does not depend on the step, but where another
 limit acts only between the three sampled tank temperatures, which steps are
 withheld does: the charge then depends on the step size (the

@@ -755,11 +755,22 @@ water-source unit, on whose charge the condensing limit governs throughout.
 Every row is still consistent in itself -- none is credited with heat its cycle did not deliver, and each
 withheld row is the row of ``"stop"`` -- but the run as a whole is not the
 same run at two step sizes, and none of them follows the unit along the limit
-that actually holds it there. The 60 s rows say so: ``"cycle"`` in
-``reduced_duty_withheld`` at a source state whose stretch qualified means a
-limit acts where the three points did not look. The 600 s and 3600 s rows say
-nothing, because their cycles did not land on it: a run without that value is
-not shown to be free of such a limit
+that actually holds it there. The rows do not identify the situation. On the
+60 s rows ``reduced_duty_withheld`` is ``"cycle"``, and that value says only
+that a cycle did not run as required and gave no name of its own. It is
+written for a step of a qualified stretch whose own cycle -- on the limit, or
+at the full duty below the knee -- has no operating point, names another
+limit, or misses the duty the events took by more than 0.1 % either way:
+less, as here, or more, as a compressor at its speed floor does beyond the
+bound given under *Where the charge ends*. It is also written where the
+stretch itself did not qualify because one of its three cycles did not run
+without a ``failure_reason``, or carries ``"cycle"`` as its
+``capacity_binding``. So the value proves neither that the stretch qualified
+nor that a limit lies between the sampled points; here both were established
+by solving the cycles (the three of the check, and the step's own with what
+it was asked, what it delivered and its ``capacity_binding``). And the 600 s
+and 3600 s rows say nothing at all, because their cycles did not land on the
+limit: a run without that value is not shown to be free of one
 (``tests/test_reduced_duty_charge.py`` pins this case). More sampling points
 would move the gap, not close it; following another limit inside the step is
 the later work named under *What it does not cover*.

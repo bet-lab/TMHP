@@ -581,7 +581,7 @@ qualified before it is used, once per source state
 solved at the knee, at the middle of the stretch and at the stop, each time
 asked for the duty the condensing limit leaves there. The stretch qualifies if
 all three run, deliver that duty to 0.1 %
-(:data:`tmhp.compressor_envelope.DUTY_MATCH_RTOL`; the measured ratio is
+(:data:`tmhp.dynamic_context.DUTY_MATCH_RTOL`; the measured ratio is
 1.000000 where the condensing limit governs) and name no limit but the
 condensing one. The source state is the one the smallest duty is found for,
 and the verdict is kept with it: the outdoor air for ASHPB, the source water
@@ -633,11 +633,16 @@ tolerance):
 
 The check samples three points. A limit that acts only strictly between two
 of them is not seen; the rule assumes that a limit which leaves the knee, the
-middle and the stop alone leaves the stretch between them alone. One
-safeguard stands behind it: a step whose own cycle on the limit has no
-operating point, or whose full-duty cycle delivers no more than ``Q_min``, is
-withheld the same way (``reduced_duty_withheld == "cycle"`` where the
-stretch itself had qualified).
+middle and the stop alone leaves the stretch between them alone. A check of
+each step stands behind that assumption, so that no row is credited with heat
+its cycles did not deliver: the cycles a step on the limit solves anyway --
+one at the mean of its full-duty stretch, one at the mean of its stretch on
+the limit -- have to deliver the duty the events took there (the nameplate
+duty, the limit's duty) to the same 0.1 %. A step in which one does not,
+because it has no operating point or another limit holds it, is withheld the
+same way, with ``reduced_duty_withheld == "cycle"`` where the stretch itself
+had qualified. None of the charges measured here needed it (delivered over
+asked: 1.000000).
 
 The qualification is strict about the knee. A compressor that falls short of
 the nameplate duty there by more than 0.1 % at its speed ceiling withholds the

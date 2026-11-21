@@ -196,6 +196,27 @@ def test_without_cycling_the_unit_runs_at_its_smallest_continuous_wet_duty():
     assert row["Q_ref_iu [W]"] == pytest.approx(1350.0, rel=5e-3) and row["Q_unmet [W]"] == 0.0
 
 
+def test_fans_that_leave_no_continuous_duty_are_named_as_a_coil_limit():
+    # Both fans held within a few percent of their largest flow: in cold weather the coils carry
+    # more than any duty the compressor can be turned down to, at every approach, so no larger
+    # duty runs either. The row says a coil cannot carry the duty inside its flow range --
+    # not that the cycle or the search failed.
+    stiff = _quiet(
+        AirSourceHeatPump,
+        dV_ou_fan_a_min=0.55,
+        dV_ou_fan_a_max=0.6,
+        dV_ou_fan_a_rated=0.6,
+        dV_iu_fan_a_min=0.19,
+        dV_iu_fan_a_max=0.2,
+        dV_iu_fan_a_rated=0.2,
+    )
+    row = stiff.analyze_steady(200.0, 5.0, 27.0, RH_room=0.9, verbose=False)
+    assert row["failure_reason"] == "hx_not_converged"
+    assert row["Q_ref_iu [W]"] == 0.0 and row["Q_unmet [W]"] == 200.0 and row["runtime_fraction [-]"] == 0.0
+    # The dry coil does not run there either.
+    assert stiff.analyze_steady(200.0, 5.0, 27.0, verbose=False)["failure_reason"] != "none"
+
+
 # ---------------------------------------------------------------------------
 # 7. A humidity schedule is read on cooling rows only
 # ---------------------------------------------------------------------------

@@ -150,11 +150,11 @@ draw:
      - 337 s
      - 589 s (252 s on the limit)
    * - heat / electricity
-     - 1.405 / 0.485 kWh (COP 2.90)
-     - 2.111 / 0.776 kWh (COP 2.72)
+     - 1.405 / 0.449 kWh (COP 3.13)
+     - 2.111 / 0.693 kWh (COP 3.05)
 
 With 60 s, 600 s and 3600 s steps the ``"reduce_duty"`` run ends within
-0.006 K, 0.005 % of heat and 0.13 % of electricity of one another. That is
+0.006 K, 0.005 % of heat and 0.11 % of electricity of one another. That is
 this tank (loss coefficient 1.15 W/K) and this limit. A tank that loses heat
 fast depends on the step with either option, because a step's tank
 temperature is one implicit solve with the loss at its end: 0.02 K and 0.02 %
@@ -163,7 +163,7 @@ reference (0.1 K and 0.3 % with ``"stop"``).
 
 The smallest continuous duty depends on the outdoor air: warmer air gives the
 compressor denser suction gas, so more duty at its lowest speed, and the limit
-is met at a colder tank (63.5 °C at 7 °C outdoor, 62.1 °C at 35 °C for the
+is met at a colder tank (63.1 °C at 7 °C outdoor, 61.3 °C at 35 °C for the
 machine above). The thermostat's cap is evaluated once, at the outdoor
 temperature of the rating point (``charge_limit_reference_C``); each step
 applies the stop of its own outdoor state, and where that lies below the set
@@ -188,19 +188,25 @@ charging is **withheld** in that outdoor state: the step is solved exactly as
 ``reduced_duty_fraction [-]`` 0 and ``reduced_duty_withheld`` naming what
 withheld it on the rows in which the envelope stop acted. The thermostat band
 is not capped again, so the call above the envelope stop stands. Cold air does
-this through the compressor's speed ceiling, which then leaves less than the
-nameplate duty at the envelope stop (``"compressor"``: the 15 kW R290 unit at
-2 °C and below, the R32 unit at −5 °C and below), and through a low
-discharge-temperature limit (``"discharge_temperature"``). R32, 15 kW, −12 °C
-outdoor, ``T_dis_max = 115 °C``, set points 61–63.3 °C, one hour from
-57.5 °C: 57.99 °C, 0.1296 kWh of heat and 0.0741 kWh of electricity with 60 s,
-600 s and 3600 s steps alike, the rows of ``"stop"`` with
-``reduced_duty_withheld == "compressor"`` (the
-:ref:`reference <reduced-duty-charging>` has the rule and the other cases).
+this through the pressure-ratio ceiling, which then leaves less than the
+nameplate duty at the envelope stop (``"pressure_ratio"``, and
+``"outdoor_coil"`` in the degree above it, where the coil at its largest
+airflow is what holds the cycle: the 15 kW R290 unit at −13 °C and below, the
+R32 unit at −14 °C and below; they qualify from −12 °C and −13 °C up),
+through a low discharge-temperature limit (``"discharge_temperature"``), and
+through the compressor's speed ceiling (``"compressor"``) where that is lower
+than the default 120 rev/s, which the envelope stop does not need down to
+those temperatures (the R290 unit with ``rps_max=100``: −5 °C and below).
+R32, 15 kW, −15 °C outdoor, set points 60–62 °C, one hour from 57.5 °C:
+57.99 °C, 0.1296 kWh of heat and 0.0816 kWh of electricity with 60 s, 600 s
+and 3600 s steps alike, the rows of ``"stop"`` with
+``reduced_duty_withheld == "pressure_ratio"`` (the
+:ref:`reference <reduced-duty-charging>` has the rule, the table of source
+states and the other cases).
 
 ``analyze_steady`` is not changed by the option. For this family it keeps
-returning a running point for a few tenths of a kelvin above the charging
-limit (to 63.7 °C at 7 °C outdoor, 62.7 °C at 35 °C): its duty search finds
+returning a running point for up to a kelvin above the charging limit (to
+63.3 °C at 7 °C outdoor, 62.2 °C at 35 °C): its duty search finds
 states at the speed floor that deliver less than the minimum-speed duty by
 widening the outdoor coil's approach. The dynamic run does not use those; its
 floor is the minimum-speed duty ``analyze_steady`` itself reports as

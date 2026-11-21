@@ -64,7 +64,7 @@ capped where that duty meets the limit, evaluated with the source water at
 ``Ts`` (:ref:`operating-limits reference <reduced-duty-charging>`). That
 applies where the condensing limit governs the stretch from the cut-out to
 that stop, which is checked once per source-water temperature with three
-cycles (the default unit qualifies from 6 to 25 °C). With colder source water
+cycles (the default unit qualifies from 6 to 30 °C, the warmest tried). With colder source water
 the freezing limit leaves less than the condensing limit at the cut-out (3.1
 against 8 kW at 4 °C), and reduced-duty charging is withheld: the step is
 solved exactly as ``"stop"`` solves it -- the compressor stops at the cut-out

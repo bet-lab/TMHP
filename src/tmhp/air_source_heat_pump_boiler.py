@@ -401,8 +401,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     condensing limit governs the whole stretch down to that duty, checked once
     per outdoor state with three cycles
     (:func:`tmhp.compressor_envelope.condensing_stretch`). Where another limit
-    governs on it (the speed ceiling in cold air, a discharge-temperature
-    limit), reduced-duty charging is withheld: the step is solved exactly as
+    governs on it (the pressure ratio in cold air, a discharge-temperature
+    limit, a low speed ceiling), reduced-duty charging is withheld: the step is solved exactly as
     ``"stop"`` solves it, and ``reduced_duty_withheld`` names what withheld
     it. The set points are then capped where the
     smallest continuous duty meets the limit, evaluated at the rating point's outdoor air

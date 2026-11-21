@@ -195,8 +195,9 @@ Condensing pressure (``T_cond_max``)
     the one that governs the stretch from the nameplate cut-out to that stop.
     Each source state is checked once, with three cycles
     (:func:`condensing_stretch`). Where another limit governs somewhere on
-    the stretch -- the source fluid's freezing limit, a discharge-temperature
-    ceiling, the compressor's speed ceiling at a cold source -- reduced-duty
+    the stretch -- the source fluid's freezing limit, the pressure-ratio
+    ceiling, a discharge-temperature ceiling, the compressor's speed ceiling
+    at a cold source -- reduced-duty
     charging is withheld for the step: it is solved exactly as ``"stop"``
     solves it, and the row names what withheld it
     (``reduced_duty_withheld``).

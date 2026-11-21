@@ -280,8 +280,9 @@ first-order lag that is solved inside the step, and ends where the limit
 leaves less than the compressor's smallest continuous duty (or at 100 °C,
 ``hp_stop_reason == "boiling_limit"``, if that comes first). This applies in
 the source states in which the condensing limit governs that whole stretch;
-in the others (a cold source that brings in the speed ceiling, the freezing
-limit or a discharge-temperature limit) the step is the one ``"stop"`` solves
+in the others (a cold source that brings in the pressure-ratio ceiling, the
+freezing limit, a discharge-temperature limit or a low speed ceiling) the
+step is the one ``"stop"`` solves
 and ``reduced_duty_withheld`` says why. See
 :ref:`ashpb-reduced-duty-charging` and the
 :ref:`operating-limits reference <reduced-duty-charging>`.

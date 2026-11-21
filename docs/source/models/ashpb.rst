@@ -183,9 +183,10 @@ operating point above about 59 °C). The step is then resolved at the duty its
 cycle delivers, as a step of ``"stop"`` is under such a limit; its rows keep
 that limit in ``capacity_binding`` and count no time in
 ``reduced_duty_fraction [-]``, and where the cycle stops existing the rows
-carry its ``failure_reason``. Such a charge is followed step by step and
-depends on the step more than one on the condensing limit (the
-:ref:`reference <reduced-duty-charging>` has the numbers).
+carry its ``failure_reason``. Such a charge depends on the step more than one
+on the condensing limit: up to 0.07 K and 0.8 % of heat between 60 s steps
+and 300 s, 600 s or one 1800 s step in that case (the :ref:`reference <reduced-duty-charging>` has
+the method and the numbers).
 
 ``analyze_steady`` is not changed by the option. For this family it keeps
 returning a running point for a few tenths of a kelvin above the charging

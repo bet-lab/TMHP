@@ -1130,8 +1130,9 @@ def test_discharge_limit_above_the_cut_out_is_followed_and_not_overrun():
     The discharge-temperature limit leaves less than the condensing limit from 57 degC and no
     operating point above about 59 degC. The charge follows that limit (its rows are not on the
     condensing limit), ends where the cycle stops existing with the cycle's own failure reason,
-    and comes out the same in 60 s and 300 s steps. A single 600 s step ends lower: it stops where
-    its full-duty cycle meets the condensing limit, and the steps after it would take the charge on.
+    and comes out the same in 60 s steps, in 300 s steps and in one 600 s step. (A step that gets to
+    where its full-duty cycle meets the condensing limit does not stop there while the cycle still
+    runs at less: the rest of the step is resolved from that tank temperature.)
     """
     kw = dict(ISSUE, T_dis_max=105.0)
     out = {}
@@ -1160,14 +1161,15 @@ def test_discharge_limit_above_the_cut_out_is_followed_and_not_overrun():
         )
 
     end_fine, heat_fine, power_fine = totals(fine, 60.0)
-    end_300, heat_300, power_300 = totals(out[300.0], 300.0)
-    assert end_300 == pytest.approx(end_fine, abs=0.1)
-    assert heat_300 == pytest.approx(heat_fine, rel=0.03) and power_300 == pytest.approx(power_fine, rel=0.03)
-    # No step size takes the tank above where the fine steps end the charge.
     T_top = float(fine["T_tank_w [°C]"].max())
     for dt in (300.0, 600.0):
+        end, heat, power = totals(out[dt], dt)
+        assert end == pytest.approx(end_fine, abs=0.1), dt
+        assert heat == pytest.approx(heat_fine, rel=0.03) and power == pytest.approx(power_fine, rel=0.03), dt
+        # No step size takes the tank above where the fine steps end the charge.
         assert out[dt]["T_tank_w [°C]"].max() <= T_top + 0.1, dt
-    assert totals(out[600.0], 600.0)[0] < end_fine
+    # The one 600 s step went on past 57.99 degC, where its full-duty cycle meets the condensing limit.
+    assert totals(out[600.0], 600.0)[0] > 58.5
 
 
 @pytest.mark.parametrize("family", list(FAMILIES))
@@ -1350,3 +1352,38 @@ def test_the_blend_warning_names_the_bubble_point():
     ):
         tmhp.AirSourceHeatPumpBoiler(ref="R32", T_tank_w_upper_bound=90.0, condensing_limit_control="reduce_duty")
     assert not any("bubble point" in str(w.message) for w in caught)
+
+
+def test_a_run_goes_on_past_the_knee_of_its_first_duty_where_the_cycle_still_runs():
+    """A second limit whose duty falls with the tank temperature, below the condensing limit's all the way.
+
+    Stop-time review of the fix above: a step that got to where its full-duty cycle meets the
+    condensing limit stopped there, although the cycle still ran at the lower duty the other limit
+    left, and the next step went on from it; one long step so ended lower than short ones (57.99
+    against 58.99 degC in the air-source case). The rest of the step is now resolved from that
+    tank temperature, with the duty the other limit leaves there, and joined to the run.
+    """
+
+    def other(T_C):
+        return 9_000.0 - 1_500.0 * (T_C - 58.0)  # 9 kW at 58 degC, 3 kW at 62 degC
+
+    # From 56 degC one hour in one step: the cycle delivers 9 kW at the mean of the first run, whose
+    # knee lies at 60.5 degC. The other limit leaves 5.25 kW there, and 2 kW (the smallest duty) at 62.67 degC.
+    fine = _charge_two_limits(other, 360, 3600.0, T_start=56.0)
+    one = _charge_two_limits(other, 1, 3600.0, T_start=56.0)
+    run, row = one[3][0]
+    first_knee = LIMIT.knee_C(min(Q_ON, other(57.0)))
+    assert run.T_on_max_C > first_knee + 1.0
+    # The charge ends where the other limit leaves no more than the smallest continuous duty (62.67 degC).
+    assert fine[0] == pytest.approx(62.67, abs=0.05)
+    assert one[0] == pytest.approx(fine[0], abs=0.15)
+    assert one[1] == pytest.approx(fine[1], rel=0.02)
+    # The row is the run-time-weighted mean of the stages' cycles: its heat is the step's.
+    assert row["Q_ref_tank [W]"] * run.runtime_fraction * 3600.0 == pytest.approx(one[1], rel=1e-12)
+    assert row["capacity_binding"] == OTHER and run.reduced_fraction == 0.0 and one[2] == 0.0
+    # The joined run is one run: one start, and no cut-out is reported for the knees it passed.
+    assert run.starts == 1 and run.running_start
+    for parts in (36, 6):
+        T_end, heat, _, _ = _charge_two_limits(other, parts, 3600.0, T_start=56.0)
+        assert T_end == pytest.approx(fine[0], abs=0.15), parts
+        assert heat == pytest.approx(fine[1], rel=0.02), parts

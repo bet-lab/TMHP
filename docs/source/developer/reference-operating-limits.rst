@@ -589,30 +589,37 @@ the compressor off and the row is the cycle's off-mode row with its
 as on any step whose cycle cannot be solved; ``hp_stop_reason`` is then
 ``None``.
 
-One cycle stands for such a run, so the run must not be taken past the tank
-temperature at which the other limit leaves no operating point. Before a run
-goes above every tank temperature at which a cycle of the step ran, the cycle
-is solved at the run's warmest point; if it does not run there, the run ends at
-the warmest temperature a cycle did run at (looked for half-way to the closed
-point, twice). Two things follow, and they are the limits of this treatment:
+One cycle stands for such a run, so two things are checked. Where the cycle
+delivered another duty than the events took, the run that duty gives warms the
+tank at another rate and has its mean somewhere else: the cycle is solved once
+more there. And the run must not be taken past the tank temperature at which
+the other limit leaves no operating point: before a run goes above every tank
+temperature at which a cycle of the step ran, the cycle is solved at the run's
+warmest point; if it does not run there, the run ends at the warmest
+temperature a cycle did run at (looked for half-way to the closed point, four
+times). A run at one duty ends where that duty meets the condensing limit;
+where the cycle still runs there, at the lower duty the other limit leaves,
+the compressor does not stop -- the rest of the step is resolved again from
+that tank temperature (up to four times), and the row is the run-time-weighted
+mean of the cycles. Measured:
 
-- a limit whose duty changes little with the tank temperature is followed to
-  the step: the water-source boiler with source water at 4 °C (the freezing
-  limit leaves 3.1 kW where the condensing limit would leave 7.3 kW), ten
-  minutes from 68.1 °C in 60 s steps and in one step: 72.476 against
-  72.462 °C, heat −0.26 %, electricity −0.23 %;
-- a limit whose duty falls steeply with the tank temperature and then ends is
-  followed step by step, from below. R32 at −7 °C outdoor with
-  ``T_dis_max = 105 °C``: the discharge limit leaves 12.5 kW with the tank at
-  56.6 °C, 8.9 kW at 58.6 °C and no operating point above about 59 °C. Ten
-  minutes from 56 °C end at 58.99 °C in 60 s steps and 59.03 °C in 300 s
-  steps (heat +1.2 %); thirty minutes from 50 °C end within 0.25 K and 2.7 %
-  of heat at 300 s and 600 s steps. A single step that runs into such a limit
-  above its full-duty stretch ends lower -- where its full-duty cycle meets
-  the condensing limit (57.99 °C for one 600 s step from 56 °C, 57.57 °C for
-  one 1800 s step from 50 °C against 58.95 °C) -- and the steps after it take
-  the charge on. No step size takes the tank above the temperature the short
-  steps reach.
+- a limit whose duty changes little with the tank temperature: the
+  water-source boiler with source water at 4 °C (the freezing limit leaves
+  3.1 kW where the condensing limit would leave 7.3 kW). Ten minutes from
+  68.1 °C in 60 s steps and in one step: 72.476 against 72.462 °C, heat
+  −0.26 %, electricity −0.23 %. Thirty minutes from 60 °C, 600 s steps and
+  one 1800 s step against 60 s steps: within 0.04 K, 0.25 % of heat and
+  0.7 % of electricity;
+- a limit whose duty falls steeply with the tank temperature and then ends:
+  R32 at −7 °C outdoor with ``T_dis_max = 105 °C``. The discharge limit leaves
+  12.5 kW with the tank at 56.6 °C, 8.9 kW at 58.6 °C and no operating point
+  above about 59 °C. Ten minutes from 56 °C end at 58.99 °C in 60 s steps,
+  59.01 °C in 300 s steps and 59.03 °C in one step (heat within 1.3 %);
+  thirty minutes from 50 °C end within 0.07 K, 0.8 % of heat and 0.9 % of
+  electricity at 300 s, 600 s and one 1800 s step. The duty falls by 29 %
+  over the last two kelvin there, and one cycle per stretch is the midpoint
+  of that: this is the accuracy to expect under such a limit, against 0.02 K
+  and 0.05 % of heat on the condensing limit alone.
 
 *Electricity.* Along the stretch on the limit the condensing pressure is the
 limit's; only the duty changes, from ``hp_capacity`` down to ``Q_min``. A step
@@ -633,11 +640,14 @@ one cycle per stretch: two for a step with both, as observed on the four
 charges above. It costs more where the search has to go further: a trial the
 limit refuses is retried half-way back, and where the envelope refuses the
 probe from below the smallest duty is itself searched (35 solves at −7 °C
-outdoor with ``T_dis_max = 105 °C``). Where another limit governs, a step
-solves three or four cycles, and up to three more where a run has to be
-confirmed against an envelope that closes, each with that limit's own duty
-search: 6 to 11 solves per step in the source-freezing case above (3 with
-``"stop"``), up to 48 in the discharge-limit case (up to 8 with ``"stop"``).
+outdoor with ``T_dis_max = 105 °C``). Where another limit governs, a stage of
+a step solves three or four cycles, a run that has to be confirmed against an
+envelope that closes up to five more, and a long step has up to five stages;
+each solve carries that limit's own duty search. Observed: up to 11 solves per
+step in the source-freezing case above (3 with ``"stop"``); up to 50 per 60 s
+step and up to 78 per 600 s step in the discharge-limit case (up to 8 with
+``"stop"``, whose band ends below the tank temperature at which that limit
+closes).
 
 *The row.* A step with both stretches reports the run-time-weighted mean of
 their two cycles for every rate (heat, power, flow), ``cop_ref`` and

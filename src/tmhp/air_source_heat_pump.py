@@ -18,6 +18,7 @@ heat exchange at the indoor unit.
 
 import contextlib
 import math
+import numbers
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from typing import Any, Literal
 
@@ -514,9 +515,19 @@ INDOOR_UA_KEPT_REASON = (
 )
 
 
+def _is_real_number(value: Any) -> bool:
+    """Whether ``value`` is a real number of any numeric type (NumPy scalars included), and not a boolean."""
+    return isinstance(value, numbers.Real) and not isinstance(value, (bool, np.bool_))
+
+
 def _check_room_humidity(value: float) -> float:
-    """``RH_room`` as a float, or ``ValueError`` (the check ``RH_out`` gets in :mod:`tmhp.defrost`)."""
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0.0 <= value <= 1.0:
+    """``RH_room`` as a float, or ``ValueError`` (the check ``RH_out`` gets in :mod:`tmhp.defrost`).
+
+    A real number in 0-1 of any numeric type; not a boolean, text, a missing
+    value (NaN, ``None`` is the caller's "no humidity") or NumPy's masked
+    constant.
+    """
+    if not _is_real_number(value) or not 0.0 <= value <= 1.0:
         raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {value!r}")
     return float(value)
 
@@ -529,14 +540,18 @@ def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
     one-column array or DataFrame, whose rows are the steps -- but the
     entries stay what they are (a missing value, text), for the caller to
     convert where it reads them. The values are taken, never the labels: a
-    DataFrame is its cells, not its column names. Anything that is not one
-    entry per step is refused: a mapping, text, a single number, a table of
-    several columns.
+    DataFrame is its cells, not its column names. A masked entry of a NumPy
+    masked array is a missing one (``None``), not the number the array keeps
+    under the mask. Anything that is not one entry per step is refused: a
+    mapping, text, a single number, a table of several columns.
     """
     shape = "a mapping" if isinstance(schedule, Mapping) else "text" if isinstance(schedule, (str, bytes)) else None
     if shape is None:
         if not hasattr(schedule, "__len__") and isinstance(schedule, Iterable):
             schedule = list(schedule)  # a generator: its items, once
+        if isinstance(schedule, np.ma.MaskedArray):
+            # np.asarray would drop the mask and hand out the data beneath it.
+            schedule = np.ma.filled(schedule.astype(object), None)
         entries = np.asarray(schedule, dtype=object)
         if entries.ndim == 2 and entries.shape[1] == 1:
             entries = entries[:, 0]
@@ -551,13 +566,16 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
 
     A schedule is kept as it was given and only the cooling steps are read
     (heating and off steps may hold anything), so the entry is converted
-    here: a number of any numeric type, or text that reads as one. Anything
-    else -- a missing value, a boolean, a number outside 0-1 -- is refused
-    with the step it stands at.
+    here: a real number of any numeric type, or text that reads as one (a
+    column read from a file). Anything else -- a missing value, a masked
+    entry, a boolean, an array, a number outside 0-1 -- is refused with the
+    step it stands at.
     """
     number = math.nan
-    if not isinstance(value, (bool, np.bool_)):
-        with contextlib.suppress(TypeError, ValueError):
+    if _is_real_number(value):
+        number = float(value)
+    elif isinstance(value, str):
+        with contextlib.suppress(ValueError):
             number = float(value)
     if not 0.0 <= number <= 1.0:
         raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {value!r} at step {step}")
@@ -3550,7 +3568,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ``pd.NA``, text -- and is not looked at. A cooling step whose
             entry is not such a number raises ``ValueError`` naming the step.
             One entry per step: a list, an array, a Series, or a one-column
-            array or DataFrame (its values, not its labels).
+            array or DataFrame (its values, not its labels); a masked entry
+            of a NumPy masked array is a missing one.
 
         Returns
         -------

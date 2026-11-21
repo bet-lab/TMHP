@@ -334,6 +334,19 @@ def test_a_number_of_another_type_is_read_on_a_cooling_row(hp):
         assert frame["RH_room [-]"].iloc[0] == 0.5 and frame["E_tot [W]"].iloc[0] == reference["E_tot [W]"].iloc[0]
     whole = _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=[1])
     assert whole["RH_room [-]"].iloc[0] == 1.0
+    # The single point takes the same numeric types (text is for a schedule read from a file).
+    for value in (np.float32(0.5), np.float64(0.5)):
+        row = hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=value, verbose=False)
+        assert row["RH_room [-]"] == 0.5 and row["E_tot [W]"] == reference["E_tot [W]"].iloc[0]
+        assert hp.max_capacity(35.0, 27.0, mode="cooling", RH_room=value)["SHR_iu [-]"] < 1.0
+
+
+@pytest.mark.parametrize("entry", [np.array([0.5]), [0.5, 0.6], b"0.5", 0.5 + 0j, object()])
+def test_an_entry_that_is_not_a_number_or_text_is_refused_on_a_cooling_row(hp, entry):
+    schedule = np.empty(1, dtype=object)
+    schedule[0] = entry
+    with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 0"):
+        _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
 
 
 @pytest.mark.parametrize("unused", [float("nan"), -1.0, 50.0, "n/a", pd.NA, True])
@@ -394,6 +407,32 @@ def test_humidity_schedule_is_read_by_value_one_entry_a_step(hp, schedule):
 def test_humidity_schedule_of_another_shape_is_refused(hp, schedule, says):
     with pytest.raises(ValueError, match=says):
         _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=schedule)
+
+
+def test_a_masked_entry_of_the_schedule_is_missing_not_the_number_under_the_mask(hp):
+    """A NumPy masked array keeps a number under each masked entry (here 0.9): it is not the humidity."""
+    loads, outdoor, room = [-2000.0, 2000.0], [7.0, 35.0], [20.0, 27.0]
+    arguments = (2 * 3600, 3600, loads, outdoor, room)
+    # Masked on the heating step: not read. The cooling step reads its own entry.
+    frame = _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=np.ma.array([0.9, 0.6], mask=[True, False]))
+    assert math.isnan(frame["RH_room [-]"].iloc[0]) and frame["RH_room [-]"].iloc[1] == 0.6
+    # Masked on the cooling step: a missing humidity, whatever number lies under the mask.
+    for masked in (
+        np.ma.array([0.6, 0.9], mask=[False, True]),
+        np.ma.array([[0.6], [0.9]], mask=[[False], [True]]),
+        np.ma.masked_invalid([0.6, float("nan")]),
+        [0.6, np.ma.masked],
+    ):
+        with pytest.raises(
+            ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 1"
+        ):
+            _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=masked)
+    # Nothing masked: the array's values.
+    plain = _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=np.ma.array([0.9, 0.6]))
+    assert plain["RH_room [-]"].iloc[1] == 0.6 and plain["E_tot [W]"].iloc[1] == frame["E_tot [W]"].iloc[1]
+    # A single point given the masked constant on a cooling request is refused too.
+    with pytest.raises(ValueError, match="Room relative humidity must be a fraction"):
+        hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=np.ma.masked, verbose=False)
 
 
 # ---------------------------------------------------------------------------

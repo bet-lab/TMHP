@@ -623,7 +623,8 @@ limit leaves no operating point: before a run goes above every tank
 temperature at which a cycle of the step ran, the cycle is solved at the run's
 warmest point; if it does not run there, the run ends at the warmest
 temperature a cycle did run at (looked for half-way to the closed point, four
-times). Where one limit hands over to the other inside a step, the rest of the
+times), and the cycle and the events are settled again for that shorter run,
+whose mean duty is another. Where one limit hands over to the other inside a step, the rest of the
 step is resolved again from that tank temperature, up to eight times, and the
 row is the run-time-weighted mean of the cycles; a step that used all eight
 (none measured does) ends its run there without a stop being reported, and
@@ -639,8 +640,8 @@ the next step goes on. Measured:
   leaves 12.5 kW with the tank at 56.6 °C, 8.9 kW at 58.6 °C and no operating
   point above about 59 °C. Ten minutes from 56 °C end at 58.98 °C in 60 s
   steps, 59.01 °C in 300 s steps and 59.03 °C in one step (heat within
-  1.4 %); thirty minutes from 50 °C end within 0.07 K, 0.7 % of heat and
-  0.9 % of electricity at 300 s, 600 s and one 1800 s step. That limit is not
+  1.4 %); thirty minutes from 50 °C end within 0.06 K, 0.6 % of heat and
+  1.0 % of electricity at 300 s, 600 s and one 1800 s step. That limit is not
   a straight line and ends abruptly; this is the accuracy to expect under it,
   against 0.02 K and 0.05 % of heat on the condensing limit alone.
 

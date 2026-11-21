@@ -1544,9 +1544,11 @@ OTHER_LIMITS = {
 def test_a_second_limit_of_any_shape_comes_out_the_same_at_any_step(shape):
     """One hour under a second limit in 360, 36 and 6 steps and in one: the same tank, heat and time on the condensing limit.
 
-    On every step: the heat of the row is the heat the events integrated (the compressor is never
-    seen warmer than the tank its heat gives, to 0.05 K), and a cut-out is reported only where
-    nothing above the smallest continuous duty is left to be had.
+    On every step: the heat of the row is the heat the events integrated (nothing but the
+    compressor moves this tank, so the warmest tank the events saw it run at is the tank its heat
+    gives: to 0.005 K), and a cut-out is reported only where nothing above the smallest continuous
+    duty is left to be had. (Stop-time review: a run cut short where the other limit closes kept
+    the cycle of the longer run, whose mean duty was another.)
     """
     other, T_init, T_tol, Q_tol, t_tol = OTHER_LIMITS[shape]
     out = {}
@@ -1559,7 +1561,7 @@ def test_a_second_limit_of_any_shape_comes_out_the_same_at_any_step(shape):
             if row is not None and row.get("hp_is_on") and run.runtime_fraction > 0.0:
                 step_heat = row["Q_ref_tank [W]"] * run.runtime_fraction * dt
                 heat, tank = heat + step_heat, tank + step_heat / C
-                assert run.T_on_max_C <= tank + 0.05, (shape, parts)
+                assert run.T_on_max_C <= tank + 0.005, (shape, parts, run.T_on_max_C - tank)
             if run.limit_stop:
                 top = tank if run.T_on_max_C is None else max(tank, run.T_on_max_C)
                 left = min(other(top), LIMIT.duty(top))

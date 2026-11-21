@@ -1738,8 +1738,10 @@ def _resolve_duty_limited(
         point; if it has no operating point there, the envelope closes inside
         the run. The run then ends at the warmest temperature a cycle did run
         at, looked for half-way to the closed point :data:`_CLOSING_BISECTIONS`
-        times -- or, when that is where the run starts, the compressor does
-        not run and the row is the failure of the coldest cycle that did not.
+        times, with the cycle at the mean of that shorter run and the events
+        of the duty it delivers -- or, when that is where the run starts, the
+        compressor does not run and the row is the failure of the coldest
+        cycle that did not.
         A cycle the other limit holds at or below the smallest continuous duty
         counts as not running, as everywhere in this resolution (the stop
         stands there: ``None``).
@@ -1771,8 +1773,17 @@ def _resolve_duty_limited(
                     T_closed, probe = T_mid, trial
         if T_first is None or T_ran <= T_first + TEMPERATURE_TOL_K:
             return no_cycle(kw, probe) if delivered_tank_heat(probe) <= 0.0 else None
+        # The run ends where the other limit closes. It is a shorter run with
+        # another mean: the cycle at that mean, and the events with the duty
+        # it delivers (never above where that duty meets the condensing limit).
+        shorter = up_to(kw, q, T_ran)
+        if shorter.T_on_mean_C is not None:
+            again = probe_at(shorter.T_on_mean_C)
+            q_again = ran(again, shorter.T_on_mean_C)
+            if q_again > limit.Q_min:
+                shorter, cycle = up_to(kw, q_again, min(T_ran, limit.knee_C(q_again))), again
         # Stopped by the other limit, short of the condensing limit: not one of the cut-outs.
-        return dataclasses.replace(up_to(kw, q, T_ran), limit_stop=False, limit_stop_C=None, limit_stop_s=None), cycle
+        return dataclasses.replace(shorter, limit_stop=False, limit_stop_C=None, limit_stop_s=None), cycle
 
     def onward(
         kw: dict,
@@ -1867,13 +1878,13 @@ def _resolve_duty_limited(
         that does not run at the run's mean.
         """
 
-        def along(K_other: float) -> tuple[DutyLimit, float, float, InStepRun]:
+        def along(K_other: float, cap_C: float) -> tuple[DutyLimit, float, float, InStepRun]:
             line = DutyLimit(T_s + q_s / K_other, K_other, limit.Q_min)
             # Where the other limit's line meets the condensing limit's (a shallower line catches up with it).
             T_meet = math.inf
             if K_other < limit.K:
                 T_meet = max(T_s, (limit.K * limit.T_zero_C - K_other * line.T_zero_C) / (limit.K - K_other))
-            cut = min(kw["T_limit_C"], limit.stop_C, T_meet)
+            cut = min(kw["T_limit_C"], limit.stop_C, T_meet, cap_C)
             return line, T_meet, cut, simulate_thermostat_step(Q_on=q_s, **{**kw, "duty_limit": line, "T_limit_C": cut})
 
         def usable(run: InStepRun) -> bool:
@@ -1881,35 +1892,41 @@ def _resolve_duty_limited(
             on_line = run.T_reduced_mean_C is not None and run.reduced_fraction > 0.0
             return on_line and run.runtime_fraction - run.reduced_fraction <= 1e-9
 
-        K_other = (q_s - q_r) / (T_r - T_s)
-        if not K_other > _LINE_MIN_SLOPE * limit.K:
-            return None
-        line, T_meet, cut, run = along(K_other)
-        # The cycle at the run's mean has to deliver the line's duty there:
-        # that is the run's mean duty, so the heat the events integrate is the
-        # heat of the row. A limit that is not that line is taken through the
-        # start and the cycle at the run's own mean, until the two agree.
-        middle: dict | None = None
-        for _ in range(_LINE_FITS):
-            if not usable(run):
-                return None
-            assert run.T_reduced_mean_C is not None
-            T_m = run.T_reduced_mean_C
-            middle = solve_cycle_at_duty(T_m, limit.duty(T_m), fraction)
-            q_m = ran(middle, T_m)
-            if q_m <= limit.Q_min:
-                return None
-            if abs(q_m - line.duty(T_m)) <= DUTY_MATCH_RTOL * q_m:
-                break
-            if T_m - T_s < _LINE_SPAN_K:
-                return None
-            K_other = (q_s - q_m) / (T_m - T_s)
+        def settled(K_other: float, cap_C: float) -> tuple[DutyLimit, float, float, InStepRun, dict] | None:
+            """The run along the line, not above ``cap_C``, with the cycle at its mean delivering the line's duty.
+
+            On a line the duty at the run's mean tank temperature is the run's
+            mean duty, so with that cycle the heat the events integrate is the
+            heat of the row. A limit that is not the line is taken through the
+            start and the cycle at the run's own mean, until the two agree
+            (:data:`_LINE_FITS` times at most; ``None`` if they do not).
+            """
             if not K_other > _LINE_MIN_SLOPE * limit.K:
                 return None
-            line, T_meet, cut, run = along(K_other)
-            middle = None
-        if middle is None:
-            return None  # the events and the cycle did not come to agree: one duty, which does by construction
+            line, T_meet, cut, run = along(K_other, cap_C)
+            for _ in range(_LINE_FITS):
+                if not usable(run):
+                    return None
+                assert run.T_reduced_mean_C is not None
+                T_m = run.T_reduced_mean_C
+                middle = solve_cycle_at_duty(T_m, limit.duty(T_m), fraction)
+                q_m = ran(middle, T_m)
+                if q_m <= limit.Q_min:
+                    return None
+                if abs(q_m - line.duty(T_m)) <= DUTY_MATCH_RTOL * q_m:
+                    return line, T_meet, cut, run, middle
+                if T_m - T_s < _LINE_SPAN_K:
+                    return None
+                K_other = (q_s - q_m) / (T_m - T_s)
+                if not K_other > _LINE_MIN_SLOPE * limit.K:
+                    return None
+                line, T_meet, cut, run = along(K_other, cap_C)
+            return None
+
+        fitted = settled((q_s - q_r) / (T_r - T_s), math.inf)
+        if fitted is None:
+            return None  # the events and the cycle do not come to agree on a line: one duty, which does by construction
+        line, T_meet, cut, run, middle = fitted
 
         def labelled(sim: InStepRun) -> InStepRun:
             """The run as one under the other limit: none of its time is on the condensing limit."""
@@ -1933,11 +1950,17 @@ def _resolve_duty_limited(
                         T_closed = T_mid
                 if T_ran <= T_s + TEMPERATURE_TOL_K:
                     return None
-                capped = simulate_thermostat_step(Q_on=q_s, **{**kw, "duty_limit": line, "T_limit_C": min(cut, T_ran)})
-                # Stopped where the other limit closes, short of the condensing limit: not one of the cut-outs.
+                # The run ends where the other limit closes. It is a shorter
+                # run, with another mean and so another mean duty: its line
+                # and its cycle are settled again for it, so that the row's
+                # heat is still the heat its events integrate.
+                shorter = settled(line.K, T_ran)
+                if shorter is None:
+                    return None
+                # Stopped by the other limit, short of the condensing limit: not one of the cut-outs.
                 return dataclasses.replace(
-                    labelled(capped), limit_stop=False, limit_stop_C=None, limit_stop_s=None
-                ), middle
+                    labelled(shorter[3]), limit_stop=False, limit_stop_C=None, limit_stop_s=None
+                ), shorter[4]
         whole = (labelled(run), middle)
         if not (run.limit_stop and run.limit_stop_C is not None and T_top is not None):
             return whole

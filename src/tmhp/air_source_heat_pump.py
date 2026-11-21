@@ -44,7 +44,6 @@ from .compressor_envelope import (
     PR_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
-    X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     discharge_controlled,
     resolve_condensing_temp_max,
@@ -658,7 +657,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Frost on the outdoor coil and its defrost, heating only (None / False: off).
         defrost: DefrostModel | bool | None = True,
         T_dis_max: float | Literal["auto"] | None = "auto",
-        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        x_suction_min: float | Literal["auto"] | None = "auto",
         T_cond_max: float | Literal["auto"] | None = "auto",
         # Indoor-unit class whose catalogue airflow stands in for an omitted
         # dV_iu_fan_a_rated: "wall_mounted" or "floor_standing".
@@ -749,7 +748,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Maximum condensing temperature [degC] ("auto": refrigerant default; None: off)
         self.T_cond_max: float | None = resolve_condensing_temp_max(T_cond_max, ref)
         # Discharge-temperature control: lowest suction quality (None: no control)
-        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min, ref)
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).
         self._x_suction: float = 1.0
         self.dT_approach_bounds: tuple[float, float] = (

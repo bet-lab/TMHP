@@ -219,6 +219,56 @@ def test_no_run_above_the_stop_or_below_the_smallest_duty(above):
     assert later.T_reduced_mean_C <= LIMIT.stop_C
 
 
+def test_the_duty_on_the_limit_is_never_below_the_smallest_duty_to_the_last_digit():
+    """At or below the stop the limit's duty is at least ``Q_min``, exactly, for any numbers.
+
+    Review of the clamp above: the stop is ``T_zero - Q_min / K`` in floating point, and
+    ``K (T_zero - stop)`` computed back from it comes out a few 1e-11 W below ``Q_min`` for most
+    values (the tests above use 65 degC, 2 kW/K and 2 kW, for which it is exact). Bounding the
+    temperature therefore did not bound the duty: a tank held at the stop was resolved at a duty
+    below the smallest continuous one in its last digits.
+    """
+    import random
+
+    rng = random.Random(204)
+    short = 0
+    for _ in range(300):
+        limit = DutyLimit(rng.uniform(60.0, 80.0), rng.uniform(700.0, 4000.0), rng.uniform(500.0, 3500.0))
+        stop = limit.stop_C
+        short += limit.K * (limit.T_zero_C - stop) < limit.Q_min
+        assert limit.duty(stop) >= limit.Q_min
+        assert limit.duty(stop - 1e-9) >= limit.Q_min and limit.duty(stop - 5.0) > limit.Q_min
+        assert limit.duty(stop + 0.5) < limit.Q_min  # above the stop the line is the line
+        # Held at the stop against a loss of half the smallest duty: the stretch's duty is that duty.
+        loss = ((50.0, -0.5 * limit.Q_min), (70.0, -0.5 * limit.Q_min))
+        held = _sim(
+            T_start_C=stop,
+            T_lower=stop - 3.0,
+            T_upper=stop + 0.5,
+            free_heat=loss,
+            dt=600.0,
+            Q_on=4.0 * limit.Q_min,
+            duty_limit=limit,
+            running_prev=True,
+            phase_age_s=600.0,
+        )
+        assert held.reduced_fraction == pytest.approx(0.5) and held.T_reduced_mean_C <= stop
+        assert limit.duty(held.T_reduced_mean_C) >= limit.Q_min
+        # Approaching the stop from below with exactly the smallest duty drawn: settles on it, not past it.
+        draw = ((50.0, -limit.Q_min), (70.0, -limit.Q_min))
+        settle = _sim(
+            T_start_C=stop - 0.3,
+            T_lower=stop - 3.0,
+            T_upper=stop + 0.5,
+            free_heat=draw,
+            dt=36_000.0,
+            Q_on=4.0 * limit.Q_min,
+            duty_limit=limit,
+        )
+        assert settle.T_reduced_mean_C <= stop and limit.duty(settle.T_reduced_mean_C) >= limit.Q_min
+    assert short > 50  # the raw line does fall short for a good part of these numbers
+
+
 def test_fast_cycling_limit_stays_on_the_duty_limit():
     """A band far narrower than the step, past the knee: the fast-cycling limit balances the tank at the limit's duty."""
     loss = ((50.0, -1_000.0), (70.0, -1_000.0))
@@ -239,9 +289,21 @@ def test_a_minimum_run_time_runs_on_along_the_limit():
 
 def test_a_floor_at_or_above_the_running_duty_stops_at_the_knee():
     """No duty between the floor and the running duty: the stop of the default model."""
-    run = _sim(T_upper=64.5, duty_limit=DutyLimit(65.0, 2_000.0, Q_min=12_000.0))
+    floor_above = DutyLimit(65.0, 2_000.0, Q_min=12_000.0)
+    run = _sim(T_upper=64.5, duty_limit=floor_above)
     assert run.reduced_fraction == 0.0 and run.limit_stop
     assert run.runtime_fraction * 3600.0 == pytest.approx(240.0)
+    # Nothing of such a compressor is ever reported as a stretch on the limit: not a hold at the
+    # knee, not the fast-cycling limit of a band at it, not a floor equal to the running duty.
+    loss = ((50.0, -1_000.0), (70.0, -1_000.0))
+    for kw in (
+        dict(T_start_C=60.0, T_upper=64.5, running_prev=True, phase_age_s=600.0),
+        dict(T_start_C=60.0, T_lower=59.9995, T_upper=60.0, dt=36_000.0),
+        dict(T_start_C=59.0, T_upper=64.5, duty_limit=DutyLimit(65.0, 2_000.0, Q_min=Q_ON)),
+    ):
+        r = _sim(**{"free_heat": loss, "duty_limit": floor_above, **kw})
+        assert r.reduced_fraction == 0.0 and r.T_reduced_mean_C is None, kw
+        assert r.runtime_fraction > 0.0
 
 
 def test_the_coil_cut_out_of_a_multi_node_tank_is_not_combined():

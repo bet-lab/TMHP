@@ -568,8 +568,18 @@ class DutyLimit:
     Q_min: float = 0.0
 
     def duty(self, T_C: float) -> float:
-        """Duty the limit allows at tank temperature ``T_C`` [W]."""
-        return self.K * (self.T_zero_C - T_C)
+        """Duty the limit allows at tank temperature ``T_C`` [W].
+
+        ``K (T_zero_C - T_C)``, and at or below :attr:`stop_C` never less than
+        ``Q_min``. That is the line's own value there; the bound only keeps
+        the last digits from saying otherwise (``stop_C`` is
+        ``T_zero_C - Q_min / K`` in floating point, and the line computed back
+        from it falls a few 1e-11 W short of ``Q_min`` for most numbers), so
+        that a compressor on the limit is never resolved below its smallest
+        continuous duty.
+        """
+        on_line = self.K * (self.T_zero_C - T_C)
+        return on_line if self.stop_C < T_C else max(on_line, self.Q_min)
 
     def knee_C(self, Q_on: float) -> float:
         """Tank temperature above which the limit allows less than ``Q_on`` [°C]."""
@@ -994,10 +1004,16 @@ def _simulate_duty_limited_step(
     T_cut = min(T_limit_C, max(duty_limit.stop_C, knee))
 
     def duty_at(tank: float) -> float:
-        return min(q_on, max(0.0, K * (T_zero - tank)))
+        return min(q_on, max(0.0, duty_limit.duty(tank)))
+
+    # A stretch on the limit exists only between the knee and a stop above it:
+    # with a floor at or above the running duty the compressor has one duty.
+    has_stretch = duty_limit.stop_C > knee
 
     def on_limit(tank: float) -> bool:
         """Whether a compressor running at tank temperature ``tank`` is on the limit (at the knee: if warming)."""
+        if not has_stretch:
+            return False
         if tank > knee + TEMPERATURE_TOL_K:
             return True
         if tank < knee - TEMPERATURE_TOL_K:
@@ -1006,7 +1022,7 @@ def _simulate_duty_limited_step(
 
     # Duty the compressor runs at when it holds the cut-out, and the heat that holds the tank there.
     q_cut = duty_at(T_cut)
-    cut_on_limit = T_cut > knee + TEMPERATURE_TOL_K
+    cut_on_limit = has_stretch and T_cut > knee + TEMPERATURE_TOL_K
     q_hold_tank = max(0.0, -(p_const + slope * T_cut)) if math.isfinite(T_cut) else 0.0
 
     t = 0.0
@@ -1087,7 +1103,7 @@ def _simulate_duty_limited_step(
                 t_hi = _time_to_reach(tw, T_hi, drive, slope, C)
                 if t_hi < rem - EVENT_TIME_TOL_S:
                     step, target = t_hi, T_hi
-            T_new = target if target is not None else _advance(tw, step, drive, slope, C)
+            T_new = target if target is not None else min(_advance(tw, step, drive, slope, C), max(tw, T_cut))
             if tw_on_first is None:
                 tw_on_first = tw
             index = 1 if cut_on_limit else 0
@@ -1143,6 +1159,10 @@ def _simulate_duty_limited_step(
         if target is not None and step < rem:
             T_new = target
         if running:
+            # A running compressor is at or below the cut-out (above it, it was
+            # stopped) and the cut-out is an event: the stretch ends there at
+            # the latest, whatever the last digit of the exponential says.
+            T_new = min(T_new, max(tw, T_cut))
             if tw_on_first is None:
                 tw_on_first = tw
             index = 1 if reduced else 0

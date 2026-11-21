@@ -2611,6 +2611,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return x, perf, reason
 
         searched: dict[float, tuple[Any, Any, Any] | None] = {}
+        # What the searches that ended flat out, short of their duty, delivered [W].
+        delivered: dict[float, float] = {}
 
         def wet_trial(q: float, start: tuple[float, float] | None = None):
             x, perf, reason = trial(q, start)
@@ -2619,12 +2621,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 # a fan with a narrow flow range may not be able to leave:
                 # the duty is solved the ordinary way, once.
                 if q not in searched:
-                    searched[q] = self._searched_point(sign * q, T0, T_a_room)
+                    found = self._searched_point(sign * q, T0, T_a_room)
+                    if found is not None and found[1] is not None and found[2] == self._SEARCH_FLAT_OUT:
+                        delivered[q] = abs(float(found[1]["Q_ref_iu [W]"]))
+                        found = (found[0], None, found[2])
+                    searched[q] = found
                 return searched[q] or (x, perf, reason)
             return x, perf, reason
 
         if self._coil_may_be_wet and sign > 0:
-            return self._largest_deliverable_wet_duty(wet_trial, q_top, rel_tol)
+            return self._largest_deliverable_wet_duty(wet_trial, q_top, rel_tol, delivered.get)
 
         x, perf, reason_hi = trial(q_top)
         if x is not None and perf is not None:
@@ -2672,12 +2678,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         Returns what a trial of the ceiling search returns
         (:meth:`_largest_deliverable_duty`): the approaches and the state
-        that delivers ``Q_r_iu`` [W], with no reason; or the approaches and
-        :attr:`_SEARCH_FLAT_OUT` when the search ends with the compressor
-        flat out, short of the duty -- which is not a limit of the machine,
-        as a flat-out least-lift point is. ``None`` when it finds no point,
-        or one that delivers more than the duty (the compressor's speed
-        floor) -- the least-lift verdict then stands.
+        that delivers ``Q_r_iu`` [W], with no reason; or the approaches,
+        the state and :attr:`_SEARCH_FLAT_OUT` when the search ends with the
+        compressor flat out, short of the duty -- which is not a limit of
+        the machine, as a flat-out least-lift point is; the state says what
+        the unit delivers there. ``None`` when it finds no point, or one
+        that delivers more than the duty (the compressor's speed floor) --
+        the least-lift verdict then stands.
         """
         with contextlib.suppress(Exception):
             opt = self._optimize_operation(Q_r_iu=Q_r_iu, T0=T0, T_a_room=T_a_room)
@@ -2688,13 +2695,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if state is None or not state.get("converged", False):
                 return None
             if state.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
-                return x, None, self._SEARCH_FLAT_OUT
+                return x, state, self._SEARCH_FLAT_OUT
             if state.get("capacity_clamped") is None:
                 return x, state, None
         return None
 
     def _largest_deliverable_wet_duty(
-        self, trial: Callable[..., tuple[Any, Any, Any]], q_top: float, rel_tol: float
+        self,
+        trial: Callable[..., tuple[Any, Any, Any]],
+        q_top: float,
+        rel_tol: float,
+        lead: Callable[[float], float | None] | None = None,
     ) -> tuple[tuple[float, float] | None, dict | None, str | None]:
         """:meth:`_largest_deliverable_duty` for a cooling point solved with a room humidity.
 
@@ -2737,6 +2748,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
         below, can be missed, and the ceiling is then the top of the
         highest band that was found (0 W when none was).
 
+        ``lead(q)``, when given, is the duty a refused trial of ``q`` points
+        to, or ``None``: what the ordinary search of ``q`` delivered when it
+        ended with the compressor flat out. The duties that run can be two
+        bands with a gap between them in which the compressor is flat out at
+        the widest indoor approach (a 7 kW unit whose outdoor fan runs at no
+        less than 85 % of its largest flow, outdoor -10 degC, room 21 degC
+        saturated: 9.6 to 12.8 kW and 15.3 to 16.4 kW), and the ladder finds
+        the lower one. The search that ends short of the top is flat out in
+        the upper one -- 16.45 kW there -- so that duty, a hair under it, is
+        tried before the ladder, and the bisection starts from it.
+
         ``trial(q, start)`` is the caller's: the least-lift point of the duty
         ``q``, with a flat-out compressor read as the reason ``"compressor"``.
         """
@@ -2766,9 +2788,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
         q_limit, reason_limit, x_limit = q_top, reason_hi, x if limited else None
         q_lo, x_lo, perf_lo = 0.0, None, None
         last_reason = reason_hi
+        q_lead = lead(q_top) if lead is not None else None
+        if q_lead is not None and 0.0 < q_lead < q_top:
+            # What the search of the top delivered, flat out: a hair under it.
+            q = q_lead * (1.0 - rel_tol)
+            x, perf, reason = settled(q, x_limit)
+            if x is not None and perf is not None:
+                q_lo, x_lo, perf_lo = q, x, perf
         # The duties refused so far, from the top, each with why.
         refused: list[tuple[float, Any]] = [(q_top, reason_hi)]
         for fraction in self._CEILING_LADDER:
+            if perf_lo is not None:
+                break
             q = fraction * q_top
             x, perf, reason = settled(q, x_limit)
             if x is not None and perf is not None:

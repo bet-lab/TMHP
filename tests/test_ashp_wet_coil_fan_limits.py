@@ -321,3 +321,52 @@ def test_wet_ceiling_search_looks_above_a_bisection_step_that_ended_short(defaul
     assert x is not None and state is not None
     assert state["Q_ref_iu [W]"] == pytest.approx(23_500.0, rel=1.5e-3) and state["Q_ref_iu [W]"] <= 23_500.0
     assert default._binding_of(reason) == "compressor"
+
+
+# ---------------------------------------------------------------------------
+# 7. Two bands of running duties: the ceiling is the top of the upper one
+# ---------------------------------------------------------------------------
+
+
+def test_wet_ceiling_search_starts_from_what_the_refused_top_delivered(default):
+    # Two bands, the upper one narrow: 14 to 18.2 kW and 22.2 to 22.4 kW. No rung, middle or probe
+    # of the search falls in the upper band, and 18.2 kW was the ceiling. The search that ends
+    # short of the top says what it delivered there, flat out: the top of the upper band.
+    bands = ((14_000.0, 18_236.0), (22_163.0, 22_400.0))
+    trial, calls = _searched_trial(default, runs=bands, floor=14_000.0)
+
+    def lead(q):
+        below = [high for _, high in bands if high < q]
+        return max(below) if below else None
+
+    without = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3)
+    assert without[1]["Q_ref_iu [W]"] == pytest.approx(18_236.0, rel=1.5e-3)
+    x, state, reason = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3, lead)
+    assert state["Q_ref_iu [W]"] == pytest.approx(22_400.0, rel=1.5e-3) and state["Q_ref_iu [W]"] <= 22_400.0
+    assert default._binding_of(reason) == "compressor"
+
+
+@pytest.mark.parametrize(
+    ("smallest", "capacity", "outdoor", "room", "inside", "top"),
+    [
+        # 12.82 kW was reported while 15.4 to 16.4 kW ran on request
+        (0.85, 7000.0, -10.0, 21.0, 15800.0, 16452.0),
+        # 23.26 kW was reported while 28.4 kW ran on request
+        (0.90, 12000.0, -10.0, 23.0, 28400.0, 28587.0),
+    ],
+)
+def test_ceiling_of_a_stiff_outdoor_fan_is_the_top_of_its_upper_band(smallest, capacity, outdoor, room, inside, top):
+    # An outdoor fan that runs at no less than 85 or 90 % of its largest flow, in cold weather with
+    # a saturated room: the duties that run are two bands, and between them the compressor is flat
+    # out at the widest indoor approach.
+    base = _build(hp_capacity=capacity)
+    stiff = _build(hp_capacity=capacity, dV_ou_fan_a_min=smallest * base.dV_ou_fan_a_max)
+    running = stiff.analyze_steady(inside, outdoor, room, RH_room=1.0, verbose=False)
+    assert running["failure_reason"] == "none" and running["capacity_clamped"] is None
+    assert running["Q_ref_iu [W]"] == pytest.approx(inside, rel=1e-9)
+    ceiling = stiff.max_capacity(outdoor, room, mode="cooling", RH_room=1.0)
+    assert ceiling["binding"] == "compressor"
+    assert ceiling["Q_max [W]"] == pytest.approx(top, rel=3e-3) and ceiling["Q_max [W]"] >= inside
+    above = stiff.analyze_steady(1.5 * top, outdoor, room, RH_room=1.0, verbose=False)
+    assert above["failure_reason"] == "none" and above["capacity_clamped"] == "max"
+    assert above["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-9)

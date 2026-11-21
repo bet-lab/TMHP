@@ -539,6 +539,28 @@ def _check_room_humidity(value: float) -> float:
     return float(value)
 
 
+#: NumPy array kinds whose elements are numbers or text as Python objects too: floating point,
+#: signed and unsigned integers, text, bytes, and arrays of objects.
+_PLAIN_KINDS = "fiuUSO"
+
+
+def _array_entries(array: np.ndarray) -> np.ndarray:
+    """The elements of a NumPy array as objects that still say what they are.
+
+    ``astype(object)`` is right for numbers and text. For the other kinds it
+    is not: a time span or a date in nanoseconds comes out as a plain
+    integer, which would then read as a number. Those arrays -- time spans,
+    dates, complex numbers, booleans, records -- are taken element by
+    element as NumPy scalars, which keep their type.
+    """
+    if array.dtype.kind in _PLAIN_KINDS:
+        return array.astype(object)
+    entries = np.empty(array.size, dtype=object)
+    for index, element in enumerate(array.ravel()):
+        entries[index] = element
+    return entries.reshape(array.shape)
+
+
 def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
     """The entries of a per-step schedule as given, one per step, without converting them to numbers.
 
@@ -558,8 +580,23 @@ def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
             schedule = list(schedule)  # a generator: its items, once
         if isinstance(schedule, np.ma.MaskedArray):
             # np.asarray would drop the mask and hand out the data beneath it.
-            schedule = np.ma.filled(schedule.astype(object), None)
-        entries = np.asarray(schedule, dtype=object)
+            entries = _array_entries(np.asarray(schedule.data))
+            entries[np.ma.getmaskarray(schedule)] = None
+        elif isinstance(schedule, np.ndarray):
+            entries = _array_entries(schedule)
+        else:
+            # Anything else that holds one entry per step (a list, a Series, a
+            # frame). Its own objects are kept -- unless NumPy reads the whole
+            # of it as time spans, dates, complex numbers or booleans (a list
+            # of such arrays, a Series of time spans), which is then taken as
+            # that array is.
+            natural = None
+            with contextlib.suppress(Exception):
+                natural = np.asarray(schedule)
+            if natural is not None and natural.dtype.kind not in _PLAIN_KINDS:
+                entries = _array_entries(natural)
+            else:
+                entries = np.asarray(schedule, dtype=object)
         while entries.ndim > 1 and entries.shape[-1] == 1:
             entries = entries[..., 0]  # one value per step in a column (or a column of columns)
         if entries.ndim == 1:
@@ -586,7 +623,9 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
     """
     entry, number = value, math.nan
     if isinstance(entry, np.ndarray) and entry.ndim == 0 and not np.ma.is_masked(entry):
-        entry = entry.item()  # a zero-dimensional array: the value it holds
+        # A zero-dimensional array: the value it holds, as the NumPy scalar it is
+        # (``item()`` would hand a time span in nanoseconds out as an integer).
+        entry = entry[()]
     if isinstance(entry, np.generic):
         # Of NumPy's scalars, the real numbers and text; not booleans, complex numbers, dates, time spans.
         readable = _is_real_number(entry) or isinstance(entry, np.character)

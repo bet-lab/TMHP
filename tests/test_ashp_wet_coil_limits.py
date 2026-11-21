@@ -518,6 +518,70 @@ def test_a_masked_entry_of_the_schedule_is_missing_not_the_number_under_the_mask
         hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=np.ma.masked, verbose=False)
 
 
+def _nanoseconds(values, kind="timedelta64[ns]"):
+    return np.array(values, dtype=kind)
+
+
+@pytest.mark.parametrize(
+    "schedule",
+    [
+        # NumPy hands the entries of these arrays out as plain integers when asked for objects
+        # (nanosecond units), which would then read as a humidity of 0 or 1.
+        _nanoseconds([1, 0]),
+        _nanoseconds([[1], [0]]),
+        _nanoseconds(["2026-11-21", "2026-11-22"], "datetime64[ns]"),
+        np.array([1, 0], dtype="timedelta64[s]"),
+        np.ma.array(_nanoseconds([1, 0]), mask=[False, False]),
+        np.array([0.5 + 0j, 0.6 + 0j]),
+        np.array([True, False]),
+        pd.Series(pd.to_timedelta([1, 0], unit="ns")),
+        pd.DataFrame({"span": pd.to_timedelta([1, 0], unit="ns")}),
+        [np.array(np.timedelta64(1, "ns")), 0.5],
+        [np.timedelta64(1, "ns"), 0.5],
+        [_nanoseconds([1]), _nanoseconds([0])],
+        [np.timedelta64(1, "ns"), np.timedelta64(0, "ns")],
+    ],
+    ids=[
+        "timedelta ns",
+        "timedelta ns column",
+        "datetime ns",
+        "timedelta s",
+        "masked timedelta ns",
+        "complex",
+        "bool",
+        "series of time spans",
+        "frame of time spans",
+        "0-d time span entry",
+        "time span entry",
+        "list of time span arrays",
+        "list of time spans",
+    ],
+)
+def test_an_array_of_time_spans_dates_complex_numbers_or_booleans_is_not_a_humidity_schedule(hp, schedule):
+    with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 0"):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=schedule)
+    # On steps that are not cooling it is not looked at, whatever it holds.
+    frame = _quiet(
+        hp.analyze_dynamic, 2 * 3600, 3600, [0.0, -2000.0], [35.0, 7.0], [27.0, 20.0], RH_room_schedule=schedule
+    )
+    assert list(frame["failure_reason"]) == ["none", "none"] and frame["RH_room [-]"].isna().all()
+
+
+def test_a_masked_time_span_is_missing_and_an_unmasked_one_is_refused(hp):
+    schedule = np.ma.array(_nanoseconds([1, 0]), mask=[True, False])
+    with pytest.raises(ValueError, match=r"got None at step 0"):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=schedule)
+    with pytest.raises(ValueError, match=r"timedelta64.* at step 1"):
+        _quiet(hp.analyze_dynamic, 2 * 3600, 3600, [0.0, 2000.0], [35.0, 35.0], [27.0, 27.0], RH_room_schedule=schedule)
+
+
+@pytest.mark.parametrize("dtype", ["float64", "float32", "int64", "uint8", "U8", "S8", "object"])
+def test_arrays_of_numbers_and_of_text_are_read_as_before(hp, dtype):
+    values = ["1", "0"] if dtype in ("U8", "S8") else [1, 0]
+    frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=np.array(values, dtype=dtype))
+    assert list(frame["RH_room [-]"]) == [1.0, 0.0]
+
+
 # ---------------------------------------------------------------------------
 # 3. Exergy columns of a row whose coil removes water
 # ---------------------------------------------------------------------------

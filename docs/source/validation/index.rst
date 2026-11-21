@@ -328,8 +328,10 @@ being published rather than after.
     An earlier version of this page attributed the whole gap to hardware
     efficiency. That was one of three causes presented as the explanation, and
     this is the correction. Comparing each machine at its own **nominal**
-    rating point -- no latent load, no forced maximum output, the cleanest
-    comparison available -- separates them.
+    rating point -- no forced maximum output, the cleanest comparison
+    available -- separates them. The cooling rating rows are not free of
+    latent load (sensible heat ratio 0.66 for the Fujitsu units, 0.69 to 1.00
+    for the five Daikin units); that is the second cause below.
 
     **① Residual hardware efficiency (about 20 points at the heating rating
     point).** At the nominal heating rating point Daikin lands between −11 and
@@ -342,8 +344,10 @@ being published rather than after.
     **② Dehumidification, cooling half.** The results on this page are those
     of the dry indoor coil, which carries the whole published capacity as
     sensible heat. At its rating point the Fujitsu removes 34 % of its duty as
-    latent heat (SHR 0.66) against the Daikin's 2 % (SHR 0.98). Within the
-    Daikin set alone, the bias of the 180 cooling points correlates with their
+    latent heat (SHR 0.66) against 2 % for the Daikin RXM25A (SHR 0.98; the
+    five Daikin units go from 1.00 for the 2.0 kW unit to 0.69 for the 5.0 kW
+    one). Within the Daikin set alone, the bias of the 180 cooling points
+    correlates with their
     sensible heat ratio at *r* = −0.73: the more latent load, the higher the
     model's COP against the catalogue's. The dry coil is not what raises it.
     To move the same total heat it has to run colder than a coil that also
@@ -839,8 +843,10 @@ and 21 rows publish a ratio lower than a straight coil line can give at their
 room state.
 
 The wet coil is an option of the model, not the basis of this page: every
-other figure here, and the results under ``validation/results/``, are the dry
-coil's.
+other figure here, and the parity results (the per-unit files and
+``summary.csv`` under ``validation/results/``), are the dry coil's. The
+wet-coil study keeps its own results in
+``validation/results/wet_coil_shr_once/``.
 
 
 Scope

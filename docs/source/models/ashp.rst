@@ -319,9 +319,19 @@ line from the room state to saturated air at the coil, a fraction
 driving temperature difference enlarged by
 :math:`(h_{fg}/c_a)\,\max(0,\, w_{in} - w_{sat}(T_e))`
 (:func:`tmhp.heat_exchanger.wet_coil_latent_difference`); where the coil is at
-or above the room's dew point that term is zero and every number is the dry
-coil's. The airflow that carries the duty, the two approach temperatures and
-the capacity ceiling are solved as before, with that driving difference.
+or above the room's dew point that term is zero and the coil equation is the
+dry coil's. The airflow that carries the duty, the two approach temperatures
+and the capacity ceiling are solved as before, with that driving difference.
+
+That statement is about the coil equation, not about every result. The
+searches around it treat a request the fans' smallest airflows refuse
+differently once a room humidity is given (*the two ends of the operating
+range*, below), also where no water condenses: the default 4 kW unit refuses
+``analyze_steady(1150, 0, 27)`` (0 W, ``"cycle_invalid"``) and delivers it
+with ``RH_room=0.02`` (1 150 W, by cycling at 1 153 W) — with no latent heat
+either way, the coil at −1.4 °C being far above that room's dew point of
+−24 °C. Room air with no water vapour at all (``RH_room=0``) is solved as the
+dry coil is.
 
 What the model assumes:
 
@@ -450,6 +460,14 @@ coil carries more at a given evaporating temperature:
   duty is solved by the ordinary search before it counts as refused (default
   unit with its outdoor fan held at its largest flow, 15 °C outdoor and a
   saturated 35 °C room: 13.68 kW, the outdoor coil at its widest approach).
+  Where the search finds no duty at all, the duty the low-load search of the
+  same condition ends on (next item) runs, and the ceiling is searched
+  upwards from it. And where a unit with a fan held at one flow runs flat out
+  on the pressure-ratio floor, the ceiling is what the ordinary search
+  delivers there, 1 to 1.5 % above the least-lift point: the outdoor approach
+  asked for no longer moves the condensing temperature but still sets the
+  subcooling (10 kW unit with its indoor fan held, −10 °C outdoor and a
+  saturated 35 °C room: 35.43 kW against 34.99 kW).
 - *The smallest continuous duty in mild weather.* At a low outdoor temperature
   the cycle sits on the pressure-ratio floor (1.5), which holds the condensing
   temperature well above the outdoor air, and each coil has to carry its duty
@@ -463,10 +481,49 @@ coil carries more at a given evaporating temperature:
   fraction 0.823). Fans with a high smallest flow put that duty above twice
   the nameplate: with both at 65 % of the largest flow it is 8.44 kW at 15 °C
   outdoor and a saturated 35 °C room, and a 4 kW request cycles there
-  (runtime fraction 0.546). Where no larger duty runs either — fans with
+  (runtime fraction 0.546). Where the climb from a request finds no larger
+  duty, the points the other searches of the condition end on are tried
+  before the request is given up: the smallest continuous duty found from the
+  bottom of the ladder, then the ceiling (2.5 kW unit with both fans held at
+  their largest flow, 8 °C outdoor, 35 °C room at 90 %: a 2.5 kW request is
+  met by cycling at the 9.61 kW the unit runs flat out at, runtime fraction
+  0.319). A ceiling under the request is where the unit runs for it, as for
+  any request above the ceiling. Where no duty is found to run — fans with
   almost no flow range, in cold weather — the unit is off with
   ``failure_reason == "hx_not_converged"``: a coil cannot carry so little
   inside its fan's flow range.
+
+**A fan held at one flow, and what the searches can miss.** A coil whose fan
+runs at one flow (``dV_*_fan_a_min`` equal to ``dV_*_fan_a_max``) carries a
+duty at one approach temperature only. On the pressure-ratio floor the
+condensing temperature is held above the outdoor air whatever approach is
+asked for, so with both fans held the two coils balance in a narrow window of
+duties, or at none: the 4 kW unit at 8 °C outdoor and a saturated 35 °C room
+runs continuously between 14.31 and 14.35 kW only (2.5 kW unit, same
+conditions: at no duty — the outdoor coil at its one flow carries at least
+1.9 % more than the cycle rejects, up to the compressor's largest speed). The
+three searches —
+the operating point of a request, the smallest continuous duty, the ceiling —
+sample the duty: a ladder of duties and a bisection between two that differ,
+to 0.1 % for the ceiling and 0.5 % for the smallest continuous duty. They use
+each other's verified points as candidates, so one that finds the window
+serves the others, but a window narrower than the spacing of the samples can
+be missed by all of them. The caller then sees ``Q_max [W] == 0`` with
+``binding == "infeasible"`` from ``max_capacity`` and an off row with
+``failure_reason == "hx_not_converged"`` from ``analyze_steady``, although a
+duty inside the window would run. Two ways out: leave the fan a flow range
+(the default smallest flow is 15 % of the largest; a held fan is an input,
+not a default), or request a duty inside the window. With fans that modulate
+the duties that run are a wide band and the samples fall inside it.
+
+A result does not depend on what was solved before it. Inside one
+``analyze_dynamic`` run the searches of a wet cooling condition are
+remembered — the ordinary search of a duty, the ceiling — but only as what
+solving them again would give, so a step's row is the row of that step solved
+alone, in any order of the steps. (The dry model reuses the smallest
+continuous duty of a condition for the smaller requests of the same run, as
+before; that duty is found by bisection to 0.5 %, and a row can differ by that
+much from the same request solved alone.)
 
   This is the wet coil's behaviour only. Without ``RH_room`` the model is
   left as it was, result for result: a request the fans' smallest airflows

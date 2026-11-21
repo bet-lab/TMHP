@@ -1069,7 +1069,14 @@ def _simulate_duty_limited_step(
     step starts from come from one balance: decided by the fitted line, a
     tank whose loss is not a straight line could be left without a start in a
     step its own balance closes below the cut-out, or started in one it
-    closes above. That is what holding the tank at the cut-out means in the
+    closes above. And where that balance needs more than the compressor
+    gives at the cut-out's duty in what is left of the step (its tank got to
+    the cut-out earlier than the events' line says), the compressor does not
+    cycle: it runs through what is left, the step closes below the cut-out,
+    and the run ends as what that is -- running, since the start the events
+    gave it -- so that the next step, which finds a called compressor running
+    below its cut-out, charges on along the limit without a stop or a start.
+    That is what holding the tank at the cut-out means in the
     balance that sets the temperature the next step starts from; the start of
     the run and its timers stay where the events put them (the moment the
     tank reaches the cut-out), and the run time is that heat over the duty at
@@ -1233,7 +1240,15 @@ def _simulate_duty_limited_step(
             if hold_heat is not None and target is None:
                 # Cooled to the cut-out and held to the step's end: the on-time
                 # that gives the heat of the step's closing balance.
-                on = min(step, hold_heat / q_cut)
+                on = hold_heat / q_cut
+                if on > step:
+                    # That balance needs more than the compressor gives at the
+                    # cut-out's duty in what is left of the step. Not a hold
+                    # then: it runs through what is left, the step closes
+                    # below the cut-out, and the state (running since this
+                    # start) is that of a compressor below its cut-out, which
+                    # the next step charges on from.
+                    on = step
             on_time[index] += on
             on_T_integral[index] += on * 0.5 * (tw + T_new)
             tw = T_new

@@ -601,7 +601,10 @@ taken from the boiler's own implicit tank balance, not from the straight line
 the events use for the tank's free heat, and the same number decides whether
 the compressor starts in that step at all, so that a tank whose free heat is
 not a straight line (a subsystem) is not left without a start in a step its
-own balance closes below the stop. (The
+own balance closes below the stop. Where that balance needs more than the
+compressor gives at the stop's duty in what is left of the step, it runs
+through what is left instead of cycling; the step then closes below the stop
+with the compressor running, and the next step charges on from there. (The
 events have the tank lose more while it is warmer than the stop; the implicit
 balance that sets the end-of-step temperature takes the loss of the whole
 step at that temperature. With the heat of the events' hold the 15 kW R32

@@ -918,14 +918,15 @@ def test_a_cycle_that_has_more_changes_neither_the_run_time_nor_the_heat_of_the_
     assert heat == pytest.approx(C * (LIMIT.stop_C - 63.9) + loss * dt, rel=1e-9)
 
 
-def _curved_loss_step(curve, dt, T_start=64.5):
+def _curved_loss_step(curve, dt, T_start=64.5, **carried):
     """A step from 0.5 K above the stop, the call standing, on a tank whose loss is not a straight line.
 
     The loss is ``500 + curve (64.5 - T)^2`` W. The kernel fits a straight line through it at the
     lower bound (64.2 degC) and the upper one (66 degC), which at the stop (64 degC) is
     ``0.4 curve`` W off; the balance that closes the step is the tank's own (``residual``).
     Returns the run, the row, the residual, the heat [J] that balance needs for the step to end
-    at the stop, and the heat the fitted line gives for the same.
+    at the stop, and the heat the fitted line gives for the same. ``carried`` is the state a
+    previous step left (``running_prev``, ``phase_age_s``).
     """
 
     def loss(T_C):
@@ -934,7 +935,7 @@ def _curved_loss_step(curve, dt, T_start=64.5):
     def residual(T_K):
         return (C * T_K - C * (T_start + 273.15) + dt * loss(T_K - 273.15)) / C
 
-    run, row, _ = _resolve(T_start=T_start, T_lower=64.2, T_upper=66.0, dt=dt, residual_free=residual)
+    run, row, _ = _resolve(T_start=T_start, T_lower=64.2, T_upper=66.0, dt=dt, residual_free=residual, **carried)
     on_the_line = loss(64.2) + (loss(66.0) - loss(64.2)) / 1.8 * (LIMIT.stop_C - 64.2)
     by_the_line = on_the_line * dt - C * (T_start - LIMIT.stop_C)
     return run, row, residual, C * residual(LIMIT.stop_C + 273.15), by_the_line
@@ -982,6 +983,49 @@ def test_no_start_where_the_closing_balance_needs_no_heat_although_the_fitted_li
         mid = 0.5 * (lo + hi)
         lo, hi = (mid, hi) if residual(mid) < 0.0 else (lo, mid)
     assert 0.0 < lo - 273.15 - LIMIT.stop_C < 0.01
+
+
+def _closing_temperature(residual, heat_J):
+    """Tank temperature [degC] at which the tank's own balance closes a step that got ``heat_J`` (near the stop)."""
+    lo, hi = LIMIT.stop_C - 0.4 + 273.15, LIMIT.stop_C + 0.6 + 273.15
+    assert residual(lo) - heat_J / C < 0.0 < residual(hi) - heat_J / C
+    for _ in range(60):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if residual(mid) - heat_J / C < 0.0 else (lo, mid)
+    return lo - 273.15
+
+
+def test_a_hold_after_cooling_the_time_left_cannot_supply_is_a_run_to_the_end_of_the_step():
+    """Stop-time review: the closing balance can need more than the compressor gives in what is left of the step.
+
+    A loss far off the fitted line (curve 500: 425 W on the line at the stop, 625 W in the tank).
+    The events' tank reaches the stop 534.08 s into a 540 s step, and the tank's own balance
+    needs 37,500 J to close at the stop: 18.75 s at the 2 kW the limit leaves there, with 5.92 s
+    left. The compressor does not cycle then: it runs through what is left, the step closes below
+    the stop, and the state says what that is -- a compressor running, below its stop, since the
+    moment it started -- so that the next step charges on from there without a stop or a start.
+    """
+    dt = 540.0
+    run, row, residual, needed, _ = _curved_loss_step(500.0, dt)
+    t_cool = C / 600.0 * math.log(725.0 / 425.0)  # on the fitted line, 725 W at 64.5 degC and 600 W/K
+    left = dt - t_cool
+    assert needed == pytest.approx(37_500.0) and needed > LIMIT.Q_min * left
+    # The run: on for all that is left, at the duty of the stop; one start, running at the end.
+    assert run.starts == 1 and run.running_end and run.call_end and run.limit_stop
+    assert run.runtime_fraction * dt == pytest.approx(left, rel=1e-9) == run.reduced_fraction * dt
+    assert run.phase_age_end_s == pytest.approx(left, rel=1e-9)
+    heat = run.runtime_fraction * dt * row["Q_ref_tank [W]"]
+    assert heat == pytest.approx(LIMIT.Q_min * left, rel=1e-9) and heat == pytest.approx(11_835.0, rel=1e-4)
+    # The step closes below the stop, by the tank's own balance, short of the heat it had no time for.
+    T_end = _closing_temperature(residual, heat)
+    assert LIMIT.stop_C - T_end == pytest.approx(0.0835, abs=1e-3)
+    # The next step takes that state: the compressor is running, below its stop, and charges on.
+    after, row_after, _, _, _ = _curved_loss_step(
+        500.0, dt, T_start=T_end, running_prev=run.running_end, phase_age_s=run.phase_age_end_s
+    )
+    assert after.starts == 0 and after.running_start and after.running_end
+    assert after.reduced_fraction > 0.0 and after.T_on_first_C == pytest.approx(T_end)
+    assert after.phase_age_end_s == pytest.approx(left + dt, rel=1e-9)
 
 
 def test_the_rates_of_a_cycle_that_has_more_are_lowered_by_no_more_than_the_tolerance():

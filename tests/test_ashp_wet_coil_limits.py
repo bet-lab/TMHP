@@ -19,6 +19,7 @@ exergy columns do when the room humidity is given:
 
 from __future__ import annotations
 
+import math
 import warnings
 
 import pytest
@@ -192,3 +193,32 @@ def test_without_cycling_the_unit_runs_at_its_smallest_continuous_wet_duty():
     row = steady.analyze_steady(1200.0, **MILD, RH_room=0.8, verbose=False)
     assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
     assert row["Q_ref_iu [W]"] == pytest.approx(1350.0, rel=5e-3) and row["Q_unmet [W]"] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# 7. A humidity schedule is read on cooling rows only
+# ---------------------------------------------------------------------------
+
+
+def test_humidity_schedule_is_not_read_on_heating_and_off_rows(hp):
+    nan = float("nan")
+    loads, outdoor, room = [0.0, -2000.0, 2000.0], [35.0, 7.0, 35.0], [27.0, 20.0, 27.0]
+    frame = _quiet(hp.analyze_dynamic, 3 * 3600, 3600, loads, outdoor, room, RH_room_schedule=[nan, nan, 0.6])
+    reference = _quiet(hp.analyze_dynamic, 3 * 3600, 3600, loads, outdoor, room)
+    assert list(frame["failure_reason"]) == ["none", "none", "none"]
+    for key in ("Q_ref_iu [W]", "E_tot [W]", "cop_sys [-]"):
+        for n in (0, 1):
+            got, want = frame[key].iloc[n], reference[key].iloc[n]
+            assert (math.isnan(got) and math.isnan(want)) or got == want, (key, n)
+    assert frame["RH_room [-]"].iloc[:2].isna().all() and frame["RH_room [-]"].iloc[2] == 0.6
+    assert frame["Q_iu_latent [W]"].iloc[2] > 0.0
+    # Values no humidity can take are not read there either.
+    _quiet(hp.analyze_dynamic, 2 * 3600, 3600, loads[:2], outdoor[:2], room[:2], RH_room_schedule=[-1.0, 50.0])
+
+
+@pytest.mark.parametrize("value", [float("nan"), -0.1, 1.5])
+def test_humidity_schedule_is_checked_on_cooling_rows(hp, value):
+    with pytest.raises(ValueError, match="Room relative humidity must be a fraction"):
+        _quiet(
+            hp.analyze_dynamic, 2 * 3600, 3600, [0.0, 2000.0], [35.0, 35.0], [27.0, 27.0], RH_room_schedule=[0.5, value]
+        )

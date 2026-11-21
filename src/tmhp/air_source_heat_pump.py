@@ -3471,8 +3471,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         RH_room_schedule : array-like | None
             Room relative humidity per step, as a fraction (0-1), for the wet
             indoor coil in cooling (``RH_room`` of :meth:`analyze_steady`).
-            If None, the dry coil on every step. Heating and off steps ignore
-            it.
+            If None, the dry coil on every step. The value is read, and
+            checked to lie in 0-1, on cooling steps only: on heating and off
+            steps it may be anything, missing (NaN) included.
 
         Returns
         -------
@@ -3544,7 +3545,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     postprocess=False,  # Exergy postprocessing applied in bulk at the end
                     verbose=False,  # Suppress warnings during long dynamic loops
                     RH_out=None if RH_out_arr is None else float(RH_out_arr[n]),
-                    RH_room=None if RH_room_arr is None else float(RH_room_arr[n]),
+                    # Read on cooling rows only: heating and off rows have no
+                    # use for it, and a missing value there is not an error.
+                    RH_room=None if RH_room_arr is None or not Q_r_iu_n > 0 else float(RH_room_arr[n]),
                 )
 
                 # Add time columns

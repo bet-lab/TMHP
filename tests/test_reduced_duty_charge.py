@@ -35,13 +35,13 @@ from tmhp.compressor_envelope import (
     BINDING_COMPRESSOR,
     BINDING_CONDENSING,
     BINDING_CYCLE,
-    DUTY_MATCH_RTOL,
     WITHHELD_NO_SMALLER_DUTY,
     condensing_stretch,
     condensing_tank_cutout,
     condensing_tank_reach,
 )
 from tmhp.dynamic_context import (
+    DUTY_MATCH_RTOL,
     STOP_BOILING_LIMIT,
     STOP_CONDENSING_LIMIT,
     T_WATER_BOIL_C,
@@ -350,8 +350,22 @@ def test_merged_row_is_the_run_time_weighted_mean():
 # ---------------------------------------------------------------------------
 
 
-def _resolve(T_start=56.0, T_upper=63.0, dt=3600.0, floor=2_000.0, on_limit_runs=True, calls=None, q_cycle=Q_ON, **kw):
-    """``resolve_step_operation`` on the tank of the event tests, with a cycle of COP 3 (2.5 on the limit)."""
+def _resolve(
+    T_start=56.0,
+    T_upper=63.0,
+    dt=3600.0,
+    floor=2_000.0,
+    on_limit_runs=True,
+    calls=None,
+    q_cycle=Q_ON,
+    on_limit_share=1.0,
+    **kw,
+):
+    """``resolve_step_operation`` on the tank of the event tests, with a cycle of COP 3 (2.5 on the limit).
+
+    ``q_cycle`` is what the full-duty cycle delivers [W]; ``on_limit_share`` the part of the duty
+    asked on the limit that the cycle there delivers (less than 1: another limit holds it).
+    """
     calls = {} if calls is None else calls
 
     def residual_free(T_K):
@@ -370,6 +384,7 @@ def _resolve(T_start=56.0, T_upper=63.0, dt=3600.0, floor=2_000.0, on_limit_runs
         calls.setdefault("limit", []).append((T_C, q, fraction))
         if not on_limit_runs:
             return {"hp_is_on": False, "failure_reason": "cycle_invalid"}
+        q = q * on_limit_share
         row = {"hp_is_on": True, "Q_ref_tank [W]": q, "E_tot [W]": q / 2.5, "T_ref_cond_sat_l [°C]": 65.0}
         row.update({"capacity_clamped": "max", "capacity_binding": BINDING_CONDENSING, "Q_request [W]": Q_ON})
         return row
@@ -572,10 +587,53 @@ def test_a_cycle_already_below_the_floor_keeps_the_stop():
     run, row, calls = _resolve(T_upper=64.5, q_cycle=1_500.0)
     _same_step((run, row), (stop, stop_row))
     assert run.reduced_fraction == 0.0 and run.reduced_withheld and "limit" not in calls
-    # ... and a cycle above the floor is resolved on the limit, never above its stop.
-    run, row, calls = _resolve(T_upper=64.5, q_cycle=2_500.0)
-    assert run.reduced_fraction > 0.0 and run.T_reduced_mean_C <= LIMIT.stop_C
-    assert calls["limit"][0][1] >= LIMIT.Q_min
+
+
+@pytest.mark.parametrize(
+    "held",
+    [
+        dict(on_limit_share=0.9),
+        dict(on_limit_share=1.0 - 2.0 * DUTY_MATCH_RTOL),
+        dict(on_limit_share=1.0 + 2.0 * DUTY_MATCH_RTOL),
+        dict(q_cycle=9_000.0),
+        dict(q_cycle=2_500.0),
+        dict(q_cycle=Q_ON * (1.0 - 2.0 * DUTY_MATCH_RTOL)),
+    ],
+    ids=[
+        "on the limit: 90 %",
+        "on the limit: just short",
+        "on the limit: just over",
+        "below the limit: 9 of 10 kW",
+        "below the limit: 2.5 of 10 kW",
+        "below the limit: just short",
+    ],
+)
+@pytest.mark.parametrize("dt", [3600.0, 600.0])
+@pytest.mark.parametrize("T_upper", [63.0, 64.5])
+def test_a_cycle_of_the_step_that_another_limit_holds_withholds_it(held, dt, T_upper):
+    """The stretch qualified, but a cycle of the step itself does not deliver the duty its events took.
+
+    The events of a step on the limit take the request below the knee and the limit's duty above
+    it. A cycle that delivers another duty (by more than ``DUTY_MATCH_RTOL``) was held by another
+    limit, and the step would credit the tank with heat the compressor did not give: the step is
+    withheld, and is the step of the compressor that stops.
+    """
+    stop, stop_row, _ = _resolve_stop(T_upper=T_upper, dt=dt, **{k: v for k, v in held.items() if k == "q_cycle"})
+    run, row, _ = _resolve(T_upper=T_upper, dt=dt, **held)
+    _same_step((run, row), (stop, stop_row))
+    assert run.reduced_fraction == 0.0 and run.T_reduced_mean_C is None
+    assert run.reduced_withheld == stop.limit_stop
+    # The row's heat is the heat of the run's own duty: nothing of the limit's line is in it.
+    assert row["Q_ref_tank [W]"] == held.get("q_cycle", Q_ON) and "capacity_clamped" not in row
+
+
+def test_cycles_within_the_tolerance_are_the_events_duty():
+    """Within ``DUTY_MATCH_RTOL`` of the duty asked, a step is resolved on the limit as before."""
+    inside = 1.0 - 0.5 * DUTY_MATCH_RTOL
+    for kw in (dict(on_limit_share=inside), dict(q_cycle=Q_ON * inside)):
+        run, row, _ = _resolve(**kw)
+        assert run.reduced_fraction > 0.0 and not run.reduced_withheld, kw
+        assert row["capacity_binding"] == BINDING_CONDENSING, kw
 
 
 # ---------------------------------------------------------------------------

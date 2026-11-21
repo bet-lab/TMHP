@@ -232,7 +232,7 @@ from scipy.optimize import brentq
 from . import calc_util as cu
 from .compressor_efficiency import efficiency_extrapolated
 from .compressor_speed import CAPACITY_CLAMPED_MAX
-from .dynamic_context import T_WATER_BOIL_C
+from .dynamic_context import DUTY_MATCH_RTOL, T_WATER_BOIL_C
 from .operating_limits import OperatingLimitWarning
 from .refrigerant import _props
 
@@ -269,7 +269,6 @@ __all__ = [
     "limit_tank_setpoints_to_charge_limit",
     "on_condensing_limit",
     "condensing_stretch",
-    "DUTY_MATCH_RTOL",
     "WITHHELD_NO_SMALLER_DUTY",
     "BINDING_DISCHARGE",
     "BINDING_CONDENSING",
@@ -872,17 +871,6 @@ def limit_tank_setpoints_to_charge_limit(
     )
 
 
-DUTY_MATCH_RTOL: float = 1e-3
-"""Fraction by which a cycle may miss the duty the condensing limit leaves and
-still count as running on that limit (:func:`condensing_stretch`).
-
-A cycle asked for the limit's duty at a tank temperature on the limit delivers
-it to the solver's last digits when the condensing limit is the one that
-governs (measured ratio 1.000000 on the documented charges of the three boiler
-families). One that delivers less by more than this was reduced further, by
-another limit.
-"""
-
 #: :func:`condensing_stretch`: no continuous duty below the nameplate runs on
 #: the condensing limit at this source, so there is no stretch to charge on.
 WITHHELD_NO_SMALLER_DUTY = "no_smaller_duty"
@@ -911,8 +899,8 @@ def condensing_stretch(
     ``q`` [W], solved with the source as the step finds it -- at the knee, at
     the middle of the stretch and at the stop, each asked for the limit's
     duty there. The stretch qualifies if each of them runs, delivers that
-    duty to :data:`DUTY_MATCH_RTOL`, and names no limit but the condensing
-    one; ``Q_min`` is then returned.
+    duty to :data:`tmhp.dynamic_context.DUTY_MATCH_RTOL`, and names no limit
+    but the condensing one; ``Q_min`` is then returned.
 
     Otherwise reduced-duty charging is withheld at this source state, and the
     first check that fails says by what (later ones are not made; the knee

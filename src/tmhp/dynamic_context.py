@@ -23,6 +23,7 @@ __all__ = [
     "ControlState",
     "CycleSolveOutcome",
     "DutyLimit",
+    "DUTY_MATCH_RTOL",
     "DynamicState",
     "InStepRun",
     "EVENT_TIME_TOL_S",
@@ -1239,6 +1240,20 @@ CYCLE_RETRY_SPAN_K: float = 1.0
 temperature retries at the run's start temperature when that is more than
 this much colder [K] (see :func:`resolve_step_operation`)."""
 
+DUTY_MATCH_RTOL: float = 1e-3
+"""Fraction by which a cycle may miss the duty asked of it and still count as
+delivering it, in reduced-duty charging.
+
+A cycle asked for the condensing limit's duty at a tank temperature on the
+limit delivers it to the solver's last digits when that limit is the one that
+governs (measured ratio 1.000000 on the documented charges of the three boiler
+families), and so does a cycle asked for the nameplate duty below the limit.
+One that is off by more than this was held by another limit. Used where the
+stretch on the limit is qualified
+(:func:`tmhp.compressor_envelope.condensing_stretch`) and for the cycles of a
+step resolved on the limit (:func:`resolve_step_operation`).
+"""
+
 
 def _solve_tank_end(residual_free, Q: float, dt: float, C_tank: float) -> float | None:
     """End-of-step tank temperature [K] for a constant heat-source rate ``Q``."""
@@ -1368,10 +1383,14 @@ def resolve_step_operation(
     the duty its cycle delivers a withheld step may also end below the
     cut-out, and is then an ordinary step). Whether a step charges
     on the limit therefore depends on what the caller says of its conditions,
-    not on the step or on where in the stretch the tank is. One safeguard
-    remains behind that: a step whose cycle on the limit has no operating
-    point although the caller gave a duty, or whose full-duty cycle delivers
-    no more than that duty, is withheld the same way.
+    not on the step or on where in the stretch the tank is. One check of the
+    step itself stands behind that, so that no step is credited with heat its
+    cycles do not deliver: each cycle of a step on the limit has to deliver
+    the duty the events took for its stretch (the request below the knee, the
+    limit's duty at the stretch's mean above it) to :data:`DUTY_MATCH_RTOL`.
+    A step in which one does not -- it has no operating point, or another
+    limit holds it although the caller gave a duty -- is withheld the same
+    way.
 
     A compressor stopped at the limit's stop rests for its minimum rest time
     before it restarts (``duty_limit`` of :func:`simulate_thermostat_step`).
@@ -1539,10 +1558,13 @@ def _resolve_duty_limited(
     it). ``kwargs`` are the thermostat's arguments with the cut-out at the
     boiling point, ``kwargs_stop`` those with the cut-out at the knee.
     ``None`` when reduced-duty charging is withheld: ``min_duty()`` gives no
-    continuous duty below the request (or below what the full-duty cycle
-    delivers), or no operating point on the limit. A step resolved here
-    therefore never runs above the limit's stop, and never on the limit at
-    less than the smallest continuous duty.
+    continuous duty below the request, or a cycle of the step does not
+    deliver the duty the events took for its stretch -- the request below the
+    knee, the limit's duty at the stretch's mean above it -- to
+    :data:`DUTY_MATCH_RTOL` (no operating point, or another limit holding it).
+    A step resolved here therefore never runs above the limit's stop, never on
+    the limit at less than the smallest continuous duty, and its row's heat is
+    the heat its events integrated.
     """
     floor = min_duty()
     if floor is None or not (math.isfinite(floor) and 0.0 <= floor < Q_request):
@@ -1560,6 +1582,10 @@ def _resolve_duty_limited(
     def equivalent_fraction(load: float, q: float) -> float:
         """Run time at duty ``q`` that carries the step's mean load: what the stretch's source sees."""
         return min(1.0, load / q) if q > 0.0 else 1.0
+
+    def delivers(cycle: Mapping[str, Any], q: float) -> bool:
+        """Whether the cycle delivers the duty ``q`` the events took for its stretch (:data:`DUTY_MATCH_RTOL`)."""
+        return abs(delivered_tank_heat(cycle) - q) <= DUTY_MATCH_RTOL * q
 
     provisional = simulate_thermostat_step(Q_on=Q_request, **on_limit)
     if provisional.T_on_mean_C is None:
@@ -1581,10 +1607,10 @@ def _resolve_duty_limited(
         if q_full <= 0.0:
             # No cycle at the full duty: the compressor does not run, as without the limit.
             return simulate_thermostat_step(Q_on=0.0, **kwargs_stop), full_result
-        if q_full <= limit.Q_min:
-            # Another limit already holds the cycle at or below the smallest
-            # duty found on this one: there is no stretch between the two to
-            # run on.
+        if not delivers(full_result, Q_request):
+            # Another limit holds the cycle below the request before the tank
+            # gets to this one: the stretch above the knee is not this limit's
+            # from its start.
             return None
     run = simulate_thermostat_step(Q_on=q_full, **on_limit)
     if run.T_on_mean_C is None:
@@ -1597,14 +1623,16 @@ def _resolve_duty_limited(
         return run, full_result
     assert run.T_reduced_mean_C is not None
     reduced_result = solve_cycle_at_duty(run.T_reduced_mean_C, q_reduced, equivalent_fraction(load, q_reduced))
-    if delivered_tank_heat(reduced_result) <= 0.0:
+    if not delivers(reduced_result, q_reduced):
+        # No operating point on the limit, or another limit holds the cycle
+        # off the duty the events integrated.
         return None
     if f_full <= 0.0:
         return run, reduced_result
     if full_result is None:
         assert run.T_full_mean_C is not None
         full_result = solve_cycle(run.T_full_mean_C, equivalent_fraction(load, q_full))
-        if delivered_tank_heat(full_result) <= 0.0:
+        if not delivers(full_result, q_full):
             return None
     return run, merge_running_rows(full_result, f_full, reduced_result, f_reduced, rate_keys)
 

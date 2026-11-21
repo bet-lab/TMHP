@@ -175,10 +175,10 @@ def test_net_matched_pass_delivers_the_published_capacity_net_of_the_fan_heat():
     """FTXM42A point 23: the request the harness passes leaves the room 22 W short of the published 4.2 kW."""
     (row,) = study.run_unit("daikin_rxm42a", point_ids=(23,)).itertuples()
     assert row.q_kW == 4.2 and row.shr_catalog == 0.74
-    assert row.net_total_W_wet == pytest.approx(4177.71, abs=0.01) and row.cop_wet == pytest.approx(4.56528, abs=1e-5)
+    assert row.net_total_W_wet == pytest.approx(4177.71, abs=0.01) and row.cop_wet == pytest.approx(4.23667, abs=1e-5)
     assert row.q_request_W_wet_net == pytest.approx(4222.29, abs=0.01)
     assert row.net_total_W_wet_net == pytest.approx(4200.0, rel=study.NET_MATCH_TOL)
-    assert row.cop_wet_net == pytest.approx(4.55579, abs=1e-5)
+    assert row.cop_wet_net == pytest.approx(4.22914, abs=1e-5)
     # The COP of a matched row is the published capacity over the model's input.
     assert row.cop_wet_net == pytest.approx(row.net_total_W_wet_net / (row.power_kW_wet_net * 1000.0), rel=1e-9)
     assert row.usable_wet_net and row.failure_wet_net == "none"
@@ -272,15 +272,28 @@ def test_what_the_study_found(committed):
     # The ratio follows the catalogue's, a little high on average ...
     assert numbers["shr_correlation"] > 0.9 and 0.0 < numbers["shr_error_mean"] < 0.05
     assert numbers["shr_abs_error_mean"] < 0.06
-    # ... and the wet coil is the more optimistic one over these rows: a warmer evaporator, less input
-    # on all but one of them, a higher COP.
+    # ... and the wet coil has the higher COP over these rows: a warmer evaporator, less input on all
+    # but one of them.
     assert numbers["T_evap_rise_wet_minus_dry_K_mean"] > 2.0 and numbers["power_change_wet_vs_dry_pct_mean"] < -8.0
     assert numbers["rows_wet_draws_more_than_dry"] == 1
-    assert abs(numbers["cop_bias_pct_dry"]) < 3.0 < 10.0 < numbers["cop_bias_pct_wet"]
+    # The dry coil runs every row low (on the efficiency map of #223; before it the dry bias was within
+    # 3 % of zero and the wet one above +10 %). The wet coil is low on average still, and closer.
+    assert (committed.cop_dry < committed.cop_target).all()
+    assert numbers["cop_bias_pct_dry"] < -10.0 < -5.0 < numbers["cop_bias_pct_wet"] < 0.0
+    assert numbers["cop_MAPE_pct_wet"] < numbers["cop_MAPE_pct_dry"] == pytest.approx(-numbers["cop_bias_pct_dry"])
     assert numbers["bias_shr_correlation_wet"] < numbers["bias_shr_correlation_dry"] < 0.0
+    # Not evenly: the gain grows with the latent load, past the catalogue where it is largest and
+    # hardly off the dry coil's bias where it is smallest.
     bands = study.by_band(committed).set_index("shr_band")
-    assert bands.cop_bias_pct_wet["below 0.75"] > bands.cop_bias_pct_wet["0.75 to 0.95"] > 0.0
-    assert bands.cop_bias_pct_wet["0.95 and above"] < 0.0
+    gain = bands.cop_bias_pct_wet - bands.cop_bias_pct_dry
+    assert gain["below 0.75"] > 10.0 > gain["0.75 to 0.95"] > 3.0 > gain["0.95 and above"] > 0.0
+    assert (bands.cop_bias_pct_dry < 0.0).all()
+    assert bands.cop_bias_pct_wet["below 0.75"] > 0.0 > bands.cop_bias_pct_wet["0.75 to 0.95"]
+    assert bands.cop_bias_pct_wet["0.75 to 0.95"] > bands.cop_bias_pct_wet["0.95 and above"] < -10.0
+    # By unit: closer to the catalogue for the four smaller ones, further for the largest.
+    units = study.by_unit(committed).set_index("slug")
+    closer = units.cop_MAPE_pct_wet < units.cop_MAPE_pct_dry
+    assert list(closer) == [True, True, True, True, False] and list(units.index) == list(study.UNITS)
     # The indoor conductance trades the ratio against the COP: neither moves without the other.
     assert numbers["cop_bias_pct_wet_ua50"] < numbers["cop_bias_pct_wet"] < numbers["cop_bias_pct_wet_ua200"]
     assert bands.shr_error_wet_ua50["all"] < -0.05 and bands.shr_error_wet_ua200["all"] > 0.05
@@ -290,14 +303,14 @@ def test_what_matching_the_net_capacity_changes(committed):
     numbers = study.headline(committed)
     # The harness's request leaves the room about 20 W (0.6 %) short of the published capacity,
     # one row by more than 1 %.
-    assert numbers["net_delivery_short_of_published_W_mean_wet"] == pytest.approx(20.35, abs=0.01)
+    assert numbers["net_delivery_short_of_published_W_mean_wet"] == pytest.approx(20.38, abs=0.01)
     assert numbers["rows_net_delivery_short_by_more_than_1pct_wet"] == 1
-    # Matched, the request is that much larger and the COP a quarter of a percent lower: the finding stands.
-    assert numbers["request_above_published_W_mean_wet_net"] == pytest.approx(20.3, abs=0.2)
+    # Matched, the request is that much larger and the COP a fifth of a percent lower: the finding stands.
+    assert numbers["request_above_published_W_mean_wet_net"] == pytest.approx(20.4, abs=0.2)
     assert -0.5 < numbers["cop_change_net_matched_vs_request_pct_mean_wet"] < -0.1
     assert numbers["scored_dry_net"] == numbers["scored_wet_net"] == 180
     assert 0.3 < numbers["cop_bias_pct_dry"] - numbers["cop_bias_pct_dry_net"] < 0.8
-    assert 0.2 < numbers["cop_bias_pct_wet"] - numbers["cop_bias_pct_wet_net"] < 0.8
+    assert 0.1 < numbers["cop_bias_pct_wet"] - numbers["cop_bias_pct_wet_net"] < 0.8
     matched = committed[committed.usable_wet_net]
     target = matched.q_kW * 1000.0
     assert (abs(matched.net_total_W_wet_net - target) <= study.NET_MATCH_TOL * target).all()
@@ -310,11 +323,13 @@ def test_what_the_held_units_show(committed, held):
     numbers = study.headline(held)
     units = study.by_unit(held).set_index("slug")
     assert numbers["rows_scored_dry"] == numbers["rows_scored_wet"] == 144
-    # The dry bias of the shipped (held) results, and a wet coil that adds to it.
-    assert units.cop_bias_pct_dry["fujitsu_asuh09lpas"] == pytest.approx(27.35, abs=0.01)
-    assert units.cop_bias_pct_wet["fujitsu_asuh09lpas"] == pytest.approx(34.0, abs=0.05)
-    assert units.cop_bias_pct_dry["fujitsu_asuh12lpas"] == pytest.approx(38.49, abs=0.01)
-    assert units.cop_bias_pct_wet["fujitsu_asuh12lpas"] == pytest.approx(48.7, abs=0.05)
+    # The dry bias of the shipped (held) results, and a wet coil that adds to it: away from the
+    # catalogue here, where the dry bias is already above zero.
+    assert units.cop_bias_pct_dry["fujitsu_asuh09lpas"] == pytest.approx(0.38, abs=0.01)
+    assert units.cop_bias_pct_wet["fujitsu_asuh09lpas"] == pytest.approx(3.98, abs=0.05)
+    assert units.cop_bias_pct_dry["fujitsu_asuh12lpas"] == pytest.approx(8.47, abs=0.01)
+    assert units.cop_bias_pct_wet["fujitsu_asuh12lpas"] == pytest.approx(14.41, abs=0.05)
+    assert numbers["cop_MAPE_pct_wet"] > numbers["cop_MAPE_pct_dry"]
     # No row publishes a ratio of 0.95 or more: that band is empty, and its statistics undefined.
     bands = study.by_band(held).set_index("shr_band")
     assert bands.points["0.95 and above"] == 0 and math.isnan(bands.cop_bias_pct_wet["0.95 and above"])
@@ -558,6 +573,9 @@ def test_docs_prose_quotes_the_study(committed, held):
     fewer = numbers["rows_scored_wet"] - numbers["rows_wet_draws_more_than_dry"]
     held_numbers = study.headline(held)
     held_low = held[held.shr_catalog < 0.75]
+    gain = bands.cop_bias_pct_wet - bands.cop_bias_pct_dry
+    low_band = bands.loc["0.95 and above"]
+    assert -17.5 < low_band.cop_bias_pct_dry < low_band.cop_bias_pct_wet < -15.0  # "15 to 17 % low with either coil"
     for sentence in (
         f"gives {numbers['shr_model_net_mean']:.2f} against the published {numbers['shr_catalog_mean']:.2f} on average, "
         f"with a mean absolute difference of {numbers['shr_abs_error_mean']:.3f} and a correlation of "
@@ -579,9 +597,16 @@ def test_docs_prose_quotes_the_study(committed, held):
         f"the {numbers['rows_scored_wet']} rows",
         f"The bias goes from {_signed(numbers['cop_bias_pct_dry'])} % to {_signed(numbers['cop_bias_pct_wet'])} % and "
         f"the mean absolute error from {numbers['cop_MAPE_pct_dry']:.1f} % to {numbers['cop_MAPE_pct_wet']:.1f} %",
-        f"{_signed(bands.cop_bias_pct_wet['below 0.75'])} % where the published ratio is below 0.75",
+        f"{gain['below 0.75']:.1f} points where the published ratio is below 0.75, {gain['0.95 and above']:.1f} points "
+        f"at 0.95 and above",
+        f"{_signed(bands.cop_bias_pct_wet['below 0.75'])} % where the published ratio is below 0.75, "
+        f"{_signed(bands.cop_bias_pct_wet['0.95 and above'])} % at 0.95 and above",
         f"goes from *r* = {_signed(numbers['bias_shr_correlation_dry'], 2)} to "
         f"{_signed(numbers['bias_shr_correlation_wet'], 2)}",
+        f"By unit the dry coil runs from {_signed(small.cop_bias_pct_dry)} % (2.0 kW) to "
+        f"{_signed(large.cop_bias_pct_dry)} % (5.0 kW) and the wet coil from {_signed(small.cop_bias_pct_wet)} % to "
+        f"{_signed(large.cop_bias_pct_wet)} %",
+        f"by {gain['all']:.1f} points on average",
         f"halved the wet-coil bias is {_signed(numbers['cop_bias_pct_wet_ua50'])} % and the ratio "
         f"{bands.shr_model_wet_ua50['all']:.2f} ({abs(bands.shr_error_wet_ua50['all']):.2f} low); doubled, "
         f"{_signed(numbers['cop_bias_pct_wet_ua200'])} % and {bands.shr_model_wet_ua200['all']:.2f} "
@@ -602,6 +627,7 @@ def test_docs_prose_quotes_the_study(committed, held):
         f"(*r* = {held_numbers['shr_correlation']:.2f}, mean absolute difference "
         f"{held_numbers['shr_abs_error_mean']:.3f}), and {held_numbers['rows_published_ratio_below_coil_line_minimum']} "
         f"rows publish a ratio lower than a straight coil line can give",
+        f"(mean absolute error {held_numbers['cop_MAPE_pct_dry']:.1f} % dry, {held_numbers['cop_MAPE_pct_wet']:.1f} % wet)",
     ):
         assert sentence in flat, f"index.rst lacks {sentence!r}"
     assert numbers["scored_dry_net"] == numbers["scored_wet_net"] == len(committed)

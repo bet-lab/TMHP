@@ -477,10 +477,14 @@ coil carries more at a given evaporating temperature:
 
 What it leaves out, beyond the assumptions above:
 
-- **The catalogue comparison is not improved by it.** The published sensible
-  heat ratios are lower than the model's with the default coil, and the wet
-  coil makes cooling more optimistic (:doc:`/validation/index`, *Cooling and
-  latent load*). The shipped validation results are those of the dry coil.
+- **The catalogue comparison is not settled by it.** With the default coil
+  the model's sensible heat ratio is above the published one on average and
+  moves less with the size of the unit. The wet coil brings the cooling COP
+  of the Daikin rows closer to the catalogue on average — the dry coil runs
+  them low — but not evenly: above the catalogue on the rows with the most
+  latent load, still well below it on those with the least
+  (:doc:`/validation/index`, *Cooling and latent load*). The shipped
+  validation results are those of the dry coil.
 - **Re-evaporation while cycling.** Below the minimum speed the row is the
   mean over an on/off period with the latent heat scaled like every other
   rate; the water that evaporates off a wet coil while the compressor is off

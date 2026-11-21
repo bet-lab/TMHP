@@ -440,7 +440,12 @@ coil carries more at a given evaporating temperature:
   as the dry one, on the duty; where the least-lift point of a duty names no
   limit of the machine the search starts it again from other approaches and
   looks above it before it settles, so that a point it merely failed to find
-  is not reported as the ceiling.
+  is not reported as the ceiling. A fan held at one flow, or with a narrow
+  range, cannot leave its largest airflow the way the least-lift point
+  assumes; where that point is refused by the fans' smallest airflows the
+  duty is solved by the ordinary search before it counts as refused (default
+  unit with its outdoor fan held at its largest flow, 15 °C outdoor and a
+  saturated 35 °C room: 14.18 kW, the outdoor coil at its widest approach).
 - *The smallest continuous duty in mild weather.* At a low outdoor temperature
   the cycle sits on the pressure-ratio floor (1.5), which holds the condensing
   temperature well above the outdoor air, and each coil has to carry its duty
@@ -451,8 +456,11 @@ coil carries more at a given evaporating temperature:
   80 % (the dry coil runs down to its minimum speed there, 1.07 kW). A
   smaller request is met by cycling at that duty, exactly as below the minimum
   speed (``capacity_clamped == "min"``, ``Q_min [W]``; 1 200 W: runtime
-  fraction 0.914). Where no larger duty runs either — fans with almost no
-  flow range, in cold weather — the unit is off with
+  fraction 0.914). Fans with a high smallest flow put that duty above the
+  nameplate: with both at 60 % of the largest flow it is 8.03 kW at 15 °C
+  outdoor and a saturated 35 °C room, and a 4 kW request cycles there
+  (runtime fraction 0.570). Where no larger duty runs either — fans with
+  almost no flow range, in cold weather — the unit is off with
   ``failure_reason == "hx_not_converged"``: a coil cannot carry so little
   inside its fan's flow range.
 
@@ -460,8 +468,8 @@ coil carries more at a given evaporating temperature:
   left as it was, result for result: a request the fans' smallest airflows
   refuse on the pressure-ratio floor is answered there with the unit off and
   ``failure_reason == "cycle_invalid"`` (default unit, 27 °C room, 5 °C
-  outdoor: the requests below 30 % of the nameplate), where the same request
-  with a room humidity of 20 % cycles at 1.08 kW.
+  outdoor: 1 100 W, 27.5 % of the nameplate, runs and 1 050 W is refused),
+  where the 1 050 W request with a room humidity of 20 % cycles at 1.08 kW.
 
 What it leaves out, beyond the assumptions above:
 

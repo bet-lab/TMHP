@@ -486,7 +486,16 @@ class DefrostModel:
         if not drive > 0.0:
             # The coil at this load is at or above the frost point of the air (or at 0 degC): no frost.
             return FrostState(
-                False, 0.0, 1.0, 1.0, T_coil_C=coil, RH_out=rh, frost_share=0.0, load_ratio=ratio, frost_onset=onset
+                False,
+                0.0,
+                1.0,
+                1.0,
+                T_coil_C=coil,
+                RH_out=rh,
+                frost_share=0.0,
+                frost_drive_ratio=0.0,
+                load_ratio=ratio,
+                frost_onset=onset,
             )
         # At the rated load (drive 1) the deposition and the fixed part are
         # those of the rated-load coil; below it both follow the drive.

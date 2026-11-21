@@ -264,6 +264,12 @@ def test_a_part_loaded_coil_the_air_cannot_frost_is_not_corrected():
         assert state.T_coil_C == pytest.approx(-5.0 - 0.25 * (0.18 * -5.0 + 8.589), rel=1e-12)
         assert humidity_ratio(-5.0, RH) < saturation_humidity_ratio(state.T_coil_C)  # no drive on this coil
         assert not state.active and state.defrost_fraction == 0.0 and state.capacity_multiplier == 1.0
+        # The state says why: no drive on this coil (0, not the rated-load 1), at the load it was asked for,
+        # with the onset share of the rated-load coil, which this air does frost.
+        rated = LOAD_WEIGHTED.frost_state(-5.0, RH)
+        assert rated.active and rated.frost_drive_ratio == 1.0
+        assert state.frost_drive_ratio == 0.0 and state.load_ratio == 0.25
+        assert state.frost_onset == rated.frost_onset > 0.0 and state.frost_share == 0.0
     floor = DefrostModel(frost_point_band_K=None)
     assert floor.frost_state(-5.0, 0.7, load_ratio=0.25).defrost_fraction == pytest.approx(6.915e-5, rel=1e-3)
     assert (

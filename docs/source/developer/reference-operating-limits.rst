@@ -278,8 +278,10 @@ of it.
       - Default
       - Rule
     * - ``T_dis_max`` (constructor, keyword)
-      - ``"auto"``: R32 150 °C, every other refrigerant 135 °C.
-        ``None`` switches the check off; a number sets it.
+      - ``"auto"``: the refrigerant's value in ``DISCHARGE_TEMP_MAX_C``
+        (R32 150 °C, every other refrigerant 135 °C; 135 °C for a fluid
+        outside the table). ``None`` switches the check off; a number sets
+        it.
       - Compressor protection settings: Danfoss SH (R410A) discharge gas
         ≤ 135 °C; Danfoss PSH (R410A/R454B) wet injection from 121 °C,
         safety maximum 135 °C; Danfoss DSF (R32) external discharge-gas
@@ -288,6 +290,18 @@ of it.
         100 °C, stop at 110–120 °C); the model uses the protection value
         because it has no shell heat loss and puts all compressor loss
         into the gas. A point above the limit is not an operating point.
+        Only the R410A and R32 values rest on a protection value published
+        for the fluid; the others are provisional.
+    * - ``x_suction_min`` (constructor, keyword)
+      - ``"auto"``: the refrigerant's value in ``X_SUCTION_MIN``, for now
+        0.9 for every refrigerant (0.9 for a fluid outside the table).
+        A number given by the caller takes precedence; ``None`` switches
+        the discharge-temperature control off, ``1`` keeps its superheat
+        stage only.
+      - Lowest suction quality the discharge-temperature control may use
+        (below). The values are placeholders without a quantitative basis,
+        to be replaced by literature-based values per refrigerant
+        (issue #229; sources collected on #216).
     * - ``PR_cycle_max``
       - 11 for every family (was 20 for the boilers, 5 for GSHP).
       - Single-stage scroll hardware limit. Higher ratios are two-stage or
@@ -460,8 +474,9 @@ then serves ``analyze_steady`` and the steps that go past the cut-out all the
 same: a stratified tank whose coil-side water is hotter than the sensor, a
 minimum run time, a set point moved after construction.
 
-Discharge-temperature control (``x_suction_min``, default 0.9; ``None`` switches
-it off, ``1`` keeps the superheat stage only) comes first. A running unit whose
+Discharge-temperature control (``x_suction_min``, default ``"auto"``, 0.9 for
+every refrigerant for now; ``None`` switches it off, ``1`` keeps the superheat
+stage only) comes first. A running unit whose
 discharge runs hot opens its expansion valve and, if that is not enough, lets
 the suction go wet or injects liquid; it does not stop. So when the cycle at a
 candidate operating point discharges above ``T_dis_max``, the same candidate is
@@ -482,12 +497,16 @@ is two-phase, so the evaporator duty is ``m_dot (h_1 - h_4)`` with the wet
 ``1 / (x v_g + (1 - x) v_l)``; the isentropic work is that of the two-phase
 state. The cycle balance (condenser = evaporator + refrigerant work) closes
 exactly. The default efficiency forms were fitted to dry-suction data; using
-them for wet suction is an approximation (its size is discussed below). The quality floor 0.9 is a conservative default
-without a quantitative basis, and ``x_suction_min`` overrides it: two-phase
-suction is an experimentally used way to hold R32 scroll discharge temperature
-(Wang et al., ICEC 2014, paper 1595; Yang et al., Int. J. Refrig. 2015), but no
-published lower bound was found, and 10 % liquid by mass is of the order of the
-liquid-injection ratios used for this purpose. Running results report
+them for wet suction is an approximation (its size is discussed below). The quality floor is set per refrigerant
+(``X_SUCTION_MIN``), and a number passed as ``x_suction_min`` takes precedence
+over it. Every value is the provisional 0.9 for now, without a quantitative
+basis and not a reliability limit: two-phase suction is an experimentally used
+way to hold R32 discharge temperature (Wang et al., ICEC 2014, paper 1595;
+Zheng et al., IRACC 2016, paper 1766; Seong et al., Appl. Sci. 2017), and the
+sources collected on #216 put a bound anywhere from quality 0.75 (a Daikin
+patent's reliability rating for R32) to 0.84--0.91 (where the refrigerant flow
+of a 3.5 kW R32 unit collapsed). Values based on that literature are to
+replace the placeholders (issue #229). Running results report
 ``dT_ref_superheat [K]``, ``x_ref_cmp_in [-]`` and ``discharge_control``
 (bool), the same names in all five families; the invariant suite allows a wet
 suction only on a controlled row and only down to ``x_suction_min``. Every
@@ -504,6 +523,16 @@ cycle solves close the control to 1e-5 K of the limit, and a point still above
 the limit at ``x_suction_min`` is recognised with one. Root finding on full
 cycle solves is kept as the fallback for a fluid without a property state or
 a candidate where a proposed suction state has no cycle.
+
+Known limit: the control itself is an assumption. Neither its order
+(superheat to 0 K, then suction quality, then a smaller duty), nor stopping at
+the driest suction state that meets ``T_dis_max``, nor bounding the wet
+suction by its quality has been confirmed against a manufacturer's control.
+One patent describes a similar order (Daikin, US 6,581,397 B1, FIG. 10) without
+naming the compressor type or the test; units also hold a discharge or
+discharge-superheat target with the expansion valve, and compressor makers
+bound liquid return by the oil or shell superheat rather than by the suction
+quality. Issue #229 is to settle this together with the values.
 
 Known limit: no efficiency penalty for wet suction. A controlled point uses
 the default efficiency maps unchanged, which is optimistic. Liquid in a

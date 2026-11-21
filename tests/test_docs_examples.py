@@ -1,6 +1,7 @@
 """Regression tests for copy-runnable documentation examples."""
 
 import math
+import re
 import warnings
 from pathlib import Path
 
@@ -119,6 +120,34 @@ def test_minimal_input_examples_run_and_match_the_page() -> None:
     quoted = "COP of " + ", ".join(f"{cop:.2f}" for cop in cops[:-1]) + f" and {cops[-1]:.2f}"
     assert quoted in " ".join(text.split()), quoted
 
+    # "What follows the refrigerant": the span of rated speeds of each default machine over seven fluids.
+    from tmhp import (
+        AirSourceHeatPump,
+        AirSourceHeatPumpBoiler,
+        GroundSourceHeatPump,
+        GroundSourceHeatPumpBoiler,
+        WaterSourceHeatPumpBoiler,
+    )
+
+    fluids = ("R32", "R290", "R410A", "R134a", "R600a", "R1234yf", "R1234ze(E)")
+    spans = []
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for cls in (
+            GroundSourceHeatPump,
+            AirSourceHeatPump,
+            WaterSourceHeatPumpBoiler,
+            AirSourceHeatPumpBoiler,
+            GroundSourceHeatPumpBoiler,
+        ):
+            speeds = [cls(ref=ref).rps_rated for ref in fluids]
+            spans.append(f"{min(speeds):.0f}–{max(speeds):.0f}")
+    quoted = (
+        f"{spans[0]} rev/s for the default GSHP, {spans[1]} ASHP, {spans[2]} WSHPB, {spans[3]} ASHPB and "
+        f"{spans[4]} GSHPB"
+    )
+    assert quoted in " ".join(text.split()), quoted
+
     sizing = _find_block(blocks, "gshp = GroundSourceHeatPump(hp_capacity=30_000)")
     namespace = {}
     with warnings.catch_warnings():
@@ -145,6 +174,9 @@ def test_result_keys_example_is_copy_runnable() -> None:
     assert row["failure_reason"] == "none"
     assert row["capacity_clamped"] == "max"
     assert row["capacity_binding"] == "compressor"
-    assert math.isclose(row["Q_ref_iu [W]"], 3800.0, rel_tol=0.02)
-    assert math.isclose(row["Q_unmet [W]"], 5200.0, rel_tol=0.02)
+    # The comments quote the delivered and the unmet heat to 0.1 kW; they are the model's.
+    for key, words in (("Q_ref_iu [W]", "heat delivered"), ("Q_unmet [W]", "the rest of the request")):
+        quoted = re.search(rf"# {words}, about (\d+\.\d) kW", code)
+        assert quoted, words
+        assert quoted.group(1) == f"{row[key] / 1000.0:.1f}", (key, quoted.group(1), row[key])
     assert math.isclose(row["Q_ref_iu [W]"] + row["Q_unmet [W]"], 9000.0, rel_tol=1e-9)

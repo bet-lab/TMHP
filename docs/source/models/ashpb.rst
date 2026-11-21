@@ -128,11 +128,11 @@ compressor envelope (:doc:`../developer/reference-operating-limits`) can
 refuse the point before ``rps_min`` is reached, for the discharge
 temperature, which the falling efficiency drives above ``T_dis_max`` even
 with the discharge-temperature control used up. The default 15 kW unit with
-R32 at −20 °C outdoors against a 60 °C tank runs down to about 2.1 kW
-(24 rev/s, suction quality 0.9 at the 150 °C limit) and no further; at −15 °C
-against 60 °C to 1.9 kW (18 rev/s). With R290 at −7 °C against 55 or 65 °C,
-R134a at −7 °C against 55 °C and R410A at −15 °C against 55 °C it reaches its
-minimum speed first (1.6 to 1.9 kW). A request below that duty was answered
+R32 at −20 °C outdoors against a 60 °C tank runs down to about 2.2 kW
+(16 rev/s, suction quality 0.9 at the 150 °C limit) and no further. At −15 °C
+against 60 °C, and with R290 at −7 °C against 55 or 65 °C, R134a at −7 °C
+against 55 °C and R410A at −15 °C against 55 °C, it reaches its minimum speed
+first (2.4 to 2.9 kW). A request below that duty was answered
 with the unit switched off (``failure_reason == "discharge_temp_above_max"``)
 while a larger one ran. It is met the same way as one below the minimum speed,
 and as :doc:`ashp` does: the unit cycles at the smallest duty the envelope
@@ -312,53 +312,41 @@ Default compressor efficiencies
 
 A bare ``AirSourceHeatPumpBoiler`` takes its volumetric (``eta_cmp_vol``),
 isentropic (``eta_cmp_isen``) and electro-mechanical (``eta_cmp``)
-efficiencies from the semi-empirical models of
-:mod:`tmhp.compressor_efficiency` (coefficient set
-``semi-empirical-2026-11-15``), one set per compressor type, chosen with the
-``compressor_type`` argument:
-
-.. code-block:: python
-
-   from tmhp import AirSourceHeatPumpBoiler
-
-   AirSourceHeatPumpBoiler()                          # "rotary_twin_inverter", the default
-   AirSourceHeatPumpBoiler(compressor_type="scroll")
-   AirSourceHeatPumpBoiler(compressor_type="rotary_single_fixed")
-
-Every family takes the same argument. The forms are fitted to
-standalone-compressor data, not to heat-pump catalogues, and are evaluated at
-the pressure ratio, the shaft speed in rev/s and the suction state; ``eta_cmp``
-includes the drive, so ``E_cmp [W]`` is the inverter input (drive loss about
-6 % at 60 rev/s, more at low speed). The forms, their data and what in them is
-provisional are described in :doc:`/validation/defaults` and in the coefficient
-archive ``validation/coefficients/semi-empirical-2026-11-15/`` (its README,
-*Limits*).
+efficiencies from the default maps of :mod:`tmhp.compressor_efficiency`
+(coefficient set ``ossorio-r290-te-2026-11-21``). Every family takes the same
+maps, whatever its refrigerant and compressor: they are fitted to 134
+measured points of one 46 cm³/rev R290 scroll, not to heat-pump catalogues,
+and are evaluated at the pressure ratio, the shaft speed in rev/s and the
+evaporating saturation temperature. They are fitted on the power of
+compressor and inverter together, so ``E_cmp [W]`` is the inverter input;
+there is no separate drive model. The maps, their data and their limits are
+described in :doc:`/validation/defaults` and in the coefficient archive
+``validation/coefficients/ossorio-r290-te-2026-11-21/`` (its README).
 
 .. warning::
 
-   The rotary types are provisional: their data span pressure ratio
-   1.94–6.84 and 30–120 rev/s. The model's operating range (``rps_min`` =
+   The data of the maps span 30–110 rev/s and a hull in pressure ratio and
+   evaporating temperature. The model's operating range (``rps_min`` =
    15 rev/s, ``rps_max`` = ``max(120, 1.5 × rps_rated)``, ``PR_cycle_max`` =
-   11) reaches outside it, and outside it the forms are followed as they are
+   11) reaches outside it, and outside it the maps are followed as they are
    -- nothing is held -- with ``efficiency_extrapolated`` set on steady
-   results. That is the case at every speed below 30 rev/s and at the
-   pressure ratios of hot water in cold weather (:ref:`high-lift-deficit`).
-   The efficiency level is the manufacturers' published level; independent
-   compressor measurements sit 5–15 % lower. With R32 the default type gives
-   an isentropic efficiency of 0.76–0.79 at pressure ratios of 7 to 11 and
-   an uncontrolled discharge of up to about 170 °C there (A−15/W65 and
-   A−7/W65); the discharge-temperature control holds ``T_dis_max`` (150 °C)
-   by lowering the suction superheat and then letting the suction go wet down
-   to ``x_suction_min`` (0.9), and a request it cannot hold runs at the
-   largest smaller duty that it can (``capacity_clamped == "max"``), or is
-   refused when there is none (see
-   :doc:`/developer/reference-operating-limits`).
+   results. That is the case at every speed below 30 rev/s and above
+   110 rev/s. Applied without calibration, the defaults run low against the
+   catalogues of :doc:`/validation/index` (COP bias −5.9 % for the
+   air-to-water units). With R32 the default 15 kW unit has an isentropic
+   efficiency of 0.65 at A−7/W65 and 0.61 at A−15/W65 (pressure ratios 8.3
+   and 10.9) and an uncontrolled discharge of 172 and 196 °C there; the
+   discharge-temperature control holds ``T_dis_max`` (150 °C) by lowering
+   the suction superheat and then letting the suction go wet down to
+   ``x_suction_min`` (0.9), and a request it cannot hold runs at the largest
+   smaller duty that it can (``capacity_clamped == "max"``), or is refused
+   when there is none (see :doc:`/developer/reference-operating-limits`).
 
 An explicitly supplied float or callable for one of the three constructor
 arguments replaces that model (``model(PR)`` or ``model(PR, rps)``). The
-earlier default maps -- the BITZER quadratic map of the 2026-10-06 release and
-the correlations before it -- are no longer in the library; they are kept as
-records with the code that evaluates them in ``validation/coefficients/``
+earlier default models -- the semi-empirical models of 2026-11-15, the
+quadratic map of 2026-10-06 and the correlations before it -- are no longer
+in the library; they are kept as records in ``validation/coefficients/``
 (``recorded_maps/``, ``README.md``). The linear correlations of
 :mod:`tmhp.equipment_presets` (``1.0 - 0.020 * (r_p - 1.0)`` and similar) are
 presets, not defaults.

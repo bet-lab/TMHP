@@ -668,8 +668,8 @@ outdoor with ``T_dis_max = 105 °C``). Where another limit governs, a run costs
 three or four cycles, up to five more where it has to be confirmed against an
 envelope that closes, and a step can have several runs; each solve carries
 that limit's own duty search. Observed: up to 14 solves per step in the
-source-freezing case above (3 with ``"stop"``); up to 90 per 60 s step and up
-to 78 per 600 s step in the discharge-limit case (up to 8 with ``"stop"``,
+source-freezing case above (3 with ``"stop"``); up to 98 per 60 s step and up
+to 86 per 600 s step in the discharge-limit case (up to 8 with ``"stop"``,
 whose band ends below the tank temperature at which that limit closes).
 
 *The row.* A step with both stretches reports the run-time-weighted mean of

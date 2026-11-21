@@ -847,6 +847,43 @@ def test_a_schedule_that_fails_where_it_is_looked_at_is_not_one_entry_per_step(h
         _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=_LookingRaises(where))
 
 
+class _ConversionRaisesValueError:
+    """A schedule whose own conversion raises a ``ValueError`` that says nothing about humidity schedules."""
+
+    def __init__(self, where):
+        self.where = where
+
+    def __len__(self):
+        if self.where == "len":
+            raise ValueError("cannot be sized")
+        return 1
+
+    def __array__(self, dtype=None, copy=None):
+        if self.where == "array":
+            raise ValueError("setting an array element with a sequence")
+        return np.array([0.5], dtype=dtype)
+
+
+def test_a_value_error_of_the_conversion_is_reported_as_a_bad_schedule(hp):
+    """Not handed on bare: it would read as an error of the model, with nothing naming the schedule."""
+    arguments = (3600, 3600, [2000.0], [35.0], [27.0])
+    with pytest.raises(ValueError) as caught:
+        _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=_ConversionRaisesValueError("array"))
+    assert str(caught.value) == (
+        "RH_room_schedule must hold one entry per step, got _ConversionRaisesValueError (ValueError)"
+    )
+    assert type(caught.value) is ValueError
+    assert str(caught.value.__cause__) == "setting an array element with a sequence"
+    # A length that cannot be had is no length: the schedule is then read for what it holds.
+    frame = _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=_ConversionRaisesValueError("len"))
+    assert frame["RH_room [-]"].iloc[0] == 0.5
+    # The refusals this code words itself are plain ValueErrors with nothing chained.
+    for schedule in ({0: 0.5}, "0.5", np.array(0.5), [0.5, 0.6], np.array([[0.5, 0.6]])):
+        with pytest.raises(ValueError, match="RH_room_schedule") as worded:
+            _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=schedule)
+        assert type(worded.value) is ValueError and worded.value.__cause__ is None
+
+
 def test_a_schedule_of_a_type_without_a_name_is_refused_with_the_schedule_error(hp):
     class Unnamed(metaclass=_NoTypeName):
         def __array__(self, dtype=None, copy=None):
@@ -870,6 +907,18 @@ def test_what_a_generator_raises_while_it_is_read_is_left_as_it_is(hp):
 
     with pytest.raises(FileNotFoundError, match="humidity.csv"):
         _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=reading())
+
+    class Readings:  # iterable, with no length: read the same way
+        def __init__(self, ok):
+            self.ok = ok
+
+        def __iter__(self):
+            return iter([0.5, 0.6]) if self.ok else reading()
+
+    with pytest.raises(FileNotFoundError, match="humidity.csv"):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=Readings(ok=False))
+    frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=Readings(ok=True))
+    assert list(frame["RH_room [-]"]) == [0.5, 0.6]
 
 
 def test_a_schedule_too_large_to_copy_is_a_memory_error(hp, monkeypatch):

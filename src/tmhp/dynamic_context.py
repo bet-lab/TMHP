@@ -1076,6 +1076,13 @@ def _simulate_duty_limited_step(
     and the run ends as what that is -- running, since the start the events
     gave it -- so that the next step, which finds a called compressor running
     below its cut-out, charges on along the limit without a stop or a start.
+    The run itself is reported as the events have it, at the cut-out and at
+    the duty the limit leaves there: its cycle is solved, and checked, at that
+    point, not at the temperatures between it and where the closing balance
+    ends the step (0.08 K lower in the case tested, where the limit would
+    leave 4 % more duty). A limit that acted only in that gap would not be
+    seen by this step; the step after, which starts there, solves its own
+    cycle there.
     That is what holding the tank at the cut-out means in the
     balance that sets the temperature the next step starts from; the start of
     the run and its timers stay where the events put them (the moment the

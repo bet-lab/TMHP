@@ -197,6 +197,39 @@ def test_a_demand_above_the_duty_at_the_stop_runs_on_along_the_limit(T_start):
         assert _heat(r, 600.0) == pytest.approx(demand * 600.0, rel=2e-3)  # the tank stays (almost) where it is
 
 
+@pytest.mark.parametrize("above", [0.0, 2e-7, 9e-7], ids=["at the stop", "0.2 uK above", "0.9 uK above"])
+def test_no_run_above_the_stop_or_below_the_smallest_duty(above):
+    """A tank within the bound width above the stop is at it: the run starts from the stop, not above.
+
+    Review of the fix above: a tank a fraction of a microkelvin above the stop (the last digits of
+    the previous step's root solve) with a draw larger than the stop's duty ran on from where it
+    was, so for a moment above the stop, at less than the smallest continuous duty.
+    """
+    draw = ((50.0, -2_001.0), (70.0, -2_001.0))  # 1 W more than the stop's 2 kW: the tank barely moves
+    run = _sim(T_start_C=64.0 + above, T_upper=64.5, free_heat=draw, dt=1.0, running_prev=True, phase_age_s=600.0)
+    assert run.runtime_fraction == 1.0 == run.reduced_fraction and run.starts == 0
+    assert run.T_reduced_mean_C <= LIMIT.stop_C
+    assert LIMIT.duty(run.T_reduced_mean_C) >= LIMIT.Q_min
+    # Clearly above the stop the compressor is off until the draw has cooled the tank to it
+    # (1 mK at 2001 W into 600 kJ/K: 0.3 s), and runs from the stop on.
+    off = _sim(T_start_C=64.0 + 1e-3, T_upper=64.5, free_heat=draw, dt=0.2, running_prev=True, phase_age_s=600.0)
+    assert off.runtime_fraction == 0.0 and off.limit_stop and not off.running_end
+    later = _sim(T_start_C=64.0 + 1e-3, T_upper=64.5, free_heat=draw, dt=1.0, running_prev=True, phase_age_s=600.0)
+    assert later.runtime_fraction == pytest.approx(1.0 - 1e-3 * C / 2_001.0, rel=1e-9)
+    assert later.T_reduced_mean_C <= LIMIT.stop_C
+
+
+def test_fast_cycling_limit_stays_on_the_duty_limit():
+    """A band far narrower than the step, past the knee: the fast-cycling limit balances the tank at the limit's duty."""
+    loss = ((50.0, -1_000.0), (70.0, -1_000.0))
+    run = _sim(T_start_C=62.0, T_lower=62.0, T_upper=62.0005, free_heat=loss, dt=36_000.0)
+    assert run.reduced_fraction == pytest.approx(run.runtime_fraction)
+    # The compressor makes up the loss at the limit's duty for the tank where it is (6 kW at 62 degC).
+    assert _heat(run, 36_000.0) == pytest.approx(1_000.0 * 36_000.0, rel=1e-3)
+    assert run.runtime_fraction == pytest.approx(1_000.0 / LIMIT.duty(62.0), rel=1e-3)
+    assert run.T_reduced_mean_C <= LIMIT.stop_C and LIMIT.duty(run.T_reduced_mean_C) >= LIMIT.Q_min
+
+
 def test_a_minimum_run_time_runs_on_along_the_limit():
     """Past the set point the minimum run time keeps the compressor on the limit, up to the stop."""
     run = _sim(T_upper=59.0, min_on_time_s=1800.0, dt=3600.0)
@@ -238,7 +271,7 @@ def test_merged_row_is_the_run_time_weighted_mean():
 # ---------------------------------------------------------------------------
 
 
-def _resolve(T_start=56.0, T_upper=63.0, dt=3600.0, floor=2_000.0, on_limit_runs=True, calls=None, **kw):
+def _resolve(T_start=56.0, T_upper=63.0, dt=3600.0, floor=2_000.0, on_limit_runs=True, calls=None, q_cycle=Q_ON, **kw):
     """``resolve_step_operation`` on the tank of the event tests, with a cycle of COP 3 (2.5 on the limit)."""
     calls = {} if calls is None else calls
 
@@ -247,7 +280,12 @@ def _resolve(T_start=56.0, T_upper=63.0, dt=3600.0, floor=2_000.0, on_limit_runs
 
     def solve_cycle(T_C, fraction):
         calls.setdefault("full", []).append((T_C, fraction))
-        return {"hp_is_on": True, "Q_ref_tank [W]": Q_ON, "E_tot [W]": Q_ON / 3.0, "T_ref_cond_sat_l [°C]": T_C + 5.0}
+        return {
+            "hp_is_on": True,
+            "Q_ref_tank [W]": q_cycle,
+            "E_tot [W]": q_cycle / 3.0,
+            "T_ref_cond_sat_l [°C]": T_C + 5.0,
+        }
 
     def solve_cycle_at_duty(T_C, q, fraction):
         calls.setdefault("limit", []).append((T_C, q, fraction))
@@ -343,6 +381,22 @@ def test_without_a_floor_or_a_cycle_on_the_limit_the_step_keeps_the_stop():
         run, row, _ = _resolve(**kw)
         assert run == stop, kw
         assert row["Q_ref_tank [W]"] == Q_ON and "capacity_clamped" not in row
+
+
+def test_a_cycle_already_below_the_floor_keeps_the_stop():
+    """Another limit holds the full-duty cycle below this limit's smallest duty: nothing to run on between them.
+
+    The step is then the stop's (cut-out at the knee of the request, 60 degC, below this limit's
+    stop at 64 degC), so no step resolved on the limit runs above the stop at less than the floor.
+    """
+    stop, stop_row, _ = _resolve(duty_line=None, T_limit_C=LIMIT.knee_C(Q_ON), T_upper=64.5, q_cycle=1_500.0)
+    run, row, calls = _resolve(T_upper=64.5, q_cycle=1_500.0)
+    assert run == stop and row == stop_row
+    assert run.reduced_fraction == 0.0 and "limit" not in calls
+    # ... and a cycle above the floor is resolved on the limit, never above its stop.
+    run, row, calls = _resolve(T_upper=64.5, q_cycle=2_500.0)
+    assert run.reduced_fraction > 0.0 and run.T_reduced_mean_C <= LIMIT.stop_C
+    assert calls["limit"][0][1] >= LIMIT.Q_min
 
 
 # ---------------------------------------------------------------------------
@@ -588,6 +642,13 @@ def test_a_warmer_source_than_the_reference_holds_at_its_own_stop():
     assert held.iloc[-3:].all() and df.loc[held, "hp_is_on"].all()
     # Held: the tank stays at the step's stop, the compressor making up the loss.
     assert df["T_tank_w [°C]"].iloc[-1] == pytest.approx(df["T_tank_w [°C]"].iloc[-2], abs=0.01)
+    # The step's stop is where its smallest continuous duty meets the limit: the tank never
+    # passes it, and no step runs on the limit at less than that duty.
+    floor = m._charge_floor_cache[1]
+    stop = condensing_tank_reach(m) - floor / m.K_tank_hx
+    assert df["T_tank_w [°C]"].max() <= stop + 1e-3
+    on_limit = df["reduced_duty_fraction [-]"] > 0.0
+    assert on_limit.any() and (df.loc[on_limit, "Q_max [W]"] >= floor * (1.0 - 1e-6)).all()
 
 
 def test_a_draw_larger_than_the_duty_at_the_stop_is_met_along_the_limit():
@@ -620,6 +681,14 @@ def test_a_draw_larger_than_the_duty_at_the_stop_is_met_along_the_limit():
         line = m.K_tank_hx * (condensing_tank_reach(m) - last["T_tank_w [°C]"])
         assert last["Q_ref_tank [W]"] == pytest.approx(line, rel=0.01), dt
         assert last["Q_ref_tank [W]"] > 1.5 * 6_300.0  # well above the duty at the stop
+        # Never on the limit at less than the smallest continuous duty, never running above the stop.
+        floor = m._charge_floor_cache[1]
+        stop = condensing_tank_reach(m) - floor / m.K_tank_hx
+        on_limit = df["reduced_duty_fraction [-]"] > 0.0
+        assert (df.loc[on_limit, "Q_max [W]"] >= floor * (1.0 - 1e-6)).all(), dt
+        T_start = np.concatenate(([63.0], df["T_tank_w [°C]"].to_numpy()[:-1]))
+        whole_step_above = (T_start > stop + 1e-3) & (df["T_tank_w [°C]"].to_numpy() > stop + 1e-3)
+        assert (df.loc[whole_step_above, "runtime_fraction [-]"] == 0.0).all(), dt
     (_, fine), (_, coarse) = runs[60.0], runs[600.0]
     assert coarse["T_tank_w [°C]"].iloc[-1] == pytest.approx(fine["T_tank_w [°C]"].iloc[-1], abs=0.05)
     assert coarse["Q_ref_tank [W]"].sum() * 600.0 == pytest.approx(fine["Q_ref_tank [W]"].sum() * 60.0, rel=0.01)

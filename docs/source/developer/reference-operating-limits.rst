@@ -507,7 +507,12 @@ there, cycling at ``Q_min`` against the tank's losses, and the row says
 ``Q_min`` (a draw), the compressor is not held to that duty: it runs on, the
 tank cools, the limit leaves it more, and the tank settles below the stop
 where the limit's duty is the loss (R32, 35 °C outdoor, a 10.5 kW draw: the
-stop is 62.1 °C with 6.3 kW, the tank settles at 60.1 °C).
+stop is 62.1 °C with 6.3 kW, the tank settles at 60.1 °C). Above the stop
+the compressor does not run at all, so on the limit it never delivers less
+than ``Q_min``; a tank found above the stop of its step (the source warmed, or
+a collector heated it) waits until it has cooled to it. A step in which
+another limit already holds the full-duty cycle at or below ``Q_min`` keeps
+the stop of ``"stop"``.
 
 *Electricity.* Along the stretch on the limit the condensing pressure is the
 limit's; only the duty changes, from ``hp_capacity`` down to ``Q_min``. A step

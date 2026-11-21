@@ -729,8 +729,10 @@ def simulate_thermostat_step(
         when the floor is not below ``Q_on``), and a call that stands there is
         held by cycling at that duty -- unless the tank loses more there than
         that duty: the compressor then runs on, and the tank settles below the
-        cut-out where the limit's duty is the loss. The run reports the stretch
-        on the limit
+        cut-out where the limit's duty is the loss. Above the cut-out the
+        compressor never runs, so it never delivers less than ``Q_min`` on the
+        limit (a tank within :data:`TEMPERATURE_TOL_K` above the cut-out is at
+        it). The run reports the stretch on the limit
         separately (``reduced_fraction``, ``T_reduced_mean_C``,
         ``T_full_mean_C``): the mean duty of the stretch is the limit's duty at
         its mean temperature, exactly, whatever the step. Mixed tanks only:
@@ -1046,6 +1048,12 @@ def _simulate_duty_limited_step(
         outrun = want and at_cut and not above_cut and q_cut > 0.0 and q_hold >= q_cut
         at_limit = at_cut and not outrun
         hold = want and at_limit and q_hold > 0.0 and q_cut > 0.0
+        if (outrun or hold) and tw > T_cut:
+            # Within the bound width above the cut-out the tank is at it (the
+            # last digits of the previous step's root solve): the compressor
+            # runs on, or holds, from the cut-out itself, never from above it,
+            # where the limit leaves less than the smallest continuous duty.
+            tw = T_cut
         holding = False
         if running:
             if hold:
@@ -1090,12 +1098,15 @@ def _simulate_duty_limited_step(
             t = t + step if target is not None else dt
             continue
         if n_events >= 1000 and scheduled:
-            # Fast-cycling limit: hold the tank where it is.
-            q_here = duty_at(tw)
+            # Fast-cycling limit: hold the tank where it is, at the duty the
+            # limit leaves there. Above the cut-out the compressor does not
+            # run; within the bound width of it, it has the cut-out's duty.
+            T_here = min(tw, T_cut)
+            q_here = 0.0 if above_cut else duty_at(T_here)
             share = min(1.0, max(0.0, -(p_const + slope * tw) / q_here)) if q_here > 0.0 else 0.0
-            index = 1 if on_limit(tw) else 0
+            index = 1 if on_limit(T_here) else 0
             on_time[index] += share * rem
-            on_T_integral[index] += share * rem * tw
+            on_T_integral[index] += share * rem * T_here
             age = 0.0
             t = dt
             continue
@@ -1144,6 +1155,10 @@ def _simulate_duty_limited_step(
         raise RuntimeError("in-step thermostat did not settle")
 
     total = on_time[0] + on_time[1]
+    # Every temperature of the stretch on the limit is at or below the cut-out,
+    # so its mean is too: the division's last digit must not say otherwise
+    # (the limit's duty at that mean is the stretch's duty, never below ``Q_min``).
+    T_reduced_mean = min(on_T_integral[1] / on_time[1], T_cut) if on_time[1] > 0.0 else None
     return InStepRun(
         runtime_fraction=min(1.0, max(0.0, total / dt)) if dt > 0 else 0.0,
         running_start=running_start,
@@ -1156,7 +1171,7 @@ def _simulate_duty_limited_step(
         T_on_first_C=tw_on_first,
         limit_stop=limit_stop,
         reduced_fraction=min(1.0, max(0.0, on_time[1] / dt)) if dt > 0 else 0.0,
-        T_reduced_mean_C=on_T_integral[1] / on_time[1] if on_time[1] > 0.0 else None,
+        T_reduced_mean_C=T_reduced_mean,
         T_full_mean_C=on_T_integral[0] / on_time[0] if on_time[0] > 0.0 else None,
     )
 
@@ -1431,8 +1446,10 @@ def _resolve_duty_limited(
     The reduced-duty part of :func:`resolve_step_operation` (which describes
     it). ``kwargs`` are the thermostat's arguments with the caller's cut-out,
     ``kwargs_stop`` those with the cut-out at the knee. ``None`` when the step
-    keeps the stop: no continuous duty below the request, or no operating
-    point on the limit.
+    keeps the stop: no continuous duty below the request (or below what the
+    full-duty cycle delivers), or no operating point on the limit. A step
+    resolved here therefore never runs above the limit's stop, and never on
+    the limit at less than the smallest continuous duty.
     """
     floor = min_duty()
     if floor is None or not (math.isfinite(floor) and 0.0 <= floor < Q_request):
@@ -1471,6 +1488,12 @@ def _resolve_duty_limited(
         if q_full <= 0.0:
             # No cycle at the full duty: the compressor does not run, as without the limit.
             return simulate_thermostat_step(Q_on=0.0, **kwargs_stop), full_result
+        if q_full <= limit.Q_min:
+            # Another limit already holds the cycle at or below the smallest
+            # duty found on this one: there is no stretch between the two to
+            # run on, and the step keeps the stop (at the knee of the request,
+            # which lies below this limit's stop).
+            return None
     run = simulate_thermostat_step(Q_on=q_full, **on_limit)
     if run.T_on_mean_C is None:
         return run, full_result

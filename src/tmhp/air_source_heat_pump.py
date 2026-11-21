@@ -515,276 +515,19 @@ INDOOR_UA_KEPT_REASON = (
 )
 
 
-def _is_real_number(value: Any) -> bool:
-    """Whether ``value`` is a real number of any numeric type (NumPy scalars included), and not a boolean.
-
-    Of NumPy's scalars the floating-point and the integer ones. A time span
-    (``np.timedelta64``) is an integer scalar to NumPy and is not a number
-    here; nor are booleans, complex numbers and dates.
-    """
-    if isinstance(value, np.generic):
-        return isinstance(value, (np.floating, np.integer)) and not isinstance(value, np.timedelta64)
-    return isinstance(value, numbers.Real) and not isinstance(value, bool)
-
-
-@contextlib.contextmanager
-def _unreadable_is_not_an_error() -> Iterator[None]:
-    """Let the block fail quietly where a value given as a humidity cannot be read.
-
-    A humidity may be any object a caller's table holds, and reading it --
-    its length, its conversion to a float, its ``repr`` -- can raise
-    anything; that only means it is not a humidity, which the caller then
-    says. Running out of memory is not about the value: ``MemoryError``
-    passes through, so that a schedule too large to copy is reported as
-    that and not as a bad schedule.
-    """
-    try:
-        yield
-    except MemoryError:
-        raise
-    except Exception:  # noqa: S110 -- the caller reports the value as not a humidity
-        pass
-
-
-def _shown(value: Any) -> str:
-    """``value`` for an error message: its ``repr``, else the name of its type, else a fixed phrase.
-
-    Each is tried only if the one before cannot be had, and each may fail
-    (a ``__repr__`` that raises; a type whose name cannot be read): making
-    the message never replaces the error it is for.
-    """
-    with _unreadable_is_not_an_error():
-        return repr(value)
-    with _unreadable_is_not_an_error():
-        return f"<{type(value).__name__}>"
-    return "<a value that cannot be shown>"
-
-
 def _check_room_humidity(value: float) -> float:
-    """``RH_room`` as a float, or ``ValueError`` (the check ``RH_out`` gets in :mod:`tmhp.defrost`).
-
-    A real number in 0-1 of any numeric type; not a boolean, text, a missing
-    value (NaN, ``None`` is the caller's "no humidity") or NumPy's masked
-    constant. Whatever comparing or converting the value raises (an integer
-    too large for a float), it is not a humidity: the error is this one.
-    """
-    number = math.nan
-    with _unreadable_is_not_an_error():
-        if _is_real_number(value) and 0.0 <= value <= 1.0:
-            number = float(value)
-    if not 0.0 <= number <= 1.0:
-        raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {_shown(value)}")
-    return number
+    """``RH_room`` as a float, or ``ValueError``: a real number in 0-1, not a boolean (as ``RH_out``)."""
+    if isinstance(value, bool) or not isinstance(value, numbers.Real) or not 0.0 <= value <= 1.0:
+        raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {value!r}")
+    return float(value)
 
 
-#: NumPy array kinds whose elements are numbers or text as Python objects too: floating point,
-#: signed and unsigned integers, text, bytes, and arrays of objects.
-_PLAIN_KINDS = "fiuUSO"
-
-
-def _array_entries(array: np.ndarray) -> np.ndarray:
-    """The elements of a NumPy array as objects that still say what they are.
-
-    ``astype(object)`` is right for numbers and text. For the other kinds it
-    is not: a time span or a date in nanoseconds comes out as a plain
-    integer, which would then read as a number. Those arrays -- time spans,
-    dates, complex numbers, booleans, records -- are taken element by
-    element as NumPy scalars, which keep their type.
-    """
-    if array.dtype.kind in _PLAIN_KINDS:
-        return array.astype(object)
-    entries = np.empty(array.size, dtype=object)
-    for index, element in enumerate(array.ravel()):
-        entries[index] = element
-    return entries.reshape(array.shape)
-
-
-def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
-    """The entries of a per-step schedule as given, one per step, without converting them to numbers.
-
-    What ``np.array(schedule, dtype=float)`` reads as one value per step is
-    read the same way -- a list, a tuple, an array, a pandas Series, and a
-    one-column array or DataFrame, whose rows are the steps -- but the
-    entries stay what they are (a missing value, text), for the caller to
-    convert where it reads them, each on its own:
-
-    - a list or a tuple gives its items as they are. NumPy is not asked what
-      the whole of it is: it would read a list holding one complex number or
-      one time span as all of that type, and a valid number on another step
-      would no longer be one;
-    - an array gives its elements, with the type the array has
-      (:func:`_array_entries`), and a masked element as a missing one
-      (``None``), not the number the array keeps under the mask;
-    - a Series or a DataFrame gives its values, never its labels.
-
-    Anything that is not one entry per step is refused: a mapping, text, a
-    single number, a table of several columns. ``steps`` is the number of
-    steps of the run: an iterator is read for one item more than that and no
-    further, so that one without an end (``itertools.repeat(0.5)``) is found
-    too long instead of being read for ever.
-    """
-    sized = True
-    with _unreadable_is_not_an_error():
-        sized = hasattr(schedule, "__len__")
-    if isinstance(schedule, Iterator) or (not sized and isinstance(schedule, Iterable)):
-        # A generator, or anything else that can only be iterated: its items,
-        # once -- as many as the run has steps, and one to see that it goes
-        # on. What producing them raises is the caller's own error (a file
-        # that is not there) and is left as it is.
-        schedule = _first_items(schedule, steps + 1)
-        if len(schedule) > steps:
-            raise ValueError(f"{name} holds more entries than the run has steps (tN = {steps})")
+def _room_humidity_of_step(value: float, step: int) -> float:
+    """The room humidity of a cooling step of a schedule, or ``ValueError`` naming the step."""
     try:
-        return _entries_of(schedule, name, steps)
-    except _NotASchedule as refusal:
-        # What is wrong with the schedule, as ``_entries_of`` worded it.
-        raise ValueError(str(refusal)) from None
-    except MemoryError:
-        raise  # too large to copy: that, not a bad schedule
-    except Exception as error:
-        # Not something entries can be taken from, whatever looking at it raised --
-        # a ValueError of its own conversion included, which names no schedule.
-        raise ValueError(
-            f"{name} must hold one entry per step, got {_type_name(schedule)} ({_type_name(error)})"
-        ) from error
-
-
-def _first_items(iterable: Any, count: int) -> list:
-    """The first ``count`` items of ``iterable`` (fewer if it ends), taking nothing beyond them.
-
-    Its iterator is asked for once and then only advanced: a reader that can
-    be started a single time (a stream, a cursor) is not started twice, as it
-    would be by handing it on to something that asks again
-    (``itertools.islice(iter(reader), n)`` calls ``__iter__`` twice).
-    """
-    iterator = iter(iterable)
-    items: list[Any] = []
-    while len(items) < count:
-        try:
-            items.append(next(iterator))
-        except StopIteration:
-            break
-    return items
-
-
-class _NotASchedule(Exception):
-    """Why :func:`_entries_of` refuses a schedule, in the words the caller gets as a ``ValueError``.
-
-    A type of its own, so that the refusals worded here are told from a
-    ``ValueError`` the schedule's own conversion raises.
-    """
-
-
-def _type_name(value: Any) -> str:
-    """The name of the type of ``value`` for an error message, or a fixed phrase where it cannot be read."""
-    with _unreadable_is_not_an_error():
-        return str(type(value).__name__)
-    return "an object of an unnamed type"
-
-
-def _entries_of(schedule: Any, name: str, steps: int) -> np.ndarray:
-    """:func:`_schedule_entries` for a schedule that has a length or is none at all; may raise anything it does."""
-    if isinstance(schedule, Mapping):
-        raise _NotASchedule(f"{name} must hold one entry per step, got a mapping")
-    if isinstance(schedule, (str, bytes)):
-        raise _NotASchedule(f"{name} must hold one entry per step, got text")
-    # The number of entries, where the schedule says it. A zero-dimensional
-    # array has a length that raises: it is not a sequence, and is refused
-    # below for what it is, not here.
-    length = None
-    if hasattr(schedule, "__len__"):
-        with _unreadable_is_not_an_error():
-            length = len(schedule)
-    if length is not None and length != steps:
-        # Before anything is converted: a sequence of the wrong length may be far too long to copy.
-        raise _NotASchedule(f"{name} length ({length}) != tN ({steps})")
-    if isinstance(schedule, np.ma.MaskedArray):
-        # np.asarray would drop the mask and hand out the data beneath it.
-        entries = _array_entries(np.asarray(schedule.data))
-        entries[np.ma.getmaskarray(schedule)] = None
-    elif isinstance(schedule, np.ndarray):
-        entries = _array_entries(schedule)
-    elif isinstance(schedule, (list, tuple)):
-        entries = np.empty(len(schedule), dtype=object)
-        for index, item in enumerate(schedule):
-            entries[index] = item
-    else:
-        # A Series, a DataFrame, another array-like: its values as objects
-        # (pandas hands a time span out as a Timedelta, not as an integer).
-        entries = np.asarray(schedule, dtype=object)
-    while entries.ndim > 1 and entries.shape[-1] == 1:
-        entries = entries[..., 0]  # one value per step in a column (or a column of columns)
-    if entries.ndim != 1:
-        raise _NotASchedule(f"{name} must hold one entry per step, got shape {entries.shape}")
-    return entries
-
-
-#: One-element containers a schedule entry is taken out of. A row of one value in a column of a
-#: table is two deep; anything deeper than this is not followed -- a container may hold itself.
-_MAX_ENTRY_NESTING = 8
-
-
-def _single_value(entry: Any) -> Any:
-    """``entry`` out of the one-element containers it may be wrapped in, as the scalar it is.
-
-    A step given as a row of one value (``[[0.5], [0.6]]``), as an array of
-    one element or as a record of one field is that value. An array element is taken as the NumPy scalar
-    it is (``item()`` would hand a time span in nanoseconds out as an
-    integer); a masked one stays masked. At most :data:`_MAX_ENTRY_NESTING`
-    containers are opened: what is still a container then -- a list that
-    contains itself, say -- is returned as it is, which is not a number.
-    """
-    for _ in range(_MAX_ENTRY_NESTING):
-        if isinstance(entry, (list, tuple)) and len(entry) == 1:
-            entry = entry[0]
-        elif isinstance(entry, np.ndarray) and entry.size == 1 and not np.ma.is_masked(entry):
-            entry = entry.reshape(())[()]
-        elif isinstance(entry, np.void) and entry.dtype.names is not None and len(entry.dtype.names) == 1:
-            entry = entry[entry.dtype.names[0]]  # a record of one field
-        else:
-            break
-    return entry
-
-
-def _room_humidity_of_step(value: Any, step: int) -> float:
-    """The room humidity a cooling step of a schedule holds, as a fraction in [0, 1], or ``ValueError``.
-
-    A schedule is kept as it was given and only the cooling steps are read
-    (heating and off steps may hold anything), so the entry is converted
-    here, on its own. It is a humidity when it is one real number, as it was
-    when the schedule was converted to floats as a whole: a number of any
-    numeric type (a NumPy scalar, a ``Decimal``, a ``Fraction``), text or
-    bytes that read as one (a column from a file), a complex number whose
-    imaginary part is zero (an array or a column that holds a complex number
-    anywhere is complex throughout), or such a value in a container of one
-    element. Refused, with the step it stands at: a missing value (NaN,
-    ``None``, ``pd.NA``), a masked entry, a boolean (as ``RH_room=True``
-    is), several values, any other object, and a number outside 0-1. So is a
-    value that only becomes a float by dropping what makes it something
-    else: a complex number with an imaginary part, a date or a time span.
-    """
-    number = math.nan
-    # Whatever reading the entry raises -- an integer too large for a float, a
-    # ``__float__`` of its own that fails -- it is not a humidity.
-    with _unreadable_is_not_an_error():
-        number = _entry_as_float(value)
-    if not 0.0 <= number <= 1.0:
-        raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {_shown(value)} at step {step}")
-    return number
-
-
-def _entry_as_float(value: Any) -> float:
-    """The one real number a schedule entry is, as a float; NaN where it is not one (:func:`_room_humidity_of_step`)."""
-    entry: Any = _single_value(value)
-    if isinstance(entry, numbers.Complex) and not isinstance(entry, numbers.Real):
-        # Python's and NumPy's complex numbers: the real number they equal, if they equal one.
-        entry = entry.real if entry.imag == 0 else None
-    if isinstance(entry, np.generic):
-        # Of NumPy's scalars, the real numbers and text; not booleans, dates, time spans.
-        readable = _is_real_number(entry) or isinstance(entry, np.character)
-    else:
-        readable = entry is not None and not isinstance(entry, (bool, np.ndarray, list, tuple))
-    return float(entry) if readable else math.nan
+        return _check_room_humidity(float(value))
+    except ValueError as error:
+        raise ValueError(f"{error} at step {step}") from None
 
 
 class AirSourceHeatPump(ReferenceStateMixin):
@@ -3767,14 +3510,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         RH_room_schedule : array-like | None
             Room relative humidity per step, as a fraction (0-1), for the wet
             indoor coil in cooling (``RH_room`` of :meth:`analyze_steady`).
-            If None, the dry coil on every step. The entries are read, and
-            checked to be numbers in 0-1, on cooling steps only: on heating
-            and off steps an entry may be anything -- NaN, ``None``,
-            ``pd.NA``, text -- and is not looked at. A cooling step whose
-            entry is not such a number raises ``ValueError`` naming the step.
-            One entry per step: a list, an array, a Series, or a one-column
-            array or DataFrame (its values, not its labels); a masked entry
-            of a NumPy masked array is a missing one.
+            If None, the dry coil on every step. One number per step, read
+            as ``RH_out_schedule`` is. The entries are checked on cooling
+            steps only: on heating and off steps a missing value (NaN,
+            ``None``) is not an error; a cooling step whose entry is not a
+            number in 0-1 raises ``ValueError`` naming the step.
 
         Returns
         -------
@@ -3815,14 +3555,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if len(RH_out_arr) != tN:
                 raise ValueError(f"RH_out_schedule length ({len(RH_out_arr)}) != tN ({tN})")
 
-        # Kept as given, not converted to numbers: only the cooling steps are
-        # read, and the others may hold whatever a file has where no humidity
-        # was recorded (NaN, None, pd.NA, text).
-        RH_room_steps: np.ndarray | None = None
+        # Read as RH_out_schedule is. Only the cooling steps are checked: a
+        # heating or an off step may hold a missing value (NaN, None).
+        RH_room_arr = None
         if RH_room_schedule is not None:
-            RH_room_steps = _schedule_entries(RH_room_schedule, "RH_room_schedule", tN)
-            if len(RH_room_steps) != tN:
-                raise ValueError(f"RH_room_schedule length ({len(RH_room_steps)}) != tN ({tN})")
+            RH_room_arr = np.array(RH_room_schedule, dtype=float)
+            if RH_room_arr.shape != (tN,):
+                raise ValueError(f"RH_room_schedule length ({len(RH_room_arr)}) != tN ({tN})")
 
         self.time = time
         self.dt = dt_s
@@ -3852,9 +3591,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     # Read on cooling rows only: heating and off rows have no
                     # use for it, and whatever stands there is not an error.
                     RH_room=(
-                        None
-                        if RH_room_steps is None or not Q_r_iu_n > 0
-                        else _room_humidity_of_step(RH_room_steps[n], n)
+                        None if RH_room_arr is None or not Q_r_iu_n > 0 else _room_humidity_of_step(RH_room_arr[n], n)
                     ),
                 )
 

@@ -144,6 +144,8 @@ def test_what_the_study_found(committed):
     # Every row runs in both passes, and all but one coil is wet.
     assert numbers["rows_scored_dry"] == numbers["rows_scored_wet"] == 180
     assert numbers["rows_model_coil_dry_in_wet_pass"] == 1
+    # No row is wet enough for the coil line to reach the saturation curve.
+    assert numbers["rows_leaving_air_saturated"] == 0
     # Eight rows publish a ratio of 1.00 (no coil temperature to compare); none is below what a coil line can give.
     assert numbers["rows_published_ratio_one"] == 8 and numbers["rows_with_catalogue_adp"] == 172
     assert numbers["rows_published_ratio_below_coil_line_minimum"] == 0

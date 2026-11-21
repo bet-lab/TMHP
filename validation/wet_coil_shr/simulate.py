@@ -48,7 +48,9 @@ Boundaries of the comparison
 - ``T_adp_catalog_C`` is the coil temperature at which the model's own coil
   line (room state to saturated air at the coil) has the published ratio:
   what the evaporating temperature would have to be for the model to print
-  that ratio at that room state. It involves no cycle solve. A straight coil
+  that ratio at that room state. It involves no cycle solve (and not the
+  model's saturation limit on the leaving air, which none of these rows
+  reaches: ``rows_leaving_air_saturated`` of the headline). A straight coil
   line has a lowest ratio for a room state (:func:`apparatus_dew_point`); a
   published ratio below it has no such temperature (NaN).
 - The two Fujitsu units (held, AHRI 210/240) record a sensible heat ratio but
@@ -164,6 +166,16 @@ def _models(catalog) -> dict[str, object]:
     return models
 
 
+def _leaving_air_saturated(result: dict) -> bool:
+    """Whether the coil's leaving air sits on the saturation curve (the model's limit on the coil line)."""
+    from tmhp.defrost import saturation_humidity_ratio
+
+    w_out = float(result.get("w_iu_a_out [kg/kg]", math.nan))
+    if not math.isfinite(w_out):
+        return False
+    return w_out >= saturation_humidity_ratio(float(result["T_iu_a_mid [°C]"])) * (1.0 - 1e-9)
+
+
 def run_point(catalog, point, model, name: str, rh: float | None) -> dict:
     """One catalogue row in one pass, scored as ``validation.parity.run.run_catalog`` scores it."""
     from validation.parity.run import CAPACITY_SHORT, CYCLING_MEAN, _capacity_short, _cycling_mean
@@ -195,6 +207,7 @@ def run_point(catalog, point, model, name: str, rh: float | None) -> dict:
         f"shr_net_{name}": net_sensible / net_total if usable and net_total > 0.0 else nan,
         f"q_latent_W_{name}": latent if usable else nan,
         f"condensate_kg_h_{name}": float(result.get("m_dot_iu_condensate [kg/s]", nan)) * 3600.0 if usable else nan,
+        f"leaving_air_saturated_{name}": _leaving_air_saturated(result) if usable else False,
         f"failure_{name}": failure,
         f"usable_{name}": usable,
     }
@@ -312,6 +325,7 @@ def headline(points: pd.DataFrame) -> dict:
         "rows_scored_dry": int(points.usable_dry.sum()),
         "rows_scored_wet": int(points.usable_wet.sum()),
         "rows_model_coil_dry_in_wet_pass": int((wet.q_latent_W_wet == 0.0).sum()),
+        "rows_leaving_air_saturated": int(wet.leaving_air_saturated_wet.sum()),
         "shr_catalog_mean": float(wet.shr_catalog.mean()),
         "shr_model_net_mean": float(wet.shr_net_wet.mean()),
         "shr_model_gross_mean": float(wet.shr_gross_wet.mean()),

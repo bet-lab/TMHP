@@ -1,0 +1,565 @@
+{
+  "verified_at": "2026-10-27T04:21:25.248402+00:00",
+  "stage": "nas-payload-verified-metadata-review-pending",
+  "transport": "rclone receipt-nas SMB",
+  "datasets": 37,
+  "files": 43,
+  "bytes": 450867643,
+  "incoming_batch": "receipt-nas:datasets/_incoming/20261027-tmhp-catalog-37-f9bc1249",
+  "incoming_upload_and_smb_readback_sha256": "43/43 matched",
+  "final_smb_readback_sha256": "43/43 matched",
+  "final_nas_read_path_sha256": "43/43 matched",
+  "canonical_init_manifest_inventory": "37/37 file_count, bytes and tree_sha256 matched; executed on ml-a6000 reading NAS, not on NAS shell",
+  "incoming_cleanup": "only this task's 43 staging payload files, NOTE.txt and now-empty unique batch dirs removed after final verification",
+  "incoming_cleaned_at": "2026-10-27T04:22:22.391806+00:00",
+  "existing_nas_raw_files_modified": false,
+  "nas_shell_commands_executed": false,
+  "shared_nas_metadata_written": false,
+  "shared_checkout_updated": false,
+  "merged": false,
+  "site_published": false,
+  "new_web_raw_downloads": 0,
+  "destination_paths_preflight": "all 37 dataset folders absent over SMB immediately before additions",
+  "source_files_preserved_locally": true,
+  "nas_payload_root": "/mnt/datasets",
+  "smb_payload_root": "receipt-nas:datasets",
+  "verified_file_hashes": [
+    {
+      "path": "energy-systems/daikin-ecpen24-022-source/files/source/DAIKIN-ECPEN24-022.pdf",
+      "bytes": 276186,
+      "sha256": "efa381f859691792914561361ae36703f46e464abd5c071cb07573c944d6e20f"
+    },
+    {
+      "path": "energy-systems/fujitsu-halcyon-2022-source/files/source/FUJITSU-HALCYON-2022.pdf",
+      "bytes": 10729921,
+      "sha256": "5ef9529cf0adbdc81270edd4483e8b2489ce2846db11d3a0750177d426271f73"
+    },
+    {
+      "path": "energy-systems/midea-it-2024-source/files/source/MIDEA-IT-2024.pdf",
+      "bytes": 24773341,
+      "sha256": "000586dbf2e05e0c1ac8885d5fedbce670e2b4e5b7d9e982269e8b6ce1232399"
+    },
+    {
+      "path": "energy-systems/panasonic-cgz-2025-source/files/source/PANASONIC-CGZ-2025.pdf",
+      "bytes": 33148979,
+      "sha256": "103cbfcbba9c8f26b45d1750451ac62f5a2c95f30b1dedeb100d119024375cb5"
+    },
+    {
+      "path": "energy-systems/highly-india-2015-source/files/source/HIGHLY-INDIA-2015.pdf",
+      "bytes": 993355,
+      "sha256": "284e55d2ba288fa51737bffd7b3e2702b21449cba540c7315be3fb46e7a8e35f"
+    },
+    {
+      "path": "energy-systems/panasonic-paci-2020-source/files/source/PANASONIC-PACI-2020.pdf",
+      "bytes": 13173899,
+      "sha256": "e6a6ca70deafcc1eca88a051b1aa98dc3ed7a354d466a1735aac46d6ceceef4d"
+    },
+    {
+      "path": "energy-systems/fujitsu-uk-km-2018-source/files/source/FUJITSU-UK-KM-2018.pdf",
+      "bytes": 1557733,
+      "sha256": "18009c61bfd9c71b7c2cda73db8572e329eae79df24fc35a96d931a3aab85b89"
+    },
+    {
+      "path": "energy-systems/fujitsu-uk-cassette-2018-source/files/source/FUJITSU-UK-CASSETTE-2018.pdf",
+      "bytes": 2243911,
+      "sha256": "ea1b9f526c6076b9ee83dff12a400bbdd1aa98e0fd51f49e3f6cf73128c3b8f9"
+    },
+    {
+      "path": "energy-systems/fujitsu-eu-2018-source/files/source/FUJITSU-EU-2018.pdf",
+      "bytes": 40613900,
+      "sha256": "2a989d4c80e7bb7a55a72993bf38d65079bf59862ad1435ff92220ec3b66de0a"
+    },
+    {
+      "path": "energy-systems/fujitsu-uk-split-2020-source/files/source/FUJITSU-UK-SPLIT-2020.pdf",
+      "bytes": 5126562,
+      "sha256": "580811d80363906315f246da348a9a835e9a4f02dcb3e965562775a87100fadb"
+    },
+    {
+      "path": "energy-systems/lg-rotary-2024-source/files/source/LG-ROTARY-2024.pdf",
+      "bytes": 8526339,
+      "sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a"
+    },
+    {
+      "path": "energy-systems/lg-rotary-web-20261025-source/files/extracted/LG-ROTARY-product-page-20261025.web-snapshot.pdf",
+      "bytes": 2000540,
+      "sha256": "a77d102938c8eed47187434b99bf094f38b6a328717cb0cc3bb77e6c8134d10a"
+    },
+    {
+      "path": "energy-systems/lg-rotary-web-20261025-source/files/source/LG-ROTARY-product-page-20261025.html",
+      "bytes": 4102566,
+      "sha256": "aa0fa37f489aefa5cc8e408cbabc683c5972f1ebbbfa90a96657bde89bd00cb4"
+    },
+    {
+      "path": "energy-systems/highly-web-d-20261025-source/files/extracted/HIGHLY-D-20261025-web-snapshot.pdf",
+      "bytes": 546660,
+      "sha256": "13f475f2cc665303540407d070584c4931876c585e05e7febfd480f9a5d0327f"
+    },
+    {
+      "path": "energy-systems/highly-web-d-20261025-source/files/source/HIGHLY-D-20261025.html",
+      "bytes": 20048,
+      "sha256": "4a90a564a97f9322ce2ce7b01fae79acd6fd4c4395b8319c39f96f725f3096ea"
+    },
+    {
+      "path": "energy-systems/highly-web-g-20261025-source/files/extracted/HIGHLY-G-20261025-web-snapshot.pdf",
+      "bytes": 565162,
+      "sha256": "b6be636678ba39920a36d7b00f53be733ee5e4855364c61b6d62239a50952d51"
+    },
+    {
+      "path": "energy-systems/highly-web-g-20261025-source/files/source/HIGHLY-G-20261025.html",
+      "bytes": 22827,
+      "sha256": "f5c1415de44814d092acc58544c6e1e87e0c10aa33f168264e491e4a5cc151dd"
+    },
+    {
+      "path": "energy-systems/highly-web-h-20261025-source/files/extracted/HIGHLY-H-20261025-web-snapshot.pdf",
+      "bytes": 654030,
+      "sha256": "278eb7dce5b8b77be7c8ef1becaf0d3f679f0f3736f625ab5b9dc1a4f54383f5"
+    },
+    {
+      "path": "energy-systems/highly-web-h-20261025-source/files/source/HIGHLY-H-20261025.html",
+      "bytes": 36896,
+      "sha256": "089bdf1c0bff3b3acff2477e5248c5d34edf7c7a7c4d4927356c7327876e9229"
+    },
+    {
+      "path": "energy-systems/highly-web-l-20261025-source/files/extracted/HIGHLY-L-20261025-web-snapshot.pdf",
+      "bytes": 602979,
+      "sha256": "ce35d1221be6fcac0d2c0b61a4e8e30fedaa764e68e401d2517e17780477af44"
+    },
+    {
+      "path": "energy-systems/highly-web-l-20261025-source/files/source/HIGHLY-L-20261025.html",
+      "bytes": 28621,
+      "sha256": "a523b2fde1daed265c28f6f4bd22463e90e0bf3818f6e491bff5906b060eaa46"
+    },
+    {
+      "path": "energy-systems/highly-web-th-20261025-source/files/extracted/HIGHLY-TH-20261025-web-snapshot.pdf",
+      "bytes": 551002,
+      "sha256": "098b225b050336d5159a9d3de0160c96943a2637bcde3cde7d0fd1d07664486f"
+    },
+    {
+      "path": "energy-systems/highly-web-th-20261025-source/files/source/HIGHLY-TH-20261025.html",
+      "bytes": 21117,
+      "sha256": "85fb8786206ce05b929c076fbeddd80076ad6fc76e54c3e5e4113b7745fdac41"
+    },
+    {
+      "path": "energy-systems/meuk-5331-source/files/source/MEUK-5331.pdf",
+      "bytes": 64189616,
+      "sha256": "1178e2d732c2668246ef362f665622d1f911fdf52ab22fa4771365cc3c7cd321"
+    },
+    {
+      "path": "energy-systems/meuk-5330-source/files/source/MEUK-5330.pdf",
+      "bytes": 42473525,
+      "sha256": "07d112acffb01113b8d15cf40ae860ae28a5d87e7be3e882ee20261644f0fc6e"
+    },
+    {
+      "path": "energy-systems/meuk-4366-source/files/source/MEUK-4366.pdf",
+      "bytes": 764458,
+      "sha256": "01576fc19da789829eaf62603e4dda11e34cbd6f9197e62cb603464823c27d0d"
+    },
+    {
+      "path": "energy-systems/meuk-4486-source/files/source/MEUK-4486.pdf",
+      "bytes": 1033194,
+      "sha256": "3d1091ea6e8b0f69066e13bf6c557a376aac9022f232557a8223d24b9bd9fd6e"
+    },
+    {
+      "path": "energy-systems/meuk-4591-source/files/source/MEUK-4591.pdf",
+      "bytes": 688946,
+      "sha256": "c39f6f742d753d730a2fb52d916661f9ad6366833b67fad02be8b141a5d81211"
+    },
+    {
+      "path": "energy-systems/panasonic-bigrac-gen26-lt-source/files/source/PANASONIC-BIGRAC-GEN26-LT.pdf",
+      "bytes": 13417470,
+      "sha256": "888fdda09580665f23e92f5db443179a6ce8bb8ea313bc2adbb52d23706d37b4"
+    },
+    {
+      "path": "energy-systems/lg-us-em-sz-extpipe-r32-0725-source/files/source/LG-US-EM-SZ-EXTPIPE-R32-0725.pdf",
+      "bytes": 10351646,
+      "sha256": "925e5d5eee177112ebbc50f8033f2822d5f0d53302bbf52f3a5d6583f5970be0"
+    },
+    {
+      "path": "energy-systems/lg-us-em-sz-stdeff-mega-r32-0725-source/files/source/LG-US-EM-SZ-STDEFF-MEGA-R32-0725.pdf",
+      "bytes": 13590867,
+      "sha256": "6962c1b5d9d14bb86248364a4c62236547437f07f1a6277f24a3415e887f1ccc"
+    },
+    {
+      "path": "energy-systems/lg-us-em-sz-artcool-premier-r32-0125-source/files/source/LG-US-EM-SZ-ARTCOOL-PREMIER-R32-0125.pdf",
+      "bytes": 13660525,
+      "sha256": "3fa05dbc3d2e092049bcd2fd00f3f9d768c8efe5ba354df00a154ef4a59e4315"
+    },
+    {
+      "path": "energy-systems/danfoss-application-guide-20261024/files/source/application_guide.pdf",
+      "bytes": 6110557,
+      "sha256": "f97f9fd97adc5f47963e6504331fdb7db7b1cea7b8e87ef9d1f5023fa6b138ec"
+    },
+    {
+      "path": "energy-systems/danfoss-coolselector-user-guide-20261024/files/source/coolselector_user_guide.pdf",
+      "bytes": 10789160,
+      "sha256": "73b07bc070afed23fd940283dfbe33d71d341c8fd72ad30fc77d86c452c61f84"
+    },
+    {
+      "path": "energy-systems/panasonic-aquarea-catalogue-2025-held-copy/files/source/Panasonic_Aquarea_2025.pdf",
+      "bytes": 17707407,
+      "sha256": "bae7bd9bc3abc38d98bce3350e698c60b63592d4637a1accef0d61a7008a42dc"
+    },
+    {
+      "path": "energy-systems/panasonic-wh-sdc0316m9e8-wxg-service-pcz2411004ce/files/source/Panasonic_R290_WH-WXG_Service_Manual.pdf",
+      "bytes": 30386662,
+      "sha256": "b5d1a178e9636cf50be5de1b9462fb7344fb534322ee4e09a4a33dcedfa107ea"
+    },
+    {
+      "path": "energy-systems/samsung-ehs-mono-ht-quiet-r32-50hz-held-copy/files/source/Samsung_EHS_Mono_HT_Quiet_R32.pdf",
+      "bytes": 14734164,
+      "sha256": "6d5938139bdec638d515397059929cf02e2e93e1895a895ac831b0cd050df6a6"
+    },
+    {
+      "path": "energy-systems/panasonic-wh-mxc09j3e8-12j9e8-service-papamy2110029ce/files/source/Panasonic_R32_WH-MXC_Service_Manual.pdf",
+      "bytes": 14074788,
+      "sha256": "dccf1d69a539ea694f51fb7330db59001ef147b66d7c79bbd18bb7448e32dae7"
+    },
+    {
+      "path": "energy-systems/panasonic-wh-mxc16j9e8-service-papamy2112029ce/files/source/Panasonic_R32_WH-MXC16_Service_Manual.pdf",
+      "bytes": 13949837,
+      "sha256": "000fd5c5a07f10395d59d03984ec2fc65ca304959f21bdbf22223736511fca2a"
+    },
+    {
+      "path": "energy-systems/panasonic-wh-uq-he8-service-papamy1704053ce/files/source/Panasonic_R410A_WH-UQ_Service_Manual.pdf",
+      "bytes": 21541269,
+      "sha256": "297a37ae612ce66723b87c03d1141c7a4e02794ac88e102b70e6f3d5654aadd9"
+    },
+    {
+      "path": "energy-systems/cuevas-lebrun-scroll-2009-local-fbb842ce/files/source/Cuevas_2009_ATE.pdf",
+      "bytes": 304221,
+      "sha256": "fbb842ce80e6ab3b7c522c3048411887f5a85cff7c7d1f29ce5c583b4182f4d7"
+    },
+    {
+      "path": "energy-systems/guth-atakan-r290-scroll-supplement-2023-v1/files/source/Guth_2023_IJR_supplement.xlsx",
+      "bytes": 286867,
+      "sha256": "a50e7b395a5fa9629c33ee22a928eac0989aeb88f7200317431c98dad49f6e81"
+    },
+    {
+      "path": "energy-systems/mitsubishi-sci-rotary-local-85e2c806/files/source/Mitsubishi_SCI_rotary_catalogue.pdf",
+      "bytes": 10495890,
+      "sha256": "85e2c806fac5bd1b3310ebc87c5e47125d19b2e085eddf9da44fd5adc7d20992"
+    }
+  ],
+  "verified_dataset_trees": [
+    {
+      "dataset_id": "daikin-ecpen24-022-source",
+      "path": "energy-systems/daikin-ecpen24-022-source",
+      "file_count": 1,
+      "bytes": 276186,
+      "tree_sha256": "28a05f552c6ebed0df0e7b66c68b8b17093d583bc32db1e0b1c6a4a27c7aed26",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "fujitsu-halcyon-2022-source",
+      "path": "energy-systems/fujitsu-halcyon-2022-source",
+      "file_count": 1,
+      "bytes": 10729921,
+      "tree_sha256": "5029b5b5bed07d9970a88900563a2775551c164e228ce48b3a5972ff71a74321",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "midea-it-2024-source",
+      "path": "energy-systems/midea-it-2024-source",
+      "file_count": 1,
+      "bytes": 24773341,
+      "tree_sha256": "8cc7200d99ee7b08fc72b9588231603e0dbc1ad73a1c273fadd4fbb142e56103",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "panasonic-cgz-2025-source",
+      "path": "energy-systems/panasonic-cgz-2025-source",
+      "file_count": 1,
+      "bytes": 33148979,
+      "tree_sha256": "c01110543ba9aa558dcd6b8450bc69faba52453213102f289bfb3b6f4bf4d9ba",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "highly-india-2015-source",
+      "path": "energy-systems/highly-india-2015-source",
+      "file_count": 1,
+      "bytes": 993355,
+      "tree_sha256": "4fad1049acd9e245e1138a5cbed3307cd76d3602a4367b1a8a6e7dbe5aba0434",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "panasonic-paci-2020-source",
+      "path": "energy-systems/panasonic-paci-2020-source",
+      "file_count": 1,
+      "bytes": 13173899,
+      "tree_sha256": "17149b7f799e93372573777b419c3bf9b885c45cd595cc7f33ab4fd116485745",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "fujitsu-uk-km-2018-source",
+      "path": "energy-systems/fujitsu-uk-km-2018-source",
+      "file_count": 1,
+      "bytes": 1557733,
+      "tree_sha256": "73ca0cbb428040b8dbce6ba4f4a67c185becd49e70995eed1e016a6aae61ef37",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "fujitsu-uk-cassette-2018-source",
+      "path": "energy-systems/fujitsu-uk-cassette-2018-source",
+      "file_count": 1,
+      "bytes": 2243911,
+      "tree_sha256": "0a9759b387252587291f7068230cd73e443b61cb7568d8f46a381d2841595b03",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "fujitsu-eu-2018-source",
+      "path": "energy-systems/fujitsu-eu-2018-source",
+      "file_count": 1,
+      "bytes": 40613900,
+      "tree_sha256": "a3f5fa9a6284383397477a40899b6662c705bcb4462544d1085ad4893a94c3f4",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "fujitsu-uk-split-2020-source",
+      "path": "energy-systems/fujitsu-uk-split-2020-source",
+      "file_count": 1,
+      "bytes": 5126562,
+      "tree_sha256": "8e51486781c2882a16fdf662c5314f6a8511e88b2a55fcd838d92b30ee0d1979",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "lg-rotary-2024-source",
+      "path": "energy-systems/lg-rotary-2024-source",
+      "file_count": 1,
+      "bytes": 8526339,
+      "tree_sha256": "b1798d9f1c476cdd5d044ece822bd445eb846c05da04486b253c8d938ea9e8bc",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "lg-rotary-web-20261025-source",
+      "path": "energy-systems/lg-rotary-web-20261025-source",
+      "file_count": 2,
+      "bytes": 6103106,
+      "tree_sha256": "fc8092c1ef48a03cbaeae48bdd08f98aef26b10038bcbf7c8d5429f86ab52073",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "highly-web-d-20261025-source",
+      "path": "energy-systems/highly-web-d-20261025-source",
+      "file_count": 2,
+      "bytes": 566708,
+      "tree_sha256": "329f6a84d6cc0a124de781025db6a22f5a19882fad6aa36771425414a10242e8",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "highly-web-g-20261025-source",
+      "path": "energy-systems/highly-web-g-20261025-source",
+      "file_count": 2,
+      "bytes": 587989,
+      "tree_sha256": "7f8708575025b315005cf270e6fb26bf18a52d4a861a519b967e04815bc5cec9",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "highly-web-h-20261025-source",
+      "path": "energy-systems/highly-web-h-20261025-source",
+      "file_count": 2,
+      "bytes": 690926,
+      "tree_sha256": "5db83c3e40c98ab9b75b82dcedfb43d3d94eba4ce08e8d44cced7a87826b6254",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "highly-web-l-20261025-source",
+      "path": "energy-systems/highly-web-l-20261025-source",
+      "file_count": 2,
+      "bytes": 631600,
+      "tree_sha256": "bf3bf72c1f33e69518356a9c111cae49bef37de673a983694da5a96c083a33ce",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "highly-web-th-20261025-source",
+      "path": "energy-systems/highly-web-th-20261025-source",
+      "file_count": 2,
+      "bytes": 572119,
+      "tree_sha256": "21bee90555d55f8d37dc6a537d6fa9524ea1427f5743ea0cb3b902134f4d8a62",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "meuk-5331-source",
+      "path": "energy-systems/meuk-5331-source",
+      "file_count": 1,
+      "bytes": 64189616,
+      "tree_sha256": "bbe55c865b8de16b123be36889dbfff42c54a8f0ee9902c8ae9e62da0385bf76",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "meuk-5330-source",
+      "path": "energy-systems/meuk-5330-source",
+      "file_count": 1,
+      "bytes": 42473525,
+      "tree_sha256": "12a6e65f715979f0d357984edca1eecd6b4176f2afa5f85a032d613ac5c1ade5",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "meuk-4366-source",
+      "path": "energy-systems/meuk-4366-source",
+      "file_count": 1,
+      "bytes": 764458,
+      "tree_sha256": "ebf740f9cf0e63b20fcee5ec823f4b18d7d6ff725ee862713784aec93f8cb37c",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "meuk-4486-source",
+      "path": "energy-systems/meuk-4486-source",
+      "file_count": 1,
+      "bytes": 1033194,
+      "tree_sha256": "e0b47f5faab65052405b4cd2249d0337a192bdea7e3341dae4b246537a644673",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "meuk-4591-source",
+      "path": "energy-systems/meuk-4591-source",
+      "file_count": 1,
+      "bytes": 688946,
+      "tree_sha256": "fd1df230e2636165c485d5a63ad083273bd9a5b40941d4494b3fc61a80ffc7cd",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "panasonic-bigrac-gen26-lt-source",
+      "path": "energy-systems/panasonic-bigrac-gen26-lt-source",
+      "file_count": 1,
+      "bytes": 13417470,
+      "tree_sha256": "bf5e96e0b36436dbaa9c91d3d9e2192eb280644f9ce6160dd9e387078a47c5d1",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "lg-us-em-sz-extpipe-r32-0725-source",
+      "path": "energy-systems/lg-us-em-sz-extpipe-r32-0725-source",
+      "file_count": 1,
+      "bytes": 10351646,
+      "tree_sha256": "e8ab3435619afa34a1496dd2bffcbc03f0f00571819117ac3f48ff920b6b62bf",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "lg-us-em-sz-stdeff-mega-r32-0725-source",
+      "path": "energy-systems/lg-us-em-sz-stdeff-mega-r32-0725-source",
+      "file_count": 1,
+      "bytes": 13590867,
+      "tree_sha256": "107e8ea2a2c6460e56b735cdbb9a924f9964c25eb32862f6d42fcabaac082fd3",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "lg-us-em-sz-artcool-premier-r32-0125-source",
+      "path": "energy-systems/lg-us-em-sz-artcool-premier-r32-0125-source",
+      "file_count": 1,
+      "bytes": 13660525,
+      "tree_sha256": "afc787b05324dd5bae96c70e79def71ff9bf930c33e807e3d4ca3ad2405b4b0f",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "danfoss-application-guide-20261024",
+      "path": "energy-systems/danfoss-application-guide-20261024",
+      "file_count": 1,
+      "bytes": 6110557,
+      "tree_sha256": "2f317dfeaab465c12d8e7f0cd960fc8cf34544bf967b0281dc571f1e581a93f8",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "danfoss-coolselector-user-guide-20261024",
+      "path": "energy-systems/danfoss-coolselector-user-guide-20261024",
+      "file_count": 1,
+      "bytes": 10789160,
+      "tree_sha256": "a27be94c169be3620c64c75c2761facbae3f8c0f2e6f16c3c0409bc8f9fb8713",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "panasonic-aquarea-catalogue-2025-held-copy",
+      "path": "energy-systems/panasonic-aquarea-catalogue-2025-held-copy",
+      "file_count": 1,
+      "bytes": 17707407,
+      "tree_sha256": "c989a313f34bb712aade4dca79ddf063c1c6f25e9b7f4ffd1cf59fc90eebb4af",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "panasonic-wh-sdc0316m9e8-wxg-service-pcz2411004ce",
+      "path": "energy-systems/panasonic-wh-sdc0316m9e8-wxg-service-pcz2411004ce",
+      "file_count": 1,
+      "bytes": 30386662,
+      "tree_sha256": "ce8e5fb0aaedf027817fa679c58fce7dcf8e0d32f65de05d8077174c866c9e12",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "samsung-ehs-mono-ht-quiet-r32-50hz-held-copy",
+      "path": "energy-systems/samsung-ehs-mono-ht-quiet-r32-50hz-held-copy",
+      "file_count": 1,
+      "bytes": 14734164,
+      "tree_sha256": "6b598012e5e2477d5ecf1b77035c11489965042c6a9f9502dd02436dc5f7e3d2",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "panasonic-wh-mxc09j3e8-12j9e8-service-papamy2110029ce",
+      "path": "energy-systems/panasonic-wh-mxc09j3e8-12j9e8-service-papamy2110029ce",
+      "file_count": 1,
+      "bytes": 14074788,
+      "tree_sha256": "78269a778701cc92ab3ffcc4bbecea8e2c9f7f7411b96bfbdccc0443fe3495bf",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "panasonic-wh-mxc16j9e8-service-papamy2112029ce",
+      "path": "energy-systems/panasonic-wh-mxc16j9e8-service-papamy2112029ce",
+      "file_count": 1,
+      "bytes": 13949837,
+      "tree_sha256": "6de859ef21e679052ca02ac3eaffa1dcbc7126aa818cbcc7516b1f0eb4f19090",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "panasonic-wh-uq-he8-service-papamy1704053ce",
+      "path": "energy-systems/panasonic-wh-uq-he8-service-papamy1704053ce",
+      "file_count": 1,
+      "bytes": 21541269,
+      "tree_sha256": "98ea522e297baf1995568628d48ab09bb6dfedbe96c86c0adf23c85c585fc636",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "cuevas-lebrun-scroll-2009-local-fbb842ce",
+      "path": "energy-systems/cuevas-lebrun-scroll-2009-local-fbb842ce",
+      "file_count": 1,
+      "bytes": 304221,
+      "tree_sha256": "df684e9ce4b2b189cd6773c2f7ad8f7adbe3307a0816b3ecb9223c59c1d05667",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "guth-atakan-r290-scroll-supplement-2023-v1",
+      "path": "energy-systems/guth-atakan-r290-scroll-supplement-2023-v1",
+      "file_count": 1,
+      "bytes": 286867,
+      "tree_sha256": "69e33613372bdb53351dddb666ed6f40f9008ef75a1268b960000d36875b320d",
+      "manifest_match": true
+    },
+    {
+      "dataset_id": "mitsubishi-sci-rotary-local-85e2c806",
+      "path": "energy-systems/mitsubishi-sci-rotary-local-85e2c806",
+      "file_count": 1,
+      "bytes": 10495890,
+      "tree_sha256": "a272b3314e5a8397730ade1a50c64da86d5c1ec1953a9850271b31ead907334e",
+      "manifest_match": true
+    }
+  ],
+  "remaining": [
+    "LG 670/1423 extraction differences and required full tidy extraction",
+    "missing originals, licence/acquisition evidence and source boundary review",
+    "shared warehouse integration",
+    "metadata PR review and merge",
+    "shared NAS checkout fast-forward and canonical shared-root verify after metadata exists there",
+    "separate approved deployment; NAS-shell operations if selected require their own working access"
+  ],
+  "shared_root_verify_probe": {
+    "at": "2026-10-27T04:26:34.356709+00:00",
+    "command": [
+      "python3",
+      "_tools/dataset_pool.py",
+      "verify",
+      "/mnt/datasets",
+      "--id",
+      "daikin-ecpen24-022-source"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "verify failed: unknown dataset IDs: ['daikin-ecpen24-022-source']\n",
+    "reason": "shared NAS checkout does not yet include unmerged PR metadata; actual new raw files already verified separately",
+    "approval_boundary": "shared checkout update follows PR review/merge; not performed"
+  }
+}

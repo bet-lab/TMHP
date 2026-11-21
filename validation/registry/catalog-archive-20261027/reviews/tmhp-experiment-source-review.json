@@ -1,0 +1,609 @@
+{
+  "reviewed_on": "2026-10-27",
+  "scope": "read-only experiment-source audit; no new raw download, no shared writes, no efficiency/property/regression calculation",
+  "registry_presence": [
+    {
+      "source_id": "cuevas2009",
+      "registry_relative_path": "compressor_maps/papers/cuevas_lebrun_2009_ate.pdf",
+      "exists": false
+    },
+    {
+      "source_id": "ossorio2023",
+      "registry_relative_path": "compressor_maps/papers/ossorio_navarroperis_2023_ate.pdf",
+      "exists": false
+    },
+    {
+      "source_id": "guth2023",
+      "registry_relative_path": "pdfs/guth_atakan_2023_ijrefrig.pdf",
+      "exists": false
+    },
+    {
+      "source_id": "shao2004",
+      "registry_relative_path": "compressor_maps/papers/shao_2004_ijr_rotary.pdf",
+      "exists": false
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "cuevas2009",
+      "release_id": "publisher-pdf-local-sha-fbb842ce",
+      "dataset_id": null,
+      "manufacturer": "unknown",
+      "model_id": "anonymous-hermetic-scroll-R134a",
+      "equipment_family_id": "cuevas2009-test-rig",
+      "condition_set_id": "table2-network50Hz-and-table3-inverter35-75Hz",
+      "title": "Testing and modelling of a variable speed scroll compressor",
+      "doi": "10.1016/j.applthermaleng.2008.03.016",
+      "official_page": "https://doi.org/10.1016/j.applthermaleng.2008.03.016",
+      "files": [
+        {
+          "path": "/home/habin/papers/temp/Compressor_data/inverter/Cuevas_2009/Cuevas_2009_ATE.pdf",
+          "bytes": 304221,
+          "sha256": "fbb842ce80e6ab3b7c522c3048411887f5a85cff7c7d1f29ce5c583b4182f4d7",
+          "original_acquired_on": null,
+          "hash_verified_on": "2026-10-27"
+        }
+      ],
+      "registry_match": "different-bytes",
+      "registry_expected_sha256": "730ef78a78b85f8de38274d5478c9c5f872007b155239b76c9a31b7c7cb2d4d7",
+      "archive_match": "dataset-catalog 현재 dataset.json 제목·DOI 검색에서 등록 없음; 전체 SHA 역색인은 미수행",
+      "rights": {
+        "licence": "unknown",
+        "redistribution": "unknown; 내부 참고용 취급, 재배포 권리 확인 필요",
+        "basis": "로컬 출판사 PDF 첫 페이지 copyright 2008 Elsevier; 오픈 라이선스 미확인"
+      },
+      "generation_method": "independent-experiment-with-heat-balance-derived-refrigerant-flow",
+      "provided_format": "steady-state-tables",
+      "refrigerant": "R134a",
+      "compressor_type": "hermetic-scroll; induction motor",
+      "points": {
+        "table2": 18,
+        "table3": 30,
+        "reported_total_tests": 60,
+        "independent_devices": 1,
+        "table3_frequency_hz": [
+          35,
+          40,
+          50,
+          65,
+          75
+        ]
+      },
+      "capacity_value_kw": null,
+      "capacity_basis": "unknown; 논문 운전점 최대전력을 정격용량으로 대체하지 않음",
+      "capacity_band_id": null,
+      "variables": {
+        "refrigerant_mdot": "§2 p470: evaporator steady-state thermal balance; Coriolis 비교는 전체60시험 중19시험만, ±3%; 표 전체를 독립유량계 측정이라고 하면 오류",
+        "suction_discharge_PT": "§2 및 Tables2–3: compressor supply/exhaust pressures and temperatures",
+        "frequency": "inverter control system measured output frequency ±0.01%; shaft tachometer 미확인; §3 volumetric efficiency neglects motor sliding",
+        "displacement": "§2 p470 manufacturer theoretical swept volume flow 9.44 m³/h at50Hz, nominal2900rpm; 기하학적 cm³/rev 직접값 아님; 이 작업에서 환산하지 않음",
+        "power": "§2 p470 network-fed50Hz only direct compressor power transducer; inverter-fed: inverter supply power measured, inverter output/compressor power identified using separate inverter calorimeter; §3 Eqs2–3 p472",
+        "shell_heat_loss": "§3 Eq1 p471 compressor calorimeter steady-state heat balance; Table3 Q_cp,amb independent of refrigerant enthalpy residual",
+        "averaging": "§3 p471 30min steady-state averages, acquisition every5s"
+      },
+      "eligibility": {
+        "D": {
+          "eligibility": "unresolved",
+          "reason_ko": "정격 냉동/난방용량과 평가조건 미확인",
+          "evidence_locator": "§2 p470",
+          "unresolved_ko": "기하학적 배제체적 직접 원문·정격용량"
+        },
+        "E_eta_v": {
+          "eligibility": "conditional",
+          "reason_ko": "냉매유량이 열수지 계산량이고 shaft speed 실측 아님; 제조사 swept flow 및 슬립 무시 조건 필요",
+          "evidence_locator": "§2 p470; §3 Eq5 p473",
+          "unresolved_ko": "Coriolis 비교19시험과 공개표 행 대응 미확인"
+        },
+        "E_eta_ov": {
+          "eligibility": "conditional",
+          "reason_ko": "흡입/토출상태·유량·압축기전력 표는 있으나 유량의 열수지 의존성과 inverter-fed 전력 식별 경계 보존 필요",
+          "evidence_locator": "§2 p470; Tables2–3; Eqs2–4",
+          "unresolved_ko": "독립 냉매유량 채널 없음"
+        },
+        "E_f_loss": {
+          "eligibility": "conditional",
+          "reason_ko": "Table3 calorimeter Qcp,amb를 압축기 경계 전력에 대응시키는 후보; drive-inclusive 잔차와 구분",
+          "evidence_locator": "§3 Eq1 p471, Table3 p472; Eqs2–3",
+          "unresolved_ko": "calorimeter와 Table3 W_el,cp 식별 경계 재현; shell Q와 inverter 손실 구분"
+        },
+        "A": {
+          "eligibility": "not-applicable",
+          "reason_ko": "실내외 공기측 최대풍량 자료 아님",
+          "evidence_locator": "§2",
+          "unresolved_ko": ""
+        },
+        "V": {
+          "eligibility": "not-applicable",
+          "reason_ko": "단일 실내외 공기 히트펌프 완제품 비교표 아님",
+          "evidence_locator": "§2",
+          "unresolved_ko": ""
+        }
+      },
+      "review_level": "로컬 PDF 본문 §2–3 및 Tables2–3 직접 텍스트 열람; 전 칸 이중추출 미수행",
+      "notes_ko": [
+        "temp README의 독립 냉매유량·실측 축속도 표현을 원문보다 강하게 해석하지 않는다.",
+        "Ossorio2023 comparator C와 동일 원시험 계보 연결 필요."
+      ],
+      "acquired_on": null,
+      "rights_checked_on": "2026-10-27",
+      "rights_checked": "local-and-official-landing-only; no redistribution grant inferred"
+    },
+    {
+      "source_id": "guth2023",
+      "release_id": "local-webprint-plus-official-mmc1",
+      "dataset_id": null,
+      "manufacturer": "Emerson Climate",
+      "model_id": "ZHV046",
+      "equipment_family_id": "guth2023-R290-test-rig",
+      "condition_set_id": "measured-values-Excel-rows4-348",
+      "title": "Semi-empirical model of a variable speed scroll compressor for R-290 with the focus on compressor efficiencies and transferability",
+      "doi": "10.1016/j.ijrefrig.2022.10.024",
+      "official_page": "https://doi.org/10.1016/j.ijrefrig.2022.10.024",
+      "supplement_url": "https://ars.els-cdn.com/content/image/1-s2.0-S0140700722003929-mmc1.xlsx",
+      "files": [
+        {
+          "path": "/home/habin/papers/temp/Compressor_data/inverter/Guth_2023/Guth_2023_IJR_webprint.pdf",
+          "bytes": 7328122,
+          "sha256": "350f079ebbaac977cbfe2a434b919ed624c04781b040dc9fec9fdcc16cd9cf87",
+          "original_acquired_on": null,
+          "hash_verified_on": "2026-10-27"
+        },
+        {
+          "path": "/home/habin/papers/temp/Compressor_data/inverter/Guth_2023/Guth_2023_IJR_supplement.xlsx",
+          "bytes": 286867,
+          "sha256": "a50e7b395a5fa9629c33ee22a928eac0989aeb88f7200317431c98dad49f6e81",
+          "original_acquired_on": null,
+          "hash_verified_on": "2026-10-27"
+        }
+      ],
+      "registry_match": "webprint-different-release; registry-typeset-pdf-absent",
+      "rights": {
+        "licence": "unknown",
+        "redistribution": "unknown; fulltext browser print is not proof of redistribution permission",
+        "basis": "local webprint publisher HTML; official current landing accessthroughorganization/PurchasePDF, no licence confirmed"
+      },
+      "generation_method": "independent-experiment-secondary-fluid-measurement-plus-author-derived-refrigerant-properties-and-flow",
+      "provided_format": "supplementary-XLSX; fulltext-browser-print",
+      "refrigerant": "R290",
+      "compressor_type": "variable-speed-scroll",
+      "points": {
+        "workbook_numeric_rows": 345,
+        "distinct_operating_condition_strings": 145,
+        "repetition_counts": {
+          "0": 111,
+          "1": 118,
+          "2": 116
+        },
+        "article_reported_conditions": 156,
+        "independent_devices": 1,
+        "nominal_grid": "Te -5/0/5 °C; Tc35/40/45/50°C; speed1800–5400min⁻¹ step300; SH6±1K"
+      },
+      "capacity_value_kw": null,
+      "capacity_band_id": null,
+      "variables": {
+        "frequency": "measured values H: f[Hz]; nominal f in condition string B differs; Eq2 n=60f, independent shaft measurement unknown",
+        "pressure": "J=p_e[Pa], L=p_c[Pa]; §3.1 Eqs4,8 equate evaporating/condensing pressure to compressor ports; independent port locations/pressure drops unresolved",
+        "temperature": "N=T_suc[K], P=T_dis[K] measured values; Te/Tc[K] in D/F",
+        "power": "X=P_el[W]; Siemens SENTRON PAC3200 §2; Eqs11–13 include mechanical/electrical/frequency-converter efficiency; drive-inclusive effective boundary",
+        "massflow": "measured values V=m_sf[kg/s] is secondary fluid, not refrigerant; target values C=m_r[kg/s] is author derived from measured thermal values; cannot call direct refrigerant Coriolis",
+        "displacement": "46cm³/rev used in previous local README is inverse consistency from author efficiency/flow; independent manufacturer geometric value not confirmed here; do not treat as source direct value",
+        "properties": "property data h_suc,h_dis,h_dis,s,s_suc,cp_m_sf,rho_suc author thermophysical calculations; efficiencies eta_v,eta_s,eta_comp author derived",
+        "sheet_headers": "row3 mathematical labels embedded in xl/drawings/drawing[1–4].xml; plain cell reader misses headers. Actual drawing XML inspected; keep cell+anchor map."
+      },
+      "workbook_sheets": [
+        "measured values",
+        "property data",
+        "efficiencies",
+        "target values",
+        "coefficients"
+      ],
+      "eligibility": {
+        "D": {
+          "eligibility": "unresolved",
+          "reason_ko": "기준용량/조건 및 제조사 독립 기하확인 미확인",
+          "evidence_locator": "§2; workbook",
+          "unresolved_ko": "정격용량과 제조사 배제체적"
+        },
+        "E_eta_v": {
+          "eligibility": "unresolved",
+          "reason_ko": "독립 Vdisp 근거 미확인; 냉매 mdot는 저자 열수지 파생량",
+          "evidence_locator": "§2; measured values V; target values C",
+          "unresolved_ko": "제조사 displacement·physical speed 및 열수지 상세"
+        },
+        "E_eta_ov": {
+          "eligibility": "conditional",
+          "reason_ko": "상태·전력·저자 냉매유량이 있으나 유량은 secondary 열수지 파생; port압력 대응 가정 필요",
+          "evidence_locator": "§2, §3.1 Eqs4,8,11–13; XLSX",
+          "unresolved_ko": "열수지 mdot 독립성 및 drive-inclusive boundary"
+        },
+        "E_f_loss": {
+          "eligibility": "conditional",
+          "reason_ko": "실제 Tdis 있으나 mdot는 열수지 파생; drive 포함 잔차로만 조건부 검토 가능",
+          "evidence_locator": "§2; Eqs11–13; measured values/target values",
+          "unresolved_ko": "독립 쉘방열 계측 없음; compressor port/drop"
+        },
+        "A": {
+          "eligibility": "not-applicable",
+          "reason_ko": "실내외 최대풍량 없음",
+          "evidence_locator": "§2",
+          "unresolved_ko": ""
+        },
+        "V": {
+          "eligibility": "not-applicable",
+          "reason_ko": "공기측 단일 실내외기 완제품 자료 아님",
+          "evidence_locator": "§2",
+          "unresolved_ko": ""
+        }
+      },
+      "review_level": "local publisher HTML webprint §2–3.1 및 XLSX 전행·sheet·embedded header XML 열람; 독립 추출표 생성·시각 전 칸 검증 미수행",
+      "notes_ko": [
+        "345행·145조건과 논문156조건을 분리; 345독립 장치/조건으로 세지 않음.",
+        "webprint는33페이지이며 registry17p 조판본과 동일 파일 아님.",
+        "source Excel의 coefficients·efficiencies는 외부 저자 배포값이며 TMHP 새 회귀 결과와 구분."
+      ],
+      "acquired_on": null,
+      "rights_checked_on": "2026-10-27",
+      "rights_checked": "local-and-official-landing-only; no redistribution grant inferred"
+    },
+    {
+      "source_id": "ossorio2023",
+      "dataset_id": null,
+      "release_id": "unacquired",
+      "manufacturer": "unknown",
+      "model_id": "unknown",
+      "equipment_family_id": "ossorio2023",
+      "condition_set_id": "unknown",
+      "doi": "10.1016/j.applthermaleng.2023.120725",
+      "official_page": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+      "files": [],
+      "availability_ko": "registry 원문+mmc1–3 모두 지정 경로 부재; papers 전체 파일명 탐색에서 대체 원본 미발견",
+      "capacity_value_kw": null,
+      "capacity_band_id": null,
+      "eligibility": {
+        "D": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "E_eta_v": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "E_eta_ov": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "E_f_loss": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "A": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "V": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        }
+      },
+      "title": "Testing of Variable-Speed Scroll Compressors and their inverters for the evaluation of compact energy consumption models",
+      "bibliography_correction": "registry 제목 development of empirical correlations 대신 공식 제목 evaluation of compact energy consumption models; ATE230 PartB 120725 25July2023",
+      "repository_pdf_url": "https://riunet.upv.es/bitstreams/9bede58e-9ad8-470e-a499-72d2b562b4d0/download",
+      "rights": {
+        "licence": "CC BY4.0 mentioned in registry; primary fulltext licence not reverified",
+        "redistribution": "unresolved"
+      },
+      "abstract_confirmed": "두 전력계로 compressor/inverter 소비전력 분리 계측; 본문/보충표 전량 실측 범위는 미확인",
+      "access_ko": "ScienceDirect403; institutional PDF open returned Anubis JS challenge. Search index text alone not archived payload verification.",
+      "acquired_on": null,
+      "rights_checked_on": "2026-10-27",
+      "rights_checked": "local-and-official-landing-only; no redistribution grant inferred"
+    },
+    {
+      "source_id": "shao2004",
+      "dataset_id": null,
+      "release_id": "unacquired",
+      "manufacturer": "unknown",
+      "model_id": "unknown",
+      "equipment_family_id": "shao2004",
+      "condition_set_id": "unknown",
+      "doi": "10.1016/j.ijrefrig.2004.02.008",
+      "official_page": "https://doi.org/10.1016/j.ijrefrig.2004.02.008",
+      "files": [],
+      "availability_ko": "registry PDF 지정 경로 부재; papers 전체 파일명 탐색에서 대체 원본 미발견",
+      "capacity_value_kw": null,
+      "capacity_band_id": null,
+      "eligibility": {
+        "D": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.ijrefrig.2004.02.008",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "E_eta_v": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.ijrefrig.2004.02.008",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "E_eta_ov": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.ijrefrig.2004.02.008",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "E_f_loss": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.ijrefrig.2004.02.008",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "A": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.ijrefrig.2004.02.008",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        },
+        "V": {
+          "eligibility": "unresolved",
+          "reason_ko": "원문 파일/원표 미확인으로 직접 적용 판단 보류",
+          "evidence_locator": "https://doi.org/10.1016/j.ijrefrig.2004.02.008",
+          "unresolved_ko": "실제 전문·부록·변수 경계 확인"
+        }
+      },
+      "acquired_on": null,
+      "rights_checked_on": "2026-10-27",
+      "rights_checked": "local-and-official-landing-only; no redistribution grant inferred"
+    },
+    {
+      "source_id": "vigo-variable-heatpump-charge-2024-v1",
+      "dataset_id": "vigo-variable-heatpump-charge-2024-v1",
+      "release_id": "v1",
+      "manufacturer": "unknown",
+      "model_id": "unknown",
+      "equipment_family_id": "vigo-variable-heatpump-charge-2024-v1-single-test-rig",
+      "condition_set_id": "B0W35/B0W45",
+      "refrigerant": "R410A",
+      "files": [
+        {
+          "path": "/mnt/datasets/building-energy/vigo-variable-heatpump-charge-2024-v1/files/source/Experimental data.xlsx",
+          "bytes": 46133,
+          "sha256": "cd2a7a591c183673ca4623d870a0119125c09d6e88f3e515ed4923ece49db202",
+          "original_acquired_on": "2026-10-18",
+          "hash_verified_on": "2026-10-27"
+        }
+      ],
+      "rights": {
+        "licence": "CC BY-NC 4.0",
+        "basis": "기존 등록 메타데이터; R407C 공식페이지에서 licence 재확인, Vigo Zenodo 렌더에 license 값 생략되어 API 재확인 필요"
+      },
+      "official_page": "https://zenodo.org/records/14258572",
+      "exact_download_url": "https://zenodo.org/api/records/14258572/files/Experimental%20data.xlsx/content",
+      "acquired_on": "2026-10-18",
+      "hash_verified_on": "2026-10-27",
+      "archive_reuse": "same-dataset-id; manifest SHA/bytes matches actual original",
+      "capacity_value_kw": null,
+      "capacity_basis": "정격용량 미확인; 실험 최대출력을 정격으로 대체하지 않음",
+      "capacity_band_id": null,
+      "independent_devices": 1,
+      "field_dictionary_source": "/mnt/datasets/building-energy/vigo-variable-heatpump-charge-2024-v1/interpretation.json",
+      "boundary_evidence_source": "/mnt/datasets/building-energy/vigo-variable-heatpump-charge-2024-v1/background.json",
+      "primary_paper_recheck": "이번 도구 institutional fulltext 접근 실패; 센서 위치·전력설명은 기존 2026-10-18 전문검토 기록임을 구분",
+      "eligibility": {
+        "D": {
+          "eligibility": "unresolved",
+          "reason_ko": "정격용량/평가조건 및 직접 Vdisp 미확인",
+          "evidence_locator": "기존 background Table1",
+          "unresolved_ko": ""
+        },
+        "E_eta_v": {
+          "eligibility": "conditional",
+          "reason_ko": "독립 F01 있으나 Ncomp 설정/실측·제조사 swept flow 기준과 기하값 대응 확인 필요",
+          "evidence_locator": "XLSX C/T; 기존 paper Table1/Fig1",
+          "unresolved_ko": "독립 Vdisp/N"
+        },
+        "E_eta_ov": {
+          "eligibility": "conditional",
+          "reason_ko": "흡입/토출압·F01·J01 있으나 drive branch와 J01 경계 확인 필요",
+          "evidence_locator": "XLSX E:G,M:N,T,V; 기존 paper Fig1",
+          "unresolved_ko": "게이지→절대 변환은 후속; boundary source 재확인"
+        },
+        "E_f_loss": {
+          "eligibility": "conditional",
+          "reason_ko": "Tdis/F01/J01 있음; drive 수측 냉각분기 포함 경계를 맞춘 잔차 후보",
+          "evidence_locator": "XLSX N,T,V; 기존 paper Fig1",
+          "unresolved_ko": "쉘손실 단독으로 해석 불가"
+        },
+        "A": {
+          "eligibility": "not-applicable",
+          "reason_ko": "브라인–물 장치로 실내외 공기 최대풍량 없음",
+          "evidence_locator": "기존 paper Fig1",
+          "unresolved_ko": ""
+        },
+        "V": {
+          "eligibility": "conditional",
+          "reason_ko": "수측/브라인 난방 경계에 한정; 공기–공기 모집단 분리",
+          "evidence_locator": "XLSX B0W35/B0W45; 기존 paper Fig1",
+          "unresolved_ko": "Q/COP는 raw 미제공; 효율계산 이번 미수행"
+        }
+      },
+      "points": {
+        "B0W35": 96,
+        "B0W45": 79,
+        "total": 175,
+        "numeric_rows": "B0W35 rows8–103; B0W45 rows8–86; Ncomp column C",
+        "public_description_experiments": 75
+      },
+      "variables": {
+        "flow": "F01 kg/h independent Coriolis per existing primary-paper review; actual XLSX T",
+        "pressure": "P01/02 gauge bar, Patm separate; use cannot infer absolute raw",
+        "speed": "Ncomp rev/min (operating-condition C), independent speed sensor unknown",
+        "power": "J01 kW column V; drive cooling-water branch F12 from F11; boundary mapping requires paper Fig1",
+        "state": "T01/T02 M/N suction/discharge based existing Fig1 review",
+        "displacement": "manufacturer volume flow6m³/h@4500rpm per existing paper Table1 review; raw Excel lacks independent Vdisp",
+        "suspect_values": "T06 all175 rows dash; D01=100 for14 rows; T01=T07=T21 all175; P04>P03 all175; preserved"
+      },
+      "rights_checked_on": "2026-10-27",
+      "rights_checked": "local-and-official-landing-only; no redistribution grant inferred"
+    },
+    {
+      "source_id": "r407c-liquid-water-heatpump-experiments-v1",
+      "dataset_id": "r407c-liquid-water-heatpump-experiments-v1",
+      "release_id": "v1",
+      "manufacturer": "unknown",
+      "model_id": "unknown",
+      "equipment_family_id": "r407c-liquid-water-heatpump-experiments-v1-single-test-rig",
+      "condition_set_id": "LVHEx×DHW×water-condition",
+      "refrigerant": "R407C",
+      "files": [
+        {
+          "path": "/mnt/datasets/building-energy/r407c-liquid-water-heatpump-experiments-v1/files/source/Experimental data.xlsx",
+          "bytes": 24637,
+          "sha256": "cd6824866d99944e45c767dd7d31adf5930f369fbfbc6ffc4a58197e8a7eaa31",
+          "original_acquired_on": "2026-10-18",
+          "hash_verified_on": "2026-10-27"
+        }
+      ],
+      "rights": {
+        "licence": "CC BY-NC 3.0",
+        "basis": "기존 등록 메타데이터; R407C 공식페이지에서 licence 재확인, Vigo Zenodo 렌더에 license 값 생략되어 API 재확인 필요"
+      },
+      "official_page": "https://data.mendeley.com/datasets/kfj5htdf9h/1",
+      "exact_download_url": "https://data.mendeley.com/public-files/datasets/kfj5htdf9h/files/8ce4e29f-a3c0-4510-ae72-ab2a30327974/file_downloaded",
+      "acquired_on": "2026-10-18",
+      "hash_verified_on": "2026-10-27",
+      "archive_reuse": "same-dataset-id; manifest SHA/bytes matches actual original",
+      "capacity_value_kw": null,
+      "capacity_basis": "정격용량 미확인; 실험 최대출력을 정격으로 대체하지 않음",
+      "capacity_band_id": null,
+      "independent_devices": 1,
+      "field_dictionary_source": "/mnt/datasets/building-energy/r407c-liquid-water-heatpump-experiments-v1/interpretation.json",
+      "boundary_evidence_source": "/mnt/datasets/building-energy/r407c-liquid-water-heatpump-experiments-v1/background.json",
+      "primary_paper_recheck": "이번 도구 institutional fulltext 접근 실패; 센서 위치·전력설명은 기존 2026-10-18 전문검토 기록임을 구분",
+      "eligibility": {
+        "D": {
+          "eligibility": "unresolved",
+          "reason_ko": "기준용량 미확인",
+          "evidence_locator": "기존 background Table1",
+          "unresolved_ko": "정격용량/조건"
+        },
+        "E_eta_v": {
+          "eligibility": "unresolved",
+          "reason_ko": "독립 냉매유량·행별N·Vdisp 없음; 제조사 기준값만 존재",
+          "evidence_locator": "Hoja1 header row4",
+          "unresolved_ko": "기하/actualN"
+        },
+        "E_eta_ov": {
+          "eligibility": "conditional",
+          "reason_ko": "열수지 mdot 계산이 필요하여 독립 효율 식별용 아님; 계산은 후속 연구",
+          "evidence_locator": "Hoja1; 기존 paper Eq4–6",
+          "unresolved_ko": "독립 mdot 없음"
+        },
+        "E_f_loss": {
+          "eligibility": "conditional",
+          "reason_ko": "토출상태·전력은 있지만 mdot 열수지 의존, 전력경계 재확인 필요",
+          "evidence_locator": "Hoja1 I/J,AD; 기존 Eq4–6",
+          "unresolved_ko": "독립 쉘방열 없음"
+        },
+        "A": {
+          "eligibility": "not-applicable",
+          "reason_ko": "액체–물 기기로 공기측 풍량 없음",
+          "evidence_locator": "official description",
+          "unresolved_ko": ""
+        },
+        "V": {
+          "eligibility": "conditional",
+          "reason_ko": "LVHEx미사용+NoDHW 두조건은 기본회로 후보이나 DS 압력강하 남아 동일회로 아님",
+          "evidence_locator": "Hoja1 rows36/68; 기존 paper Fig1",
+          "unresolved_ko": "물/PGw 조건에 한정, Q/P raw 재구성 후속"
+        }
+      },
+      "points": {
+        "Hoja1": 64,
+        "numeric_rows": "5–68",
+        "Hoja2": 0,
+        "Hoja3": 0,
+        "basic_circuit_candidate_rows": [
+          36,
+          68
+        ]
+      },
+      "variables": {
+        "flow": "독립 냉매 mdot 없음; 논문 Eq4–6 heat-balance calculation per2026-10-18 review",
+        "pressure": "P1–7[bar] gauge per official page; Patm F; suction G/H and discharge I/J based existing Fig1 review",
+        "speed": "행별 physical N 채널 없음; manufacturer9.44m³/h@2900rpm 기준은 행별 센서가 아님",
+        "power": "Welec[kW] AD, compressor electric per officialpage",
+        "circuit": "LVHEx Notused+NoDHW rows36/68여도 desuperheater refrigerant pressure drop 남음 per existing fulltext review"
+      },
+      "rights_checked_on": "2026-10-27",
+      "rights_checked": "local-and-official-landing-only; no redistribution grant inferred"
+    }
+  ],
+  "web_checks": [
+    {
+      "url": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+      "status": "403"
+    },
+    {
+      "url": "https://doi.org/10.1016/j.applthermaleng.2008.03.016",
+      "status": "DOI inaccessible; indexed official abstract available"
+    },
+    {
+      "url": "https://doi.org/10.1016/j.ijrefrig.2022.10.024",
+      "status": "DOI inaccessible redirect; indexed official abstract available"
+    },
+    {
+      "url": "https://doi.org/10.1016/j.ijrefrig.2004.02.008",
+      "status": "inaccessible"
+    },
+    {
+      "url": "https://riunet.upv.es/bitstreams/9bede58e-9ad8-470e-a499-72d2b562b4d0/download",
+      "status": "Anubis JavaScript challenge"
+    },
+    {
+      "url": "https://data.mendeley.com/datasets/kfj5htdf9h/1",
+      "status": "official landing accessible:64experiments, gauge pressures, CC BY NC3.0"
+    },
+    {
+      "url": "https://zenodo.org/records/14258572",
+      "status": "official landing accessible:75experiments description, fileMD5; current license field empty in renderedtext"
+    }
+  ],
+  "packaging_recommendations_ko": [
+    {
+      "source_id": "cuevas2009",
+      "suggested_dataset_id": "cuevas-lebrun-variable-speed-scroll-2009-local-fbb842ce",
+      "scope": "원논문 publisher PDF 현재 local SHA판1개. registry판과 다른 판/바이트라는 release 연결; exact original download URL와 취득일 unknown. 새로운 표 추출 있으면 같은 dataset의 files/extracted로 원문 locator 연결.",
+      "content_origin": "reference-document; research-material (독립 실험수치 input을 주된 목적으로 삼으면 external-release도 검토하되 문서형 규칙 우선)"
+    },
+    {
+      "source_id": "guth2023",
+      "suggested_dataset_id": "guth-atakan-r290-scroll-supplement-2023-v1",
+      "scope": "공식 mmc1.xlsx1개를 외부 배포본 단위 external-release로 등록.5sheet전체 원본 보존. 관련논문 DOI연결. webprint는 조판 PDF가 아니며 로컬 브라우저 출력+WEB PRINT 표지가 포함되어 original-download로 분류하지 말 것. 원본 조판PDF 부재/권리 불명 상태로 별도 로컬검토근거로만 인계하고 자동등록 제외 권장.",
+      "content_origin": "external-release; supplementary experiment release"
+    },
+    {
+      "source_id": "ossorio2023",
+      "scope": "본문 PDF와mmc1–3은 같은 논문 연결; 각 독립배포버전 있으면 release 분리. 현재 미보유 상태라 무파일 dataset을 등록하지 말고 candidate로 남김."
+    },
+    {
+      "source_id": "vigo-variable-heatpump-charge-2024-v1",
+      "scope": "기존datasetID 재사용, 원본 중복저장/새ID불필요."
+    },
+    {
+      "source_id": "r407c-liquid-water-heatpump-experiments-v1",
+      "scope": "기존datasetID 재사용, 원본 중복저장/새ID불필요."
+    }
+  ]
+}

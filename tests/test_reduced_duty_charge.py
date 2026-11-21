@@ -740,6 +740,40 @@ def test_cycles_within_the_tolerance_are_the_events_duty():
         assert row["capacity_binding"] == BINDING_CONDENSING, kw
 
 
+def test_a_hold_is_credited_with_the_heat_its_events_took():
+    """A cycle at the stop that has a few millionths more than the smallest duty it was asked for.
+
+    Measured on the R32 unit at 35 degC outdoor: asked for 7911.206 W at the stop, the cycle at its
+    lowest speed delivers 7911.256 W (6.4e-6 more). Holding the tank at the stop, the compressor
+    is on for the share of the time that covers the loss at the duty it has: the heat of the step
+    is the loss, as the events took it, not that share more. (Credited with the cycle's duty for
+    the events' run time, the tank ended each 1200 s step 1.3e-5 K above the stop, and the next
+    step counted a stop and a start.)
+    """
+    loss, dt = 500.0, 1200.0
+
+    def with_loss(T_K):
+        return (C * T_K - C * (LIMIT.stop_C + 273.15) + dt * loss) / C
+
+    held = dict(
+        T_start=LIMIT.stop_C, T_upper=64.5, dt=dt, residual_free=with_loss, running_prev=True, phase_age_s=100.0
+    )
+    exact, row_exact, _ = _resolve(**held)
+    assert exact.runtime_fraction == pytest.approx(loss / LIMIT.Q_min, rel=1e-12) and exact.limit_stop
+    assert exact.runtime_fraction * row_exact["Q_ref_tank [W]"] == pytest.approx(loss, rel=1e-12)
+    more = 1.0 + 6.4e-6
+    run, row, _ = _resolve(on_limit_share=more, **held)
+    assert row["Q_ref_tank [W]"] == pytest.approx(LIMIT.Q_min * more, rel=1e-12)  # the cycle is the one solved
+    assert run.runtime_fraction * row["Q_ref_tank [W]"] == pytest.approx(loss, rel=1e-12)
+    assert run.runtime_fraction == pytest.approx(exact.runtime_fraction / more, rel=1e-12)
+    assert run.reduced_fraction == run.runtime_fraction
+    # Nothing else of the run changes: the hold stands, with its one phase.
+    assert (run.running_end, run.starts, run.phase_age_end_s, run.limit_stop) == (True, 0, 100.0 + dt, True)
+    # A cycle that has less than it was asked for (within the tolerance) keeps the events' run time.
+    less, row_less, _ = _resolve(on_limit_share=1.0 - 6.4e-6, **held)
+    assert less.runtime_fraction == exact.runtime_fraction
+
+
 # ---------------------------------------------------------------------------
 # the three boiler families
 # ---------------------------------------------------------------------------
@@ -1228,8 +1262,10 @@ def test_a_stop_at_the_boiling_point_is_reported_as_one():
 def test_run_time_and_compressor_state_agree_at_the_stop():
     """Review, should-fix 4: three 1200 s steps at the stop with minimum run and rest times of 1800 s.
 
-    Before: run-time fractions 0.196 / 0.175 / 0.175 with one start, and a final state "running for
-    3600 s" although the compressor had run 654 s. With a minimum rest time the stop is a real one.
+    Before (the review's case, on the compressor map of that time): run-time fractions 0.196 /
+    0.175 / 0.175 with one start, and a final state "running for 3600 s" although the compressor
+    had run 654 s. With a minimum rest time the stop is a real one. At 35 degC outdoor the stop
+    is at 61.30 degC; the runs start 0.3 K below it.
     """
     m = _quiet(
         tmhp.AirSourceHeatPumpBoiler,
@@ -1240,7 +1276,7 @@ def test_run_time_and_compressor_state_agree_at_the_stop():
         min_off_time_s=1800.0,
         condensing_limit_control="reduce_duty",
     )
-    state, ran_s, since_start, starts, rows = m.make_initial_state(61.8), 0.0, 0.0, 0, []
+    state, ran_s, since_start, starts, rows = m.make_initial_state(61.0), 0.0, 0.0, 0, []
     for i in range(3):
         inputs = dict(n=i, current_time_s=i * 1200.0, T0=35.0, dV_mix_w_out=1e-5, T_sup_w=15.0, T_sur=20.0)
         state, row = _quiet(m.step, state, inputs, 1200.0)
@@ -1256,7 +1292,7 @@ def test_run_time_and_compressor_state_agree_at_the_stop():
             assert state.hp_phase_age_s <= (i + 1) * 1200.0 - ran_s + 1e-6, i
     assert starts == 2 and rows[0]["hp_stop_reason"] == STOP_CONDENSING_LIMIT
     # The first run reaches the step's stop and ends there; the rest that follows is the minimum one.
-    assert rows[0]["runtime_fraction [-]"] < 0.05 and rows[0]["T_tank_w [°C]"] < 62.07
+    assert rows[0]["runtime_fraction [-]"] < 0.05 and rows[0]["T_tank_w [°C]"] < 61.31
     assert rows[1]["hp_starts [-]"] == 1 and rows[2]["runtime_fraction [-]"] == 0.0
     assert not state.hp_running_prev and state.hp_phase_age_s < 1800.0
     # Without minimum times the hold stands, as one run (see the docs for what its timers mean).
@@ -1267,14 +1303,14 @@ def test_run_time_and_compressor_state_agree_at_the_stop():
         T_tank_w_upper_bound=65.0,
         condensing_limit_control="reduce_duty",
     )
-    state = hold.make_initial_state(61.8)
+    state = hold.make_initial_state(61.0)
     fractions = []
     for i in range(3):
         inputs = dict(n=i, current_time_s=i * 1200.0, T0=35.0, dV_mix_w_out=1e-5, T_sup_w=15.0, T_sur=20.0)
         state, row = _quiet(hold.step, state, inputs, 1200.0)
         fractions.append(row["runtime_fraction [-]"])
         assert row["hp_stop_reason"] == STOP_CONDENSING_LIMIT and row["hp_starts [-]"] == (1 if i == 0 else 0)
-    assert fractions == pytest.approx([0.19594, 0.17453, 0.17453], abs=1e-4)
+    assert fractions == pytest.approx([0.15753, 0.13826, 0.13826], abs=1e-4)
     assert state.hp_running_prev and state.hp_phase_age_s == 3600.0
 
 

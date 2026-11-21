@@ -1582,6 +1582,20 @@ def _resolve_duty_limited(
     here therefore never runs above the limit's stop, never on the limit at
     less than the smallest continuous duty, its row's heat is the heat its
     events integrated, and none of its cycles is under another limit.
+
+    The heat is the events' also where the cycle on the limit has more than
+    it was asked for, inside the tolerance. That is the compressor at its
+    lowest speed at the stop: a cycle there delivers what that speed gives,
+    which need not be the smallest duty to the last digit (the 15 kW R32
+    air-source unit at 35 °C outdoor: 7911.256 W for 7911.206 W asked, 6
+    parts in a million). The stretch is then given the run time in which
+    that cycle delivers the events' heat -- a compressor holding the tank at
+    the stop is on for the share of the time its own duty needs -- unless
+    that changes the run time by no more than :data:`EVENT_TIME_TOL_S`.
+    Without it the tank would end each step of a hold above the stop by the
+    excess (1e-5 K in 1200 s there), and the next step would count a stop
+    and a start. A cycle that has less than asked keeps the events' run
+    time.
     """
     # The name a cycle gives the limit this duty line is (imported here: that module imports this one).
     from .compressor_envelope import BINDING_CONDENSING as this_limit
@@ -1652,6 +1666,18 @@ def _resolve_duty_limited(
         # No operating point on the limit, or another limit holds the cycle
         # off the duty the events integrated.
         return None
+    q_delivered = delivered_tank_heat(reduced_result)
+    if q_delivered > q_reduced:
+        # The cycle has more than it was asked for (within the tolerance: the
+        # compressor at its lowest speed at the stop). The heat of the stretch
+        # is the heat the events integrated, which that cycle gives in less
+        # run time.
+        f_shorter = f_reduced * q_reduced / q_delivered
+        if (f_reduced - f_shorter) * float(kwargs["dt"]) > EVENT_TIME_TOL_S:
+            run = dataclasses.replace(
+                run, runtime_fraction=run.runtime_fraction - (f_reduced - f_shorter), reduced_fraction=f_shorter
+            )
+            f_reduced = f_shorter
     if full_result is None:
         return run, reduced_result
     return run, merge_running_rows(full_result, f_full, reduced_result, f_reduced, rate_keys)

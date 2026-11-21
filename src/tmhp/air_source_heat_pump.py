@@ -32,13 +32,7 @@ from ._boiler_results import fill_missing, report_condenser_dew_point
 from ._opt_utils import efficiency_evaluator, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
-from .compressor_efficiency import (
-    COMPRESSOR_TYPES,
-    CompressorSpec,
-    reject_invalid_efficiency,
-    resolve_compressor_type,
-    suction_state,
-)
+from .compressor_efficiency import SuctionState, reject_invalid_efficiency
 from .compressor_envelope import (
     BINDING_CONDENSING,
     BINDING_CYCLE,
@@ -669,12 +663,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Indoor-unit class whose catalogue airflow stands in for an omitted
         # dV_iu_fan_a_rated: "wall_mounted" or "floor_standing".
         indoor_unit_type: str = "wall_mounted",
-        # Compressor type whose default efficiency models are used where
-        # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
-        compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
     ):
         validate_ctor("ASHP", locals())
-        self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         import warnings
 
         if dV_ou_fan_a_ref is not None:
@@ -934,7 +924,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
             rps_rated=rps_rated,
             m_dot_ref_rated=m_dot_ref_rated,
             efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
-            compressor=self.compressor_type,
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen: float | Callable = efficiencies["eta_cmp_isen"]
@@ -1152,7 +1141,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         eta_vol_at = efficiency_evaluator(self.eta_cmp_vol)
         eta_isen_at = efficiency_evaluator(self.eta_cmp_isen)
         eta_em_at = efficiency_evaluator(self.eta_cmp)
-        suction = suction_state(P_evap, rho_in, h_cmp_in, h_ref_cmp_out_isen)
+        suction = SuctionState(T_evap_sat_K)
 
         def _residual_rps(rps):
             val_eta_vol = eta_vol_at(ratio_P_cmp, rps, suction)

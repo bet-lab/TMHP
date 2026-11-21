@@ -70,12 +70,11 @@ import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
 from .compressor_efficiency import (
-    CompressorSpec,
+    COEFFICIENT_VERSION,
     InvalidCompressorEfficiency,
     SuctionState,
     _eval_eff,
     default_efficiencies,
-    drive_model_zero_speed,
 )
 from .compressor_envelope import RATED_SPEED_SEARCH_MAX, check_rated_condensing, default_rps_max
 from .compressor_speed import solve_compressor_speed
@@ -290,25 +289,9 @@ def rating_condition(
     )
 
 
-def reference_efficiencies(
-    supplied: Mapping[str, float | Callable | None],
-    resolved: Mapping[str, float | Callable] | None,
-    compressor: CompressorSpec,
-    ref: str,
-) -> dict[str, float | Callable]:
-    """Efficiencies to evaluate the reference state with.
-
-    ``resolved`` (the model's final efficiencies) is used when the rated speed
-    is already known. Otherwise caller-supplied models are used as they are and
-    omitted ones are the type's default models with ``rps_rated=None``: every
-    candidate speed of the rated-speed solve is evaluated as the rated speed
-    (``n = 1`` in a relative speed coordinate), because the speed being solved
-    *is* the machine's rated speed. Absolute-speed forms (scroll, drive) see
-    the candidate speed itself.
-    """
-    if resolved is not None:
-        return dict(resolved)
-    defaults = default_efficiencies(compressor, ref, None)
+def reference_efficiencies(supplied: Mapping[str, float | Callable | None]) -> dict[str, float | Callable]:
+    """Efficiencies to evaluate the reference state with: the caller's, else the default maps."""
+    defaults = default_efficiencies()
     return {name: model if model is not None else defaults[name] for name, model in supplied.items()}
 
 
@@ -461,7 +444,7 @@ def _solve(
         rho = states["rho_ref_cmp_in [kg/m3]"]
         # Suction state of this duty: the states were solved with eta_isen = 1,
         # so h_ref_cmp_out is the isentropic discharge enthalpy.
-        suction = SuctionState(states["P_ref_cmp_in [Pa]"], rho, dh_isen)
+        suction = SuctionState(T_evap_K)
 
         def duties(rps: float) -> tuple[float, float, float, float, float]:
             eta_vol = _eval_eff(eta_vol_model, PR, rps, suction)
@@ -756,13 +739,12 @@ class ReferenceStateMixin:
         rps_rated: float | None,
         m_dot_ref_rated: float | None,
         efficiencies: Mapping[str, float | Callable | None],
-        compressor: CompressorSpec,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
     ) -> dict[str, float | Callable]:
         """Resolve ``rps_rated``, ``m_dot_ref_rated`` and the compressor efficiencies.
 
         ``efficiencies`` maps ``eta_cmp_isen`` / ``eta_cmp_vol`` / ``eta_cmp``
-        to the caller's input (``None`` = the default model of ``compressor``,
+        to the caller's input (``None`` = the default map,
         :func:`~tmhp.compressor_efficiency.default_efficiencies`). Explicit
         ``rps_rated`` / ``m_dot_ref_rated`` take precedence over solved values.
         Returns the resolved efficiencies; also sets ``rps_rated``,
@@ -771,7 +753,7 @@ class ReferenceStateMixin:
 
         Order: (1) ``V_cmp_ref`` is already resolved by the caller, (2) rating
         condition, (3) actual rated-point speed, (4)-(5) reference cycle and its mass
-        flow, (6) efficiencies built at the rated speed.
+        flow, (6) the efficiencies (the caller's, else the default maps).
         """
         if rps_rated is not None and not (math.isfinite(rps_rated) and rps_rated > 0):
             raise ValueError("rps_rated must be positive and finite")
@@ -781,14 +763,6 @@ class ReferenceStateMixin:
         speed_search_max = RATED_SPEED_SEARCH_MAX if derive_rps_max else self.rps_max
         if not 0 < self.rps_min < speed_search_max or not math.isfinite(speed_search_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
-        if efficiencies.get("eta_cmp") is None and self.rps_min <= drive_model_zero_speed():
-            # The speed solve evaluates the floor; a default model that is not
-            # positive there fails every point, whatever speed its answer lies at.
-            raise ValueError(
-                f"rps_min={self.rps_min:g} rev/s is at or below the speed where the default drive (inverter) model "
-                f"gives no positive efficiency ({drive_model_zero_speed():.1f} rev/s; its data start at 20 rev/s). "
-                "Give a higher rps_min, or your own eta_cmp."
-            )
         condition = rating_condition(
             self._RATING_FAMILY,
             source=lambda mode, T: self._rating_side("source", mode, T),
@@ -797,20 +771,14 @@ class ReferenceStateMixin:
             overrides=rated_condition,
         )
 
-        def resolve(speed: float) -> dict[str, float | Callable]:
-            defaults = default_efficiencies(compressor, self.ref, speed)
-            return {name: model if model is not None else defaults[name] for name, model in efficiencies.items()}
-
         state: ReferenceState | None = None
         if rps_rated is None or m_dot_ref_rated is None:
-            # Scalars and the default models (described by the compressor spec)
+            # Scalars and the default maps (named by their coefficient version)
             # are hashable descriptions of the compressor; a caller's callable is
             # not, so it is solved uncached.
             cacheable = not any(callable(model) for model in efficiencies.values())
-            cache_key = (compressor, tuple(sorted(efficiencies.items()))) if cacheable else None
-            etas = reference_efficiencies(
-                efficiencies, None if rps_rated is None else resolve(rps_rated), compressor, self.ref
-            )
+            cache_key = (COEFFICIENT_VERSION, tuple(sorted(efficiencies.items()))) if cacheable else None
+            etas = reference_efficiencies(efficiencies)
             kwargs: dict[str, Any] = dict(
                 ref=self.ref,
                 V_cmp_ref=self.V_cmp_ref,
@@ -858,4 +826,4 @@ class ReferenceStateMixin:
         self.m_dot_ref_rated: float | None = (
             m_dot_ref_rated if m_dot_ref_rated is not None else (state.m_dot_ref_rated if state else None)
         )
-        return resolve(self.rps_rated)
+        return reference_efficiencies(efficiencies)

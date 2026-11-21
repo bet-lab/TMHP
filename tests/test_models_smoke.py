@@ -54,12 +54,12 @@ def test_ashpb_default_compressor_efficiencies():
     rated = ashpb.rps_rated
     assert rated == ashpb.reference_state.rps_rated
     assert ashpb.rps_min < rated < ashpb.rps_max
-    # The three models are the defaults of the machine's compressor type, bound to that rated speed.
-    expected = default_efficiencies(ashpb.compressor_type, ashpb.ref, rated)
-    state = SuctionState(p_suc=4.0e5, rho_suc=9.0, dh_isen=6.0e4)
+    # The three models are the default maps, the same for every machine.
+    expected = default_efficiencies()
+    state = SuctionState(268.15)
     for name in ("eta_cmp_vol", "eta_cmp_isen", "eta_cmp"):
         model = getattr(ashpb, name)
-        assert model.rps_rated == rated
+        assert model == expected[name]
         assert model(4.0, 55.0, state) == expected[name](4.0, 55.0, state)
 
 
@@ -425,11 +425,11 @@ def test_wshpb_pr_ceiling_rejects():
 def test_non_air_source_boiler_common_eta_defaults():
     from tmhp.compressor_efficiency import SuctionState, default_efficiencies
 
-    state = SuctionState(p_suc=8.0e5, rho_suc=22.0, dh_isen=5.0e4)
+    state = SuctionState(278.15)
     for cls in (GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler):
         m = cls(ref="R32")
         assert m.rps_min < m.rps_rated < m.rps_max
-        expected = default_efficiencies(m.compressor_type, m.ref, m.rps_rated)
+        expected = default_efficiencies()
         assert m.eta_cmp_isen(3, 40, state) == expected["eta_cmp_isen"](3, 40, state)
         assert callable(m.eta_cmp_vol) and callable(m.eta_cmp)
 

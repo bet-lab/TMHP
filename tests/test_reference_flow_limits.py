@@ -85,7 +85,8 @@ def run(hp, prescribed=None):
     args = {} if prescribed is None else {"ground_flow_lpm": prescribed}
     if isinstance(hp, GroundSourceHeatPump):
         return hp.analyze_steady(Q_r_iu=-4000, T0=7, T_a_room=20, T_bhe_wall=16, **args)
-    return hp.analyze_steady(T_tank_w=40, T_source=16, Q_ref_tank=4000, T0=7, T_bhe_wall=16, **args)
+    # 5 kW: with the default maps of #217, 4 kW at this warm source is below the 15 rev/s duty.
+    return hp.analyze_steady(T_tank_w=40, T_source=16, Q_ref_tank=5000, T0=7, T_bhe_wall=16, **args)
 
 
 @pytest.mark.parametrize("cls", [GroundSourceHeatPump, GroundSourceHeatPumpBoiler])

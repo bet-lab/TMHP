@@ -68,19 +68,20 @@ def test_supply_air_and_fan_power_at_the_rating_points(hp):
     # Rated COP against what such equipment declares. The five Daikin FTXM-A / RXM-A units of 2.0 to
     # 5.0 kW in validation/catalogs declare 4.14 to 5.00 in heating (H1) and 3.68 to 5.41 in cooling
     # (T1) (validation/results/gate_a/rated_points.csv); the bounds are that band with 5 % either
-    # side in heating. The default unit is at 4.65 in heating (5.03 with the quadratic efficiency map,
-    # which carried no inverter loss). It delivers its cooling nameplate here, three quarters of what
+    # side in heating. The default unit is at 4.45 in heating with the default maps of #217 (4.65 with
+    # the semi-empirical models, 5.03 with the quadratic efficiency map, which carried no inverter loss). It delivers its cooling nameplate here, three quarters of what
     # a unit of this size declares in heating (5.4 kW at 6/20 degC for the 4.2 kW RXM42A, COP 4.19),
     # so the declared band is a ceiling for this row, not a like-for-like point.
     #
-    # The like-for-like point is 7.7 % under the declared 4.19 -- outside the 5 % either side this test
-    # held it to until the semi-empirical compressor model (4.09 then). That is the heating bias of
-    # the whole air-to-air validation set with that model (-8.4 % over the 180 heating points of the
-    # five units, validation/results), not something particular to this row, and it is stated here as
-    # it is: the value is pinned, under the band, so the test moves when it does in either direction.
+    # The like-for-like point is 10.2 % under the declared 4.19 with the default maps of #217 (3.866,
+    # 7.7 % under, with the semi-empirical models; 4.09 before them, inside the 5 % either side this
+    # test held it to). It follows the heating bias of the whole air-to-air validation set with the
+    # default efficiencies (validation/results), not something particular to this row, and it is stated
+    # here as it is: the value is pinned, under the band, so the test moves when it does in either
+    # direction.
     like = _solve(hp, -5400.0, 6.0, 20.0)
     assert like["capacity_clamped"] is None
-    assert like["cop_sys [-]"] == pytest.approx(3.866, rel=0.005)
+    assert like["cop_sys [-]"] == pytest.approx(3.762, rel=0.005)
     assert like["cop_sys [-]"] < 0.95 * 4.19
     assert 0.95 * 4.14 < heating["cop_sys [-]"] < 1.05 * 5.00
     assert 3.2 < cooling["cop_sys [-]"] < 4.5

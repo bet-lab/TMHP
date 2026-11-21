@@ -63,6 +63,8 @@ SUMMARY_CSV = RESULTS_DIR / "summary.csv"
 #: Harness overload for air-to-water units. This reaches more limits than a
 #: 1.25x request and tests a smaller extrapolation than 2x (see issue #202).
 BOILER_PROBE_MULTIPLIER = 1.5
+#: Relative numerical tolerance used by the validation results reproduction test.
+CAPACITY_PROBE_REL_TOL = 1e-6
 
 CAPACITY_POINT_COLUMNS = (
     "q_pred_kW",
@@ -180,14 +182,21 @@ def _result_number(result: dict, key: str) -> float:
 
 
 def _probe_capacity(
-    model, catalog: Catalog, point: OperatingPoint, delivered_kW: float, *, multiplier: float = BOILER_PROBE_MULTIPLIER
+    model,
+    catalog: Catalog,
+    point: OperatingPoint,
+    delivered_kW: float,
+    *,
+    multiplier: float = BOILER_PROBE_MULTIPLIER,
+    rel_tol: float = CAPACITY_PROBE_REL_TOL,
 ) -> float:
     """Return the model's capacity probe in kW at the catalogue boundary conditions.
 
     The boiler overload holds the catalogue water inlet temperature and flow.
     A successful probe that meets the overload gives a lower bound on the
-    ceiling. A failed probe or one that delivers less than the ordinary request
-    gives no estimate.
+    ceiling. If both solves agree within the validation precision, the larger
+    value is a duty the model has delivered. A failed probe or a material drop
+    from the ordinary request gives no estimate.
     """
     if catalog.model_class == "ASHP":
         ceiling = model.max_capacity(T0=point.t_source_C, T_a_room=point.t_sink_C, mode=point.mode)
@@ -195,8 +204,10 @@ def _probe_capacity(
 
     overload = _run_point(model, catalog, point, request_multiplier=multiplier)
     delivered = _result_number(overload, "Q_ref_tank [W]") / 1000.0
-    if overload.get("failure_reason", "none") != "none" or delivered < delivered_kW:
+    if overload.get("failure_reason", "none") != "none":
         return math.nan
+    if delivered < delivered_kW:
+        return delivered_kW if math.isclose(delivered, delivered_kW, rel_tol=rel_tol) else math.nan
     return delivered
 
 

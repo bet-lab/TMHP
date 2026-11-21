@@ -252,7 +252,12 @@ def test_committed_parity_figure_states_the_adopted_statistics() -> None:
 
 @pytest.mark.parametrize(
     ("probe_duty", "failure", "expected_kW"),
-    [(10_000.0, "none", 10.0), (7_000.0, "none", None), (8_000.0, "cycle", None)],
+    [
+        (10_000.0, "none", 10.0),
+        (7_999.99999, "none", 8.0),
+        (7_000.0, "none", None),
+        (8_000.0, "cycle", None),
+    ],
 )
 def test_boiler_capacity_probe_keeps_the_catalogue_water_conditions(
     monkeypatch, probe_duty, failure, expected_kW

@@ -319,6 +319,23 @@ def test_points_run_are_read_off_the_rows_computed(tmp_path, capsys):
     assert manifest["units"] == ["daikin_rxm20a", "daikin_rxm50a"] and manifest["partial_run"] is True
 
 
+def test_a_repeated_selection_runs_its_rows_once(tmp_path, capsys):
+    """``--unit`` or ``--point-id`` given twice is the same selection, not a second run of it."""
+    repeated = ["--unit", "daikin_rxm20a", "--unit", "daikin_rxm20a", "--point-id", "23", "--point-id", "1"]
+    study.main([*repeated, "--point-id", "23", "--out-dir", str(tmp_path)])
+    capsys.readouterr()
+    rows = pd.read_csv(tmp_path / study.CSV_NAME)
+    assert list(zip(rows.slug, rows.point_id, strict=True)) == [("daikin_rxm20a", 1), ("daikin_rxm20a", 23)]
+    manifest = json.loads((tmp_path / "run_manifest.json").read_text(encoding="utf-8"))
+    record = json.loads((tmp_path / "provenance.json").read_text(encoding="utf-8"))
+    assert manifest["units"] == ["daikin_rxm20a"] and manifest["points_run"] == {"daikin_rxm20a": [1, 23]}
+    assert record["model_settings"]["points_run"] == {"daikin_rxm20a": [1, 23]}
+    # The command recorded names each selection once, in the order first given.
+    assert record["command"] == (
+        f"{study.COMMAND} --unit daikin_rxm20a --point-id 23 --point-id 1 --out-dir {tmp_path.resolve()}"
+    )
+
+
 def test_partial_run_cannot_replace_the_committed_study(capsys):
     with pytest.raises(SystemExit):
         study.main(ONE_ROW)  # no --out-dir: the default is the committed study's folder

@@ -469,8 +469,9 @@ def run(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
     out_dir: Path = args.out_dir.resolve()
-    slugs = tuple(args.unit) if args.unit else UNITS
-    point_ids = tuple(args.point_id) if args.point_id else None
+    # A repeated --unit or --point-id selects the same rows once (first mention keeps its place).
+    slugs = tuple(dict.fromkeys(args.unit)) if args.unit else UNITS
+    point_ids = tuple(dict.fromkeys(args.point_id)) if args.point_id else None
     partial = bool(args.unit or args.point_id)
     if partial and out_dir == OUT_DIR.resolve():
         parser.error("a partial run (--unit, --point-id) does not replace the committed study: give another --out-dir")
@@ -542,9 +543,7 @@ def run(argv: list[str] | None = None) -> None:
             "points_run": computed,
         },
         "sensible heat ratio of the wet indoor coil against the catalogue's, and the COP bias dry against wet",
-        command=run_command(
-            tuple(args.unit) if args.unit else None, point_ids, None if out_dir == OUT_DIR.resolve() else out_dir
-        ),
+        command=run_command(slugs if args.unit else None, point_ids, None if out_dir == OUT_DIR.resolve() else out_dir),
         # The state of the start of the run (unchanged since, checked above), in place of
         # the one the record helper reads when it writes.
         extra=state,

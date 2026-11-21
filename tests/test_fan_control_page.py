@@ -90,9 +90,16 @@ def test_the_table_is_what_the_model_gives(cop) -> None:
 
 def test_the_search_runs_the_indoor_fan_flat_out_and_the_losses_quoted_are_the_models(cop) -> None:
     base = _build()
-    for _, load, T0, room in CASES:
+    outdoor = {}
+    for label, load, T0, room in CASES:
         row = base.analyze_steady(Q_r_iu=load, T0=T0, T_a_room=room, return_dict=True, verbose=False)
         assert row["dV_iu_a [m3/s]"] == pytest.approx(base.dV_iu_fan_a_max, rel=1e-4)
+        outdoor[label] = float(row["dV_ou_a [m3/s]"])
+    # 'the search slows it with the load ... (0.61 to 0.47 m3/s from nameplate to half load in cooling)'
+    assert outdoor["Cooling 2 kW"] < outdoor["Cooling 4 kW"] and outdoor["Heating 2 kW"] < outdoor["Heating 4 kW"]
+    assert (
+        f"({outdoor['Cooling 4 kW']:.2f} to {outdoor['Cooling 2 kW']:.2f} m³/s from nameplate to half load in cooling)"
+    ) in _flat((DOCS / "models" / "ashp.rst").read_text())
     assert f"{base.dV_iu_fan_a_max:.3f} m³/s" in (DOCS / "models" / "ashp.rst").read_text()
     least, half, full = (cop[k] for k in ("Least power (the model)", HALF, "Both fans held at their largest flow"))
     lower_half = [round((1.0 - b / a) * 100.0) for a, b in zip(least, half, strict=True)]

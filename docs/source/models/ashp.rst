@@ -102,9 +102,22 @@ with equal limits:
    largest = AirSourceHeatPump().dV_iu_fan_a_max
    low_fan = AirSourceHeatPump(dV_iu_fan_a_min=0.5 * largest, dV_iu_fan_a_max=0.5 * largest)
 
+**Rated conditions and use.** A capacity table or a certified rating is
+measured at an indoor airflow the manufacturer declares, and the catalogue
+comparison of :doc:`/validation/index` gives the model that published airflow
+as the indoor fan's largest flow. The indoor fan at its largest flow is
+therefore the condition the catalogues were measured at: that comparison is
+like with like. In use the indoor fan runs at the step its user selects, or at
+what an automatic setting picks, and the COP falls as the rows above show. The
+outdoor fan is the unit's own to control in either case, and the search slows
+it with the load as a controller does (0.61 to 0.47 m³/s from nameplate to
+half load in cooling).
+
 For a seasonal figure of a unit whose fan setting is known, hold the fan
 there; where it is not, the model's figure is the favourable end of what the
-fan setting leaves open.
+fan setting leaves open. A building simulation that knows the room airflow
+of each hour cannot pass it per call yet: the flow limits are constructor
+arguments.
 
 .. _ashp-air-density:
 

@@ -40,13 +40,16 @@ exchanger — the shared air-source environmental-side model.
 Fan flows: the point of least power
 ===================================
 
-The model has no fan controller. At each call it looks for the operating
-point of least total electrical input (compressor and both fans) among those
-that carry the duty: the two approach temperatures are searched, and each
-coil's air flow follows from its approach, inside the fan's flow limits. A
-real unit runs the indoor fan at the step its user selects and the outdoor
-fan on its controller's map, so the result is the electricity of the best
-fan control, a lower bound.
+The model has no fan controller. At each call it searches the two approach
+temperatures for the operating point of least total electrical input
+(compressor and both fans) that carries the duty; each coil's air flow
+follows from its approach, inside the fan's flow limits. The search stops
+within 0.1 W of that input. Where no point carries the duty it ranks by the
+shortfall instead, and on the minimum speed by the input per unit of heat
+with the cycling loss. A real unit runs the indoor fan at the step its user
+selects and the outdoor fan on its controller's map, so the result is close
+to the best the fans can do in this model, not a prediction of a
+controller.
 
 How much rides on it, for the default 4 kW unit (cooling at 35 °C outdoor and
 a 27 °C room, heating at 7 °C outdoor and a 20 °C room). The search runs the
@@ -85,11 +88,12 @@ indoor fan at its largest flow, 0.232 m³/s, in all four cases:
 With the indoor flow at half, the COP is 21 % and 19 % lower at half load and
 34 % and 27 % lower at nameplate load: the coil needs a larger temperature
 difference to carry the duty, and the compressor pays for it. Holding both
-fans at full flow costs 4 % and 7 % at half load, the fan power the search
-saves, and nothing at nameplate load. At half the indoor flow the unit no
-longer carries its nameplate either: it delivers 3.90 kW in cooling and
-3.98 kW in heating, and the figures in that row are at those duties. A fan is
-held at one flow with equal limits:
+fans at full flow costs 4 % and 7 % at half load — the outdoor fan draws
+more than the compressor saves — and under 0.3 % at nameplate load. At half
+the indoor flow the unit no longer carries its nameplate either: its coil
+takes 3.90 kW in cooling and gives 3.98 kW in heating (refrigerant side),
+and the figures in that row are at those duties. A fan is held at one flow
+with equal limits:
 
 .. code-block:: python
 
@@ -99,7 +103,8 @@ held at one flow with equal limits:
    low_fan = AirSourceHeatPump(dV_iu_fan_a_min=0.5 * largest, dV_iu_fan_a_max=0.5 * largest)
 
 For a seasonal figure of a unit whose fan setting is known, hold the fan
-there; where it is not, the model's figure is the best case.
+there; where it is not, the model's figure is the favourable end of what the
+fan setting leaves open.
 
 .. _ashp-air-density:
 

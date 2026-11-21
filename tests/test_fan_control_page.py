@@ -79,7 +79,9 @@ def test_the_table_is_what_the_model_gives(cop) -> None:
     for name, values in cop.items():
         row = f"   * - {name}\n" + "".join(f"     - {value:.2f}\n" for value in values)
         assert row in page, f"ashp.rst, 'System COP by fan flow': {name} should read {[f'{v:.2f}' for v in values]}"
-    assert f"it delivers {delivered[0]:.2f} kW in cooling and {delivered[1]:.2f} kW in heating" in _flat(page)
+    assert (
+        f"its coil takes {delivered[0]:.2f} kW in cooling and gives {delivered[1]:.2f} kW in heating (refrigerant side)"
+    ) in _flat(page)
     short = [round((1.0 - value / 4.0) * 100.0) for value in delivered]
     scope = _flat((DOCS / "concepts" / "scope-and-limits.rst").read_text())
     assert f"which the unit then falls {min(short)} to {max(short)} % short of" in scope
@@ -101,7 +103,9 @@ def test_the_search_runs_the_indoor_fan_flat_out_and_the_losses_quoted_are_the_m
         f"{lower_half[2]} % and {lower_half[3]} % lower at nameplate load"
     ) in page
     assert f"costs {lower_full[0]} % and {lower_full[1]} % at half load" in page
-    assert lower_full[2] == 0 and lower_full[3] == 0
+    # ... "and under 0.3 % at nameplate load" (0.27 % in heating; in cooling the search is at full flow itself).
+    assert "and under 0.3 % at nameplate load" in page
+    assert all(abs(1.0 - b / a) < 0.003 for a, b in zip(least[2:], full[2:], strict=True))
     scope = _flat((DOCS / "concepts" / "scope-and-limits.rst").read_text())
     assert (
         f"the COP is {min(lower_half[:2])} to {max(lower_half[:2])} % lower at half load and "
@@ -109,9 +113,33 @@ def test_the_search_runs_the_indoor_fan_flat_out_and_the_losses_quoted_are_the_m
     ) in scope
 
 
-def test_holding_a_fan_never_beats_the_search(cop) -> None:
-    least = cop["Least power (the model)"]
-    for name, values in cop.items():
-        if name != DELIVERED:
-            # within the tolerance of the search (1e-5 of the power at the nameplate cooling point)
-            assert all(value <= best * (1.0 + 1e-4) for value, best in zip(values, least, strict=True)), name
+#: Tolerance of the operating-point search on the total input [W] (``fatol`` of its refinement).
+SEARCH_TOLERANCE_W = 0.1
+
+
+def test_holding_a_fan_does_not_beat_the_search_beyond_its_tolerance() -> None:
+    """'The search stops within 0.1 W of that input.' At the same coil duty a held fan never draws less than that."""
+    assert "The search stops within 0.1 W of that input" in _flat((DOCS / "models" / "ashp.rst").read_text())
+    base = _build()
+    indoor, outdoor = base.dV_iu_fan_a_max, base.dV_ou_fan_a_max
+    held = {
+        "indoor 70 %": _build(dV_iu_fan_a_min=0.7 * indoor, dV_iu_fan_a_max=0.7 * indoor),
+        "indoor 50 %": _build(dV_iu_fan_a_min=0.5 * indoor, dV_iu_fan_a_max=0.5 * indoor),
+        "outdoor largest": _build(dV_ou_fan_a_min=outdoor, dV_ou_fan_a_max=outdoor),
+        "outdoor 60 %": _build(dV_ou_fan_a_min=0.6 * outdoor, dV_ou_fan_a_max=0.6 * outdoor),
+        "both largest": _build(
+            dV_iu_fan_a_min=indoor, dV_iu_fan_a_max=indoor, dV_ou_fan_a_min=outdoor, dV_ou_fan_a_max=outdoor
+        ),
+    }
+    compared = 0
+    for _, load, T0, room in CASES:
+        searched = base.analyze_steady(Q_r_iu=load, T0=T0, T_a_room=room, return_dict=True, verbose=False)
+        assert searched["Q_unmet [W]"] == 0.0
+        for name, model in held.items():
+            row = model.analyze_steady(Q_r_iu=load, T0=T0, T_a_room=room, return_dict=True, verbose=False)
+            if row["failure_reason"] != "none" or row["Q_unmet [W]"] > 0.0:
+                continue  # a held fan that does not carry the duty is not a cheaper way to carry it
+            assert row["Q_ref_iu [W]"] == pytest.approx(searched["Q_ref_iu [W]"], rel=1e-9)
+            assert row["E_tot [W]"] >= searched["E_tot [W]"] - SEARCH_TOLERANCE_W, (name, load)
+            compared += 1
+    assert compared >= 16  # every held setting but half the indoor flow at nameplate load

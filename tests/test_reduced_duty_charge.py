@@ -237,6 +237,111 @@ def test_no_run_above_the_stop_or_below_the_smallest_duty(above):
     assert later.T_reduced_mean_C <= LIMIT.stop_C
 
 
+#: A tank that loses heat in proportion to its temperature: 10 W/K to 20 degC and a 500 W draw
+#: (940 W at the stop, less than the 2 kW the limit leaves there, so the compressor holds it).
+LOSS_UA, LOSS_T_SUR, LOSS_DRAW = 10.0, 20.0, 500.0
+
+
+def _loss(T_C):
+    return -LOSS_UA * (T_C - LOSS_T_SUR) - LOSS_DRAW
+
+
+def _closing_end(T0, heat_J, dt):
+    """End temperature of a step by the balance the boilers close it with.
+
+    ``C (T1 - T0) = heat + dt P(T1)``: the free heat of the whole step taken at the end
+    temperature (implicit), whatever the tank did inside the step.
+    """
+    return (C * T0 + heat_J + dt * (LOSS_UA * LOSS_T_SUR - LOSS_DRAW)) / (C + dt * LOSS_UA)
+
+
+def _cooling_time_to_the_stop(T_start):
+    """Time [s] for the tank without heat to cool from ``T_start`` to the stop: ``C dT/dt = P(T)``, exactly."""
+    return -C / LOSS_UA * math.log1p(LOSS_UA * (T_start - LIMIT.stop_C) / _loss(T_start))
+
+
+def _steps_from_above_the_stop(dt, steps, T_start=64.5):
+    """Steps of a called compressor from above the stop: (run, tank at the step's end) per step."""
+    free = ((50.0, _loss(50.0)), (70.0, _loss(70.0)))
+    T, call, running, age, out = T_start, True, False, math.inf, []
+    for _ in range(steps):
+        run = _sim(
+            T_start_C=T,
+            call_start=call,
+            running_prev=running,
+            phase_age_s=age,
+            T_lower=64.2,
+            T_upper=66.0,
+            free_heat=free,
+            dt=dt,
+        )
+        T = _closing_end(T, _heat(run, dt), dt)
+        call, running, age = run.call_end, run.running_end, run.phase_age_end_s
+        out.append((run, T))
+    return out
+
+
+@pytest.mark.parametrize("dt", [60.0, 600.0, 3600.0])
+def test_a_hold_that_follows_cooling_from_above_the_stop_is_one_start(dt):
+    """Final review: a tank 0.5 K above the stop, the call standing, cools to it and is held.
+
+    The events have the tank lose more while it is warmer than the stop; the balance that closes
+    the step takes the loss of the whole step at its end temperature. Credited with the heat of
+    the events' hold, the tank ended that step above the stop (1.3e-4 K on the R32 unit, 1.2e-3 K
+    here at 600 s), and the next step read that as a tank above the stop: a stop, and a second
+    start. The hold of such a step has the heat its closing balance needs to end at the stop.
+    """
+    steps = _steps_from_above_the_stop(dt, int(round(7200.0 / dt)))
+    assert sum(run.starts for run, _ in steps) == 1
+    started = next(i for i, (run, _) in enumerate(steps) if run.starts)
+    for i, (run, T_end) in enumerate(steps):
+        if i < started:
+            assert run.runtime_fraction == 0.0 and not run.running_end and run.limit_stop and T_end > LIMIT.stop_C
+        else:
+            # Held: the step ends at the stop, by the closing balance, and the compressor is on.
+            assert T_end == pytest.approx(LIMIT.stop_C, abs=1e-9), i
+            assert run.running_end and run.call_end and run.limit_stop and run.runtime_fraction > 0.0
+            assert run.reduced_fraction == run.runtime_fraction and run.T_reduced_mean_C == pytest.approx(LIMIT.stop_C)
+    # A step that is all hold: the loss at the stop, for the whole step.
+    run, _ = steps[-1]
+    assert _heat(run, dt) == pytest.approx(-_loss(LIMIT.stop_C) * dt, rel=1e-9)
+    # The timers of the run that started when the tank got to the stop count from there.
+    run, _ = steps[started]
+    t_start = dt - run.phase_age_end_s
+    assert 0.0 <= t_start < dt and run.runtime_fraction * dt < dt - t_start
+
+
+def test_the_heat_of_a_hold_after_cooling_is_what_the_closing_balance_needs():
+    """One 600 s step from 64.5 degC: the heat is the loss at the stop for the step, less what the tank gave up."""
+    ((run, T_end),) = _steps_from_above_the_stop(600.0, 1)
+    assert _heat(run, 600.0) == pytest.approx(-_loss(LIMIT.stop_C) * 600.0 - C * 0.5, rel=1e-12)
+    assert T_end == pytest.approx(LIMIT.stop_C, abs=1e-12)
+    # The events' own cooling takes 318.2 s; the on-time is a share of the 281.8 s left.
+    t_cool = _cooling_time_to_the_stop(64.5)
+    assert run.phase_age_end_s == pytest.approx(600.0 - t_cool, rel=1e-12)
+    assert 0.0 < run.runtime_fraction * 600.0 < -_loss(LIMIT.stop_C) / LIMIT.Q_min * (600.0 - t_cool)
+    # A tank without a temperature-dependent loss: the two balances are the same one, as before.
+    flat = ((50.0, -940.0), (70.0, -940.0))
+    even = _sim(T_start_C=64.5, T_lower=64.2, T_upper=66.0, free_heat=flat, dt=600.0)
+    assert _heat(even, 600.0) == pytest.approx(940.0 * 600.0 - C * 0.5, rel=1e-12)
+
+
+def test_a_tank_the_closing_balance_does_not_bring_to_the_stop_is_not_held_in_that_step():
+    """A step that ends 0.01 s after the events' tank reaches the stop.
+
+    By the closing balance the tank of that step is still above the stop without any heat: the
+    compressor does not start in it (a start with no run time), and starts in the next. One start.
+    """
+    t_cool = _cooling_time_to_the_stop(64.5)
+    steps = _steps_from_above_the_stop(t_cool + 0.01, 3)
+    first, T_first = steps[0]
+    assert first.starts == 0 and first.runtime_fraction == 0.0 and not first.running_end
+    assert first.call_end and first.limit_stop
+    assert 0.0 < T_first - LIMIT.stop_C < 2e-3
+    assert [run.starts for run, _ in steps] == [0, 1, 0]
+    assert steps[-1][1] == pytest.approx(LIMIT.stop_C, abs=1e-9)
+
+
 def test_the_duty_on_the_limit_is_never_below_the_smallest_duty_to_the_last_digit():
     """At or below the stop the limit's duty is at least ``Q_min``, exactly, for any numbers.
 
@@ -813,6 +918,38 @@ def test_a_cycle_that_has_more_changes_neither_the_run_time_nor_the_heat_of_the_
     assert heat == pytest.approx(C * (LIMIT.stop_C - 63.9) + loss * dt, rel=1e-9)
 
 
+def test_the_rates_of_a_cycle_that_has_more_are_lowered_by_no_more_than_the_tolerance():
+    """How far the scaling goes: a cycle is taken at the duty asked only inside ``DUTY_MATCH_RTOL``.
+
+    The excess is not always a few millionths (the R32 unit with ``rps_min=8`` at 45 degC outdoor:
+    993 millionths, a factor of 0.99901). The factor is asked over delivered, so never below
+    ``1 / (1 + DUTY_MATCH_RTOL)`` = 0.999001: a cycle with more than that is not on the duty the
+    events took, and the step is withheld. Up to the bound the row keeps the cycle's ratio of heat
+    to power.
+    """
+    loss, dt = 500.0, 1200.0
+
+    def with_loss(T_K):
+        return (C * T_K - C * (LIMIT.stop_C + 273.15) + dt * loss) / C
+
+    held = dict(
+        T_start=LIMIT.stop_C, T_upper=64.5, dt=dt, residual_free=with_loss, running_prev=True, phase_age_s=100.0
+    )
+    exact, _, _ = _resolve(**held)
+    near = 1.0 + 0.99 * DUTY_MATCH_RTOL
+    run, row, calls = _resolve(on_limit_share=near, **held)
+    assert run == exact and not run.reduced_withheld
+    (_, asked, _), delivered = calls["limit"][0], calls["limit"][0][1] * near
+    assert asked / delivered == pytest.approx(1.0 / near) and 1.0 / (1.0 + DUTY_MATCH_RTOL) < asked / delivered < 0.9991
+    assert row["Q_ref_tank [W]"] == pytest.approx(asked, rel=1e-12)
+    assert row["E_tot [W]"] == pytest.approx(delivered / 2.5 * (asked / delivered), rel=1e-12)
+    assert row["Q_ref_tank [W]"] / row["E_tot [W]"] == pytest.approx(2.5, rel=1e-12)  # the cycle's own COP
+    assert run.runtime_fraction * row["Q_ref_tank [W]"] == pytest.approx(loss, rel=1e-12)
+    # Past the bound the cycle is not the events': no scaling, the step is the one of the compressor that stops.
+    beyond, _, _ = _resolve(on_limit_share=1.0 + 1.01 * DUTY_MATCH_RTOL, **held)
+    assert beyond.reduced_withheld and beyond.reduced_fraction == 0.0 and beyond.runtime_fraction == 0.0
+
+
 # ---------------------------------------------------------------------------
 # the three boiler families
 # ---------------------------------------------------------------------------
@@ -1353,6 +1490,100 @@ def test_run_time_and_compressor_state_agree_at_the_stop():
     assert state.hp_running_prev and state.hp_phase_age_s == 3600.0
 
 
+@pytest.mark.parametrize("dt, steps", [(60.0, 12), (600.0, 3), (3600.0, 2)])
+def test_a_tank_that_cools_to_the_stop_and_is_held_there_starts_once(dt, steps):
+    """Final review: the same unit from 61.8 degC, 0.5 K above its stop at 35 degC outdoor (61.3034 degC).
+
+    The tank cools to the stop and the compressor holds it there. Before, the step in which it got
+    there ended at 61.303528 degC (600 s), 1.3e-4 K above the stop, and the next step counted a
+    stop and a second start; the same with 60 s and 3600 s steps.
+    """
+    m = _quiet(
+        tmhp.AirSourceHeatPumpBoiler,
+        ref="R32",
+        T_tank_w_lower_bound=62.0,
+        T_tank_w_upper_bound=65.0,
+        min_on_time_s=0.0,
+        min_off_time_s=0.0,
+        condensing_limit_control="reduce_duty",
+    )
+    state, rows = m.make_initial_state(61.8), []
+    for i in range(steps):
+        inputs = dict(n=i, current_time_s=i * dt, T0=35.0, dV_mix_w_out=1e-5, T_sup_w=15.0, T_sur=20.0)
+        state, row = _quiet(m.step, state, inputs, dt)
+        rows.append(row)
+    assert sum(row["hp_starts [-]"] for row in rows) == 1
+    started = next(i for i, row in enumerate(rows) if row["hp_starts [-]"])
+    assert started == (4 if dt == 60.0 else 0)
+    for row in rows[:started]:
+        assert not row["hp_is_on"] and row["T_tank_w [°C]"] > 61.3034
+    for row in rows[started:]:
+        # Held at the stop from the step in which the tank got there, to the last digits of the balance.
+        assert row["T_tank_w [°C]"] == pytest.approx(61.303399, abs=1e-6)
+        assert row["T_tank_w [°C]"] == pytest.approx(rows[-1]["T_tank_w [°C]"], abs=1e-9)
+        assert row["hp_is_on"] and row["hp_stop_reason"] == STOP_CONDENSING_LIMIT
+        assert row["reduced_duty_fraction [-]"] == row["runtime_fraction [-]"] > 0.0
+        assert row["reduced_duty_withheld"] is None
+    # A step that is all hold runs the share of the time that covers the loss at the stop.
+    assert rows[-1]["runtime_fraction [-]"] == pytest.approx(0.13826, abs=1e-5)
+    assert state.hp_running_prev and state.hp_phase_age_s < steps * dt
+
+
+def test_near_the_bound_of_the_scaling_the_row_is_still_one_cycle():
+    """A hold at the stop whose cycle has 0.099 % more than it was asked for, against the 0.1 % allowed.
+
+    R32 15 kW with a speed floor of 8 rev/s at 45 degC outdoor (final review): the smallest duty
+    found for the stop is 5382.86 W, and the cycle at the floor delivers 5388.21 W there. The row
+    takes the cycle's rates times 0.99901. Scaled together, they are still one cycle: heat over
+    power is the COP the row reports (the cycle's), and the heat is the refrigerant flow times the
+    enthalpy it gives up in the condenser.
+    """
+    m = _quiet(
+        tmhp.AirSourceHeatPumpBoiler,
+        ref="R32",
+        rps_min=8.0,
+        T_tank_w_lower_bound=63.0,
+        T_tank_w_upper_bound=64.0,
+        condensing_limit_control="reduce_duty",
+    )
+    solved = []
+    inner = m._solve_cycle_on_limit
+    m._solve_cycle_on_limit = lambda ctx, T_C, q: (solved.append((q, dict(inner(ctx, T_C, q)))), solved[-1][1])[1]
+    # The first step charges to the stop and holds (its closing balance ends it 4e-6 K below, which
+    # the second makes up); the third is all hold.
+    state, rows = m.make_initial_state(62.3), []
+    for i in range(3):
+        inputs = dict(n=i, current_time_s=i * 1200.0, T0=45.0, dV_mix_w_out=1e-5, T_sup_w=15.0, T_sur=20.0)
+        state, row = _quiet(m.step, state, inputs, 1200.0)
+        rows.append(row)
+    row, (asked, cycle) = rows[2], solved[-1]
+    assert [r["hp_starts [-]"] for r in rows] == [1, 0, 0] and row["hp_stop_reason"] == STOP_CONDENSING_LIMIT
+    assert row["reduced_duty_withheld"] is None and row["reduced_duty_fraction [-]"] == row["runtime_fraction [-]"]
+    assert row["T_tank_w [°C]"] == pytest.approx(62.484797, abs=1e-5)
+    assert row["T_tank_w [°C]"] == pytest.approx(rows[1]["T_tank_w [°C]"], abs=1e-9)  # held at the stop
+    # The cycle at the speed floor has more than asked, close to the most the tolerance lets through.
+    delivered = cycle["Q_ref_tank [W]"]
+    assert cycle["cmp_rpm [rpm]"] == pytest.approx(8.0 * 60.0)
+    assert asked == pytest.approx(5382.86, rel=1e-5) and delivered == pytest.approx(5388.21, rel=1e-5)
+    factor = asked / delivered
+    assert 1.0 / (1.0 + DUTY_MATCH_RTOL) < factor < 0.99902
+    # Every rate of the row is the cycle's times that factor, averaged over the step.
+    share = row["runtime_fraction [-]"]
+    assert share == pytest.approx(0.20345, abs=1e-4)
+    assert row["Q_ref_tank [W]"] == pytest.approx(share * asked, rel=1e-12)
+    for key in ("Q_ref_tank [W]", "E_cmp [W]", "E_tot [W]", "E_ou_fan [W]", "m_dot_ref [kg/s]", "Q_ref_ou [W]"):
+        assert row[key] == pytest.approx(share * factor * cycle[key], rel=1e-12), key
+    assert row["Q_max [W]"] == pytest.approx(asked, rel=1e-12)
+    # ... so the ratios the row reports are the ratios of its rates, and those of the cycle solved.
+    assert row["Q_ref_tank [W]"] / row["E_cmp [W]"] == pytest.approx(row["cop_ref [-]"], rel=1e-12)
+    assert row["Q_ref_tank [W]"] / row["E_tot [W]"] == pytest.approx(row["cop_sys [-]"], rel=1e-12)
+    assert (row["cop_ref [-]"], row["cop_sys [-]"]) == (cycle["cop_ref [-]"], cycle["cop_sys [-]"])
+    # ... and the heat is the refrigerant flow times its enthalpy drop from the discharge to the expansion valve.
+    drop = row["h_ref_cmp_out [J/kg]"] - row["h_ref_exp_in [J/kg]"]
+    assert drop == cycle["h_ref_cmp_out [J/kg]"] - cycle["h_ref_exp_in [J/kg]"]
+    assert row["Q_ref_tank [W]"] == pytest.approx(row["m_dot_ref [kg/s]"] * drop, rel=1e-9)
+
+
 #: Tank insulation -> (constructor arguments, tolerances on the end temperature [K] and the heat [-]).
 #: Loss coefficients 1.15 W/K (the default), 4.6 W/K and 76.65 W/K: C_tank / UA of 153 h, 38 h and 2.3 h.
 LOSSY_TANKS = {
@@ -1780,3 +2011,137 @@ def test_a_boiling_stop_of_a_model_is_not_flagged_as_withheld():
     assert df["hp_stop_reason"].iloc[0] == STOP_BOILING_LIMIT
     assert df["reduced_duty_withheld"].isna().all() and (df["reduced_duty_fraction [-]"] == 0.0).all()
     assert not asked
+
+
+# ---- a limit between the three points of the check ----
+
+#: The final review's case: the default R290 water-source unit with a discharge limit of 92.408 degC and a
+#: compressor whose isentropic efficiency dips around 35 rev/s. At the knee (49.5 rev/s), the middle (30.9 rev/s)
+#: and the stop (15.0 rev/s) of the stretch at 16 degC source water the cycle delivers the condensing limit's duty;
+#: between the knee and the middle (seen from 69.24 to 69.41 degC, about 33 rev/s) another limit holds it below that.
+BETWEEN_KW = dict(
+    T_dis_max=92.408,
+    eta_cmp_isen=lambda pr, rps: 0.8 - 0.4 * math.exp(-(((rps - 35.0) / 3.0) ** 2)),
+    T_tank_w_lower_bound=72.0,
+    T_tank_w_upper_bound=73.0,
+)
+
+
+@pytest.fixture(scope="module")
+def between_the_samples():
+    """One hour from 68.95 degC, no draw, source water 16 degC, at 60, 600 and 3600 s steps.
+
+    Per step size: the ``reduce_duty`` run, the run of a ``"stop"`` model with the same band, and
+    every cycle the ``reduce_duty`` model solved at a duty of its own as ``(step, tank, asked,
+    delivered, capacity_binding)``; with them the verdict the model kept for the source state.
+    The 60 s run takes about a minute (each withheld step solves a cycle another limit holds, then
+    the step of ``"stop"``): the tests that use it share one worker, so that it is run once.
+    """
+    runs = {}
+    for dt in STEPS:
+        m = _quiet(tmhp.WaterSourceHeatPumpBoiler, **BETWEEN_KW, condensing_limit_control="reduce_duty")
+        stop = _stop_model_with_the_band_of(tmhp.WaterSourceHeatPumpBoiler, BETWEEN_KW, m)
+        cycles = []
+        inner = m._solve_cycle_at
+
+        def spy(ctx, T_tank_w, Q_request=None, inner=inner, cycles=cycles):
+            row = inner(ctx, T_tank_w, Q_request)
+            if Q_request is not None:
+                cycles.append((ctx.n, T_tank_w, Q_request, row.get("Q_ref_tank [W]"), row.get("capacity_binding")))
+            return row
+
+        m._solve_cycle_at = spy
+        n = int(round(HORIZON / dt))
+        args = (n * dt, dt, 68.95, np.zeros(n), np.full(n, 15.0))
+        df = _quiet(m.analyze_dynamic, *args, T_source_w_schedule=np.full(n, 16.0))
+        reference = _quiet(stop.analyze_dynamic, *args, T_source_w_schedule=np.full(n, 16.0))
+        runs[dt] = (df, reference, cycles, m._charge_stretch_cache[1:], m)
+    return runs
+
+
+@pytest.mark.xdist_group("limit-between-the-samples")
+def test_the_three_points_of_the_check_do_not_see_a_limit_between_them(between_the_samples):
+    """The stretch qualifies: knee, middle and stop each deliver the condensing limit's duty, under no other limit."""
+    for dt in STEPS:
+        _, _, cycles, (floor, reason), m = between_the_samples[dt]
+        assert reason is None and floor == pytest.approx(2447.3, rel=1e-4), dt
+        knee, reach = condensing_tank_cutout(m), condensing_tank_reach(m)
+        stop = reach - floor / m.K_tank_hx
+        first = cycles[0][0]
+        # The three cycles of the qualification, in the first step that got to the limit: asked == delivered.
+        points = [(T, asked, got, binding) for step, T, asked, got, binding in cycles if step == first][:3]
+        assert [T for T, _, _, _ in points] == pytest.approx([knee, 0.5 * (knee + stop), stop]), dt
+        assert [asked for _, asked, _, _ in points] == pytest.approx([8000.0, 0.5 * (8000.0 + floor), floor]), dt
+        for _, asked, got, binding in points:
+            assert got == pytest.approx(asked, rel=1e-6) and binding in (None, BINDING_CONDENSING), dt
+
+
+@pytest.mark.xdist_group("limit-between-the-samples")
+def test_a_limit_between_the_three_points_withholds_the_steps_whose_cycle_lands_on_it(between_the_samples):
+    """60 s steps: the cycle of the first steps lands where the other limit acts, and they are withheld.
+
+    Their stretch on the limit would start at 68.95 degC; its mean (69.41 degC in the first step)
+    asks for 6376 W and the cycle delivers 6217 W, held by another limit. Each such row says
+    ``reduced_duty_withheld == "cycle"`` and is the row of the ``"stop"`` model with the same band
+    (the compressor stays off above the nameplate cut-out), every column. The tank cools a little
+    in each of them, and after 34 the cycle of the step is clear of the limit: the charge runs on
+    the condensing limit from there.
+    """
+    df, reference, cycles, _, _ = between_the_samples[60.0]
+    withheld = df.index[df["reduced_duty_withheld"].notna()].tolist()
+    # The withheld rows are the first ones (34 here; the count depends on where a step's mean lands).
+    assert withheld == list(range(len(withheld))) and 30 <= len(withheld) <= 38
+    assert set(df["reduced_duty_withheld"].dropna()) == {BINDING_CYCLE}
+    rows = df.iloc[withheld]
+    assert (rows["hp_stop_reason"] == STOP_CONDENSING_LIMIT).all() and (rows["reduced_duty_fraction [-]"] == 0.0).all()
+    assert (rows["runtime_fraction [-]"] == 0.0).all()
+
+    def no_value(x):
+        return x is None or (isinstance(x, float) and math.isnan(x))
+
+    # Against the "stop" model, no tolerance. A cell without a value is None in the reference (a
+    # column with nothing in it) and NaN here (the same column has text on later rows): both are empty.
+    assert set(df.columns) - REDUCE_ONLY == set(reference.columns)
+    for column in reference.columns:
+        differing = [
+            i
+            for i in withheld
+            if not (_same_cell(df[column].iloc[i], reference[column].iloc[i]))
+            and not (no_value(df[column].iloc[i]) and no_value(reference[column].iloc[i]))
+        ]
+        assert not differing, (column, differing[:3])
+    # The cycle that withheld the first step: at the mean of its stretch on the limit, short of the duty asked.
+    step, T_mean, asked, got, binding = next(c for c in cycles[3:] if c[0] == 0)
+    assert T_mean == pytest.approx(69.414, abs=2e-3) and asked == pytest.approx(6376.0, rel=1e-3)
+    assert got < asked * (1.0 - DUTY_MATCH_RTOL) and got == pytest.approx(6217.0, rel=2e-3) and binding
+    # After them the steps charge on the limit, and the hour ends near the set point.
+    after = df.iloc[len(withheld) :]
+    assert (after["reduced_duty_fraction [-]"] > 0.0).sum() >= 5 and after["reduced_duty_withheld"].isna().all()
+
+
+@pytest.mark.xdist_group("limit-between-the-samples")
+def test_such_a_limit_makes_the_charge_depend_on_the_step(between_the_samples):
+    """600 s and 3600 s steps have the mean of their stretch elsewhere, and charge without a withheld row.
+
+    The documented exception to the step-size agreement of a qualified charge: the hour differs by
+    0.21 K, 4.8 % of the heat and 8.1 % of the electricity between 60 s steps and the longer ones
+    (which agree with each other), because the 60 s run waits 34 minutes above the cut-out first.
+    """
+    totals = {}
+    for dt in STEPS:
+        df, _, _, _, _ = between_the_samples[dt]
+        totals[dt] = (
+            float(df["T_tank_w [°C]"].iloc[-1]),
+            float(df["Q_ref_tank [W]"].sum() * dt) / 3.6e6,
+            float(df["E_tot [W]"].sum() * dt) / 3.6e6,
+            int(df["reduced_duty_withheld"].notna().sum()),
+        )
+    assert totals[600.0][3] == 0 and totals[3600.0][3] == 0 and totals[60.0][3] > 0
+    assert totals[60.0][:3] == pytest.approx((72.730, 0.48352, 0.20388), rel=1e-2, abs=0.03)
+    assert totals[600.0][:3] == pytest.approx((72.517, 0.46049, 0.18730), rel=2e-3, abs=5e-3)
+    assert totals[3600.0][:3] == pytest.approx((72.518, 0.46049, 0.18730), rel=2e-3, abs=5e-3)
+    # The two longer step sizes agree as a qualified charge does; the 60 s run does not.
+    assert totals[3600.0][1] == pytest.approx(totals[600.0][1], rel=1e-3)
+    assert 0.15 < totals[60.0][0] - totals[600.0][0] < 0.27
+    assert 0.035 < 1.0 - totals[600.0][1] / totals[60.0][1] < 0.06
+    assert 0.06 < 1.0 - totals[600.0][2] / totals[60.0][2] < 0.10

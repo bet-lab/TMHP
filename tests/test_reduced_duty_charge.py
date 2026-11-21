@@ -442,13 +442,29 @@ def test_electricity_of_the_stub_charge_does_not_depend_on_the_step():
 
 
 def test_without_a_floor_or_a_cycle_on_the_limit_the_step_keeps_the_stop():
-    """No continuous duty below the request, or no operating point on the limit: the stop at the knee."""
+    """No continuous duty below the request, or a cycle the limit itself refuses on its line: the stop at the knee.
+
+    (The follow-up review changed the third case on purpose. The first version kept the stop for
+    any cycle without an operating point on the limit. A cycle that fails there for another
+    reason than the condensing limit is not a condensing stop: the run still ends at the knee,
+    with the same run time and the same cycle, but the step ends off and without a cut-out, and
+    the step after it reports the cycle's failure.)
+    """
     stop, _, _ = _resolve(duty_line=None, T_limit_C=LIMIT.knee_C(Q_ON))
     assert stop.limit_stop and stop.runtime_fraction * 3600.0 == pytest.approx(240.0)
-    for kw in (dict(floor=None), dict(floor=Q_ON), dict(on_limit_runs=False)):
+    refused = dict(on_limit_runs=False, duty_limit_failure="cycle_invalid")  # the stub's failure is the limit's own
+    for kw in (dict(floor=None), dict(floor=Q_ON), refused):
         run, row, _ = _resolve(**kw)
         assert run == stop, kw
         assert row["Q_ref_tank [W]"] == Q_ON and "capacity_clamped" not in row
+    # Another failure than the limit's, above a stretch that ran at the full duty.
+    run, row, _ = _resolve(on_limit_runs=False)
+    assert run.runtime_fraction == stop.runtime_fraction and run.T_on_mean_C == stop.T_on_mean_C
+    assert row["Q_ref_tank [W]"] == Q_ON and "capacity_clamped" not in row
+    assert not run.limit_stop and in_step_stop_reason(run, T_WATER_BOIL_C) is None
+    assert not run.running_end and run.call_end and run.starts == stop.starts
+    after, row_after, _ = _resolve(T_start=LIMIT.knee_C(Q_ON) + 1e-9, dt=600.0, on_limit_runs=False)
+    assert after.heat_unavailable and row_after["failure_reason"] == "cycle_invalid"
 
 
 def test_a_cycle_already_below_the_floor_keeps_the_stop():
@@ -1583,3 +1599,35 @@ def test_a_second_limit_of_any_shape_comes_out_the_same_at_any_step(shape):
     assert (fine[0] == pytest.approx(LIMIT.stop_C, abs=0.005)) == (
         shape in ("shallow, meeting the condensing limit", "rising")
     )
+
+
+@pytest.mark.parametrize("above", [1_500.0, 0.0], ids=["too little above", "no operating point above"])
+def test_a_hand_over_with_nothing_to_run_on_is_not_a_condensing_stop(above):
+    """Stop-time review: the run gets to where its duty meets the condensing limit, and nothing runs on from there.
+
+    A second limit leaves 9 kW up to 60.5 degC -- exactly where 9 kW meet the condensing limit --
+    and above it less than the smallest continuous duty, or no operating point. The run ends at
+    60.5 degC. That is 3.5 K below the condensing limit's stop (64 degC), so it is not a
+    condensing stop: the step ends the way the rest of it was resolved (the compressor off, the
+    call standing), and the step after it says why if the cycle has no operating point.
+    """
+
+    def other(T_C):
+        return 9_000.0 if T_C <= 60.5 else above
+
+    run, row, _ = _resolve_two_limits(other, T_start=56.0, dt=3600.0)
+    assert run.runtime_fraction * 3600.0 == pytest.approx(4.5 * C / 9_000.0, rel=1e-9)
+    assert run.T_on_max_C == pytest.approx(60.5) and row["Q_ref_tank [W]"] == pytest.approx(9_000.0)
+    assert row["capacity_binding"] == OTHER and run.reduced_fraction == 0.0
+    assert in_step_stop_reason(run, T_WATER_BOIL_C) is None and not run.limit_stop
+    assert not run.running_end and run.call_end and run.starts == 1
+    assert run.phase_age_end_s == pytest.approx(3600.0 - 4.5 * C / 9_000.0, rel=1e-9)  # off since it got there
+    # The step after it, from 60.5 degC: off, and the cycle's failure if that is why.
+    after, row_after, _ = _resolve_two_limits(
+        other, T_start=60.5 + 1e-9, dt=600.0, running_prev=False, phase_age_s=run.phase_age_end_s
+    )
+    assert after.runtime_fraction == 0.0 and in_step_stop_reason(after, T_WATER_BOIL_C) is None
+    if above > 0.0:
+        assert not after.heat_unavailable and row_after is None
+    else:
+        assert after.heat_unavailable and row_after["failure_reason"] == OTHER

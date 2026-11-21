@@ -589,8 +589,11 @@ whose cycle cannot be solved; ``hp_stop_reason`` is then ``None``.
 limit ends -- it leaves no more than the smallest continuous duty, or closes
 -- reports none, and neither do the steps after it in which the compressor
 stays off for that reason (no failure either: the cycle exists, at too little
-duty). ``"condensing_limit"`` is reported with the tank at the condensing
-limit's own stop.
+duty). The same holds where a run gets to the tank temperature at which its
+duty meets the condensing limit and nothing runs on from there: the step ends
+the way its rest was resolved. ``"condensing_limit"`` is reported with the
+tank at the condensing limit's own stop -- or, for a step that keeps the stop
+of ``"stop"`` (below), at the nameplate cut-out.
 
 How the run under the other limit is followed depends on how that limit's duty
 changes with the tank temperature, which two cycles tell: the one at the start

@@ -1810,10 +1810,12 @@ def _resolve_duty_limited(
 
         ``up_to_s(t)`` is the same run over the first ``t`` seconds of the
         step. The rest of the step is resolved from ``T_from_C`` as a step of
-        its own and joined to it. If nothing runs on from there, ``whole``
-        stands: the compressor stops there. With no stage left the rest is
-        not resolved, and ``whole`` is returned without the stop: the step has
-        not met a cut-out, and the next one goes on from where it ends.
+        its own and joined to it, whether or not the compressor runs in it:
+        the step ends the way its rest was resolved. ``whole`` stands only
+        where that rest keeps the stop (the condensing limit itself refuses
+        the cycle there). With no stage left the rest is not resolved, and
+        ``whole`` is returned without the stop: the step has not met a
+        cut-out, and the next one goes on from where it ends.
         """
         run, row = whole
         t_from, dt = run.limit_stop_s, float(kw["dt"])
@@ -1837,11 +1839,17 @@ def _resolve_duty_limited(
         if resolved is None:
             return whole
         second, row_2 = resolved
+        joined = _joined_runs(first, t_from, second, dt - t_from)
         ran_2 = second.runtime_fraction * (dt - t_from)
         if ran_2 <= 0.0 or row_2 is None or delivered_tank_heat(row_2) <= 0.0:
-            return whole
+            # Nothing ran on from there. The step still ends the way its rest
+            # was resolved -- the compressor off because the other limit leaves
+            # too little or no operating point, the call standing -- and not
+            # with the stop the first run ended on, which was only where the
+            # other limit took over. Its cycle is the first run's.
+            return joined, row
         ran_1 = first.runtime_fraction * t_from
-        return _joined_runs(first, t_from, second, dt - t_from), merge_running_rows(row, ran_1, row_2, ran_2, rate_keys)
+        return joined, merge_running_rows(row, ran_1, row_2, ran_2, rate_keys)
 
     def at_one_duty(kw: dict, q: float, cycle: dict | None, stages_left: int) -> tuple[InStepRun, dict | None] | None:
         """The step of a compressor with the one duty ``q``, up to where that duty meets the limit, and on from there.

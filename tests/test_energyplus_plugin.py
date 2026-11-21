@@ -55,7 +55,7 @@ def test_energyplus_model_kwargs_empty_preset_keeps_legacy_constructor():
 
 class _FakeExchange:
     def __init__(self, values, system_time_step=0.25):
-        self.values = values
+        self.values = {10: 84.0, **values}
         self._system_time_step = system_time_step
         self.actuators = {}
         self.globals = {}
@@ -106,6 +106,7 @@ def _surrogate_handles(e_cmp_j=8, e_cmp_w=9, e_cmp_legacy=-1):
         "t_out_act": 5,
         "mdot_act": 6,
         "t0": 7,
+        "rh_out": 10,
         "e_cmp_j": e_cmp_j,
         "e_cmp_w": e_cmp_w,
         "e_cmp_legacy": e_cmp_legacy,
@@ -175,8 +176,42 @@ def test_surrogate_solve_passes_loop_flow_and_cp_and_caches_by_flow():
         "T0": 7.0,
         "Q_ref_tank": 8000.0,
         "m_dot_w": 1.25,
+        "RH_out": None,
     }
     assert calls[1]["m_dot_w"] == 2.5
+
+
+@pytest.mark.parametrize(
+    ("handle", "readings", "expected", "warnings"),
+    [
+        (10, (35.0, 60.0, 35.0), [0.35, 0.60], 0),
+        (-1, (None,) * 3, [None], 1),
+        (10, (None, float("nan"), float("inf"), -0.1, 100.1, 35.0), [None, 0.35], 1),
+    ],
+    ids=["cache-by-humidity", "missing-handle", "invalid-readings"],
+)
+def test_surrogate_outdoor_humidity(monkeypatch, capsys, handle, readings, expected, warnings):
+    plant = _real_surrogate(40.0, 2.0, 15000.0)
+    plant.h["rh_out"] = handle
+    calls = []
+
+    def analyze_steady(**kwargs):
+        calls.append(kwargs["RH_out"])
+        return {"converged": True, "failure_reason": "none", "Q_ref_tank [W]": 15000.0, "E_tot [W]": 5000.0}
+
+    monkeypatch.setattr(plant.hp, "analyze_steady", analyze_steady)
+    for percent in readings:
+        plant.api.exchange.values[10] = percent
+        assert plant.on_user_defined_component_model(object()) == 0
+        assert plant.api.exchange.globals[9] == 5000.0
+
+    assert calls == expected
+    assert plant.api.runtime.severe == []
+    assert len(plant.api.runtime.warnings) == warnings
+    if warnings:
+        assert "relative humidity" in plant.api.runtime.warnings[0]
+    if 0.35 in expected:
+        assert "RH_out=35.00%" in capsys.readouterr().out
 
 
 def test_surrogate_uses_usable_diagnostic_cycle_numbers(monkeypatch):
@@ -195,7 +230,7 @@ def test_surrogate_uses_usable_diagnostic_cycle_numbers(monkeypatch):
     monkeypatch.setattr(
         plant,
         "_solve",
-        lambda t_in, t0, q_target, m_dot: {
+        lambda t_in, t0, q_target, m_dot, *, rh_out: {
             "converged": False,
             "failure_reason": "hx_not_converged",
             "Q_ref_tank [W]": 6000.0,
@@ -225,7 +260,7 @@ def test_surrogate_zeroes_true_off_mode_cycle_outputs(monkeypatch):
     monkeypatch.setattr(
         plant,
         "_solve",
-        lambda t_in, t0, q_target, m_dot: {
+        lambda t_in, t0, q_target, m_dot, *, rh_out: {
             "converged": False,
             "failure_reason": "cycle_invalid",
             "Q_ref_tank [W]": 0.0,
@@ -254,7 +289,7 @@ def test_surrogate_reverse_transfer_guard_stops_flow_and_limits_warnings(monkeyp
     monkeypatch.setattr(
         plant,
         "_solve",
-        lambda t_in, t0, q_target, m_dot: {
+        lambda t_in, t0, q_target, m_dot, *, rh_out: {
             "converged": False,
             "failure_reason": "t_cond_below_t_in",
             # Positive placeholders verify that the reason itself blocks use.
@@ -363,20 +398,31 @@ def test_surrogate_initializes_and_meters_only_declared_globals(monkeypatch, dec
     plant = plugin.TmhpPlantSurrogate()
     plant.api = _FakeApi({1: 50.0, 2: 7.0})
     ex = plant.api.exchange
-    ex.request_variable = lambda *args: None
+    requested = []
+    ex.request_variable = lambda state, name, key: requested.append((name, key))
     ex.get_internal_variable_handle = lambda *args: 1
     ex.get_actuator_handle = lambda *args: 3
-    ex.get_variable_handle = lambda *args: 2
+    weather_handles = {
+        ("Site Outdoor Air Drybulb Temperature", "Environment"): 2,
+        ("Site Outdoor Air Relative Humidity", "Environment"): 10,
+    }
+
+    def get_variable_handle(state, name, key):
+        assert (name, key) in requested
+        return weather_handles[name, key]
+
+    ex.get_variable_handle = get_variable_handle
     global_handles = {name: handle for handle, name in enumerate(declared_names)}
     points = [SimpleNamespace(what="PluginGlobalVariable", name="", key=name) for name in declared_names]
     points.append(SimpleNamespace(what="OutputVariable", name="Unrelated", key="PLANT ENERGY"))
     ex.get_api_data = lambda state: points
     ex.get_global_handle = lambda state, name: global_handles[name.upper()]
     result = {"converged": True, "failure_reason": "none", "Q_ref_tank [W]": 50.0, "E_cmp [W]": 10.0}
-    monkeypatch.setattr(plant, "_solve", lambda *args: result)
+    monkeypatch.setattr(plant, "_solve", lambda *args, rh_out: result)
 
     state = object()
-    assert plant.on_user_defined_component_model(state) == 0  # Request the outdoor-air variable.
+    assert plant.on_user_defined_component_model(state) == 0  # Request both outdoor-air variables.
+    assert requested == list(weather_handles)
     if expected_outputs:
         assert plant.on_user_defined_component_model(state) == 0
         assert plant.api.runtime.severe == []
@@ -402,7 +448,7 @@ def test_surrogate_uses_legacy_energy_global_when_new_name_missing(monkeypatch):
     monkeypatch.setattr(
         plant,
         "_solve",
-        lambda t_in, t0, q_target, m_dot: {
+        lambda t_in, t0, q_target, m_dot, *, rh_out: {
             "converged": True,
             "failure_reason": "none",
             "Q_ref_tank [W]": 6000.0,
@@ -429,7 +475,7 @@ def _run_surrogate(monkeypatch, result, *, t_in=50.0, mdot=0.0, load=8000.0, t0=
     plant._need = False
     plant._tally_every = 10_000
     plant.h = _surrogate_handles(e_cmp_j=-1 if legacy else 8, e_cmp_w=9, e_cmp_legacy=8 if legacy else -1)
-    monkeypatch.setattr(plant, "_solve", lambda *a: dict(result))
+    monkeypatch.setattr(plant, "_solve", lambda *args, rh_out: dict(result))
     plant.api = _FakeApi({1: t_in, 2: mdot, 3: CP_WATER, 4: load, 7: t0})
     assert plant.on_user_defined_component_model(object()) == 0
     return plant, plant.api.exchange

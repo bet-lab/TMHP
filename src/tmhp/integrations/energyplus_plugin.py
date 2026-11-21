@@ -2,10 +2,11 @@
 
 Surrogates :class:`~tmhp.AirSourceHeatPumpBoiler` inside EnergyPlus as a
 ``PlantComponent:UserDefined`` device. Each plant-solver call hands the plugin
-the loop inlet temperature, mass flow, specific heat, and load request (plus the
-site outdoor drybulb); the plugin solves the refrigerant cycle with the public
-``analyze_steady()`` seam and writes back the outlet-temperature and
-mass-flow actuators, routing the system's electricity to a metered output.
+the loop inlet temperature, mass flow, specific heat, and load request, plus the
+site outdoor drybulb temperature and relative humidity. The plugin solves the
+refrigerant cycle with the public ``analyze_steady()`` seam and writes back the
+outlet-temperature and mass-flow actuators, routing the system's electricity
+to a metered output.
 
 Metered electricity and delivered heat (what crosses the EnergyPlus boundary)
 -----------------------------------------------------------------------------
@@ -123,6 +124,10 @@ MDOT_FLOOR = 0.05  # kg/s — below this the inlet flow is treated as "off"
 TOUT_MAX = 95.0  # °C — clamp inside the liquid-water property range
 RHO_WATER = 1000.0  # kg/m³ — sizing only
 GUARD_WARNING_LIMIT = 5  # repeated warnings per failure reason before suppression
+_WEATHER_VARIABLES = {
+    "t0": "Site Outdoor Air Drybulb Temperature",
+    "rh_out": "Site Outdoor Air Relative Humidity",
+}
 
 
 def _ashpb_model_kwargs(
@@ -319,10 +324,10 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         self.h: dict[str, int] = {}
         self._ncall = 0
         self._nlog = 0
-        # analyze_steady is a deterministic function of (T_in, T0, Q, mdot);
-        # the plant solver re-calls with identical inputs many times per timestep,
+        # The plant solver re-calls with identical inputs many times per timestep,
         # so memoize on rounded inputs to avoid recomputing the CoolProp-heavy cycle.
-        self._cache: dict[tuple[float, float, float, float], dict[str, Any]] = {}
+        self._cache: dict[tuple[float, float, float, float, float | None], dict[str, Any]] = {}
+        self._warned_humidity = False
         # Convergence tally over dispatched calls (cold-climate high-lift hours
         # may trip the pressure-ratio guard); dumped periodically to the log.
         self._ndispatch = 0
@@ -331,8 +336,13 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         self._tally_every = 5000
         self._warning_counts: dict[str, int] = {}
 
-    def _solve(self, t_in: float, t0: float, q_target: float, m_dot: float) -> dict[str, Any]:
-        key = (round(t_in, 1), round(t0, 1), round(q_target, 0), round(m_dot, 4))
+    def _solve(
+        self, t_in: float, t0: float, q_target: float, m_dot: float, *, rh_out: float | None = None
+    ) -> dict[str, Any]:
+        # A 0.01 percentage point cache bin is finer than the percent-level EPW
+        # humidity input and retains sub-percent changes from weather interpolation.
+        rh_key = None if rh_out is None else round(rh_out, 4)
+        key = (round(t_in, 1), round(t0, 1), round(q_target, 0), round(m_dot, 4), rh_key)
         res = self._cache.get(key)
         if res is None:
             res = self.hp.analyze_steady(
@@ -340,9 +350,26 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
                 T0=t0,
                 Q_ref_tank=q_target,
                 m_dot_w=m_dot,
+                RH_out=rh_out,
             )
             self._cache[key] = res
         return res
+
+    def _read_outdoor_humidity(self, state: Any) -> float | None:
+        """Read the weather percentage as a fraction, using the model default on bad data."""
+        handle = self.h["rh_out"]
+        raw = None if handle == -1 else self.api.exchange.get_variable_value(state, handle)
+        percent = _finite_float_or_none(raw)
+        if percent is not None and 0.0 <= percent <= 100.0:
+            return percent / 100.0
+        if not self._warned_humidity:
+            self._warned_humidity = True
+            _issue_warning(
+                self.api,
+                state,
+                f"[TmhpSurrogate] missing or invalid outdoor relative humidity ({raw!r}); using the model default.",
+            )
+        return None
 
     def _warn_guard_trip(self, state: Any, reason: str, t_in: float, t0: float, q_target: float) -> None:
         """Issue a bounded number of warnings for a thermodynamic guard."""
@@ -369,7 +396,9 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
             load=iv(state, "Load Request for Plant Connection 1", UD_NAME),
             t_out_act=ac(state, "Plant Connection 1", "Outlet Temperature", UD_NAME),
             mdot_act=ac(state, "Plant Connection 1", "Mass Flow Rate", UD_NAME),
-            t0=ex.get_variable_handle(state, "Site Outdoor Air Drybulb Temperature", "Environment"),
+        )
+        self.h.update(
+            {field: ex.get_variable_handle(state, name, "Environment") for field, name in _WEATHER_VARIABLES.items()}
         )
         # EnergyPlus 24.2 aborts a simulation if get_global_handle receives an
         # undeclared name. PluginGlobalVariable entries carry the name in key.
@@ -388,7 +417,7 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
     def _valid(self, state: Any) -> bool:
         ok = True
         for k, v in self.h.items():
-            if k in {"e_cmp_j", "e_cmp_w", "e_cmp_legacy"}:
+            if k in {"rh_out", "e_cmp_j", "e_cmp_w", "e_cmp_legacy"}:
                 continue
             if v == -1:
                 ok = False
@@ -414,10 +443,11 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         ex = self.api.exchange
         if not ex.api_data_fully_ready(state):
             return 0
-        # Request the outdoor-air variable on the first pass; its handle is only
-        # resolvable afterwards.
+        # Keep the request/lookup passes separate. The CLI also needs the IDF
+        # Output:Variable declarations so the data is retained for the plugin.
         if not self._requested:
-            ex.request_variable(state, "Site Outdoor Air Drybulb Temperature", "Environment")
+            for name in _WEATHER_VARIABLES.values():
+                ex.request_variable(state, name, "Environment")
             self._requested = True
             return 0
         if self._need:
@@ -478,7 +508,8 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
             return 1
 
         q_target = min(q_req, HP_CAPACITY)
-        res = self._solve(t_in, t0, q_target, m_dot)
+        rh_out = self._read_outdoor_humidity(state)
+        res = self._solve(t_in, t0, q_target, m_dot, rh_out=rh_out)
         converged = bool(res.get("converged"))
         reason = _normalize_failure_reason(res.get("failure_reason"))
 
@@ -511,9 +542,10 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
 
         if self._nlog < 40:
             self._nlog += 1
+            rh_log = "default" if rh_out is None else f"{rh_out:.2%}"
             _log(
                 f"[call {self._ncall:4d}] T_in={t_in:6.2f}C T0={t0:6.2f}C mdot={mdot:6.3f}kg/s "
-                f"Qreq={q_req:8.1f}W -> converged={converged} reason={reason} "
+                f"RH_out={rh_log} Qreq={q_req:8.1f}W -> converged={converged} reason={reason} "
                 f"E_cmp={e_cmp:8.1f}W Q={q:8.1f}W T_out={t_out:6.2f}C"
             )
         return 0

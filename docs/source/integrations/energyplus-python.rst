@@ -140,13 +140,25 @@ Python plugin managers:
      - Declare ``tmhp_E_cmp_J`` for timestep energy. Optionally declare
        ``tmhp_E_cmp_W`` for instantaneous compressor power.
 
+Declare the two weather variables as ``Output:Variable`` objects so the
+EnergyPlus CLI exposes their handles to the plugin. The plugin requests both
+variables on its first pass and sends weather-file humidity to the frost
+correction automatically.
+
+.. code-block:: text
+
+   Output:Variable, Environment, Site Outdoor Air Drybulb Temperature, Hourly;
+   Output:Variable, Environment, Site Outdoor Air Relative Humidity, Hourly;
+
 Input / output boundary
 =======================
 
 The plugin reads only finite EnergyPlus boundary values before calling
-TMHP. Invalid inputs are reported through ``issue_severe()``, the plant
+TMHP. Invalid required inputs are reported through ``issue_severe()``, the plant
 component is driven to a safe off state, and the callback returns a
-non-zero status instead of computing with bad values.
+non-zero status. Missing or invalid humidity triggers one warning per plugin
+instance, and the solve uses the model's default humidity (84% for the
+standard frost correction).
 
 .. list-table::
    :header-rows: 1
@@ -171,6 +183,10 @@ non-zero status instead of computing with bad values.
    * - EnergyPlus -> TMHP
      - Outdoor drybulb temperature
      - Source-side air temperature ``T0`` for the ASHPB cycle solve.
+   * - EnergyPlus -> TMHP
+     - Outdoor relative humidity
+     - ``Site Outdoor Air Relative Humidity`` in percent, converted to the
+       fraction ``RH_out`` for the frost correction.
    * - TMHP -> EnergyPlus
      - Outlet temperature actuator
      - Inlet temperature plus the heat put into the loop (``q_loop``, never
@@ -266,6 +282,8 @@ The plugin therefore asks TMHP for a steady component response:
        T_tank_w=t_in,
        T0=t0,
        Q_ref_tank=q_target,
+       m_dot_w=m_dot,
+       RH_out=rh_out,
    )
 
 The FMU adapter uses :meth:`~tmhp.AirSourceHeatPumpBoiler.step` instead

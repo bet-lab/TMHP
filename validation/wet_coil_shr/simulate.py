@@ -87,7 +87,7 @@ Boundaries of the comparison
   (:func:`apparatus_dew_point`); a published ratio below it has no such
   temperature (NaN).
 
-Run (about two minutes)::
+Run (about a minute and a half)::
 
     PYTHONPATH=. uv run --extra integrations python -m validation.wet_coil_shr.simulate
 
@@ -475,6 +475,14 @@ def _mean(series: pd.Series) -> float:
     return float(series.mean()) if len(series) else math.nan
 
 
+def _correlation(a: pd.Series, b: pd.Series) -> float:
+    """Pearson correlation of two columns over the rows where both are numbers; NaN where it is not defined."""
+    both = pd.concat([a, b], axis=1).dropna()
+    if len(both) < 2 or both.iloc[:, 0].nunique() < 2 or both.iloc[:, 1].nunique() < 2:
+        return math.nan  # fewer than two rows, or a column that does not vary
+    return float(both.iloc[:, 0].corr(both.iloc[:, 1]))
+
+
 def headline(points: pd.DataFrame) -> dict:
     """The numbers quoted in docs/source/validation/index.rst (*Cooling and latent load*).
 
@@ -505,7 +513,7 @@ def headline(points: pd.DataFrame) -> dict:
         "shr_abs_error_mean": _mean(error.abs()),
         "shr_error_min": float(error.min()) if len(error) else math.nan,
         "shr_error_max": float(error.max()) if len(error) else math.nan,
-        "shr_correlation": float(wet.shr_net_wet.corr(wet.shr_catalog)) if len(wet) > 1 else math.nan,
+        "shr_correlation": _correlation(wet.shr_net_wet, wet.shr_catalog),
         "rows_published_ratio_one": int((points.shr_catalog >= 1.0).sum()),
         "rows_published_ratio_at_least_095": int(len(near_dry)),
         "rows_published_ratio_at_least_095_with_latent_heat": int((near_dry.q_latent_W_wet > 0.0).sum()),
@@ -519,11 +527,11 @@ def headline(points: pd.DataFrame) -> dict:
         "T_evap_rise_wet_minus_dry_K_mean": _mean(both.T_evap_C_wet - both.T_evap_C_dry),
         "power_change_wet_vs_dry_pct_mean": _mean((both.power_kW_wet / both.power_kW_dry - 1.0) * 100.0),
         "rows_wet_draws_more_than_dry": int((both.power_kW_wet > both.power_kW_dry).sum()),
-        "bias_shr_correlation_dry": float(
-            ((points.cop_dry - points.cop_target) / points.cop_target).corr(points.shr_catalog)
+        "bias_shr_correlation_dry": _correlation(
+            (points.cop_dry - points.cop_target) / points.cop_target, points.shr_catalog
         ),
-        "bias_shr_correlation_wet": float(
-            ((points.cop_wet - points.cop_target) / points.cop_target).corr(points.shr_catalog)
+        "bias_shr_correlation_wet": _correlation(
+            (points.cop_wet - points.cop_target) / points.cop_target, points.shr_catalog
         ),
         # The wet pass against the net capacity it was not matched to.
         "net_delivery_short_of_published_W_mean_wet": _mean(net_short),

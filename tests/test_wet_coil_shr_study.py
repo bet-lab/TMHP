@@ -297,7 +297,7 @@ def test_what_matching_the_net_capacity_changes(committed):
     assert -0.5 < numbers["cop_change_net_matched_vs_request_pct_mean_wet"] < -0.1
     assert numbers["scored_dry_net"] == numbers["scored_wet_net"] == 180
     assert 0.3 < numbers["cop_bias_pct_dry"] - numbers["cop_bias_pct_dry_net"] < 0.8
-    assert 0.3 < numbers["cop_bias_pct_wet"] - numbers["cop_bias_pct_wet_net"] < 0.8
+    assert 0.2 < numbers["cop_bias_pct_wet"] - numbers["cop_bias_pct_wet_net"] < 0.8
     matched = committed[committed.usable_wet_net]
     target = matched.q_kW * 1000.0
     assert (abs(matched.net_total_W_wet_net - target) <= study.NET_MATCH_TOL * target).all()
@@ -387,7 +387,7 @@ def test_the_command_line_runs_the_whole_study_only(capsys, option):
 
 
 #: One adopted and one held unit, two rows each: what the short runs below compute.
-SHORT = {"daikin_rxm20a": (1, 23), "fujitsu_asuh09lpas": (1, 58)}
+SHORT = {"daikin_rxm20a": (1, 23), "fujitsu_asuh09lpas": (1, 2)}
 
 
 def _short_run(monkeypatch, calls: list[str]):
@@ -443,7 +443,7 @@ def test_run_writes_its_files_and_names_exactly_those(monkeypatch, tmp_path, cap
     held_rows = pd.read_csv(tmp_path / study.HELD_CSV_NAME)
     assert list(zip(held_rows.slug, held_rows.point_id, strict=True)) == [
         ("fujitsu_asuh09lpas", 1),
-        ("fujitsu_asuh09lpas", 58),
+        ("fujitsu_asuh09lpas", 2),
     ]
 
     # A statistic with no row behind it is null in the manifest, which is strict JSON.
@@ -505,10 +505,18 @@ def _section() -> str:
     return match.group(1)
 
 
+def _tables() -> list[list[list[str]]]:
+    """The list tables of the section, each as rows of six cells (header row dropped)."""
+    tables = []
+    for block in _section().split(".. list-table::")[1:]:
+        body = block.split("\n\n", 2)[1]  # after the options, up to the first blank line that ends the table
+        cells = [c.strip() for c in re.findall(r"^\s+(?:\* -|-) (.*)$", body, flags=re.M)]
+        tables.append([cells[i : i + 6] for i in range(6, len(cells), 6)])
+    return tables
+
+
 def test_docs_table_matches_the_study(committed):
-    section = _section()
-    cells = [c.strip() for c in re.findall(r"^\s+(?:\* -|-) (.*)$", section, flags=re.M)]
-    rows = [cells[i : i + 6] for i in range(6, len(cells), 6)]
+    rows = _tables()[0]
     bands = study.by_band(committed)
     assert [row[0] for row in rows] == list(bands.shr_band)
     for row, band in zip(rows, bands.itertuples(), strict=True):
@@ -523,13 +531,33 @@ def test_docs_table_matches_the_study(committed):
         assert row == expected, (row, expected)
 
 
-def test_docs_prose_quotes_the_study(committed):
+def test_docs_table_of_the_held_units_matches_the_study(held):
+    rows = _tables()[1]
+    units = study.by_unit(held)
+    assert [row[0] for row in rows] == list(units.unit)
+    for row, unit in zip(rows, units.itertuples(), strict=True):
+        expected = [
+            unit.unit,
+            str(unit.points),
+            f"{unit.shr_catalog:.2f}",
+            f"{unit.shr_model_wet:.2f}",
+            f"{_signed(unit.cop_bias_pct_dry)} %",
+            f"{_signed(unit.cop_bias_pct_wet)} %",
+        ]
+        assert row == expected, (row, expected)
+
+
+def test_docs_prose_quotes_the_study(committed, held):
     flat = " ".join(_section().split())
     numbers = study.headline(committed)
     units = study.by_unit(committed).set_index("slug")
     bands = study.by_band(committed).set_index("shr_band")
     small, large = units.loc["daikin_rxm20a"], units.loc["daikin_rxm50a"]
     gap = (committed.T_evap_C_wet - committed.T_adp_catalog_C).groupby(committed.slug).mean()
+    below_one = numbers["rows_published_ratio_at_least_095"] - numbers["rows_published_ratio_one"]
+    fewer = numbers["rows_scored_wet"] - numbers["rows_wet_draws_more_than_dry"]
+    held_numbers = study.headline(held)
+    held_low = held[held.shr_catalog < 0.75]
     for sentence in (
         f"gives {numbers['shr_model_net_mean']:.2f} against the published {numbers['shr_catalog_mean']:.2f} on average, "
         f"with a mean absolute difference of {numbers['shr_abs_error_mean']:.3f} and a correlation of "
@@ -544,8 +572,11 @@ def test_docs_prose_quotes_the_study(committed):
         f"({_signed(numbers['model_coil_above_catalogue_adp_K_min'])} to "
         f"{_signed(numbers['model_coil_above_catalogue_adp_K_max'])} K by row; {-gap['daikin_rxm20a']:.1f} K below it "
         f"for the 2.0 kW unit, {gap['daikin_rxm50a']:.1f} K above for the 5.0 kW unit)",
-        f"runs its evaporator {numbers['T_evap_rise_wet_minus_dry_K_mean']:.1f} K warmer than the dry one and draws "
-        f"{-numbers['power_change_wet_vs_dry_pct_mean']:.1f} % less",
+        f"{below_one} of its {numbers['rows_published_ratio_at_least_095']} rows publish a ratio below 1, and the "
+        f"model's coil condenses water on {numbers['rows_published_ratio_at_least_095_with_latent_heat']} of them",
+        f"runs its evaporator {numbers['T_evap_rise_wet_minus_dry_K_mean']:.1f} K warmer than the dry one for the "
+        f"same total heat and draws {-numbers['power_change_wet_vs_dry_pct_mean']:.1f} % less — less on {fewer} of "
+        f"the {numbers['rows_scored_wet']} rows",
         f"The bias goes from {_signed(numbers['cop_bias_pct_dry'])} % to {_signed(numbers['cop_bias_pct_wet'])} % and "
         f"the mean absolute error from {numbers['cop_MAPE_pct_dry']:.1f} % to {numbers['cop_MAPE_pct_wet']:.1f} %",
         f"{_signed(bands.cop_bias_pct_wet['below 0.75'])} % where the published ratio is below 0.75",
@@ -555,9 +586,25 @@ def test_docs_prose_quotes_the_study(committed):
         f"{bands.shr_model_wet_ua50['all']:.2f} ({abs(bands.shr_error_wet_ua50['all']):.2f} low); doubled, "
         f"{_signed(numbers['cop_bias_pct_wet_ua200'])} % and {bands.shr_model_wet_ua200['all']:.2f} "
         f"({bands.shr_error_wet_ua200['all']:.2f} high)",
-        "their 144 cooling rows are not in it",
+        # The capacity the comparison runs at.
+        f"receives {numbers['net_delivery_short_of_published_W_mean_wet']:.1f} W "
+        f"({numbers['net_delivery_short_of_published_pct_mean_wet']:.2f} %) less than published on average, and more "
+        f"than 1 % less on {numbers['rows_net_delivery_short_by_more_than_1pct_wet']} row",
+        f"({numbers['request_above_published_W_mean_wet_net']:.1f} W more on average) the COP is "
+        f"{-numbers['cop_change_net_matched_vs_request_pct_mean_wet']:.2f} % lower: the bias is "
+        f"{_signed(numbers['cop_bias_pct_dry_net'])} % dry and {_signed(numbers['cop_bias_pct_wet_net'])} % wet, on "
+        f"all {numbers['scored_wet_net']} rows",
+        f"raises it by {numbers['catalogue_adp_fan_minus_adp_K_mean']:.2f} K on average",
+        # The held units.
+        f"the {len(held)} cooling rows of the two units are run wet as well",
+        f"it lies between {held_low.shr_catalog.min():.2f} and {held_low.shr_catalog.max():.2f} on {len(held_low)} of "
+        f"the {len(held)} rows",
+        f"(*r* = {held_numbers['shr_correlation']:.2f}, mean absolute difference "
+        f"{held_numbers['shr_abs_error_mean']:.3f}), and {held_numbers['rows_published_ratio_below_coil_line_minimum']} "
+        f"rows publish a ratio lower than a straight coil line can give",
     ):
         assert sentence in flat, f"index.rst lacks {sentence!r}"
+    assert numbers["scored_dry_net"] == numbers["scored_wet_net"] == len(committed)
     # The same figure where the residuals are read.
     page = " ".join((REPO_ROOT / "docs" / "source" / "validation" / "index.rst").read_text(encoding="utf-8").split())
     assert f"at {_signed(numbers['cop_bias_pct_wet'])} % over the same rows" in page

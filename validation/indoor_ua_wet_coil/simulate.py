@@ -141,6 +141,7 @@ import functools
 import hashlib
 import json
 import math
+import re
 import warnings
 from pathlib import Path
 
@@ -204,6 +205,74 @@ PR_CUT_INSIDE_DATA = 2.3
 # 1. The conductance a row publishes
 # ---------------------------------------------------------------------------
 
+# The reading of a row and the coil line are written out here although the
+# wet-coil study (``validation/wet_coil_shr/simulate.py``) has the same
+# functions: that file is outside what a run of this study records (the model,
+# the harness and the catalogues through ``source_state``, and this script's
+# own bytes), so nothing this study computes with is taken from it. A test
+# holds the two sets of functions to the same values.
+
+P_ATM = 101325.0
+
+_NOTE = re.compile(r"WB\s+(-?\d+(?:\.\d+)?)\s*C,\s*SHR\s+(\d+(?:\.\d+)?)")
+
+
+def parse_note(note: str) -> tuple[float, float] | None:
+    """``(indoor wet bulb [degC], sensible heat ratio)`` of a cooling row's note, or ``None``."""
+    match = _NOTE.search(note)
+    return (float(match.group(1)), float(match.group(2))) if match else None
+
+
+def room_humidity(t_db_C: float, t_wb_C: float) -> float:
+    """Relative humidity (0-1) of air at dry bulb ``t_db_C`` and wet bulb ``t_wb_C``, one standard atmosphere."""
+    from CoolProp.HumidAirProp import HAPropsSI
+
+    return float(HAPropsSI("R", "T", t_db_C + 273.15, "B", t_wb_C + 273.15, "P", P_ATM))
+
+
+def coil_line_shr(t_db_C: float, w_in: float, t_coil_C: float) -> float:
+    """Sensible heat ratio of the model's coil line from room air to saturated air at ``t_coil_C``."""
+    from tmhp.heat_exchanger import wet_coil_latent_difference
+
+    sensible = t_db_C - t_coil_C
+    latent = wet_coil_latent_difference(w_in, t_coil_C + 273.15, P_ATM)
+    return sensible / (sensible + latent)
+
+
+def apparatus_dew_point(t_db_C: float, rh: float, shr: float) -> float:
+    """Coil temperature [degC] at which :func:`coil_line_shr` equals ``shr``, or NaN when there is none.
+
+    The ratio is 1 down to the dew point and falls from there as the coil
+    gets colder, to a minimum (the latent part is bounded by the water the
+    air holds, the sensible part is not) below which it rises again. The
+    temperature returned is the one between the dew point and that minimum; a
+    ratio of 1 or more, or one below the minimum, has none.
+    """
+    from CoolProp.HumidAirProp import HAPropsSI
+    from scipy.optimize import brentq
+
+    from tmhp.defrost import humidity_ratio
+
+    if not shr < 1.0:
+        return math.nan
+    w_in = humidity_ratio(t_db_C, rh)
+    dew_point = float(HAPropsSI("D", "T", t_db_C + 273.15, "R", rh, "P", P_ATM)) - 273.15
+    warm, ratio_warm = dew_point, 1.0
+    while warm > dew_point - 60.0:
+        cold = warm - 0.25
+        ratio_cold = coil_line_shr(t_db_C, w_in, cold)
+        if ratio_cold <= shr:
+            return float(brentq(lambda t: coil_line_shr(t_db_C, w_in, t) - shr, cold, warm, xtol=1e-9))
+        if ratio_cold > ratio_warm:
+            break  # past the minimum: no coil temperature has a ratio this low
+        warm, ratio_warm = cold, ratio_cold
+    return math.nan
+
+
+def catalogue_ratio_on_the_coil(shr: float, q_W: float, fan_W: float) -> float:
+    """A published (net) sensible heat ratio on the coil's boundary: the fan heat added to both capacities."""
+    return (shr * q_W + fan_W) / (q_W + fan_W)
+
 
 def coil_from_ratio(t_db_C: float, rh: float, q_coil_W: float, shr_coil: float, airflow_m3_s: float) -> dict:
     """The model's wet coil that gives total heat ``q_coil_W`` at sensible heat ratio ``shr_coil``.
@@ -220,7 +289,6 @@ def coil_from_ratio(t_db_C: float, rh: float, q_coil_W: float, shr_coil: float, 
     sensible heat to that coil temperature at any conductance).
     """
     from tmhp.air_properties import air_heat_capacity_rate
-    from validation.wet_coil_shr.simulate import apparatus_dew_point
 
     nan = math.nan
     capacity_rate = float(air_heat_capacity_rate(airflow_m3_s, t_db_C))
@@ -280,8 +348,6 @@ def published_airflow(catalog, mode: str = "cooling") -> float:
 
 def _coil_of_published(t_db_C: float, rh: float, q_W: float, airflow_m3_s: float, shr: float, fan_W: float) -> dict:
     """:func:`coil_from_ratio` of a published (net) capacity and ratio, put on the coil's boundary with ``fan_W``."""
-    from validation.wet_coil_shr.simulate import catalogue_ratio_on_the_coil
-
     return coil_from_ratio(t_db_C, rh, q_W + fan_W, catalogue_ratio_on_the_coil(shr, q_W, fan_W), airflow_m3_s)
 
 
@@ -289,7 +355,6 @@ def catalogue_coils(slug: str) -> pd.DataFrame:
     """Step 1 for every cooling row of one catalogue: one row per catalogue row. No operating point is solved."""
     from validation.parity.run import _build_model
     from validation.parity.spec import load_all
-    from validation.wet_coil_shr.simulate import catalogue_ratio_on_the_coil, parse_note, room_humidity
 
     catalog = load_all(slug)[0]
     airflow = published_airflow(catalog)
@@ -615,7 +680,6 @@ def run_cooling(
     """The cooling rows of one catalogue (or ``point_ids`` of it) in the passes of ``conductances``."""
     from validation.parity.run import _build_model
     from validation.parity.spec import load_all
-    from validation.wet_coil_shr.simulate import parse_note, room_humidity
 
     catalog = load_all(slug)[0]
     shipped = _build_model(catalog, None, "cooling")
@@ -1003,23 +1067,6 @@ def parity_gate(points: pd.DataFrame, name: str, results_dir: Path = REPO_ROOT /
     return worst
 
 
-def wet_study_difference(points: pd.DataFrame, file_name: str) -> float:
-    """Largest relative COP difference between the ``wet`` pass and the committed wet-coil study; NaN without it.
-
-    ``validation/results/wet_coil_shr_once`` is the study this one starts
-    from: its ``wet`` pass is this one's. Recorded, not a gate.
-    """
-    path = REPO_ROOT / "validation" / "results" / "wet_coil_shr_once" / file_name
-    if not path.exists():
-        return math.nan
-    other = pd.read_csv(path, float_precision="round_trip").set_index(["slug", "point_id"]).cop_wet
-    mine = points.set_index(["slug", "point_id"]).cop_wet
-    both = pd.concat([mine, other], axis=1, keys=["mine", "other"]).dropna()
-    if len(both) != mine.notna().sum() or not len(both):
-        return math.inf
-    return float(((both.mine - both.other).abs() / both.other).max())
-
-
 def headline(units: pd.DataFrame, points: pd.DataFrame, heating: pd.DataFrame | None = None) -> dict:
     """The numbers the study answers with, from the unit table, the cooling rows and the heating rows.
 
@@ -1287,9 +1334,6 @@ def run(argv: list[str] | None = None) -> None:
         "rules_leave_one_out": rule_summary(loo),
         "rules_held": rule_summary(for_held),
         "shipped_passes_vs_committed_parity_max_rel_cop_difference": worst,
-        "wet_pass_vs_committed_wet_coil_study_max_rel_cop_difference": wet_study_difference(
-            points, "wet_coil_shr_once.csv"
-        ),
         "headline": numbers,
         "headline_held": numbers_held,
     }

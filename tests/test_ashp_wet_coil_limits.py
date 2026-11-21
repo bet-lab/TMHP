@@ -23,6 +23,7 @@ import math
 import warnings
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from tmhp import AirSourceHeatPump
@@ -295,6 +296,44 @@ def test_humidity_schedule_is_checked_on_cooling_rows(hp, value):
         _quiet(
             hp.analyze_dynamic, 2 * 3600, 3600, [0.0, 2000.0], [35.0, 35.0], [27.0, 27.0], RH_room_schedule=[0.5, value]
         )
+
+
+@pytest.mark.parametrize("missing", [None, "n/a", "", pd.NA, float("inf"), np.float32("nan"), object()])
+def test_any_value_is_left_unread_on_heating_and_off_rows(hp, missing):
+    """Not only NaN: a schedule read from a file holds whatever the file has where there is no cooling."""
+    loads, outdoor, room = [0.0, -2000.0, 2000.0], [35.0, 7.0, 35.0], [27.0, 20.0, 27.0]
+    frame = _quiet(hp.analyze_dynamic, 3 * 3600, 3600, loads, outdoor, room, RH_room_schedule=[missing, missing, 0.6])
+    assert list(frame["failure_reason"]) == ["none", "none", "none"]
+    assert frame["RH_room [-]"].iloc[:2].isna().all() and frame["RH_room [-]"].iloc[2] == 0.6
+
+
+def test_humidity_schedule_takes_a_column_with_missing_values(hp):
+    loads, outdoor, room = [0.0, -2000.0, 2000.0], [35.0, 7.0, 35.0], [27.0, 20.0, 27.0]
+    column = pd.Series([pd.NA, pd.NA, 0.6], dtype="Float64")
+    frame = _quiet(hp.analyze_dynamic, 3 * 3600, 3600, loads, outdoor, room, RH_room_schedule=column)
+    assert frame["RH_room [-]"].iloc[2] == 0.6 and frame["Q_iu_latent [W]"].iloc[2] > 0.0
+    as_numbers = _quiet(
+        hp.analyze_dynamic, 3 * 3600, 3600, loads, outdoor, room, RH_room_schedule=np.array([0.1, 0.2, 0.6])
+    )
+    assert as_numbers["E_tot [W]"].iloc[2] == frame["E_tot [W]"].iloc[2]
+
+
+@pytest.mark.parametrize("value", [None, "n/a", pd.NA, True, np.float32("nan")])
+def test_a_cooling_row_needs_a_number_for_its_humidity(hp, value):
+    with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 1"):
+        _quiet(
+            hp.analyze_dynamic, 2 * 3600, 3600, [0.0, 2000.0], [35.0, 35.0], [27.0, 27.0], RH_room_schedule=[0.5, value]
+        )
+
+
+def test_a_number_of_another_type_is_read_on_a_cooling_row(hp):
+    arguments = (3600, 3600, [2000.0], [35.0], [27.0])
+    reference = _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=[0.5])
+    for value in (np.float32(0.5), np.float64(0.5), "0.5"):
+        frame = _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=[value])
+        assert frame["RH_room [-]"].iloc[0] == 0.5 and frame["E_tot [W]"].iloc[0] == reference["E_tot [W]"].iloc[0]
+    whole = _quiet(hp.analyze_dynamic, *arguments, RH_room_schedule=[1])
+    assert whole["RH_room [-]"].iloc[0] == 1.0
 
 
 # ---------------------------------------------------------------------------

@@ -521,6 +521,24 @@ def _check_room_humidity(value: float) -> float:
     return float(value)
 
 
+def _room_humidity_of_step(value: Any, step: int) -> float:
+    """The room humidity a cooling step of a schedule holds, as a fraction in [0, 1], or ``ValueError``.
+
+    A schedule is kept as it was given and only the cooling steps are read
+    (heating and off steps may hold anything), so the entry is converted
+    here: a number of any numeric type, or text that reads as one. Anything
+    else -- a missing value, a boolean, a number outside 0-1 -- is refused
+    with the step it stands at.
+    """
+    number = math.nan
+    if not isinstance(value, (bool, np.bool_)):
+        with contextlib.suppress(TypeError, ValueError):
+            number = float(value)
+    if not 0.0 <= number <= 1.0:
+        raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {value!r} at step {step}")
+    return number
+
+
 class AirSourceHeatPump(ReferenceStateMixin):
     """Air source heat pump with indoor-unit air heat exchange.
 
@@ -3497,9 +3515,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         RH_room_schedule : array-like | None
             Room relative humidity per step, as a fraction (0-1), for the wet
             indoor coil in cooling (``RH_room`` of :meth:`analyze_steady`).
-            If None, the dry coil on every step. The value is read, and
-            checked to lie in 0-1, on cooling steps only: on heating and off
-            steps it may be anything, missing (NaN) included.
+            If None, the dry coil on every step. The entries are read, and
+            checked to be numbers in 0-1, on cooling steps only: on heating
+            and off steps an entry may be anything -- NaN, ``None``,
+            ``pd.NA``, text -- and is not looked at. A cooling step whose
+            entry is not such a number raises ``ValueError`` naming the step.
 
         Returns
         -------
@@ -3540,11 +3560,14 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if len(RH_out_arr) != tN:
                 raise ValueError(f"RH_out_schedule length ({len(RH_out_arr)}) != tN ({tN})")
 
-        RH_room_arr = None
+        # Kept as given, not converted to numbers: only the cooling steps are
+        # read, and the others may hold whatever a file has where no humidity
+        # was recorded (NaN, None, pd.NA, text).
+        RH_room_steps: list | None = None
         if RH_room_schedule is not None:
-            RH_room_arr = np.array(RH_room_schedule, dtype=float)
-            if len(RH_room_arr) != tN:
-                raise ValueError(f"RH_room_schedule length ({len(RH_room_arr)}) != tN ({tN})")
+            RH_room_steps = list(RH_room_schedule)
+            if len(RH_room_steps) != tN:
+                raise ValueError(f"RH_room_schedule length ({len(RH_room_steps)}) != tN ({tN})")
 
         self.time = time
         self.dt = dt_s
@@ -3572,8 +3595,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     verbose=False,  # Suppress warnings during long dynamic loops
                     RH_out=None if RH_out_arr is None else float(RH_out_arr[n]),
                     # Read on cooling rows only: heating and off rows have no
-                    # use for it, and a missing value there is not an error.
-                    RH_room=None if RH_room_arr is None or not Q_r_iu_n > 0 else float(RH_room_arr[n]),
+                    # use for it, and whatever stands there is not an error.
+                    RH_room=(
+                        None
+                        if RH_room_steps is None or not Q_r_iu_n > 0
+                        else _room_humidity_of_step(RH_room_steps[n], n)
+                    ),
                 )
 
                 # Add time columns

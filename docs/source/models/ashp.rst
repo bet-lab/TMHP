@@ -291,8 +291,9 @@ water:
 ``analyze_dynamic`` a ``RH_room_schedule``. Heating ignores it (the indoor coil
 is the condenser there), and ``None`` — the default — is the dry coil, with
 every result as before. A schedule is read on cooling steps only: on heating
-and off steps its value may be anything, missing (NaN) included, and on a
-cooling step a value outside 0–1 stops the run.
+and off steps an entry may be anything — NaN, ``None``, ``pd.NA``, text — and
+is not looked at, while a cooling step whose entry is not a number in 0–1
+stops the run with a ``ValueError`` that names the step.
 
 The coil is the apparatus-dew-point / bypass-factor coil, the family
 EnergyPlus uses for DX cooling coils, written so that it reduces to the dry

@@ -2757,7 +2757,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         saturated: 9.6 to 12.8 kW and 15.3 to 16.4 kW), and the ladder finds
         the lower one. The search that ends short of the top is flat out in
         the upper one -- 16.45 kW there -- so that duty, a hair under it, is
-        tried before the ladder, and the bisection starts from it.
+        tried as well where it lies above what the search found, and the
+        bisection is repeated from it. It is one more duty to try: the
+        ceiling is never below the one found without it.
 
         ``trial(q, start)`` is the caller's: the least-lift point of the duty
         ``q``, with a flat-out compressor read as the reason ``"compressor"``.
@@ -2788,18 +2790,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         q_limit, reason_limit, x_limit = q_top, reason_hi, x if limited else None
         q_lo, x_lo, perf_lo = 0.0, None, None
         last_reason = reason_hi
-        q_lead = lead(q_top) if lead is not None else None
-        if q_lead is not None and 0.0 < q_lead < q_top:
-            # What the search of the top delivered, flat out: a hair under it.
-            q = q_lead * (1.0 - rel_tol)
-            x, perf, reason = settled(q, x_limit)
-            if x is not None and perf is not None:
-                q_lo, x_lo, perf_lo = q, x, perf
         # The duties refused so far, from the top, each with why.
         refused: list[tuple[float, Any]] = [(q_top, reason_hi)]
         for fraction in self._CEILING_LADDER:
-            if perf_lo is not None:
-                break
             q = fraction * q_top
             x, perf, reason = settled(q, x_limit)
             if x is not None and perf is not None:
@@ -2859,8 +2852,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 if found is not None:
                     q_lo, x_lo, perf_lo = found
                     break
-        if x_lo is None or perf_lo is None:
-            return None, None, reason_limit if limited else last_reason
 
         def bisect(q_lo: float, x_lo: Any, perf_lo: Any, q_hi: float, reason_hi: Any):
             while q_hi - q_lo > rel_tol * q_hi:
@@ -2872,21 +2863,38 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     q_hi, reason_hi = mid, reason
             return q_lo, x_lo, perf_lo, q_hi, reason_hi
 
-        q_hi, reason_hi = q_limit, reason_limit
-        for _ in range(len(self._CEILING_PROBES)):
-            q_lo, x_lo, perf_lo, q_hi, reason_hi = bisect(q_lo, x_lo, perf_lo, q_hi, reason_hi)
-            if reason_hi in self._LIMIT_REASONS or not q_limit > q_hi:
-                break
-            # The bracket closed on a duty that names no limit: look above it.
-            for fraction in self._CEILING_PROBES:
-                q = q_hi + fraction * (q_limit - q_hi)
-                x, perf, reason = settled(q, x_lo, x_limit)
-                if x is not None and perf is not None:
-                    q_lo, x_lo, perf_lo = q, x, perf
-                    q_hi, reason_hi = q_limit, reason_limit
+        def climb(q_lo: float, x_lo: Any, perf_lo: Any):
+            """From a duty that runs to the largest found above it: ``(q, x, state, why the next is refused)``."""
+            q_hi, reason_hi = q_limit, reason_limit
+            for _ in range(len(self._CEILING_PROBES)):
+                q_lo, x_lo, perf_lo, q_hi, reason_hi = bisect(q_lo, x_lo, perf_lo, q_hi, reason_hi)
+                if reason_hi in self._LIMIT_REASONS or not q_limit > q_hi:
                     break
-            else:
-                break
+                # The bracket closed on a duty that names no limit: look above it.
+                for fraction in self._CEILING_PROBES:
+                    q = q_hi + fraction * (q_limit - q_hi)
+                    x, perf, reason = settled(q, x_lo, x_limit)
+                    if x is not None and perf is not None:
+                        q_lo, x_lo, perf_lo = q, x, perf
+                        q_hi, reason_hi = q_limit, reason_limit
+                        break
+                else:
+                    break
+            return q_lo, x_lo, perf_lo, reason_hi
+
+        if x_lo is not None and perf_lo is not None:
+            q_lo, x_lo, perf_lo, reason_hi = climb(q_lo, x_lo, perf_lo)
+        # What the search of the top delivered, flat out: one more duty to
+        # try, a hair under it, where it lies above what was found. It adds
+        # to the search above and replaces none of it.
+        q_lead = lead(q_top) if lead is not None else None
+        if q_lead is not None and q_lo < q_lead * (1.0 - rel_tol) < q_limit:
+            q = q_lead * (1.0 - rel_tol)
+            x, perf, reason = settled(q, x_lo, x_limit)
+            if x is not None and perf is not None:
+                q_lo, x_lo, perf_lo, reason_hi = climb(q, x, perf)
+        if x_lo is None or perf_lo is None:
+            return None, None, reason_limit if limited else last_reason
         return x_lo, perf_lo, reason_hi
 
     def _binding_of(self, reason: str | None) -> str:

@@ -370,3 +370,24 @@ def test_ceiling_of_a_stiff_outdoor_fan_is_the_top_of_its_upper_band(smallest, c
     above = stiff.analyze_steady(1.5 * top, outdoor, room, RH_room=1.0, verbose=False)
     assert above["failure_reason"] == "none" and above["capacity_clamped"] == "max"
     assert above["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-9)
+
+
+def test_what_the_refused_top_delivered_does_not_replace_the_ladder(default):
+    # The search of the top can end flat out in the lower band while a rung of the ladder runs in
+    # the upper one (25.3 kW, 80 % of the top): the duty it delivered is one more duty to try, not
+    # where the search starts.
+    bands = ((14_000.0, 18_236.0), (25_000.0, 25_500.0))
+    trial, _ = _searched_trial(default, runs=bands, floor=14_000.0)
+    x, state, reason = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3, lambda q: 18_236.0)
+    assert state["Q_ref_iu [W]"] == pytest.approx(25_500.0, rel=1.5e-3) and state["Q_ref_iu [W]"] <= 25_500.0
+    without = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3)
+    assert state["Q_ref_iu [W]"] >= without[1]["Q_ref_iu [W]"]
+
+
+def test_what_the_refused_top_delivered_is_tried_where_no_duty_was_found(default):
+    # One narrow band that no rung, gap probe or bisection step falls in: the lead finds it.
+    bands = ((22_163.0, 22_400.0),)
+    trial, _ = _searched_trial(default, runs=bands, floor=1_000.0)
+    assert default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3)[1] is None
+    x, state, reason = default._largest_deliverable_wet_duty(trial, 31_661.0, 1e-3, lambda q: 22_400.0)
+    assert state is not None and state["Q_ref_iu [W]"] == pytest.approx(22_400.0, rel=1.5e-3)

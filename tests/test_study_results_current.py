@@ -310,6 +310,8 @@ STUDY_RECORDS = {
     "validation/results/compressor_group_fitting_once/": "validation/results/compressor_group_fitting_once/provenance.json",
     # Its sample rerun and its docs table are checked in tests/test_wet_coil_shr_study.py.
     "validation/results/wet_coil_shr_once/": "validation/results/wet_coil_shr_once/provenance.json",
+    # Its sample rerun and its findings are checked in tests/test_indoor_ua_wet_coil_study.py.
+    "validation/results/indoor_ua_wet_coil_once/": "validation/results/indoor_ua_wet_coil_once/provenance.json",
 }
 
 

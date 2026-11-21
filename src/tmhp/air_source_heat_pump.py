@@ -1011,6 +1011,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
         finally:
             self._RH_room, self._w_room = outer
 
+    @property
+    def _coil_may_be_wet(self) -> bool:
+        """Whether the point being solved is a cooling point whose room air holds water vapour.
+
+        Only then do the searches differ from the dry coil's
+        (:meth:`_largest_airflow_approaches`, :meth:`_largest_deliverable_wet_duty`,
+        :attr:`_MIN_AIRFLOW`). Room air with no water vapour (``RH_room = 0``)
+        is solved as the dry coil is, step for step.
+        """
+        return self._w_room is not None and self._w_room > 0.0
+
     def _wet_coil_drive(self, approach: float, T_a_room: float) -> float:
         """Driving temperature difference of the wet indoor coil at ``approach`` [K].
 
@@ -1022,29 +1033,49 @@ class AirSourceHeatPump(ReferenceStateMixin):
         assert self._w_room is not None
         return approach + wet_coil_latent_difference(self._w_room, cu.C2K(T_a_room) - approach)
 
-    def _wet_coil_approach(self, approach: float, factor: float, T_a_room: float) -> float:
-        """Approach at which the wet indoor coil's driving difference is ``factor`` times the present one [K].
+    def _wet_coil_approach(self, approach: float, duty: float, capacity: float, T_a_room: float) -> float:
+        """Approach at which the wet indoor coil carries ``duty`` where it carries ``capacity`` at ``approach`` [K].
 
         A dry coil's capacity at a fixed airflow is proportional to its
-        approach, so the answer there is ``approach * factor``. A wet coil's
+        approach, so the answer there is ``approach * duty / capacity``. A wet coil's
         is proportional to its driving difference (:meth:`_wet_coil_drive`),
         which grows faster than the approach once water condenses, so the
-        approach is solved from it. The driving difference is continuous,
-        increasing and never below the approach: the root lies between zero
-        and the wanted driving difference.
+        approach is solved from it.
+
+        The answer is wanted inside the approach bounds only (the caller cuts
+        it to them), and the driving difference is evaluated nowhere else: a
+        coil far short of its duty asks for a difference many times the
+        present one, and the approach that scales to is below any state of
+        humid air (a duty four times the capacity at a 30 K approach: 120 K,
+        an evaporating temperature of -93 degC). The driving difference is
+        continuous and increasing in the approach, so the wanted one is
+        compared with those at the two bounds first: at or beyond one of them
+        the answer is that bound, and only a root between them is solved.
+        With no water vapour in the room air (``RH_room = 0``) the coil is
+        dry at every approach and the dry expression is returned as it is.
         """
-        scaled = approach * factor
+        assert self._w_room is not None
+        scaled = approach * duty / capacity
+        if not self._w_room > 0.0:
+            return scaled
+        lo, hi = self.dT_approach_bounds
         present = self._wet_coil_drive(approach, T_a_room)
-        if present == approach and self._wet_coil_drive(scaled, T_a_room) == scaled:
-            return scaled  # dry before and after
-        goal = present * factor
+        goal = present * duty / capacity
         if not (math.isfinite(goal) and goal > 0.0):
             return scaled
+        if present == approach:
+            inside = min(max(scaled, lo), hi)
+            if self._wet_coil_drive(inside, T_a_room) == inside:
+                return scaled  # dry before and after
+        if goal <= self._wet_coil_drive(lo, T_a_room):
+            return lo
+        if goal >= self._wet_coil_drive(hi, T_a_room):
+            return hi
         return float(
             brentq(
                 lambda x: self._wet_coil_drive(x, T_a_room) - goal,
-                0.0,
-                goal,
+                lo,
+                hi,
                 xtol=1e-13,
                 rtol=4.0 * np.finfo(float).eps,
             )
@@ -2187,13 +2218,35 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: Why :meth:`_largest_airflow_point` has no state although the cycle exists:
     #: a coil cannot carry its duty inside the approach bounds.
     _AIR_SIDE = "air_side"
+    #: Why :meth:`_largest_airflow_point` has no state at a cooling point
+    #: solved with a room humidity: a coil carries more than its duty at its
+    #: fan's smallest airflow. On the pressure-ratio floor the condensing
+    #: temperature is held above the outdoor air, and a wet indoor coil's
+    #: latent heat grows as the evaporating temperature is lowered to make
+    #: room for it, so no approach pair may carry a small duty continuously.
+    #: Larger duties run: the request is refused from below
+    #: (:meth:`_smallest_continuous_operating_point`). The dry search reports
+    #: the same state as ``"cycle_invalid"``, as before.
+    _MIN_AIRFLOW = "min_airflow"
+    #: Reasons of :meth:`_largest_airflow_point` that name a limit of the
+    #: machine. Any other (``"cycle_invalid"``, or none) may be the search
+    #: itself not finding the point.
+    _LIMIT_REASONS = frozenset(
+        {"compressor", _AIR_SIDE, PR_ABOVE_MAX, CONDENSING_TEMP_ABOVE_MAX, DISCHARGE_TEMP_ABOVE_MAX}
+    )
+    #: Fractions of the approach range a wet ceiling search starts from when
+    #: a duty's least-lift point is not found from its neighbours' approaches.
+    _CEILING_RESTARTS: tuple[float, ...] = (0.35, 0.55, 0.8)
+    #: Duties tried between a ceiling the wet search could not confirm and
+    #: the limit above it, as fractions of the gap, from the top.
+    _CEILING_PROBES: tuple[float, ...] = (0.8, 0.6, 0.4, 0.2)
     #: Fractions of a duty tried, from the top, when that duty has no operating point.
     _CEILING_LADDER: tuple[float, ...] = (0.8, 0.6, 0.45, 0.3, 0.2, 0.12, 0.06)
     #: Relative width at which the bisection for a refused request stops.
     _REDUCTION_REL_TOL = 1e-3
 
     def _largest_airflow_approaches(
-        self, x_iu: float, x_ou: float, perf: dict, T_a_room_wet: float | None = None
+        self, x_iu: float, x_ou: float, perf: dict, wet: tuple[float, float] | None = None
     ) -> tuple[float, float] | None:
         """Approaches at which each coil would carry this state's duty at its largest airflow [K].
 
@@ -2205,10 +2258,20 @@ class AirSourceHeatPump(ReferenceStateMixin):
         have closed. ``None`` when a duty or a capacity is not a positive
         number.
 
-        ``T_a_room_wet`` is the room temperature [°C] of a cooling point
-        solved with a room humidity: the indoor coil's capacity is then
-        proportional to its driving difference, sensible plus latent, and its
-        approach is solved from that (:meth:`_wet_coil_approach`).
+        ``wet`` is ``(T_a_room, T0)`` [°C] of a cooling point solved with a
+        room humidity. The indoor coil's capacity is then proportional to its
+        driving difference, sensible plus latent, and its approach is solved
+        from that (:meth:`_wet_coil_approach`). And the outdoor coil's
+        approach is taken where the cycle condenses, not where it was asked
+        to: on the pressure-ratio floor the condensing temperature is held
+        above the outdoor air by more than the approach asked for (room 35
+        °C, outdoor 20 °C: 21.4 K whatever approach below it is asked), so a
+        coil that is short there -- by 0.8 % for a 10 kW unit at 22.7 kW --
+        needs that difference times duty over capacity, 21.6 K. Scaling the
+        approach asked for instead moves it 0.8 % a step from wherever the
+        search started and does not arrive. Without ``wet`` (the dry coil,
+        heating) the approach asked for is scaled, as before: the dry search
+        is left as it is (issue #168).
         """
         if "_iu_diag" in perf:
             pairs = []
@@ -2258,9 +2321,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
             capacity = duty + margin
             if not (math.isfinite(duty) and math.isfinite(capacity) and duty > 0.0 and capacity > 0.0):
                 return None
-            if indoor and T_a_room_wet is not None:
-                closing = self._wet_coil_approach(x, duty / capacity, T_a_room_wet)
+            if indoor and wet is not None:
+                closing = self._wet_coil_approach(x, duty, capacity, wet[0])
             else:
+                if wet is not None and duty > capacity:
+                    # The condenser of a wet cooling point, short of its duty:
+                    # its temperature difference is the one the cycle has.
+                    # Only where the scaled approach would still lie under the
+                    # held one, and so change nothing: any other step is the
+                    # dry search's.
+                    held = float(perf.get(CYCLE_KEY, perf).get("T_ref_cond_sat_l [°C]", math.nan)) - wet[1]
+                    if x * duty / capacity < held:
+                        x = held
                 closing = x * duty / capacity
             target.append(min(max(closing, lo), hi))
         return target[0], target[1]
@@ -2306,12 +2378,14 @@ class AirSourceHeatPump(ReferenceStateMixin):
         ``state`` is ``None`` and ``reason`` says why: the envelope limit the
         cycle ran into (``"pr_above_max"``, ``"discharge_temp_above_max"``,
         ``"condensing_temp_above_max"``), :attr:`_AIR_SIDE` when a coil cannot
-        carry its duty inside the approach bounds, or ``"cycle_invalid"``.
+        carry its duty inside the approach bounds, :attr:`_MIN_AIRFLOW` (a
+        cooling point solved with a room humidity only) when a coil carries
+        more than its duty at its smallest airflow, or ``"cycle_invalid"``.
         """
         lo, hi = self.dT_approach_bounds
         heating = Q_r_iu < 0
         # A cooling point solved with a room humidity: the indoor coil may be wet.
-        T_a_room_wet = T_a_room if self._w_room is not None and not heating else None
+        wet = (T_a_room, T0) if self._coil_may_be_wet and not heating else None
         rtol = self._LEAST_LIFT_RTOL if rtol is None else rtol
         # Far enough inside to be clear of what the convergence left open.
         step_inside = max(self._LEAST_LIFT_INSIDE, 100.0 * rtol)
@@ -2366,7 +2440,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         flat_out = False
         for _ in range(self._LEAST_LIFT_MAX_ITER):
             flat_out = flat_out or perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX
-            target = self._largest_airflow_approaches(x[0], x[1], perf, T_a_room_wet)
+            target = self._largest_airflow_approaches(x[0], x[1], perf, wet)
             if target is None:
                 return None, None, "cycle_invalid"
             if at_fixed_point(x, target):
@@ -2388,7 +2462,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if not flat_out:
                 return None, None, "cycle_invalid"
             for _ in range(self._LEAST_LIFT_MAX_ITER):
-                target = self._largest_airflow_approaches(x[0], x[1], perf, T_a_room_wet)
+                target = self._largest_airflow_approaches(x[0], x[1], perf, wet)
                 if target is None:
                     return None, None, "cycle_invalid"
                 if at_fixed_point(x, target):
@@ -2415,11 +2489,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # another matter -- the pressure-ratio floor has lifted the
             # condensing temperature off the approach -- and says nothing
             # about the other pairs.
+            diags = (closed.get("_iu_diag", {}), closed.get("_ou_diag", {}))
             short = any(
                 not diag.get("converged", True) and float(diag.get("max_flow_capacity_margin_W", 0.0)) < 0.0
-                for diag in (closed.get("_iu_diag", {}), closed.get("_ou_diag", {}))
+                for diag in diags
             )
-            return approaches(inside), None, self._AIR_SIDE if short else "cycle_invalid"
+            if short:
+                return approaches(inside), None, self._AIR_SIDE
+            excess = any(
+                not diag.get("converged", True) and float(diag.get("min_flow_capacity_margin_W", 0.0)) > 0.0
+                for diag in diags
+            )
+            # Named for the wet coil only; the dry search keeps its label.
+            return approaches(inside), None, self._MIN_AIRFLOW if wet is not None and excess else "cycle_invalid"
         return approaches(inside), closed, None
 
     def _indoor_coil_limit(self, T_a_room: float) -> float:
@@ -2461,6 +2543,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         ``None`` when ``q_top`` is deliverable, else why the next larger duty
         is not (see :meth:`_largest_airflow_point`; ``"compressor"`` for the
         speed range). ``(None, None, reason)`` when no duty runs.
+
+        A cooling point solved with a room humidity is searched by
+        :meth:`_largest_deliverable_wet_duty`, which does not take a duty
+        whose point it failed to find for the ceiling. The search below --
+        the dry coil's, and heating's -- is as it was.
         """
 
         def trial(q: float, start: tuple[float, float] | None = None):
@@ -2468,6 +2555,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if perf is not None and perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
                 return x, None, "compressor"
             return x, perf, reason
+
+        if self._coil_may_be_wet and sign > 0:
+            return self._largest_deliverable_wet_duty(trial, q_top, rel_tol)
 
         x, perf, reason_hi = trial(q_top)
         if x is not None and perf is not None:
@@ -2492,6 +2582,101 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 q_lo, x_lo, perf_lo = mid, x, perf
             else:
                 q_hi, reason_hi = mid, reason
+        return x_lo, perf_lo, reason_hi
+
+    def _largest_deliverable_wet_duty(
+        self, trial: Callable[..., tuple[Any, Any, Any]], q_top: float, rel_tol: float
+    ) -> tuple[tuple[float, float] | None, dict | None, str | None]:
+        """:meth:`_largest_deliverable_duty` for a cooling point solved with a room humidity.
+
+        The ladder and the bisection are those of the dry search, with one
+        difference: a duty is taken for refused only when its least-lift
+        point names a limit of the machine (:attr:`_LIMIT_REASONS`: the
+        speed range, the envelope, a coil at its largest airflow and widest
+        approach). ``"cycle_invalid"`` names none. It is what a condensing
+        temperature at the critical point gives, and also what the
+        fixed-point iteration gives when it does not arrive -- and with a wet
+        coil, whose capacity is not proportional to its approach, there are
+        more ways not to arrive. Taken for the ceiling, such a duty hides
+        everything above it that runs (10 kW unit, outdoor 20 degC, room 35
+        degC saturated: 22.6 kW reported, 29.7 kW delivered on request).
+
+        So a trial that names no limit is repeated from other starting
+        approaches -- those of the neighbouring duties already solved, then
+        fractions of the approach range (:attr:`_CEILING_RESTARTS`). A rung of
+        the ladder that still names none is passed over without lowering the
+        upper end of the bracket. If the bisection then ends below a duty
+        that names no limit, the loads between it and the limit above are
+        tried (:attr:`_CEILING_PROBES`), and the bisection is repeated from
+        the first that runs. What is left unexplained after that is reported
+        as it is, ``"cycle_invalid"``.
+
+        ``trial(q, start)`` is the caller's: the least-lift point of the duty
+        ``q``, with a flat-out compressor read as the reason ``"compressor"``.
+        """
+        lo_b, hi_b = self.dT_approach_bounds
+        restarts = [(lo_b + f * (hi_b - lo_b),) * 2 for f in self._CEILING_RESTARTS]
+
+        def settled(q: float, *starts: tuple[float, float] | None):
+            """``trial`` from the first start; a refusal that names no limit retried from the others."""
+            first, *others = starts or (None,)
+            x, perf, reason = trial(q, first)
+            if perf is not None or reason in self._LIMIT_REASONS:
+                return x, perf, reason
+            for start in (*others, *restarts):
+                if start is None:
+                    continue
+                again = trial(q, start)
+                if again[1] is not None or again[2] in self._LIMIT_REASONS:
+                    return again
+            return x, perf, reason
+
+        x, perf, reason_hi = settled(q_top)
+        if x is not None and perf is not None:
+            return x, perf, None
+        # ``q_limit``: the smallest duty known to be refused by a limit.
+        # ``x_limit``: the approaches its search ended on, a start for the duties below.
+        limited = reason_hi in self._LIMIT_REASONS
+        q_limit, reason_limit, x_limit = q_top, reason_hi, x if limited else None
+        q_lo, x_lo, perf_lo = 0.0, None, None
+        last_reason = reason_hi
+        for fraction in self._CEILING_LADDER:
+            q = fraction * q_top
+            x, perf, reason = settled(q, x_limit)
+            if x is not None and perf is not None:
+                q_lo, x_lo, perf_lo = q, x, perf
+                break
+            last_reason = reason
+            if reason in self._LIMIT_REASONS:
+                q_limit, reason_limit, x_limit, limited = q, reason, x, True
+        if x_lo is None or perf_lo is None:
+            return None, None, reason_limit if limited else last_reason
+
+        def bisect(q_lo: float, x_lo: Any, perf_lo: Any, q_hi: float, reason_hi: Any):
+            while q_hi - q_lo > rel_tol * q_hi:
+                mid = 0.5 * (q_lo + q_hi)
+                x, perf, reason = settled(mid, x_lo, x_limit)
+                if x is not None and perf is not None:
+                    q_lo, x_lo, perf_lo = mid, x, perf
+                else:
+                    q_hi, reason_hi = mid, reason
+            return q_lo, x_lo, perf_lo, q_hi, reason_hi
+
+        q_hi, reason_hi = q_limit, reason_limit
+        for _ in range(len(self._CEILING_PROBES)):
+            q_lo, x_lo, perf_lo, q_hi, reason_hi = bisect(q_lo, x_lo, perf_lo, q_hi, reason_hi)
+            if reason_hi in self._LIMIT_REASONS or not q_limit > q_hi:
+                break
+            # The bracket closed on a duty that names no limit: look above it.
+            for fraction in self._CEILING_PROBES:
+                q = q_hi + fraction * (q_limit - q_hi)
+                x, perf, reason = settled(q, x_lo, x_limit)
+                if x is not None and perf is not None:
+                    q_lo, x_lo, perf_lo = q, x, perf
+                    q_hi, reason_hi = q_limit, reason_limit
+                    break
+            else:
+                break
         return x_lo, perf_lo, reason_hi
 
     def _binding_of(self, reason: str | None) -> str:
@@ -2808,6 +2993,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: falls (:func:`~tmhp.compressor_envelope.raise_duty_within_envelope`
     #: is the boilers' counterpart).
     _REFUSED_FROM_BELOW = frozenset({DISCHARGE_TEMP_ABOVE_MAX})
+    #: The same for the search of the smallest continuous duty, which also
+    #: climbs past a wet cooling point's duties the fans' smallest airflows
+    #: refuse (:attr:`_MIN_AIRFLOW`; never the reason of a dry solve).
+    _CLIMBED_PAST = _REFUSED_FROM_BELOW | {_MIN_AIRFLOW}
 
     def _smallest_continuous_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
         """The smallest duty above a request the envelope refuses from below, as a continuous state.
@@ -2836,6 +3025,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
         it delivers more than the request and is averaged over the cycling
         period like a minimum-speed row (:meth:`_report_part_load`). ``None``
         when no duty runs: the limits of the two sides meet.
+
+        A cooling point solved with a room humidity has a second lower end
+        (:attr:`_MIN_AIRFLOW`): in mild weather the pressure ratio is on its
+        floor, which holds the condensing temperature well above the outdoor
+        air, and the evaporating temperature that would make room for the
+        outdoor coil's smallest airflow makes the wet indoor coil carry more
+        than a small duty at its own. Default 4 kW unit, outdoor 15 degC, room 27
+        degC at 80 %: no duty below 1.35 kW runs continuously (the dry coil
+        runs 1.2 kW at the same pressure ratio, 1.5). The climb passes those
+        duties the same way and the unit cycles at the smallest that runs.
         """
         sign, request = math.copysign(1.0, Q_r_iu), abs(float(Q_r_iu))
         # The floor belongs to the condition, not to the request: inside one
@@ -2864,7 +3063,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if not q > request * (1.0 + self._FLOOR_REL_TOL):
                 continue
             state, reason = trial(q)
-            if state is None and reason in self._REFUSED_FROM_BELOW:
+            if state is None and reason in self._CLIMBED_PAST:
                 q_lo = q
                 continue
             q_hi, running = q, state
@@ -2876,7 +3075,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             state, reason = trial(mid)
             if state is not None:
                 q_hi, running = mid, state
-            elif running is not None or reason in self._REFUSED_FROM_BELOW:
+            elif running is not None or reason in self._CLIMBED_PAST:
                 q_lo = mid
             else:
                 q_hi = mid  # refused from above: the duties that run, if any, are below
@@ -3135,7 +3334,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
             else:
                 failure_reason = "none"
 
-            unsolved = failure_reason != "none" and (result is None or not result.get("converged", False))
+            # A wet coil refused by the fans' smallest airflows is refused from
+            # below: its answer is the smallest continuous duty, further down.
+            unsolved = failure_reason not in ("none", self._MIN_AIRFLOW) and (
+                result is None or not result.get("converged", False)
+            )
             limited = (
                 failure_reason == "none"
                 and result is not None
@@ -3157,9 +3360,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         result = ceiling_state
                         failure_reason = "none"
 
-            if failure_reason in self._REFUSED_FROM_BELOW:
-                # Refused at low speed -- the discharge temperature -- while
-                # larger duties run: the unit's
+            if failure_reason in self._CLIMBED_PAST:
+                # Refused at low speed -- the discharge temperature -- or, with
+                # a wet coil on the pressure-ratio floor, by the fans' smallest
+                # airflows, while larger duties run: the unit's
                 # smallest continuous duty lies above the request, and the
                 # request is met by cycling at it.
                 with contextlib.suppress(Exception):
@@ -3167,6 +3371,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     if floor_state is not None:
                         result = floor_state
                         failure_reason = "none"
+                if failure_reason == self._MIN_AIRFLOW:
+                    # No larger duty runs either. The limit is a coil's: it
+                    # cannot carry so little inside its fan's flow range.
+                    failure_reason = "hx_not_converged"
 
             if failure_reason != "none":
                 # Not a warning here: this solve may be the frost-free trial of

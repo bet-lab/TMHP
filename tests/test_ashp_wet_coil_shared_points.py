@@ -70,14 +70,39 @@ def _rows_by_load(frame: pd.DataFrame, loads) -> dict[float, pd.Series]:
 
 
 def _assert_same_row(row: pd.Series, reference: pd.Series) -> None:
-    """Every value of ``row`` is that of ``reference``, to the last bit (NaN where it is NaN)."""
-    assert list(row.index) == list(reference.index)
-    for key in row.index:
+    """Every value of ``row`` is that of ``reference``, to the last bit (NaN where it is NaN).
+
+    The two are matched by column name: the order of a frame's columns is that of the first row
+    that carried each, which is not what a row is.
+    """
+    assert set(row.index) == set(reference.index)
+    for key in reference.index:
         got, expected = row[key], reference[key]
         missing = [value is None or (isinstance(value, float) and math.isnan(value)) for value in (got, expected)]
         assert missing[0] == missing[1], key
         if not missing[0]:
             assert got == expected, key
+
+
+def _noting_calls(monkeypatch, unit: AirSourceHeatPump, *names: str) -> list[str]:
+    """The names of those methods of ``unit`` that get called from here on, in order.
+
+    Each is replaced by one that notes the call and goes on as before. A test that forbids a
+    search asserts on the list after the solve: the solve makes some of its searches where an
+    exception is caught, so a replacement that raises says nothing.
+    """
+    calls: list[str] = []
+    for name in names:
+        original = getattr(unit, name, None)
+        if original is None:
+            continue  # a search the model does not have is not made
+
+        def noting(*args, _name=name, _original=original, **kwargs):
+            calls.append(_name)
+            return _original(*args, **kwargs)
+
+        monkeypatch.setattr(unit, name, noting)
+    return calls
 
 
 # ---------------------------------------------------------------------------
@@ -141,14 +166,20 @@ def test_request_refused_from_below_up_to_the_coil_limit_asks_nothing_of_the_oth
     # -10 degC outdoor: every duty from the request to the indoor coil's limit is refused by the
     # fans' smallest airflows. Nothing above it was refused any other way, so neither the low-load
     # point nor a ceiling is searched for (seconds, for an answer that stays "off").
-    def never(*args, **kwargs):
-        raise AssertionError("not searched where every larger duty is refused from below")
-
-    monkeypatch.setattr(both_held, "_low_load_point", never)
-    monkeypatch.setattr(both_held, "_solve_max_capacity", never)
+    searched = _noting_calls(monkeypatch, both_held, "_low_load_point", "_solve_max_capacity")
     row = _steady(both_held, 12000.0, -10.0, 21.0, RH_room=0.5)
     assert row["failure_reason"] == "hx_not_converged" and row["Q_ref_iu [W]"] == 0.0
     assert row["Q_unmet [W]"] == 12000.0
+    assert searched == []
+
+
+def test_a_forbidden_search_is_noticed_where_the_solve_catches_exceptions(both_held, monkeypatch):
+    # The check of the test above, checked: 12 kW at 0 degC is answered from the flat-out ceiling
+    # (`_solve_max_capacity`), asked for where the solve catches whatever is raised.
+    searched = _noting_calls(monkeypatch, both_held, "_low_load_point", "_solve_max_capacity")
+    row = _steady(both_held, 12000.0, 0.0, 35.0, RH_room=0.5)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] == "max"
+    assert searched == ["_solve_max_capacity"]
 
 
 def test_low_load_search_closes_on_a_window_narrower_than_its_first_tolerance(both_held):
@@ -169,6 +200,8 @@ def test_low_load_search_closes_on_a_window_narrower_than_its_first_tolerance(bo
 def test_only_a_wet_search_that_found_nothing_is_bisected_on(monkeypatch, humidity, final_width):
     # Nothing runs: duties under 1 kW are refused from below, larger ones otherwise. The dry search
     # (no room humidity, or room air with no water vapour) stops at its tolerance as before.
+    # The searches of a duty are replaced; the request is solved as any other (`analyze_steady`),
+    # and the duties it tried say where its bisection stopped.
     unit = _build()
     reason = "discharge_temp_above_max" if not humidity else unit._MIN_AIRFLOW
     tried = []
@@ -181,10 +214,10 @@ def test_only_a_wet_search_that_found_nothing_is_bisected_on(monkeypatch, humidi
         __getattr__ = dict.get
 
     monkeypatch.setattr(unit, "_optimize_operation", lambda **kwargs: Refusal(refused(**kwargs)))
-    with unit._solving_with_room_humidity(humidity, 27.0, cooling=True):
-        point, to_the_top = unit._climb_to_continuous_duty(300.0, 10.0, 27.0)
-    assert point is None and not to_the_top
-    below, above = max(q for q in tried if q < 1000.0), min(q for q in tried if q >= 1000.0)
+    _steady(unit, 300.0, 10.0, 27.0, RH_room=humidity)
+    under_the_coil_limit = [q for q in tried if q < 50000.0]  # not the flat-out request of a ceiling
+    below = max(q for q in under_the_coil_limit if q < 1000.0)
+    above = min(q for q in under_the_coil_limit if q >= 1000.0)
     assert (above - below) <= final_width * above < 2.0 * (above - below)
 
 
@@ -216,34 +249,28 @@ def test_ceiling_of_both_fans_held_is_not_below_the_duty_the_unit_cycles_at(
 
 
 def test_ceiling_search_asks_for_the_low_load_point_only_where_it_found_no_duty(both_held, monkeypatch):
-    calls = []
-    original = both_held._low_load_point
-
-    def counted(T0, T_a_room):
-        calls.append((T0, T_a_room))
-        return original(T0, T_a_room)
-
-    monkeypatch.setattr(both_held, "_low_load_point", counted)
+    asked = _noting_calls(monkeypatch, both_held, "_low_load_point")
     # A ceiling the search finds on its own (15 degC outdoor: the band 12.2 to 13.7 kW).
     found = both_held.max_capacity(15.0, 35.0, mode="cooling", RH_room=1.0)
-    assert found["Q_max [W]"] > 0.0 and calls == []
+    assert found["Q_max [W]"] > 0.0 and asked == []
     # One it does not.
     seeded = both_held.max_capacity(8.0, 35.0, mode="cooling", RH_room=1.0)
-    assert seeded["Q_max [W]"] > 0.0 and calls == [(8.0, 35.0)]
+    assert seeded["Q_max [W]"] > 0.0 and asked == ["_low_load_point"]
 
 
-def test_low_load_point_is_the_same_whatever_was_solved_before(both_held):
-    with both_held._solving_with_room_humidity(1.0, 35.0, cooling=True):
-        first = both_held._low_load_point(8.0, 35.0)
+def test_ceiling_from_the_low_load_point_is_the_same_whatever_was_solved_before(both_held):
+    # The ceiling of this condition is searched upwards from its low-load point (the test above).
+    first = _held(4000.0, "iu", "ou").max_capacity(8.0, 35.0, mode="cooling", RH_room=1.0)
     _steady(both_held, 13700.0, 8.0, 35.0, RH_room=1.0)
     both_held.max_capacity(10.0, 35.0, mode="cooling", RH_room=1.0)
-    with both_held._solving_with_room_humidity(1.0, 35.0, cooling=True):
-        again = both_held._low_load_point(8.0, 35.0)
-    assert first is not None and again is not None
-    assert first[0] == again[0] and first[1] == again[1]
-    assert first[1]["Q_ref_iu [W]"] == pytest.approx(14343.75, rel=5e-3) and first[1]["capacity_clamped"] is None
+    again = both_held.max_capacity(8.0, 35.0, mode="cooling", RH_room=1.0)
+    assert again == first
+    assert first["binding"] == "cycle" and first["Q_max [W]"] == pytest.approx(14343.75, rel=5e-3)
+    # That duty runs as a request of its own, in continuous operation.
+    row = _steady(both_held, first["Q_max [W]"], 8.0, 35.0, RH_room=1.0)
+    assert row["failure_reason"] == "none" and row["Q_ref_iu [W]"] == pytest.approx(first["Q_max [W]"], rel=1e-9)
     # Nothing is kept between calls.
-    assert both_held._wet_points is None
+    assert getattr(both_held, "_wet_points", None) is None
 
 
 # ---------------------------------------------------------------------------
@@ -277,27 +304,23 @@ def test_flat_out_ceiling_of_a_held_indoor_fan_is_what_a_request_is_delivered_up
 
 def test_flat_out_ceiling_off_the_pressure_ratio_floor_is_the_least_lift_point(large_indoor_held, monkeypatch):
     # 35/27 degC: the condensing temperature is the approach asked for, and nothing is searched.
-    def never(*args, **kwargs):
-        raise AssertionError("the ordinary search is not part of this ceiling")
-
-    monkeypatch.setattr(large_indoor_held, "_searched_point", never)
+    searched = _noting_calls(monkeypatch, large_indoor_held, "_searched_point")
     ceiling = large_indoor_held.max_capacity(35.0, 27.0, mode="cooling", RH_room=0.5)
     assert ceiling["binding"] == "compressor" and ceiling["Q_max [W]"] == pytest.approx(18078.55, rel=1e-4)
+    assert searched == []
 
 
 def test_dry_ceiling_of_a_held_indoor_fan_is_unchanged(large_indoor_held, monkeypatch):
     # Without a room humidity, and with dry room air, the ceiling is the dry search's: the indoor
     # coil at its widest approach (14.09 kW), with none of the wet coil's searches.
-    def never(*args, **kwargs):
-        raise AssertionError("not part of the dry ceiling")
-
-    monkeypatch.setattr(large_indoor_held, "_searched_point", never)
-    monkeypatch.setattr(large_indoor_held, "_low_load_point", never)
-    monkeypatch.setattr(large_indoor_held, "_flat_out_point_on_the_floor", never)
+    searched = _noting_calls(
+        monkeypatch, large_indoor_held, "_searched_point", "_low_load_point", "_flat_out_point_on_the_floor"
+    )
     for humidity in (None, 0.0):
         ceiling = large_indoor_held.max_capacity(-10.0, 35.0, mode="cooling", RH_room=humidity)
         assert ceiling["binding"] == "cycle" and ceiling["Q_max [W]"] == pytest.approx(14088.92, rel=1e-6)
-        assert large_indoor_held._wet_points is None
+        assert getattr(large_indoor_held, "_wet_points", None) is None
+    assert searched == []
 
 
 # ---------------------------------------------------------------------------
@@ -370,14 +393,7 @@ def test_dry_dynamic_rows_keep_the_floor_of_the_first_step(monkeypatch):
     # Without a room humidity, and with dry room air, the floor of a condition is still searched once
     # per run and reused for smaller requests (the dry model's rule, left as it is).
     unit = _build()
-    floors = []
-    original = unit._climb_to_continuous_duty
-
-    def counted(Q_r_iu, T0, T_a_room):
-        floors.append(abs(Q_r_iu))
-        return original(Q_r_iu, T0, T_a_room)
-
-    monkeypatch.setattr(unit, "_climb_to_continuous_duty", counted)
+    searches = _noting_calls(monkeypatch, unit, "_optimize_operation")
     state = {"Q_ref_iu [W]": 900.0, "capacity_clamped": "min"}
     with unit._remembering_floors():
         unit._floor_memo[(1.0, 10.0, 27.0, None)] = dict(state)
@@ -385,7 +401,7 @@ def test_dry_dynamic_rows_keep_the_floor_of_the_first_step(monkeypatch):
         with unit._solving_with_room_humidity(0.0, 27.0, cooling=True):
             unit._floor_memo[(1.0, 10.0, 27.0, 0.0)] = dict(state)
             assert unit._smallest_continuous_operating_point(500.0, 10.0, 27.0) == state
-    assert floors == []
+    assert searches == []
 
 
 # ---------------------------------------------------------------------------

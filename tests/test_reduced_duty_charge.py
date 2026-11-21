@@ -1387,3 +1387,81 @@ def test_a_run_goes_on_past_the_knee_of_its_first_duty_where_the_cycle_still_run
         T_end, heat, _, _ = _charge_two_limits(other, parts, 3600.0, T_start=56.0)
         assert T_end == pytest.approx(fine[0], abs=0.15), parts
         assert heat == pytest.approx(fine[1], rel=0.02), parts
+
+
+def test_a_row_of_several_stretches_names_the_limit_with_the_longest_run_time_in_total():
+    """Stop-time review of the stages: merging two cycles at a time named the limit of the last pair.
+
+    Three stretches, 40 s under one limit, 35 s under another, 25 s under the first again: the first
+    governed 65 s. Merged two at a time, the last two give the second limit (35 against 25 s) and
+    that pair (60 s) then outweighs the first stretch (40 s). A merged row remembers its cycles, so
+    merging it again weighs every cycle with its own run time, whatever the grouping.
+    """
+    keys = ("Q_ref_tank [W]", "E_tot [W]")
+
+    def cycle(q, binding, speed):
+        row = {"hp_is_on": True, "Q_ref_tank [W]": q, "E_tot [W]": q / 3.0, "cmp_rpm [rpm]": speed}
+        row.update({"capacity_clamped": "max", "capacity_binding": binding, "Q_request [W]": 10_000.0})
+        return row
+
+    a1, b, a2 = cycle(9_000.0, "first", 6000.0), cycle(6_000.0, "second", 4000.0), cycle(4_000.0, "first", 3000.0)
+    left = merge_running_rows(merge_running_rows(a1, 40.0, b, 35.0, keys), 75.0, a2, 25.0, keys)
+    right = merge_running_rows(a1, 40.0, merge_running_rows(b, 35.0, a2, 25.0, keys), 60.0, keys)
+    assert merge_running_rows(b, 35.0, a2, 25.0, keys)["capacity_binding"] == "second"  # the pair alone
+    for row in (left, right):
+        assert row["capacity_binding"] == "first"
+        assert row["Q_ref_tank [W]"] == pytest.approx((40 * 9_000.0 + 35 * 6_000.0 + 25 * 4_000.0) / 100.0)
+        assert row["Q_max [W]"] == pytest.approx(row["Q_ref_tank [W]"])
+        assert row["cmp_rpm [rpm]"] == 6000.0  # the state of the one cycle that ran longest
+    assert dict(left) == pytest.approx(dict(right))
+    # The weights of a merged row are rescaled to the weight it is given (fractions here, seconds above).
+    scaled = merge_running_rows(a1, 0.4, merge_running_rows(b, 35.0, a2, 25.0, keys), 0.6, keys)
+    assert scaled["capacity_binding"] == "first" and scaled["Q_ref_tank [W]"] == pytest.approx(left["Q_ref_tank [W]"])
+
+
+def test_a_cycle_at_the_speed_ceiling_counts_as_under_a_limit():
+    """A cycle at the compressor's speed ceiling has ``capacity_clamped == "max"`` and names no binding.
+
+    The boiler completes such a row with ``capacity_binding = "compressor"``. Merged with a shorter
+    stretch under another limit, the row has to stay one the boiler completes that way (before: it
+    took the other stretch's binding, whatever the run times).
+    """
+    from tmhp._boiler_results import complete_capacity_keys
+
+    keys = ("Q_ref_tank [W]", "E_tot [W]")
+    ceiling = {"hp_is_on": True, "Q_ref_tank [W]": 13_000.0, "E_tot [W]": 5_000.0, "capacity_clamped": "max"}
+    other = {"hp_is_on": True, "Q_ref_tank [W]": 9_500.0, "E_tot [W]": 4_000.0, "capacity_clamped": "max"}
+    other.update({"capacity_binding": "discharge_temperature", "Q_max [W]": 9_500.0, "Q_request [W]": 15_000.0})
+    row = merge_running_rows(ceiling, 363.0, other, 103.0, keys)
+    assert row["capacity_clamped"] == "max" and "capacity_binding" not in row
+    assert complete_capacity_keys(dict(row), 15_000.0)["capacity_binding"] == "compressor"
+    assert row["Q_max [W]"] == pytest.approx((363 * 13_000.0 + 103 * 9_500.0) / 466.0)
+    # The shorter of the two governs when it is the one at the ceiling's side ...
+    row = merge_running_rows(ceiling, 100.0, other, 300.0, keys)
+    assert row["capacity_binding"] == "discharge_temperature" and row["Q_request [W]"] == 15_000.0
+    # ... and a cycle that is not held at all leaves the keys to the one that is.
+    free = {"hp_is_on": True, "Q_ref_tank [W]": 15_000.0, "E_tot [W]": 5_500.0, "capacity_clamped": None}
+    assert merge_running_rows(free, 400.0, other, 50.0, keys)["capacity_binding"] == "discharge_temperature"
+    assert "capacity_binding" not in merge_running_rows(free, 400.0, ceiling, 50.0, keys)
+
+
+def test_one_long_step_names_the_limit_that_governed_most_of_its_run():
+    """R32 at -7 degC with ``T_dis_max=105``, half an hour from 50 degC in one step and in 60 s steps.
+
+    Up to about 55.5 degC the compressor is at its speed ceiling, above it the discharge limit holds
+    it. The one step is resolved in several stages; its row has to name the limit the run spent
+    most of its time under, as the rows of the short steps do in total.
+    """
+    kw = dict(ISSUE, T_dis_max=105.0)
+    under = {}
+    for dt in (60.0, 1800.0):
+        m = _quiet(tmhp.AirSourceHeatPumpBoiler, condensing_limit_control="reduce_duty", **kw)
+        n = int(1800.0 / dt)
+        df = _quiet(m.analyze_dynamic, n * dt, dt, 50.0, np.zeros(n), np.full(n, -7.0))
+        ran = df["runtime_fraction [-]"] > 0.0
+        seconds = (df.loc[ran, "runtime_fraction [-]"] * dt).groupby(df.loc[ran, "capacity_binding"]).sum()
+        under[dt] = seconds.to_dict()
+    fine, one = under[60.0], under[1800.0]
+    assert set(fine) == {"compressor", "discharge_temperature"} and fine["compressor"] > fine["discharge_temperature"]
+    assert list(one) == ["compressor"]
+    assert sum(one.values()) == pytest.approx(sum(fine.values()), rel=0.03)

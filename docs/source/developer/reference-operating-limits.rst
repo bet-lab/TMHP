@@ -581,8 +581,8 @@ limit with a cold source, the discharge temperature at a high pressure ratio
 delivers. The events are solved again with that duty, the cycle again at the
 mean tank temperature of that run, ``reduced_duty_fraction [-]`` counts only
 the time above the tank temperature at which *that* duty meets the condensing
-limit, and the row keeps the ``capacity_binding`` of its cycle (of the stretch
-that ran longer when both limits governed in one step). A cycle with no
+limit, and the row keeps the ``capacity_binding`` of its cycle (of the limit
+with the longest run time in total when several governed in one step). A cycle with no
 operating point there, for another reason than the condensing limit, leaves
 the compressor off and the row is the cycle's off-mode row with its
 ``failure_reason`` (``source_fluid_freezing``, ``discharge_temp_above_max``),
@@ -657,9 +657,12 @@ their two cycles for every rate (heat, power, flow), ``cop_ref`` and
 [-]`` is the part of the step run on the limit; ``capacity_clamped``,
 ``capacity_binding == "condensing_temperature"``, ``Q_max [W]`` (the mean
 running duty) and ``Q_request [W]`` are written as on any reduced step, so the
-end-of-run summary counts these steps as run below the request. Where the
-full-duty stretch is itself held below the request by another limit and ran at
-least as long, ``capacity_binding`` names that limit.
+end-of-run summary counts these steps as run below the request. Where
+another stretch is itself held below the request -- by another limit, or by
+the compressor's speed ceiling (``"compressor"``) -- ``capacity_binding`` is
+the limit the run spent the longest time under in total, over all the cycles
+of the step (a step under another limit can have several), and the state
+quantities are those of the one cycle that ran longest.
 
 *What it does not cover.* The multi-node tanks of GSHPB keep the stop: the
 water around their coil has its own cut-out, at which the compressor already

@@ -14,6 +14,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
+from .compressor_speed import CAPACITY_CLAMPED_MAX
 from .constants import c_w, rho_w
 
 if TYPE_CHECKING:
@@ -1913,6 +1914,39 @@ _MERGED_RATIOS: tuple[tuple[str, str, str], ...] = (
 _MERGED_CAPACITY_KEYS: tuple[str, ...] = ("capacity_clamped", "capacity_binding", "Q_request [W]")
 
 
+#: Limit of a cycle at the compressor's speed ceiling, which its row does not
+#: name (``capacity_clamped == "max"`` without a ``capacity_binding``).
+_SPEED_CEILING = object()
+
+
+def _limit_of(row: Mapping[str, Any]) -> Any:
+    """The limit that holds a running cycle below its request (``None``: none does)."""
+    binding = row.get("capacity_binding")
+    if binding:
+        return binding
+    return _SPEED_CEILING if row.get("capacity_clamped") == CAPACITY_CLAMPED_MAX else None
+
+
+class _MergedRow(dict):
+    """A merged running row that remembers the cycles it was merged from.
+
+    ``pieces``: ``(row, run time)`` of every cycle, in the order they ran.
+    Merging a merged row with another cycle merges all of them at once
+    (:func:`merge_running_rows`), so what a row of several stretches reports
+    does not depend on the order in which they were put together.
+    """
+
+    pieces: list[tuple[Mapping[str, Any], float]]
+
+
+def _row_pieces(row: Mapping[str, Any], weight: float) -> list[tuple[Mapping[str, Any], float]]:
+    """The cycles ``row`` stands for with their run times, scaled so that they add up to ``weight``."""
+    if not isinstance(row, _MergedRow):
+        return [(row, weight)]
+    total = sum(t for _, t in row.pieces)
+    return [(piece, t * weight / total) for piece, t in row.pieces] if total > 0.0 else [(row, weight)]
+
+
 def merge_running_rows(
     full: Mapping[str, Any], f_full: float, reduced: Mapping[str, Any], f_reduced: float, rate_keys: tuple[str, ...]
 ) -> dict:
@@ -1931,21 +1965,63 @@ def merge_running_rows(
     request by a limit (it names one in ``capacity_binding``) and ran at least
     as long, the capacity keys are its own: the row names the limit that
     governed most of the run.
+
+    Either argument may itself be a row this function returned (a step
+    resolved in several stretches). The cycles it was merged from are then
+    merged again, all at once, with their own run times: the state quantities
+    are those of the one cycle that ran longest, and the capacity keys are
+    those of the limit with the longest run time in total over all the cycles
+    under it (the earliest at a tie), taken from the longest-running cycle
+    under that limit. Merging two at a time would name the limit of whichever
+    pair was merged last.
+
+    A cycle is under the limit it names in ``capacity_binding``. One at the
+    compressor's speed ceiling names none: its row has
+    ``capacity_clamped == "max"`` only, and the boiler writes
+    ``capacity_binding = "compressor"`` when it completes the row
+    (:func:`tmhp._boiler_results.complete_capacity_keys`). Such a cycle counts
+    as under that limit here, and a merged row it governs carries its keys --
+    ``capacity_clamped == "max"`` and no ``capacity_binding`` -- so that the
+    boiler completes it the same way.
     """
-    total = f_full + f_reduced
-    row = dict(full if f_full >= f_reduced else reduced)
-    capacity = full if full.get("capacity_binding") and f_full >= f_reduced else reduced
+    pieces = [*_row_pieces(full, f_full), *_row_pieces(reduced, f_reduced)]
+    total = sum(t for _, t in pieces)
+    # The cycle that ran longest (the earliest at a tie).
+    longest = max(range(len(pieces)), key=lambda i: (pieces[i][1], -i))
+    row = _MergedRow(pieces[longest][0])
+    row.pieces = pieces
     for key in rate_keys:
-        a, b = full.get(key), reduced.get(key)
-        if _finite_number(a) and _finite_number(b):
-            row[key] = (f_full * float(a) + f_reduced * float(b)) / total  # type: ignore[arg-type]
+        values = [piece.get(key) for piece, _ in pieces]
+        if all(_finite_number(value) for value in values):
+            weighted = [t * float(value) for (_, t), value in zip(pieces, values, strict=True)]  # type: ignore[arg-type]
+            row[key] = math.fsum(weighted) / total
     for key, heat_key, power_key in _MERGED_RATIOS:
         heat, power = row.get(heat_key), row.get(power_key)
         if key in row and _finite_number(heat) and _finite_number(power) and float(power) > 0.0:  # type: ignore[arg-type]
             row[key] = float(heat) / float(power)  # type: ignore[arg-type]
-    for key in _MERGED_CAPACITY_KEYS:
-        if key in capacity:
-            row[key] = capacity[key]
+    # Run time under each limit, in the order the limits first appear.
+    limits = [_limit_of(piece) for piece, _ in pieces]
+    time_under: dict[Any, float] = {}
+    for limit, (_, t) in zip(limits, pieces, strict=True):
+        if limit is not None:
+            time_under[limit] = time_under.get(limit, 0.0) + t
+    if time_under:
+        governing = max(time_under, key=lambda name: time_under[name])
+        under = [i for i, limit in enumerate(limits) if limit == governing]
+        capacity = pieces[max(under, key=lambda i: (pieces[i][1], -i))][0]
+        # The governing cycle's keys, and none of another cycle's: a key it
+        # does not have (the binding of a cycle at the speed ceiling) is the
+        # boiler's to complete.
+        for key in _MERGED_CAPACITY_KEYS:
+            row.pop(key, None)
+        for key in _MERGED_CAPACITY_KEYS:
+            if key in capacity and not (key == "capacity_binding" and not capacity[key]):
+                row[key] = capacity[key]
+    else:
+        # No cycle under a limit: the keys of the last one, as they are.
+        for key in _MERGED_CAPACITY_KEYS:
+            if key in pieces[-1][0]:
+                row[key] = pieces[-1][0][key]
     if _finite_number(row.get("Q_ref_tank [W]")):
         row["Q_max [W]"] = float(row["Q_ref_tank [W]"])
     return row

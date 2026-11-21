@@ -35,6 +35,7 @@ from tmhp.compressor_envelope import (
     BINDING_COMPRESSOR,
     BINDING_CONDENSING,
     BINDING_CYCLE,
+    BINDING_PRESSURE_RATIO,
     WITHHELD_NO_SMALLER_DUTY,
     condensing_stretch,
     condensing_tank_cutout,
@@ -1508,7 +1509,12 @@ def _stop_model_with_the_band_of(cls, kwargs, model):
 
 
 R32_COLD = dict(ref="R32", hp_capacity=15000.0)
-#: The reviewers' cases: name -> (class, arguments, start tank, outdoor, source water, horizon, what withholds).
+#: Source states in which another limit governs the stretch: name -> (class, arguments, start tank, outdoor,
+#: source water, horizon, what withholds). The first four are the reviewers' cases, the two with a discharge limit
+#: at the outdoor temperature at which that limit holds the knee with the default compressor map (0 and -7 degC;
+#: the reviewers' -7 and -12 degC leave no cycle at all near the cut-out now, with ``"stop"`` as well). The default
+#: speed ceiling (120 rev/s) is not reached at the knee down to the outdoor temperature at which the pressure ratio
+#: is: the last two cases are a compressor with a lower ceiling, and that pressure-ratio limit.
 COMPETING = {
     "source water at 4 degC: its freezing limit": (
         tmhp.WaterSourceHeatPumpBoiler,
@@ -1528,23 +1534,41 @@ COMPETING = {
         600.0,
         "source_fluid_freezing",
     ),
-    "discharge limit of 105 degC at -7 degC": (
+    "discharge limit of 105 degC at 0 degC": (
         tmhp.AirSourceHeatPumpBoiler,
         dict(R32_COLD, T_dis_max=105.0, T_tank_w_lower_bound=60.0, T_tank_w_upper_bound=62.0),
         57.0,
+        0.0,
+        None,
+        600.0,
+        "discharge_temperature",
+    ),
+    "discharge limit of 115 degC at -7 degC": (
+        tmhp.AirSourceHeatPumpBoiler,
+        dict(R32_COLD, T_dis_max=115.0, T_tank_w_lower_bound=61.0, T_tank_w_upper_bound=63.3),
+        57.5,
         -7.0,
         None,
         600.0,
         "discharge_temperature",
     ),
-    "discharge limit of 115 degC at -12 degC": (
+    "speed ceiling of 80 rev/s at -7 degC": (
         tmhp.AirSourceHeatPumpBoiler,
-        dict(R32_COLD, T_dis_max=115.0, T_tank_w_lower_bound=61.0, T_tank_w_upper_bound=63.3),
-        57.5,
-        -12.0,
+        dict(R32_COLD, rps_max=80.0, T_tank_w_lower_bound=60.0, T_tank_w_upper_bound=62.0),
+        57.0,
+        -7.0,
         None,
         600.0,
         "compressor",
+    ),
+    "pressure-ratio limit at -15 degC": (
+        tmhp.AirSourceHeatPumpBoiler,
+        dict(R32_COLD, T_tank_w_lower_bound=60.0, T_tank_w_upper_bound=62.0),
+        57.0,
+        -15.0,
+        None,
+        600.0,
+        "pressure_ratio",
     ),
 }
 
@@ -1617,27 +1641,27 @@ def test_a_qualified_source_state_is_checked_once_with_three_cycles():
 
 
 def test_the_verdict_follows_the_source_state_of_each_step():
-    """Outdoor air moving across the point where the compressor's speed ceiling starts to hold the knee.
+    """Outdoor air moving across the point where the pressure-ratio limit starts to hold the knee.
 
-    R32, 15 kW: at 0 degC the condensing limit governs the stretch; at -7 degC the compressor at
-    its speed ceiling is short of the nameplate duty at the knee, and the charging is withheld.
-    Every step is that of its own outdoor state: on the limit at 0 degC, and at -7 degC the step
-    a ``"stop"`` model with the same band takes from the same state.
+    R32, 15 kW: at -8 degC the condensing limit governs the stretch; at -15 degC the pressure
+    ratio is at its ceiling at the knee, short of the nameplate duty (13.4 of 15 kW), and the
+    charging is withheld. Every step is that of its own outdoor state: on the limit at -8 degC,
+    and at -15 degC the step a ``"stop"`` model with the same band takes from the same state.
     """
     kwargs = dict(R32_COLD, T_tank_w_lower_bound=60.0, T_tank_w_upper_bound=62.0)
     m = _quiet(tmhp.AirSourceHeatPumpBoiler, **kwargs, condensing_limit_control="reduce_duty")
     stop = _stop_model_with_the_band_of(tmhp.AirSourceHeatPumpBoiler, kwargs, m)
-    outdoor = [0.0, -7.0, -7.0, 0.0, -7.0, 0.0, 0.0]
+    outdoor = [-8.0, -15.0, -15.0, -8.0, -15.0, -8.0, -8.0]
     state, rows = m.make_initial_state(57.0), []
     for i, T0 in enumerate(outdoor):
         inputs = dict(n=i, current_time_s=i * 120.0, T0=T0, dV_mix_w_out=0.0, T_sup_w=15.0, T_sur=20.0)
         state_next, row = _quiet(m.step, state, inputs, 120.0)
-        if T0 < -5.0:
+        if T0 < -14.0:
             _, reference = _quiet(stop.step, state, inputs, 120.0)
             assert set(row) - REDUCE_ONLY == set(reference), i
             assert all(_same_cell(row[key], reference[key]) for key in reference), i
             assert row["reduced_duty_fraction [-]"] == 0.0, i
-            assert row["reduced_duty_withheld"] == (BINDING_COMPRESSOR if row["hp_stop_reason"] else None), i
+            assert row["reduced_duty_withheld"] == (BINDING_PRESSURE_RATIO if row["hp_stop_reason"] else None), i
         else:
             assert row["reduced_duty_withheld"] is None, i
         rows.append(row)
@@ -1645,7 +1669,7 @@ def test_the_verdict_follows_the_source_state_of_each_step():
     on_limit = [row["reduced_duty_fraction [-]"] > 0.0 for row in rows]
     withheld = [row["reduced_duty_withheld"] for row in rows]
     # Both kinds of step occur, and a step after a withheld one charges on the limit again.
-    assert BINDING_COMPRESSOR in withheld and any(on_limit)
+    assert BINDING_PRESSURE_RATIO in withheld and any(on_limit)
     last_withheld = max(i for i, reason in enumerate(withheld) if reason)
     assert any(on_limit[last_withheld + 1 :])
     assert max(row["T_tank_w [°C]"] for row in rows) > condensing_tank_cutout(m) + 1.0

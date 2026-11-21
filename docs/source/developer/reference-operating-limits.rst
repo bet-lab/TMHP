@@ -644,6 +644,10 @@ same 0.1 %, and to name no limit but the condensing one in
 ``capacity_binding``. A step in which one does not, because it has no
 operating point or another limit holds it, is withheld the same way, with
 ``reduced_duty_withheld == "cycle"`` where the stretch itself had qualified.
+That goes for a full-duty cycle that fails outright too: whether the
+compressor runs in that step, and with which cycle, is then what ``"stop"``
+resolves (its own solves at its own mean and run time, and at the start of
+the run where the cycle has no operating point at that mean).
 None of the charges measured here needed it (delivered over asked:
 1.000000).
 

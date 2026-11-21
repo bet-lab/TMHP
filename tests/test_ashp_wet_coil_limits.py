@@ -983,6 +983,69 @@ def test_a_value_that_cannot_be_named_or_shown_still_gets_the_humidity_error(hp,
     assert str(raised) == f"Room relative humidity must be a fraction in [0, 1], {shown}"
 
 
+class _SinglePassReader:
+    """A reader that can be started once: asking it for its iterator again is an error, as rewinding a stream is."""
+
+    def __init__(self, values, *, sized=False):
+        self.values, self.started, self.position = list(values), 0, 0
+        if sized:
+            self.__class__ = _SizedSinglePassReader
+
+    def __iter__(self):
+        self.started += 1
+        if self.started > 1:
+            raise RuntimeError("the reader was already started")
+        return self
+
+    def __next__(self):
+        if self.position >= len(self.values):
+            raise StopIteration
+        self.position += 1
+        return self.values[self.position - 1]
+
+
+class _SizedSinglePassReader(_SinglePassReader):
+    def __len__(self):
+        return len(self.values)
+
+
+class _StartedOnce:
+    """Iterable, not an iterator: each ``__iter__`` starts a new pass, and only one is allowed."""
+
+    def __init__(self, values):
+        self.values, self.started = list(values), 0
+
+    def __iter__(self):
+        self.started += 1
+        if self.started > 1:
+            raise RuntimeError("a second pass")
+        return iter(self.values)
+
+
+def test_a_single_pass_reader_is_started_once_and_read_no_further_than_the_run(hp):
+    reader = _SinglePassReader([0.5, 0.6])
+    frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=reader)
+    assert list(frame["RH_room [-]"]) == [0.5, 0.6] and reader.started == 1
+    once = _StartedOnce([0.5, 0.6])
+    frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=once)
+    assert list(frame["RH_room [-]"]) == [0.5, 0.6] and once.started == 1
+    # One that goes on: one item more than the run has steps is taken, to see that it does, and no more.
+    longer = _SinglePassReader([0.5, 0.6, 0.7, 0.8, 0.9])
+    with pytest.raises(ValueError, match=r"RH_room_schedule holds more entries than the run has steps \(tN = 2\)"):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=longer)
+    assert longer.started == 1 and longer.position == 3
+    # A generator is not asked for its iterator at all beyond the once.
+    produced = []
+
+    def readings():
+        for value in (0.5, 0.6):
+            produced.append(value)
+            yield value
+
+    frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=readings())
+    assert list(frame["RH_room [-]"]) == [0.5, 0.6] and produced == [0.5, 0.6]
+
+
 # ---------------------------------------------------------------------------
 # 3. Exergy columns of a row whose coil removes water
 # ---------------------------------------------------------------------------

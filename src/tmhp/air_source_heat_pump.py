@@ -17,7 +17,6 @@ heat exchange at the indoor unit.
 """
 
 import contextlib
-import itertools
 import math
 import numbers
 from collections.abc import Callable, Iterable, Iterator, Mapping
@@ -632,7 +631,7 @@ def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
         # once -- as many as the run has steps, and one to see that it goes
         # on. What producing them raises is the caller's own error (a file
         # that is not there) and is left as it is.
-        schedule = list(itertools.islice(iter(schedule), steps + 1))
+        schedule = _first_items(schedule, steps + 1)
         if len(schedule) > steps:
             raise ValueError(f"{name} holds more entries than the run has steps (tN = {steps})")
     try:
@@ -648,6 +647,24 @@ def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
         raise ValueError(
             f"{name} must hold one entry per step, got {_type_name(schedule)} ({_type_name(error)})"
         ) from error
+
+
+def _first_items(iterable: Any, count: int) -> list:
+    """The first ``count`` items of ``iterable`` (fewer if it ends), taking nothing beyond them.
+
+    Its iterator is asked for once and then only advanced: a reader that can
+    be started a single time (a stream, a cursor) is not started twice, as it
+    would be by handing it on to something that asks again
+    (``itertools.islice(iter(reader), n)`` calls ``__iter__`` twice).
+    """
+    iterator = iter(iterable)
+    items: list[Any] = []
+    while len(items) < count:
+        try:
+            items.append(next(iterator))
+        except StopIteration:
+            break
+    return items
 
 
 class _NotASchedule(Exception):

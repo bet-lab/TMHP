@@ -134,8 +134,22 @@ def test_tables_and_headline_are_those_of_the_committed_rows(committed):
     manifest = json.loads((OUT / "run_manifest.json").read_text(encoding="utf-8"))
     for key, value in study.headline(committed).items():
         assert value == pytest.approx(manifest["headline"][key], rel=1e-6, abs=1e-9), key
+
+
+def test_record_vouches_for_the_script_that_made_the_files():
+    """The record names a commit that holds the script as it is now, run with nothing uncommitted."""
+    from validation.parity.run import _git
+
     record = json.loads((OUT / "provenance.json").read_text(encoding="utf-8"))
-    assert record["dirty"] is False and record["script"] == "validation/wet_coil_shr/simulate.py"
+    assert record["dirty"] is False and record["script"] == study.SCRIPT
+    assert record["study_script_uncommitted"] is False, f"made with an uncommitted script. {HINT}."
+    blob = _git("hash-object", study.SCRIPT)
+    if not blob:
+        pytest.skip("git is not available")
+    assert record["study_script_blob"] == blob, f"the study script changed after the files were made. {HINT}."
+    # Where the recorded commit is in this clone (not in a shallow one), it holds that same script.
+    at_commit = _git("rev-parse", f"{record['git_head']}:{study.SCRIPT}")
+    assert at_commit in ("", blob), "the record's commit holds another version of the study script"
 
 
 def test_what_the_study_found(committed):

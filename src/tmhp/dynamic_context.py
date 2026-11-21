@@ -1076,6 +1076,14 @@ def _simulate_duty_limited_step(
     and the run ends as what that is -- running, since the start the events
     gave it -- so that the next step, which finds a called compressor running
     below its cut-out, charges on along the limit without a stop or a start.
+    The on-time is that heat over the duty the limit leaves at the cut-out,
+    the duty the events take; the cycle solved for the stretch afterwards may
+    deliver up to :data:`DUTY_MATCH_RTOL` less (:func:`_resolve_duty_limited`:
+    a cycle that has less keeps its own rates, and no run time is changed to
+    make up for it, as for every stretch on the limit). Such a hold is short
+    of its heat by that fraction and its step closes that much below the
+    cut-out -- 3.6 of 4010 J and 6e-6 K in the case tested -- which is the side
+    on which the next step charges on without a stop or a start.
     The run itself is reported as the events have it, at the cut-out and at
     the duty the limit leaves there: its cycle is solved, and checked, at that
     point, not at the temperatures between it and where the closing balance

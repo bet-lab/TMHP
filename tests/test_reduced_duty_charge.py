@@ -1028,6 +1028,30 @@ def test_a_hold_after_cooling_the_time_left_cannot_supply_is_a_run_to_the_end_of
     assert after.phase_age_end_s == pytest.approx(left + dt, rel=1e-9)
 
 
+def test_a_cycle_that_has_less_leaves_a_hold_after_cooling_a_hair_below_the_stop():
+    """Stop-time review: the cycle of the hold delivers 0.09 % less than asked, inside the tolerance.
+
+    The rule of every stretch on the limit holds here too: a cycle that has less than it was
+    asked for keeps its own rates and the run time stays the events' (the row is never credited
+    with heat its cycle did not deliver, and a run is not stretched to make up for it). So the
+    4010 J hold is 3.6 J short and the step closes 6e-6 K below the stop -- the harmless side:
+    the next step finds the compressor running just below its stop and charges on, no start.
+    """
+    dt, short = 602.0, 1.0 - 0.9 * DUTY_MATCH_RTOL
+    exact, _, _, needed, _ = _curved_loss_step(20.0, dt)
+    run, row, residual, _, _ = _curved_loss_step(20.0, dt, on_limit_share=short)
+    assert run == exact and run.starts == 1 and run.running_end
+    assert row["Q_ref_tank [W]"] == pytest.approx(LIMIT.Q_min * short, rel=1e-12)
+    heat = run.runtime_fraction * dt * row["Q_ref_tank [W]"]
+    assert needed - heat == pytest.approx(0.9 * DUTY_MATCH_RTOL * needed, rel=1e-9) == pytest.approx(3.609, abs=1e-3)
+    T_end = _closing_temperature(residual, heat)
+    assert 0.0 < LIMIT.stop_C - T_end < 1e-5
+    after, _, _, _, _ = _curved_loss_step(
+        20.0, dt, T_start=T_end, running_prev=run.running_end, phase_age_s=run.phase_age_end_s, on_limit_share=short
+    )
+    assert after.starts == 0 and after.running_start and after.running_end
+
+
 def test_the_closing_balance_does_not_start_a_compressor_the_events_do_not():
     """Stop-time review: where the events' tank does not reach the stop in the step, nothing is asked.
 

@@ -79,10 +79,10 @@ The `comparison/` folder holds the evidence behind the choice:
 
 | candidate | eta_ov RMSE (10-fold CV), 134 points | catalogue COP RMSE: none / lambda / lambda + shift |
 |---|---|---|
-| 2026-11-01 PR-N quadratic | 0.290 (in its grid 0.046) | 1.228 / 0.979 / 0.695 |
-| (a) PR-N | 0.033 (0.035) | 1.176 / 0.842 / 0.723 |
-| (b) PR-N + T_e, adopted | 0.021 (0.022) | 1.142 / 0.812 / 0.696 |
-| (c) terminal + inverter | 0.032 (0.032) | 1.164 / 0.833 / 0.735 |
+| 2026-11-01 PR-N quadratic | 0.2901 (in its grid 0.0460) | 1.228 / 0.979 / 0.695 |
+| (a) PR-N | 0.0335 (0.0345) | 1.176 / 0.842 / 0.723 |
+| (b) PR-N + T_e, adopted | 0.0206 (0.0221) | 1.142 / 0.812 / 0.696 |
+| (c) terminal + inverter | 0.0315 (0.0325) | 1.164 / 0.833 / 0.735 |
 
 The catalogue does not separate the candidates. All four end within 0.04 of each other, with the
 same residual pattern over the outdoor temperature. The calibration also lifts `lambda_ov` to 1.3-1.7,

@@ -414,10 +414,9 @@ def _eval_eff(model: float | Callable, PR: float, rps: float, state: SuctionStat
     # approaches, so the nearest admissible value of an overshoot is the bound
     # itself. The rule is kept for the models a caller supplies (a fitted
     # polynomial overshoots by its fit noise where a loss vanishes), and it
-    # still acts on the default volumetric forms: their level ``c0`` is above
-    # one (1.01 scroll, 1.10-1.13 rotary), so they pass one at a low pressure
-    # ratio well above the rated speed (1.08 at PR 1.2 and 150 rev/s for a
-    # rotary rated at 40 rev/s). Rejecting instead would punch infeasible
-    # holes into ordinary low-lift operation and break the monotone speed
-    # bracket.
+    # still acts on the default volumetric map, which passes one at a low
+    # pressure ratio and a warm evaporator (1.015 at PR 1.5, 70 rev/s and
+    # T_e = 25 degC; the measured points there reach 1.01). Rejecting instead
+    # would punch infeasible holes into ordinary low-lift operation and break
+    # the monotone speed bracket.
     return 1.0 if value > 1.0 else value

@@ -46,6 +46,16 @@ def _maps() -> dict:
     return json.loads((ARCHIVE / "coefficients.json").read_text())["maps"]
 
 
+def _pr_range(te: float) -> tuple[float, float]:
+    """Pressure ratios inside the data's (PR, T_e) hull at one evaporating temperature."""
+    hull = json.loads((ARCHIVE / "coefficients.json").read_text())["domain"]["hull_PR_Te"]
+    xs = []
+    for (x1, y1), (x2, y2) in zip(hull, hull[1:] + hull[:1], strict=True):
+        if (y1 - te) * (y2 - te) <= 0 and y1 != y2:
+            xs.append(x1 + (te - y1) * (x2 - x1) / (y2 - y1))
+    return (min(xs), max(xs)) if xs else (np.nan, np.nan)
+
+
 def _eval(maps: dict, quantity: str, pr, rps, te) -> np.ndarray:
     a = basis(pr, rps, te if TE_TERM[quantity] else None)
     return a @ np.asarray(maps[quantity]["coefficients"])
@@ -74,6 +84,11 @@ def map_heatmaps(points: pd.DataFrame, maps: dict) -> None:
             ax = axes[i, j]
             z = _eval(maps, quantity, pr.ravel(), rps.ravel(), np.full(pr.size, te)).reshape(pr.shape)
             mesh = ax.pcolormesh(pr, rps, z, cmap="viridis", vmin=lo, vmax=hi, shading="auto")
+            lo_pr, hi_pr = _pr_range(te)
+            for x0, x1 in ((1.4, lo_pr), (hi_pr, 12.7)):
+                ax.axvspan(x0, x1, color="white", alpha=0.55, lw=0)
+            for y0, y1 in ((25, 30), (110, 115)):
+                ax.axhspan(y0, y1, color="white", alpha=0.55, lw=0)
             at = points[np.isclose(points.T_evap_C, te, atol=0.5)]
             ax.scatter(at.PR, at.N_rps, c=at[quantity], cmap="viridis", vmin=lo, vmax=hi, s=70, edgecolors="white")
             ax.set_title(f"{LABELS[quantity]}, $T_e$ = {te:g} °C ({len(at)} points)", fontsize=10)
@@ -84,7 +99,8 @@ def map_heatmaps(points: pd.DataFrame, maps: dict) -> None:
         fig.colorbar(mesh, ax=axes[i, :], shrink=0.9, pad=0.01)
     fig.suptitle(
         "Default maps (background) and the measured points at that $T_e$ (markers, same colour scale)\n"
-        "A marker that matches its background is a point the map reproduces; f_loss has no $T_e$ term"
+        "A marker that matches its background is a point the map reproduces; pale: outside the data "
+        "((PR, $T_e$) hull, 30-110 rev/s); f_loss has no $T_e$ term"
     )
     fig.savefig(FIGURES / "map_heatmaps.png", dpi=130)
     plt.close(fig)
@@ -100,12 +116,11 @@ def map_slices(points: pd.DataFrame, maps: dict) -> None:
             at = points[points.N_rps == n]
             ax.scatter(at.PR, at[quantity], c=TE_CMAP(TE_NORM(at.T_evap_C)), s=36, edgecolors="black", linewidths=0.4)
             for te in (-20.0, 0.0, 20.0):
-                ax.plot(
-                    pr,
-                    _eval(maps, quantity, pr, np.full_like(pr, n), np.full_like(pr, te)),
-                    color=TE_CMAP(TE_NORM(te)),
-                    lw=2,
-                )
+                y = _eval(maps, quantity, pr, np.full_like(pr, n), np.full_like(pr, te))
+                lo_pr, hi_pr = _pr_range(te)
+                inside = (pr >= lo_pr) & (pr <= hi_pr)
+                ax.plot(pr, np.where(inside, y, np.nan), color=TE_CMAP(TE_NORM(te)), lw=2)
+                ax.plot(pr, y, color=TE_CMAP(TE_NORM(te)), lw=0.8, ls=":")
             ax.plot(pr, _quadratic(quantity, pr, np.full_like(pr, n)), color="black", ls="--", lw=1.2)
             ax.set_ylim({"eta_v": (0.75, 1.02), "eta_ov": (0.3, 0.78), "f_loss": (0.04, 0.3)}[quantity])
             ax.set_title(f"{LABELS[quantity]}, N = {n:g} rev/s", fontsize=10)
@@ -114,8 +129,9 @@ def map_slices(points: pd.DataFrame, maps: dict) -> None:
                 ax.set_xlabel("pressure ratio PR")
     _te_colorbar(fig, axes)
     fig.suptitle(
-        "Default maps at $T_e$ = -20 / 0 / 20 °C (solid) and measured points coloured by $T_e$; "
-        "dashed: the 2026-11-01 PR-N quadratic it replaces"
+        "Default maps at $T_e$ = -20 / 0 / 20 °C (solid inside the data's (PR, $T_e$) hull, dotted outside) "
+        "and measured points coloured by $T_e$;\ndashed: the 2026-11-01 PR-N quadratic it replaces "
+        "(f_loss has no $T_e$ term: one line)"
     )
     fig.savefig(FIGURES / "map_slices.png", dpi=130)
     plt.close(fig)
@@ -151,9 +167,7 @@ def te_residuals(points: pd.DataFrame, maps: dict) -> None:
         ax.set_ylabel(f"measured - map, {LABELS[quantity]}")
         ax.grid(alpha=0.3)
         ax.legend(fontsize=9, loc="lower right")
-    fig.suptitle(
-        "Residual against $T_e$: without the $T_e$ term the residual follows $T_e$ (same 134 points, same 7-term PR-N form)"
-    )
+    fig.suptitle("Residual against $T_e$ with and without the $T_e$ term (same 134 points, same 7-term PR-N form)")
     fig.savefig(FIGURES / "te_residuals.png", dpi=130)
     plt.close(fig)
 
@@ -217,8 +231,8 @@ def correlation_points_on_quadratic(points: pd.DataFrame) -> None:
         ax.grid(alpha=0.3)
     _te_colorbar(fig, axes)
     fig.suptitle(
-        "The 2026-11-01 PR-N quadratic (line) against the Ossorio 2024 correlation it was fitted to "
-        "(circles: its 567-point grid, T_e -10...15 °C; triangles: same correlation outside that grid), "
+        "The 2026-11-01 PR-N quadratic (line) against the Ossorio 2024 correlation it was fitted to\n"
+        "circles: its 567-point grid ($T_e$ -10...15 °C); triangles: the same correlation outside that grid; "
         "x: measured; shaded: PR range of the grid"
     )
     fig.savefig(FIGURES / "correlation_points_on_quadratic.png", dpi=130)

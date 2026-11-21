@@ -141,7 +141,6 @@ def test_without_the_band_dry_air_leaves_the_frosted_coil_multipliers():
     assert frost.defrost_fraction == pytest.approx(1.0 / (1.0 + 0.01446 / 1.0e-6), rel=1e-12)
     assert frost.capacity_multiplier == pytest.approx(0.875, abs=1e-4)
     assert frost.power_multiplier == pytest.approx(0.954, abs=1e-4)
-    assert DefrostModel(frost_point_band_K=None).frost_point_band_K is None
 
 
 # ── air too dry to frost the coil ─────────────────────────────────────────
@@ -234,8 +233,8 @@ def test_any_finite_band_gives_a_correction_at_every_outdoor_state(band_K):
     humid = model.frost_state(2.0, 1.0)
     assert humid.frost_onset == 1.0
     assert humid.capacity_multiplier == pytest.approx(NO_BAND.frost_state(2.0, 1.0).capacity_multiplier, rel=1e-12)
-    # A given coil temperature just below freezing: the band is what is left up to 0 degC.
-    assert 0.0 < model.frost_state(2.0, 0.84, T_coil_C=-0.5).frost_onset <= 1.0
+    # At a total pressure where saturation 3 K above the coil is outside the humid-air range.
+    assert 0.0 < model.frost_state(-7.0, 0.6, P_Pa=240.0).capacity_multiplier <= 1.0
     # At any pressure the air state itself exists at (saturation at the band's end may not).
     for P_Pa in (2.0e5, 7.0e4, 2000.0, 700.0, 640.0, 560.0, 400.0):
         for T_out, RH in ((0.0, 0.6), (-3.0, 0.6), (-7.0, 0.84), (-20.0, 1.0), (-40.0, 1.0)):
@@ -247,6 +246,25 @@ def test_any_finite_band_gives_a_correction_at_every_outdoor_state(band_K):
         Q_r_iu=-3000.0, T0=-7.0, T_a_room=20.0, RH_out=0.6, return_dict=True, verbose=False
     )
     assert row["failure_reason"] == "none" and 0.0 < row[FROST_CAPACITY_FACTOR_KEY] <= 1.0
+
+
+def test_the_band_ends_at_freezing():
+    """A coil 0.5 K below freezing: the fixed losses come in over that 0.5 K, not over 3 K."""
+    T_fp = frost_point(2.0, humidity_ratio(2.0, 0.84))
+    assert -0.5 < T_fp < 0.0
+    frost = MODEL.frost_state(2.0, 0.84, T_coil_C=-0.5)
+    assert frost.frost_onset == pytest.approx((T_fp + 0.5) / 0.5, rel=1e-12)
+    assert frost.frost_onset == pytest.approx(0.267, abs=1e-3)  # 0.045 over a band of 3 K
+    # A dew point above freezing: the full fixed losses on any coil below 0 degC.
+    assert MODEL.frost_state(4.0, 1.0, T_coil_C=-0.5).frost_onset == 1.0
+    # A coil at or above 0 degC collects water, not frost (the EnergyPlus condition, kept).
+    assert not MODEL.frost_state(2.0, 1.0, T_coil_C=0.0).active
+
+
+@pytest.mark.parametrize("name", ["transition_K", "frost_point_band_K"])
+def test_a_width_too_large_for_a_float_is_an_input_error(name):
+    with pytest.raises(ValueError, match=name):
+        DefrostModel(**{name: 10**1000})
 
 
 def test_a_dry_cold_hour_of_a_unit_is_the_frost_free_hour():

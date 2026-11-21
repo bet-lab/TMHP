@@ -193,8 +193,7 @@ Air side
         the boiler takes them unchanged, with the defrost heat drawn from
         the tank water. Below the capacity of the unit the correlation
         describes, the correction shrinks with the frost drive of a less
-        loaded coil (air flow taken as independent of the load); in air too
-        dry to frost at all, the EnergyPlus fixed loss stays at every load
+        loaded coil (air flow taken as independent of the load)
       - ``defrost_fraction [-]``, ``frost_capacity_factor [-]``,
         ``E_defrost [W]``; ``Q_ref_iu_frost_free [W]`` (ASHP) or
         ``Q_ref_tank_frost_free [W]`` (ASHPB) is the cycle that was solved

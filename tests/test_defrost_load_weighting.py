@@ -242,14 +242,45 @@ def test_air_too_dry_to_frost_the_rated_load_coil_is_not_corrected_at_any_load()
     assert rated[0] == pytest.approx(0.962, abs=2e-3) and rated[-1] == 1.0
     assert all(b >= a for a, b in zip(rated, rated[1:], strict=False))  # colder, drier: less correction
     assert max(b - a for a, b in zip(rated, rated[1:], strict=False)) < 0.002  # no step
-    # A half-loaded coil is above the frost point of this air throughout: what is left is the floor
-    # of the load term (a deposition of 1e-6 kg/kg, under 0.1 % of the COP), and nothing below -18.3 degC.
-    half = [_cop_factor(LOAD_WEIGHTED.frost_state(float(T), RH, load_ratio=0.5)) for T in temperatures]
-    assert min(half) > 0.999 and half[-1] == 1.0
+    # A half-loaded coil is above the frost point of this air throughout: no frost, no correction.
+    for T in temperatures[::25]:
+        half = LOAD_WEIGHTED.frost_state(float(T), RH, load_ratio=0.5)
+        assert not half.active and _cop_factor(half) == 1.0 and half.defrost_fraction == 0.0
     # At the rating humidity the same end is reached at -39 degC, from the full correction at -20 degC.
     assert LOAD_WEIGHTED.frost_state(-20.0, 0.84).frost_onset == 1.0
     assert 0.0 < LOAD_WEIGHTED.frost_state(-30.0, 0.84).frost_onset < 1.0
     assert not LOAD_WEIGHTED.frost_state(-39.5, 0.84).active
+
+
+def test_a_part_loaded_coil_the_air_cannot_frost_is_not_corrected():
+    """The drive of the load term ends at zero: no defrost time on a coil above the frost point of the air.
+
+    With the EnergyPlus floor on that drive (1e-6 kg/kg) such a coil kept a defrost
+    time of 0.007 % and a share of the fixed losses that grew as the air got drier
+    and colder -- at -5 degC and a quarter load, more loss at 70 % humidity than at 84 %.
+    """
+    for RH in (0.55, 0.7, 0.84):
+        state = LOAD_WEIGHTED.frost_state(-5.0, RH, load_ratio=0.25)
+        assert state.T_coil_C == pytest.approx(-5.0 - 0.25 * (0.18 * -5.0 + 8.589), rel=1e-12)
+        assert humidity_ratio(-5.0, RH) < saturation_humidity_ratio(state.T_coil_C)  # no drive on this coil
+        assert not state.active and state.defrost_fraction == 0.0 and state.capacity_multiplier == 1.0
+    floor = DefrostModel(frost_point_band_K=None)
+    assert floor.frost_state(-5.0, 0.7, load_ratio=0.25).defrost_fraction == pytest.approx(6.915e-5, rel=1e-3)
+    assert (
+        floor.frost_state(-5.0, 0.7, load_ratio=0.25).capacity_multiplier
+        < floor.frost_state(-5.0, 0.84, load_ratio=0.25).capacity_multiplier
+    )
+    # More humid air never means less correction, at any load ...
+    for ratio in (1.0, 0.75, 0.5, 0.25):
+        for T_out in (2.0, -5.0, -15.0, -30.0):
+            factor = [
+                _cop_factor(LOAD_WEIGHTED.frost_state(T_out, float(RH), load_ratio=ratio))
+                for RH in np.round(np.arange(0.0, 1.0001, 0.01), 2)
+            ]
+            assert all(b <= a + 1e-15 for a, b in zip(factor, factor[1:], strict=False))
+    # ... and a quarter-loaded coil at the rating humidity is not corrected more as the air gets colder.
+    cold = [_cop_factor(LOAD_WEIGHTED.frost_state(float(T), 0.84, load_ratio=0.25)) for T in range(-20, -46, -1)]
+    assert all(b >= a - 1e-15 for a, b in zip(cold, cold[1:], strict=False)) and cold[-1] == 1.0
 
 
 def test_without_the_frost_point_band_dry_cold_air_keeps_the_energyplus_fixed_loss_at_every_load():

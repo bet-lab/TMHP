@@ -538,7 +538,7 @@ exactly when the frost point is above the coil),
 
 .. math::
 
-   s = \min\left(1,\ \frac{\max(0,\ T_{fp} - T_{coil})}{3\,\mathrm{K}}\right), \qquad
+   s = \min\left(1,\ \frac{\max(0,\ T_{fp} - T_{coil})}{\min(3\,\mathrm{K},\ -T_{coil})}\right), \qquad
    t_{frac} = \frac{\max(0, \Delta\omega)}{\max(0, \Delta\omega) + 0.01446}, \qquad
    \text{multipliers} = (1 - 0.125\,s)(1 - t_{frac}),\ (1 - 0.046\,s)(1 - t_{frac})
 
@@ -596,11 +596,14 @@ point and ``frost_point_band_K=None`` is EnergyPlus.
      - 0.917
 
 With the load term, air too dry to frost even the rated-load coil (below
-−18.3 °C at 60 % relative humidity, below −39 °C at 84 %) is not corrected at
-any load. Without the band there is no frost drive there for the load to
+−18.4 °C at 60 % relative humidity, below −39.2 °C at 84 %) is not corrected
+at any load, and neither is a part-loaded coil at or above the frost point of
+the air. Without the band there is no frost drive in dry air for the load to
 scale and the fixed multipliers stay at every load — at half load and 60 %
 humidity the COP multiplier would fall from 0.997 at −15 °C to 0.917 at
-−18.3 °C.
+−18.4 °C. A coil at or above 0 °C is not corrected, as in EnergyPlus; the
+coil of the correlation is at −4.5 °C or colder below the 5 °C limit, so that
+step is reached only with a higher ``T_out_max`` or a given coil temperature.
 
 What it leaves out: the room is not cooled in time during a defrost — its
 effect is in the mean.

@@ -411,13 +411,24 @@ COOLING_TWICE = (2 * 3600, 3600, [2000.0, 2000.0], [35.0, 35.0], [27.0, 27.0])
         (0.5, 0.6),
         np.array([0.5, 0.6]),
         np.array([[0.5], [0.6]]),
+        np.array([[[0.5]], [[0.6]]]),
         pd.Series([0.5, 0.6], index=[7, 9]),
         # A frame is its values, never its column names -- also where a name is itself a number.
         pd.DataFrame({"RH": [0.5, 0.6]}),
         pd.DataFrame({0.9: [0.5, 0.6]}),
         (value for value in (0.5, 0.6)),
     ],
-    ids=["list", "tuple", "array", "column array", "series", "frame", "frame named by a number", "generator"],
+    ids=[
+        "list",
+        "tuple",
+        "array",
+        "column array",
+        "column of columns",
+        "series",
+        "frame",
+        "frame named by a number",
+        "generator",
+    ],
 )
 def test_humidity_schedule_is_read_by_value_one_entry_a_step(hp, schedule):
     frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=schedule)

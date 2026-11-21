@@ -553,8 +553,8 @@ def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
             # np.asarray would drop the mask and hand out the data beneath it.
             schedule = np.ma.filled(schedule.astype(object), None)
         entries = np.asarray(schedule, dtype=object)
-        if entries.ndim == 2 and entries.shape[1] == 1:
-            entries = entries[:, 0]
+        while entries.ndim > 1 and entries.shape[-1] == 1:
+            entries = entries[..., 0]  # one value per step in a column (or a column of columns)
         if entries.ndim == 1:
             return entries
         shape = f"shape {entries.shape}"

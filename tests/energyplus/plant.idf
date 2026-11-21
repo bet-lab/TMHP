@@ -42,8 +42,9 @@ Schedule:Compact, AlwaysOnSchedule, On/Off, THROUGH: 12/31, FOR: AllDays, UNTIL:
 Schedule:Compact, Load Profile 1 Load Schedule, Any Number, THROUGH: 12/31, FOR: AllDays, UNTIL: 4:00, 8000, UNTIL: 8:00, 6000, UNTIL: 9:00, 0, UNTIL: 12:00, 6000, UNTIL: 24:00, 10000;
 Schedule:Compact, Load Profile 1 Flow Frac Schedule, Any Number, THROUGH: 12/31, FOR: AllDays, UNTIL: 24:00, 1.0;
 Output:SQLite, Simple;
-! Request the weather handle that the simulation plugin reads on each plant call.
+! Keep both weather variables available to the simulation plugin.
 Output:Variable, *, Site Outdoor Air Drybulb Temperature, Hourly;
+Output:Variable, Environment, Site Outdoor Air Relative Humidity, Hourly;
 PythonPlugin:Instance, TMHP Init, Yes, tmhp.integrations.energyplus_plugin, TmhpPlantInit;
 PythonPlugin:Instance, TMHP Sim, Yes, tmhp.integrations.energyplus_plugin, TmhpPlantSurrogate;
 PythonPlugin:SearchPaths, TMHP paths, No, No, No, @SITE_PACKAGES@;

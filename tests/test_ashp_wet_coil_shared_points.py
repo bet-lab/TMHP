@@ -6,7 +6,8 @@ refuse, and the largest deliverable duty (``max_capacity``). On a unit with a fa
 each samples the duty its own way and could miss a point another had found:
 
 - a low-load request was answered with the unit off where the ceiling search had found the state
-  the unit runs flat out at;
+  the unit runs flat out at, or where the duties that run are a window narrower than the
+  tolerance its bisection stopped at;
 - the ceiling was 0 W where the low-load search had found a duty that runs, and a request above it
   was answered with the unit off;
 - the flat-out ceiling was under a duty the ordinary search delivers in full;
@@ -150,6 +151,43 @@ def test_request_refused_from_below_up_to_the_coil_limit_asks_nothing_of_the_oth
     assert row["Q_unmet [W]"] == 12000.0
 
 
+def test_low_load_search_closes_on_a_window_narrower_than_its_first_tolerance(both_held):
+    # 8 degC outdoor, saturated 35 degC room: the unit runs continuously between 14.31 and 14.35 kW
+    # only (0.23 %). The bisection from 13.7 kW closed around the window at 0.5 % (14,304.7 to
+    # 14,371.9 W) with no trial inside it, and the request was answered with the unit off.
+    room = dict(T0=8.0, T_a_room=35.0, RH_room=1.0)
+    for request in (13700.0, 14050.0):
+        row = _steady(both_held, request, **room)
+        assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
+        assert row["Q_ref_iu [W]"] == pytest.approx(request, rel=1e-9) and row["Q_unmet [W]"] == 0.0
+        assert 14312.0 < row["Q_min [W]"] < 14346.0
+        continuous = _steady(both_held, row["Q_min [W]"], **room)
+        assert continuous["failure_reason"] == "none" and continuous["capacity_clamped"] is None
+
+
+@pytest.mark.parametrize(("humidity", "final_width"), [(None, 5e-3), (0.0, 5e-3), (0.5, 1e-3)])
+def test_only_a_wet_search_that_found_nothing_is_bisected_on(monkeypatch, humidity, final_width):
+    # Nothing runs: duties under 1 kW are refused from below, larger ones otherwise. The dry search
+    # (no room humidity, or room air with no water vapour) stops at its tolerance as before.
+    unit = _build()
+    reason = "discharge_temp_above_max" if not humidity else unit._MIN_AIRFLOW
+    tried = []
+
+    def refused(Q_r_iu, T0, T_a_room):
+        tried.append(abs(Q_r_iu))
+        return {"success": False, "fun": 1e12, "least_lift_reason": reason if abs(Q_r_iu) < 1000.0 else None}
+
+    class Refusal(dict):
+        __getattr__ = dict.get
+
+    monkeypatch.setattr(unit, "_optimize_operation", lambda **kwargs: Refusal(refused(**kwargs)))
+    with unit._solving_with_room_humidity(humidity, 27.0, cooling=True):
+        point, to_the_top = unit._climb_to_continuous_duty(300.0, 10.0, 27.0)
+    assert point is None and not to_the_top
+    below, above = max(q for q in tried if q < 1000.0), min(q for q in tried if q >= 1000.0)
+    assert (above - below) <= final_width * above < 2.0 * (above - below)
+
+
 # ---------------------------------------------------------------------------
 # 2. The ceiling search takes the duty the low-load search found
 # ---------------------------------------------------------------------------
@@ -281,7 +319,8 @@ def test_dynamic_rows_of_both_fans_held_do_not_depend_on_the_steps_before(both_h
         alone = _rows_by_load(_dynamic(both_held, [load], *room), [load])[load]
         assert alone["failure_reason"] == "none" and alone["capacity_clamped"] == "min"
         assert alone["Q_ref_iu [W]"] == pytest.approx(load, rel=1e-9) and alone["Q_unmet [W]"] == 0.0
-        assert alone["Q_min [W]"] == pytest.approx(14343.75, rel=5e-3)
+        # Each request closes on the window from its own side (14,343.75 / 14,313.09 / 14,320.02 W).
+        assert 14312.0 < alone["Q_min [W]"] < 14346.0
         _assert_same_row(after_a_smaller_load[load], alone)
         _assert_same_row(reversed_rows[load], alone)
         if load in without_the_smaller:

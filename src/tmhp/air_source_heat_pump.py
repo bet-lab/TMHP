@@ -2714,10 +2714,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         (:attr:`_MIN_AIRFLOW`) it is the smallest continuous duty the climb
         from it finds (:meth:`_climb_to_continuous_duty`). It is the same
         whichever request, and whichever search, asks for it, which is what
-        lets the searches of a condition use it as a candidate: the ceiling
-        search where it found no duty (:meth:`_largest_duty_above_low_load_point`),
-        the low-load search of a request its own climb found nothing above
-        (:meth:`_point_of_another_search`).
+        lets another search of the condition use it as a candidate: the
+        ceiling search, where it found no duty
+        (:meth:`_largest_duty_above_low_load_point`).
 
         Returns ``((dT_ref_evap, dT_ref_cond), state)``; the state delivers
         its own ``Q_ref_iu [W]`` in continuous operation at those approaches.
@@ -3481,6 +3480,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
     _FLOOR_CLIMB = 1.5
     #: Relative width at which the bisection for the smallest continuous duty stops.
     _FLOOR_REL_TOL = 5e-3
+    #: Relative width a wet cooling point's bisection goes on to where no duty
+    #: ran at :attr:`_FLOOR_REL_TOL`: the width the ceiling search closes to
+    #: (the default ``rel_tol`` of :meth:`max_capacity`). A search step, not a
+    #: physical constant.
+    _FLOOR_FINE_REL_TOL = 1e-3
     #: Refusals a larger duty leaves behind: the limit the compressor meets
     #: towards low speed at a large lift, where the isentropic efficiency
     #: falls (:func:`~tmhp.compressor_envelope.raise_duty_within_envelope`
@@ -3541,9 +3545,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         tolerance from the same request solved alone. A wet cooling point is
         always answered as if it were solved alone -- its trials are
         remembered one by one instead (:attr:`_wet_points`), which changes
-        no result -- and where its own climb finds nothing the caller
-        takes the point another search of the condition has verified
-        (:meth:`_point_of_another_search`).
+        no result. Where its own climb finds nothing at
+        :attr:`_FLOOR_REL_TOL` it is bisected on to a finer width
+        (:meth:`_climb_to_continuous_duty`), and where that finds nothing
+        either the caller takes the flat-out state the ceiling search has
+        verified (:meth:`_point_of_another_search`).
         """
         sign, request = math.copysign(1.0, Q_r_iu), abs(float(Q_r_iu))
         wet = self._coil_may_be_wet and sign > 0
@@ -3580,6 +3586,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
         :attr:`_wet_points` is kept, and answered from it afterwards -- the
         approaches it ended on, from which :meth:`_calc_state` gives the
         state again.
+
+        The bisection goes by which side refuses the trial, so it closes on
+        the place where the refusal changes sides -- where the duties that
+        run are, if any do. With a fan held at one flow on the
+        pressure-ratio floor they can be a window narrower than
+        :attr:`_FLOOR_REL_TOL` (4 kW unit with both fans held, outdoor 8
+        degC, room 35 degC saturated: 14.31 to 14.35 kW, 0.23 %), which the
+        bracket then closes around without a trial inside it (a 13.7 kW
+        request ended between 14,304.7 and 14,371.9 W). A wet cooling point
+        whose bracket closes with nothing running is therefore bisected on
+        to :attr:`_FLOOR_FINE_REL_TOL`, two or three trials more. Where a
+        duty ran at the first width nothing changes, and the dry search, and
+        heating's, stop where they did.
         """
         sign, request = math.copysign(1.0, Q_r_iu), abs(float(Q_r_iu))
         known: dict[float, tuple[tuple[float, float] | None, str | None]] | None = None
@@ -3626,76 +3645,68 @@ class AirSourceHeatPump(ReferenceStateMixin):
             break
         if not math.isfinite(q_hi):
             return None, True
-        while q_hi - q_lo > self._FLOOR_REL_TOL * q_hi:
-            mid = 0.5 * (q_lo + q_hi)
-            state, x, reason = trial(mid)
-            if state is not None:
-                q_hi, running, x_running = mid, state, x
-            elif running is not None or reason in self._CLIMBED_PAST:
-                q_lo = mid
-            else:
-                q_hi = mid  # refused from above: the duties that run, if any, are below
+        # A wet cooling point whose bracket closes with nothing running is
+        # bisected on, to the width the ceiling search closes to (below).
+        fine = self._coil_may_be_wet and sign > 0
+        for rel_tol in (self._FLOOR_REL_TOL, self._FLOOR_FINE_REL_TOL):
+            while q_hi - q_lo > rel_tol * q_hi:
+                mid = 0.5 * (q_lo + q_hi)
+                state, x, reason = trial(mid)
+                if state is not None:
+                    q_hi, running, x_running = mid, state, x
+                elif running is not None or reason in self._CLIMBED_PAST:
+                    q_lo = mid
+                else:
+                    q_hi = mid  # refused from above: the duties that run, if any, are below
+            if running is not None or not fine:
+                break
         if running is None or x_running is None:
             return None, False
         return ((float(x_running[0]), float(x_running[1])), running), False
 
     def _point_of_another_search(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
-        """The state a wet cooling request runs at where its own searches found none, from another search's point.
+        """The state a wet cooling request runs at where its own searches found none, from the ceiling's point.
 
         For a request the fans' smallest airflows refuse
         (:attr:`_MIN_AIRFLOW`) whose climb found no larger duty that runs
-        (:meth:`_climb_to_continuous_duty`). The climb samples the duties
-        above the request and can end with nothing where a duty runs: a
-        unit with both fans held at one flow, on the pressure-ratio floor,
-        runs in a window of duties a fraction of a percent wide, and at its
-        flat-out state. Before the request is answered with the unit off,
-        the points the other searches of the same condition end on are
-        taken for candidates:
+        (:meth:`_climb_to_continuous_duty`). The climb tries duties the
+        compressor delivers inside its speed range. A unit with both fans
+        held at one flow, on the pressure-ratio floor, can run at none of
+        them and still run flat out -- the state the ceiling search starts
+        with (:meth:`max_capacity`; 2.5 kW unit, outdoor 8 degC, room 35
+        degC at 90 %: 9.61 kW). Before the request is answered with the
+        unit off, that state is taken for a candidate, re-solved as a
+        request of its own duty (:meth:`_delivering_state`):
 
-        - the low-load point (:meth:`_low_load_point`), the smallest
-          continuous duty found from the bottom of the ladder -- the duty a
-          smaller request of the condition cycles at;
-        - the ceiling (:meth:`max_capacity` with the same room humidity),
-          re-solved as a request of its own duty (:meth:`_delivering_state`).
+        - above the request, it is the duty the request is met by cycling
+          at (returned with ``capacity_clamped == "min"``, as
+          :meth:`_smallest_continuous_operating_point` returns its state);
+        - under the request -- the least-lift point of a request a little
+          above the flat-out duty can read as refused from below -- it is
+          where the unit runs for it, as for any request above its ceiling
+          (``capacity_clamped == "max"``,
+          :meth:`_capacity_limited_operating_point`).
 
-        A candidate that delivers more than the request is the duty the
-        request is met by cycling at (returned with
-        ``capacity_clamped == "min"``, as
-        :meth:`_smallest_continuous_operating_point` returns its state). A
-        ceiling under the request is where the unit runs for it, as for any
-        request above its ceiling (``capacity_clamped == "max"``,
-        :meth:`_capacity_limited_operating_point`). Both candidates are
-        functions of the condition, so the answer is the same whatever was
-        solved before.
+        The flat-out state is a function of the condition, so the answer is
+        the same whatever was solved before. It is one solve
+        (:meth:`_largest_airflow_point`), not a search: the search of the
+        ceiling on the duty is not asked for here. It samples from the top
+        the duties the climb has just bisected from below -- closing on the
+        same place, where the refusal changes sides -- and where it ends
+        with nothing it costs seconds, for a request whose own climb took a
+        tenth of one. And where the climb passed every duty up to the
+        indoor coil's limit as refused from below, no duty above the request
+        was refused any other way: the unit is off in this weather, and
+        nothing is asked.
 
-        What is asked of the other searches is kept to what can have an
-        answer, because a search that ends with nothing is the dearest kind
-        (seconds, where the request's own climb took a tenth of one):
-
-        - Where the climb passed every duty up to the indoor coil's limit
-          as refused from below, no duty above the request was refused any
-          other way: the unit is off in this weather, and nothing is asked.
-        - Where the condition has no low-load point either, the search of
-          the ceiling on the duty samples the same duties again from the
-          top. Only the flat-out ceiling is asked for then, which is one
-          solve (:meth:`_largest_airflow_point`) and not a search.
-
-        ``None`` when no candidate gives a state.
+        ``None`` when the candidate gives no state.
         """
         request = abs(float(Q_r_iu))
         # Answered from the trials the request's own climb has just made.
         _, to_the_top = self._climb_to_continuous_duty(Q_r_iu, T0, T_a_room)
         if to_the_top:
             return None
-        point = self._low_load_point(T0, T_a_room)
-        if point is None:
-            ceiling = self._solve_max_capacity(T0, T_a_room, "cooling", 1e-3, None, flat_out_only=True)
-        elif abs(float(point[1]["Q_ref_iu [W]"])) > request:
-            floor = dict(point[1])
-            floor["capacity_clamped"] = CAPACITY_CLAMPED_MIN
-            return floor
-        else:
-            ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode="cooling", RH_room=self._RH_room)
+        ceiling = self._solve_max_capacity(T0, T_a_room, "cooling", 1e-3, None, flat_out_only=True)
         if ceiling.get("binding") not in self._CEILING_BINDINGS:
             return None
         q_ceiling = float(ceiling["Q_max [W]"])
@@ -3887,12 +3898,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
             the fans' smallest airflows leave no continuous operation below
             some duty; a smaller request is met by cycling at that duty
             (``capacity_clamped == "min"``, ``Q_min [W]``). Where the
-            search above the request finds no such duty, the points the
-            other searches of the condition end on are taken -- the smallest
-            continuous duty found from the bottom of the load range, then
-            the ceiling of :meth:`max_capacity`, which the request is met
-            by cycling at when it lies above the request and where the unit
-            runs when it lies under it -- and where no duty is
+            search above the request finds no such duty, the state the unit
+            runs flat out at is taken -- the one the ceiling search of
+            :meth:`max_capacity` starts with -- which the request is met by
+            cycling at when it lies above the request and where the unit
+            runs when it lies under it; and where no duty is
             found to run the row is off with
             ``failure_reason == "hx_not_converged"`` (a fan held at one flow
             can leave a window of duties too narrow for the searches to hit:
@@ -4049,10 +4059,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         result = floor_state
                         failure_reason = "none"
                 if failure_reason == self._MIN_AIRFLOW:
-                    # The climb found no larger duty that runs. The points the
-                    # other searches of this condition end on are candidates:
-                    # one above the request is cycled at, a ceiling under it
-                    # is where the unit runs.
+                    # The climb found no larger duty that runs. The state the
+                    # ceiling search of this condition starts with, the unit
+                    # flat out, is a candidate: above the request it is cycled
+                    # at, under it it is where the unit runs.
                     with contextlib.suppress(Exception):
                         other_state = self._point_of_another_search(Q_r_iu, T0, T_a_room)
                         if other_state is not None:

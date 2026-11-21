@@ -481,13 +481,15 @@ coil carries more at a given evaporating temperature:
   fraction 0.823). Fans with a high smallest flow put that duty above twice
   the nameplate: with both at 65 % of the largest flow it is 8.44 kW at 15 °C
   outdoor and a saturated 35 °C room, and a 4 kW request cycles there
-  (runtime fraction 0.546). Where the climb from a request finds no larger
-  duty, the points the other searches of the condition end on are tried
-  before the request is given up: the smallest continuous duty found from the
-  bottom of the ladder, then the ceiling (2.5 kW unit with both fans held at
+  (runtime fraction 0.546). The search for that duty is a bisection by which
+  side refuses the trial, to 0.5 %; where it closes with nothing running it
+  goes on to 0.1 %, because the duties that run can be a window narrower than
+  the first width (next paragraph). Where it still finds no duty, the state
+  the unit runs flat out at — the one the ceiling search starts with — is
+  tried before the request is given up (2.5 kW unit with both fans held at
   their largest flow, 8 °C outdoor, 35 °C room at 90 %: a 2.5 kW request is
   met by cycling at the 9.61 kW the unit runs flat out at, runtime fraction
-  0.319). A ceiling under the request is where the unit runs for it, as for
+  0.319). Where that state lies under the request the unit runs there, as for
   any request above the ceiling. Where no duty is found to run — fans with
   almost no flow range, in cold weather — the unit is off with
   ``failure_reason == "hx_not_converged"``: a coil cannot carry so little
@@ -505,10 +507,12 @@ conditions: at no duty — the outdoor coil at its one flow carries at least
 three searches —
 the operating point of a request, the smallest continuous duty, the ceiling —
 sample the duty: a ladder of duties and a bisection between two that differ,
-to 0.1 % for the ceiling and 0.5 % for the smallest continuous duty. They use
-each other's verified points as candidates, so one that finds the window
-serves the others, but a window narrower than the spacing of the samples can
-be missed by all of them. The caller then sees ``Q_max [W] == 0`` with
+to 0.1 % for the ceiling and to 0.5 % for the smallest continuous duty (0.1 %
+where nothing ran at 0.5 %). They use each other's verified points as
+candidates — the ceiling search starts from the duty the low-load search
+ends on where it found none itself, and a low-load request takes the
+flat-out state of the ceiling — but a window narrower than the spacing of
+the samples can be missed by all of them. The caller then sees ``Q_max [W] == 0`` with
 ``binding == "infeasible"`` from ``max_capacity`` and an off row with
 ``failure_reason == "hx_not_converged"`` from ``analyze_steady``, although a
 duty inside the window would run. Two ways out: leave the fan a flow range

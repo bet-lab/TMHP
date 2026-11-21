@@ -148,6 +148,57 @@ def test_least_lift_point_on_the_pressure_ratio_floor_is_found(large):
     assert state["pr_cmp [-]"] > large.PR_cycle_min
 
 
+def _fake_trial(limit: float, lost: tuple[float, float], found_from_a_start: bool = False):
+    """A least-lift solve for the search: runs below ``limit``, a coil beyond it, and not found inside ``lost``.
+
+    Inside ``lost`` the point exists but the solve does not find it ("cycle_invalid", no approaches) --
+    from any start, or only without one when ``found_from_a_start``.
+    """
+    calls: list[tuple[float, object]] = []
+
+    def trial(q, start=None):
+        calls.append((q, start))
+        if q > limit:
+            return (15.0, 30.0), None, "air_side"
+        if lost[0] <= q <= lost[1] and not (found_from_a_start and start is not None):
+            return None, None, "cycle_invalid"
+        return (q / 2000.0, q / 1000.0), {"Q_ref_iu [W]": q}, None
+
+    return trial, calls
+
+
+def test_wet_ceiling_search_looks_above_a_duty_it_could_not_solve(large):
+    # The ladder's rung at 45 % falls in the band that is not found; the bisection closes under it.
+    trial, _ = _fake_trial(limit=29_700.0, lost=(22_000.0, 23_500.0))
+    x, state, reason = large._largest_deliverable_wet_duty(trial, 50_000.0, 1e-3)
+    assert reason == "air_side" and x is not None
+    assert state["Q_ref_iu [W]"] == pytest.approx(29_700.0, rel=1.5e-3) and state["Q_ref_iu [W]"] <= 29_700.0
+
+
+def test_wet_ceiling_search_retries_a_lost_duty_from_other_starts(large):
+    trial, calls = _fake_trial(limit=29_700.0, lost=(22_000.0, 23_500.0), found_from_a_start=True)
+    x, state, reason = large._largest_deliverable_wet_duty(trial, 50_000.0, 1e-3)
+    assert reason == "air_side"
+    assert state["Q_ref_iu [W]"] == pytest.approx(29_700.0, rel=1.5e-3)
+    # The rung at 45 % (22.5 kW) ran once it was started from the approaches of the refused rung above.
+    assert (22_500.0, (15.0, 30.0)) in calls
+
+
+def test_wet_ceiling_search_reports_what_it_cannot_explain(large):
+    # Nothing is found from 22 kW up to the top: no limit is named, and none is made up.
+    trial, _ = _fake_trial(limit=60_000.0, lost=(22_000.0, 60_000.0))
+    x, state, reason = large._largest_deliverable_wet_duty(trial, 50_000.0, 1e-3)
+    assert reason == "cycle_invalid"
+    assert state["Q_ref_iu [W]"] == pytest.approx(22_000.0, rel=1.5e-3) and state["Q_ref_iu [W]"] < 22_000.0
+    assert large._binding_of(reason) == "cycle_invalid"
+
+
+def test_wet_ceiling_search_takes_the_top_when_it_runs(large):
+    trial, calls = _fake_trial(limit=60_000.0, lost=(0.0, -1.0))
+    x, state, reason = large._largest_deliverable_wet_duty(trial, 50_000.0, 1e-3)
+    assert reason is None and state["Q_ref_iu [W]"] == 50_000.0 and len(calls) == 1
+
+
 # ---------------------------------------------------------------------------
 # 4. Below the smallest duty the fans' minimum flows leave on the pressure-ratio floor
 # ---------------------------------------------------------------------------

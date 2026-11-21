@@ -709,7 +709,7 @@ is excluded from the COP score.
       - 17 / 153
       - 98.72 %
       - 72.24 %
-      - 134.83 % (143 points)
+      - 132.11 % (152 points)
     * - Air-to-air, including held catalogues
       - 0 / 604
       - 100.00 %
@@ -724,8 +724,10 @@ air-to-water, it requests 1.5 times the published duty at the same outdoor
 temperature, entering water temperature and water flow. This overload reaches
 more limits than a 1.25× request and avoids the larger extrapolation of a 2×
 request. If the model meets the overload, the result is a lower bound on
-maximum capacity. Ten overloads returned less than the ordinary request, so
-their probe values are missing and the mean uses the 143 remaining estimates.
+maximum capacity. When the overload returns a slightly lower duty within the
+relative validation tolerance of 10⁻⁶, the probe records the larger duty
+already delivered at the ordinary request. One overload fell below that
+tolerance, so its probe value is missing and the mean uses 152 estimates.
 
 Among scored air-to-water points, COP MAPE and bias were 8.1 % and −6.1 %
 without discharge control (127 points), 6.7 % and +3.1 % with reduced

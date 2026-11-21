@@ -359,12 +359,16 @@ def _resolve(
     calls=None,
     q_cycle=Q_ON,
     on_limit_share=1.0,
+    full_binding=None,
+    on_limit_binding=BINDING_CONDENSING,
     **kw,
 ):
     """``resolve_step_operation`` on the tank of the event tests, with a cycle of COP 3 (2.5 on the limit).
 
     ``q_cycle`` is what the full-duty cycle delivers [W]; ``on_limit_share`` the part of the duty
     asked on the limit that the cycle there delivers (less than 1: another limit holds it).
+    ``full_binding`` and ``on_limit_binding`` are the limits those two cycles name in
+    ``capacity_binding`` (``None``: none).
     """
     calls = {} if calls is None else calls
 
@@ -373,12 +377,15 @@ def _resolve(
 
     def solve_cycle(T_C, fraction):
         calls.setdefault("full", []).append((T_C, fraction))
-        return {
+        row = {
             "hp_is_on": True,
             "Q_ref_tank [W]": q_cycle,
             "E_tot [W]": q_cycle / 3.0,
             "T_ref_cond_sat_l [°C]": T_C + 5.0,
         }
+        if full_binding is not None:
+            row.update({"capacity_clamped": "max", "capacity_binding": full_binding})
+        return row
 
     def solve_cycle_at_duty(T_C, q, fraction):
         calls.setdefault("limit", []).append((T_C, q, fraction))
@@ -386,7 +393,9 @@ def _resolve(
             return {"hp_is_on": False, "failure_reason": "cycle_invalid"}
         q = q * on_limit_share
         row = {"hp_is_on": True, "Q_ref_tank [W]": q, "E_tot [W]": q / 2.5, "T_ref_cond_sat_l [°C]": 65.0}
-        row.update({"capacity_clamped": "max", "capacity_binding": BINDING_CONDENSING, "Q_request [W]": Q_ON})
+        row.update({"capacity_clamped": "max", "Q_request [W]": Q_ON})
+        if on_limit_binding is not None:
+            row["capacity_binding"] = on_limit_binding
         return row
 
     def min_duty():
@@ -625,6 +634,32 @@ def test_a_cycle_of_the_step_that_another_limit_holds_withholds_it(held, dt, T_u
     assert run.reduced_withheld == stop.limit_stop
     # The row's heat is the heat of the run's own duty: nothing of the limit's line is in it.
     assert row["Q_ref_tank [W]"] == held.get("q_cycle", Q_ON) and "capacity_clamped" not in row
+
+
+@pytest.mark.parametrize(
+    "held",
+    [dict(on_limit_binding="discharge_temperature"), dict(full_binding="discharge_temperature")],
+    ids=["the cycle on the limit", "the full-duty cycle"],
+)
+@pytest.mark.parametrize("dt", [3600.0, 600.0])
+def test_a_cycle_of_the_step_that_names_another_limit_withholds_it(held, dt):
+    """A cycle of the step delivers the duty its events took, but names another limit as the one holding it.
+
+    Such a cycle is on that limit, not on the condensing one (the qualification of the stretch
+    reads its three cycles the same way), and its step is not one of reduced-duty charging.
+    """
+    full = {k: v for k, v in held.items() if k == "full_binding"}
+    stop, stop_row, _ = _resolve_stop(dt=dt, **full)
+    run, row, _ = _resolve(dt=dt, **held)
+    _same_step((run, row), (stop, stop_row))
+    assert run.reduced_fraction == 0.0 and run.reduced_withheld == stop.limit_stop
+    assert row.get("capacity_binding") == held.get("full_binding")
+
+
+def test_cycles_that_name_the_condensing_limit_or_none_are_on_it():
+    for kw in (dict(on_limit_binding=None), dict(full_binding=BINDING_CONDENSING), dict()):
+        run, _, _ = _resolve(**kw)
+        assert run.reduced_fraction > 0.0 and not run.reduced_withheld, kw
 
 
 def test_cycles_within_the_tolerance_are_the_events_duty():

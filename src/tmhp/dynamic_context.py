@@ -1385,12 +1385,14 @@ def resolve_step_operation(
     on the limit therefore depends on what the caller says of its conditions,
     not on the step or on where in the stretch the tank is. One check of the
     step itself stands behind that, so that no step is credited with heat its
-    cycles do not deliver: each cycle of a step on the limit has to deliver
-    the duty the events took for its stretch (the request below the knee, the
-    limit's duty at the stretch's mean above it) to :data:`DUTY_MATCH_RTOL`.
-    A step in which one does not -- it has no operating point, or another
-    limit holds it although the caller gave a duty -- is withheld the same
-    way.
+    cycles do not deliver and none under another limit is counted as on this
+    one: each cycle of a step on the limit has to deliver the duty the events
+    took for its stretch (the request below the knee, the limit's duty at the
+    stretch's mean above it) to :data:`DUTY_MATCH_RTOL`, and to name no limit
+    as holding it but this one (the condensing limit: ``capacity_binding`` is
+    absent or ``"condensing_temperature"``). A step in which one does not --
+    it has no operating point, or another limit holds it although the caller
+    gave a duty -- is withheld the same way.
 
     A compressor stopped at the limit's stop rests for its minimum rest time
     before it restarts (``duty_limit`` of :func:`simulate_thermostat_step`).
@@ -1561,11 +1563,15 @@ def _resolve_duty_limited(
     continuous duty below the request, or a cycle of the step does not
     deliver the duty the events took for its stretch -- the request below the
     knee, the limit's duty at the stretch's mean above it -- to
-    :data:`DUTY_MATCH_RTOL` (no operating point, or another limit holding it).
-    A step resolved here therefore never runs above the limit's stop, never on
-    the limit at less than the smallest continuous duty, and its row's heat is
-    the heat its events integrated.
+    :data:`DUTY_MATCH_RTOL` (no operating point, or another limit holding
+    it), or names another limit than this one as holding it. A step resolved
+    here therefore never runs above the limit's stop, never on the limit at
+    less than the smallest continuous duty, its row's heat is the heat its
+    events integrated, and none of its cycles is under another limit.
     """
+    # The name a cycle gives the limit this duty line is (imported here: that module imports this one).
+    from .compressor_envelope import BINDING_CONDENSING as this_limit
+
     floor = min_duty()
     if floor is None or not (math.isfinite(floor) and 0.0 <= floor < Q_request):
         return None
@@ -1584,8 +1590,15 @@ def _resolve_duty_limited(
         return min(1.0, load / q) if q > 0.0 else 1.0
 
     def delivers(cycle: Mapping[str, Any], q: float) -> bool:
-        """Whether the cycle delivers the duty ``q`` the events took for its stretch (:data:`DUTY_MATCH_RTOL`)."""
-        return abs(delivered_tank_heat(cycle) - q) <= DUTY_MATCH_RTOL * q
+        """Whether the cycle runs as the events took its stretch: at the duty ``q``, under no other limit.
+
+        It delivers ``q`` to :data:`DUTY_MATCH_RTOL`, and the limit it names
+        as the one holding it (``capacity_binding``), if any, is this one --
+        what :func:`tmhp.compressor_envelope.condensing_stretch` asks of the
+        three cycles that qualify the stretch.
+        """
+        binding = cycle.get("capacity_binding")
+        return abs(delivered_tank_heat(cycle) - q) <= DUTY_MATCH_RTOL * q and (not binding or binding == this_limit)
 
     provisional = simulate_thermostat_step(Q_on=Q_request, **on_limit)
     if provisional.T_on_mean_C is None:

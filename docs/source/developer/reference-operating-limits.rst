@@ -566,6 +566,34 @@ map and the conductances and tank convention of then -- the control acted
 already at A7/W65 and A2/W60, and the penalty took duty away: A−3/W58
 delivered 12.6 kW with ``k = 0`` and 8.3 kW with ``k = 0.5``.)
 
+.. _discharge-control-against-catalogues:
+
+Against the catalogues the controlled points are high by more than that. The
+control acts on 11 of the 153 air-to-water points, all of them R32 at pressure
+ratios of 7.7 to 10.9: 6 by superheat alone, 5 with a wet suction. The suction
+quality is 0.983 to 0.996 on the four points of the units without injection and
+0.944 on the one flash-injection unit, so the floor of 0.9 is not reached. Of
+the 11, 9 are scored (the other two deliver less than the published duty),
+and their COP is +9.7 % against the catalogue. The 23 points above a pressure
+ratio of 6.84 where the control does not act run −6.5 %, like the 127
+uncontrolled points as a whole (−6.1 %); the 5 of them that are R32 run
++1.3 %. A wet-suction credit of 2.7 % at most does not make up a difference
+of 16 points, and 5 of the 9 run with a dry suction. What does is not
+established. The efficiency forms are outside their data at these points
+(rotary data to a pressure ratio of 6.84), which is the first thing to test
+with a compressor calibrated to a catalogue; the catalogue scores by control
+state are in :doc:`/validation/index` (*Capacity*).
+
+A unit has the same means, in about that order: the expansion valve opens
+until the suction is slightly wet, an injection circuit injects where there
+is one, and the compressor slows when those are used up. Two-phase suction,
+liquid injection and two-phase injection are the methods compared for R32
+scroll compressors (Wang et al., ICEC 2014, paper 1595; Yang et al., Int. J.
+Refrig. 2015), and the capacity a catalogue prints at these points is already
+a reduced one (12 kW nameplate, 8.7 kW at −15 °C outdoor and 60 °C leaving
+water). The default therefore stays; what it cannot say is how wet a given
+controller lets the suction go.
+
 How each family answers a point the control cannot hold:
 
 * **ASHP, GSHP** — the candidate is rejected inside the operating-point

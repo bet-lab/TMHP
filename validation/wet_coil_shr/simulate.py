@@ -69,6 +69,7 @@ import hashlib
 import json
 import math
 import re
+import shlex
 from pathlib import Path
 
 import pandas as pd
@@ -406,6 +407,26 @@ def run_state() -> dict:
     return {**state, **identity, "study_script_uncommitted": identity["study_script_blob"] != committed}
 
 
+#: How the committed study is made.
+COMMAND = "python -m validation.wet_coil_shr.simulate"
+
+
+def run_command(slugs: tuple[str, ...] | None, point_ids: tuple[int, ...] | None, out_dir: Path | None) -> str:
+    """The command of a run, for its provenance record: :data:`COMMAND` plus the options that were given.
+
+    ``slugs`` / ``point_ids`` are the ``--unit`` / ``--point-id`` selections of
+    a partial run (``None``: all), ``out_dir`` an ``--out-dir`` other than the
+    committed study's folder (``None``: that folder). A record must not say
+    the whole study was run when part of it was.
+    """
+    words = [
+        *(word for slug in slugs or () for word in ("--unit", slug)),
+        *(word for point_id in point_ids or () for word in ("--point-id", str(point_id))),
+        *(("--out-dir", str(out_dir)) if out_dir is not None else ()),
+    ]
+    return " ".join([COMMAND, *(shlex.quote(word) for word in words)])
+
+
 def main(argv: list[str] | None = None) -> None:
     """Run the study with code compiled from one read of this file, whose bytes are what the record names.
 
@@ -463,6 +484,7 @@ def run(argv: list[str] | None = None) -> None:
     units.to_csv(out_dir / UNITS_NAME, index=False)
     manifest = {
         "units": list(slugs),
+        "point_ids": list(point_ids) if point_ids else "all cooling rows",
         "partial_run": partial,
         "units_not_run_no_indoor_wet_bulb": list(UNITS_WITHOUT_WET_BULB),
         "passes": {name: {"wet_coil": wet, "UA_iu_scale": scale} for name, (wet, scale) in PASSES.items()},
@@ -483,9 +505,12 @@ def run(argv: list[str] | None = None) -> None:
             "passes": manifest["passes"],
             "RH_room": "from the row's indoor dry bulb and wet bulb, one standard atmosphere (wet passes); None (dry)",
             "units": list(slugs),
+            "point_ids": list(point_ids) if point_ids else "all cooling rows",
         },
         "sensible heat ratio of the wet indoor coil against the catalogue's, and the COP bias dry against wet",
-        command="python -m validation.wet_coil_shr.simulate",
+        command=run_command(
+            tuple(args.unit) if args.unit else None, point_ids, None if out_dir == OUT_DIR.resolve() else out_dir
+        ),
         # The state of the start of the run (unchanged since, checked above), in place of
         # the one the record helper reads when it writes.
         extra=state,

@@ -133,6 +133,7 @@ def test_tables_and_headline_are_those_of_the_committed_rows(committed):
         assert not _mismatches(fresh, old), name
     manifest = json.loads((OUT / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["units"] == list(study.UNITS) and manifest["partial_run"] is False
+    assert manifest["point_ids"] == "all cooling rows"
     for key, value in study.headline(committed).items():
         assert value == pytest.approx(manifest["headline"][key], rel=1e-6, abs=1e-9), key
 
@@ -143,6 +144,7 @@ def test_record_vouches_for_the_script_that_made_the_files():
 
     record = json.loads((OUT / "provenance.json").read_text(encoding="utf-8"))
     assert record["dirty"] is False and record["script"] == study.SCRIPT
+    assert record["command"] == study.COMMAND  # the whole study, into its own folder
     assert record["study_script_uncommitted"] is False, f"made with an uncommitted script. {HINT}."
     blob = _git("hash-object", study.SCRIPT)
     if not blob:
@@ -206,6 +208,9 @@ def test_main_records_the_blob_of_the_bytes_it_ran(tmp_path, capsys):
     assert len(pd.read_csv(tmp_path / study.CSV_NAME)) == 1
     manifest = json.loads((tmp_path / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["partial_run"] is True and manifest["units"] == ["daikin_rxm20a"]
+    assert manifest["point_ids"] == [1] and record["model_settings"]["point_ids"] == [1]
+    # The record says what was run: one row of one unit, into another folder -- not the whole study.
+    assert record["command"] == f"{study.COMMAND} --unit daikin_rxm20a --point-id 1 --out-dir {tmp_path.resolve()}"
     assert record["model_settings"]["units"] == ["daikin_rxm20a"]
 
 
@@ -251,6 +256,16 @@ def test_a_module_loaded_by_the_import_system_records_nothing(tmp_path):
     with pytest.raises(SystemExit, match="has to be run through main"):
         study.run([*ONE_ROW, "--out-dir", str(out)])
     assert not out.exists()
+
+
+def test_recorded_command_carries_the_options_of_the_run(tmp_path):
+    assert study.run_command(None, None, None) == study.COMMAND == "python -m validation.wet_coil_shr.simulate"
+    assert study.run_command(("daikin_rxm20a", "daikin_rxm50a"), None, None) == (
+        f"{study.COMMAND} --unit daikin_rxm20a --unit daikin_rxm50a"
+    )
+    assert study.run_command(None, (1, 23), None) == f"{study.COMMAND} --point-id 1 --point-id 23"
+    spaced = tmp_path / "a folder"
+    assert study.run_command(None, None, spaced) == f"{study.COMMAND} --out-dir '{spaced}'"
 
 
 def test_partial_run_cannot_replace_the_committed_study(capsys):

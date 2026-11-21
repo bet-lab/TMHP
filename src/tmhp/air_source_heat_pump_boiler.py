@@ -75,7 +75,6 @@ from .compressor_envelope import (
     DISCHARGE_TEMP_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
-    X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     condensing_tank_cutout,
     discharge_controlled,
@@ -501,7 +500,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_fan_a_min: float | None = None,
         dV_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
-        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        x_suction_min: float | Literal["auto"] | None = "auto",
         # On/off cycling below the minimum continuous capacity in analyze_steady:
         # EN 14825 degradation coefficient Cc of a unit delivering to water
         # (None: no cycling, the row over-delivers at the minimum speed).
@@ -570,7 +569,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # Maximum condensing temperature [degC] ("auto": refrigerant default; None: off)
         self.T_cond_max: float | None = resolve_condensing_temp_max(T_cond_max, ref)
         # Discharge-temperature control: lowest suction quality (None: no control)
-        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min, ref)
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).
         self._x_suction: float = 1.0
         # Records the PR-envelope event of the most recent _calc_state call

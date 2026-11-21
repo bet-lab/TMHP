@@ -208,11 +208,16 @@ def check_discharge_limit(name: str, value: Any) -> float | None:
     return x
 
 
-def check_quality(name: str, value: Any) -> float:
-    """Vapour quality in (0, 1]."""
-    x = _number(name, value, "a vapour quality in (0, 1] or None")
+def check_quality(name: str, value: Any) -> float | None:
+    """``"auto"`` (refrigerant default) or a vapour quality in (0, 1]."""
+    expectation = "'auto', None or a vapour quality in (0, 1]"
+    if isinstance(value, str):
+        if value == "auto":
+            return None
+        raise _fail(name, expectation, value)
+    x = _number(name, value, expectation)
     if not (math.isfinite(x) and 0.0 < x <= 1.0):
-        raise _fail(name, "a vapour quality in (0, 1] or None", value)
+        raise _fail(name, expectation, value)
     return x
 
 

@@ -82,7 +82,8 @@ Common to all families
         (default 150 °C for R32, 135 °C for every other refrigerant;
         ``T_dis_max=None`` switches the check off) even under the
         discharge-temperature control (suction superheat down to 0 K, then
-        wet suction down to ``x_suction_min``, default 0.9), at every duty the
+        wet suction down to ``x_suction_min``, by default 0.9 for every
+        refrigerant for now), at every duty the
         model tried: the request, smaller duties down to the speed floor
         and, for ASHP and the boilers' ``analyze_steady``, larger ones. A
         request that a *smaller* duty meets is not a failure: it returns that

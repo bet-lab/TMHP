@@ -121,10 +121,11 @@ keeps charging, which is what ``analyze_steady`` reports against a hotter tank.
 Past the envelope stop the tank approaches ``T_reach`` as a first-order lag
 with the time constant ``C_tank / K_tank_hx`` (295 s for the default tank and
 a 15 kW unit), far shorter than an hourly step. The in-step thermostat follows
-it in closed form, so the end temperature, the heat and the electricity of a
-charge do not depend on the step; see
-:ref:`the operating-limits reference <reduced-duty-charging>` for the method
-and its error. A row of such a run
+it in closed form, so the charge below comes out the same at any step; see
+:ref:`the operating-limits reference <reduced-duty-charging>` for the method,
+its error, and where that stops holding (a tank that loses much of the
+compressor's heat; another limit than the condensing one on the way). A row
+of such a run
 has ``reduced_duty_fraction [-]`` (the part of the step run on the limit), and
 a step that ran there reports ``capacity_clamped == "max"`` and
 ``capacity_binding == "condensing_temperature"``, as the steady solve does.
@@ -153,7 +154,12 @@ draw:
      - 2.111 / 0.776 kWh (COP 2.72)
 
 With 60 s, 600 s and 3600 s steps the ``"reduce_duty"`` run ends within
-0.006 K, 0.005 % of heat and 0.13 % of electricity of one another.
+0.006 K, 0.005 % of heat and 0.13 % of electricity of one another. That is
+this tank (loss coefficient 1.15 W/K) and this limit. A tank that loses heat
+fast depends on the step with either option, because a step's tank
+temperature is one implicit solve with the loss at its end: 0.02 K and 0.02 %
+of heat at 4.6 W/K, 0.2 K and 1.8 % at 76.65 W/K, against a fine-step
+reference (0.1 K and 0.3 % with ``"stop"``).
 
 The smallest continuous duty depends on the outdoor air: warmer air gives the
 compressor denser suction gas, so more duty at its lowest speed, and the limit
@@ -161,9 +167,25 @@ is met at a colder tank (63.5 °C at 7 °C outdoor, 62.1 °C at 35 °C for the
 machine above). The thermostat's cap is evaluated once, at the outdoor
 temperature of the rating point (``charge_limit_reference_C``); each step
 applies the stop of its own outdoor state, and where that lies below the set
-point the compressor holds the tank there (``hp_stop_reason ==
-"condensing_limit"``). With a frosting coil the limit binds the frost-free
-cycle and the heat delivered is its mean over frosting and defrost.
+point the compressor stops there (``hp_stop_reason == "condensing_limit"``;
+``"boiling_limit"`` where the stop that acted was 100 °C, which a refrigerant
+with a limit above about 101 °C reaches first). While the call stands it then
+holds the tank at the stop -- a mean of on/off cycling reported as one run:
+one start, ``runtime_fraction [-]`` the share of the time it is on, and a
+carried state that says "running" since that start -- or, with a minimum rest
+time (``min_off_time_s``), rests for that time and restarts, each restart a
+counted start. With a frosting coil the limit binds the frost-free cycle and
+the heat delivered is its mean over frosting and defrost.
+
+Another limit can govern above the envelope stop: the discharge temperature at
+a high pressure ratio (R32 at −7 °C with ``T_dis_max = 105 °C`` has no
+operating point above about 59 °C). The step is then resolved at the duty its
+cycle delivers, as a step of ``"stop"`` is under such a limit; its rows keep
+that limit in ``capacity_binding`` and count no time in
+``reduced_duty_fraction [-]``, and where the cycle stops existing the rows
+carry its ``failure_reason``. Such a charge is followed step by step and
+depends on the step more than one on the condensing limit (the
+:ref:`reference <reduced-duty-charging>` has the numbers).
 
 ``analyze_steady`` is not changed by the option. For this family it keeps
 returning a running point for a few tenths of a kelvin above the charging

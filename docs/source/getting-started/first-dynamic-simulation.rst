@@ -277,7 +277,8 @@ and keeps charging at the duty the limit leaves. Build the boiler with
 ``condensing_limit_control="reduce_duty"`` to model it (lumped tanks): the
 run then goes on past the envelope stop, the tank approaching the limit as a
 first-order lag that is solved inside the step, and ends where the limit
-leaves less than the compressor's smallest continuous duty. See
+leaves less than the compressor's smallest continuous duty (or at 100 °C,
+``hp_stop_reason == "boiling_limit"``, if that comes first). See
 :ref:`ashpb-reduced-duty-charging` and the
 :ref:`operating-limits reference <reduced-duty-charging>`.
 

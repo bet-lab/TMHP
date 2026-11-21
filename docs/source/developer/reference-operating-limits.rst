@@ -481,10 +481,42 @@ follow that; this is why the default caps the thermostat at the cut-out.
 (:func:`tmhp.dynamic_context.simulate_thermostat_step`, ``duty_limit``)
 already integrates a linear tank equation exactly between its events. The
 stretch on the limit is one more linear equation, so it is integrated exactly
-too, with the knee (the cut-out) as an event. The step's heat is therefore
-exact for the linearised free heat ``P(T)`` whatever the step: 60 s, 600 s and
-3600 s steps give the same run time to the second and the same heat to
-0.05 %.
+too, with the knee (the cut-out) as an event. Within that event model -- the
+free heat ``P(T)`` a straight line in the tank temperature, the condensing
+limit the one that governs -- the run time and the heat of a step are exact
+whatever the step: on the charges below, 60 s, 600 s and 3600 s steps give the
+same run time to the second and the same heat to 0.05 %.
+
+That is a statement about the events, not about every tank. The tank
+temperature a step ends at does not come from them: as on every step of either
+option it is one implicit solve of the tank balance with the step's mean heat
+and the loss at the end-of-step temperature. The two agree as far as the loss
+changes little over a step, which is the kernel's property and the same with
+``"stop"``. Against a fine-step integral that uses nothing of the event model
+(R32 15 kW, 15 °C outdoor, 20 minutes from 50 °C, steps of 60, 600 and
+1200 s; ``tests/test_reduced_duty_charge.py``):
+
+.. list-table::
+   :header-rows: 1
+   :widths: 34 33 33
+
+   * - tank loss coefficient (``C_tank / UA``)
+     - ``"stop"``
+     - ``"reduce_duty"``
+   * - 1.15 W/K, the default (153 h)
+     - 0.003 K, 0.01 % of heat
+     - 0.006 K, 0.01 %
+   * - 4.6 W/K (38 h)
+     - 0.010 K, 0.01 %
+     - 0.022 K, 0.02 %
+   * - 76.65 W/K (2.3 h)
+     - 0.12 K, 0.3 %
+     - 0.22 K, 1.8 %
+
+On the limit the duty itself follows the tank temperature, so a difference in
+the temperature a step ends at carries into the next step's heat; a tank that
+loses a large part of the compressor's heat (the last row: 3 of 15 kW) needs
+short steps with either option.
 
 *Where the charge ends.* The compressor has a smallest duty it runs at
 continuously: its speed floor, or the envelope's lower side where the
@@ -494,16 +526,38 @@ lowest rung of the duty reduction's ladder, 10 % of the nameplate, so the
 floor is the one ``analyze_steady`` has). The charging limit is the tank
 temperature at which that duty condenses on the limit,
 ``T_reach − Q_min / K_tank_hx``
-(:func:`tmhp.compressor_envelope.smallest_duty_on_condensing_limit`: two or
-three cycle solves). Above it nothing runs. ``Q_min`` depends on the source --
+(:func:`tmhp.compressor_envelope.smallest_duty_on_condensing_limit`: usually
+three cycle solves). The search stays where a tank can be: for a refrigerant
+whose limit lies high enough (R600a with ``T_cond_max`` above about 101 °C)
+the smallest duty would meet the limit above 100 °C, and the charge then ends
+at the boiling point, as it does without a condensing limit. Above the
+charging limit nothing runs. ``Q_min`` depends on the source --
 denser suction gas from a warmer source gives more duty at the lowest speed --
 so a step uses the limit of its own source, and the thermostat's cap is that
 limit at one stated reference: the rating point's outdoor air for ASHPB, the
 source at ``Ts`` for GSHPB and WSHPB (``charge_limit_reference_C``;
 :func:`tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit`). Where
-a step's own stop lies below the set point the compressor holds the tank
-there, cycling at ``Q_min`` against the tank's losses, and the row says
-``hp_stop_reason == "condensing_limit"``. If the tank loses more there than
+a step's own stop lies below the set point the compressor stops there while
+the call stands, and the row says ``hp_stop_reason == "condensing_limit"``
+(``"boiling_limit"`` when the stop that acted was the boiling point: the row
+names the stop the step was resolved with, not the nameplate cut-out). What
+follows depends on the minimum rest time. Without one (``min_off_time_s = 0``,
+the default) the compressor holds the tank at the stop, cycling at ``Q_min``
+against the tank's losses. That hold is the mean of on/off cycling with no
+differential and no rest, reported as one run: ``hp_starts [-]`` counts the
+start of the hold only, ``runtime_fraction [-]`` is the share of the time the
+compressor is on, and the carried state says "running" with a phase age that
+counts from that start -- the timers describe the hold, not a compressor that
+has run all that time. With a minimum rest time the cycling is not something
+the compressor can do, and the step resolves it as it happens: stop at the
+stop, rest for ``min_off_time_s`` while the tank cools, restart (a counted
+start), run back along the limit. Run time, starts and timers then describe
+the same compressor (R32, 35 °C outdoor, both minimum times 1800 s, three
+1200 s steps from 61.8 °C with a small draw: 31 s to the stop, 1800 s of
+rest, a second run of 244 s; the hold of the same case runs 654 s as one
+start). The multi-node tanks of GSHPB, which keep ``"stop"``, hold the water
+around their coil as a mean whatever the rest time, as before. If the tank
+loses more at the stop than
 ``Q_min`` (a draw), the compressor is not held to that duty: it runs on, the
 tank cools, the limit leaves it more, and the tank settles below the stop
 where the limit's duty is the loss (R32, 35 °C outdoor, a 10.5 kW draw: the
@@ -513,6 +567,52 @@ than ``Q_min``; a tank found above the stop of its step (the source warmed, or
 a collector heated it) waits until it has cooled to it. A step in which
 another limit already holds the full-duty cycle at or below ``Q_min`` keeps
 the stop of ``"stop"``.
+
+*Another limit on the way.* The events take the condensing limit's duty for
+the stretch above the cut-out; the cycle solved there says whether the
+compressor delivers it. It does to the solver's last digits when the
+condensing limit governs (ratio 1.000000 on the charges below). When the cycle
+delivers less (by more than 0.1 %,
+:data:`tmhp.dynamic_context.DUTY_MATCH_RTOL`), another limit holds the
+compressor below the condensing limit's duty -- the source fluid's freezing
+limit with a cold source, the discharge temperature at a high pressure ratio
+-- and the step is resolved with what the cycle does, the way a step of
+``"stop"`` is resolved under such a limit: at one duty, the one its cycle
+delivers. The events are solved again with that duty, the cycle again at the
+mean tank temperature of that run, ``reduced_duty_fraction [-]`` counts only
+the time above the tank temperature at which *that* duty meets the condensing
+limit, and the row keeps the ``capacity_binding`` of its cycle (of the stretch
+that ran longer when both limits governed in one step). A cycle with no
+operating point there, for another reason than the condensing limit, leaves
+the compressor off and the row is the cycle's off-mode row with its
+``failure_reason`` (``source_fluid_freezing``, ``discharge_temp_above_max``),
+as on any step whose cycle cannot be solved; ``hp_stop_reason`` is then
+``None``.
+
+One cycle stands for such a run, so the run must not be taken past the tank
+temperature at which the other limit leaves no operating point. Before a run
+goes above every tank temperature at which a cycle of the step ran, the cycle
+is solved at the run's warmest point; if it does not run there, the run ends at
+the warmest temperature a cycle did run at (looked for half-way to the closed
+point, twice). Two things follow, and they are the limits of this treatment:
+
+- a limit whose duty changes little with the tank temperature is followed to
+  the step: the water-source boiler with source water at 4 °C (the freezing
+  limit leaves 3.1 kW where the condensing limit would leave 7.3 kW), ten
+  minutes from 68.1 °C in 60 s steps and in one step: 72.476 against
+  72.462 °C, heat −0.26 %, electricity −0.23 %;
+- a limit whose duty falls steeply with the tank temperature and then ends is
+  followed step by step, from below. R32 at −7 °C outdoor with
+  ``T_dis_max = 105 °C``: the discharge limit leaves 12.5 kW with the tank at
+  56.6 °C, 8.9 kW at 58.6 °C and no operating point above about 59 °C. Ten
+  minutes from 56 °C end at 58.99 °C in 60 s steps and 59.03 °C in 300 s
+  steps (heat +1.2 %); thirty minutes from 50 °C end within 0.25 K and 2.7 %
+  of heat at 300 s and 600 s steps. A single step that runs into such a limit
+  above its full-duty stretch ends lower -- where its full-duty cycle meets
+  the condensing limit (57.99 °C for one 600 s step from 56 °C, 57.57 °C for
+  one 1800 s step from 50 °C against 58.95 °C) -- and the steps after it take
+  the charge on. No step size takes the tank above the temperature the short
+  steps reach.
 
 *Electricity.* Along the stretch on the limit the condensing pressure is the
 limit's; only the duty changes, from ``hp_capacity`` down to ``Q_min``. A step
@@ -526,8 +626,17 @@ for the R32 unit) times the spread of the duty inside one step. Measured on a
 whole charge from 50 °C, 3600 s against 60 s steps: −0.13 % (ASHPB R32 at
 15 °C outdoor), −0.56 % (the same with a frosting coil at 0 °C), −0.42 %
 (GSHPB R290), −0.37 % (WSHPB R290). A step that does not reach the cut-out is
-solved exactly as with ``"stop"``; one that does costs the floor's two or
-three solves (kept per source state by ASHPB and WSHPB) and the second cycle.
+solved exactly as with ``"stop"``. One that does usually costs three solves
+for the smallest duty (kept per source state by ASHPB and WSHPB; GSHPB, whose
+source is the ground as the step finds it, searches it in every such step) and
+one cycle per stretch: two for a step with both, as observed on the four
+charges above. It costs more where the search has to go further: a trial the
+limit refuses is retried half-way back, and where the envelope refuses the
+probe from below the smallest duty is itself searched (35 solves at −7 °C
+outdoor with ``T_dis_max = 105 °C``). Where another limit governs, a step
+solves three or four cycles, each with that limit's own duty search: 8 to 13
+solves per step in the source-freezing case above (3 with ``"stop"``), up to
+39 in the discharge-limit case (up to 8 with ``"stop"``).
 
 *The row.* A step with both stretches reports the run-time-weighted mean of
 their two cycles for every rate (heat, power, flow), ``cop_ref`` and
@@ -537,7 +646,9 @@ their two cycles for every rate (heat, power, flow), ``cop_ref`` and
 [-]`` is the part of the step run on the limit; ``capacity_clamped``,
 ``capacity_binding == "condensing_temperature"``, ``Q_max [W]`` (the mean
 running duty) and ``Q_request [W]`` are written as on any reduced step, so the
-end-of-run summary counts these steps as run below the request.
+end-of-run summary counts these steps as run below the request. Where the
+full-duty stretch is itself held below the request by another limit and ran at
+least as long, ``capacity_binding`` names that limit.
 
 *What it does not cover.* The multi-node tanks of GSHPB keep the stop: the
 water around their coil has its own cut-out, at which the compressor already

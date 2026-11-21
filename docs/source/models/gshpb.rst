@@ -143,11 +143,13 @@ on past the cut-out at the duty the limit leaves, ``K_tank_hx (T_reach − T)``,
 down to the smallest continuous duty; the set points are capped where that
 duty meets the limit, evaluated with the fluid from the ground at ``Ts``, and
 each step applies the stop of the ground as it finds it. The tank's approach
-to the limit is solved inside the step, so the result does not depend on the
-step: one hour from 50 °C with set points 70–72 °C ends within 0.03 K, 0.05 %
-of heat and 0.5 % of electricity with 60 s, 600 s and 3600 s steps (see
-:ref:`the operating-limits reference <reduced-duty-charging>`; rows carry
-``reduced_duty_fraction [-]``). The
+to the limit is solved inside the step: one hour from 50 °C with set points
+70–72 °C ends within 0.03 K, 0.05 % of heat and 0.5 % of electricity with
+60 s, 600 s and 3600 s steps (see
+:ref:`the operating-limits reference <reduced-duty-charging>` for where that
+stops holding: a tank that loses much heat, or the ground loop's freezing
+limit governing above the cut-out, which is then followed at its own duty;
+rows carry ``reduced_duty_fraction [-]``). The
 multi-node tanks keep the stop: their coil has its own cut-out, at which the
 compressor already holds its water (below), and the constructor refuses the
 combination.

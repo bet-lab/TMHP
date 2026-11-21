@@ -588,14 +588,22 @@ def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
     """
     shape = "a mapping" if isinstance(schedule, Mapping) else "text" if isinstance(schedule, (str, bytes)) else None
     if shape is None:
-        if not hasattr(schedule, "__len__") and isinstance(schedule, Iterable):
+        # The number of entries, where the schedule says it. A zero-dimensional
+        # array has a length that raises: it is not a sequence, and is refused
+        # below for what it is, not here.
+        length = None
+        if hasattr(schedule, "__len__"):
+            with contextlib.suppress(TypeError):
+                length = len(schedule)
+        elif isinstance(schedule, Iterable):
             # A generator: its items, once -- as many as the run has steps, and one to see that it goes on.
             schedule = list(itertools.islice(schedule, steps + 1))
             if len(schedule) > steps:
                 raise ValueError(f"{name} holds more entries than the run has steps (tN = {steps})")
-        elif hasattr(schedule, "__len__") and len(schedule) != steps:
+            length = len(schedule)
+        if length is not None and length != steps:
             # Before anything is converted: a sequence of the wrong length may be far too long to copy.
-            raise ValueError(f"{name} length ({len(schedule)}) != tN ({steps})")
+            raise ValueError(f"{name} length ({length}) != tN ({steps})")
         if isinstance(schedule, np.ma.MaskedArray):
             # np.asarray would drop the mask and hand out the data beneath it.
             entries = _array_entries(np.asarray(schedule.data))
@@ -626,8 +634,8 @@ _MAX_ENTRY_NESTING = 8
 def _single_value(entry: Any) -> Any:
     """``entry`` out of the one-element containers it may be wrapped in, as the scalar it is.
 
-    A step given as a row of one value (``[[0.5], [0.6]]``) or as an array of
-    one element is that value. An array element is taken as the NumPy scalar
+    A step given as a row of one value (``[[0.5], [0.6]]``), as an array of
+    one element or as a record of one field is that value. An array element is taken as the NumPy scalar
     it is (``item()`` would hand a time span in nanoseconds out as an
     integer); a masked one stays masked. At most :data:`_MAX_ENTRY_NESTING`
     containers are opened: what is still a container then -- a list that
@@ -638,6 +646,8 @@ def _single_value(entry: Any) -> Any:
             entry = entry[0]
         elif isinstance(entry, np.ndarray) and entry.size == 1 and not np.ma.is_masked(entry):
             entry = entry.reshape(())[()]
+        elif isinstance(entry, np.void) and entry.dtype.names is not None and len(entry.dtype.names) == 1:
+            entry = entry[entry.dtype.names[0]]  # a record of one field
         else:
             break
     return entry

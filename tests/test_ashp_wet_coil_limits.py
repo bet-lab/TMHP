@@ -498,11 +498,34 @@ def test_humidity_schedule_is_read_by_value_one_entry_a_step(hp, schedule):
         (pd.DataFrame({0.3: [0.5, 0.6], 0.4: [0.5, 0.6]}), "one entry per step"),
         (np.array([[0.5, 0.6], [0.5, 0.6]]), "one entry per step"),
         (0.5, "one entry per step"),
+        (np.float64(0.5), "one entry per step"),
+        # A zero-dimensional array has a ``__len__`` that raises: still "one entry per step", not a TypeError.
+        (np.array(0.5), "one entry per step"),
+        (np.array(None, dtype=object), "one entry per step"),
+        (np.ma.array(0.5, mask=True), "one entry per step"),
+        (np.ma.masked, "one entry per step"),
+        (np.array("0.5"), "one entry per step"),
         ("0.5", "one entry per step"),
+        (b"0.5", "one entry per step"),
         ([0.5, 0.6, 0.7], r"RH_room_schedule length \(3\) != tN \(2\)"),
         (pd.DataFrame({"RH": [0.5]}), r"RH_room_schedule length \(1\) != tN \(2\)"),
     ],
-    ids=["dict", "two columns", "square array", "scalar", "text", "too long", "frame too short"],
+    ids=[
+        "dict",
+        "two columns",
+        "square array",
+        "scalar",
+        "numpy scalar",
+        "0-d array",
+        "0-d object array",
+        "0-d masked array",
+        "masked constant",
+        "0-d text array",
+        "text",
+        "bytes",
+        "too long",
+        "frame too short",
+    ],
 )
 def test_humidity_schedule_of_another_shape_is_refused(hp, schedule, says):
     with pytest.raises(ValueError, match=says):
@@ -688,6 +711,15 @@ def test_a_schedule_without_an_end_is_too_long_not_read_for_ever(hp, endless):
             _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=range(10**12))
     finally:
         faulthandler.cancel_dump_traceback_later()
+
+
+def test_a_record_array_of_one_field_is_one_entry_a_step(hp):
+    records = np.array([(0.5,), (0.6,)], dtype=[("rh", "f8")])
+    frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=records)
+    assert list(frame["RH_room [-]"]) == [0.5, 0.6]
+    two_fields = np.array([(0.5, 1.0), (0.6, 1.0)], dtype=[("rh", "f8"), ("other", "f8")])
+    with pytest.raises(ValueError, match=r"Room relative humidity must be a fraction in \[0, 1\], got .* at step 0"):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=two_fields)
 
 
 def test_a_value_nested_a_few_containers_deep_is_still_read(hp):

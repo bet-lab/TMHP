@@ -570,7 +570,12 @@ def test_docs_prose_quotes_the_study(committed, held):
     small, large = units.loc["daikin_rxm20a"], units.loc["daikin_rxm50a"]
     gap = (committed.T_evap_C_wet - committed.T_adp_catalog_C).groupby(committed.slug).mean()
     below_one = numbers["rows_published_ratio_at_least_095"] - numbers["rows_published_ratio_one"]
-    fewer = numbers["rows_scored_wet"] - numbers["rows_wet_draws_more_than_dry"]
+    # Counted on the rows both passes solve, as rows whose wet input is lower: a row of equal input is not one.
+    both = committed[committed.usable_dry & committed.usable_wet]
+    fewer = int((both.power_kW_wet < both.power_kW_dry).sum())
+    equal = int((both.power_kW_wet == both.power_kW_dry).sum())
+    assert len(both) == numbers["rows_scored_wet"]
+    assert fewer + equal + numbers["rows_wet_draws_more_than_dry"] == len(both)
     held_numbers = study.headline(held)
     held_low = held[held.shr_catalog < 0.75]
     gain = bands.cop_bias_pct_wet - bands.cop_bias_pct_dry

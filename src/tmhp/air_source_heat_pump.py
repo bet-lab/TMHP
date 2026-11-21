@@ -314,6 +314,12 @@ class _NarrowFanSearch:
         return value, self.approaches(*key), perf
 
 
+#: Exergy columns left NaN on a row whose indoor coil removes water: the
+#: indoor coil's destruction and the two efficiencies that presuppose its
+#: complete balance (``AirSourceHeatPump.postprocess_exergy``).
+_NO_MOIST_AIR_BALANCE: tuple[str, ...] = ("Xc_iu_hx [W]", "X_eff_iu_hx [-]", "X_eff_sys [-]")
+
+
 class _NotARow(Exception):
     """A steady result that :func:`_exergy_row` leaves to the frame form of the post-processing."""
 
@@ -483,6 +489,11 @@ def _exergy_row(result: dict, ref: str) -> dict:
         row["X_eff_ou_hx [-]"] = 1 - divided(Xc_ou_hx, X_in_ou)
         row["X_eff_ou_fan [-]"] = 1 - divided(Xc_ou_fan, X_in_ou_fan)
         row["X_eff_iu_fan [-]"] = 1 - divided(Xc_iu_fan, X_in_iu_fan)
+
+        # ── 8. A coil that removes water: no indoor-coil balance (see ``postprocess_exergy``) ──
+        if "Q_iu_latent [W]" in row and num("Q_iu_latent [W]") > 0:
+            for key in _NO_MOIST_AIR_BALANCE:
+                row[key] = np.float64(np.nan)
 
     return {key: _boxed(value) for key, value in row.items()}
 
@@ -3598,6 +3609,20 @@ class AirSourceHeatPump(ReferenceStateMixin):
         4. HX Carnot exergy (condenser, evaporator)
         5. Component-level exergy destruction
         6. Exergetic efficiency metrics
+
+        The air columns (``X_a_iu_*``, ``X_a_ou_*``) are the thermal exergy
+        of a dry air stream: heat capacity rate times
+        ``(T - T0) - T0 ln(T / T0)``. A moist-air exergy balance -- a
+        reference humidity for the dead state, the chemical exergy of the
+        water vapour, the condensate leaving the coil -- is not modelled. On
+        a row whose indoor coil removes water (``Q_iu_latent [W]`` > 0) the
+        refrigerant side of that coil carries the latent heat while the air
+        side counts the temperature change only, so their difference is not
+        the coil's exergy destruction (it comes out negative at a low
+        sensible heat ratio). There ``Xc_iu_hx [W]``, ``X_eff_iu_hx [-]``
+        and ``X_eff_sys [-]`` are NaN; every other column, the thermal
+        exergy of the air streams included, is reported as on a dry row. Rows
+        that remove no water are not touched.
         """
         from .enex_functions import (
             calc_exergy_flow,
@@ -3757,6 +3782,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         # Indoor fan exergetic efficiency
         df["X_eff_iu_fan [-]"] = 1 - df["Xc_iu_fan [W]"] / df["X_in_iu_fan [W]"].replace(0, np.nan)
+
+        # ── 8. A coil that removes water: no indoor-coil balance ──
+        if "Q_iu_latent [W]" in df.columns:
+            removes_water = df["Q_iu_latent [W]"] > 0
+            if removes_water.any():
+                df.loc[removes_water, list(_NO_MOIST_AIR_BALANCE)] = np.nan
 
         return df
 

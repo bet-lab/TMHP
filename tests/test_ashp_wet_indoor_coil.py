@@ -482,7 +482,7 @@ def test_frost_mean_keeps_the_room_side_balance(hp):
 
 
 # ---------------------------------------------------------------------------
-# Exergy columns: dry-air thermal exergy, unchanged in form
+# Exergy columns: dry-air thermal exergy; no indoor-coil balance where water is removed
 # ---------------------------------------------------------------------------
 
 
@@ -490,18 +490,16 @@ def test_exergy_columns_stay_those_of_a_dry_air_stream(hp, wet):
     frame_row = hp.postprocess_exergy(
         hp.analyze_steady(**POINT, RH_room=0.5, verbose=False, postprocess=False, return_dict=False)
     ).iloc[0]
-    for key in (
-        "X_a_iu_in [W]",
-        "X_a_iu_mid [W]",
-        "X_a_iu_out [W]",
-        "Xc_iu_hx [W]",
-        "X_eff_iu_hx [-]",
-        "X_eff_sys [-]",
-    ):
+    # Thermal exergy of the dry air stream and the stream sums of the coil: reported as on a dry row.
+    for key in ("X_a_iu_in [W]", "X_a_iu_mid [W]", "X_a_iu_out [W]", "X_in_iu_hx [W]", "X_out_iu_hx [W]"):
         assert np.isfinite(wet[key]) and wet[key] == frame_row[key], key
-    # The indoor-coil balance closes on the thermal exergy of the air and the refrigerant states.
-    assert wet["Xc_iu_hx [W]"] == pytest.approx(wet["X_in_iu_hx [W]"] - wet["X_out_iu_hx [W]"], rel=1e-12)
-    assert wet["Xc_iu_hx [W]"] > 0.0
+    # The coil removes water: the refrigerant side carries the latent heat and the air side
+    # does not, so the difference is not the coil's destruction and is not reported (it was
+    # pinned finite and positive here before the review of #205; the dry rows keep theirs,
+    # tests/test_ashp_wet_coil_limits.py).
+    assert wet["Q_iu_latent [W]"] > 0.0
+    for key in ("Xc_iu_hx [W]", "X_eff_iu_hx [-]", "X_eff_sys [-]"):
+        assert math.isnan(wet[key]) and math.isnan(frame_row[key]), key
 
 
 # ---------------------------------------------------------------------------

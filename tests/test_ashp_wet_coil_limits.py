@@ -22,6 +22,7 @@ from __future__ import annotations
 import math
 import warnings
 
+import numpy as np
 import pytest
 
 from tmhp import AirSourceHeatPump
@@ -222,3 +223,61 @@ def test_humidity_schedule_is_checked_on_cooling_rows(hp, value):
         _quiet(
             hp.analyze_dynamic, 2 * 3600, 3600, [0.0, 2000.0], [35.0, 35.0], [27.0, 27.0], RH_room_schedule=[0.5, value]
         )
+
+
+# ---------------------------------------------------------------------------
+# 3. Exergy columns of a row whose coil removes water
+# ---------------------------------------------------------------------------
+
+INCOMPLETE = ("Xc_iu_hx [W]", "X_eff_iu_hx [-]", "X_eff_sys [-]")
+
+
+def test_dehumidifying_row_has_no_indoor_coil_exergy_balance():
+    small = _quiet(AirSourceHeatPump, hp_capacity=2500.0)
+    row = small.analyze_steady(2000.0, 15.0, 35.0, RH_room=0.9, verbose=False)
+    assert row["Q_iu_latent [W]"] > 0.0
+    for key in INCOMPLETE:
+        assert math.isnan(row[key]), key
+    # The thermal exergy of the dry air stream and the refrigerant states are reported as before.
+    for key in ("X_a_iu_in [W]", "X_a_iu_mid [W]", "X_a_iu_out [W]", "X_in_iu_hx [W]", "X_out_iu_hx [W]"):
+        assert math.isfinite(row[key]), key
+    for key in ("Xc_cmp [W]", "Xc_exp [W]", "Xc_ou_hx [W]", "Xc_iu_fan [W]", "X_eff_cmp [-]", "X_eff_ou_hx [-]"):
+        assert math.isfinite(row[key]), key
+    # The frame form gives the same row.
+    frame_row = small.postprocess_exergy(
+        small.analyze_steady(2000.0, 15.0, 35.0, RH_room=0.9, verbose=False, postprocess=False, return_dict=False)
+    ).iloc[0]
+    for key, value in row.items():
+        other = frame_row[key]
+        both_nan = isinstance(value, float) and math.isnan(value) and isinstance(other, float) and math.isnan(other)
+        assert both_nan or value == other, key
+
+
+def test_rows_that_remove_no_water_keep_their_exergy_columns(hp):
+    dry = hp.analyze_steady(4000.0, 35.0, 27.0, verbose=False)
+    # 20 % at 27 degC: dew point 1.9 degC, below the evaporating temperature.
+    above_dew_point = hp.analyze_steady(4000.0, 35.0, 27.0, RH_room=0.2, verbose=False)
+    assert above_dew_point["Q_iu_latent [W]"] == 0.0
+    for key in INCOMPLETE:
+        assert math.isfinite(dry[key]) and above_dew_point[key] == dry[key], key
+    assert dry["Xc_iu_hx [W]"] == pytest.approx(dry["X_in_iu_hx [W]"] - dry["X_out_iu_hx [W]"], rel=1e-12)
+    heating = hp.analyze_steady(-3000.0, 7.0, 20.0, RH_room=0.9, verbose=False)
+    for key in INCOMPLETE:
+        assert math.isfinite(heating[key]), key
+
+
+def test_dynamic_frame_blanks_the_balance_on_dehumidifying_rows_only(hp):
+    frame = _quiet(
+        hp.analyze_dynamic,
+        3 * 3600,
+        3600,
+        [4000.0, 4000.0, -3000.0],
+        [35.0, 35.0, 7.0],
+        [27.0, 27.0, 20.0],
+        RH_room_schedule=[0.2, 0.6, 0.6],
+    )
+    wet_rows = frame["Q_iu_latent [W]"] > 0.0
+    assert list(wet_rows) == [False, True, False]
+    for key in INCOMPLETE:
+        assert frame[key].isna().tolist() == [False, True, False], key
+    assert np.isfinite(frame["X_a_iu_out [W]"]).all()

@@ -382,7 +382,8 @@ share :math:`w` of the runtime the coil frosts:
    \text{multiplier} \leftarrow 1 - w\,(1 - \text{multiplier})
 
 — the mean of a unit that frosts for that share and runs frost-free for the
-rest. At and below 2 °C and above 5 °C nothing differs from EnergyPlus. A
+rest. Above 5 °C nothing differs from EnergyPlus, nor at and below 2 °C at the
+rated load in air as humid as a rating condition (:ref:`dry air <ashp-frost-dry>`). A
 request ``Q`` has to
 be met by the mean, so the cycle is solved frost-free at
 ``(Q + Q_defrost) / capacity multiplier`` and the row is then averaged:

@@ -225,7 +225,7 @@ def test_correction_is_continuous_in_the_outdoor_temperature_at_a_given_duty():
 
 
 def test_air_too_dry_to_frost_the_rated_load_coil_is_not_corrected_at_any_load():
-    """Below -18.3 degC at 60 % humidity the air cannot deposit even on the rated-load coil.
+    """Below about -18.38 degC at 60 % humidity the air cannot deposit even on the rated-load coil.
 
     The fixed losses follow the frost drive of the rated-load coil
     (``frost_point_band_K``), so there is no correction there at any load, and
@@ -287,6 +287,36 @@ def test_a_part_loaded_coil_the_air_cannot_frost_is_not_corrected():
     # ... and a quarter-loaded coil at the rating humidity is not corrected more as the air gets colder.
     cold = [_cop_factor(LOAD_WEIGHTED.frost_state(float(T), 0.84, load_ratio=0.25)) for T in range(-20, -46, -1)]
     assert all(b >= a - 1e-15 for a, b in zip(cold, cold[1:], strict=False)) and cold[-1] == 1.0
+
+
+def test_a_request_whose_own_load_leaves_the_coil_without_frost_runs_there():
+    """The load a request resolves to: its own, when the coil there carries no frost.
+
+    Where the rated-load state cannot deliver the request either (its net heat is
+    below it), that state used to be returned first, and a request a hundredth of
+    a watt larger stepped from a frost-free coil to the rated-load one.
+    """
+    # A total pressure of 700 Pa, where the rated-load state delivers 18.05 W net of a 10 kW unit.
+    low, high = (LOAD_WEIGHTED.frost_state_at_duty(-12.0, 0.7, Q, 10000.0, P_Pa=700.0) for Q in (18.05, 18.06))
+    assert not low.active and not high.active
+    assert high.load_ratio == pytest.approx(low.load_ratio * 18.06 / 18.05, rel=1e-9)
+    # A band of zero at one atmosphere, air that barely frosts the rated-load coil.
+    for band_K in (0.0, 1e-12, 3.0):
+        model = DefrostModel(frost_point_band_K=band_K)
+        a, b = (model.frost_state_at_duty(-5.0, 0.5083, Q, 10000.0) for Q in (6831.020114, 6831.022114))
+        assert not a.active and not b.active and b.load_ratio == pytest.approx(a.load_ratio, rel=1e-6)
+    # A request above what the frosted rated-load unit delivers is still answered with the rated-load state.
+    full = LOAD_WEIGHTED.frost_state_at_duty(-7.0, None, 9000.0, 9000.0)
+    assert full.active and full.load_ratio == 1.0
+
+
+def test_the_load_term_needs_no_saturation_the_humid_air_properties_cannot_give():
+    """At 620 Pa saturated air at 0 degC is outside the range of the properties; the air state is not."""
+    for model in (LOAD_WEIGHTED, DefrostModel(frost_point_band_K=None)):
+        state = model.frost_state_at_duty(0.0, 0.49, 3121.0, 10000.0, P_Pa=620.0)
+        assert 0.0 < state.capacity_multiplier <= 1.0 and 0.0 < state.load_ratio <= 1.0
+        part = model.frost_state(0.0, 0.49, P_Pa=620.0, load_ratio=0.4)
+        assert 0.0 < part.capacity_multiplier <= 1.0
 
 
 def test_without_the_frost_point_band_dry_cold_air_keeps_the_energyplus_fixed_loss_at_every_load():

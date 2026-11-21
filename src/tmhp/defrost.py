@@ -64,9 +64,11 @@ humidity, here, and the load on the coil, in the next section:
       \\text{power multiplier} &= 1 - w\\,\\left(1 - 0.954\\,(1 - t_{frac})\\right)
 
   -- the mean of a unit that frosts for the share ``w`` of its runtime and
-  runs frost-free for the rest. At and below 2 degC, in air humid enough to
-  frost the coil (next item), and above 5 degC nothing differs from
-  EnergyPlus; ``transition_K=0`` restores the switch.
+  runs frost-free for the rest. Above 5 degC nothing differs from
+  EnergyPlus, nor at and below 2 degC at the rated load in air whose frost
+  point is the band of the next item above the coil or more (at 2 degC and
+  50 % relative humidity it is not: the COP multiplier is 0.983 here and
+  0.912 in EnergyPlus); ``transition_K=0`` restores the switch.
 
 * **Air too dry to frost the coil.** The factors 0.875 and 0.954 are what a
   coil loses, on average, between two defrosts: the frost that builds up on
@@ -186,10 +188,13 @@ at zero, not at the EnergyPlus floor. Without the frost-point band
 dry air for the load to scale, the fixed losses stay at every load, and at
 half load and 60 % humidity the COP multiplier falls from 0.997 at -15 degC
 to 0.917 at -18.4 degC -- more correction in drier, colder air. A band of
-zero keeps one thing of that form: where the air can barely frost the
-rated-load coil the fixed losses switch between none and all over a small
-range of load, so the load a request resolves to can step (as it does
-without the band); the default band has no such step.
+zero, or one much narrower than the default, keeps one thing of that form:
+where the air can barely frost the rated-load coil the fixed losses switch
+between none and all over a small range of load, so the load a request
+resolves to can step from a part-loaded coil to the rated-load one. The form
+without the band steps too, though not at the same requests; only
+``frost_point_band_K=None`` reproduces it request for request. At one
+atmosphere the default band has no such step.
 
 *What it assumes.* The air flow over the coil does not follow the load. A
 unit that slows its outdoor fan with the compressor has a colder coil than
@@ -563,9 +568,9 @@ class DefrostModel:
         then one and the fixed multipliers stay at every load -- they are not
         tied to a deposition there, so there is none for the load to scale.
         """
-        frostable = min(w_out, saturation_humidity_ratio(0.0, P_Pa))
+        frostable = min(w_out, _saturation_or_inf(0.0, P_Pa))
         at_rated = frostable - saturation_humidity_ratio(min(rated_coil_C, 0.0), P_Pa)
-        at_load = frostable - saturation_humidity_ratio(min(coil_C, 0.0), P_Pa)
+        at_load = frostable - _saturation_or_inf(min(coil_C, 0.0), P_Pa)
         if not at_rated > floor:
             return 1.0 if floor > 0.0 else 0.0
         return min(1.0, max(floor, at_load) / at_rated)
@@ -588,7 +593,9 @@ class DefrostModel:
         The duty depends on the correction, so the ratio ``r`` is the root of
         ``r = load_ratio(gross_duty(frost_state(r)))``, which lies between the
         request's own ratio and 1: more load means a colder coil, more frost
-        and a larger duty still.
+        and a larger duty still. A request whose own load leaves the coil
+        without frost is answered there; one the rated-load state cannot
+        deliver is answered with the rated-load state.
         """
         if not self.load_weighted:
             return self.frost_state(T_out_C, RH_out, P_Pa=P_Pa)
@@ -605,10 +612,14 @@ class DefrostModel:
             gross = self.gross_duty(frost, request, self.defrost_load(frost, T_out_C, rated))
             return ratio - self.load_ratio(gross, rated, T_out_C)
 
-        if low >= 1.0 or residual(1.0) <= 0.0:
+        if low >= 1.0:
             return state(1.0)
         if residual(low) >= 0.0:
+            # The coil at the request's own load carries no frost: the unit runs there. (Asked first:
+            # where the rated-load state cannot deliver the request either, that one is not the answer.)
             return state(low)
+        if residual(1.0) <= 0.0:
+            return state(1.0)
         from scipy.optimize import brentq
 
         return state(float(brentq(residual, low, 1.0, xtol=1e-12, rtol=1e-12)))
@@ -657,6 +668,20 @@ class DefrostModel:
     def gross_duty(frost: FrostState, Q_request: float, Q_defrost: float) -> float:
         """Frost-free duty [W] whose mean over frosting and defrost is ``Q_request``."""
         return (abs(Q_request) + Q_defrost) / frost.capacity_multiplier
+
+
+def _saturation_or_inf(T_C: float, P_Pa: float) -> float:
+    """Humidity ratio of saturated air at ``T_C``, or infinity where the humid-air properties give none.
+
+    At a low total pressure the saturation pressure at ``T_C`` nears or
+    exceeds it, and saturated air is outside the range of the properties
+    (a water mole fraction above 0.94). Any air state that does exist at that
+    pressure holds less, which is all the comparisons here ask.
+    """
+    try:
+        return saturation_humidity_ratio(T_C, P_Pa)
+    except ValueError:
+        return math.inf
 
 
 def _is_width(value: object) -> bool:

@@ -336,6 +336,66 @@ def test_a_number_of_another_type_is_read_on_a_cooling_row(hp):
     assert whole["RH_room [-]"].iloc[0] == 1.0
 
 
+@pytest.mark.parametrize("unused", [float("nan"), -1.0, 50.0, "n/a", pd.NA, True])
+def test_a_steady_heating_or_off_point_does_not_read_the_room_humidity(hp, unused):
+    """As a dynamic run: a loop over rows passes whatever the row holds, and only a cooling row reads it."""
+    for load, outdoor, room in ((-2000.0, 7.0, 20.0), (0.0, 35.0, 27.0)):
+        row = hp.analyze_steady(load, outdoor, room, RH_room=unused, verbose=False)
+        reference = hp.analyze_steady(load, outdoor, room, verbose=False)
+        assert row["failure_reason"] == "none" and math.isnan(row["RH_room [-]"])
+        for key in ("Q_ref_iu [W]", "E_tot [W]", "T_iu_a_out [°C]", "cop_sys [-]"):
+            both_nan = math.isnan(row[key]) and math.isnan(reference[key])
+            assert both_nan or row[key] == reference[key], key
+    ceiling = hp.max_capacity(7.0, 20.0, mode="heating", RH_room=unused)
+    assert ceiling["Q_max [W]"] == hp.max_capacity(7.0, 20.0, mode="heating")["Q_max [W]"]
+    with pytest.raises(ValueError, match="Room relative humidity must be a fraction"):
+        hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=unused, verbose=False)
+    with pytest.raises(ValueError, match="Room relative humidity must be a fraction"):
+        hp.max_capacity(35.0, 27.0, mode="cooling", RH_room=unused)
+
+
+COOLING_TWICE = (2 * 3600, 3600, [2000.0, 2000.0], [35.0, 35.0], [27.0, 27.0])
+
+
+@pytest.mark.parametrize(
+    "schedule",
+    [
+        [0.5, 0.6],
+        (0.5, 0.6),
+        np.array([0.5, 0.6]),
+        np.array([[0.5], [0.6]]),
+        pd.Series([0.5, 0.6], index=[7, 9]),
+        # A frame is its values, never its column names -- also where a name is itself a number.
+        pd.DataFrame({"RH": [0.5, 0.6]}),
+        pd.DataFrame({0.9: [0.5, 0.6]}),
+        (value for value in (0.5, 0.6)),
+    ],
+    ids=["list", "tuple", "array", "column array", "series", "frame", "frame named by a number", "generator"],
+)
+def test_humidity_schedule_is_read_by_value_one_entry_a_step(hp, schedule):
+    frame = _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=schedule)
+    assert list(frame["RH_room [-]"]) == [0.5, 0.6]
+
+
+@pytest.mark.parametrize(
+    "schedule, says",
+    [
+        # Keys and column names are not humidities: these were read as 0 and 1, and as 0.3 and 0.4.
+        ({0: 0.5, 1: 0.6}, "one entry per step"),
+        (pd.DataFrame({0.3: [0.5, 0.6], 0.4: [0.5, 0.6]}), "one entry per step"),
+        (np.array([[0.5, 0.6], [0.5, 0.6]]), "one entry per step"),
+        (0.5, "one entry per step"),
+        ("0.5", "one entry per step"),
+        ([0.5, 0.6, 0.7], r"RH_room_schedule length \(3\) != tN \(2\)"),
+        (pd.DataFrame({"RH": [0.5]}), r"RH_room_schedule length \(1\) != tN \(2\)"),
+    ],
+    ids=["dict", "two columns", "square array", "scalar", "text", "too long", "frame too short"],
+)
+def test_humidity_schedule_of_another_shape_is_refused(hp, schedule, says):
+    with pytest.raises(ValueError, match=says):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=schedule)
+
+
 # ---------------------------------------------------------------------------
 # 3. Exergy columns of a row whose coil removes water
 # ---------------------------------------------------------------------------

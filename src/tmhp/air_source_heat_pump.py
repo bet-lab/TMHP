@@ -521,6 +521,31 @@ def _check_room_humidity(value: float) -> float:
     return float(value)
 
 
+def _schedule_entries(schedule: Any, name: str) -> np.ndarray:
+    """The entries of a per-step schedule as given, one per step, without converting them to numbers.
+
+    What ``np.array(schedule, dtype=float)`` reads as one value per step is
+    read the same way -- a list, a tuple, an array, a pandas Series, and a
+    one-column array or DataFrame, whose rows are the steps -- but the
+    entries stay what they are (a missing value, text), for the caller to
+    convert where it reads them. The values are taken, never the labels: a
+    DataFrame is its cells, not its column names. Anything that is not one
+    entry per step is refused: a mapping, text, a single number, a table of
+    several columns.
+    """
+    shape = "a mapping" if isinstance(schedule, Mapping) else "text" if isinstance(schedule, (str, bytes)) else None
+    if shape is None:
+        if not hasattr(schedule, "__len__") and isinstance(schedule, Iterable):
+            schedule = list(schedule)  # a generator: its items, once
+        entries = np.asarray(schedule, dtype=object)
+        if entries.ndim == 2 and entries.shape[1] == 1:
+            entries = entries[:, 0]
+        if entries.ndim == 1:
+            return entries
+        shape = f"shape {entries.shape}"
+    raise ValueError(f"{name} must hold one entry per step, got {shape}")
+
+
 def _room_humidity_of_step(value: Any, step: int) -> float:
     """The room humidity a cooling step of a schedule holds, as a fraction in [0, 1], or ``ValueError``.
 
@@ -2795,7 +2820,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         RH_room : float | None
             Room relative humidity as a fraction (0-1), for the wet indoor
             coil in cooling (see :meth:`analyze_steady`). None: the dry coil.
-            Ignored in heating.
+            Not read in heating, whatever is given.
 
         Returns
         -------
@@ -2831,8 +2856,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             raise ValueError(f"rel_tol must be a positive number, got {rel_tol!r}")
         if T_a_room is None:
             T_a_room = self.T_a_room
-        if RH_room is not None:
-            RH_room = _check_room_humidity(RH_room)
+        # Read, and checked, for the cooling ceiling only.
+        RH_room = _check_room_humidity(RH_room) if RH_room is not None and mode == "cooling" else None
         with self._solving_with_room_humidity(RH_room, T_a_room, cooling=mode == "cooling"):
             return self._solve_max_capacity(T0, T_a_room, mode, rel_tol, RH_out)
 
@@ -3181,8 +3206,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
             dew point condenses water (the wet coil of
             :func:`tmhp.heat_exchanger.calc_HX_perf_for_target_heat`), and
             the request ``Q_r_iu`` is met by sensible plus latent heat. None
-            (default): the dry coil, all of the coil heat sensible. Ignored
-            in heating, where the indoor coil is the condenser.
+            (default): the dry coil, all of the coil heat sensible. Not read
+            on a heating request, where the indoor coil is the condenser, nor
+            on an off one (``Q_r_iu <= 0``): anything may be given there. On
+            a cooling request a value that is not a number in 0-1 raises
+            ``ValueError``.
 
         Returns
         -------
@@ -3292,8 +3320,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         if T_a_room is None:
             T_a_room = self.T_a_room
-        if RH_room is not None:
-            RH_room = _check_room_humidity(RH_room)
+        # Read, and checked, on a cooling request only: a heating or an off
+        # point has no use for it, whatever it is given.
+        RH_room = _check_room_humidity(RH_room) if RH_room is not None and Q_r_iu > 0 else None
 
         # A cooling point with a room humidity is solved with the wet indoor
         # coil; any other point with the dry one.
@@ -3520,6 +3549,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             and off steps an entry may be anything -- NaN, ``None``,
             ``pd.NA``, text -- and is not looked at. A cooling step whose
             entry is not such a number raises ``ValueError`` naming the step.
+            One entry per step: a list, an array, a Series, or a one-column
+            array or DataFrame (its values, not its labels).
 
         Returns
         -------
@@ -3563,9 +3594,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Kept as given, not converted to numbers: only the cooling steps are
         # read, and the others may hold whatever a file has where no humidity
         # was recorded (NaN, None, pd.NA, text).
-        RH_room_steps: list | None = None
+        RH_room_steps: np.ndarray | None = None
         if RH_room_schedule is not None:
-            RH_room_steps = list(RH_room_schedule)
+            RH_room_steps = _schedule_entries(RH_room_schedule, "RH_room_schedule")
             if len(RH_room_steps) != tN:
                 raise ValueError(f"RH_room_schedule length ({len(RH_room_steps)}) != tN ({tN})")
 

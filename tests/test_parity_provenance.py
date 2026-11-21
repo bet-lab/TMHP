@@ -37,9 +37,14 @@ def harness(monkeypatch):
     def load_all(slug=None, *, include_hold=True):
         return [c for c in FAKES if slug is None or c.slug == slug]
 
-    def run_point(model, catalog, point):
+    def run_point(model, catalog, point, *, request_multiplier=1.0):
         cop = point.target_cop() * (1.0 + 0.01 * point.id + 0.001 * catalog.nominal_capacity_kW)
-        return {"failure_reason": "none", "cop_sys [-]": cop, "E_tot [W]": point.q_kW * 1000.0 / cop}
+        return {
+            "failure_reason": "none",
+            "cop_sys [-]": cop,
+            "E_tot [W]": point.q_kW * 1000.0 / cop,
+            "Q_ref_tank [W]": point.q_kW * 1000.0 * request_multiplier,
+        }
 
     monkeypatch.setattr(run, "load_all", load_all)
     monkeypatch.setattr(run, "_build_model", lambda *args: object())
@@ -182,7 +187,7 @@ def test_an_interrupted_rerun_never_leaves_an_old_record_vouching_for_a_new_csv(
     monkeypatch.setattr(
         run,
         "_run_point",
-        lambda model, catalog, point: {
+        lambda model, catalog, point, **kwargs: {
             "failure_reason": "none",
             "cop_sys [-]": 9.0,
             "E_tot [W]": 100.0,
@@ -243,3 +248,56 @@ def test_committed_parity_figure_states_the_adopted_statistics() -> None:
             assert pooled not in svg, f"{model_class}: catalogues on hold are pooled into the statistics"
             refrigerants = "/".join(sorted(held.refrigerant.unique()))
             assert f"on hold, not scored ({refrigerants}, {held.slug.nunique()} units)" in svg
+
+
+@pytest.mark.parametrize(
+    ("probe_duty", "failure", "expected_kW"),
+    [(10_000.0, "none", 10.0), (7_000.0, "none", None), (8_000.0, "cycle", None)],
+)
+def test_boiler_capacity_probe_keeps_the_catalogue_water_conditions(
+    monkeypatch, probe_duty, failure, expected_kW
+) -> None:
+    """The overload changes only the duty request and discards unreliable returns."""
+    import math
+
+    catalog = FAKES[0]
+    operating_calls = []
+
+    class Boiler:
+        """Record both solves while controlling the overload result."""
+
+        def analyze_steady(self, **kwargs):
+            """Return a valid short point for the catalogue request."""
+            operating_calls.append(kwargs)
+            is_probe = kwargs["Q_ref_tank"] > catalog.nominal_capacity_kW * 1000
+            return {
+                "failure_reason": failure if is_probe else "none",
+                "Q_ref_tank [W]": probe_duty if is_probe else 8_000.0,
+                "cop_sys [-]": 3.0,
+                "E_tot [W]": 2_000.0,
+                "capacity_binding": "compressor",
+                "discharge_control": True,
+                "dT_ref_superheat [K]": 0.0,
+                "x_ref_cmp_in [-]": 0.95,
+                "T_ref_cmp_out [°C]": 140.0,
+            }
+
+    monkeypatch.setattr(run, "_build_model", lambda *args: Boiler())
+    row = run.run_catalog(catalog).iloc[0]
+    plain, probe = operating_calls[0], operating_calls[len(catalog.points)]
+    assert probe == {**plain, "Q_ref_tank": 1.5 * plain["Q_ref_tank"]}
+    assert row.failure_reason == "capacity_short"
+    assert not row.usable
+    assert row.q_pred_kW == 8.0
+    assert row.capacity_ratio == pytest.approx(8.0 / catalog.nominal_capacity_kW)
+    assert row.capacity_binding == "compressor"
+    assert row.discharge_control
+    assert row.superheat_K == 0.0
+    assert row.x_suction == 0.95
+    assert row.t_discharge_C == 140.0
+    if expected_kW is None:
+        assert math.isnan(row.q_max_pred_kW)
+        assert math.isnan(row.capacity_headroom)
+    else:
+        assert row.q_max_pred_kW == expected_kW
+        assert row.capacity_headroom == pytest.approx(expected_kW / catalog.nominal_capacity_kW)

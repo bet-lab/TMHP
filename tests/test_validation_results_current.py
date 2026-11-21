@@ -203,3 +203,82 @@ def test_manifest_stamp_is_current_or_the_results_still_reproduce() -> None:
         f"results no longer reproduce ({sum(map(len, stale.values()))} value(s) in {len(stale)} catalogue(s): "
         f"{', '.join(sorted(stale))}). {REGEN_HINT}."
     )
+
+
+def _assert_capacity_score(score, points: pd.DataFrame, *, csv: bool = False) -> None:
+    """The score uses all available capacity observations, including short points."""
+    assert score["points_capacity_short"] == (points.failure_reason == "capacity_short").sum()
+    assert score["capacity_ratio_mean"] == pytest.approx(points.capacity_ratio.mean())
+    assert score["capacity_ratio_min"] == pytest.approx(points.capacity_ratio.min())
+    assert score["capacity_headroom_mean"] == pytest.approx(points.capacity_headroom.mean())
+    counts = score["capacity_binding_counts"]
+    if csv:
+        counts = json.loads(counts)
+    assert counts == points.capacity_binding.value_counts().to_dict()
+
+
+def test_committed_capacity_scores_match_the_point_rows() -> None:
+    """Per-unit and per-class scores in both files agree with the delivered duties."""
+    manifest = _load_manifest()
+    summary = pd.read_csv(RESULTS / "summary.csv").set_index("slug")
+    frames = []
+    for slug in _slugs():
+        points = _committed(slug)
+        assert {
+            "q_pred_kW",
+            "capacity_ratio",
+            "capacity_binding",
+            "x_suction",
+            "superheat_K",
+            "discharge_control",
+            "t_discharge_C",
+            "q_max_pred_kW",
+            "capacity_headroom",
+        } <= set(points)
+        pd.testing.assert_series_equal(points.capacity_ratio, points.q_pred_kW / points.q_kW, check_names=False)
+        pd.testing.assert_series_equal(points.capacity_headroom, points.q_max_pred_kW / points.q_kW, check_names=False)
+        short = points[points.failure_reason == "capacity_short"]
+        assert (short.capacity_ratio < 0.99).all()
+        assert short.capacity_binding.notna().all()
+        assert not short.usable.any()
+        if points.model_class.iat[0] == "ASHPB":
+            available = points.dropna(subset=["q_max_pred_kW"])
+            assert (available.q_max_pred_kW >= available.q_pred_kW).all()
+        _assert_capacity_score(summary.loc[slug], points, csv=True)
+        _assert_capacity_score(manifest["capacity_by_unit"][slug], points)
+        frames.append(points)
+
+    for model_class, points in pd.concat(frames).groupby("model_class"):
+        _assert_capacity_score(manifest["capacity_by_model_class"][model_class], points)
+        for row in summary[summary.model_class == model_class].to_dict("records"):
+            _assert_capacity_score(
+                {key.removeprefix("class_"): value for key, value in row.items() if key.startswith("class_")},
+                points,
+                csv=True,
+            )
+
+
+def test_committed_discharge_strata_partition_scored_points() -> None:
+    """The control split uses point-weighted COP errors of scored adopted points."""
+    points = pd.concat([_committed(slug) for slug in _slugs()], ignore_index=True)
+    scored = points[points.usable & (points.status == "adopted")]
+    assert scored.discharge_control.notna().all()
+    assert scored.x_suction.notna().all()
+    controlled = scored.discharge_control.astype(bool)
+    expected = {
+        (model_class, standard, stratum): group
+        for stratum, mask in {
+            "no_control": ~controlled,
+            "reduced_superheat": controlled & (scored.x_suction >= 1),
+            "wet_suction": controlled & (scored.x_suction < 1),
+        }.items()
+        for (model_class, standard), group in scored[mask].groupby(["model_class", "rating_standard"])
+    }
+    actual = _load_manifest()["discharge_control_strata"]
+    assert len(actual) == len(expected)
+    for row in actual:
+        group = expected.pop((row["model_class"], row["rating_standard"], row["stratum"]))
+        assert row["points_usable"] == len(group)
+        assert row["cop_MAPE_pct"] == pytest.approx(group.abs_pct_error.mean())
+        bias = (group.cop_pred / group.cop_target - 1).mean() * 100
+        assert row["cop_bias_pct"] == pytest.approx(bias)

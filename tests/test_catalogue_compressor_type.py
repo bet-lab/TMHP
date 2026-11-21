@@ -125,7 +125,7 @@ def test_overrides_still_win_over_the_published_type(monkeypatch):
 def test_unit_rows_carry_the_published_kind(monkeypatch):
     monkeypatch.setattr(run, "_build_model", lambda *args: object())
     monkeypatch.setattr(
-        run, "_run_point", lambda *args: {"failure_reason": "none", "cop_sys [-]": 4.4, "E_tot [W]": 2000}
+        run, "_run_point", lambda *args, **kwargs: {"failure_reason": "none", "cop_sys [-]": 4.4, "E_tot [W]": 2000}
     )
     row = run.run_catalog(_catalog(compressor_type="scroll", injection="vapor")).iloc[0]
     assert (row["compressor_type"], row["injection"]) == ("scroll", "vapor")
@@ -190,6 +190,14 @@ def test_injection_strata_split_the_pooled_headline():
 
 
 def test_strata_and_summary_print_without_air_to_water_units(capsys):
+    """The summary prints a capacity score even with no air-to-water units."""
+    capacity = {
+        "points_capacity_short": 0,
+        "capacity_ratio_mean": 1.0,
+        "capacity_ratio_min": 1.0,
+        "capacity_binding_counts": {},
+        "capacity_headroom_mean": 1.5,
+    }
     summary = pd.DataFrame(
         [
             {
@@ -204,10 +212,13 @@ def test_strata_and_summary_print_without_air_to_water_units(capsys):
                 "cop_MAE": 0.1,
                 "cop_MAPE_pct": 5.0,
                 "cop_bias_pct": -1.0,
+                **capacity,
             }
         ]
     )
     strata = run.injection_strata(summary, [])
     assert strata.empty and list(strata.columns) == list(run.STRATA_COLUMNS)
-    run._print_summary(summary)
-    assert "by injection" not in capsys.readouterr().out
+    run._print_summary(summary, {"capacity_by_model_class": {"ASHP": capacity}, "discharge_control_strata": []})
+    printed = capsys.readouterr().out
+    assert "by injection" not in printed
+    assert "capacity: 0/4 short, mean ratio 1.000, min ratio 1.000, mean headroom 1.500" in printed

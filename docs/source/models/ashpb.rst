@@ -348,7 +348,8 @@ described in :doc:`/validation/defaults` and in the coefficient archive
    and 10.9) and an uncontrolled discharge of 172 and 196 °C there; the
    discharge-temperature control holds ``T_dis_max`` (150 °C) by lowering
    the suction superheat and then letting the suction go wet down to
-   ``x_suction_min`` (0.9), and a request it cannot hold runs at the largest
+   ``x_suction_min`` (by default 0.9 for every refrigerant for now), and a
+   request it cannot hold runs at the largest
    smaller duty that it can (``capacity_clamped == "max"``), or is refused
    when there is none (see :doc:`/developer/reference-operating-limits`).
 

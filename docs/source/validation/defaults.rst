@@ -4,7 +4,8 @@ Where the defaults come from
 
 TMHP decides a lot on your behalf. Hand it a capacity and a refrigerant and it
 produces heat-exchanger conductances, a compressor displacement, a rated air
-flow and the efficiency model of a compressor. That convenience is the point of the
+flow, the efficiency model of a compressor and the power its electronics
+draw. That convenience is the point of the
 library — but it is only worth having if each of those numbers can be traced to
 a published document rather than to somebody's judgement, and if you can rerun
 the step that produced it.
@@ -28,8 +29,9 @@ reads it.
     A consequence worth stating plainly: validating against a catalogue is
     never calibrating against it. No parameter below is fitted to any unit in
     :doc:`the validation set <index>`. One choice between two candidate
-    compressor speed shapes was made on certified heat-pump data, and it is
-    stated where it was made
+    compressor speed shapes was made on certified heat-pump data — the
+    declared part-load points of the Heat Pump Keymark population, not the
+    validation catalogues — and it is stated where it was made
     (`Compressor data, not heat-pump data`_).
 
 
@@ -146,13 +148,24 @@ Summary
         and are run at it, so the indoor default does not enter the parity
         results
       - ``default_inputs.fan_airflow``
+    * - Fixed control power (``E_ctrl``)
+      - 15 W for a unit delivering to water, 12 W for a unit delivering to
+        air
+      - Medians of what Heat Pump Keymark certificates declare with the
+        compressor off: the two off/standby powers of 8,676 air-to-water
+        certificates pooled, and the thermostat-off power of 19 air-to-air
+        certificates. The ground- and water-source models take the value of
+        their sink, carried over (`Fixed control power`_)
+      - ``auxiliary_power.pto_proxy``
 
 Every ``Reproduce`` entry is a module under ``validation/extraction/``,
-``validation/compressor_maps/`` or ``validation/default_inputs/``::
+``validation/compressor_maps/``, ``validation/default_inputs/`` or
+``validation/auxiliary_power/``::
 
     uv run python -m validation.extraction.<name>
     uv run python -m validation.compressor_maps.<name>
     uv run python -m validation.default_inputs.<name>.build
+    uv run python -m validation.auxiliary_power.pto_proxy
 
 The shipped compressor models are version ``semi-empirical-2026-11-15``
 (:data:`tmhp.compressor_efficiency.COEFFICIENT_VERSION`).
@@ -617,39 +630,48 @@ catalogue displacement since November 2026 like the others.
       - 31.2
       - 48.4
     * - ``AirSourceHeatPumpBoiler``, 15 kW, R290
-      - 83.9
-      - 69.6
+      - 84.4
+      - 70.0
     * - ``GroundSourceHeatPump``, 4 kW, R32
       - 24.8
       - 38.4
     * - ``GroundSourceHeatPumpBoiler``, 8 kW, R290
-      - 100.9
-      - 83.8
+      - 101.6
+      - 84.3
     * - ``GroundSourceHeatPumpBoiler``, 8 kW, R134a
       - not constructible
-      - 96.8
+      - 102.1
     * - ``WaterSourceHeatPumpBoiler``, 8 kW, R290
-      - 71.0
-      - 59.0
+      - 71.4
+      - 59.3
 
 Both columns are the present library; only the displacement differs. For the
 two liquid-source boilers the change is the one of November 2026: the default
-8 kW R290 ground-source boiler went from a rated speed of 100.9 to 83.8 rev/s
-and the water-source boiler from 71.0 to 59.0, and an R134a ground-source
+8 kW R290 ground-source boiler went from a rated speed of 101.6 to 84.3 rev/s
+and the water-source boiler from 71.4 to 59.3, and an R134a ground-source
 boiler, which on the constant found no speed up to 150 rev/s that delivers its
-nameplate at B0/W55 and so could not be built, is now rated at 96.8 rev/s.
+nameplate at B0/W55 and so could not be built, is now rated at 102.1 rev/s.
 With the catalogue displacement every machine of the table is rated inside the
 speed range of the rotary efficiency data, 30 to 120 rev/s
 (`Compressor efficiency`_); with the constant one was below it and one could
 not be built.
 
+The rated speed is the speed that delivers the nameplate, and the heat a
+boiler delivers includes the part of the compressor's loss that reaches the
+gas, so the rated speed of a heating-rated machine moves a little with the
+efficiency model. Between the two speed shapes of the rotary types
+(`Compressor data, not heat-pump data`_) the R290 boilers of this table differ
+by 0.3 to 0.6 rev/s and the R134a ground-source boiler by 5 rev/s (96.8 rev/s
+with ``shao_informed``); the two cooling-rated units do not move. The fixed
+control power (`Fixed control power`_) does not enter the rated speed.
+
 One limit remains, and it belongs to the rule. A ground-source boiler is still
-rated high — at 8 kW, 74.8 rev/s with R32, 82.1 with R410A, 83.8 with R290 and
-96.8 with R134a — because its nameplate condition, B0/W55, is harsher than the
+rated high — at 8 kW, 74.6 rev/s with R32, 82.2 with R410A, 84.3 with R290 and
+102.1 with R134a — because its nameplate condition, B0/W55, is harsher than the
 catalogue rating point (7.2 / 54.4 °C) at which the rule reads the nameplate: a
 compressor sized to deliver the nameplate there has to turn faster to deliver
 it from brine at 0 °C. A machine rated above 80 rev/s takes its speed ceiling
-from 1.5 times the rated speed (125.6 rev/s for the R290 machine, 145.2 for
+from 1.5 times the rated speed (126.5 rev/s for the R290 machine, 153.1 for
 the R134a one), which is above the 120 rev/s the efficiency data reach. If you
 know the compressor of such a machine, pass ``V_cmp_ref`` and ``rps_max``.
 
@@ -824,24 +846,26 @@ water-to-air indoor figure 0.62 to 0.93 of it.
 .. admonition:: Where the catalogue airflow meets the dry-coil model
     :class: note
 
-    The indoor laws give 150 to 160 m³/h per kW for wall-mounted units of
-    9 kW and above and for floor-standing units of any size. TMHP's coils are
-    dry, so the whole nameplate is sensible heat, and at that airflow the room
-    air has to change by about 20 K: the refrigerant then stands 20 to 25 K
-    from the room air at nameplate capacity (a 15 kW unit condenses at 42 °C
-    in a 20 °C room and evaporates at 4.6 °C in a 27 °C one).
+    The indoor laws give no more than 157 m³/h per kW for wall-mounted units
+    of 9 kW and above (140 at 15 kW) and 153 for floor-standing units of any
+    size. TMHP's coils are dry, so the whole nameplate is sensible heat, and
+    at that airflow the room air has to change by about 20 K or more: the refrigerant
+    then stands 20 to 25 K from the room air at nameplate capacity (a 15 kW
+    unit condenses at 42 °C in a 20 °C room and evaporates at 4.6 °C in a
+    27 °C one).
 
     That is why the approach-temperature search box of ``AirSourceHeatPump``
     (``dT_approach_bounds``) is 1 to 30 K — the box the catalogue parity runs
     have always used. With the earlier upper bound of 20 K the box itself was
-    the limit at the rating point: a default unit reached its nameplate at
+    the limit at the rating point: a default unit reaches its nameplate at
     35/27 °C only up to 8 kW (98 % at 9 kW, 89 % at 15 kW; a floor-standing
-    unit 96 % at any capacity), and in heating at −7 °C outdoors fell short
-    from 6 kW (86 % at 8 kW). At 30 K every default unit from 1.5 to 50 kW,
-    of either indoor class and either rated duty, delivers its nameplate at
-    both rating points. In mild weather the ceiling of the default 4 kW unit
-    is then its compressor (164 % of the nameplate at 7/20 °C, 145 % at
-    35/27 °C) rather than the box (126 % and 124 % at 20 K).
+    unit 96 % at any capacity), and in heating at −7 °C outdoors falls short
+    from 5 kW (92 % at 6 kW, 86 % at 8 kW). At 30 K every default unit from
+    1.5 to 50 kW, of either indoor class and either rated duty, delivers its
+    nameplate at both rating points. In mild weather the ceiling of the
+    default 4 kW unit is then its compressor (188 % of the nameplate at
+    7/20 °C, 164 % at 35/27 °C) rather than the box (126 % and 124 % at
+    20 K).
 
 The air-to-water outdoor stratum is the weakest of the airflow laws and says
 so. It has 59 rows from 13 families and 6 manufacturers (Daikin, LG,
@@ -858,6 +882,173 @@ the constant missed it by 32.5 %.
 hold-out errors and the spread between manufacturers (a unit's own airflow
 can differ from the default by about ±23 %); a published airflow passed as
 ``dV_fan_a_rated`` replaces it.
+
+
+Fixed control power
+===================
+
+A running heat pump draws more than its compressor, fans and pumps. A control
+board, sensors, a display, communications and the standby losses of the drive
+are fed whenever the unit is in operation, at about the same level whatever
+the load. The cycle knows nothing of that power, and the rating standards
+count it: the effective power input of EN 14511-3 includes "all control and
+safety devices", so a catalogue COP has it in its denominator. Every model
+takes it as the constructor input ``E_ctrl`` [W]. It is part of ``E_tot [W]``
+and of ``cop_sys [-]``, it is reported as ``E_ctrl [W]``, and ``E_ctrl=0`` is
+the machine without it. How it is accounted row by row is in
+:ref:`the cycle page <fixed-control-power>`; the constants are in
+:mod:`tmhp.control_power`.
+
+Where the values come from
+--------------------------
+
+No source at hand states what the electronics of a *running* unit draw.
+Catalogues print compressor current and fan motor output, not the power of
+the board, and backing 15 W out of a measured total of 3 kW needs the total
+and its parts to agree within 0.5 %. What is declared, on every Heat Pump
+Keymark certificate and measured by an accredited laboratory, is the power of
+the unit with the compressor **off**: in thermostat-off mode (``P_TO``: the
+unit is on, controls, sensors and communications live), and in the standby
+and off modes of EN 14825 (the archive holds these two as ``P_offsb_a_W`` and
+``P_offsb_b_W`` without claiming which is which). The defaults are medians of
+those declarations, read from ``keymark_pto_air_to_water.csv`` and
+``keymark_pto_air_to_air.csv``.
+
+.. list-table:: Declared compressor-off powers (``validation/data/auxiliary_power/``)
+    :header-rows: 1
+    :widths: 20 22 30 28
+
+    * - Population
+      - Certificates / outdoor units / manufacturers
+      - Statistic the default is
+      - The other declaration
+    * - Air-to-water
+      - 8,676 / 5,675 / 174
+      - Median of the two off/standby declarations pooled: 15 W (quartiles
+        11–21)
+      - ``P_TO``: median 19 W (quartiles 12–25)
+    * - Air-to-air
+      - 19 / 15 / 3
+      - Median ``P_TO``: 12 W (quartiles 11.5–21.5)
+      - Off/standby: median 1 W
+
+The two populations do not use the same declaration, and that is a judgement.
+On an air-to-water unit the thermostat-off power can include a circulation
+pump, which is not electronics, so the off/standby declarations are read. On
+the air-to-air certificates the off/standby
+declarations are about 1 W — the ecodesign standby cap, not the power of live
+controls — so ``P_TO`` is read. ``fixed_power_levels.csv`` under
+``validation/data/rotary_speed_evidence/`` records the statistic, the counts
+and the value of each level; ``validation.auxiliary_power.pto_proxy`` extracts
+the two files from the hplib archive listed in
+``validation/registry/sources.yaml``.
+
+.. list-table:: Default ``E_ctrl``
+    :header-rows: 1
+    :widths: 46 14 40
+
+    * - Model
+      - Default
+      - Basis
+    * - ``AirSourceHeatPumpBoiler``
+      - 15 W
+      - The air-to-water median
+    * - ``AirSourceHeatPump``
+      - 12 W
+      - The air-to-air median
+    * - ``GroundSourceHeatPumpBoiler``, ``WaterSourceHeatPumpBoiler``
+      - 15 W
+      - Carried over from the air-to-water family: a unit delivering to water
+    * - ``GroundSourceHeatPump``
+      - 12 W
+      - Carried over from the air-to-air family: a unit delivering to air
+
+The archive holds no declared population of brine- or water-source units, so
+the three liquid-source models take the value of the air-source family with
+the same sink. That is an assumption about where the electronics sit, not a
+measurement.
+
+What it amounts to
+------------------
+
+.. list-table:: Share of ``E_ctrl`` in the electrical input of a default machine at a rating condition (``operating_range()``)
+    :header-rows: 1
+    :widths: 56 22 22
+
+    * - Default machine and condition
+      - ``E_tot`` [W]
+      - Share of ``E_ctrl``
+    * - ``AirSourceHeatPump`` (4 kW, R32), A7/20
+      - 870
+      - 1.4 %
+    * - ``AirSourceHeatPump`` (4 kW, R32), A35/27
+      - 933
+      - 1.3 %
+    * - ``AirSourceHeatPumpBoiler`` (15 kW, R290), A7/W35
+      - 3277
+      - 0.5 %
+    * - ``GroundSourceHeatPump`` (4 kW, R32), B0/20
+      - 1003
+      - 1.2 %
+    * - ``GroundSourceHeatPump`` (4 kW, R32), B25/27
+      - 545
+      - 2.2 %
+    * - ``GroundSourceHeatPumpBoiler`` (8 kW, R290), B0/W35
+      - 2088
+      - 0.7 %
+    * - ``WaterSourceHeatPumpBoiler`` (8 kW, R290), W10/W35
+      - 1590
+      - 0.9 %
+
+At a rating point the control power lowers ``cop_sys`` by its share, between
+0.5 and 2.2 % for the machines of the table. It weighs more where the
+compressor draws little. On the EN 14825 part-load trajectory of
+`Does the coefficient set survive both tests?`_ (thirty cases of an
+air-to-water unit), 15 W is 0.3 to 1.1 % of the
+input at point A and 2.3 to 5.6 % at point D, the lightest (12 °C outdoor air,
+15 % of the design load, the compressor on its speed floor, an input of 268 to
+663 W); the medians are 0.6 and 4.0 %. That is the size of the differences on
+which the part-load trajectory is judged, and the reason this input bears on
+the choice of the compressor's speed shape
+(`Compressor data, not heat-pump data`_).
+
+Limits
+------
+
+* **The declarations are compressor-off powers, read as the draw of the
+  electronics of a running unit.** No certificate states the latter. A drive
+  under load loses more than a drive on standby; that loss is in the drive
+  model of the compressor (`What is modelled, and where each loss sits`_), not
+  here.
+* **The values are medians of a wide population.** A quarter of the
+  air-to-water declarations are at or below 11 W and a quarter at or above
+  21 W, and the upper quartile of ``P_TO`` is 25 W (21.5 W for air-to-air).
+  With 25 W in place of 15 W the part-load level check of
+  `Does the coefficient set survive both tests?`_ is passed by 18 of the 30
+  cases, not 27 (the study behind the choice of the speed shape, power added
+  after the solve). If you know the unit, pass its ``E_ctrl``.
+* **The air-to-air value rests on 19 certificates** of three manufacturers,
+  all R32, 2.0 to 8.2 kW; five of them are multi-split outdoor units, which
+  declare 26 to 33 W.
+* **One value for every capacity.** Nine tenths of the air-to-water
+  certificates are rated between 3 and 16 kW, and inside that range the
+  declared median barely moves (14 W up to 8 kW, 15 W from 8 to 12 kW, 17 W
+  from 12 to 16 kW). Above 25 kW it does: 22 W from 25 to 50 kW and 110 W
+  above 50 kW. For a large machine the default is low.
+* **The liquid-source values are carried over**, as said above.
+* **Off rows draw nothing.** ``E_ctrl`` is the power of the unit in
+  operation. A unit that is not asked to run is switched off in the models,
+  not on standby: its row has ``E_ctrl [W]`` = 0, and the standby energy of
+  the hours without a request (the ``P_SB``, ``P_OFF`` and ``P_TO`` hours of an
+  EN 14825 seasonal figure) is not in the results. In the on/off mean of a
+  steady row ``E_ctrl`` is scaled like the machine's other inputs, and the
+  mean over frosting and defrost leaves it as it is
+  (:ref:`the accounting rules <fixed-control-power>`).
+
+The input and its default values entered the library together with the
+change of the default speed shape of the rotary types. On 2026-11-16 the owner
+chose to have both implemented and the committed results regenerated as a
+draft pull request; the merge is held.
 
 
 Compressor efficiency
@@ -949,12 +1140,14 @@ The forms
 
     \text{rotary:}\quad
     \frac{1}{\eta_{oi}} = 1 + a \left( n\,\frac{10^5}{MEP_s}
-        + c_L\,\frac{PR - 1}{n} + c_u\,\frac{MEP_s / 10^6}{n} \right)
+        + q_f\, n^2\, \frac{10^4 \rho_1}{MEP_s}
+        + c_u\,\frac{MEP_s / 10^6}{n}
+        + c_H \left( PR^{(k-1)/k} - 1 \right) \right)
 
 :math:`MEP_s = \rho_1 (h_{2s} - h_1)` is the isentropic work per unit of swept
-volume [Pa], :math:`k` the effective exponent of the isentropic compression at
-the suction state, and :math:`n` the speed coordinate. Every term is a loss
-per unit of isentropic power:
+volume [Pa], :math:`\rho_1` the suction density, :math:`k` the effective
+exponent of the isentropic compression at the suction state, and :math:`n` the
+speed coordinate. Every term is a loss per unit of isentropic power:
 
 * :math:`\varphi` is the work of a machine with a built-in volume ratio
   :math:`r_v` — isentropic compression to :math:`r_v`, then isochoric work to
@@ -967,13 +1160,28 @@ per unit of isentropic power:
   opens at the discharge pressure), so its base is one and its losses scale
   together with the level :math:`a`.
 * :math:`n \cdot 10^5 / MEP_s` is a loss power that grows with the square of
-  the speed (viscous friction, flow losses), :math:`c_L (PR - 1)/n` leakage
-  that is compressed again, and :math:`c_u (MEP_s/10^6)/n` the copper loss of
-  the motor, which goes as the torque squared.
+  the speed (viscous friction), and :math:`c_L (PR - 1)/n`, in the scroll
+  form, leakage that is compressed again.
+* :math:`q_f\, n^2 \cdot 10^4 \rho_1 / MEP_s` is the flow loss through the
+  ports and the valve, a pressure drop that goes as the density and the
+  square of the speed; :math:`c_u (MEP_s/10^6)/n` the copper loss of the
+  motor, which goes as the torque squared; and
+  :math:`c_H (PR^{(k-1)/k} - 1)` the heating of the suction gas by the shell,
+  which follows the temperature rise from suction to discharge.
 
-With a level of at least one for the scroll, a nonnegative one for the rotary
-types and nonnegative coefficients, :math:`0 < \eta_{oi} \le 1` is a property
-of these forms.
+This rotary form is the default of the two speed shapes the library carries,
+``ossorio_anchored``; the other, ``shao_informed``, has the leakage term
+:math:`c_L (PR - 1)/n` in place of the flow-loss and suction-heating terms
+(:math:`c_L` = 0.0340, :math:`c_u` = 0.1188). Why there are two, and how the
+default was chosen, is `Compressor data, not heat-pump data`_.
+
+With a level of at least one and nonnegative coefficients,
+:math:`0 < \eta_{oi} \le 1` is a property of the scroll form and of the
+``shao_informed`` rotary form. It is not a property of the default rotary
+form: its suction-heating term turns negative when the effective exponent
+falls below one — with a wet suction, and at a high pressure ratio with a
+saturated one — and the form can then exceed one
+(`Limits and provisional items`_).
 
 .. list-table:: Parameters of the overall isentropic efficiency
     :header-rows: 1
@@ -990,7 +1198,7 @@ of these forms.
       - 1.091 (quartiles 1.069–1.147): median of 62 machines of residential
         size
     * - ``rotary_twin_inverter``
-      - :math:`c_L` = 0.0340, :math:`c_u` = 0.1188
+      - :math:`q_f` = 0.1233, :math:`c_u` = 0.2430, :math:`c_H` = 2.409
       - ``n = N / N_rated`` (relative to the machine's rated speed)
       - by refrigerant, next table
     * - ``rotary_single_fixed``
@@ -1016,34 +1224,39 @@ point whatever its rated speed (`Compressor displacement`_ lists some).
       - Level :math:`a` (quartiles)
     * - ``rotary_twin_inverter``, R32
       - 23 (LG, Mitsubishi Electric SCI)
-      - 1.316 (1.276–1.436)
+      - 0.448 (0.434–0.489)
     * - ``rotary_twin_inverter``, R410A
       - 18 (LG, Mitsubishi Electric SCI)
-      - 1.173 (1.127–1.220)
+      - 0.567 (0.527–0.590)
     * - ``rotary_twin_inverter``, R290
       - 7 (Highly)
-      - 1.145 (1.133–1.271)
+      - 0.790 (0.782–0.877)
     * - ``rotary_twin_inverter``, any other refrigerant
       - pooled over the 48
-      - 1.271 (1.161–1.380)
+      - 0.523 (0.452–0.585)
     * - ``rotary_single_fixed``, R22
       - 10 (Panasonic)
-      - 1.791 (1.732–1.860)
+      - 0.802 (0.776–0.833)
     * - ``rotary_single_fixed``, R410A
       - 46 (LG, Panasonic)
-      - 1.693 (1.579–1.816)
+      - 0.784 (0.731–0.841)
     * - ``rotary_single_fixed``, any other refrigerant
       - pooled over the 56 and the measured AREP #26 machine
-      - 1.729 (1.620–1.855)
+      - 0.790 (0.744–0.834)
 
 A refrigerant has its own level where the type has at least three rating
 points of it; every other refrigerant — R134a and R1234yf among them — takes
-the pooled level, which is an extrapolation in suction pressure. A larger
-level is a lower efficiency. At the catalogues' rating condition (7.2 / 54.4 °C,
+the pooled level, which is an extrapolation in suction pressure. For one
+refrigerant a larger level is a lower efficiency; across refrigerants the
+levels are not comparable, because the suction-heating term is small for a
+refrigerant whose exponent is near one (R290) and its level makes up for it.
+At the catalogues' rating condition (7.2 / 54.4 °C,
 a pressure ratio of 3.2 to 3.4 by refrigerant) and the rated speed, the twin
-model gives :math:`\eta_{oi}` = 0.705 for R32, 0.733 for R410A and 0.743 for
-R290, the single one 0.655 for R410A, and the scroll 0.765 for R410A at
-60 rev/s.
+model gives :math:`\eta_{oi}` = 0.705 for R32, 0.733 for R410A and 0.757 for
+R290, the single one 0.665 for R410A, and the scroll 0.765 for R410A at
+60 rev/s. A refrigerant on the pooled level can come out above all of these —
+the twin model gives 0.808 for R134a there — and that figure has no rating
+point behind it (`Limits and provisional items`_).
 
 The volumetric efficiency has one form for all three types:
 
@@ -1115,7 +1328,7 @@ The data
       - manufacturer polynomial
       - 3
       - 324 points, R22, PR 1.9–6.8, 30–120 rev/s: rotary shape in pressure
-        ratio and speed
+        ratio (and in speed for the ``shao_informed`` variant only)
       - terminal (assumed: the paper does not say)
     * - Ossorio-Santiago & Navarro-Peris (2019), congress paper
       - measurement (university laboratory)
@@ -1182,6 +1395,16 @@ coordinate is the one with the lower leave-one-source-out shape error, the
 absolute one within 0.001. Each machine has weight one, however many rows it
 has, and the fit uses a Huber loss with a threshold of 0.05 in efficiency.
 
+For the rotary types the rule was run on two arrangements of the same data
+(`Compressor data, not heat-pump data`_). In the default one it keeps the
+copper-loss and the suction-heating term, and the flow-loss term by a rule of
+its own: a term that makes the efficiency fall at a high speed stays only if
+it lowers the machine-left-out shape error, which it does (0.0209 with it,
+0.0215 without). The scaled level and the relative speed coordinate were
+selected on the other arrangement and are kept; on the default arrangement the
+same rules would pick an additive level, the absolute coordinate and two terms,
+at a shape error of 0.0200 against 0.0209 — a tie within the rule's tolerance.
+
 The table sets the selected forms beside the form TMHP shipped until November
 2026 — a quadratic in pressure ratio and speed — refitted to the same rows
 under the same procedure. Errors are in units of efficiency.
@@ -1198,61 +1421,72 @@ under the same procedure. Errors are in units of efficiency.
     * - Leave one machine out, shape RMSE
       - 0.0448
       - 0.0546
-      - 0.0318
+      - 0.0209
       - 0.0298
     * - Leave one machine out, total RMSE
       - 0.0830
       - 0.0876
-      - 0.1129
+      - 0.1020
       - 0.1231
     * - Leave one source out, mean shape RMSE
       - 0.0416
       - 0.0574
-      - 0.0246
+      - 0.0179
       - 0.0767
     * - Leave one source out, largest level bias
       - 0.072
       - 0.083
-      - 0.112
+      - 0.131
       - 0.093
     * - Top 20 % of pressure ratio held out, bias
       - +0.018
       - −0.050
-      - +0.028
+      - +0.027
       - −0.071
     * - Bottom 20 % of pressure ratio held out, bias
       - −0.008
       - +0.041
-      - +0.010
+      - +0.037
       - +0.025
     * - Lowest speed record held out, bias
       - +0.021
       - +0.001
-      - +0.044
+      - −0.002
       - +0.055
     * - Slope against pressure ratio above PR 5, model / data
       - 0.85
       - 2.39
-      - 0.48
+      - 0.35
       - 1.26
 
 Read by column pairs. Where the forms have to carry something the fit did not
 see, the semi-empirical ones do it better: predicting a source from the
 others, the shape error falls from 0.0574 to 0.0416 for the scroll and from
-0.0767 to 0.0246 for the rotary; and at the top fifth of the pressure ratios,
+0.0767 to 0.0179 for the rotary; and at the top fifth of the pressure ratios,
 held out, the quadratic under-predicts by 0.050 and 0.071 where the selected
-forms over-predict by 0.018 and 0.028. That is where a quadratic is weakest:
+forms over-predict by 0.018 and 0.027. That is where a quadratic is weakest:
 it turns down beyond its data, and the map shipped before had to be held at
 its boundary value above a pressure ratio of 7.15.
 
-The table also shows what the selected forms do not do better. Inside the
-rotary data the quadratic fits the shape slightly more closely (0.0298 against
-0.0318 with a machine left out), and its largest level bias is smaller. The
-total errors, 0.08 for the scroll and 0.11 for the rotary, are several times
-the shape errors under either form: what dominates the error for a machine you
-have no data on is its *level*, which no form can supply. And above a pressure
-ratio of 5 the default rotary form falls only half as steeply with the
-pressure ratio as the rotary data do (0.48), where the scroll form is at 0.85.
+The two rotary columns are not on equal terms. The default arrangement gives
+every speed record of the 2004 machines its own level, which takes their
+variation with speed out of the residual by construction; the quadratic was
+scored with the three sources in one shared shape. Its shape errors and its
+lowest-speed hold-out (two points, those of the 2019 machine) are therefore
+not comparable with the quadratic's. On equal terms — the ``shao_informed``
+arrangement — the semi-empirical rotary form has a shape error of 0.0318 with
+a machine left out against the quadratic's 0.0298: inside the rotary data the
+quadratic fits the shape slightly more closely.
+
+The table also shows what the selected forms do not do better. The largest
+level bias of the default rotary form is larger than the quadratic's (0.131
+against 0.093), and so is its bias at the bottom fifth of the pressure ratios.
+The total errors, 0.08 for the scroll and 0.10 for the rotary, are several
+times the shape errors under either form: what dominates the error for a
+machine you have no data on is its *level*, which no form can supply. And
+above a pressure ratio of 5 the default rotary form falls only a third as
+steeply with the pressure ratio as the rotary data do (0.35), where the scroll
+form is at 0.85.
 
 The split and the drive were scored the same way. For the scroll the
 loss-share split predicts the measured isentropic efficiency of a left-out
@@ -1282,71 +1516,156 @@ of Shao et al. (manufacturer polynomials of 2004, power basis not stated) have
 with a speed sweep. Both readings are in the library as ``rotary_speed_variant``
 of :class:`tmhp.compressor_efficiency.CompressorSpec`:
 
-* ``shao_informed`` fits all three rotary sources in one shared shape. At the
-  2019 test condition it gives 0.905 at 30 rev/s.
-* ``ossorio_anchored`` gives every speed record of the 2004 machines its own
-  level, so they inform only the pressure-ratio shape and the speed terms rest
-  on the 2019 measurement. It gives 0.968.
+* ``ossorio_anchored``, the default, gives every speed record of the 2004
+  machines its own level, so they inform only the pressure-ratio shape and the
+  speed terms rest on the 2019 measurement, which was taken on both sides of
+  the inverter. At the 2019 test condition it gives 0.968 at 30 rev/s.
+* ``shao_informed`` fits all three rotary sources in one shared shape. It
+  gives 0.905. It is selected with
+  ``CompressorSpec("rotary_twin_inverter", rotary_speed_variant="shao_informed")``.
 
-The default, ``shao_informed``, was chosen by a rule written down before the
+The default was chosen on certified heat-pump data, in two steps, and the
+second reversed the first.
+
+**The rule, and what it chose first.** A rule was written down before the
 measurement it uses: run the EN 14825 part-load trajectory of the next
 subsection for both variants and count the cases whose ratio COP(D) / COP(A)
 lies inside the 10th to 90th percentile of the certified Heat Pump Keymark
-population; a difference of three cases or more decides. The archive's README
-records the result: 30 of 30 cases for ``shao_informed`` against 24 of 30 for
-``ossorio_anchored``, and a median distance from the certified median ratio of
-0.041 against 0.115 in logarithm. The present library returns the same
-counts.
+population; a difference of three cases or more decides. The model it was
+first measured on had the compressor and the fan as its only electrical
+inputs. There the count was 30 of 30 cases for ``shao_informed`` against 24 of
+30 for ``ossorio_anchored``, with a median distance from the certified median
+ratio of 0.041 against 0.115 in logarithm, and ``shao_informed`` became the
+default.
+
+**What was missing from that model.** A real unit also draws a fixed control
+power (`Fixed control power`_), and at point D, the lightest of the
+trajectory, 15 W is about 4 % of the modelled input — the size of the
+difference the rule was deciding on. With that power in the model the rule no
+longer separates the shapes: the ratio lies inside the band in 30 of 30 cases
+under both. The level does. All four points lie inside their certified 10th
+to 90th percentile in 27 of the 30 cases under ``ossorio_anchored`` against 6
+under ``shao_informed``. What ``ossorio_anchored`` exceeded without the
+control power — point D above the 90th percentile in 12 cases — is accounted
+for by the power that was missing; what ``shao_informed`` misses, points B
+and C below the 10th percentile, is not. On that measurement
+``ossorio_anchored`` is the default.
+
+.. list-table:: Cases of thirty inside the certified p10–p90, by speed shape and fixed power (``en14825_summary.csv`` of the study)
+    :header-rows: 1
+    :widths: 36 16 16 16 16
+
+    * - Speed shape, fixed power
+      - All four points
+      - D / A
+      - B / A
+      - C / A
+    * - ``shao_informed``, 0 W
+      - 9
+      - 30
+      - 23
+      - 22
+    * - ``shao_informed``, 15 W
+      - 6
+      - 30
+      - 19
+      - 19
+    * - ``shao_informed``, 25 W
+      - 5
+      - 30
+      - 16
+      - 17
+    * - ``ossorio_anchored``, 0 W
+      - 16
+      - 24
+      - 30
+      - 30
+    * - ``ossorio_anchored``, 15 W
+      - 27
+      - 30
+      - 30
+      - 30
+    * - ``ossorio_anchored``, 25 W
+      - 18
+      - 30
+      - 30
+      - 30
+
+The table is the study the decision was taken on
+(``validation/analysis/rotary_speed_evidence.py``, tables in
+``validation/data/rotary_speed_evidence/``). It ran both variants on a model
+without the control power and added the power to the input of each solved
+point afterwards; 15 W is the certified median for an air-to-water unit and
+25 W the upper quartile of the thermostat-off power. The present library
+carries the power inside the operating-point search and returns the same
+counts for 15 W: 27 and 30 for the default (the committed
+``en14825_trend_verdict.csv``), 6 and 30 for ``shao_informed``.
 
 .. admonition:: What this costs
     :class: warning
 
-    The shape of the EN 14825 trajectory was used to choose the speed shape of
-    the rotary types. For those types — the default among them — **the
-    trajectory-shape check is not independent validation**: that the default
-    passes it (`Does the coefficient set survive both tests?`_) confirms the
-    choice and nothing more. It is a choice between two shapes that were each
-    fitted to compressor data alone; no coefficient was fitted to heat-pump
-    data. The *level* of the trajectory, the catalogue parity set
-    (:doc:`index`) and the A−7/W55 gate (:ref:`high-lift-deficit`) were not
-    used and remain independent.
+    The EN 14825 part-load comparison — the shape of the trajectory *and* its
+    level — was used to choose the speed shape of the rotary types. For those
+    types, the default among them, **the EN 14825 comparison is not
+    independent validation**: that the default passes it
+    (`Does the coefficient set survive both tests?`_) confirms the choice and
+    nothing more. It is a choice between two shapes that were each fitted to
+    compressor data alone; no coefficient was fitted to heat-pump data. The
+    catalogue parity set (:doc:`index`) and the A−7/W55 gate
+    (:ref:`high-lift-deficit`) were not used and remain independent.
 
-The same comparison holds evidence that points the other way. The README
-records it and so does this page:
+What does not support the choice, or limits it. The README records it and so
+does this page:
 
-* The intermediate points agree better with the variant that was not chosen.
-  Over the low-temperature cases the median COP(B) / COP(A) and
-  COP(C) / COP(A) are 1.42 and 1.82 for ``shao_informed`` and 1.54 and 2.07
-  for ``ossorio_anchored``; the ratios of the certified medians are 1.52 and
-  2.06. (A weaker comparison than the one the rule uses: only percentiles per
-  point are published, and a ratio of medians is not the median of a ratio.)
-* The level check is passed by 9 of 30 cases with ``shao_informed`` and by
-  16 with ``ossorio_anchored``.
+* **The independent comparisons point the other way, by a little.** With the
+  control power in both, the catalogue COP error and bias are 8.49 % and
+  −6.30 % for the air-to-water units under the default against 8.51 % and
+  −5.36 % under ``shao_informed``; for the air-to-air units 12.51 % and
+  −11.52 % against 11.48 % and −9.71 % in heating and 6.91 % and −1.12 %
+  against 6.82 % and −3.73 % in cooling. The two A−7/W55 gate points that run
+  read −7.1 % and −2.7 % against −3.2 % and +1.4 %, all inside the ±10 % gate.
+* **The level count depends on the power that is put in.** With 25 W in place
+  of 15 W the default passes in 18 cases, 10 B points and 9 C points falling
+  below the 10th percentile. The count of 27 holds for the certified median,
+  not for every unit.
+* **On the rule's own second measure the other shape is still closer.** With
+  the control power in the model the median distance of COP(D) / COP(A) from
+  the certified median ratio is 0.045 in logarithm for ``shao_informed`` and
+  0.082 for the default.
+* **The three cases the default fails are one machine**: the 9 kW R410A unit
+  on the medium-temperature application, below the 10th percentile at point C
+  at all three sizing ratios and at point B at one.
 * Point D lies outside the rotary data under either variant, in speed (the
   data start at 30 rev/s and the machine runs at 15) and in pressure ratio
-  (about 1.6; the data start at 1.9). Both values of COP(D) / COP(A) are
-  extrapolations, and the choice rests on how each form extrapolates.
-* One independent check does not separate the variants: the two R290 machines
-  of a manufacturer whose specification states the power at the inverter
-  input imply an inverter efficiency of 0.90–0.91 under ``shao_informed`` and
-  0.89–0.90 under ``ossorio_anchored``.
-* The part-load curve at held temperatures, measured after the choice. With
-  frost left out, the default 9 kW R32 air-to-water unit loses 16.7 % of its
-  full-load COP by the time it reaches its speed floor at +7 °C air and 35 °C
-  leaving water, 27.0 % at +7 / 45 °C and 34.0 % at −7 / 45 °C under
-  ``shao_informed``; under ``ossorio_anchored`` it loses 3.9, 12.7 and
-  14.5 %, and its curve peaks at 56 to 74 % of the nameplate instead of 78 to
-  96 %. With R290 the falls are 5.0, 16.4 and 22.9 % against 1.5, 11.4 and
-  10.6 %. Published part-load curves of inverter air-to-water units peak near
-  half of the maximum frequency, or rise all the way to the lowest speed. In
-  return ``ossorio_anchored`` matches the air-to-air catalogues less well
-  (COP MAPE 9.37 % against 8.52 %).
+  (1.58 to 1.88; the data start at 1.94). Both values of COP(D) / COP(A) are
+  extrapolations, and the first choice rested on how each form extrapolates.
+* One compressor-level check does not separate the variants: the two R290
+  machines of a manufacturer whose specification states the power at the
+  inverter input imply an inverter efficiency of 0.89–0.90 under
+  ``ossorio_anchored`` and 0.90–0.91 under ``shao_informed``.
 
-The default was left as the rule chose it for this release (owner decision of
-2026-11-16, taken with these numbers), and the choice between the two shapes
-is to be reopened with the co-author's review. Until then a study of
-part-load or seasonal performance should be run with both variants: where
-they differ, the difference is the uncertainty of the rotary shape.
+Two other measurements agree with the choice without having decided it. Over
+the low-temperature cases the median COP(B) / COP(A) and COP(C) / COP(A) are
+1.52 and 2.01 for the default and 1.40 and 1.78 for ``shao_informed``; the
+ratios of the certified medians are 1.52 and 2.06. (A weaker comparison than
+the counts above: only percentiles per point are published, and a ratio of
+medians is not the median of a ratio.) And the part-load curve at held
+temperatures, from the same study: with frost left out and 15 W of control
+power, the 9 kW R32 air-to-water unit loses 6.1 % of its nameplate-load COP by
+the time it reaches its speed floor at +7 °C air and 35 °C leaving water,
+14.1 % at +7 / 45 °C and 16.2 % at −7 / 45 °C under the default, and its curve
+peaks at 60 to 78 % of the nameplate; under ``shao_informed`` it loses 18.2,
+27.9 and 34.9 % and peaks at 78 to 96 %. Published part-load curves of
+inverter air-to-water units peak near half of the maximum frequency, or rise
+all the way to the lowest speed.
+
+On 2026-11-16 the owner first kept ``shao_informed`` as the rule had chosen it
+and reopened the choice; after the measurements above, on the same day, the
+owner chose to have ``ossorio_anchored`` as the default, together with the
+fixed control power as a model input, implemented and the committed results
+regenerated as a draft pull request. The merge is held. A study of part-load
+or seasonal performance should still be run with both variants: where they
+differ, the difference is the uncertainty of the rotary shape.
 
 Limits and provisional items
 ----------------------------
@@ -1370,8 +1689,10 @@ scrolls are at 0.639, 0.663 and 0.758 (the three AREP machines) and 0.648
 16 %. For the rotary types the manufacturers' rating points give medians of
 0.705 (R32), 0.733 (R410A) and 0.744 (R290) for inverter twins and 0.655
 (R410A) for fixed-speed singles; the one measured rotary, a fixed-speed
-machine, is at 0.630 (R32) and 0.643 (R410A) — about 2 % below the catalogue
-level of its own class and 11 to 12 % below the inverter twins. Every one of
+machine, is at 0.629 (R32) and 0.645 (R410A). With R410A that is 3 % below
+the catalogue level of its own class; with R32, which the fixed-speed
+catalogues do not rate, it is 9 % above what the pooled level gives. Both are
+11 to 12 % below the inverter twins. Every one of
 these measured machines is fixed-speed and line-fed, or a laboratory machine
 of 2009; a modern inverter compressor may well be better than they are, and
 nothing in the archive decides by how much, because it holds no independent
@@ -1384,40 +1705,49 @@ inverter twin rotaries do not print whether the rated power includes the
 inverter; it is read as excluding it. One check bears on it: two R290 machines
 of another manufacturer (GMCC), whose specification does state the
 inverter-input power, are matched by the default model only with an inverter
-efficiency of 0.90–0.91, where the drive model has 0.94 at that speed. For
-those two machines the model's electrical input is 4 to 5 % low. The scroll
+efficiency of 0.89–0.90, where the drive model has 0.94 at that speed. For
+those two machines the model's electrical input is 5 to 6 % low. The scroll
 level comes mostly from Copeland powers measured at the input of a drive that
 is not named; they were divided by the median drive model, so that level
 carries the spread between inverters, about 1.5 % in efficiency.
 
 **Refrigerants without rating points take the pooled level.** That covers
 every refrigerant but R32, R410A and R290 for the default type — R134a and
-R1234yf in particular — and it is an extrapolation in suction pressure. The
-three levels that do exist span a factor of 1.15 (an :math:`\eta_{oi}` of
-0.705 to 0.744 at the rating condition). The fixed-speed type has one check:
-six R290 single rotaries, marked as under development in their catalogue, sit
-4 % below what the pooled level gives.
+R1234yf in particular — and it is an extrapolation in suction pressure. With
+the default speed shape it is a weak one. The three levels that do exist span
+a factor of 1.76 for rating-point efficiencies of 0.705 to 0.744: the level
+depends strongly on the refrigerant, because the suction-heating term it
+multiplies does (``shao_informed``, which has no such term, spans 1.15). A
+pooled level therefore says little about a fourth refrigerant. For R134a it
+gives an :math:`\eta_{oi}` of 0.808 at the catalogues' rating condition, above
+every refrigerant that has rating points. The fixed-speed type has one check,
+and it shows the risk: six R290 single rotaries, marked as under development
+in their catalogue, sit 15 % below what the pooled level gives (4 % under
+``shao_informed``). **For a refrigerant other than R32, R410A and R290 the
+default efficiency may be optimistic by that order.**
 
 **The split of the loss is weakly identified**: four measured scroll machines,
 whose own values of :math:`f` run from 0.67 to 1.00, and for the rotary types
 four points of one machine. It moves the discharge temperature and the heating
 duty at a given electrical input, not the overall efficiency.
 
-**Below 30 rev/s the default is an extrapolation, and a steep one at a high
-lift.** The default speed floor is 15 rev/s; the rotary data cover 30 to
-120 rev/s. The form is followed as it is (``efficiency_extrapolated`` is set),
-and with ``shao_informed`` it falls quickly: for a machine rated at 40 rev/s
-running R32, :math:`\eta_{oi}` drops by 13 % between the rated speed and
-15 rev/s at a pressure ratio of 2.2 and by 26 % at 5.4, while the drive
-efficiency goes from 0.923 to 0.832. In a machine, with frost left out, the
+**Below 30 rev/s the default is an extrapolation.** The default speed floor
+is 15 rev/s; the rotary data cover 30 to 120 rev/s. The form is followed as it
+is (``efficiency_extrapolated`` is set). For a machine rated at 40 rev/s
+running R32, :math:`\eta_{oi}` drops by 7.3 % between the rated speed and
+15 rev/s at a pressure ratio of 2.2 and by 9.5 % at 5.4, while the drive
+efficiency goes from 0.923 to 0.832; with ``shao_informed`` the same two
+drops are 13.2 and 26.1 %. In a machine, with frost left out, the
 default 9 kW R32 air-to-water unit at −7 °C outdoor air and 45 °C leaving
-water has a COP of 2.75 at full load, 2.76 at 75 % load and 1.81 at its speed
-floor (16 % of the nameplate); at +7 °C and 35 °C it has 4.46, 4.53 and 3.72
-(24 %). Whether real inverter rotaries lose that much is exactly what the two
-speed sources disagree on. On the EN 14825 trajectory the default sits below
-the certified 10th percentile at a part-load point in 18 of the 30 cases and
-the variant with the shallower fall in 2; that variant is instead above the
-90th percentile at point D in 12 (next subsection).
+water has a COP of 2.62 at full load, 2.68 at 75 % load and 2.19 at its speed
+floor (15 % of the nameplate); at +7 °C and 35 °C it has 4.45, 4.60 and 4.18
+(23 %). Whether real inverter rotaries lose that little at a low speed, or as
+much as the other shape has it, is exactly what the two speed sources disagree
+on, and it was settled on heat-pump data, not on compressor data
+(`Compressor data, not heat-pump data`_). On the EN 14825 trajectory the
+default sits below the certified 10th percentile at a part-load point in 3 of
+the 30 cases and the variant with the steeper fall in 24; neither is above the
+90th percentile at point D (next subsection).
 
 **The volumetric efficiency of the rotary types above a pressure ratio of 6.8
 is an extrapolation.** Its fall with the pressure ratio comes mostly from the
@@ -1433,17 +1763,32 @@ speed.** Its level :math:`c_0` is 1.13, so for R32 the form exceeds one above
 2.0 (it gives 1.03 and 1.01 at twice the rated speed). The value is then set
 to one, by the rule of the `Summary`_.
 
-**The non-default variant can exceed one.** ``ossorio_anchored`` has a term in
-:math:`PR^{(k-1)/k} - 1`, which turns negative when the effective exponent
+**The default rotary form can exceed one.** Its suction-heating term, in
+:math:`PR^{(k-1)/k} - 1`, turns negative when the effective exponent
 falls below one: with a wet suction, and at a high pressure ratio with a
 saturated one as well. At a pressure ratio of 4.9 with R290 and a suction
 quality of 0.7 the form gives :math:`\eta_{oi}` = 1.04. Over a grid of five
 refrigerants (suction saturated at −25 to 7 °C, quality 0.7 to 1.0, pressure
 ratio 3 to 10, 30 to 120 rev/s for a machine rated at 60) it is above one in
 292 of 3,500 states: from a pressure ratio of 6 at a quality of 0.9 (up to
-1.24 at a ratio of 10) and up to 1.87 at a quality of 0.7. The isentropic
-efficiency is then set to one. The default variant has no such term: it
-gives 0.71 at that state, and its largest value on the grid is 0.76.
+1.24 at a ratio of 10), up to 1.87 at a quality of 0.7, and in 5 states with a
+saturated suction (at a ratio of 10, up to 1.08). The isentropic
+efficiency is then set to one — a compressor without loss, which is the rule
+of the `Summary`_ and not a physical result. A wet suction is what the
+discharge-temperature control produces at a high lift, so the question is
+whether a machine gets there. Where it was tried it does not: the default
+9 kW R32 air-to-water unit (frost left out, the water flow of the
+medium-temperature application), at −25 and −20 °C outdoor
+air with 55 °C leaving water and at −15 °C with 65 °C, runs with a suction
+quality above 0.95, and the form gives 0.53 to 0.60 there. ``shao_informed``
+has no such term: it gives 0.71 at the state named above, and its largest
+value on the grid is 0.76.
+
+**The speed shape of the rotary types was chosen on heat-pump data.** The
+EN 14825 part-load comparison, shape and level, decided between two shapes the
+compressor data could not separate, and the result depends on the fixed
+control power that was put in. That comparison does not validate the default
+(`Compressor data, not heat-pump data`_).
 
 **The scroll type has not been checked on a machine it describes.** No unit of
 the validation set has a scroll without injection: the four air-to-water units
@@ -1497,25 +1842,32 @@ Does the coefficient set survive both tests?
 A compressor description fitted on compressor measurements still has to work
 inside a heat pump. Whether it does is a question with two halves:
 
-* **Shape.** EN 14825 lowers the required duty and the flow temperature together
-  across four test points, and Heat Pump Keymark publishes what real machines
-  declare at each of them. A coefficient set can be checked against the
-  certified *population* (:doc:`part-load`).
-* **Level.** A set can sit on the certified median and still miss every
-  individual machine. That is what the catalogue parity set answers (:doc:`index`).
+* **The population.** EN 14825 lowers the required duty and the flow
+  temperature together across four test points, and Heat Pump Keymark
+  publishes what real machines declare at each of them. A coefficient set can
+  be checked against the certified *population*, in the shape of its
+  trajectory and in its level (:doc:`part-load`).
+* **The individual machine.** A set can sit on the certified median and still
+  miss every individual machine. That is what the catalogue parity set answers
+  (:doc:`index`).
 
 Five compressor descriptions were run through both, identically, with the
 current model code. One of them is the previous release, on the same tree: it
-is the "before" of the change of compressor model.
+is the "before" of the change of compressor model. The comparison swaps the
+three efficiencies and nothing else, so every description runs with the fixed
+control power of the default machine, 15 W, in its electrical input
+(`Fixed control power`_) — ``ideal`` and the earlier sets included, which
+never had one.
 
-.. admonition:: The shape half is not an independent test of the default
+.. admonition:: The population half is not an independent test of the default
     :class: warning
 
-    The speed shape of the rotary types was chosen on the shape of this very
-    trajectory (`Compressor data, not heat-pump data`_). For the ``defaults``
-    row, passing the shape criteria below confirms that choice and is not
-    evidence for the model. The level criterion and the catalogue parity
-    figures were not used in the choice.
+    The speed shape of the rotary types was chosen on this very trajectory:
+    first on its shape, then, with the fixed control power in the model, on
+    its level (`Compressor data, not heat-pump data`_). For the ``defaults``
+    row, passing the two EN 14825 criteria below confirms that choice and is
+    not evidence for the model. The catalogue parity figures were not used in
+    the choice.
 
 .. figure:: ../_static/validation_en14825_verdict.svg
     :alt: Three panels: EN 14825 trajectories for the low- and
@@ -1541,22 +1893,22 @@ is the "before" of the change of compressor model.
 
     * - ``ideal``
       - all three efficiencies pinned at 1.0 — what ASHP did before this work
-      - 35.7 %
-      - +35.7 %
+      - 35.0 %
+      - +35.0 %
       - 742
 
     * - ``constant``
       - the ``v2026-09-24`` correlations (a record) frozen at their rated
         point, no speed dependence
-      - 7.7 %
-      - +4.2 %
+      - 7.6 %
+      - +3.8 %
       - 749
 
     * - ``legacy-v1``
       - the pre-refit defaults: ``0.90 − 0.02 PR``, the one-machine leakage term,
         the Guth speed shape at 0.80 (``validation/coefficients/v1-legacy/``)
-      - 11.3 %
-      - −10.0 %
+      - 11.5 %
+      - −10.3 %
       - 744
 
     * - ``quadratic-2026-10-06``
@@ -1565,15 +1917,15 @@ is the "before" of the change of compressor model.
         every compressor type (a record,
         ``BITZER-three-C3-absolute-N-2026-10-06``)
       - 8.3 %
-      - −2.1 %
+      - −2.5 %
       - 736
 
     * - ``defaults``
       - what TMHP ships: the models ``semi-empirical-2026-11-15``, each unit
         with the compressor type its manufacturer documents
-      - 8.3 %
-      - −5.0 %
-      - 740
+      - 8.5 %
+      - −6.3 %
+      - 741
 
 Parity figures are the ten adopted air-to-water units; the held Fujitsu
 catalogues are excluded from every headline. The ``defaults`` row is the
@@ -1581,83 +1933,93 @@ air-to-water row of :doc:`index`: six of the ten units are run as twin
 rotaries and four as scrolls, where the four other rows put one description
 on all ten. The rows are not scored on the same points. A point the model
 cannot deliver at the catalogue's duty is not scored, and which points those
-are depends on the description: of the 153 points of the ten units, 136 are
+are depends on the description: of the 153 points of the ten units, 137 are
 evaluated with the defaults and 132 with the previous release (138, 145 and
 140 for the first three rows). Every row carries the frost and defrost
 adjustment of the air-source boiler (:ref:`ashpb-frost`), which lowers each
 description's COP by 16 to 21 % at and below +2 °C outdoor (median over those
-points); without it the five rows read 53.3 / 18.4 / 7.1 / 12.4 / 11.5 % with
-biases of +53.3 / +17.1 / +2.0 / +10.2 / +6.5 %.
+points); without it the five rows read 52.5 / 18.1 / 7.1 / 12.2 / 9.9 % with
+biases of +52.5 / +16.6 / +1.6 / +9.7 / +5.2 %.
 
 Three things to read off it.
 
-**The compressor description carries most of the model, and the catalogues do
-not separate the default from the map it replaced.** An ideal compressor is
-35.7 % out. The shipped models come to 8.34 % with a −5.02 % bias; the
-previous release, on the same tree, to 8.30 % with −2.10 %. The error is the
-same and the bias is 2.9 points more negative. The speed-independent
-``constant`` set comes to 7.7 % and the pre-refit ``legacy-v1`` set to 11.3 %,
+**The compressor description carries most of the model, and on the catalogues
+the default is not better than the map it replaced.** An ideal compressor is
+35.0 % out. The shipped models come to 8.49 % with a −6.30 % bias; the
+previous release, on the same tree, to 8.28 % with −2.46 %. The error is 0.2
+points larger and the bias is 3.8 points more negative. The speed-independent
+``constant`` set comes to 7.6 % and the pre-refit ``legacy-v1`` set to 11.5 %,
 and the order of all four depends on the frost adjustment as much as on the
-compressor: without it they read 12.4 (previous release), 11.5 (defaults),
-18.4 and 7.1 %. The case for the present model is the compressor-level
+compressor: without it they read 12.2 (previous release), 9.9 (defaults),
+18.1 and 7.1 %. The case for the present model is the compressor-level
 evidence of the previous subsections — how it behaves beyond its data, the
-drive loss, the type. This table neither adds to it nor takes from it.
+drive loss, the type. This table does not add to it.
 
-**The shape passes — which, for the default, was the criterion of a choice.**
+**The shape passes, and does not tell the descriptions apart.**
 Across fifteen combinations of capacity, refrigerant and sizing ratio the
 modelled COP rises at every step A → D in all fifteen runs of each application
 (96.9 % of the 9,062 certified low-temperature records and 98.7 % of the 9,044
 medium-temperature ones do the same), and the A-to-D gradient lands inside the
-certified p10–p90 in all thirty runs: median 2.80 modelled against 2.63
-certified for the low-temperature application and 2.77 against 2.86 for the
+certified p10–p90 in all thirty runs: median 2.95 modelled against 2.63
+certified for the low-temperature application and 2.99 against 2.86 for the
 medium-temperature one. Frost lowers point A and so steepens both; without it
-the two medians are 2.44 and 2.46. The gradient criterion is not a sharp one:
-the previous release passes it in all thirty runs as well (medians 2.34 and
-3.00), and so does the ``constant`` set, which has no speed dependence at all;
-``ideal`` passes in 20 and ``legacy-v1`` in 15.
+the two medians are 2.58 and 2.65. The gradient criterion is not a sharp one:
+the previous release passes it in all thirty runs as well (medians 2.29 and
+2.93), and so does the ``constant`` set, which has no speed dependence at all;
+``ideal`` passes in 30 and ``legacy-v1`` in 20.
 
-**The level is too low at part load.** Nine of the thirty runs have all four
-points inside the certified p10–p90: six of the fifteen low-temperature runs
-(R32 three of nine, R410A all three) and three of the medium-temperature ones
-(the R290 runs). No run is outside at point A. The others are below the 10th
-percentile at the part-load points — at C (+7 °C, 35 % of the design load) in
-18 runs, 6 low- and 12 medium-temperature, and at B (+2 °C, 54 %) in 14 of
-those, 2 and 12 — except the three low-temperature R290 runs, which are above
-the 90th percentile at point D. Read as percentiles of the certified
-population, the R32 9 kW low-temperature trajectory (design load two thirds of
-the nameplate) sits at the 45 / 12 / 10 / 63rd percentile at points
-A / B / C / D, with C just under the 10th (a COP of 5.36 against 5.37), and
-the medium-temperature one at 41 / 3 / 1 / 34.
+**The level sits inside the certified band — which, for the default, was the
+criterion of a choice.** Twenty-seven of the thirty runs have all four
+points inside the certified p10–p90: all fifteen low-temperature runs and
+twelve of the medium-temperature ones. No run is outside at point A or at
+point D. The three that fail are the medium-temperature runs of the 9 kW
+R410A machine, below the 10th percentile at C (+7 °C, 35 % of the design
+load) in all three and at B (+2 °C, 54 %) in one. Read as percentiles of the
+certified population, the R32 9 kW low-temperature trajectory (design load two
+thirds of the nameplate) sits at the 40 / 32 / 27 / 83rd percentile at points
+A / B / C / D and the medium-temperature one at 36 / 13 / 11 / 65: below the
+median at the three colder points and above it at D, and at point C of the
+medium-temperature application only just inside (a COP of 4.08 against a 10th
+percentile of 4.06).
 
-The points that fail are the ones the compressor runs slowly at. At A it turns
-at 46 to 81 rev/s; at B at 21 to 32, below the 30 rev/s where the rotary data
-start in 27 of the 30 runs; at C at 15 to 17 and at D at 15, the speed floor.
-That is the range in which the default speed shape is an extrapolation and in
-which the two speed sources disagree (`Limits and provisional items`_), and
-the variant that was not chosen passes this criterion in 16 runs. The previous
-release, on the same tree, passes it in 18 (5 low- and 13 medium-temperature)
-and fails on the other side: above the 90th percentile at point A in ten
-low-temperature runs and at point B in two medium-temperature ones. Against
-it the default's COP is 12 % lower at point A of the low-temperature
-application and 17 and 22 % lower at points B and C of the medium-temperature
-one (medians over the runs).
+The points the choice turned on are the ones the compressor runs slowly at.
+At A it turns at 46 to 80 rev/s; at B at 21 to 32, below the 30 rev/s where
+the rotary data start in 24 of the 30 runs; at C at 15 to 17 and at D at 15,
+the speed floor. That is the range in which the default speed shape is an
+extrapolation and in which the two speed sources disagree
+(`Limits and provisional items`_), and the variant that was not chosen passes
+this criterion in 6 runs.
 
-The count has moved three times in November 2026, and the committed verdicts
+Nor does the level criterion single out the default. The previous release, on
+the same tree and with the same control power, passes it in 24 (9 low- and 15
+medium-temperature), failing above the 90th percentile at point A in six
+low-temperature runs; ``legacy-v1`` passes it in 26, ``constant`` and
+``ideal`` in none. Against the previous release the default's COP is 12 %
+lower at point A of the low-temperature application and 11 and 12 % lower at
+points B and C of the medium-temperature one, and 14 % higher at point D of
+the low-temperature application (medians over the runs).
+
+The count has moved four times in November 2026, and the committed verdicts
 give each step: 25 of the 30 runs met the criterion in the results of
 14 November, 14 once the default inputs came from catalogues (displacement
-and airflow; 15 November), and 9 now, with the semi-empirical model, the
-approach-temperature conductances and the plate-condenser sink. The previous
-map meets it in 18 runs on the present tree, so of the last step the tree
-around the compressor accounts for 14 → 18 and the compressor model for
-18 → 9. Which input moved which point within those steps was not separated.
-Nothing was adjusted to improve this count.
+and airflow; 15 November), 9 with the semi-empirical model in its
+``shao_informed`` shape, the approach-temperature conductances and the
+plate-condenser sink (16 November), and 27 now, with the ``ossorio_anchored``
+shape and the fixed control power. The study behind the choice separates the
+two parts of the last step (power added after the solve): the speed shape
+alone takes the count from 9 to 16, the control power alone from 9 to 6, and
+the two together to 27. The previous map moved with the tree as well: it met
+the criterion in 18 runs before the control power was in the input and meets
+it in 24 runs on the present tree. Nothing was fitted to this count; the
+choice between the two speed shapes was made on it.
 
 Certified COP is measured with defrost, and what the model does about frost
 decides this criterion as much as the compressor does. Without any adjustment
-the same R32 trajectories sit at 92 / 29 / 10 / 63 and 86 / 5 / 1 / 34 —
-above the 90th percentile at point A in 12 of the 15 low-temperature runs, no
-run passing. With the EnergyPlus adjustment applied in full at every load they
-sit at 43 / 1 / 10 / 63 and 38 / 0 / 1 / 34 — point B below the 10th
+the same R32 trajectories sit at 91 / 62 / 27 / 83 and 86 / 43 / 11 / 65 —
+above the 90th percentile at point A in 15 of the 15 low-temperature runs and
+in 3 of the medium-temperature ones, 9 runs passing. With the EnergyPlus
+adjustment applied in full at every load they
+sit at 34 / 3 / 27 / 83 and 35 / 1 / 11 / 65 — point B below the 10th
 percentile in all 30 runs, no run passing: that adjustment is a function of
 outdoor temperature and humidity alone and corrects a unit at half load like
 one flat out. With the load on the coil taken into account
@@ -1671,9 +2033,10 @@ over nine tenths of the correction and point B a quarter of it.
     application as an artefact: the operating-point search starved the
     outdoor coil below the compressor speed floor. That search now scores
     candidates by electrical input per unit of heat delivered
-    (:mod:`tmhp._opt_utils`). That the default is low at this point today is
-    not that artefact: with the previous map the same search puts the R32
-    9 kW machine at the 77th percentile there. See :doc:`part-load`.
+    (:mod:`tmhp._opt_utils`). That the default is lowest in its band at this
+    point today is not that artefact: with the previous map the same search
+    puts the R32 9 kW machine at the 66th percentile there. See
+    :doc:`part-load`.
 
 Reproduce both halves with::
 
@@ -1685,11 +2048,15 @@ the certified population from ``validation/data/keymark_en14825_declared.csv``,
 which is not committed; ``validation.extraction.keymark_declared`` builds it
 from the hplib archive listed in ``validation/registry/sources.yaml``. The
 study writes ``en14825_trend_verdict.csv``, ``en14825_trend_points.csv`` and
-``coefficient_ablation_parity.csv`` under ``validation/data/``. The figures
-without frost, with the full adjustment and for the other speed-shape variant
-are not committed outputs: they were measured with the study's own functions
-on models built with ``defrost=False``, ``DefrostModel(load_weighted=False)``
-and ``rotary_speed_variant="ossorio_anchored"``.
+``coefficient_ablation_parity.csv`` under ``validation/data/``. The counts by
+speed shape and fixed power are the committed tables of
+``validation.analysis.rotary_speed_evidence``
+(``validation/data/rotary_speed_evidence/``). The figures without frost, with
+the full adjustment and for the other speed-shape variant with the control
+power inside the model are not committed outputs: they were measured with the
+study's own functions on models built with ``defrost=False``,
+``DefrostModel(load_weighted=False)`` and
+``rotary_speed_variant="shao_informed"``.
 
 
 Provenance

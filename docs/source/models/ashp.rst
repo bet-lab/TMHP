@@ -167,23 +167,25 @@ so the two sides differ by that share of the fan power.
 At a fixed fan volume flow, cold outdoor air therefore carries more heat
 capacity than the 15 °C standard air earlier releases assumed at every
 temperature (1.225 kg/m³): 16 % more at −25 °C, 6.5 % less at 35 °C. Room air
-is 2 to 5 % lighter than that standard air (20 to 30 °C). For the default unit
-against those releases:
+is 2 to 5 % lighter than that standard air (20 to 30 °C). When the inlet
+density replaced the standard air (November 2026), the default unit of then
+compared with those releases as follows:
 
 - **Heating.** The outdoor coil gains air mass in the cold (the evaporating
   temperature is 0.1 K higher below 0 °C) and the indoor coil loses 1.7 % at a
   20 °C room (the condensing temperature is 0.1 to 0.2 K higher). The two
-  nearly cancel: the COP is 0.3 % lower at 7 °C / 20 °C at nameplate capacity
-  and within 0.2 % at half load down to −15 °C.
+  nearly cancelled: the COP was 0.3 % lower at 7 °C / 20 °C at nameplate
+  capacity and within 0.2 % at half load down to −15 °C.
 - **Cooling.** Both coils move warm, lighter air. At 35 °C outdoors and a
-  27 °C room the evaporating temperature at nameplate capacity is 0.5 K lower
+  27 °C room the evaporating temperature at nameplate capacity was 0.5 K lower
   and the COP 1.9 % lower (1.3 % at half load); at a 30 °C room the COP at
-  nameplate capacity is up to 4 % lower.
+  nameplate capacity was up to 4 % lower.
 - **Ceiling.** The largest duty the indoor coil carries inside the approach
   bounds (``dT_approach_bounds``) falls with the room-air density, by 1.3 % at
-  a 20 °C room. Where that ceiling is close to the request it now binds: at
-  −7 °C / 20 °C the frosted unit delivers 98.8 % of its nameplate
-  (``capacity_clamped == "max"``) where it delivered 100 %.
+  a 20 °C room. Where that ceiling was close to the request it then bound: at
+  −7 °C / 20 °C the frosted unit of then delivered 98.8 % of its nameplate
+  (``capacity_clamped == "max"``) where it had delivered 100 %. The present
+  default unit delivers its nameplate there.
 
 The volume flows are the fan's actual flows at the coil inlet. Rating airflows
 are commonly quoted as standard air (1.204 kg/m³, the mass flow divided by that
@@ -232,7 +234,7 @@ nameplate capacity supplies air about 14 K from the room: 34 °C in heating at a
 largest; before that, 720 m³/h per kW moved four times that air: supply air
 5 K from the room, a condensing temperature near 30 °C, and a rated COP above
 what such equipment declares.) The indoor fan draws about 0.6 % of the
-nameplate capacity at rated flow, both fans together 1.5 to 2.1 %.
+nameplate capacity at rated flow, both fans together 1.5 to 2.0 %.
 
 Because the fan power is small against the compressor's, the least-power
 operating point keeps the indoor fan at its largest airflow at every load; the
@@ -246,7 +248,7 @@ A unit that slows its fan for comfort is described with ``dV_iu_fan_a_max``.
    nameplate capacity, depending on its size (2 to 30 kW), so at the rating
    points the box is not what limits it. In mild weather the delivered heat of
    the default 4 kW unit is capped by the compressor's speed range, at about
-   160 % of the nameplate at 7/20 °C
+   190 % of the nameplate at 7/20 °C
    (``capacity_clamped == "max"``, ``capacity_binding == "compressor"``).
    A larger unit moves less air per kW, and from 8 kW the indoor coil at its
    largest airflow and the widest approach is the ceiling there
@@ -271,12 +273,15 @@ the mean over the cycling period (``capacity_clamped == "min"``):
   to air: ``COP = COP_min · (1 − Cd · (1 − CR))`` with ``Cd = 0.25``, the value
   the standard prescribes when a unit has not been tested for it.
   ``part_load_factor [-]`` is that bracket. It applies to the refrigeration
-  machine — compressor and outdoor fan — so ``cop_ref [-]`` is the continuous
-  value times it, and ``cop_sys [-]`` falls slightly less (about one percent)
-  because the indoor fan is not degraded.
+  machine — compressor, outdoor fan and the fixed control power ``E_ctrl``
+  (:ref:`fixed-control-power`) — so ``cop_ref [-]`` is the continuous value
+  times it, and ``cop_sys [-]`` falls slightly less because the indoor fan is
+  not degraded (for the default unit at 7/20 °C and a capacity ratio of 0.1,
+  to 78.8 % of the continuous value against 77.4 % for ``cop_ref [-]``).
 - ``runtime_fraction [-]`` is the share of the time the compressor runs,
-  ``CR / part_load_factor``. Compressor and outdoor-fan power (``E_cmp``,
-  ``E_ou_fan``) are the running values times that fraction. Heat and flow
+  ``CR / part_load_factor``. Compressor, outdoor-fan and control power
+  (``E_cmp``, ``E_ou_fan``, ``E_ctrl``) are the running values times that
+  fraction: the controls are counted while the compressor runs. Heat and flow
   rates (``Q_ref_iu``, ``Q_ref_ou``, ``Q_a_iu_in``, ``Q_a_iu_out``,
   ``m_dot_ref``, ``dV_iu_a``, ``dV_ou_a``) are the running values times *CR*,
   and so is the indoor fan's power (``E_iu_fan``): it runs while heat is
@@ -284,9 +289,9 @@ the mean over the cycling period (``capacity_clamped == "min"``):
   with the delivered heat, and the room still receives the coil duty plus the
   indoor fan's heat. Temperatures, pressures, compressor speed and
   efficiencies are those of the running machine.
-- ``E_cycling_loss [W]`` is the mean electrical power the compressor and the
-  outdoor fan draw beyond *CR* times their continuous power — the cost of the
-  starts.
+- ``E_cycling_loss [W]`` is the mean electrical power the compressor, the
+  outdoor fan and the control power draw beyond *CR* times their continuous
+  power — the cost of the starts.
 
 .. list-table:: EN 14825 degradation with ``Cd = 0.25``
    :header-rows: 1
@@ -324,8 +329,8 @@ the mean over the cycling period (``capacity_clamped == "min"``):
 A request of a tenth of the minimum capacity is thus met at 77.5 % of the
 continuous minimum-speed COP, with the compressor running 12.9 % of the time.
 Without this model every request below the floor was answered with the minimum
-capacity itself — about half the nameplate for the default unit in mild
-weather — whatever was asked for. ``Cd_cycling`` sets the coefficient: a number
+capacity itself — about a quarter of the nameplate for the default unit in
+mild weather (1.0 kW at 7/20 °C) — whatever was asked for. ``Cd_cycling`` sets the coefficient: a number
 replaces 0.25, ``0`` is loss-free cycling, and ``None`` restores the earlier
 behaviour (continuous operation at the minimum speed, ``Q_ref_iu [W]`` above
 the request, ``runtime_fraction [-]`` of 1). The operating-point search weighs
@@ -340,7 +345,8 @@ temperature, which the falling efficiency drives above ``T_dis_max`` even
 with the discharge-temperature control used up. The default 4 kW unit does
 not reach that case at −15 to −25 °C outdoors and 20 to 27 °C indoors with
 R32, R410A, R290, R134a, R407C or R1234yf: it runs down to its minimum speed
-(:doc:`ashpb` names boiler cases that do). Where it happens, a request below
+(so do the default boilers; :doc:`ashpb` names the cases that reach it with the
+other rotary speed shape). Where it happens, a request below
 that duty, refused while a larger one runs, is met the same way as one below
 the minimum speed: the unit cycles at the smallest duty the envelope admits.
 The row has ``capacity_clamped == "min"``, ``Q_min [W]`` is that duty (found
@@ -405,7 +411,7 @@ speed than flat out, a duty can be refused although a larger one runs (the
 4 kW R32 unit as a bare constructor built it until November 2026 --
 18.7 cm³/rev, 0.8 m³/s outdoors, the efficiency map of then -- at −25 °C
 outdoor / 24 °C room: 2.3 kW had no operating point, 3.6 kW had; the present
-default unit runs at every duty up to its 2.8 kW ceiling there). Such a
+default unit runs at every duty up to its 2.9 kW ceiling there). Such a
 request runs at the largest duty below it that has one, again with
 ``capacity_clamped == "max"`` and the binding that names the limit, as the
 water-heating models do. A request is switched off (``failure_reason``) only
@@ -557,25 +563,25 @@ difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
      - −7 °C
      - −15 °C
    * - 3 kW (:math:`r = 1` at each)
-     - 3.81
-     - 3.72
-     - 3.37
-     - 2.82
+     - 3.39
+     - 3.27
+     - 2.92
+     - 2.51
    * - 2 kW
-     - 4.64
-     - 4.46
-     - 3.97
-     - 3.33
+     - 4.42
+     - 4.15
+     - 3.48
+     - 2.83
    * - 2 kW, ``load_weighted=False``
-     - 4.21
-     - 4.11
-     - 3.80
-     - 3.32
-   * - 1 kW (cycling at the minimum speed at 2 and 0 °C)
-     - 5.24
-     - 5.05
-     - 4.40
-     - 3.70
+     - 3.94
+     - 3.77
+     - 3.30
+     - 2.82
+   * - 1 kW
+     - 5.25
+     - 4.88
+     - 4.01
+     - 3.30
 
 ``DefrostModel(load_weighted=False)`` is EnergyPlus at every load. A unit that
 cycles below its minimum capacity is loaded by what the running machine
@@ -592,8 +598,8 @@ width of the transition below it and the default humidity.
 
 Four things differ from EnergyPlus: the load term above, and three more. The transition above replaces a switch:
 in EnergyPlus the correction is in full at 5.0 °C and absent at 5.1 °C, where
-its cost is at its largest, so the COP of the default unit steps from 3.32 to
-4.88 between 5.0 and 5.5 °C at nameplate capacity. The 5 °C limit is a setting of the defrost
+its cost is at its largest, so the COP of the default unit steps from 3.03 to
+4.41 between 5.0 and 5.5 °C at nameplate capacity. The 5 °C limit is a setting of the defrost
 controller, not the temperature at which a coil frosts over, and a coil near
 freezing frosts on part of its surface and for part of the time.
 ``DefrostModel(transition_K=0)`` restores the switch. The other two are there
@@ -610,7 +616,7 @@ It shows through the load term in one place: in air too dry to frost even the
 rated-load coil (below −18.3 °C at 60 % relative humidity, below −39 °C at
 84 %) there is no frost drive for the load to scale, and the fixed
 multipliers stay at every load — at half load and 60 % humidity the COP
-multiplier is 0.997 at −15 °C and 0.917 at −18.3 °C. And the room is not
+multiplier is 0.996 at −15 °C and 0.896 at −18.3 °C. And the room is not
 cooled in time during a defrost — its effect is in the mean.
 :meth:`~tmhp.AirSourceHeatPump.max_capacity` reports the same mean
 ceiling, with the frost-free one as ``Q_max_frost_free [W]``.
@@ -629,7 +635,8 @@ flows use the actual indoor airflow and the same outdoor reference temperature.
 The final outlet already includes indoor fan heat: net cooling equals coil
 duty minus indoor fan power, while net heating equals coil duty plus that
 power. Do not add or subtract it a second time. The denominator includes
-compressor, indoor fan and outdoor fan electricity.
+compressor, indoor fan and outdoor fan electricity and the fixed control
+power ``E_ctrl [W]`` (:ref:`fixed-control-power`).
 
 ``indoor_heat_direction_valid`` identifies delivery in the requested mode.
 Opposite-direction transfer or zero airflow during active operation gives

@@ -18,7 +18,7 @@ Modules
     model      eta_oi forms, eta_v forms (bounded and the first linear one), shipped-form baseline; weighted Huber
                fits with unit levels
     etav       eta_v: shape selection, rotary level from the displacement-regression rating points, bounds
-    variants   rotary speed-shape variants (a, Shao-informed, is the default; b, Ossorio-anchored, the alternative)
+    variants   rotary speed-shape variants (b, Ossorio-anchored, is the default; a, Shao-informed, the alternative)
     cv         LOCO / LOSO / edge hold-outs / step slopes
     split      eta_is / eta_em split from measured discharge temperatures
     pipeline   backward elimination, speed coordinate, levels, checks

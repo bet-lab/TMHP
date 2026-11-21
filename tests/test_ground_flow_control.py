@@ -164,6 +164,9 @@ def test_constant_flow_regression_before_total_power_policy(cls, expected):
         from tmhp.hx_fan import ASHRAE_VSD_COEFFICIENTS
 
         legacy["vsd_coeffs_iu"] = ASHRAE_VSD_COEFFICIENTS.copy()
+    # The recorded machine predates the fixed control power (tmhp.control_power):
+    # E_tot above is compressor + pump (+ indoor fan), without E_ctrl.
+    legacy["E_ctrl"] = 0.0
     row = _run(_model(cls, **legacy))
     assert row["converged"]
     for key, value in zip(("E_cmp [W]", "E_pmp [W]", "E_tot [W]"), expected, strict=True):

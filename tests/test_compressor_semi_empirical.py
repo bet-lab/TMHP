@@ -254,24 +254,47 @@ def test_eta_v_uncertainty_above_the_data_is_recorded():
         assert lo - 1e-3 <= comp.eta_v(pr, 60.0, st) <= hi + 1e-3
 
 
-def test_default_rotary_speed_shape_is_shao_informed():
-    """The EN 14825 trajectory-shape rule (archive README) chose variant a; b stays selectable."""
+def test_default_rotary_speed_shape_is_ossorio_anchored():
+    """Variant b is the default again (#183, archive README: with the fixed control power in the device model both
+    shapes pass the EN 14825 trajectory-shape rule and b matches the certified level at more points); a stays
+    selectable."""
     import json
 
-    assert ROTARY_SPEED_VARIANTS == ("shao_informed", "ossorio_anchored")
-    assert CompressorSpec().rotary_speed_variant == "shao_informed"
+    assert ROTARY_SPEED_VARIANTS == ("ossorio_anchored", "shao_informed")
+    assert CompressorSpec().rotary_speed_variant == "ossorio_anchored"
     var = json.loads((ARCHIVE / "rotary_speed_variants.json").read_text())
-    assert var["default"] == "a"
-    a = ce.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS["shao_informed"]
+    assert var["default"] == "b"
+    b = ce.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS["ossorio_anchored"]
     for ctype in ("rotary_twin_inverter", "rotary_single_fixed"):
-        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["parameters"] == a["parameters"]
-        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["level"] == a["level"][ctype]
-        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["level_by_refrigerant"] == a["level_by_refrigerant"][ctype]
+        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["parameters"] == b["parameters"]
+        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["level"] == b["level"][ctype]
+        assert ce.SEMI_EMPIRICAL_TYPES[ctype]["level_by_refrigerant"] == b["level_by_refrigerant"][ctype]
     # the alternative is still built when asked for
-    b = SemiEmpiricalCompressor(
-        CompressorSpec("rotary_twin_inverter", rotary_speed_variant="ossorio_anchored"), "R32", 60.0
+    a = SemiEmpiricalCompressor(
+        CompressorSpec("rotary_twin_inverter", rotary_speed_variant="shao_informed"), "R32", 60.0
     )
-    assert b.parameters == ce.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS["ossorio_anchored"]["parameters"]
+    assert a.parameters == ce.SEMI_EMPIRICAL_ROTARY_SPEED_VARIANTS["shao_informed"]["parameters"]
+
+
+def test_load_coordinate_study_matches_the_archive():
+    """rotary_load_coordinate_*.csv (#183): its absolute rows are the archive's variant run, its factors the design MEP."""
+    import json
+
+    from validation.compressor_maps.semi_empirical import load_coordinate as lc
+
+    cv = pd.read_csv(ARCHIVE / "rotary_load_coordinate_cv.csv")
+    archive = pd.read_csv(ARCHIVE / "rotary_speed_variants_cv.csv")
+    absolute = cv[cv.coordinate == "absolute"].reset_index(drop=True)
+    pd.testing.assert_frame_equal(absolute[archive.columns], archive)
+    recorded = json.loads((ARCHIVE / "rotary_speed_variants.json").read_text())["variants"]
+    for coordinate, rows in cv.groupby("coordinate"):
+        assert rows.chosen.sum() == len(recorded), coordinate  # one chosen candidate per variant
+    for row in absolute[absolute.chosen].itertuples():
+        assert row.form.split(":")[1].split("+") == recorded[row.variant]["terms"]
+    factors = pd.read_csv(ARCHIVE / "rotary_load_coordinate_design_mep.csv")
+    for row in factors.itertuples():
+        assert row.design_mep_bar == pytest.approx(lc.design_mep(row.refrigerant) / 1e5, rel=1e-5)
+        assert row.scale_factor == pytest.approx(lc.MEP_UNIT_PA / lc.design_mep(row.refrigerant), rel=1e-5)
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=lambda s: f"{s.compressor_type}-{s.rotary_speed_variant}")

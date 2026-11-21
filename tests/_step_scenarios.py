@@ -67,6 +67,10 @@ def make_model() -> AirSourceHeatPumpBoiler:
         UA_tank_hx=15000 / 5.0,
         UA_ou_rated=0.7 * 15000 / 5.0,
         m_dot_w_rated=0.0,
+        # No fixed control power, as recorded in the goldens (before 2026-11-16):
+        # the default is now 15 W for a unit delivering to water and is part of
+        # E_tot and X_tot (tmhp.control_power).
+        E_ctrl=0.0,
     )
 
 

@@ -553,7 +553,9 @@ def test_exergy_of_a_row_is_the_frames_to_the_last_bit(ashp, steady_rows, index)
     assert row["hp_is_on"] and "h_ref_cmp_in [J/kg]" in row
     now = ashp._exergy_of_row(dict(row))
     _same_row(now, _frame_row(ashp, dict(row)))
-    assert len([key for key in now if key not in row]) == 48  # the exergy columns, none missing, none extra
+    # The exergy columns, none missing, none extra (48 before the fixed control power added X_ctrl and Xc_ctrl).
+    assert len([key for key in now if key not in row]) == 50
+    assert {"X_ctrl [W]", "Xc_ctrl [W]"} <= set(now)
 
 
 def test_a_steady_point_is_post_processed_without_a_frame(ashp, monkeypatch):
@@ -598,6 +600,9 @@ def _perturbations(row):
     yield "fan power not a number", {**row, "E_ou_fan [W]": math.nan, "E_iu_fan [W]": math.nan}
     yield "power as an int", {**row, "E_cmp [W]": 300}
     yield "power None", {**row, "E_ou_fan [W]": None}
+    yield "control power not a number", {**row, "E_ctrl [W]": math.nan}
+    yield "control power as an int", {**row, "E_ctrl [W]": 12}
+    yield "control power None", {**row, "E_ctrl [W]": None}
     yield "numpy scalars", {k: (np.float64(v) if type(v) is float else v) for k, v in row.items()}
     yield "infinite enthalpy", {**row, "h_ref_exp_in [J/kg]": math.inf}
 

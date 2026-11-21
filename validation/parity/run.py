@@ -34,6 +34,18 @@ refrigerant, and whatever the manufacturer publishes about the machine. No
 efficiency coefficient, conductance or approach temperature is touched. That
 is the point: the derivation work in ``validation/extraction/`` is only worth
 anything if the numbers it produces are then used without adjustment.
+
+System boundary of the COP
+--------------------------
+The model's ``cop_sys [-]`` is compared with the catalogue COP as it is: the
+delivered heat over ``E_tot [W]``, which is the compressor, the fans and the
+fixed control power ``E_ctrl`` of the family's default (15 W air-to-water,
+12 W air-to-air: ``tmhp.control_power``). That is the boundary the catalogues
+are rated on. The effective power input of EN 14511-3 includes "all control
+and safety devices" of the unit beside the compressor and the proportional
+share of the fans, so a published COP has the electronics in its denominator
+also where a catalogue file words its ``cop_definition`` as heat over
+compressor and fan. The default is not adjusted per unit.
 """
 
 from __future__ import annotations

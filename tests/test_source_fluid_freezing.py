@@ -116,8 +116,9 @@ def test_default_machines_run_their_brine_rating_points(machines):
     assert gshpb.ref == "R290"  # (R410A, the default before: 3.847 and 2.404, with glycol as with water)
     # 3.870 and 2.651 with the earlier compressor map, a 5 K tank coil without circulating water and
     # 42 cm3/rev per 9 kW; with the rotary-compressor model, the plate condenser and the catalogue
-    # displacement 3.473 and 2.405.
-    for T_tank, cop_sys in ((35.0, 3.473), (55.0, 2.405)):
+    # displacement 3.473 and 2.405; with the default rotary speed shape ossorio_anchored and the
+    # 15 W fixed control power 3.467 and 2.463 (3.490 and 2.475 without the 15 W).
+    for T_tank, cop_sys in ((35.0, 3.467), (55.0, 2.463)):
         with warnings.catch_warnings():
             warnings.simplefilter("error", RuntimeWarning)
             warnings.simplefilter("error", OperatingLimitWarning)
@@ -133,7 +134,9 @@ def test_default_machines_run_their_brine_rating_points(machines):
     # 3.908 before the catalogue default inputs (#86): the displacement of an R32 unit of
     # this capacity is 0.65 of the earlier constant and the indoor airflow 1.52 times it. 3.743 and
     # 4.139 before the rotary-compressor default efficiencies and the approach-temperature conductances.
-    for load, cop_sys in ((-4000.0, 3.697), (-2000.0, 4.265)):
+    # 3.697 and 4.265 before the default rotary speed shape ossorio_anchored and the 12 W fixed
+    # control power (3.659 and 4.335 with the new shape and without the 12 W).
+    for load, cop_sys in ((-4000.0, 3.620), (-2000.0, 4.227)):
         r = _quiet(gshp.analyze_steady, Q_r_iu=load, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)
@@ -556,7 +559,16 @@ def test_default_glycol_rows_report_the_fluid_the_limit_was_checked_with(borehol
     eps = -np.expm1(-model.UA_ground / m_cp)
     pump = (df["E_pmp [W]"] / df["runtime_fraction [-]"]).to_numpy()
     q_hx = eps * m_cp * (entering + pump / m_cp - df["T_ref_evap_sat [°C]"].to_numpy())
-    np.testing.assert_allclose(q_hx, q_run + pump, rtol=2e-3)
+    # A step the compressor ran throughout closes to the solver's tolerance (it used to be held to the 2e-3
+    # of the partial step below). A step it ran part of the time is solved on the fluid of the run-time
+    # fraction expected when the cycle is solved, and reports the fluid of the fraction the step ended with:
+    # 0.008 K on a 4 K approach in the dynamic-borehole run (2.0e-3 with the default rotary speed shape,
+    # 1.8e-3 with ``shao_informed``; the control power does not enter), 0.7e-3 with the steady borehole.
+    # The bound for that step was 2e-3; it is a property of the step accounting, not of the limit.
+    partial = (df["runtime_fraction [-]"] < 1.0).to_numpy()
+    assert partial.sum() == 1 and partial[-1]
+    np.testing.assert_allclose(q_hx[~partial], (q_run + pump)[~partial], rtol=2e-5)
+    np.testing.assert_allclose(q_hx[partial], (q_run + pump)[partial], rtol=2.5e-3)
 
 
 def test_gshp_default_glycol_rows_report_the_fluid_of_their_cycle():

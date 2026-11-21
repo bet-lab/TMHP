@@ -269,6 +269,104 @@ borehole for GSHP/GSHPB, and the prescribed water inlet for WSHPB —
 live on each model's page under :doc:`../models/index`. The released
 demand boundary (DHW tank or building load) is documented the same way.
 
+.. _fixed-control-power:
+
+Fixed control power
+===================
+
+The cycle accounts for the compressor and for the fans or pump that move the
+source and sink fluids. A real unit also feeds a control board, sensors, a
+display, communications and the standby losses of its drive, at about the
+same level whenever it is in operation. Every family takes that power as the
+constructor input ``E_ctrl`` [W] and reports it as ``E_ctrl [W]``
+(:mod:`tmhp.control_power`):
+
+- it is part of ``E_tot [W]`` and of ``cop_sys [-]``; ``cop_ref [-]``, the
+  heat over the compressor input, does not see it;
+- it enters the operating-point search with the rest of ``E_tot``. Where the
+  compressor modulates, every candidate delivers the request and a constant
+  moves nothing; on the speed floor the candidates deliver different amounts
+  and the constant is weighed against the heat each one delivers;
+- its heat is credited to no stream, so its exergy is destroyed
+  (``Xc_ctrl [W]``);
+- ``E_ctrl=0`` is the machine without it.
+
+The boundary is that of the rating standards. The effective power input of
+EN 14511-3 is the compressor and defrost, all control and safety devices, and
+the proportional share of the fans and pumps, so a catalogue COP has this
+power in its denominator whatever the data sheet calls it, and the catalogue
+comparison of :doc:`../validation/index` is made with it.
+
+.. list-table:: Default ``E_ctrl``
+   :header-rows: 1
+   :widths: 30 12 58
+
+   * - Family
+     - Default
+     - Evidence
+   * - :class:`~tmhp.AirSourceHeatPumpBoiler`
+     - 15 W
+     - Median of the two off/standby declarations (``P_offsb``) pooled over
+       8,676 Heat Pump Keymark air-to-water certificates (5,675 outdoor units).
+   * - :class:`~tmhp.AirSourceHeatPump`
+     - 12 W
+     - Median thermostat-off power (``P_TO``: compressor off, controls live)
+       of 19 Heat Pump Keymark air-to-air certificates. Their off/standby
+       declarations are about 1 W, the ecodesign standby cap, not a
+       controls-live power.
+   * - :class:`~tmhp.GroundSourceHeatPumpBoiler`,
+       :class:`~tmhp.WaterSourceHeatPumpBoiler`
+     - 15 W
+     - Carried over from the air-to-water family (the electronics of a hydronic
+       unit): no declared brine- or water-source population is in the archive.
+   * - :class:`~tmhp.GroundSourceHeatPump`
+     - 12 W
+     - Carried over from the air-to-air family (a unit delivering to air): no
+       declared water-to-air population is in the archive.
+
+Both medians are compressor-off declarations read as the draw of the
+electronics; no certificate states the electronics of a running unit
+separately. The extraction is ``validation/data/auxiliary_power/``; a value
+for the actual unit takes precedence over the default.
+
+The default does not follow the capacity. The standard declares this power per
+unit in watts and it does not scale with the load; over the sizes most
+certificates cover it barely moves (air-to-water, by rated heating capacity:
+median 14 W up to 8 kW, 15 W from 8 to 12 kW, 17 W from 12 to 16 kW; nine
+tenths of the certificates lie between 3 and 16 kW). For a large machine the
+default is low: the median is 22 W from 25 to 50 kW and 110 W above 50 kW, so
+give ``E_ctrl`` of the actual unit there
+(:doc:`../validation/defaults`, *Fixed control power*).
+
+``E_ctrl`` is the power of the unit *in operation*. What the unit draws while
+its compressor is off is accounted where the off time is, once:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Row
+     - ``E_ctrl [W]``
+   * - Running (continuous)
+     - ``E_ctrl`` as given.
+   * - On/off mean of a steady row, unit delivering to water
+     - ``E_ctrl`` times the power fraction ``CR + (1 − Cc)(1 − CR)``. The
+       EN 14825 degradation charges the off periods with ``1 − Cc`` of the
+       whole running input, ``E_ctrl`` included; no standby is added beside it.
+       A unit whose off-state draw is its control power alone has
+       ``Cc = 1 − E_ctrl / E_tot`` at the minimum speed (``Cd_cycling``).
+   * - On/off mean, unit delivering to air
+     - ``E_ctrl`` times ``runtime_fraction [-]``: the standard's ``Cd``
+       charges the start, not the off period.
+   * - Frost and defrost mean
+     - ``E_ctrl`` as given: the controls stay on through a defrost.
+   * - A boiler's dynamic step
+     - ``E_ctrl`` times ``runtime_fraction [-]``, like the other powers of the
+       running machine.
+   * - Off (no request), failed
+     - 0. The standby energy of the hours without a request is not in the
+       results (:doc:`scope-and-limits`).
+
 Composed subsystems
 ===================
 

@@ -78,6 +78,7 @@ from .compressor_envelope import (
 )
 from .compressor_speed import solve_compressor_speed
 from .constants import c_w, rho_w
+from .control_power import CONTROL_POWER_SINK_WATER_W
 from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
@@ -198,6 +199,18 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     delivers more than the request. Dynamic runs are not affected: there the
     tank thermostat switches the compressor, which runs at ``hp_capacity`` for
     ``runtime_fraction [-]`` of a step.
+
+    **Fixed control power.** ``E_ctrl`` [W] is what the running unit draws
+    besides the compressor and the source pump -- control board, sensors,
+    communications, drive standby (:mod:`tmhp.control_power`). It is part of
+    ``E_tot [W]`` and ``cop_sys [-]`` and is reported as ``E_ctrl [W]``;
+    ``E_ctrl=0`` is the machine without it. The default 15 W is the value of
+    the air-to-water family (median off/standby declaration of Heat Pump
+    Keymark air-to-water certificates), carried over: no declared population
+    of water-to-water units is in the archive. It is averaged like the
+    machine's other inputs: with the power fraction of an on/off mean (the off-period
+    draw is in ``Cc``, not added again), with the run-time fraction of a
+    dynamic step; an off row has none.
     """
 
     # Heat and power rates of the running cycle; a step reports them
@@ -206,6 +219,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     _RUNTIME_SCALED_KEYS: tuple[str, ...] = (
         "E_cmp [W]",
         "E_pmp [W]",
+        "E_ctrl [W]",
         "E_tot [W]",
         "Q_bhe [W]",
         "Q_ref_tank [W]",
@@ -217,7 +231,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     #: capacity ratio, electrical inputs with the power fraction. ``Q_bhe``
     #: follows from the averaged terms.
     _CYCLING_RATE_KEYS: tuple[str, ...] = ("Q_ref_tank [W]", "Q_ref_water [W]", "m_dot_ref [kg/s]")
-    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_pmp [W]")
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_pmp [W]", "E_ctrl [W]")
     _CYCLING_SOURCE_HEAT_KEY: str | None = "Q_ref_water [W]"
     _RATING_FAMILY = "WSHPB"
     _RATING_DEFAULT_MODE = "heating"
@@ -327,6 +341,9 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         # Compressor type whose default efficiency models are used where
         # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
         compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
+        # Fixed control power of the running unit [W] (tmhp.control_power): control
+        # board, sensors, communications, drive standby. 0: none.
+        E_ctrl: float = CONTROL_POWER_SINK_WATER_W,
     ) -> None:
         validate_ctor("WSHPB", locals())
         self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
@@ -418,6 +435,8 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.T_bhe_f_in_K = self.Ts_K
 
         self.hp_capacity = hp_capacity
+        #: Fixed control power of the running unit [W] (part of ``E_tot``; :mod:`tmhp.control_power`).
+        self.E_ctrl: float = float(E_ctrl)
         # None: always scheduled. An empty list has no window, so the heat pump is
         # never scheduled (as ASHPB reads it; it used to mean "always" here).
         self.hp_on_schedule = [(0.0, 24.0)] if hp_on_schedule is None else list(hp_on_schedule)
@@ -617,6 +636,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_ref_water [W]": 0.0,
                 "E_cmp [W]": 0.0,
                 "E_pmp [W]": 0.0,
+                "E_ctrl [W]": 0.0,
                 "E_tot [W]": 0.0,
                 "m_dot_ref [kg/s]": 0.0,
                 "cmp_rpm [rpm]": 0.0,
@@ -829,6 +849,9 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         # 5. Source-water coil state
         Q_bhe = Q_ref_water - self.E_pmp
+        # The whole electric draw of the running unit: compressor, source pump
+        # and the fixed control power (tmhp.control_power).
+        E_tot = E_cmp + self.E_pmp + self.E_ctrl
 
         # Fluid enters the coil at T_bhe_f_in_K
         T_bhe_f_in_K = T_water_in_K - Q_ref_water / m_dot_cp_b
@@ -890,9 +913,10 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_bhe [W]": Q_bhe,
                 "E_cmp [W]": E_cmp,
                 "E_pmp [W]": self.E_pmp,
-                "E_tot [W]": E_cmp + self.E_pmp,
+                "E_ctrl [W]": self.E_ctrl,
+                "E_tot [W]": E_tot,
                 "cop_ref [-]": (Q_ref_tank / E_cmp) if E_cmp > 0 else np.nan,
-                "cop_sys [-]": (Q_ref_tank / (E_cmp + self.E_pmp) if (E_cmp + self.E_pmp) > 0 else np.nan),
+                "cop_sys [-]": (Q_ref_tank / E_tot if E_tot > 0 else np.nan),
             }
         )
         return result
@@ -1915,7 +1939,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                     X_sub_out_tank_add = X_sub_out_tank_add + ex_res.X_out_tank_add
 
         # Components Destruction
-        df["X_tot [W]"] = df["E_cmp [W]"] + df["E_pmp [W]"] + df.get("X_uv [W]", 0.0) + X_sub_tot_add
+        df["X_tot [W]"] = df["E_cmp [W]"] + df["E_pmp [W]"] + df["E_ctrl [W]"] + df.get("X_uv [W]", 0.0) + X_sub_tot_add
 
         df["Xc_cmp [W]"] = df["X_cmp [W]"] + df["X_ref_cmp_in [W]"] - df["X_ref_cmp_out [W]"]
         ref_tank_active = Q_ref_tank > 0
@@ -1927,6 +1951,8 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         df["Xc_exp [W]"] = df["X_ref_exp_in [W]"] - df["X_ref_exp_out [W]"]
         df["Xc_water [W]"] = (X_water_in - X_water_out) - df["X_ref_water [W]"]
         df["Xc_pmp [W]"] = df["E_pmp [W]"] - (X_water_in - X_bhe_out)
+        # The control power warms no stream of the balance: its exergy is destroyed.
+        df["Xc_ctrl [W]"] = df["E_ctrl [W]"]
 
         X_in_tank = (
             df["X_ref_tank [W]"].fillna(0)

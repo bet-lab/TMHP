@@ -69,8 +69,8 @@ either machine.
     :alt: Two stacked panels over 72 hours. Panel (a): outdoor air
         swinging between about -8 and +4 °C, and ground-loop fluid
         between about 12 and 15 °C. Panel (b): system COP of the
-        air-source unit between about 2.1 and 3.3, and of the
-        ground-source unit near 4.
+        air-source unit between about 2.0 and 3.0, and of the
+        ground-source unit between about 3.4 and 3.6.
     :align: center
     :width: 100%
 

@@ -10,7 +10,8 @@ mass-flow actuators, routing the system's electricity to a metered output.
 Metered electricity and delivered heat (what crosses the EnergyPlus boundary)
 -----------------------------------------------------------------------------
 The metered power is the **system total** ``E_tot`` of the solved cycle —
-compressor **plus outdoor-fan** power (the plugin globals keep their historical
+compressor **plus outdoor-fan and fixed control** power (``E_ctrl``, drawn while
+the compressor runs; the plugin globals keep their historical
 ``tmhp_E_cmp*`` names). The heat handed to the plant loop and the metered power
 always belong to the same operating state:
 

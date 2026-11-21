@@ -1,8 +1,8 @@
 {
   "script": "validation/diagnostics/low_load_fixed_power_sh_sc_once.py",
   "purpose": "one-off low-load sensitivity: fixed electrical power and superheat/subcooling",
-  "started_utc": "2026-11-16T03:05:04.136474+00:00",
-  "finished_utc": "2026-11-16T03:05:21.394229+00:00",
+  "started_utc": "2026-11-16T08:28:28.967042+00:00",
+  "finished_utc": "2026-11-16T08:28:46.555205+00:00",
   "python": "3.14.7",
   "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
   "coefficient_version": "semi-empirical-2026-11-15",
@@ -148,13 +148,13 @@
       "hx_not_converged": 38
     },
     "capacity_clamped_counts": {
-      "none": 1136,
-      "min": 244
+      "none": 1137,
+      "min": 243
     },
     "pr_floor_active_points": 0,
     "fan_flow_floor_hits_ou": 0,
     "fan_flow_floor_hits_iu": 0,
-    "fan_fraction_ou_min": 0.15353618172757702,
+    "fan_fraction_ou_min": 0.15456268574798743,
     "fan_fraction_iu_min": 0.32948101362017035,
     "fan_flow_min_limit_flags": 0
   },

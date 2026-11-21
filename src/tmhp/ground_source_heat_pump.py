@@ -72,6 +72,7 @@ from .compressor_envelope import (
     steady_envelope,
 )
 from .compressor_speed import CAPACITY_CLAMPED_MAX, solve_compressor_speed
+from .control_power import CONTROL_POWER_SINK_AIR_W
 from .cycling import (
     CAPACITY_RATIO_KEY,
     CD_AIR_DEFAULT,
@@ -359,7 +360,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     """Ground source heat pump with BHE and indoor-unit air heat exchange.
 
     The refrigerant cycle is resolved via CoolProp. The operating point
-    minimises total electrical input (``E_cmp + E_pmp + E_iu_fan``) per unit
+    minimises total electrical input (``E_cmp + E_pmp + E_iu_fan + E_ctrl``) per unit
     of delivered heat over the indoor approach temperature, with the
     ground-side approach closed by the ground heat-exchanger balance.
 
@@ -389,6 +390,17 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     finds at that flow, and a variable flow is chosen for the least mean
     input. Only with ``Cd_cycling=None`` is a request below its
     minimum-speed duty the failure ``compressor_min_speed``.
+
+    **Fixed control power.** ``E_ctrl`` [W] is what the running unit draws
+    besides the compressor, the loop pump and the indoor fan -- control
+    board, sensors, communications, drive standby
+    (:mod:`tmhp.control_power`). It is part of ``E_tot [W]`` and
+    ``cop_sys [-]`` and is reported as ``E_ctrl [W]``; ``E_ctrl=0`` is the
+    machine without it. The default 12 W is the value of the air-to-air
+    family (median thermostat-off power of Heat Pump Keymark air-to-air
+    certificates), carried over: no declared population of water-to-air
+    units is in the archive. While the unit cycles it is averaged like
+    ``E_cmp [W]``; an off row has none.
 
     **Defaults that follow the capacity.** With only ``hp_capacity`` (and
     ``ref``) given, the ground side and the indoor airflow are sized from it,
@@ -482,7 +494,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     #: Electrical powers averaged with the power fraction while cycling: the
     #: compressor and the loop pump, which runs with it. The indoor fan moves
     #: the delivered heat and is averaged with it.
-    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_pmp [W]")
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_pmp [W]", "E_ctrl [W]")
 
     def __init__(
         self,
@@ -601,6 +613,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         # Compressor type whose default efficiency models are used where
         # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
         compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
+        # Fixed control power of the running unit [W] (tmhp.control_power): control
+        # board, sensors, communications, drive standby. 0: none.
+        E_ctrl: float = CONTROL_POWER_SINK_AIR_W,
     ):
         validate_ctor("GSHP", locals())
         self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
@@ -699,6 +714,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.PR_cycle_max: float = PR_cycle_max
         self._last_pr_event: tuple[str, float, float] | None = None
         self.hp_capacity: float = hp_capacity
+        #: Fixed control power of the running unit [W] (part of ``E_tot``; :mod:`tmhp.control_power`).
+        self.E_ctrl: float = float(E_ctrl)
         self.rps_min: float = rps_min
         # rps_max=None: searched up to RATED_SPEED_SEARCH_MAX for the rated
         # speed, then replaced by default_rps_max(rps_rated) (reference_state).
@@ -1327,7 +1344,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         # Total electrical input
         E_pmp_active = loop["E_pmp"] if is_active else 0.0
-        E_tot = E_cmp + E_pmp_active + E_iu_fan
+        # Fixed control power of the running unit (tmhp.control_power); none on an off row.
+        E_ctrl_active = self.E_ctrl if is_active else 0.0
+        E_tot = E_cmp + E_pmp_active + E_iu_fan + E_ctrl_active
         # Air-stream energy uses the actual flow and final fan-heated outlet.
         # It does not replace the coil duty used by the compressor/load solver.
         G_iu_a = C_iu_a
@@ -1401,6 +1420,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 "eta_cmp [-]": val_eta_em,
                 "UA_ground_rated [W/K]": UA_ground_rated,
                 "UA_iu_rated [W/K]": UA_iu_rated,
+                "E_ctrl [W]": E_ctrl_active,
                 "E_tot [W]": E_tot,
                 # Refrigerant COP uses coil duty; system COP uses final air delivery.
                 "cop_ref [-]": (
@@ -2015,7 +2035,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     @staticmethod
     def _cycling_mean_power(row: Mapping[str, Any], state: CyclingState) -> float:
         """Mean electrical input [W] a continuous row reports once it is averaged."""
-        machine = float(row["E_cmp [W]"]) + float(row["E_pmp [W]"])
+        machine = float(row["E_cmp [W]"]) + float(row["E_pmp [W]"]) + float(row["E_ctrl [W]"])
         return machine * state.power_fraction + float(row["E_iu_fan [W]"]) * state.capacity_ratio
 
     @staticmethod
@@ -2507,6 +2527,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 "Q_ref_iu [W]": 0.0,
                 "Q_ref_ground [W]": 0.0,
                 "E_cmp [W]": 0.0,
+                "E_ctrl [W]": 0.0,
                 "E_tot [W]": 0.0,
                 "cop_ref [-]": np.nan,
                 "cop_sys [-]": np.nan,
@@ -3061,7 +3082,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             df["X_ref_ground [W]"] = df["Q_ref_ground [W]"] * (1 - T0_K / T_ground_sat_K)
 
         # ── 5. Total exergy input ──
-        X_tot = df["E_cmp [W]"] + df["E_pmp [W]"].fillna(0) + df["E_iu_fan [W]"].fillna(0)
+        X_tot = df["E_cmp [W]"] + df["E_pmp [W]"].fillna(0) + df["E_iu_fan [W]"].fillna(0) + df["E_ctrl [W]"].fillna(0)
         df["X_tot [W]"] = X_tot
 
         # ── 6. Component exergy destruction (X_in, Xc, X_out) ──
@@ -3123,6 +3144,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         df["X_in_iu_fan [W]"] = df["X_iu_fan [W]"].fillna(0) + X_a_iu_mid
         df["X_out_iu_fan [W]"] = X_a_iu_out
         df["Xc_iu_fan [W]"] = df["X_in_iu_fan [W]"] - df["X_out_iu_fan [W]"]
+        # The control power warms no stream of the balance: its exergy is destroyed.
+        df["Xc_ctrl [W]"] = df["E_ctrl [W]"].fillna(0)
 
         # ── 7. Efficiencies ──
         df["X_eff_sys [-]"] = (X_a_iu_out - X_a_iu_in) / df["X_tot [W]"].replace(0, np.nan)

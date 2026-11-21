@@ -13,7 +13,8 @@ every released family three statements describe a machine:
 
 Everything else has a default, and the defaults that describe the *size* of
 the machine follow the capacity, so a 3 kW and a 30 kW unit of one family are
-the same machine at two scales. This page says what each family needs from
+the same machine at two scales, apart from the few defaults that describe an
+installation or a fixed power (*What does not follow the capacity*). This page says what each family needs from
 you, what it fills in, and where each rule comes from.
 
 What you give
@@ -86,7 +87,7 @@ delivers exactly ``hp_capacity`` there, whatever the refrigerant.
        print(f"{name:6s} {row['failure_reason']:5s} COP {row['cop_sys [-]']:.2f}")
 
 Each call returns a running point (``failure_reason == "none"``) with a system
-COP of 4.50, 6.26, 3.05, 3.13 and 3.24 respectively. The keys of the result
+COP of 4.46, 6.34, 3.10, 3.23 and 3.30 respectively. The keys of the result
 are listed in :doc:`/concepts/result-keys`. A time series needs the same
 quantities as schedules; see :doc:`first-dynamic-simulation`.
 
@@ -222,8 +223,8 @@ What follows the refrigerant
         is kept when the refrigerant is swapped. The displacement follows the
         refrigerant in every family, so the rated speed moves little with the
         fluid: over R32, R290, R410A, R134a, R600a, R1234yf and R1234ze(E)
-        36–38 rev/s for the default GSHP, 48–50 ASHP, 54–64 WSHPB, 63–79
-        ASHPB and 75–101 GSHPB (its rating point is B0/W55)
+        36–38 rev/s for the default GSHP, 48–50 ASHP, 54–67 WSHPB, 63–85
+        ASHPB and 75–108 GSHPB (its rating point is B0/W55)
       - :doc:`/concepts/refrigerant-and-coolprop`
     * - Discharge-temperature limit ``T_dis_max``
       - 150 °C for R32, 135 °C for every other refrigerant
@@ -328,12 +329,19 @@ the default size.
     * - Room temperature when none is given
       - 27 °C (the cooling rating condition) — pass ``T_a_room`` for heating
       - ASHP, GSHP
+    * - Fixed control power ``E_ctrl`` (control board, sensors, drive
+        standby while the unit runs; :ref:`fixed-control-power`)
+      - 15 W for the units delivering to water, 12 W for those delivering to
+        air; part of ``E_tot [W]`` and ``cop_sys [-]``. Give the actual unit's
+        figure, or ``E_ctrl=0`` for the cycle without it
+      - all
 
 When you know more
 ==================
 
 Any default can be replaced one at a time: a measured ``UA``, a catalogue
-airflow, a tested ``Cd_cycling``, a compressor map as ``eta_cmp_isen``. The
+airflow, a tested ``Cd_cycling``, a compressor map as ``eta_cmp_isen``, the
+unit's control power as ``E_ctrl``. The
 validation harness does exactly that with what manufacturers publish
 (:doc:`/validation/index`), and :doc:`/validation/adding-a-catalogue` shows
 the pattern. What the models leave out altogether is listed in

@@ -1,0 +1,163 @@
+variant,level,P_fixed_W,application,quantity,model_median,cases_inside,cases,pop_p10,pop_p50,pop_p90
+shao_informed,none,0.0,low,A,2.9730260198678296,15,15,2.61,2.99,3.35
+shao_informed,none,0.0,low,B,4.169931349818976,13,15,4.13,4.53,5.01
+shao_informed,none,0.0,low,C,5.43827468478622,9,15,5.37,6.16,6.82
+shao_informed,none,0.0,low,D,8.277410106163698,12,15,6.4,7.88,8.97
+shao_informed,none,0.0,low,B/A,1.4188194559380518,15,15,1.3499104338437375,1.5193548387096774,1.6961538461538461
+shao_informed,none,0.0,low,C/A,1.8200860426304943,15,15,1.7019230769230766,2.0547112462006076,2.3942652329749103
+shao_informed,none,0.0,low,D/A,2.801979446457489,15,15,2.024844720496894,2.6325088339222615,3.128676470588235
+shao_informed,none,0.0,low,all four points,,6,15,,,
+shao_informed,none,0.0,low,rising A to D,,15,15,,,
+shao_informed,none,0.0,medium,A,2.110852407005535,15,15,1.9,2.16,2.47
+shao_informed,none,0.0,medium,B,2.932988348752158,3,15,3.12,3.34,3.67
+shao_informed,none,0.0,medium,C,3.6768800156499073,3,15,4.06,4.54,5.0
+shao_informed,none,0.0,medium,D,5.850388953710506,15,15,5.27,6.1,6.97
+shao_informed,none,0.0,medium,B/A,1.4001179466011695,8,15,1.3913043478260871,1.556521739130435,1.7216494845360824
+shao_informed,none,0.0,medium,C/A,1.7406446268962157,7,15,1.7577092511013217,2.103896103896104,2.4564102564102566
+shao_informed,none,0.0,medium,D/A,2.770351334750617,15,15,2.31578947368421,2.8645705395889625,3.390697674418605
+shao_informed,none,0.0,medium,all four points,,3,15,,,
+shao_informed,none,0.0,medium,rising A to D,,15,15,,,
+shao_informed,none,0.0,both,A,,30,30,,,
+shao_informed,none,0.0,both,B,,16,30,,,
+shao_informed,none,0.0,both,C,,12,30,,,
+shao_informed,none,0.0,both,D,,27,30,,,
+shao_informed,none,0.0,both,B/A,,23,30,,,
+shao_informed,none,0.0,both,C/A,,22,30,,,
+shao_informed,none,0.0,both,D/A,,30,30,,,
+shao_informed,none,0.0,both,all four points,,9,30,,,
+shao_informed,none,0.0,both,rising A to D,,30,30,,,
+ossorio_anchored,none,0.0,low,A,2.9485941342651336,15,15,2.61,2.99,3.35
+ossorio_anchored,none,0.0,low,B,4.478783591736229,15,15,4.13,4.53,5.01
+ossorio_anchored,none,0.0,low,C,6.062336104652089,15,15,5.37,6.16,6.82
+ossorio_anchored,none,0.0,low,D,9.122812110818183,3,15,6.4,7.88,8.97
+ossorio_anchored,none,0.0,low,B/A,1.5363169822055394,15,15,1.3499104338437375,1.5193548387096774,1.6961538461538461
+ossorio_anchored,none,0.0,low,C/A,2.0693237875315647,15,15,1.7019230769230766,2.0547112462006076,2.3942652329749103
+ossorio_anchored,none,0.0,low,D/A,3.098368574806438,9,15,2.024844720496894,2.6325088339222615,3.128676470588235
+ossorio_anchored,none,0.0,low,all four points,,3,15,,,
+ossorio_anchored,none,0.0,low,rising A to D,,15,15,,,
+ossorio_anchored,none,0.0,medium,A,2.11178563077994,15,15,1.9,2.16,2.47
+ossorio_anchored,none,0.0,medium,B,3.1758252110074836,15,15,3.12,3.34,3.67
+ossorio_anchored,none,0.0,medium,C,4.18467498060537,13,15,4.06,4.54,5.0
+ossorio_anchored,none,0.0,medium,D,6.56367278598386,15,15,5.27,6.1,6.97
+ossorio_anchored,none,0.0,medium,B/A,1.5360815396320024,15,15,1.3913043478260871,1.556521739130435,1.7216494845360824
+ossorio_anchored,none,0.0,medium,C/A,2.0185841793731023,15,15,1.7577092511013217,2.103896103896104,2.4564102564102566
+ossorio_anchored,none,0.0,medium,D/A,3.079432106832983,15,15,2.31578947368421,2.8645705395889625,3.390697674418605
+ossorio_anchored,none,0.0,medium,all four points,,13,15,,,
+ossorio_anchored,none,0.0,medium,rising A to D,,15,15,,,
+ossorio_anchored,none,0.0,both,A,,30,30,,,
+ossorio_anchored,none,0.0,both,B,,30,30,,,
+ossorio_anchored,none,0.0,both,C,,28,30,,,
+ossorio_anchored,none,0.0,both,D,,18,30,,,
+ossorio_anchored,none,0.0,both,B/A,,30,30,,,
+ossorio_anchored,none,0.0,both,C/A,,30,30,,,
+ossorio_anchored,none,0.0,both,D/A,,24,30,,,
+ossorio_anchored,none,0.0,both,all four points,,16,30,,,
+ossorio_anchored,none,0.0,both,rising A to D,,30,30,,,
+shao_informed,certified_median,15.0,low,A,2.9508719313997758,15,15,2.61,2.99,3.35
+shao_informed,certified_median,15.0,low,B,4.100591949148392,5,15,4.13,4.53,5.01
+shao_informed,certified_median,15.0,low,C,5.239789604386743,3,15,5.37,6.16,6.82
+shao_informed,certified_median,15.0,low,D,7.938781517870162,15,15,6.4,7.88,8.97
+shao_informed,certified_median,15.0,low,B/A,1.4036943152674,11,15,1.3499104338437375,1.5193548387096774,1.6961538461538461
+shao_informed,certified_median,15.0,low,C/A,1.7785455990159946,15,15,1.7019230769230766,2.0547112462006076,2.3942652329749103
+shao_informed,certified_median,15.0,low,D/A,2.709749029935979,15,15,2.024844720496894,2.6325088339222615,3.128676470588235
+shao_informed,certified_median,15.0,low,all four points,,3,15,,,
+shao_informed,certified_median,15.0,low,rising A to D,,15,15,,,
+shao_informed,certified_median,15.0,medium,A,2.099772329590611,15,15,1.9,2.16,2.47
+shao_informed,certified_median,15.0,medium,B,2.9132096221796453,3,15,3.12,3.34,3.67
+shao_informed,certified_median,15.0,medium,C,3.5828296498401326,3,15,4.06,4.54,5.0
+shao_informed,certified_median,15.0,medium,D,5.665746029029957,15,15,5.27,6.1,6.97
+shao_informed,certified_median,15.0,medium,B/A,1.393447615862964,8,15,1.3913043478260871,1.556521739130435,1.7216494845360824
+shao_informed,certified_median,15.0,medium,C/A,1.706294344081899,4,15,1.7577092511013217,2.103896103896104,2.4564102564102566
+shao_informed,certified_median,15.0,medium,D/A,2.7059194855010174,15,15,2.31578947368421,2.8645705395889625,3.390697674418605
+shao_informed,certified_median,15.0,medium,all four points,,3,15,,,
+shao_informed,certified_median,15.0,medium,rising A to D,,15,15,,,
+shao_informed,certified_median,15.0,both,A,,30,30,,,
+shao_informed,certified_median,15.0,both,B,,8,30,,,
+shao_informed,certified_median,15.0,both,C,,6,30,,,
+shao_informed,certified_median,15.0,both,D,,30,30,,,
+shao_informed,certified_median,15.0,both,B/A,,19,30,,,
+shao_informed,certified_median,15.0,both,C/A,,19,30,,,
+shao_informed,certified_median,15.0,both,D/A,,30,30,,,
+shao_informed,certified_median,15.0,both,all four points,,6,30,,,
+shao_informed,certified_median,15.0,both,rising A to D,,30,30,,,
+ossorio_anchored,certified_median,15.0,low,A,2.926801333146259,15,15,2.61,2.99,3.35
+ossorio_anchored,certified_median,15.0,low,B,4.410232871879799,15,15,4.13,4.53,5.01
+ossorio_anchored,certified_median,15.0,low,C,5.870366912944879,15,15,5.37,6.16,6.82
+ossorio_anchored,certified_median,15.0,low,D,8.751390887926963,15,15,6.4,7.88,8.97
+ossorio_anchored,certified_median,15.0,low,B/A,1.519457326725165,15,15,1.3499104338437375,1.5193548387096774,1.6961538461538461
+ossorio_anchored,certified_median,15.0,low,C/A,2.005152432905727,15,15,1.7019230769230766,2.0547112462006076,2.3942652329749103
+ossorio_anchored,certified_median,15.0,low,D/A,2.9500371741500113,15,15,2.024844720496894,2.6325088339222615,3.128676470588235
+ossorio_anchored,certified_median,15.0,low,all four points,,15,15,,,
+ossorio_anchored,certified_median,15.0,low,rising A to D,,15,15,,,
+ossorio_anchored,certified_median,15.0,medium,A,2.0991980149172353,15,15,1.9,2.16,2.47
+ossorio_anchored,certified_median,15.0,medium,B,3.1359793092215806,14,15,3.12,3.34,3.67
+ossorio_anchored,certified_median,15.0,medium,C,4.0929566594936775,12,15,4.06,4.54,5.0
+ossorio_anchored,certified_median,15.0,medium,D,6.367041764232135,15,15,5.27,6.1,6.97
+ossorio_anchored,certified_median,15.0,medium,B/A,1.5247081554368471,15,15,1.3913043478260871,1.556521739130435,1.7216494845360824
+ossorio_anchored,certified_median,15.0,medium,C/A,1.9712878710599195,15,15,1.7577092511013217,2.103896103896104,2.4564102564102566
+ossorio_anchored,certified_median,15.0,medium,D/A,2.98590288808441,15,15,2.31578947368421,2.8645705395889625,3.390697674418605
+ossorio_anchored,certified_median,15.0,medium,all four points,,12,15,,,
+ossorio_anchored,certified_median,15.0,medium,rising A to D,,15,15,,,
+ossorio_anchored,certified_median,15.0,both,A,,30,30,,,
+ossorio_anchored,certified_median,15.0,both,B,,29,30,,,
+ossorio_anchored,certified_median,15.0,both,C,,27,30,,,
+ossorio_anchored,certified_median,15.0,both,D,,30,30,,,
+ossorio_anchored,certified_median,15.0,both,B/A,,30,30,,,
+ossorio_anchored,certified_median,15.0,both,C/A,,30,30,,,
+ossorio_anchored,certified_median,15.0,both,D/A,,30,30,,,
+ossorio_anchored,certified_median,15.0,both,all four points,,27,30,,,
+ossorio_anchored,certified_median,15.0,both,rising A to D,,30,30,,,
+shao_informed,certified_upper,25.0,low,A,2.9362850607459983,15,15,2.61,2.99,3.35
+shao_informed,certified_upper,25.0,low,B,4.063940911315639,3,15,4.13,4.53,5.01
+shao_informed,certified_upper,25.0,low,C,5.126136411826104,3,15,5.37,6.16,6.82
+shao_informed,certified_upper,25.0,low,D,7.730086950667893,15,15,6.4,7.88,8.97
+shao_informed,certified_upper,25.0,low,B/A,1.3981115010811558,11,15,1.3499104338437375,1.5193548387096774,1.6961538461538461
+shao_informed,certified_upper,25.0,low,C/A,1.7599412315947032,13,15,1.7019230769230766,2.0547112462006076,2.3942652329749103
+shao_informed,certified_upper,25.0,low,D/A,2.647121565197935,15,15,2.024844720496894,2.6325088339222615,3.128676470588235
+shao_informed,certified_upper,25.0,low,all four points,,3,15,,,
+shao_informed,certified_upper,25.0,low,rising A to D,,15,15,,,
+shao_informed,certified_upper,25.0,medium,A,2.091459084859079,15,15,1.9,2.16,2.47
+shao_informed,certified_upper,25.0,medium,B,2.8955523193629453,3,15,3.12,3.34,3.67
+shao_informed,certified_upper,25.0,medium,C,3.5227575890175373,2,15,4.06,4.54,5.0
+shao_informed,certified_upper,25.0,medium,D,5.590064621465656,15,15,5.27,6.1,6.97
+shao_informed,certified_upper,25.0,medium,B/A,1.3872528716104262,5,15,1.3913043478260871,1.556521739130435,1.7216494845360824
+shao_informed,certified_upper,25.0,medium,C/A,1.6843540543155777,4,15,1.7577092511013217,2.103896103896104,2.4564102564102566
+shao_informed,certified_upper,25.0,medium,D/A,2.6671295303834217,15,15,2.31578947368421,2.8645705395889625,3.390697674418605
+shao_informed,certified_upper,25.0,medium,all four points,,2,15,,,
+shao_informed,certified_upper,25.0,medium,rising A to D,,15,15,,,
+shao_informed,certified_upper,25.0,both,A,,30,30,,,
+shao_informed,certified_upper,25.0,both,B,,6,30,,,
+shao_informed,certified_upper,25.0,both,C,,5,30,,,
+shao_informed,certified_upper,25.0,both,D,,30,30,,,
+shao_informed,certified_upper,25.0,both,B/A,,16,30,,,
+shao_informed,certified_upper,25.0,both,C/A,,17,30,,,
+shao_informed,certified_upper,25.0,both,D/A,,30,30,,,
+shao_informed,certified_upper,25.0,both,all four points,,5,30,,,
+shao_informed,certified_upper,25.0,both,rising A to D,,30,30,,,
+ossorio_anchored,certified_upper,25.0,low,A,2.9124508867857077,15,15,2.61,2.99,3.35
+ossorio_anchored,certified_upper,25.0,low,B,4.365686409665935,15,15,4.13,4.53,5.01
+ossorio_anchored,certified_upper,25.0,low,C,5.769377311277126,15,15,5.37,6.16,6.82
+ossorio_anchored,certified_upper,25.0,low,D,8.520134790953577,15,15,6.4,7.88,8.97
+ossorio_anchored,certified_upper,25.0,low,B/A,1.507313929950074,15,15,1.3499104338437375,1.5193548387096774,1.6961538461538461
+ossorio_anchored,certified_upper,25.0,low,C/A,1.9622937005812076,15,15,1.7019230769230766,2.0547112462006076,2.3942652329749103
+ossorio_anchored,certified_upper,25.0,low,D/A,2.8600467847992763,15,15,2.024844720496894,2.6325088339222615,3.128676470588235
+ossorio_anchored,certified_upper,25.0,low,all four points,,15,15,,,
+ossorio_anchored,certified_upper,25.0,low,rising A to D,,15,15,,,
+ossorio_anchored,certified_upper,25.0,medium,A,2.090889308124747,15,15,1.9,2.16,2.47
+ossorio_anchored,certified_upper,25.0,medium,B,3.1153467591029846,5,15,3.12,3.34,3.67
+ossorio_anchored,certified_upper,25.0,medium,C,4.037847422142547,6,15,4.06,4.54,5.0
+ossorio_anchored,certified_upper,25.0,medium,D,6.2423713351590395,15,15,5.27,6.1,6.97
+ossorio_anchored,certified_upper,25.0,medium,B/A,1.5159490966781661,15,15,1.3913043478260871,1.556521739130435,1.7216494845360824
+ossorio_anchored,certified_upper,25.0,medium,C/A,1.9390963581794842,15,15,1.7577092511013217,2.103896103896104,2.4564102564102566
+ossorio_anchored,certified_upper,25.0,medium,D/A,2.9496579274146786,15,15,2.31578947368421,2.8645705395889625,3.390697674418605
+ossorio_anchored,certified_upper,25.0,medium,all four points,,3,15,,,
+ossorio_anchored,certified_upper,25.0,medium,rising A to D,,15,15,,,
+ossorio_anchored,certified_upper,25.0,both,A,,30,30,,,
+ossorio_anchored,certified_upper,25.0,both,B,,20,30,,,
+ossorio_anchored,certified_upper,25.0,both,C,,21,30,,,
+ossorio_anchored,certified_upper,25.0,both,D,,30,30,,,
+ossorio_anchored,certified_upper,25.0,both,B/A,,30,30,,,
+ossorio_anchored,certified_upper,25.0,both,C/A,,30,30,,,
+ossorio_anchored,certified_upper,25.0,both,D/A,,30,30,,,
+ossorio_anchored,certified_upper,25.0,both,all four points,,18,30,,,
+ossorio_anchored,certified_upper,25.0,both,rising A to D,,30,30,,,

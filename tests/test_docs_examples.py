@@ -145,6 +145,6 @@ def test_result_keys_example_is_copy_runnable() -> None:
     assert row["failure_reason"] == "none"
     assert row["capacity_clamped"] == "max"
     assert row["capacity_binding"] == "compressor"
-    assert math.isclose(row["Q_ref_iu [W]"], 3800.0, rel_tol=0.02)
-    assert math.isclose(row["Q_unmet [W]"], 5200.0, rel_tol=0.02)
+    assert math.isclose(row["Q_ref_iu [W]"], 3900.0, rel_tol=0.02)
+    assert math.isclose(row["Q_unmet [W]"], 5100.0, rel_tol=0.02)
     assert math.isclose(row["Q_ref_iu [W]"] + row["Q_unmet [W]"], 9000.0, rel_tol=1e-9)

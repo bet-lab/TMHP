@@ -1,8 +1,8 @@
 {
   "units": 17,
   "points": 757,
-  "points_evaluated": 740,
-  "cop_mape_pct": 16.81,
+  "points_evaluated": 741,
+  "cop_mape_pct": 16.9,
   "refrigerants": [
     "R290",
     "R32",
@@ -27,11 +27,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 72,
       "points_usable": 72,
-      "cop_MAE": 0.5454719694661109,
-      "cop_MAPE_pct": 11.414677776112606,
-      "cop_max_APE_pct": 31.845696999624906,
-      "power_MAPE_pct": 13.246492975701877,
-      "cop_bias_pct": -6.886441173668057
+      "cop_MAE": 0.6044019313256287,
+      "cop_MAPE_pct": 12.543933849250989,
+      "cop_max_APE_pct": 32.92188098078477,
+      "power_MAPE_pct": 15.01938029226652,
+      "cop_bias_pct": -8.459161457186005
     },
     {
       "slug": "daikin_rxm25a",
@@ -47,11 +47,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 72,
       "points_usable": 72,
-      "cop_MAE": 0.4909218486958263,
-      "cop_MAPE_pct": 10.394989147202422,
-      "cop_max_APE_pct": 29.480111062672844,
-      "power_MAPE_pct": 11.890138298445956,
-      "cop_bias_pct": -6.468536368357517
+      "cop_MAE": 0.5410961343196292,
+      "cop_MAPE_pct": 11.352286316747808,
+      "cop_max_APE_pct": 30.46550160543467,
+      "power_MAPE_pct": 13.369531396112066,
+      "cop_bias_pct": -7.596610152937201
     },
     {
       "slug": "daikin_rxm35a",
@@ -67,11 +67,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 72,
       "points_usable": 72,
-      "cop_MAE": 0.3405405807263932,
-      "cop_MAPE_pct": 8.131505608294118,
-      "cop_max_APE_pct": 21.907393701907697,
-      "power_MAPE_pct": 8.94601292626792,
-      "cop_bias_pct": -6.226580794864166
+      "cop_MAE": 0.383764549948406,
+      "cop_MAPE_pct": 9.121533749108838,
+      "cop_max_APE_pct": 23.81992079999632,
+      "power_MAPE_pct": 10.311140097525778,
+      "cop_bias_pct": -7.356313254634263
     },
     {
       "slug": "daikin_rxm42a",
@@ -87,11 +87,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 72,
       "points_usable": 72,
-      "cop_MAE": 0.248813389656137,
-      "cop_MAPE_pct": 6.4146995964653675,
-      "cop_max_APE_pct": 15.885388851649514,
-      "power_MAPE_pct": 6.934175592323113,
-      "cop_bias_pct": -4.258803245301369
+      "cop_MAE": 0.3094429230741451,
+      "cop_MAPE_pct": 7.931236803949511,
+      "cop_max_APE_pct": 18.41211835957474,
+      "power_MAPE_pct": 8.851896560442826,
+      "cop_bias_pct": -5.5552188345882065
     },
     {
       "slug": "daikin_rxm50a",
@@ -107,11 +107,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 72,
       "points_usable": 72,
-      "cop_MAE": 0.2391823667083801,
-      "cop_MAPE_pct": 6.257850273976538,
-      "cop_max_APE_pct": 18.144857481890465,
-      "power_MAPE_pct": 6.860363885908742,
-      "cop_bias_pct": -1.548302334120513
+      "cop_MAE": 0.2938495359624263,
+      "cop_MAPE_pct": 7.593221411207336,
+      "cop_max_APE_pct": 21.626705051199657,
+      "power_MAPE_pct": 8.49265563118089,
+      "cop_bias_pct": -2.6340854744006945
     },
     {
       "slug": "fujitsu_asuh09lpas",
@@ -127,11 +127,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 122,
       "points_usable": 122,
-      "cop_MAE": 1.4857048301489328,
-      "cop_MAPE_pct": 33.89738734692908,
-      "cop_max_APE_pct": 90.91253060540328,
-      "power_MAPE_pct": 23.839206899255768,
-      "cop_bias_pct": 33.89738734692908
+      "cop_MAE": 1.4016928617146414,
+      "cop_MAPE_pct": 31.5488083632088,
+      "cop_max_APE_pct": 88.15086956415773,
+      "power_MAPE_pct": 22.50132379723688,
+      "cop_bias_pct": 31.469996172073863
     },
     {
       "slug": "fujitsu_asuh12lpas",
@@ -147,11 +147,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 122,
       "points_usable": 122,
-      "cop_MAE": 1.7093814237872342,
-      "cop_MAPE_pct": 33.604044093334004,
-      "cop_max_APE_pct": 84.14769568688408,
-      "power_MAPE_pct": 23.65509513413236,
-      "cop_bias_pct": 33.20532398435335
+      "cop_MAE": 1.7041057214293884,
+      "cop_MAPE_pct": 32.89445585787434,
+      "cop_max_APE_pct": 84.21726224686627,
+      "power_MAPE_pct": 23.329855155231098,
+      "cop_bias_pct": 31.93439507722797
     },
     {
       "slug": "panasonic_wh_mxc09j3e8",
@@ -167,11 +167,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.3116403625629022,
-      "cop_MAPE_pct": 9.694489900081075,
-      "cop_max_APE_pct": 18.708127184138966,
-      "power_MAPE_pct": 10.985221308157062,
-      "cop_bias_pct": -8.944914887781238
+      "cop_MAE": 0.3495389584856828,
+      "cop_MAPE_pct": 11.784706442163625,
+      "cop_max_APE_pct": 22.107961814159435,
+      "power_MAPE_pct": 13.773725984759842,
+      "cop_bias_pct": -11.696257149863149
     },
     {
       "slug": "panasonic_wh_uq09he8",
@@ -187,11 +187,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.2112519140132623,
-      "cop_MAPE_pct": 5.61436551639194,
-      "cop_max_APE_pct": 16.961707277711742,
-      "power_MAPE_pct": 6.220135625972193,
-      "cop_bias_pct": -4.558135418622303
+      "cop_MAE": 0.2326121675768312,
+      "cop_MAPE_pct": 6.81410344254548,
+      "cop_max_APE_pct": 16.485735535731806,
+      "power_MAPE_pct": 7.609562655590211,
+      "cop_bias_pct": -6.79515593672917
     },
     {
       "slug": "panasonic_wh_wxg09me8",
@@ -207,11 +207,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.3429999740158465,
-      "cop_MAPE_pct": 13.985473800002952,
-      "cop_max_APE_pct": 22.70117168895479,
-      "power_MAPE_pct": 17.119539120354002,
-      "cop_bias_pct": -13.361899050304409
+      "cop_MAE": 0.3496288394543977,
+      "cop_MAPE_pct": 14.196522765436663,
+      "cop_max_APE_pct": 22.934490404755287,
+      "power_MAPE_pct": 17.436094675909846,
+      "cop_bias_pct": -13.751486638701714
     },
     {
       "slug": "panasonic_wh_mxc12j9e8",
@@ -226,12 +226,12 @@
       "injection": "none",
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 15,
-      "points_usable": 13,
-      "cop_MAE": 0.2643852720001417,
-      "cop_MAPE_pct": 8.98878093061328,
-      "cop_max_APE_pct": 24.030800561333653,
-      "power_MAPE_pct": 9.379997275187003,
-      "cop_bias_pct": -4.380866309908424
+      "points_usable": 14,
+      "cop_MAE": 0.242388462238855,
+      "cop_MAPE_pct": 8.808326491392405,
+      "cop_max_APE_pct": 19.22281174252553,
+      "power_MAPE_pct": 9.529388636934046,
+      "cop_bias_pct": -6.062210528174473
     },
     {
       "slug": "panasonic_wh_uq12he8",
@@ -247,11 +247,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 15,
       "points_usable": 11,
-      "cop_MAE": 0.1489945337924582,
-      "cop_MAPE_pct": 4.627600081601788,
-      "cop_max_APE_pct": 11.25301089068757,
-      "power_MAPE_pct": 4.891146427332163,
-      "cop_bias_pct": -2.911871419907001
+      "cop_MAE": 0.1233806626344914,
+      "cop_MAPE_pct": 4.020307579839175,
+      "cop_max_APE_pct": 13.735711245909416,
+      "power_MAPE_pct": 4.413910143304187,
+      "cop_bias_pct": -3.8256258386297377
     },
     {
       "slug": "panasonic_wh_wxg12me8",
@@ -267,11 +267,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.2575848903137693,
-      "cop_MAPE_pct": 10.878601269425513,
-      "cop_max_APE_pct": 19.65562015700565,
-      "power_MAPE_pct": 12.735322666112184,
-      "cop_bias_pct": -10.878601269425513
+      "cop_MAE": 0.2682009763888333,
+      "cop_MAPE_pct": 11.183868688095592,
+      "cop_max_APE_pct": 19.831286672145755,
+      "power_MAPE_pct": 13.104075630539125,
+      "cop_bias_pct": -11.183868688095592
     },
     {
       "slug": "panasonic_wh_mxc16j9e8",
@@ -287,11 +287,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 15,
       "points_usable": 15,
-      "cop_MAE": 0.1622359408525466,
-      "cop_MAPE_pct": 8.508202119348175,
-      "cop_max_APE_pct": 29.87242887243892,
-      "power_MAPE_pct": 7.489910765523254,
-      "cop_bias_pct": 6.4101398403143275
+      "cop_MAE": 0.1204080140253316,
+      "cop_MAPE_pct": 5.889022869545001,
+      "cop_max_APE_pct": 24.385882699873125,
+      "power_MAPE_pct": 5.412802619122539,
+      "cop_bias_pct": 3.6196365365025858
     },
     {
       "slug": "panasonic_wh_uq16he8",
@@ -307,11 +307,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 18,
       "points_usable": 15,
-      "cop_MAE": 0.1269332984608017,
-      "cop_MAPE_pct": 4.212901308727429,
-      "cop_max_APE_pct": 7.922336371889416,
-      "power_MAPE_pct": 4.2187467507596415,
-      "cop_bias_pct": 0.694257654155227
+      "cop_MAE": 0.1446177547583103,
+      "cop_MAPE_pct": 4.758741187183855,
+      "cop_max_APE_pct": 9.665330504971145,
+      "power_MAPE_pct": 4.794710008865205,
+      "cop_bias_pct": 0.1671418655987599
     },
     {
       "slug": "panasonic_wh_wxg16me8",
@@ -327,11 +327,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 15,
       "points_usable": 12,
-      "cop_MAE": 0.2220499818184762,
-      "cop_MAPE_pct": 8.360534682116397,
-      "cop_max_APE_pct": 15.423890694470176,
-      "power_MAPE_pct": 9.146299430959257,
-      "cop_bias_pct": -5.480171626085016
+      "cop_MAE": 0.2206964386877584,
+      "cop_MAPE_pct": 8.39200579945336,
+      "cop_max_APE_pct": 15.582525937475683,
+      "power_MAPE_pct": 9.217940055959254,
+      "cop_bias_pct": -5.74223368803225
     },
     {
       "slug": "samsung_ehs_mono_ht_r32_14kw",
@@ -347,11 +347,11 @@
       "coefficient_version": "semi-empirical-2026-11-15",
       "points": 15,
       "points_usable": 10,
-      "cop_MAE": 0.369108077364617,
-      "cop_MAPE_pct": 7.281904356681809,
-      "cop_max_APE_pct": 14.938939192295804,
-      "power_MAPE_pct": 8.04127955181595,
-      "cop_bias_pct": -6.8872136185434485
+      "cop_MAE": 0.3855717246002491,
+      "cop_MAPE_pct": 7.591448771247268,
+      "cop_max_APE_pct": 15.384823696465274,
+      "power_MAPE_pct": 8.419768443610332,
+      "cop_bias_pct": -7.249964763608631
     }
   ],
   "air_to_water_injection_strata": [
@@ -373,9 +373,9 @@
         "samsung_ehs_mono_ht_r32_14kw"
       ],
       "points": 153,
-      "points_usable": 136,
-      "cop_MAPE_pct": 8.340542069540174,
-      "cop_bias_pct": -5.0235539729499985
+      "points_usable": 137,
+      "cop_MAPE_pct": 8.493160529110881,
+      "cop_bias_pct": -6.298971778694652
     },
     {
       "model_class": "ASHPB",
@@ -391,9 +391,9 @@
         "panasonic_wh_uq16he8"
       ],
       "points": 93,
-      "points_usable": 84,
-      "cop_MAPE_pct": 7.0024659007597805,
-      "cop_bias_pct": -2.2019242836523367
+      "points_usable": 85,
+      "cop_MAPE_pct": 7.1322183926975775,
+      "cop_bias_pct": -4.0884982574909925
     },
     {
       "model_class": "ASHPB",
@@ -408,8 +408,8 @@
       ],
       "points": 60,
       "points_usable": 52,
-      "cop_MAPE_pct": 10.502049726800804,
-      "cop_bias_pct": -9.581571163353914
+      "cop_MAPE_pct": 10.717777482863399,
+      "cop_bias_pct": -9.912245803739093
     }
   ]
 }

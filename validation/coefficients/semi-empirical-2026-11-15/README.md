@@ -14,8 +14,13 @@ eta_oi level is given per refrigerant wherever rating points exist (R290 from th
 (5) the uncertainty of eta_v above the rotary data (PR > 6.8) is recorded. Third pass: (6) the default rotary speed
 shape is the Shao-informed variant `a`, chosen by a rule written down before the device measurement (EN 14825
 trajectory shape; "Rotary speed-shape variants" below); variant `b` stays in `rotary_speed_variants*` and in the
-library (`rotary_speed_variant="ossorio_anchored"`). **Consequence: the EN 14825 trajectory-shape check is no longer
-independent validation for the rotary types.**
+library (`rotary_speed_variant="ossorio_anchored"`). Fourth pass (draft, see the owner decisions under "Rotary
+speed-shape variants"): (7) the default rotary speed shape is the Ossorio-anchored variant `b` again — the rule of
+the third pass was measured on a device model without the fixed control power of a real unit; with that power in
+the library (`tmhp.control_power`, 15 W for an air-to-water unit) both variants pass the rule and `b` matches the
+certified EN 14825 level at more points. Variant `a` stays in `rotary_speed_variants*` and in the library
+(`rotary_speed_variant="shao_informed"`). **Consequence: the EN 14825 part-load comparison (trajectory shape and
+level) is not independent validation for the rotary types.**
 
 ## What
 
@@ -26,8 +31,8 @@ three types:
 | type | form | speed coordinate | level `a` (IQR) | eta_oi at R410A 7.2/54.4 °C, 60 rev/s | status |
 |---|---|---|---|---|---|
 | `scroll` | `1/eta = a phi_z(PR; rv, k, zv) + q2 n 1e5/MEP_s + cL (PR-1)/n` | `n = N/50` | 1.091 (1.069–1.147), 62 residential machines | 0.765 | fitted |
-| `rotary_twin_inverter` | `1/eta = 1 + a (n 1e5/MEP_s + cL (PR-1)/n + cu MEP_s/1e6/n)` (variant `a`) | `n = N/N_rated` (60) | per refrigerant (below); pooled 1.271 | 0.717 (pooled level) | **provisional** |
-| `rotary_single_fixed` | same rotary shape | `n = N/N_rated` (50) | per refrigerant (below); pooled 1.729 | 0.667 (pooled) | **provisional** |
+| `rotary_twin_inverter` | `1/eta = 1 + a (n 1e5/MEP_s + qf n^2 1e4 rho_1/MEP_s + cu MEP_s/1e6/n + cH (PR^((k-1)/k) - 1))` (variant `b`) | `n = N/N_rated` (60) | per refrigerant (below); pooled 0.523 | 0.748 (pooled level) | **provisional** |
+| `rotary_single_fixed` | same rotary shape | `n = N/N_rated` (50) | per refrigerant (below); pooled 0.790 | 0.670 (pooled) | **provisional** |
 
 ### Rotary eta_oi level per refrigerant (revised 2026-11-16, second pass)
 
@@ -35,32 +40,33 @@ A refrigerant gets its own level (median over its rating points) where the type 
 it; every other refrigerant takes the pooled level (median over all rating points of the type) — an extrapolation in
 suction pressure / MEP_s.
 
-| type | refrigerant | rating points | level `a` median (IQR), default variant `a` | variant `b` |
+| type | refrigerant | rating points | level `a` median (IQR), default variant `b` | variant `a` |
 |---|---|---|---|---|
-| twin | R32 | 23, LG + Mitsubishi SCI | 1.316 (1.276–1.436) | 0.448 |
-| twin | R410A | 18, LG + Mitsubishi SCI | 1.173 (1.127–1.220) | 0.567 |
-| twin | R290 | 7, Highly 2024 inverter twins (power basis not printed, read as excluding the inverter: **assumed**) | 1.145 (1.133–1.271) | 0.790 |
-| twin | any other (R134a, R1234yf, R454B, R452B, R22, ...) | pooled over the 48 | 1.271 (1.161–1.380) | 0.523 |
-| single | R22 | 10, Panasonic | 1.791 (1.732–1.860) | 0.802 |
-| single | R410A | 46, LG + Panasonic | 1.693 (1.579–1.816) | 0.784 |
-| single | any other (R32, R290, ...) | pooled over the 56 + AREP #26 | 1.729 (1.620–1.855) | 0.790 |
+| twin | R32 | 23, LG + Mitsubishi SCI | 0.448 (0.434–0.489) | 1.316 |
+| twin | R410A | 18, LG + Mitsubishi SCI | 0.567 (0.527–0.590) | 1.173 |
+| twin | R290 | 7, Highly 2024 inverter twins (power basis not printed, read as excluding the inverter: **assumed**) | 0.790 (0.782–0.877) | 1.145 |
+| twin | any other (R134a, R1234yf, R454B, R452B, R22, ...) | pooled over the 48 | 0.523 (0.452–0.585) | 1.271 |
+| single | R22 | 10, Panasonic | 0.802 (0.776–0.833) | 1.791 |
+| single | R410A | 46, LG + Panasonic | 0.784 (0.731–0.841) | 1.693 |
+| single | any other (R32, R290, ...) | pooled over the 56 + AREP #26 | 0.790 (0.744–0.834) | 1.729 |
 
 Before settling on constants, the archive tests whether one pooled level fits R32, R410A and R290 once the loss
 terms are right (`level_by_refrigerant.csv`, `coefficients.json` → `selection.rotary_level_by_refrigerant`).
-Leave one refrigerant out over the twin rating points, **default variant `a`**: a pooled level alone predicts the
-held-out refrigerant with RMSE 0.026 (R290) / 0.031 (R32) / 0.028 (R410A); the best single extra loss term fitted on
-the other two refrigerants (`cH`) gives 0.027 / 0.031 / 0.023; each refrigerant around its own median level scatters
-0.026 / 0.021 / 0.021. Among variant `a`'s backward elimination candidates, the shapes with the most uniform levels
-(`q0+q2+cL+cu+cH`, spread 1.02) have LOCO shape 0.0319 against 0.0318 for the selected shape (spread 1.15): under
-variant `a` the refrigerant dependence of the level is small and a near-uniform level costs nothing in the shape
-cross-validation. The archive's rule (own level wherever a refrigerant has ≥ 3 rating points) is kept unchanged, so
-the library still uses per-refrigerant levels. Under variant `b` the same test gave a pooled level 0.092 / 0.071 /
-0.034 (R290 / R32 / R410A) and uniform-level shapes 0.034–0.040 against 0.021 — the dependence sat in `cH`, which
-variant `a` does not carry.
+Leave one refrigerant out over the twin rating points, **default variant `b`**: a pooled level alone predicts the
+held-out refrigerant with RMSE 0.092 (R290) / 0.071 (R32) / 0.034 (R410A); the best single extra loss term fitted on
+the other two refrigerants (`cL`) gives 0.037 / 0.031 / 0.027 with a coefficient that swings from 0.57 to the bound
+50 between folds; each refrigerant around its own median level scatters 0.026 / 0.021 / 0.022. Among variant `b`'s
+backward elimination candidates, the shapes whose levels agree across refrigerants (spread ≤ 1.17, no `cH`) have
+LOCO shape errors 0.034–0.040 against 0.021 for the selected shape. The refrigerant dependence sits mainly in `cH`
+(`PR^((k-1)/k) - 1`, small for R290's k ≈ 1.04), which only the R22 Shao records identify. So per-refrigerant
+levels, by the archive's rule (own level wherever a refrigerant has ≥ 3 rating points). Under variant `a` the same
+test gave a pooled level 0.026 / 0.031 / 0.028 (R290 / R32 / R410A) and a near-uniform-level shape
+(`q0+q2+cL+cu+cH`, spread 1.02) at LOCO shape 0.0319 against 0.0318 for the selected one: there the refrigerant
+dependence of the level is small, because variant `a` does not carry `cH`.
 
 Independent checks (not fit data):
 
-| check | variant `a` (default): pooled LG/SCI level / R290 level | variant `b`: pooled LG/SCI level / R290 level |
+| check | variant `a`: pooled LG/SCI level / R290 level | variant `b` (default): pooled LG/SCI level / R290 level |
 |---|---|---|
 | GMCC R290 inverter-input points EDTN210 / LDTN180: implied inverter efficiency (drive model at 60 rev/s 0.941) | 0.923 / 0.937 · 0.896 / 0.907 | 0.807 / 0.802 · 0.892 / 0.896 |
 | Highly 2024 R290 inverter **single** rotary (out of sample), data / model | 1.066 / 1.036 | 0.939 / 1.036 |
@@ -68,12 +74,13 @@ Independent checks (not fit data):
 
 The library uses the R290 level for R290. With it the GMCC check implies an inverter efficiency of 0.90–0.91 under
 variant `a` and 0.89–0.90 under `b` — it does not separate the shapes; only with the pooled LG/SCI level (R290 then
-an extrapolation) does it (0.92–0.94 under `a`, 0.80–0.81 under `b`). Under `b` the pooled single level was ~15 %
-optimistic for the R290 fixed-speed singles; under `a` it is 4 %. The pooled level for refrigerants without rating
-points (R134a, R1234yf) remains an extrapolation in suction pressure.
+an extrapolation) does it (0.92–0.94 under `a`, 0.80–0.81 under `b`). Under the default `b` the pooled single
+level is ~15 % optimistic for the R290 fixed-speed singles (under `a` 4 %) — the same mechanism as the twin (the
+`cH` term is small for R290), so the pooled level for refrigerants without rating points (R134a, R1234yf: lower
+suction pressure still) carries this risk.
 
-Parameters: scroll `rv = 2.975, q2 = 1.054 bar, cL = 0.0584, zv = 0.645`; rotary (variant `a`, default)
-`q2 = 1 (normaliser), cL = 0.0340, cu = 0.1188`; variant `b`: `cu = 0.243, cH = 2.409, qf = 0.123`. `phi_z` is the built-in-volume-ratio work ratio with a
+Parameters: scroll `rv = 2.975, q2 = 1.054 bar, cL = 0.0584, zv = 0.645`; rotary (variant `b`, default)
+`q2 = 1 (normaliser), cu = 0.243, cH = 2.409, qf = 0.123`; variant `a`: `cL = 0.0340, cu = 0.1188`. `phi_z` is the built-in-volume-ratio work ratio with a
 share `zv` of the over-compression loss relieved below `PR = rv^k`. Full definitions: `coefficients.json` →
 `conventions`, `types.*.eta_oi`, and the docstring of `validation/compressor_maps/semi_empirical/model.py`.
 
@@ -179,27 +186,46 @@ redistributable; without it the pipeline stops and prints how to regenerate it.
 | `data_sources.csv` | per source: family, role, origin, machines, rows used / excluded / not derivable, PR and speed range, power basis, whether stated or assumed, evidence |
 | `exclusions.csv` | excluded rows by source, reason and which fits they leave |
 | `backward_elimination.csv` | every candidate scored in the eta_oi term elimination (arrangement a; both variants' in `rotary_speed_variants_backward.csv`) |
-| `model_selection.csv` | finalists, start form, shipped-form baseline and the default (variant a) on every criterion |
+| `model_selection.csv` | finalists, start form, shipped-form baseline and the default (variant b) on every criterion |
 | `loco.csv`, `loso.csv`, `edge_holdout.csv`, `step_slopes.csv`, `parameter_stability.csv` | cross-validation tables |
 | `eta_v_selection.csv`, `eta_v_backward.csv`, `eta_v_speed_ratios.csv`, `eta_v_rating_points.csv`, `eta_v_envelope.csv` | eta_v forms and their CV, the elimination, speed ratios against the data, the rating points with their `c0`, bounds over the envelope grid |
 | `level_by_refrigerant.csv`, `eta_v_high_pr.csv` | the pooled-level test over the twin rating points; eta_v at PR 6/8/10 under three PR slopes |
 | `split.csv`, `inverter_cv.csv` | eta_is/eta_em split forms, drive model cross-validation |
 | `levels.csv` | eta_oi level per machine (scroll) and per rating point (rotary) |
 | `grid_vs_shipped.csv` | eta_oi at PR 2–10 × N 20/40/60/90 (R410A, SDT 45 °C, SH 10 K) next to the shipped eta_is·eta_em |
-| `rotary_speed_variants.json`, `rotary_speed_variants_cv.csv`, `rotary_speed_variants_backward.csv` | both rotary speed-shape variants (`default: "a"`) |
+| `rotary_speed_variants.json`, `rotary_speed_variants_cv.csv`, `rotary_speed_variants_backward.csv` | both rotary speed-shape variants (`default: "b"`) |
 | `figures/` | eta_oi vs PR; residuals by PR and speed; speed dependence; drive model; level vs displacement |
 
 ## Rotary speed-shape variants
 
-Variant `a` ("Shao-informed", the first archive's arrangement, the **default** since the third pass,
-`rotary_speed_variant="shao_informed"`) fits Shao 2004, Ossorio 2019 and AREP #26 in one shared shape; the archive's
-selection rule (backward elimination on the LOCO shape RMSE) keeps `q2, cL, cu` (`qf`: 0.0320 with, 0.0318 without,
-not kept). Variant `b` ("Ossorio-anchored", the default of the first revision, `rotary_speed_variant="ossorio_anchored"`)
-gives every Shao 2004 speed record its own level, so Shao informs only the within-record PR shape and the speed terms
-rest on Ossorio 2019; the rule then keeps `q2, qf, cu, cH`, and the high-speed term `qf` is kept by the explicit rule
-(LOCO shape 0.0209 with, 0.0215 without).
+Variant `b` ("Ossorio-anchored", the default of the first revision and the **default** again since the fourth
+pass, `rotary_speed_variant="ossorio_anchored"`) gives every Shao 2004 speed record its own level, so Shao informs
+only the within-record PR shape and the speed terms rest on Ossorio 2019; the archive's selection rule (backward
+elimination on the LOCO shape RMSE) keeps `q2, qf, cu, cH`, and the high-speed term `qf` is kept by the explicit
+rule (LOCO shape 0.0209 with, 0.0215 without). Variant `a` ("Shao-informed", the first archive's arrangement, the
+default of the third pass, `rotary_speed_variant="shao_informed"`) fits Shao 2004, Ossorio 2019 and AREP #26 in one
+shared shape; the rule keeps `q2, cL, cu` (`qf`: 0.0320 with, 0.0318 without, not kept).
 
-**How the default was chosen.** The compressor data do not decide between the two: Shao and Ossorio disagree on the
+**How the default was chosen (fourth pass).** The compressor data do not decide between the two (below). The
+device-level rule of the third pass chose `a` on a model whose electrical input was the compressor and the fan
+only. A real unit also draws a fixed control power, and at the lightest EN 14825 point 15 W is 4–5 % of the
+modelled input — the size of the difference the rule was deciding on. With that power in the model (the library's
+`E_ctrl`, 15 W for an air-to-water unit: the median off/standby declaration of 8,676 Heat Pump Keymark
+certificates) the rule no longer separates the shapes — D/A inside the certified p10–p90 in **30 / 30 cases under
+both** — and the level does: all four points inside their p10–p90 in **27 / 30 cases under `b` against 6 / 30 under
+`a`** (measurements for #183 below, power added afterwards; with the power inside the operating-point search, on the
+regenerated study `validation/data/en14825_trend_verdict.csv`, `b` reads 27 / 30 and 30 / 30). What `b` exceeded at
+D without the fixed power (12 D points above p90) is accounted for by the power that was missing; what `a` misses
+(B and C below p10) is not.
+
+**What this costs.** The EN 14825 comparison — trajectory shape *and* level — was used to choose the rotary shape
+and is **not independent validation** of the rotary types. The catalogue parity set and the A-7/W55 gate were not
+used; they point the other way by a little (parity with the fixed power, COP MAPE / bias: air-to-water 8.49 /
+−6.30 % under `b` against 8.51 / −5.36 % under `a`; air-to-air heating 12.51 / −11.52 % against 11.48 / −9.71 %,
+cooling 6.91 / −1.12 % against 6.82 / −3.73 %; gate points UQ09 −7.1 % against −3.2 %, UQ16 −2.7 % against +1.4 %,
+both inside the ±10 % gate).
+
+**How the third pass had chosen `a` (record).** Shao and Ossorio disagree on the
 low-speed fall and no third rotary speed source exists. The rule, written down before the device measurement
 (project design notes §14, written before the measurement; they also record that an earlier tree had
 already pointed in this direction): use the EN 14825 part-load trajectory **shape** of the certified Keymark air-to-water population
@@ -208,13 +234,9 @@ applications, `validation.analysis.en14825_trend`, water side at a fixed flow), 
 whose COP(D)/COP(A) lies inside the population's p10–p90 (the study's C3), a difference of 3 or more decides;
 secondary = median |ln(D/A ÷ population median)|. Measured on the UA-defaults tree (`aa2e5097` + the study's
 water-side fix): **variant `a` 30 / 30, variant `b` 24 / 30; secondary 0.041 against 0.115** (D/A in p25–p75: 28
-against 11). The rule selects `a`.
+against 11). The rule selected `a`.
 
-**What this costs.** The trajectory shape check is now part of the fit for the rotary types and is **no longer
-independent validation** of them. The trajectory level (C2: every point inside its p10–p90), the catalogue parity
-set and the A-7/W55 gate were not used in the choice and remain independent.
-
-**Evidence pointing the other way** (recorded, not used by the rule):
+**Evidence that pointed the other way at the third pass** (recorded then, not used by that rule):
 - B/A and C/A sit closer to the ratio of the population medians under `b`: median over the low-temperature cases
   1.54 / 2.07 under `b` against 1.42 / 1.82 under `a`, population-median ratios 1.52 / 2.06. This is a weaker
   comparison than D/A's — only per-point quantiles are published, and a ratio of medians is not the median of the
@@ -244,8 +266,77 @@ set and the A-7/W55 gate were not used in the choice and remain independent.
   If the Shao 2004 powers include the inverter (the basis is not stated), variant `a` with the separate drive model
   counts the low-speed drive loss twice.
 
-**Owner decision of 2026-11-16, after that measurement:** the default stays `a` for this release, as the rule
-chose it; the choice between the two shapes is reopened as a follow-up issue, with the co-author's review.
+**Measurements for the reopened choice (#183)** — the basis of the fourth pass; made on the released library
+(`85d710c6`, variant `a` the default, no fixed control power in the model) with `uv run python -m validation.analysis.rotary_speed_evidence --jobs 8` (results and provenance in
+`validation/data/rotary_speed_evidence/`) and `uv run python -m validation.compressor_maps.semi_empirical.load_coordinate`
+(`rotary_load_coordinate_cv.csv`, `rotary_load_coordinate_design_mep.csv` here).
+
+- **A fixed control power.** The model's input `E_tot` is the compressor and the outdoor fan; it carries no control
+  board, sensor or drive-standby power. Heat Pump Keymark declares such powers on every certificate
+  (`validation/data/auxiliary_power/`, `fixed_power_levels.csv`): air-to-water, the median of the two off/standby
+  declarations pooled is 15 W (8,676 certificates, 5,675 outdoor units) and the upper quartile of the thermostat-off
+  power `P_TO` 25 W; air-to-air (19 certificates), the median `P_TO` is 12 W and its upper quartile 21.5 W (the
+  air-to-air off/standby declarations have a median of 1 W). The power is added to the input of each solved
+  point, `COP' = COP · E_tot / (E_tot + P)` (exact at a running point); at the EN 14825 D point (15 rev/s, median
+  input 282–416 W) 15 W is 4–5 % of the input.
+- **EN 14825, the 30 cases** (`en14825_scores.csv`, `en14825_summary.csv`; the study's cases, water side and
+  settings, the shipped-variant rows identical to `en14825_trend_points.csv`). Cases with all four points inside
+  their p10–p90 (C2) and with each ratio inside the p10–p90 of the per-record ratio:
+
+  | variant, fixed power | C2 | D/A | B/A | C/A |
+  |---|---|---|---|---|
+  | `a`, 0 W | 9 | 30 | 23 | 22 |
+  | `a`, 15 W | 6 | 30 | 19 | 19 |
+  | `a`, 25 W | 5 | 30 | 16 | 17 |
+  | `b`, 0 W | 16 | 24 | 30 | 30 |
+  | `b`, 15 W | 27 | 30 | 30 | 30 |
+  | `b`, 25 W | 18 | 30 | 30 | 30 |
+
+  Under `b` without the fixed power the points outside the band are 12 D points (above p90) and 2 C points (below
+  p10); with 15 W the three cases left are the medium-temperature 9 kW R410A machine at C, one of them also at B
+  (below p10), and with 25 W 10 B and 9 C points fall below p10. Under `a` the points outside are B and C points
+  below p10 (14 and 18 at 0 W, 22 and 24 at 15 W) and, at 0 W only, 3 D points above p90. Medians of `b` +
+  15 W, A / B / C / D: low-temperature 2.93 / 4.41 / 5.87 / 8.75, medium 2.10 / 3.14 / 4.09 / 6.37, against the
+  population medians 2.99 / 4.53 / 6.16 / 7.88 and 2.16 / 3.34 / 4.54 / 6.10; `a` + 15 W 2.95 / 4.10 / 5.24 / 7.94
+  and 2.10 / 2.91 / 3.58 / 5.67. D runs at the 15 rev/s floor in every case and C in 8–9 of 15 (low) and 5–8 of 15
+  (medium).
+- **Catalogue parity with the fixed power** (`parity_summary.csv`; COP MAPE / bias, 15 W air-to-water, 12 W
+  air-to-air): air-to-water `a` 8.51 / −5.36 % (136 points), `b` 8.49 / −6.30 % (137); air-to-air cooling `a`
+  6.82 / −3.73 %, `b` 6.91 / −1.12 %; heating `a` 11.48 / −9.71 %, `b` 12.51 / −11.52 % (180 points each); as
+  shipped 8.34 / −5.02, 8.31 / −5.97; 6.34 / −1.78, 7.02 / +0.96; 10.70 / −8.38, 11.72 / −10.23 %. The A−7/W55
+  gate points (`parity_gate.csv`) with 15 W: UQ09 −3.2 % (`a`) and −7.1 % (`b`), UQ16 +1.4 % and −2.7 % (as shipped
+  −2.9 / −6.8 % and +1.6 / −2.6 %); UQ12 is capacity-short under both.
+- **Part-load curves at fixed temperatures, heating and cooling** (`curve_summary.csv`, `curves.csv`; running
+  cycle, frost-free, from the 15 rev/s floor to the 120 rev/s ceiling, load as a fraction of the nameplate).
+  Air-to-water 9 kW R32 at A7/W35 / A7/W45 / A−7/W45 (floor 0.15–0.24, ceiling 1.26–1.80 of the nameplate): peak at
+  0.78 / 0.96 / 0.82 with +1.7 / +0.1 / +0.6 % over the nameplate COP under `a`, 0.56 / 0.74 / 0.62 with +4.9 /
+  +1.9 / +2.9 % under `b`; COP at the floor −16.7 / −27.0 / −34.0 % (`a`) and −3.9 / −12.7 / −14.5 % (`b`), at the
+  ceiling −15.1 / −8.8 / −3.0 % and −17.6 / −12.6 / −4.3 %. With 15 W the peak moves to 0.78 / 0.96 / 0.84
+  (+1.5 / +0.0 / +0.5 %) under `a` and 0.60 / 0.78 / 0.66 (+4.2 / +1.7 / +2.6 %) under `b`, and the floor reads
+  −18.2 / −27.9 / −34.9 % and −6.1 / −14.1 / −16.2 %. Air-to-air 3.5 kW R32, heating 7 / 20 °C and cooling
+  35 / 27 °C: the COP rises down to the floor (0.26 and 0.37 of the nameplate) under both shapes — the floor is the
+  peak except for `a` in heating (0.28, within 0.02 % of the floor) — at +33.1 / +41.9 % over the nameplate COP
+  under `a` and +43.6 / +52.7 % under `b`; with 12 W the peak gain is +26.5 / +36.0 % and +34.3 / +45.6 %, the
+  heating peak moving to 0.34 (`a`) and 0.28 (`b`). At the ceiling (1.89–1.90 and 1.68–1.69 of the nameplate)
+  −32.3 / −41.0 %
+  (`a`) and −35.7 / −45.2 % (`b`).
+- **Loss terms per unit of the design point.** Reading the rotary loss terms against the refrigerant's suction MEP
+  at the standard compressor rating condition (7.2 / 54.4 °C dew points, 35 °C return gas: 8.21 bar R22, 6.99 bar
+  R290, 13.77 bar R32, 12.82 bar R410A), scaled to 10 bar with the density scaled alike so that ρ/MEP of `qf` is
+  unchanged, and applying the archive's selection rule unchanged (`variants.run_variants`; the absolute rows of
+  `rotary_load_coordinate_cv.csv` equal `rotary_speed_variants_cv.csv`): variant `a` LOCO shape RMSE 0.0318
+  (absolute) against 0.0336 (design point), LOSO mean 0.0246 against 0.0270, low-speed edge bias +0.044 against
+  +0.074, the rule keeping `q2, cu, cH` (`cu` 0.1696, `cH` 0.9832) instead of `q2, cL, cu`; variant `b` keeps
+  `q1, q2, cH, qf` with `cH` on its bound (20), LOCO shape 0.0218 against 0.0209. On these numbers the compressor
+  data do not favour the design-point coordinate.
+
+**Owner decision of 2026-11-16, after the third-pass measurement:** the default stays `a` for that release, as the
+rule chose it; the choice between the two shapes is reopened as a follow-up issue (#183), with the co-author's
+review.
+
+**Owner decision of 2026-11-16, after the measurements for #183:** variant `b` as the default together with the
+fixed control power as a model input is implemented and the committed results are regenerated as a draft pull
+request; the merge is held.
 
 Model eta(N)/eta(60) at Ossorio's condition, 30 / 90 / 120 rev/s: `a` 0.905 / 0.980 / 0.932, `b`
 0.968 / 0.962 / 0.908, data 0.980 / 0.978 / 0.914. The level form (scaled) and the speed coordinate (relative) were
@@ -259,11 +350,13 @@ archive's 0.001 tolerance). `b` is kept as measured.
   manufacturer-map polynomials, power basis not stated), Ossorio 2019 (one measured R290 speed sweep at one
   condition) and AREP #26 (one fixed-speed machine, PR ≤ 6.3). No rotary data above PR 6.8; the inverter twin rotaries
   have one rating point each, so they set only the level.
-* **Refrigerants without rating points take the pooled level.** Under the default variant `a` the twin levels
-  are R32 1.32, R410A 1.17, R290 1.15 (spread 1.15; under `b` 1.76) and the R290 fixed-speed check puts the pooled
-  single level 4 % optimistic (`b`: 15 %). With the R290 level the GMCC check implies an inverter efficiency of
-  0.90–0.91, below the measured drive model (0.94 at 60 rev/s).
-* **The rotary speed shape was chosen on the EN 14825 trajectory shape** (above): that check does not validate it.
+* **Refrigerants without rating points take the pooled level.** Under the default variant `b` the level depends
+  strongly on the refrigerant (twin R32 0.45, R410A 0.57, R290 0.79: spread 1.76; under `a` 1.15) and the R290
+  fixed-speed check puts the pooled single level ~15 % optimistic for a refrigerant outside its data (`a`: 4 %).
+  With the R290 level the GMCC check implies an inverter efficiency of 0.89–0.90, below the measured drive model
+  (0.94 at 60 rev/s).
+* **The rotary speed shape was chosen on the EN 14825 part-load points** (shape and level, above): that comparison
+  does not validate it.
 * **Level depends on the power basis.** LG/SCI twin-rotary and Shao powers are read as excluding the inverter
   (assumed); Copeland's drive-input powers are divided by the median drive model (the Copeland drive is not named), so
   the scroll default level (mostly Copeland machines) carries the drive model's level uncertainty (inverter IQR

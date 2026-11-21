@@ -1,14 +1,14 @@
 {
  "coefficient_version": "semi-empirical-2026-11-15",
- "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
+ "src_tmhp_tree": "119fcb6b55254ff5af1e71d891442f1954c41371",
+ "validation_parity_tree": "e39e67b644c02c85f5ce2eec7b15686bb0ec271e",
  "dirty_digest": null,
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
+ "git_head": "0942fc6179ee27ab4d5f269a8daca335cf86d2f1",
  "git_heads": [
-  "3faac8ac39039f969e9de41dbe8553c239579f96"
+  "0942fc6179ee27ab4d5f269a8daca335cf86d2f1"
  ],
  "dirty": false,
  "dirty_scope": [
@@ -18,8 +18,8 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "run_started": "2026-11-16T03:01:40+00:00",
- "run_finished": "2026-11-16T03:01:45+00:00",
+ "run_started": "2026-11-16T08:24:17+00:00",
+ "run_finished": "2026-11-16T08:24:21+00:00",
  "provenance": "provenance/<slug>.json, one per unit",
  "space_conditioning_cop_basis": "final_indoor_air_sensible",
  "units": 17,

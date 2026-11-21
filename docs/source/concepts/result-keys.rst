@@ -53,8 +53,8 @@ dynamic only; ``all`` is all five families in both. The families are ASHP
    row["failure_reason"]      # "none": the unit runs
    row["capacity_clamped"]    # "max": it delivers less than the 9 kW asked for
    row["capacity_binding"]    # "compressor": the speed ceiling stops it
-   row["Q_ref_iu [W]"]        # heat delivered, about 3.8 kW
-   row["Q_unmet [W]"]         # the rest of the request, about 5.2 kW
+   row["Q_ref_iu [W]"]        # heat delivered, about 3.9 kW
+   row["Q_unmet [W]"]         # the rest of the request, about 5.1 kW
 
 Status and flags
 ================
@@ -262,9 +262,12 @@ All ``E_*`` are electrical input, ≥ 0, and 0 on an off row. COPs are NaN on an
     * - ``E_cmp_plus_pmp [W]``
       - GSHP, GSHPB
       - ``E_cmp + E_pmp``.
+    * - ``E_ctrl [W]``
+      - all
+      - Fixed control power of the unit in operation: control board, sensors, communications, drive standby (the constructor input ``E_ctrl``; 15 W for a unit delivering to water, 12 W for one delivering to air, medians of Heat Pump Keymark declarations; 0 switches it off). A running row has the input as given, a defrost leaves it alone; an on/off mean has it times the power fraction (``capacity_ratio / part_load_factor``), a boiler's dynamic step times ``runtime_fraction [-]``; 0 on an off row. Its heat is credited to no stream. See :mod:`tmhp.control_power`.
     * - ``E_tot [W]``
       - all
-      - Whole electrical input of the row: compressor plus the family's fans or pump (and subsystem loads in composed variants).
+      - Whole electrical input of the row: compressor plus the family's fans or pump plus ``E_ctrl [W]`` (and subsystem loads in composed variants).
     * - ``cop_ref [-]``
       - all
       - Refrigerant-side COP: the delivered duty (``Q_ref_iu`` or ``Q_ref_tank``) over ``E_cmp``.
@@ -754,6 +757,9 @@ without a running cycle carry NaN or 0.
     * - ``X_cmp_ref [W]``
       - GSHP (d)
       - Exergy of ``E_cmp_ref [W]`` (electricity is pure exergy: the same number).
+    * - ``X_ctrl [W]``
+      - ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)
+      - Exergy of ``E_ctrl [W]`` (electricity is pure exergy: the same number).
     * - ``X_cycling_loss [W]``
       - ASHP, GSHP (d)
       - Exergy of ``E_cycling_loss [W]`` (electricity is pure exergy: the same number).
@@ -913,6 +919,9 @@ without a running cycle carry NaN or 0.
     * - ``Xc_cmp [W]``
       - ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)
       - Exergy consumed (destroyed) in the compressor.
+    * - ``Xc_ctrl [W]``
+      - ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)
+      - Exergy consumed (destroyed) by the control electronics: all of ``X_ctrl [W]``, since their heat reaches no stream of the balance.
     * - ``Xc_exp [W]``
       - ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)
       - Exergy consumed (destroyed) in the expansion valve.

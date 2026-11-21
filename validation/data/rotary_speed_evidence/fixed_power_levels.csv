@@ -1,0 +1,7 @@
+level,model_class,statistic,records,certificates,outdoor_units,P_fixed_W
+none,ASHPB,model as shipped,0,8676,5675,0.0
+certified_median,ASHPB,median of P_offsb_a_W and P_offsb_b_W pooled,17352,8676,5675,15.0
+certified_upper,ASHPB,upper quartile of P_TO_W,8676,8676,5675,25.0
+none,ASHP,model as shipped,0,19,15,0.0
+certified_median,ASHP,median of P_TO_W,19,19,15,12.0
+certified_upper,ASHP,upper quartile of P_TO_W,19,19,15,21.5

@@ -522,10 +522,10 @@ def _check_room_humidity(value: float) -> float:
     return float(value)
 
 
-def _room_humidity_of_step(value: float, step: int) -> float:
-    """The room humidity of a cooling step of a schedule, or ``ValueError`` naming the step."""
+def _room_humidity_of_step(value: Any, step: int) -> float:
+    """The room humidity of a cooling step of a schedule (as ``RH_room``), or ``ValueError`` naming the step."""
     try:
-        return _check_room_humidity(float(value))
+        return _check_room_humidity(value)
     except ValueError as error:
         raise ValueError(f"{error} at step {step}") from None
 
@@ -3510,11 +3510,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
         RH_room_schedule : array-like | None
             Room relative humidity per step, as a fraction (0-1), for the wet
             indoor coil in cooling (``RH_room`` of :meth:`analyze_steady`).
-            If None, the dry coil on every step. One number per step, read
-            as ``RH_out_schedule`` is. The entries are checked on cooling
-            steps only: on heating and off steps a missing value (NaN,
-            ``None``) is not an error; a cooling step whose entry is not a
-            number in 0-1 raises ``ValueError`` naming the step.
+            If None, the dry coil on every step. One entry per step (a
+            list, an array or a Series). Only the cooling steps are read,
+            each as ``RH_room`` of :meth:`analyze_steady` is: a cooling step
+            whose entry is not a number in 0-1 raises ``ValueError`` naming
+            the step; what a heating or an off step holds (a missing value)
+            is not looked at.
 
         Returns
         -------
@@ -3555,12 +3556,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if len(RH_out_arr) != tN:
                 raise ValueError(f"RH_out_schedule length ({len(RH_out_arr)}) != tN ({tN})")
 
-        # Read as RH_out_schedule is. Only the cooling steps are checked: a
-        # heating or an off step may hold a missing value (NaN, None).
+        # One entry per step, kept as given: only the cooling steps are read,
+        # each with the check ``RH_room`` gets, so what a heating or an off
+        # step holds (a missing value, text) is never converted.
         RH_room_arr = None
         if RH_room_schedule is not None:
-            RH_room_arr = np.array(RH_room_schedule, dtype=float)
-            if RH_room_arr.shape != (tN,):
+            RH_room_arr = np.asarray(RH_room_schedule, dtype=object)
+            if RH_room_arr.ndim != 1:
+                raise ValueError(
+                    f"RH_room_schedule must hold one entry per step (tN = {tN}), got shape {RH_room_arr.shape}"
+                )
+            if len(RH_room_arr) != tN:
                 raise ValueError(f"RH_room_schedule length ({len(RH_room_arr)}) != tN ({tN})")
 
         self.time = time

@@ -290,32 +290,43 @@ def test_humidity_schedule_is_not_read_on_heating_and_off_rows(hp):
     _quiet(hp.analyze_dynamic, 2 * 3600, 3600, loads[:2], outdoor[:2], room[:2], RH_room_schedule=[-1.0, 50.0])
 
 
-@pytest.mark.parametrize("value", [float("nan"), None, -0.1, 1.5])
+@pytest.mark.parametrize("value", [float("nan"), None, -0.1, 1.5, True, "0.5"])
 def test_humidity_schedule_is_checked_on_cooling_rows(hp, value):
+    """A cooling step is read as ``RH_room`` is: a real number in 0-1, not a boolean, not text."""
     with pytest.raises(ValueError, match="Room relative humidity must be a fraction.* at step 1"):
         _quiet(
             hp.analyze_dynamic, 2 * 3600, 3600, [0.0, 2000.0], [35.0, 35.0], [27.0, 27.0], RH_room_schedule=[0.5, value]
         )
 
 
-def test_humidity_schedule_is_read_as_the_outdoor_one_is(hp):
-    """One number per step: a list, an array or a Series; of another length it is refused."""
+@pytest.mark.parametrize("unread", [float("nan"), None, "no reading", pd.NA, True, 7.0])
+def test_what_a_heating_or_an_off_step_holds_is_not_converted(hp, unread):
+    """Only the cooling step is read: the others may hold a missing value or anything else a table has."""
+    loads, outdoor, room = [0.0, -2000.0, 2000.0], [35.0, 7.0, 35.0], [27.0, 20.0, 27.0]
+    frame = _quiet(hp.analyze_dynamic, 3 * 3600, 3600, loads, outdoor, room, RH_room_schedule=[unread, unread, 0.8])
+    assert list(frame["failure_reason"]) == ["none", "none", "none"]
+    assert frame["RH_room [-]"].iloc[:2].isna().all() and frame["RH_room [-]"].iloc[2] == 0.8
+    assert frame["Q_iu_latent [W]"].iloc[2] > 0.0
+
+
+def test_humidity_schedule_holds_one_entry_per_step(hp):
+    """A list, a tuple, an array or a Series of the run's length; anything else is refused before the run."""
     args = (2 * 3600, 3600, [2000.0, 2000.0], [35.0, 35.0], [27.0, 27.0])
-    frames = [
-        _quiet(hp.analyze_dynamic, *args, RH_room_schedule=schedule)
-        for schedule in (
-            [0.7, 0.8],
-            (0.7, 0.8),
-            np.array([0.7, 0.8]),
-            np.array([0.7, 0.8], dtype=np.float32),
-            pd.Series([0.7, 0.8], index=[7, 9]),
-        )  # fmt: skip
-    ]
-    for frame in frames:
+    schedules = (
+        [0.7, 0.8],
+        (0.7, 0.8),
+        np.array([0.7, 0.8]),
+        np.array([0.7, 0.8], dtype=np.float32),
+        pd.Series([0.7, 0.8], index=[7, 9]),
+    )
+    for schedule in schedules:
+        frame = _quiet(hp.analyze_dynamic, *args, RH_room_schedule=schedule)
         assert frame["RH_room [-]"].to_numpy() == pytest.approx([0.7, 0.8], rel=1e-6)
         assert (frame["Q_iu_latent [W]"] > 0.0).all()
-    for wrong in ([0.7], [0.7, 0.8, 0.9], [[0.7, 0.8]], 0.7):
-        with pytest.raises((ValueError, TypeError), match="RH_room_schedule length|len\\(\\) of unsized"):
+    for wrong in ([0.7], [0.7, 0.8, 0.9], [[0.7, 0.8]], [[0.7], [0.8]], 0.7, "ab"):
+        with pytest.raises(
+            ValueError, match=r"RH_room_schedule (length \(\d+\) != tN \(2\)|must hold one entry per step)"
+        ):
             _quiet(hp.analyze_dynamic, *args, RH_room_schedule=wrong)
 
 

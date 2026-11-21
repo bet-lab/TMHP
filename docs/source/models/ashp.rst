@@ -291,12 +291,10 @@ water:
 ``analyze_dynamic`` a ``RH_room_schedule``. Heating does not read it (the
 indoor coil is the condenser there), nor does an off point, and ``None`` — the
 default — is the dry coil, with every result as before. A schedule holds one
-number per step and is read as ``RH_out_schedule`` is (a list, an array or a
-Series of numbers). Its entries are checked on cooling steps only: on heating
-and off steps a missing value (NaN, ``None``) is not an error, while a
-cooling step whose entry is not a number in 0–1 stops the run with a
-``ValueError`` that names the step. ``analyze_steady`` and ``max_capacity``
-treat their ``RH_room`` the same way.
+entry per step (a list, an array or a Series). Only the cooling steps are
+read, each as ``RH_room`` is: a cooling step whose entry is not a number in
+0–1 stops the run with a ``ValueError`` that names the step, and what a
+heating or an off step holds — a missing value, say — is not looked at.
 
 The coil is the apparatus-dew-point / bypass-factor coil, the family
 EnergyPlus uses for DX cooling coils, written so that it reduces to the dry

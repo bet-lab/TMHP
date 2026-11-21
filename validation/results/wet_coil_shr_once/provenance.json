@@ -29,7 +29,8 @@
    "daikin_rxm35a",
    "daikin_rxm42a",
    "daikin_rxm50a"
-  ]
+  ],
+  "point_ids": "all cooling rows"
  },
  "outputs": [
   "validation/results/wet_coil_shr_once/run_manifest.json",
@@ -38,7 +39,7 @@
   "validation/results/wet_coil_shr_once/wet_coil_shr_once.csv"
  ],
  "coefficient_version": "semi-empirical-2026-11-15",
- "git_head": "359468e85684f7d3a1fa3a412869548365dd905a",
+ "git_head": "e79be8429501e72397474928cf4cf4402cc649d7",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -53,7 +54,7 @@
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-21T05:34:47+00:00",
- "study_script_blob": "08da441381bdf31cc686d9bc8db868353d224c09",
+ "run_at": "2026-11-21T05:39:34+00:00",
+ "study_script_blob": "ee7ae1da00dc362224640902b417aa756d291c0d",
  "study_script_uncommitted": false
 }

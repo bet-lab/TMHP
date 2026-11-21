@@ -179,8 +179,11 @@ Condensing pressure (``T_cond_max``)
     first-order lag with the time constant ``C_tank / K_tank_hx`` (about five
     minutes for the default 151 L tank and 15 kW unit), which the in-step
     thermostat follows in closed form
-    (:func:`tmhp.dynamic_context.resolve_step_operation`), so the result does
-    not depend on the step. The charge ends where the limit leaves less than
+    (:func:`tmhp.dynamic_context.resolve_step_operation`): the run time and
+    the heat of a step on this limit do not depend on the step (the tank
+    temperature a step ends at is still one implicit solve with the loss at
+    its end, as with ``"stop"``, so a tank that loses much heat needs short
+    steps). The charge ends where the limit leaves less than
     the smallest duty the compressor runs at continuously
     (:func:`smallest_continuous_duty`: the speed floor, or the envelope's
     lower side). That duty depends on the source, so each step applies the
@@ -219,6 +222,7 @@ from scipy.optimize import brentq
 from . import calc_util as cu
 from .compressor_efficiency import efficiency_extrapolated
 from .compressor_speed import CAPACITY_CLAMPED_MAX
+from .dynamic_context import T_WATER_BOIL_C
 from .operating_limits import OperatingLimitWarning
 from .refrigerant import _props
 
@@ -733,6 +737,15 @@ def smallest_duty_on_condensing_limit(model: Any, floor_at: Callable[[float], fl
     three evaluations (to :data:`_FLOOR_CLOSE_K`). A trial the limit refuses
     is retried half-way back.
 
+    The search stays where a tank can be: no trial is above the boiling point
+    of the stored water (:data:`tmhp.dynamic_context.T_WATER_BOIL_C`, the
+    upper end of the tank temperatures the models accept). A refrigerant
+    whose limit lies high enough (R600a with ``T_cond_max`` above about
+    101 °C) meets its smallest duty above 100 °C; the duty returned is then
+    the one at 100 °C, the tank temperature it gives
+    (``T_reach - duty / K_tank_hx``) is above the boiling point, and the
+    boiling cut-out, not the condensing limit, ends the charge.
+
     Above the tank temperature the returned duty gives,
     ``T_reach - duty / K_tank_hx``, no duty runs: the charging limit of
     ``condensing_limit_control="reduce_duty"``. ``None`` without a condensing
@@ -743,12 +756,12 @@ def smallest_duty_on_condensing_limit(model: Any, floor_at: Callable[[float], fl
     if T_reach is None:
         return None
     K, capacity = float(model.K_tank_hx), float(model.hp_capacity)
-    T = T_reach - capacity / K
+    T = min(T_reach - capacity / K, T_WATER_BOIL_C)
     floor = floor_at(T)
     if floor is None or not floor < capacity:
         return None
     for _ in range(_FLOOR_ITERATIONS):
-        T_next = T_reach - floor / K
+        T_next = min(T_reach - floor / K, T_WATER_BOIL_C)
         if abs(T_next - T) <= _FLOOR_CLOSE_K:
             break
         floor_next = floor_at(T_next)
@@ -809,9 +822,14 @@ def limit_tank_setpoints_to_charge_limit(
     the limit is met at a colder tank). The cap is evaluated once, at the
     source ``floor_at`` solves at -- ``reference`` names it in the warning --
     and each dynamic step applies the stop of its own source: below the cap
-    the compressor then holds the tank at that stop
-    (``hp_stop_reason == "condensing_limit"``). A set point at or below the
-    nameplate cut-out needs no cycle solve and is left alone.
+    the compressor then stops at that stop
+    (``hp_stop_reason == "condensing_limit"``) and, while the call stands,
+    holds the tank there or, with a minimum rest time, rests and restarts
+    (``rest_before_restart`` of
+    :func:`tmhp.dynamic_context.simulate_thermostat_step`). A set point at or
+    below the nameplate cut-out needs no cycle solve and is left alone. For a
+    blend the warning names the bubble point the tank is held below as well as
+    ``T_cond_max``, the dew point of the same pressure.
     """
     lower, upper = model.T_tank_w_setpoints_requested
     cutout = condensing_tank_cutout(model)
@@ -824,10 +842,14 @@ def limit_tank_setpoints_to_charge_limit(
         return
     moved = _cap_tank_setpoints(model, limit)
     duty = float(model.hp_capacity) if floor is None else floor
+    # A blend condenses over a glide: the limit is the dew point of T_cond_max,
+    # and the tank is held below the bubble point of that pressure.
+    glide = float(model.T_cond_max) - T_reach
+    bubble = f", whose pressure has its bubble point at {T_reach:.1f} °C," if glide > 0.05 else ""
     warnings.warn(
         f"{what}: T_tank_w_upper_bound={upper:g} °C is above the tank temperature the compressor envelope "
         f"of {model.ref} allows at the smallest continuous duty, {limit:.1f} °C (T_cond_max="
-        f"{float(model.T_cond_max):g} °C less the {duty / float(model.K_tank_hx):.1f} K tank heat-exchanger "
+        f"{float(model.T_cond_max):g} °C{bubble} less the {duty / float(model.K_tank_hx):.1f} K tank heat-exchanger "
         f"approach of {duty:.0f} W, {reference}). The compressor reduces its duty from {cutout:.1f} °C and "
         f"the thermostat stops it at {limit:.1f} °C{moved}. Lower the set points, use a refrigerant with a "
         "higher limit (e.g. R290, R134a), or give the T_cond_max of the actual compressor (None switches "

@@ -327,11 +327,17 @@ def test_partial_run_cannot_replace_the_committed_study(capsys):
 
 def _logged_run(monkeypatch, calls: list[str]):
     """Make ``study.run`` log when the code state is read and when the model runs (source bytes: the file's)."""
-    real_run_unit, real_state = study.run_unit, study.run_state
+    real_run_unit, real_state, real_ids = study.run_unit, study.run_state, study.cooling_point_ids
 
     def run_unit(slug, point_ids=None):
         calls.append("run")
         return real_run_unit(slug, point_ids=point_ids)
+
+    def cooling_point_ids(slug):
+        calls.append("catalogue")
+        return real_ids(slug)
+
+    monkeypatch.setattr(study, "cooling_point_ids", cooling_point_ids)
 
     def run_state():
         calls.append("state")
@@ -348,12 +354,31 @@ def test_run_reads_the_code_state_before_it_computes_and_records_that(monkeypatc
     real_state = _logged_run(monkeypatch, calls)
     study.run([*ONE_ROW, "--out-dir", str(tmp_path)])
     capsys.readouterr()
-    assert calls[0] == "state" and calls.index("run") > 0, calls  # read before the first model run
-    assert calls[-1] == "state" and calls.count("state") == 2, calls  # and checked again before writing
+    # Read first -- before a catalogue is read for the selection and before the first model run --
+    # and checked again before writing.
+    assert calls == ["state", "catalogue", "run", "state"], calls
     record = json.loads((tmp_path / "provenance.json").read_text(encoding="utf-8"))
     for key, value in real_state().items():
         assert record[key] == value, key
     assert (tmp_path / study.CSV_NAME).exists()
+
+
+def test_run_writes_nothing_when_a_selected_row_was_not_computed(monkeypatch, tmp_path, capsys):
+    """A catalogue that loses a row between the selection and the run: the row asked for is missing, so no record."""
+    calls: list[str] = []
+    _logged_run(monkeypatch, calls)
+    real_run_unit = study.run_unit
+
+    def run_unit(slug, point_ids=None):
+        # The catalogue read by the run no longer has point 23 as a cooling row.
+        return real_run_unit(slug, point_ids=tuple(i for i in point_ids if i != 23))
+
+    monkeypatch.setattr(study, "run_unit", run_unit)
+    out = tmp_path / "out"
+    with pytest.raises(SystemExit, match="rows computed are not the rows selected.*nothing written"):
+        study.run(["--unit", "daikin_rxm20a", "--point-id", "1", "--point-id", "23", "--out-dir", str(out)])
+    capsys.readouterr()
+    assert not out.exists()
 
 
 def test_run_writes_nothing_when_the_code_changed_while_it_ran(monkeypatch, tmp_path, capsys):

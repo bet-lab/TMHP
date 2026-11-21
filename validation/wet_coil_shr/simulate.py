@@ -474,27 +474,42 @@ def run(argv: list[str] | None = None) -> None:
     partial = bool(args.unit or args.point_id)
     if partial and out_dir == OUT_DIR.resolve():
         parser.error("a partial run (--unit, --point-id) does not replace the committed study: give another --out-dir")
-    if point_ids is not None:
-        # Every id asked for has to be a cooling row of every catalogue it is asked of: an id that
-        # selects nothing somewhere would otherwise be recorded as run.
-        for slug in slugs:
-            absent = sorted(set(point_ids) - set(cooling_point_ids(slug)))
-            if absent:
-                parser.error(f"--point-id {', '.join(map(str, absent))}: not a cooling row of {slug}")
 
-    # Captured before any catalogue is evaluated (as the parity harness does):
-    # the record describes the code the numbers were computed with, not what
-    # is on disk when the run ends.
+    # Captured before any catalogue is read or evaluated (as the parity
+    # harness does): the record describes the code and the catalogues the
+    # numbers were computed with, not what is on disk when the run ends. The
+    # selection below is checked against catalogues read after this point, so
+    # a catalogue that changes afterwards changes the state and stops the run.
     state = run_state()
+
+    # The rows to run, by catalogue: every cooling row, or the ids asked for. Every id asked for has
+    # to be a cooling row of every catalogue it is asked of -- one that selects nothing somewhere
+    # would otherwise be recorded as run.
+    selection: dict[str, list[int]] = {}
+    for slug in slugs:
+        available = cooling_point_ids(slug)
+        if point_ids is None:
+            selection[slug] = available
+            continue
+        absent = sorted(set(point_ids) - set(available))
+        if absent:
+            parser.error(f"--point-id {', '.join(map(str, absent))}: not a cooling row of {slug}")
+        selection[slug] = [i for i in available if i in point_ids]
 
     points = pd.concat([run_unit(slug, point_ids=point_ids) for slug in slugs], ignore_index=True)
 
+    computed = points_run(points)
+    if computed != selection:
+        raise SystemExit(
+            f"the rows computed are not the rows selected (selected {selection}, computed {computed}): "
+            "a catalogue changed while the study ran; nothing written"
+        )
     worst = shipped_dry_gate(points)
     print(f"dry pass against the committed parity results: largest relative COP difference {worst:.3e}")
     if not worst <= 1e-6:
         raise SystemExit("GATE FAILED: the dry pass is not the shipped parity path; nothing written")
     if run_state() != state:
-        raise SystemExit("the model or the harness changed while the study ran; nothing written")
+        raise SystemExit("the model, the harness or a catalogue changed while the study ran; nothing written")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     bands, units, numbers = by_band(points), by_unit(points), headline(points)
@@ -503,7 +518,7 @@ def run(argv: list[str] | None = None) -> None:
     units.to_csv(out_dir / UNITS_NAME, index=False)
     manifest = {
         "units": list(slugs),
-        "points_run": points_run(points),
+        "points_run": computed,
         "partial_run": partial,
         "units_not_run_no_indoor_wet_bulb": list(UNITS_WITHOUT_WET_BULB),
         "passes": {name: {"wet_coil": wet, "UA_iu_scale": scale} for name, (wet, scale) in PASSES.items()},
@@ -524,7 +539,7 @@ def run(argv: list[str] | None = None) -> None:
             "passes": manifest["passes"],
             "RH_room": "from the row's indoor dry bulb and wet bulb, one standard atmosphere (wet passes); None (dry)",
             "units": list(slugs),
-            "points_run": points_run(points),
+            "points_run": computed,
         },
         "sensible heat ratio of the wet indoor coil against the catalogue's, and the COP bias dry against wet",
         command=run_command(

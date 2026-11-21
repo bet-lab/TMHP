@@ -35,6 +35,72 @@ Source-side mechanics
 Outdoor coil with variable-speed fan and an ε-NTU air-side heat
 exchanger — the shared air-source environmental-side model.
 
+.. _ashp-fan-control:
+
+Fan flows: the point of least power
+===================================
+
+The model has no fan controller. At each call it looks for the operating
+point of least total electrical input (compressor and both fans) among those
+that carry the duty: the two approach temperatures are searched, and each
+coil's air flow follows from its approach, inside the fan's flow limits. A
+real unit runs the indoor fan at the step its user selects and the outdoor
+fan on its controller's map, so the result is the electricity of the best
+fan control, a lower bound.
+
+How much rides on it, for the default 4 kW unit (cooling at 35 °C outdoor and
+a 27 °C room, heating at 7 °C outdoor and a 20 °C room). The search runs the
+indoor fan at its largest flow, 0.232 m³/s, in all four cases:
+
+.. list-table:: System COP by fan flow
+   :header-rows: 1
+   :widths: 40 15 15 15 15
+
+   * - Fan flows
+     - Cooling 2 kW
+     - Heating 2 kW
+     - Cooling 4 kW
+     - Heating 4 kW
+   * - Least power (the model)
+     - 5.82
+     - 5.91
+     - 4.27
+     - 4.65
+   * - Indoor fan held at 70 % of its largest flow
+     - 5.33
+     - 5.47
+     - 3.53
+     - 4.05
+   * - Indoor fan held at 50 %
+     - 4.59
+     - 4.80
+     - 2.82
+     - 3.40
+   * - Both fans held at their largest flow
+     - 5.60
+     - 5.50
+     - 4.27
+     - 4.64
+
+With the indoor flow at half, the COP is 21 % and 19 % lower at half load and
+34 % and 27 % lower at nameplate load: the coil needs a larger temperature
+difference to carry the duty, and the compressor pays for it. Holding both
+fans at full flow costs 4 % and 7 % at half load, the fan power the search
+saves, and nothing at nameplate load. At half the indoor flow the unit no
+longer carries its nameplate either: it delivers 3.90 kW in cooling and
+3.98 kW in heating, and the figures in that row are at those duties. A fan is
+held at one flow with equal limits:
+
+.. code-block:: python
+
+   from tmhp import AirSourceHeatPump
+
+   largest = AirSourceHeatPump().dV_iu_fan_a_max
+   low_fan = AirSourceHeatPump(dV_iu_fan_a_min=0.5 * largest, dV_iu_fan_a_max=0.5 * largest)
+
+For a seasonal figure of a unit whose fan setting is known, hold the fan
+there; where it is not, the model's figure is the best case.
+
 .. _ashp-air-density:
 
 Air density

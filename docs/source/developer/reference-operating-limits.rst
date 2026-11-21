@@ -562,12 +562,13 @@ start), run back along the limit. Run time, starts and timers then describe
 the same compressor (R32, 35 °C outdoor, both minimum times 1800 s, three
 1200 s steps from 61.0 °C with a small draw: 27 s to the stop at 61.3 °C,
 1800 s of rest, a second run of 201 s; the hold of the same case runs 521 s
-as one start). A compressor held at the stop runs at its lowest speed, and
-the cycle there can have a little more than the smallest duty the stop was
-found with (6 parts in a million for that unit); the hold is then on for the
-share of the time that duty needs, so the heat of the step is the loss it
-covers and the tank stays at the stop. Only the on-time of the hold is
-adjusted; the time the compressor ran continuously is that of the events. The multi-node tanks of GSHPB, which keep ``"stop"``, hold the water
+as one start). A compressor on the limit near the stop runs at its lowest
+speed, and the cycle there can have a little more than the duty it is asked
+for (6 parts in a million for that unit at the stop). The row then takes
+that cycle's rates -- heat, power, flows -- at the duty asked, with the
+cycle's COP and states, so that the tank gets what the events integrated and
+no more: a hold stays at the stop, and the run times are those of the
+events. The multi-node tanks of GSHPB, which keep ``"stop"``, hold the water
 around their coil as a mean whatever the rest time, as before, and so does a
 step with reduced-duty charging withheld at its nameplate cut-out (it is the
 step of ``"stop"``). If the tank

@@ -745,10 +745,10 @@ def test_a_hold_is_credited_with_the_heat_its_events_took():
 
     Measured on the R32 unit at 35 degC outdoor: asked for 7911.206 W at the stop, the cycle at its
     lowest speed delivers 7911.256 W (6.4e-6 more). Holding the tank at the stop, the compressor
-    is on for the share of the time that covers the loss at the duty it has: the heat of the step
-    is the loss, as the events took it, not that share more. (Credited with the cycle's duty for
-    the events' run time, the tank ended each 1200 s step 1.3e-5 K above the stop, and the next
-    step counted a stop and a start.)
+    is on for the share of the time the events gave it, and the row takes the cycle's rates at
+    the duty asked: the heat of the step is the loss, as the events took it, not that share more.
+    (Credited with the cycle's duty, the tank ended each 1200 s step 1.3e-5 K above the stop, and
+    the next step counted a stop and a start.)
     """
     loss, dt = 500.0, 1200.0
 
@@ -763,32 +763,39 @@ def test_a_hold_is_credited_with_the_heat_its_events_took():
     assert exact.runtime_fraction * row_exact["Q_ref_tank [W]"] == pytest.approx(loss, rel=1e-12)
     more = 1.0 + 6.4e-6
     run, row, _ = _resolve(on_limit_share=more, **held)
-    assert row["Q_ref_tank [W]"] == pytest.approx(LIMIT.Q_min * more, rel=1e-12)  # the cycle is the one solved
-    assert run.runtime_fraction * row["Q_ref_tank [W]"] == pytest.approx(loss, rel=1e-12)
-    assert run.runtime_fraction == pytest.approx(exact.runtime_fraction / more, rel=1e-12)
-    assert run.reduced_fraction == run.runtime_fraction
-    # Nothing else of the run changes: the hold stands, with its one phase.
+    # The run is the events': the same on-share, the same phase.
+    assert run == exact
     assert (run.running_end, run.starts, run.phase_age_end_s, run.limit_stop) == (True, 0, 100.0 + dt, True)
-    # A cycle that has less than it was asked for (within the tolerance) keeps the events' run time.
+    # The row: the cycle's rates at the duty asked (its COP of 2.5, its states), so the heat is the loss.
+    assert row["Q_ref_tank [W]"] == pytest.approx(LIMIT.Q_min, rel=1e-12)
+    assert row["E_tot [W]"] == pytest.approx(LIMIT.Q_min / 2.5, rel=1e-12)
+    assert row["T_ref_cond_sat_l [°C]"] == row_exact["T_ref_cond_sat_l [°C]"]
+    assert run.runtime_fraction * row["Q_ref_tank [W]"] == pytest.approx(loss, rel=1e-12)
+    # A cycle that has less than it was asked for (within the tolerance) keeps its own rates and the events' run.
     less, row_less, _ = _resolve(on_limit_share=1.0 - 6.4e-6, **held)
-    assert less.runtime_fraction == exact.runtime_fraction
+    assert less == exact
+    assert row_less["Q_ref_tank [W]"] == pytest.approx(LIMIT.Q_min * (1.0 - 6.4e-6), rel=1e-12)
 
 
-def test_only_the_hold_gives_up_run_time_for_a_cycle_that_has_more():
-    """The same cycle in a step that runs on the limit without holding, and in one that gets to the stop and holds.
+def test_a_cycle_that_has_more_changes_neither_the_run_time_nor_the_heat_of_the_events():
+    """The same cycle in a step that runs through on the limit, and in one that gets to the stop and holds.
 
     A compressor that runs through the step on the limit ran through it: its run time is the
-    step, whatever its cycle has. Where the step gets to the stop and holds the tank there, the
-    hold is what gives: its on-time is shorter by what the stretch's cycle delivered beyond the
-    events' heat, and the time the compressor ran continuously before it is the events'.
+    step, whatever its cycle has. And the tank gets what the events integrated, in that step and
+    in one that runs along the limit to the stop and holds there: no more, so that it ends where
+    the events put it, at or below the stop. (Two things a correction must not do: shorten a
+    continuous run, 0.9999936 of the step with the first form of the fix, or leave the excess in
+    the row, with the second.)
     """
     more = 1.0 + 6.4e-6
     # 100 s on the limit from 61 degC: the stop (64 degC) is not reached.
-    through, _, _ = _resolve(T_start=61.0, dt=100.0)
-    assert through.runtime_fraction == 1.0 and through.reduced_fraction == 1.0 and through.hold_fraction == 0.0
+    through, row_through, _ = _resolve(T_start=61.0, dt=100.0)
+    assert through.runtime_fraction == 1.0 and through.reduced_fraction == 1.0 and through.running_end
     with_more, row, _ = _resolve(T_start=61.0, dt=100.0, on_limit_share=more)
-    assert with_more.runtime_fraction == 1.0 and with_more.reduced_fraction == 1.0
-    assert row["Q_ref_tank [W]"] == pytest.approx(LIMIT.duty(with_more.T_reduced_mean_C) * more, rel=1e-12)
+    assert with_more == through and with_more.runtime_fraction == 1.0
+    assert row["Q_ref_tank [W]"] == pytest.approx(row_through["Q_ref_tank [W]"], rel=1e-12)
+    assert row["Q_ref_tank [W]"] == pytest.approx(LIMIT.duty(through.T_reduced_mean_C), rel=1e-12)
+    assert row["E_tot [W]"] == pytest.approx(row_through["E_tot [W]"], rel=1e-12)
     # 1200 s from 63.9 degC with a loss of 500 W: along the limit to the stop, then the hold.
     loss, dt = 500.0, 1200.0
 
@@ -797,15 +804,13 @@ def test_only_the_hold_gives_up_run_time_for_a_cycle_that_has_more():
 
     mixed = dict(T_start=63.9, T_upper=64.5, dt=dt, residual_free=with_loss)
     exact, row_exact, _ = _resolve(**mixed)
-    continuous = exact.runtime_fraction - exact.hold_fraction
-    assert exact.limit_stop and exact.hold_fraction > 0.0 and continuous > 0.0
+    assert exact.limit_stop and exact.running_end and 0.25 < exact.runtime_fraction < 1.0
     run, row, _ = _resolve(on_limit_share=more, **mixed)
-    assert run.runtime_fraction - run.hold_fraction == pytest.approx(continuous, rel=1e-12)
-    assert run.hold_fraction < exact.hold_fraction
-    assert run.runtime_fraction * row["Q_ref_tank [W]"] == pytest.approx(
-        exact.runtime_fraction * row_exact["Q_ref_tank [W]"], rel=1e-12
-    )
-    assert run.reduced_fraction == run.runtime_fraction
+    assert run == exact
+    assert row["Q_ref_tank [W]"] == pytest.approx(row_exact["Q_ref_tank [W]"], rel=1e-12)
+    # The heat of the step carries the tank from 63.9 degC to the stop and covers the loss: nothing beyond.
+    heat = run.runtime_fraction * row["Q_ref_tank [W]"] * dt
+    assert heat == pytest.approx(C * (LIMIT.stop_C - 63.9) + loss * dt, rel=1e-9)
 
 
 # ---------------------------------------------------------------------------

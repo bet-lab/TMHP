@@ -552,13 +552,6 @@ class InStepRun:
         stopped, or stayed off, where it would otherwise have charged on. A
         stop at the boiling point is not marked. Like
         ``limit_stop_C`` it labels the run and is not part of comparing two.
-    hold_fraction : float
-        Fraction of the step the compressor was on while holding the tank at
-        the stop of a ``duty_limit`` -- the on-share of a hold, which is the
-        mean of on/off cycling there (0 without a ``duty_limit``, and for a
-        hold at the knee of a limit without a stretch); part of
-        ``reduced_fraction``. The rest of ``reduced_fraction`` is time the
-        compressor ran continuously along the limit.
     """
 
     runtime_fraction: float
@@ -576,7 +569,6 @@ class InStepRun:
     T_full_mean_C: float | None = None
     limit_stop_C: float | None = field(default=None, compare=False)
     reduced_withheld: bool = field(default=False, compare=False)
-    hold_fraction: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -1076,7 +1068,6 @@ def _simulate_duty_limited_step(
     # Run time [s] and ∫T dt [K s] at the full duty (0) and on the limit (1).
     on_time = [0.0, 0.0]
     on_T_integral = [0.0, 0.0]
-    hold_time = 0.0  # on-time [s] of the cycling that holds the tank on the limit (part of ``on_time[1]``)
     starts = 0
     running_start = running
     limit_stop = False
@@ -1153,7 +1144,6 @@ def _simulate_duty_limited_step(
             index = 1 if cut_on_limit else 0
             on_time[index] += share * step
             on_T_integral[index] += share * step * 0.5 * (tw + T_new)
-            hold_time += share * step * index
             tw = T_new
             age += step
             t = t + step if target is not None else dt
@@ -1168,7 +1158,6 @@ def _simulate_duty_limited_step(
             index = 1 if on_limit(T_here) else 0
             on_time[index] += share * rem
             on_T_integral[index] += share * rem * T_here
-            hold_time += share * rem * index
             age = 0.0
             t = dt
             continue
@@ -1244,7 +1233,6 @@ def _simulate_duty_limited_step(
         T_reduced_mean_C=T_reduced_mean,
         T_full_mean_C=on_T_integral[0] / on_time[0] if on_time[0] > 0.0 else None,
         limit_stop_C=T_cut if limit_stop else None,
-        hold_fraction=min(1.0, max(0.0, hold_time / dt)) if dt > 0 else 0.0,
     )
 
 
@@ -1595,25 +1583,24 @@ def _resolve_duty_limited(
     less than the smallest continuous duty, its row's heat is the heat its
     events integrated, and none of its cycles is under another limit.
 
-    The heat is the events' also in a step that holds the tank at the stop
-    with a cycle that has more than it was asked for, inside the tolerance.
-    That is the compressor at its lowest speed at the stop: a cycle there
-    delivers what that speed gives, which need not be the smallest duty to
-    the last digit (the 15 kW R32 air-source unit at 35 °C outdoor:
-    7911.256 W for 7911.206 W asked, 6 parts in a million). A hold is the
-    mean of on/off cycling that keeps the tank at the stop, so it is the
-    hold that gives: its on-time (``InStepRun.hold_fraction``) is shortened
-    by the time in which that cycle delivers what the stretch on the limit
-    got beyond the events' heat -- for a step that only holds, the on-share
-    its own duty needs -- unless that is no more than
-    :data:`EVENT_TIME_TOL_S`, and never by more than the hold's on-time.
-    Without it the tank would end each step of a hold above the stop by the
-    excess (1e-5 K in 1200 s there), and the next step would count a stop
-    and a start. The time the compressor ran continuously, at the full duty
-    or along the limit, is the events' and is not changed: a step without a
-    hold keeps its run time whatever its cycle has (the row then carries
-    the cycle's heat, and the tank the difference into the next step), and
-    so does a cycle that has less than asked.
+    The heat is the events' also where the cycle on the limit has more than
+    it was asked for, inside the tolerance. That is the compressor at its
+    lowest speed near the stop: a cycle there delivers what that speed gives,
+    which need not be the duty asked to the last digit (the 15 kW R32
+    air-source unit at 35 °C outdoor: 7911.256 W for the 7911.206 W asked at
+    the stop, 6 parts in a million). The stretch then takes that cycle's
+    rates at the duty asked: every rate in ``rate_keys`` (heat, power, flows)
+    times asked over delivered, the ratios (COP) and the states (speed,
+    pressures, temperatures) those of the cycle solved
+    (:func:`_rates_at_duty`). The run times stay the events', and so does the
+    heat: a compressor that runs through the step ran through it, one that
+    holds the tank at the stop is on for the share the events gave it, and in
+    neither case does the tank get more than the events took. Without this
+    the tank would end a step on the limit above where its events put it --
+    above the stop for a hold (1e-5 K in 1200 s there), so that the next step
+    would count a stop and a start. A cycle that has less than asked keeps
+    its own rates: the row's heat on the limit is the smaller of what its
+    cycle delivers and what its events took.
     """
     # The name a cycle gives the limit this duty line is (imported here: that module imports this one).
     from .compressor_envelope import BINDING_CONDENSING as this_limit
@@ -1685,25 +1672,33 @@ def _resolve_duty_limited(
         # off the duty the events integrated.
         return None
     q_delivered = delivered_tank_heat(reduced_result)
-    f_hold = min(run.hold_fraction, f_reduced)
-    if q_delivered > q_reduced and f_hold > 0.0:
+    if q_delivered > q_reduced:
         # The cycle has more than it was asked for (within the tolerance: the
-        # compressor at its lowest speed at the stop), and the step holds the
-        # tank at the stop. The hold is on for less: by the time in which that
-        # cycle delivers what the stretch got beyond the events' heat. The
-        # time the compressor ran continuously is not touched.
-        f_less = min(f_hold, f_reduced * (1.0 - q_reduced / q_delivered))
-        if f_less * float(kwargs["dt"]) > EVENT_TIME_TOL_S:
-            f_reduced -= f_less
-            run = dataclasses.replace(
-                run,
-                runtime_fraction=run.runtime_fraction - f_less,
-                reduced_fraction=f_reduced,
-                hold_fraction=run.hold_fraction - f_less,
-            )
+        # compressor at its lowest speed near the stop). Its rates are taken at
+        # the duty the events integrated, so that the stretch puts no more
+        # heat into the tank than they took; the run times are theirs.
+        reduced_result = _rates_at_duty(reduced_result, q_reduced / q_delivered, rate_keys)
     if full_result is None:
         return run, reduced_result
     return run, merge_running_rows(full_result, f_full, reduced_result, f_reduced, rate_keys)
+
+
+def _rates_at_duty(cycle: Mapping[str, Any], ratio: float, rate_keys: tuple[str, ...]) -> dict:
+    """A copy of ``cycle`` with its rates times ``ratio``: the cycle at a duty a few parts in a million off its own.
+
+    Every finite value in ``rate_keys`` (heat, power, flows) is scaled; the
+    duty the row names as its largest (``Q_max [W]``, written with the heat
+    by :func:`tmhp.compressor_envelope.on_condensing_limit`) follows the
+    heat. Ratios of rates and state quantities are those of ``cycle``.
+    """
+    row = dict(cycle)
+    for key in rate_keys:
+        value = row.get(key)
+        if _finite_number(value):
+            row[key] = float(value) * ratio  # type: ignore[arg-type]
+    if _finite_number(row.get("Q_max [W]")) and "Q_max [W]" not in rate_keys:
+        row["Q_max [W]"] = float(row["Q_max [W]"]) * ratio
+    return row
 
 
 #: Ratio keys of a boiler row recomputed from merged rates: (key, heat, power).

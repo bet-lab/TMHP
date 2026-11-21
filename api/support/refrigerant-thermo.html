@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
+    <meta property="article:modified_time" content="2026-11-21T10:55:52+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -997,11 +997,11 @@ point: <a class="reference internal" href="#tmhp.compressor_envelope.RPS_MAX_ABS
 where that is higher. The rated
 speed itself is solved over <code class="docutils literal notranslate"><span class="pre">[rps_min,</span> <span class="pre">RATED_SPEED_SEARCH_MAX]</span></code>.</p>
 </dd>
-<dt>Efficiency domain</dt><dd><p>The default efficiency models are followed as they are outside their
-(PR, N) data (<code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_efficiency</span></code>); the envelope sets no
-limit on an efficiency. Steady results carry
+<dt>Efficiency domain</dt><dd><p>The default efficiency maps are followed as they are outside their data
+(speed range and (PR, T_e) hull, <code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_efficiency</span></code>); the
+envelope sets no limit on an efficiency. Steady results carry
 <code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code> so a caller can see a point evaluated outside
-the data hull of a default model.</p>
+the data of a default map.</p>
 </dd>
 </dl>
 <dl class="py function">
@@ -1565,9 +1565,10 @@ machine should be given its real <code class="docutils literal notranslate"><spa
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.efficiency_extrapolated_at">
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">efficiency_extrapolated_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#efficiency_extrapolated_at"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.efficiency_extrapolated_at" title="Link to this definition">¶</a></dt>
 <dd><p>Whether any default efficiency model is evaluated outside its data at this state.</p>
-<p>Pressure ratio and speed are read from the result row
-(<code class="docutils literal notranslate"><span class="pre">P_ref_cmp_out</span> <span class="pre">/</span> <span class="pre">P_ref_cmp_in</span></code> and <code class="docutils literal notranslate"><span class="pre">cmp_rpm</span> <span class="pre">/</span> <span class="pre">60</span></code>). False for a state
-that does not run, and for scalar or user-supplied efficiencies.</p>
+<p>Pressure ratio, speed and evaporating temperature are read from the result
+row (<code class="docutils literal notranslate"><span class="pre">P_ref_cmp_out</span> <span class="pre">/</span> <span class="pre">P_ref_cmp_in</span></code>, <code class="docutils literal notranslate"><span class="pre">cmp_rpm</span> <span class="pre">/</span> <span class="pre">60</span></code> and
+<code class="docutils literal notranslate"><span class="pre">T_ref_evap_sat</span></code>). False for a state that does not run, and for scalar or
+user-supplied efficiencies.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -2330,7 +2331,7 @@ process-wide cache, so identical constructions solve once.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 16, 2026
+  Last updated Nov 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

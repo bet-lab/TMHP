@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This procedure is fixed. Follow it and the documentation site picks the new unit up on the next push to main — parity plot, error table and summary, all of it. The design goal is that adding a mach..." />
 
-    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
+    <meta property="article:modified_time" content="2026-11-21T10:55:52+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -252,7 +252,7 @@ from <code class="docutils literal notranslate"><span class="pre">validation/res
 </span><span data-line="17"><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">,</span><span class="nt"> t_source_C</span><span class="p">:</span><span class="w"> </span><span class="nv">7</span><span class="p p-Indicator">,</span><span class="nt">  t_sink_C</span><span class="p">:</span><span class="w"> </span><span class="nv">20</span><span class="p p-Indicator">,</span><span class="nt"> q_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">4.38</span><span class="p p-Indicator">,</span><span class="nt"> power_kW</span><span class="p">:</span><span class="w"> </span><span class="nv">0.98</span><span class="p p-Indicator">,</span><span class="nt"> mode</span><span class="p">:</span><span class="w"> </span><span class="nv">heating</span><span class="p p-Indicator">}</span>
 </span></pre></div>
 </div>
-<dl>
+<dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">model_class</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">ASHPB</span></code> means the nameplate is a heating capacity and <code class="docutils literal notranslate"><span class="pre">t_sink_C</span></code> is
 leaving water temperature; <code class="docutils literal notranslate"><span class="pre">ASHP</span></code> means the nameplate is a cooling
 capacity and <code class="docutils literal notranslate"><span class="pre">t_sink_C</span></code> is indoor dry bulb.</p>
@@ -268,35 +268,13 @@ the case <a class="reference internal" href="defaults.html"><span class="doc">th
 <dt><code class="docutils literal notranslate"><span class="pre">compressor_type</span></code> and <code class="docutils literal notranslate"><span class="pre">injection</span></code></dt><dd><p>The compressor kind and the injection circuit, as the service manual or
 parts list states them; write the evidence in the file’s comment or under
 <code class="docutils literal notranslate"><span class="pre">source</span></code>. <code class="docutils literal notranslate"><span class="pre">compressor_type</span></code> is <code class="docutils literal notranslate"><span class="pre">rotary</span></code>, <code class="docutils literal notranslate"><span class="pre">scroll</span></code> or <code class="docutils literal notranslate"><span class="pre">swing</span></code> and
-selects one of the library’s type-specific default efficiency models — it
-carries no coefficient:</p>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>published</p></th>
-<th class="head"><p>library <code class="docutils literal notranslate"><span class="pre">compressor_type</span></code></p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>rotary</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p>swing</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p>scroll</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">scroll</span></code></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>Every validation machine is inverter driven, and the documents do not say
-whether a rotary is single or twin, so both rotary kinds run on the
-library’s one inverter rotary type. <code class="docutils literal notranslate"><span class="pre">injection</span></code> is <code class="docutils literal notranslate"><span class="pre">none</span></code>, <code class="docutils literal notranslate"><span class="pre">vapor</span></code> or
-<code class="docutils literal notranslate"><span class="pre">flash</span></code>. It is never passed to the model — the cycle is single-stage —
-and only splits the air-to-water headline into the machines the cycle
-represents and those it does not; injection machines stay in the parity
-set and in the pooled figure.</p>
+<code class="docutils literal notranslate"><span class="pre">injection</span></code> is <code class="docutils literal notranslate"><span class="pre">none</span></code>, <code class="docutils literal notranslate"><span class="pre">vapor</span></code> or <code class="docutils literal notranslate"><span class="pre">flash</span></code>. Both are reporting
+facts and carry no coefficient. Neither is passed to the model: the
+library has one set of default efficiency maps for every compressor
+(#217), and the cycle is single-stage. They are written to the results
+beside each point, and <code class="docutils literal notranslate"><span class="pre">injection</span></code> splits the air-to-water headline into
+the machines the cycle represents and those it does not; injection
+machines stay in the parity set and in the pooled figure.</p>
 </dd>
 </dl>
 <p>Air-to-water points need no sink field. The harness runs each one as EN 14511
@@ -393,7 +371,7 @@ drop them.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 16, 2026
+  Last updated Nov 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="“Refrigerant-agnostic” is one of the headline properties of TMHP — and this is the page that makes it concrete. The refrigerant is a constructor argument on every released cycle-resolved model fami..." />
 
-    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
+    <meta property="article:modified_time" content="2026-11-21T10:55:52+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -228,11 +228,11 @@ follows the fluid: it is the displacement a compressor catalogue gives for the
 capacity at the catalogue’s rating point, with the fluid’s own suction density
 and enthalpy rise (<a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>). For the 15 kW default
 <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> that is 45 cm³/rev with R32, 84 with R290, 110
-with R134a and 203 with R600a, and the rated speed lies between 63 and
-77 rev/s for every one of them, inside the 30–120 rev/s of the default
-compressor type’s data. The default 8 kW <code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code>,
+with R134a and 203 with R600a, and the rated speed lies between 55 and
+61 rev/s for every one of them, inside the 30–110 rev/s of the data of the
+default compressor maps. The default 8 kW <code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code>,
 rated at B0/W55, takes 24 cm³/rev with R32, 45 with R290, 59 with R134a and
-108 with R600a, and is rated at 75 to 97 rev/s (R290 84). (Until November 2026
+108 with R600a, and is rated at 63 to 72 rev/s (R290 67). (Until November 2026
 the default was one displacement for every fluid, 70 cm³/rev at 15 kW: R600a
 could not reach the rated capacity on it and was refused at construction,
 and R134a, R1234yf and R1234ze(E) were rated at about 90, 100 and 121 rev/s.
@@ -332,7 +332,7 @@ adds, see <a class="reference internal" href="../api/support/refrigerant-thermo.
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 16, 2026
+  Last updated Nov 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

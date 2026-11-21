@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="analyze_steady returns a flat dict and analyze_dynamic a pandas.DataFrame whose columns are the same keys, one row per time step. This page lists every key the five released families return with th..." />
 
-    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
+    <meta property="article:modified_time" content="2026-11-21T10:55:52+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -248,8 +248,8 @@ dynamic only; <code class="docutils literal notranslate"><span class="pre">all</
 </span><span data-line="5"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">]</span>      <span class="c1"># &quot;none&quot;: the unit runs</span>
 </span><span data-line="6"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">]</span>    <span class="c1"># &quot;max&quot;: it delivers less than the 9 kW asked for</span>
 </span><span data-line="7"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;capacity_binding&quot;</span><span class="p">]</span>    <span class="c1"># &quot;compressor&quot;: the speed ceiling stops it</span>
-</span><span data-line="8"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Q_ref_iu [W]&quot;</span><span class="p">]</span>        <span class="c1"># heat delivered, about 3.8 kW</span>
-</span><span data-line="9"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Q_unmet [W]&quot;</span><span class="p">]</span>         <span class="c1"># the rest of the request, about 5.2 kW</span>
+</span><span data-line="8"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Q_ref_iu [W]&quot;</span><span class="p">]</span>        <span class="c1"># heat delivered, about 4.4 kW</span>
+</span><span data-line="9"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Q_unmet [W]&quot;</span><span class="p">]</span>         <span class="c1"># the rest of the request, about 4.6 kW</span>
 </span></pre></div>
 </div>
 </section>
@@ -301,7 +301,7 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">efficiency_extrapolated</span></code></p></td>
 <td><p>ASHP, GSHP (s), ASHPB (s), GSHPB (s), WSHPB (s)</p></td>
-<td><p>A default compressor efficiency is evaluated outside the (PR, N) hull of its compressor type’s data at this point (<code class="docutils literal notranslate"><span class="pre">rotary_twin_inverter</span></code> and <code class="docutils literal notranslate"><span class="pre">rotary_single_fixed</span></code>: PR 1.94–6.84, 30–120 rev/s; <code class="docutils literal notranslate"><span class="pre">scroll</span></code>: within PR 1.46–8.76 and 20–90 rev/s). Outside it the forms are followed as they are, nothing is held, so the flag is common at ordinary points: every rotary speed below 30 rev/s, and the pressure ratios of hot water in cold weather. Scalar and user efficiencies give <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></td>
+<td><p>A default compressor efficiency is evaluated outside the data of its maps at this point: the speeds 30–110 rev/s and the convex hull of the measured points in pressure ratio and evaporating saturation temperature (<code class="docutils literal notranslate"><span class="pre">T_ref_evap_sat</span> <span class="pre">[°C]</span></code>), which spans PR 1.44–12.67 and −30.2 to 25.1 °C. Outside it the maps are followed as they are, nothing is held, so the flag is common at ordinary points: every speed below 30 rev/s, which is most of part load with the 15 rev/s floor, and every speed above 110 rev/s. Scalar and user efficiencies give <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">discharge_control</span></code></p></td>
 <td><p>all</p></td>
@@ -1655,7 +1655,7 @@ carries a key this page does not name.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 16, 2026
+  Last updated Nov 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

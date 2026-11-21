@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-16T03:30:43+00:00" />
+    <meta property="article:modified_time" content="2026-11-21T10:55:52+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1127,15 +1127,16 @@ smaller duty brings it inside – nor a larger one (ASHP and the boilers’
 at the smallest duty that runs). A point the control <em>does</em> hold runs with
 <code class="docutils literal notranslate"><span class="pre">discharge_control</span> <span class="pre">==</span> <span class="pre">True</span></code>; its <code class="docutils literal notranslate"><span class="pre">dT_ref_superheat</span> <span class="pre">[K]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">x_ref_cmp_in</span> <span class="pre">[-]</span></code> say how. The defaults are compressor protection settings
-(<a class="reference internal" href="../api/support/refrigerant-thermo.html#module-tmhp.compressor_envelope" title="tmhp.compressor_envelope"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_envelope</span></code></a>). The cycle model puts all compressor
-loss into the gas, so the discharge it computes is an upper estimate. With
-the default compressor type the isentropic efficiency at pressure ratios
-of 7 to 11 is 0.76–0.79 (the rotary forms followed past their data,
-which end at 6.84), and the default R32 boiler discharges at up to about
-170 °C uncontrolled there; the control holds 150 °C with a suction quality
-of 0.98. At low speed the efficiency falls and the discharge runs hotter:
-the 15 kW R32 boiler at −20 °C against a 60 °C tank holds the limit at
-suction quality 0.9 down to 2.1 kW (24 rev/s) and not below, and at
+(<a class="reference internal" href="../api/support/refrigerant-thermo.html#module-tmhp.compressor_envelope" title="tmhp.compressor_envelope"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_envelope</span></code></a>). The share of the compressor loss that
+reaches the gas is that of the one compressor the default maps were
+measured on (<a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>). With the default maps the
+isentropic efficiency of the default 15 kW R32 boiler is 0.65 at A−7/W65
+and 0.61 at A−15/W65 (pressure ratios 8.3 and 10.9), and it discharges at
+172 and 196 °C uncontrolled there; the control holds 150 °C with a suction
+quality of 0.97 and 0.93. At low speed the efficiency falls and the
+discharge runs hotter: the same boiler at −20 °C against a 60 °C tank
+holds the limit at suction quality 0.9 down to 2.2 kW (16 rev/s) and not
+below, and at
 −25 °C against 55 °C a small request is refused for the discharge
 temperature while larger ones are refused for the pressure ratio. Real
 units at such conditions use injection (liquid or vapour) or two-stage
@@ -1228,7 +1229,7 @@ and WSHPB. See the docstrings under:</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 16, 2026
+  Last updated Nov 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

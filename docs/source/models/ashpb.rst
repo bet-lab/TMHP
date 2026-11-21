@@ -143,9 +143,13 @@ draw:
    * - thermostat band
      - 55.99–57.99 °C (capped, warning)
      - 60–62 °C (as asked)
-   * - tank at the end of the charge
+   * - highest tank temperature of the hour (where the charge ends; 60 s
+       steps)
      - 57.99 °C
      - 62.00 °C
+   * - tank at the end of the hour (the tank cools after the charge)
+     - 57.77 °C
+     - 61.77 °C
    * - compressor run time
      - 337 s
      - 589 s (252 s on the limit)
@@ -153,8 +157,8 @@ draw:
      - 1.405 / 0.449 kWh (COP 3.13)
      - 2.111 / 0.693 kWh (COP 3.05)
 
-With 60 s, 600 s and 3600 s steps the ``"reduce_duty"`` run ends within
-0.006 K, 0.005 % of heat and 0.11 % of electricity of one another. That is
+With 60 s, 600 s and 3600 s steps the ``"reduce_duty"`` run ends the hour
+within 0.006 K, 0.005 % of heat and 0.11 % of electricity of one another. That is
 this tank (loss coefficient 1.15 W/K) and this limit. A tank that loses heat
 fast depends on the step with either option, because a step's tank
 temperature is one implicit solve with the loss at its end: 0.02 K and 0.02 %
@@ -174,7 +178,11 @@ holds the tank at the stop -- a mean of on/off cycling reported as one run:
 one start, ``runtime_fraction [-]`` the share of the time it is on, and a
 carried state that says "running" since that start -- or, with a minimum rest
 time (``min_off_time_s``), rests for that time and restarts, each restart a
-counted start. With a frosting coil the limit binds the frost-free cycle and
+counted start. A tank that is above the stop of its step (warmer air has
+lowered the stop, or the run starts there) cools to it first and is held from
+then on, as one start (the R32 unit with set points of 62–65 °C, from 61.8 °C
+at 35 °C outdoor: the stop is 61.30 °C, and the run has one start with 60 s,
+600 s and 3600 s steps). With a frosting coil the limit binds the frost-free cycle and
 the heat delivered is its mean over frosting and defrost.
 
 All of this covers the outdoor states in which the condensing limit is the
@@ -187,7 +195,16 @@ charging is **withheld** in that outdoor state: the step is solved exactly as
 ``"stop"`` solves it, ending the charge at the envelope stop, with
 ``reduced_duty_fraction [-]`` 0 and ``reduced_duty_withheld`` naming what
 withheld it on the rows in which the envelope stop acted. The thermostat band
-is not capped again, so the call above the envelope stop stands. Cold air does
+is not capped again, so the call above the envelope stop stands. The three
+cycles are a sample of the stretch. Each step that charges on the limit also
+checks its own cycles the same way, at the mean of its own stretch, and is
+withheld alone if one fails (``reduced_duty_withheld == "cycle"``). So the
+verdict of an outdoor state does not depend on the step, but where another
+limit acts only between the three sampled tank temperatures, which steps are
+withheld does: the charge then depends on the step size (the
+:ref:`reference <reduced-duty-charging>` has a constructed case: 4.8 % of
+the heat between 60 s and 600 s steps). None of the default machines'
+charges measured does this. Cold air does
 this through the pressure-ratio ceiling, which then leaves less than the
 nameplate duty at the envelope stop (``"pressure_ratio"``, and
 ``"outdoor_coil"`` in the degree above it, where the coil at its largest

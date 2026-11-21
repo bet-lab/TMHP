@@ -922,7 +922,12 @@ def condensing_stretch(
     long as the source state stays the same. Three points are a sample: a
     limit that acts only strictly between two of them is not seen. The check
     assumes that a limit which leaves the knee, the middle and the stop alone
-    leaves the stretch between them alone. The solves run silently.
+    leaves the stretch between them alone. Where one does not, the check each
+    step makes of its own cycles
+    (:func:`tmhp.dynamic_context.resolve_step_operation`) withholds the steps
+    whose cycle lands on it; which steps those are depends on the step length
+    and the tank temperature, so the charge at that source state then depends
+    on the step size. The solves run silently.
     """
 
     def other_limit(T: float) -> str | None:

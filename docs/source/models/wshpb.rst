@@ -64,7 +64,16 @@ capped where that duty meets the limit, evaluated with the source water at
 ``Ts`` (:ref:`operating-limits reference <reduced-duty-charging>`). That
 applies where the condensing limit governs the stretch from the cut-out to
 that stop, which is checked once per source-water temperature with three
-cycles (the default unit qualifies from 6 to 30 °C, the warmest tried). With colder source water
+cycles (the default unit qualifies from 6 to 30 °C, the warmest tried). The
+three cycles sample the stretch -- its two ends and its middle. A step also
+checks its own cycle, at the mean of its own stretch, so where another limit
+acts only between the three sampled tank temperatures some steps are withheld
+(``reduced_duty_withheld == "cycle"``) and others are not, by where their
+cycle lands, and the charge depends on the step size: a unit built for the
+purpose (``T_dis_max = 92.408 °C`` and an efficiency that dips around
+35 rev/s, source water 16 °C, one hour from 68.95 °C) delivers 0.4835 kWh
+with 60 s steps, 34 of them withheld, and 0.4605 kWh with 600 s and 3600 s
+steps (:ref:`reference <reduced-duty-charging>`). With colder source water
 the freezing limit leaves less than the condensing limit at the cut-out (3.1
 against 8 kW at 4 °C), and reduced-duty charging is withheld: the step is
 solved exactly as ``"stop"`` solves it -- the compressor stops at the cut-out

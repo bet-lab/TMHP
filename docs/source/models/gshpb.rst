@@ -151,7 +151,11 @@ stops holding, a tank that loses much heat; rows carry
 ``reduced_duty_fraction [-]``). It applies where the condensing limit governs
 the stretch from the cut-out to that stop, which every step that gets there
 checks with three cycles against the ground as it finds it (the default unit
-qualifies with undisturbed ground from 3 to 20 °C, the range tried). Where
+qualifies with undisturbed ground from 3 to 20 °C, the range tried). The
+three cycles sample the stretch; a step also checks its own cycle at the mean
+of its own stretch, so a limit that acts only between the three sampled tank
+temperatures withholds some steps and not others, and the charge then depends
+on the step size (the reference has a measured case). Where
 another limit does -- the ground loop's freezing limit with a cold field -- reduced-duty
 charging is withheld: the step is solved exactly as ``"stop"`` solves it, and
 ``reduced_duty_withheld`` names the limit (``"source_fluid_freezing"``). The

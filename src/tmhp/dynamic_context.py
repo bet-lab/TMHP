@@ -1445,20 +1445,29 @@ def resolve_step_operation(
     cut-out, and is then an ordinary step; and where ``T_limit_C`` is the
     boiling point the stop that acts is that one, which is not marked). A
     step whose knee lies at or above the boiling point never gets to the
-    limit and is resolved as without these arguments. Whether a step charges
-    on the limit therefore depends on what the caller says of its conditions,
-    not on the step or on where in the stretch the tank is. One check of the
-    step itself stands behind that, so that no step is credited with heat its
-    cycles do not deliver and none under another limit is counted as on this
-    one: each cycle of a step on the limit has to deliver the duty the events
-    took for its stretch (the request below the knee, the limit's duty at the
-    stretch's mean above it) to :data:`DUTY_MATCH_RTOL`, and to name no limit
-    as holding it but this one (the condensing limit: ``capacity_binding`` is
-    absent or ``"condensing_temperature"``). A step in which one does not --
-    it has no operating point, or another limit holds it although the caller
-    gave a duty -- is withheld the same way. That includes a full-duty cycle
-    that fails outright: whether the compressor then runs at all is for the
-    step resolved without these arguments to say, with its own cycle solves.
+    limit and is resolved as without these arguments. What the caller says of
+    the step's conditions does not depend on the step or on where in the
+    stretch the tank is. One check of the step itself stands behind it, so
+    that no step is credited with heat its cycles do not deliver and none
+    under another limit is counted as on this one: each cycle of a step on
+    the limit has to deliver the duty the events took for its stretch (the
+    request below the knee, the limit's duty at the stretch's mean above it)
+    to :data:`DUTY_MATCH_RTOL`, and to name no limit as holding it but this
+    one (the condensing limit: ``capacity_binding`` is absent or
+    ``"condensing_temperature"``). A step in which one does not -- it has no
+    operating point, or another limit holds it although the caller gave a
+    duty -- is withheld the same way. That includes a full-duty cycle that
+    fails outright: whether the compressor then runs at all is for the step
+    resolved without these arguments to say, with its own cycle solves.
+    That second check does depend on the step: its cycles are solved at the
+    means of the step's own stretches, which move with the step length and
+    with the tank temperature the step starts from. Where the caller's
+    answer is right for the whole stretch the check never acts and the charge
+    is the same at any step. Where another limit acts on a part of the
+    stretch the caller did not look at, a step is withheld or not by where
+    its cycle lands, and the charge then depends on the step size (measured
+    in ``docs/source/developer/reference-operating-limits.rst``, *Where it
+    applies*).
 
     A compressor stopped at the limit's stop rests for its minimum rest time
     before it restarts (``duty_limit`` of :func:`simulate_thermostat_step`).
@@ -1648,7 +1657,9 @@ def _resolve_duty_limited(
     lowest speed near the stop: a cycle there delivers what that speed gives,
     which need not be the duty asked to the last digit (the 15 kW R32
     air-source unit at 35 °C outdoor: 7911.256 W for the 7911.206 W asked at
-    the stop, 6 parts in a million). The stretch then takes that cycle's
+    the stop, 6 parts in a million; up to the tolerance, 0.1 %, for other
+    machines -- :func:`_rates_at_duty` has the bound and a measured case at
+    0.099 %). The stretch then takes that cycle's
     rates at the duty asked: every rate in ``rate_keys`` (heat, power, flows)
     times asked over delivered, the ratios (COP) and the states (speed,
     pressures, temperatures) those of the cycle solved
@@ -1744,12 +1755,37 @@ def _resolve_duty_limited(
 
 
 def _rates_at_duty(cycle: Mapping[str, Any], ratio: float, rate_keys: tuple[str, ...]) -> dict:
-    """A copy of ``cycle`` with its rates times ``ratio``: the cycle at a duty a few parts in a million off its own.
+    """A copy of ``cycle`` with its rates times ``ratio``: the cycle taken at a duty slightly below its own.
 
     Every finite value in ``rate_keys`` (heat, power, flows) is scaled; the
     duty the row names as its largest (``Q_max [W]``, written with the heat
     by :func:`tmhp.compressor_envelope.on_condensing_limit`) follows the
-    heat. Ratios of rates and state quantities are those of ``cycle``.
+    heat. Ratios of rates and state quantities are those of ``cycle``: heat
+    over power is still the COP the row reports, and the heat is still the
+    refrigerant flow times the enthalpy difference of the row's states,
+    because the heat, the power and the flow are scaled together.
+
+    **How far.** The one caller (:func:`_resolve_duty_limited`) passes asked
+    over delivered for a cycle on the limit that delivers more than the duty
+    asked, and has accepted that cycle only within :data:`DUTY_MATCH_RTOL` of
+    it. So ``1 / (1 + DUTY_MATCH_RTOL) <= ratio < 1``: the rates are lowered
+    by at most 0.0999 % (0.999001), and a cycle further off withholds the step
+    instead. Nothing in the model keeps the excess to a few parts in a
+    million; that is only what the default machines show. Measured, both
+    holding the tank at the stop with the compressor at its speed floor
+    (15 kW R32 air-source units, 1200 s steps):
+
+    - default unit (floor 15 rev/s), 35 °C outdoor, stop at 61.30 °C: asked
+      7,911.206 W, the cycle delivers 7,911.256 W, ratio 0.99999359 (6.4 parts
+      in a million);
+    - ``rps_min=8``, 45 °C outdoor, stop at 62.48 °C: asked 5,382.860 W, the
+      cycle delivers 5,388.207 W, ratio 0.99900770 (0.0992 %, against the
+      0.0999 % allowed).
+
+    The size of the excess is how far the smallest continuous duty found for
+    the source state (:func:`tmhp.compressor_envelope.smallest_duty_on_condensing_limit`)
+    is from what the cycle at the speed floor gives at the stop; the tolerance
+    is the bound on it, not a property of the cycle.
     """
     row = dict(cycle)
     for key in rate_keys:

@@ -283,7 +283,9 @@ the source states in which the condensing limit governs that whole stretch;
 in the others (a cold source that brings in the pressure-ratio ceiling, the
 freezing limit, a discharge-temperature limit or a low speed ceiling) the
 step is the one ``"stop"`` solves
-and ``reduced_duty_withheld`` says why. See
+and ``reduced_duty_withheld`` says why (``"cycle"`` on a row means the
+step's own cycle met another limit where the check of the source state had
+found none; such a charge depends on the step size). See
 :ref:`ashpb-reduced-duty-charging` and the
 :ref:`operating-limits reference <reduced-duty-charging>`.
 

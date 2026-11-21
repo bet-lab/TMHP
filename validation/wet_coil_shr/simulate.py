@@ -361,11 +361,35 @@ def headline(points: pd.DataFrame) -> dict:
     return out
 
 
+def run_state() -> dict:
+    """What a run computes with: the model and harness state, and this script's own content.
+
+    :func:`validation.parity.run.source_state` (commit, tree hashes, whether
+    the model, the harness or the catalogues had uncommitted edits) covers
+    ``validation.parity.run.SOURCE_PATHS``, which this script is not part of.
+    Its own git blob and whether anything under ``validation/wet_coil_shr``
+    was uncommitted are added, so that the record vouches for the script that
+    made the files as well.
+    """
+    from validation.parity.run import _git, source_state
+
+    return {
+        **source_state(),
+        "study_script_blob": _git("hash-object", SCRIPT),
+        "study_script_uncommitted": bool(_git("status", "--porcelain", "--", "validation/wet_coil_shr")),
+    }
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out-dir", type=Path, default=OUT_DIR, help="where to write the study's files")
     args = parser.parse_args(argv)
     out_dir: Path = args.out_dir.resolve()
+
+    # Captured before any catalogue is evaluated (as the parity harness does):
+    # the record describes the code the numbers were computed with, not what
+    # is on disk when the run ends.
+    state = run_state()
 
     points = pd.concat([run_unit(slug) for slug in UNITS], ignore_index=True)
 
@@ -373,6 +397,8 @@ def main(argv: list[str] | None = None) -> None:
     print(f"dry pass against the committed parity results: largest relative COP difference {worst:.3e}")
     if not worst <= 1e-6:
         raise SystemExit("GATE FAILED: the dry pass is not the shipped parity path; nothing written")
+    if run_state() != state:
+        raise SystemExit("the model, the harness or this script changed while the study ran; nothing written")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     bands, units, numbers = by_band(points), by_unit(points), headline(points)
@@ -390,16 +416,7 @@ def main(argv: list[str] | None = None) -> None:
     (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
 
     from validation import study_provenance
-    from validation.parity.run import _git
 
-    # The record's commit and dirty flag cover the model and the harness
-    # (validation.parity.run.SOURCE_PATHS), not this script. Its own content
-    # is recorded here, and whether it was committed when it ran, so that the
-    # record vouches for the script that made the files as well.
-    script = {
-        "study_script_blob": _git("hash-object", SCRIPT),
-        "study_script_uncommitted": bool(_git("status", "--porcelain", "--", "validation/wet_coil_shr")),
-    }
     study_provenance.write(
         out_dir / "provenance.json",
         SCRIPT,
@@ -412,7 +429,9 @@ def main(argv: list[str] | None = None) -> None:
         },
         "sensible heat ratio of the wet indoor coil against the catalogue's, and the COP bias dry against wet",
         command="python -m validation.wet_coil_shr.simulate",
-        extra=script,
+        # The state of the start of the run (unchanged since, checked above), in place of
+        # the one the record helper reads when it writes.
+        extra=state,
     )
 
     pd.set_option("display.width", 200)

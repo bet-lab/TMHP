@@ -179,6 +179,55 @@ def test_what_the_study_found(committed):
     assert bands.shr_error_wet_ua50["all"] < -0.05 and bands.shr_error_wet_ua200["all"] > 0.05
 
 
+def _one_row_run(monkeypatch, calls: list[str]):
+    """Make ``study.main`` a one-row run that logs when the code state is read and when the model runs."""
+    real_run_unit, real_state = study.run_unit, study.run_state
+
+    def run_unit(slug):
+        calls.append("run")
+        return real_run_unit(slug, point_ids=(1,))
+
+    def run_state():
+        calls.append("state")
+        return real_state()
+
+    monkeypatch.setattr(study, "UNITS", ("daikin_rxm20a",))
+    monkeypatch.setattr(study, "run_unit", run_unit)
+    monkeypatch.setattr(study, "run_state", run_state)
+    return real_state
+
+
+def test_run_reads_the_code_state_before_it_computes_and_records_that(monkeypatch, tmp_path, capsys):
+    calls: list[str] = []
+    real_state = _one_row_run(monkeypatch, calls)
+    study.main(["--out-dir", str(tmp_path)])
+    capsys.readouterr()
+    assert calls[0] == "state" and calls.index("run") > 0, calls  # read before the first model run
+    assert calls[-1] == "state" and calls.count("state") == 2, calls  # and checked again before writing
+    record = json.loads((tmp_path / "provenance.json").read_text(encoding="utf-8"))
+    for key, value in real_state().items():
+        assert record[key] == value, key
+    assert (tmp_path / study.CSV_NAME).exists()
+
+
+def test_run_writes_nothing_when_the_code_changed_while_it_ran(monkeypatch, tmp_path, capsys):
+    calls: list[str] = []
+    real_state = _one_row_run(monkeypatch, calls)
+
+    def changing_state():
+        calls.append("state")
+        state = real_state()
+        # The script is edited between the start of the run and its end.
+        return state if calls.count("state") == 1 else {**state, "study_script_blob": "0" * 40}
+
+    monkeypatch.setattr(study, "run_state", changing_state)
+    out = tmp_path / "out"
+    with pytest.raises(SystemExit, match="changed while the study ran; nothing written"):
+        study.main(["--out-dir", str(out)])
+    capsys.readouterr()
+    assert not out.exists()
+
+
 # ---------------------------------------------------------------------------
 # docs/source/validation/index.rst, "Cooling and latent load"
 # ---------------------------------------------------------------------------

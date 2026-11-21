@@ -49,6 +49,19 @@ which is the audit trail for "nobody has checked this file yet".
 ``validation/results/summary.csv`` and ``manifest.json``, which records the
 commit and the ``src/tmhp`` tree the numbers came from.
 
+The per-point CSV records the delivered duty (``q_pred_kW``), its ratio to
+the published duty (``capacity_ratio``), and the model's active limit
+(``capacity_binding``). It records suction quality (``x_suction``), superheat
+(``superheat_K``), the discharge-control flag and discharge temperature
+(``discharge_control``, ``t_discharge_C``), and the capacity probe
+(``q_max_pred_kW``, ``capacity_headroom``, ``capacity_probe``). The probe
+kind is ``ceiling`` for observed ceilings and ``lower_bound`` when the
+air-to-water overload request was met. The two capacity ratios are missing
+when the published duty is zero or non-finite. Missing values appear as empty CSV
+fields. Each summary row represents one catalogue, with the model-class
+totals and averages repeated in the ``class_`` columns. The binding counts
+are JSON objects keyed by the model's limit labels.
+
 **5. Refresh the derived artefacts.** The figure and the site's JSON both read
 from ``validation/results/``, so they follow automatically.
 

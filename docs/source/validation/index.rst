@@ -689,6 +689,78 @@ injection stratum above, stated rather than corrected for.
     (:doc:`../models/ashp`).
 
 
+Capacity
+========
+
+The capacity ratio is the duty the model delivers at the catalogue request
+divided by the published duty. The capacity score includes short points.
+A point that falls more than 1 % short contributes to the capacity score and
+is excluded from the COP score.
+Capacity scores are grouped by catalogue status and model class. The held
+group is diagnostic. In ``summary.csv``, the ``class_`` columns describe
+the model class and status of the catalogue on that row. In ``manifest.json``,
+``capacity_by_status_and_model_class`` uses the status keys ``adopted``
+and ``hold`` for the groups present in the results.
+
+.. list-table::
+    :header-rows: 1
+
+    * - Model class
+      - Scope
+      - Short points
+      - Mean ratio
+      - Minimum ratio
+      - Ceilings (mean headroom)
+      - Lower bounds
+      - No estimate
+    * - Air-to-water
+      - Adopted
+      - 8 / 153
+      - 99.30 %
+      - 72.24 %
+      - 65 (123.70 %)
+      - 87 (150 %)
+      - 1
+    * - Air-to-air
+      - Adopted
+      - 0 / 360
+      - 100.00 %
+      - 100.00 %
+      - 360 (166.13 %)
+      - 0
+      - 0
+    * - Air-to-air
+      - Held
+      - 0 / 244
+      - 100.00 %
+      - 100.00 %
+      - 244 (169.25 %)
+      - 0
+      - 0
+
+Compressor speed binds three of the air-to-water points, and the condensing
+temperature limit binds five. Probe headroom is the probed duty divided by
+the published duty. For air-to-air, the probe uses
+:meth:`~tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity`. For
+air-to-water, it requests 1.5 times the published duty at the same outdoor
+temperature, entering water temperature and water flow. The multiplier
+allows the probe to reach limits above the published duty with a bounded
+overload request. Meeting the overload within the relative validation tolerance of
+10⁻⁶ establishes a lower bound at the requested multiplier (150 % headroom).
+A smaller return beyond that tolerance gives a ceiling. For either model,
+if the probe returns a lower duty than the ordinary solve within the same
+tolerance, the probe records the duty from the ordinary solve. A larger drop
+or a failed probe leaves the estimate missing.
+
+Among scored air-to-water points, COP MAPE and bias were 7.9 % and −6.7 %
+without discharge control (124 points), 8.3 % and −5.9 % with reduced
+superheat (5 points), and 8.2 % and +0.4 % with wet suction (16 points).
+All 360 scored air-to-air points ran without discharge control (12.6 % MAPE
+and −12.1 % bias).
+Scored adopted points with a missing control flag, or with control active
+and missing suction quality, are counted in the ``unknown`` stratum.
+
+
 Cooling and latent load
 =======================
 

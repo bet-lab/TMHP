@@ -110,8 +110,9 @@ step by step:
    <div class="tmhp-diagram" data-diagram="ep-seq"></div>
 
 The plugin memoizes the solve on rounded inputs, because the plant solver
-re-calls it with identical inputs many times per timestep, and it converts the
-heat put into the loop into the outlet-temperature actuator with
+re-calls it with identical inputs many times per timestep. Humidity is rounded
+to the nearest 0.01 percentage point for both the cache key and the model input.
+The plugin converts the heat put into the loop into the outlet-temperature actuator with
 ``T_out = T_in + q_loop / (mdot * cp)`` (see
 :ref:`ep-metered-power` for how ``q_loop`` and the metered electricity follow
 from the solved cycle).
@@ -156,9 +157,9 @@ Input / output boundary
 The plugin reads only finite EnergyPlus boundary values before calling
 TMHP. Invalid required inputs are reported through ``issue_severe()``, the plant
 component is driven to a safe off state, and the callback returns a
-non-zero status. Missing or invalid humidity triggers one warning per plugin
-instance, and the solve uses the model's default humidity (84% for the
-standard frost correction).
+non-zero status. A missing humidity handle, a read flagged by EnergyPlus, or an
+invalid humidity value triggers one warning per plugin instance. The solve then
+uses the model's default humidity (84% for the standard frost correction).
 
 .. list-table::
    :header-rows: 1
@@ -232,7 +233,9 @@ variables:
      - Optional plugin global receiving the instantaneous system electricity
        in watts. Default ``tmhp_E_cmp_W``.
    * - ``TMHP_PLUGIN_LOG``
-     - Optional path for per-call and convergence-tally logging.
+     - Optional path for per-call and convergence-tally logging. Each logged
+       solve reports the humidity used by the model, or ``default`` when the
+       plugin falls back to the model's default.
 
 .. _ep-metered-power:
 

@@ -339,10 +339,11 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
     def _solve(
         self, t_in: float, t0: float, q_target: float, m_dot: float, *, rh_out: float | None = None
     ) -> dict[str, Any]:
+        """Reuse a steady result for rounded inputs and solve at the humidity bin center."""
         # A 0.01 percentage point cache bin is finer than the percent-level EPW
         # humidity input and retains sub-percent changes from weather interpolation.
-        rh_key = None if rh_out is None else round(rh_out, 4)
-        key = (round(t_in, 1), round(t0, 1), round(q_target, 0), round(m_dot, 4), rh_key)
+        rh_bin = None if rh_out is None else round(rh_out, 4)
+        key = (round(t_in, 1), round(t0, 1), round(q_target, 0), round(m_dot, 4), rh_bin)
         res = self._cache.get(key)
         if res is None:
             res = self.hp.analyze_steady(
@@ -350,7 +351,7 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
                 T0=t0,
                 Q_ref_tank=q_target,
                 m_dot_w=m_dot,
-                RH_out=rh_out,
+                RH_out=rh_bin,
             )
             self._cache[key] = res
         return res
@@ -358,7 +359,16 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
     def _read_outdoor_humidity(self, state: Any) -> float | None:
         """Read the weather percentage as a fraction, using the model default on bad data."""
         handle = self.h["rh_out"]
-        raw = None if handle == -1 else self.api.exchange.get_variable_value(state, handle)
+        ex = self.api.exchange
+        raw = None
+        # The flag is sticky and shared. Leave errors from other API calls intact.
+        if handle != -1 and not ex.api_error_flag(state):
+            raw = ex.get_variable_value(state, handle)
+            if ex.api_error_flag(state):
+                # A failed read returns zero. Clear this optional read's error so
+                # EnergyPlus does not abort when the callback returns.
+                ex.reset_api_error_flag(state)
+                raw = None
         percent = _finite_float_or_none(raw)
         if percent is not None and 0.0 <= percent <= 100.0:
             return percent / 100.0
@@ -440,6 +450,7 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         _set_global_if_valid(ex, state, self.h.get("e_cmp_w", -1), e_cmp_w)
 
     def on_user_defined_component_model(self, state: Any) -> int:
+        """Solve a dispatched heating load, actuate the plant, and log the model result."""
         ex = self.api.exchange
         if not ex.api_data_fully_ready(state):
             return 0
@@ -542,7 +553,12 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
 
         if self._nlog < 40:
             self._nlog += 1
-            rh_log = "default" if rh_out is None else f"{rh_out:.2%}"
+            # Log what the model used so the design-day smoke test checks the
+            # handoff to the cycle as well as the EnergyPlus weather read.
+            rh_used = _finite_float_or_none(res.get("RH_out [-]"))
+            rh_log = "default"
+            if rh_out is not None:
+                rh_log = "unavailable" if rh_used is None else f"{rh_used:.2%}"
             _log(
                 f"[call {self._ncall:4d}] T_in={t_in:6.2f}C T0={t0:6.2f}C mdot={mdot:6.3f}kg/s "
                 f"RH_out={rh_log} Qreq={q_req:8.1f}W -> converged={converged} reason={reason} "

@@ -1,6 +1,8 @@
-"""Run EnergyPlus 24.2 with the installed TMHP wheel and check its hourly SQLite outputs."""
+"""Run EnergyPlus 24.2 and check TMHP's hourly SQLite outputs and model humidity."""
 
 import math
+import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -49,12 +51,30 @@ def check_results(database: Path) -> None:
     print(f"24 hourly J/W pairs verified; total {total:.3f} J, peak {peak:.6f} W")
 
 
+def check_humidity_log(log: Path) -> None:
+    """Require the model to report the saturated design-day humidity on each logged call."""
+    calls = [line for line in log.read_text(encoding="utf-8").splitlines() if line.startswith("[call ")]
+    if not calls:
+        raise ValueError(f"No dispatched calls to check for model humidity in {log}")
+    for call in calls:
+        humidity = re.search(r"\sRH_out=(\d+(?:\.\d+)?)%(?:\s|$)", call)
+        # plant.idf holds the dry bulb and wet bulb at 7 °C (saturation).
+        # Allow one percentage point for psychrometric approximations.
+        if humidity is None or not 99.0 <= float(humidity[1]) <= 100.0:
+            raise ValueError(f"Expected 99–100% model humidity on the saturated design day: {call}")
+    print(f"Model humidity verified on {len(calls)} logged dispatch calls")
+
+
 def run(energyplus: Path, output: Path) -> None:
-    """Render the wheel path for embedded Python and run the official CLI."""
+    """Run the official CLI with the installed wheel and check metering and model humidity."""
     fixture = Path(__file__).with_name("plant.idf").read_text()
     model = output / "plant.idf"
     model.write_text(fixture.replace("@SITE_PACKAGES@", sysconfig.get_path("purelib")))
-    result = subprocess.run([energyplus, "-D", "-d", output, model], cwd=output)
+    log = output / "tmhp-plugin.log"
+    log.unlink(missing_ok=True)
+    result = subprocess.run(
+        [energyplus, "-D", "-d", output, model], cwd=output, env={**os.environ, "TMHP_PLUGIN_LOG": str(log)}
+    )
     error_file = output / "eplusout.err"
     if error_file.exists():
         print(error_file.read_text(), flush=True)
@@ -63,6 +83,7 @@ def run(energyplus: Path, output: Path) -> None:
     if "Completed Successfully-- 0 Warning; 0 Severe Errors;" not in summary:
         raise ValueError(summary)
     check_results(output / "eplusout.sql")
+    check_humidity_log(log)
 
 
 if __name__ == "__main__":

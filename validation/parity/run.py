@@ -77,11 +77,9 @@ def _build_model(catalog: Catalog, overrides: dict | None = None, mode: str = "c
     published = catalog.published_inputs
     if published.get("displacement_cc"):
         kwargs["V_cmp_ref"] = float(published["displacement_cc"]) * 1.0e-6
-    # The published compressor kind selects the library's type-specific default
-    # (spec.MODEL_COMPRESSOR_TYPE); ``injection`` is a reporting fact and never
-    # reaches the single-stage model.
-    if catalog.model_compressor_type is not None:
-        kwargs["compressor_type"] = catalog.model_compressor_type
+    # ``compressor_type`` and ``injection`` are reporting facts: the library has
+    # one default efficiency map for every compressor (#217), and the
+    # single-stage model has no injection.
 
     if catalog.model_class == "ASHPB":
         if published.get("rated_air_flow_m3_s"):

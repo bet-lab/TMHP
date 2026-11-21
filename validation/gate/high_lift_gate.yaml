@@ -9,10 +9,10 @@
 # water) is the selector the test checks against that row, so renumbering a
 # catalogue cannot silently point the gate at another operating point.
 #
-# This file does not say whether the gate passes. It does not today (the three
-# catalogue points are 13 to 20 % below the catalogue); the work on the
-# compressor efficiency model is what closes it, and the pass assertion belongs
-# to that work.
+# This file does not say whether the gate passes. It does not today: with the
+# default maps of #217/#218 the three catalogue points are 5.2 to 10.0 % below
+# the catalogue and the 9 kW unit is just outside the tolerance
+# (tests/test_validation_gate.py states the current outcome).
 #
 # Owner decisions of 2026-11-15 recorded here:
 # - the gate is judged on machines the single-stage cycle of TMHP can represent.

@@ -6,7 +6,7 @@
     inside or outside the compressor envelope -- on the machine a bare
     constructor built before the catalogue default inputs (issue #86), the
     R290 default of the air-source boiler and the semi-empirical compressor
-    models. What such a test examines is the mechanism at that scenario, not
+    models (and the default maps that replaced those, #217). What such a test examines is the mechanism at that scenario, not
     the default: with another displacement, refrigerant or efficiency map the
     same request sits somewhere else in the envelope and the test would pass
     or fail for a reason it was not written for.
@@ -214,15 +214,13 @@ EARLIER_EFFICIENCY_MAP = "BITZER-three-C3-absolute-N-2026-10-06"
 _EARLIER_REFERENCE_STATES: dict[tuple, Any] = {}
 
 
-def earlier_efficiencies(spec: Any, ref: str, rps_rated: float | None) -> dict[str, Callable]:
+def earlier_efficiencies() -> dict[str, Callable]:
     """The recorded quadratic map in place of :func:`tmhp.compressor_efficiency.default_efficiencies`.
 
-    The map reads the absolute shaft speed and no refrigerant, compressor type or suction state; ``rps_rated``
-    (``None`` while the rated speed is being solved) only stands in for a speed a caller omits, which the models
-    never do.
+    The map reads the absolute shaft speed and no refrigerant or suction state; the models always pass the speed,
+    so no rated speed stands in for an omitted one.
     """
-    del spec, ref
-    return recorded_efficiencies(EARLIER_EFFICIENCY_MAP, rps_rated)  # type: ignore[arg-type]
+    return recorded_efficiencies(EARLIER_EFFICIENCY_MAP, None)  # type: ignore[arg-type]
 
 
 def earlier_rps_max(rps_rated: float) -> float:
@@ -237,7 +235,7 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
         f"{MARKER}: build models with the default inputs of before issue #86, the R290 air-source boiler and the "
-        "semi-empirical compressor models (tests/conftest.py)",
+        "default compressor efficiency models after it (tests/conftest.py)",
     )
     config.addinivalue_line("markers", f"{OPT_OUT}: inside an {MARKER} module, build models with the present defaults")
 

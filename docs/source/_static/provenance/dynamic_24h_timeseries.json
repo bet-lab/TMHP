@@ -9,8 +9,8 @@
  "outputs": [
   "docs/source/_static/dynamic_24h_timeseries.svg"
  ],
- "coefficient_version": "semi-empirical-2026-11-15",
- "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
+ "coefficient_version": "ossorio-r290-te-2026-11-21",
+ "git_head": "3016d725c0c6a542817c894e3973469e2e56955e",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -20,17 +20,17 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
- "python": "3.14.7",
+ "src_tmhp_tree": "11e32032acec1bf19aef6b77ef00267be4e9904e",
+ "validation_parity_tree": "f806d541a72190c373b8a97ae4606cc02bf07ebe",
+ "python": "3.11.15",
  "coolprop": "7.2.0",
- "platform": "Darwin-arm64",
- "run_at": "2026-11-16T03:05:42+00:00",
+ "platform": "Linux-x86_64",
+ "run_at": "2026-11-21T10:07:52+00:00",
  "data": {
-  "Q_ref_tank_kWh": 39.42936555699025,
-  "E_cmp_kWh": 15.101205626372174,
-  "E_tot_kWh": 15.486240704733012,
-  "T_tank_w_end_C": 54.93458508078021,
+  "Q_ref_tank_kWh": 39.42940459411968,
+  "E_cmp_kWh": 14.803235815299104,
+  "E_tot_kWh": 15.191769478694857,
+  "T_tank_w_end_C": 54.93480722116851,
   "hp_on_steps": 169
  }
 }

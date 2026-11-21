@@ -177,11 +177,11 @@ Speed (``rps_min`` / ``rps_max``)
     speed itself is solved over ``[rps_min, RATED_SPEED_SEARCH_MAX]``.
 
 Efficiency domain
-    The default efficiency models are followed as they are outside their
-    (PR, N) data (:mod:`tmhp.compressor_efficiency`); the envelope sets no
-    limit on an efficiency. Steady results carry
+    The default efficiency maps are followed as they are outside their data
+    (speed range and (PR, T_e) hull, :mod:`tmhp.compressor_efficiency`); the
+    envelope sets no limit on an efficiency. Steady results carry
     ``efficiency_extrapolated`` so a caller can see a point evaluated outside
-    the data hull of a default model.
+    the data of a default map.
 """
 
 from __future__ import annotations
@@ -690,9 +690,10 @@ def default_rps_max(rps_rated: float) -> float:
 def efficiency_extrapolated_at(models: tuple[object, ...], result: Mapping[str, Any]) -> bool:
     """Whether any default efficiency model is evaluated outside its data at this state.
 
-    Pressure ratio and speed are read from the result row
-    (``P_ref_cmp_out / P_ref_cmp_in`` and ``cmp_rpm / 60``). False for a state
-    that does not run, and for scalar or user-supplied efficiencies.
+    Pressure ratio, speed and evaporating temperature are read from the result
+    row (``P_ref_cmp_out / P_ref_cmp_in``, ``cmp_rpm / 60`` and
+    ``T_ref_evap_sat``). False for a state that does not run, and for scalar or
+    user-supplied efficiencies.
     """
     try:
         p_in = float(result["P_ref_cmp_in [Pa]"])
@@ -702,25 +703,29 @@ def efficiency_extrapolated_at(models: tuple[object, ...], result: Mapping[str, 
         return False
     if not (math.isfinite(p_in) and math.isfinite(p_out) and math.isfinite(rps) and p_in > 0 and rps > 0):
         return False
+    try:
+        t_evap = float(result["T_ref_evap_sat [°C]"])
+    except (KeyError, TypeError, ValueError):
+        t_evap = math.nan
     pr = p_out / p_in
-    return any(_outside_domain(m, pr, rps) for m in models)
+    return any(_outside_domain(m, pr, rps, t_evap if math.isfinite(t_evap) else None) for m in models)
 
 
-#: Relative margin inside which a point on the edge of a model's (PR, N) data
-#: hull counts as inside. The pressure ratio and speed are read back from the
+#: Relative margin inside which a point on the edge of a model's data domain
+#: counts as inside. The pressure ratio and speed are read back from the
 #: result row (``P_out / P_in``, ``cmp_rpm / 60``), so a point solved exactly
-#: on an edge -- a speed bound can coincide with a hull vertex (30 or
-#: 120 rev/s for the rotary types) -- comes back a few ulp either side, and
-#: the flag would differ between platforms. 1e-6 is the relative tolerance of
+#: on an edge -- a speed bound can coincide with the end of the data's speed
+#: range (30 or 110 rev/s) -- comes back a few ulp either side, and the flag
+#: would differ between platforms. 1e-6 is the relative tolerance of
 #: the step-kernel goldens and far below any physical meaning of the hull.
 _DOMAIN_RTOL = 1e-6
 
 
-def _outside_domain(model: object, pressure_ratio: float, rps: float) -> bool:
+def _outside_domain(model: object, pressure_ratio: float, rps: float, T_evap_C: float | None = None) -> bool:
     domain = getattr(model, "validity_domain", None)
-    if domain is None or not efficiency_extrapolated(model, pressure_ratio, rps):  # type: ignore[arg-type]
+    if domain is None or not efficiency_extrapolated(model, pressure_ratio, rps, T_evap_C):  # type: ignore[arg-type]
         return False
-    return not domain.contains(pressure_ratio, rps, rtol=_DOMAIN_RTOL)
+    return not domain.contains(pressure_ratio, rps, T_evap_C, rtol=_DOMAIN_RTOL)
 
 
 _F = TypeVar("_F", bound=Callable[..., Any])

@@ -58,7 +58,8 @@ named in ``capacity_binding``.
         ``"pr_above_max"`` or ``"discharge_temp_above_max"``), the duty is
         reduced (``capacity_binding``), or the point runs and reports the
         single-stage COP: the injection machines of the validation set run
-        10 to 23 % below their catalogues at −7 °C (:ref:`high-lift-deficit`)
+        4 to 19 % below their catalogues at A−7/W55 and A−7/W65
+        (:ref:`high-lift-deficit`)
       - :doc:`/developer/reference-operating-limits`
     * - Operation beyond the compressor envelope
       - Condensing above ``T_cond_max``, discharge above ``T_dis_max`` or a
@@ -103,29 +104,30 @@ The refrigerant cycle
     * - Simplification
       - What it means
       - How it shows
-    * - Compressor efficiencies by compressor type
+    * - One compressor's efficiencies for every machine
       - Volumetric, isentropic and electro-mechanical efficiency come from
-        semi-empirical forms fitted to standalone-compressor data, one set per
-        ``compressor_type`` (``rotary_twin_inverter`` by default, ``scroll``,
-        ``rotary_single_fixed``). The level is the manufacturers' published
-        level; independent compressor measurements sit 5–15 % lower. The
-        rotary types are provisional: their data span pressure ratio
-        1.94–6.84 and 30–120 rev/s. The electrical input is that of the
-        inverter input (drive loss about 6 % at 60 rev/s, more at low speed).
-        Outside the data the forms are followed as they are, not held
-      - ``efficiency_extrapolated == True`` outside the data hull of the type,
-        often at ordinary points: every speed below 30 rev/s, and pressure
-        ratios above 6.84 (hot water in cold weather) or below 1.94. The
-        default air-source models and boilers are rated inside the hull with
-        every refrigerant; the default ``GroundSourceHeatPump`` is rated below
-        it (pressure ratio 1.6–1.8). :doc:`/validation/defaults`
-    * - Adiabatic compressor
-      - No shell heat loss: every loss ends up in the discharge gas
-      - ``T_ref_cmp_out [°C]`` is an upper estimate, so the discharge limit
-        binds early rather than late
+        three maps of one 46 cm³/rev R290 scroll (134 measured points), in
+        the pressure ratio, the speed and the evaporating temperature, the
+        same for every refrigerant and every compressor. The electrical input
+        is that of the inverter input; there is no separate drive model.
+        Applied without calibration the defaults run low against the
+        catalogues (COP bias −5.9 % air-to-water, −12.1 % air-to-air).
+        Outside the data the maps are followed as they are, not held
+      - ``efficiency_extrapolated == True`` outside the data (30–110 rev/s
+        and the measured hull in pressure ratio and evaporating
+        temperature), often at ordinary points: every speed below 30 rev/s
+        and every speed above 110 rev/s. Every family is rated inside the
+        data with each of R32, R410A, R290, R134a, R1234yf and R600a.
+        :doc:`/validation/defaults`
+    * - Compressor losses as on one compressor
+      - The share of the electrical input that does not reach the gas (motor,
+        inverter and the heat the shell gives off, ``1 − eta_cmp``) is that
+        of the measured R290 scroll at the same pressure ratio and speed
+      - Not flagged. ``T_ref_cmp_out [°C]`` follows the discharge
+        temperatures of that compressor, not those of the machine modelled
     * - Wet suction without an efficiency penalty
       - When the discharge control lets the suction go wet, the efficiency
-        forms, fitted to dry-suction data, are used unchanged
+        maps, fitted to dry-suction data, are used unchanged
       - Rows with ``discharge_control == True`` are optimistic by a few
         percent in COP, and their duty at the edge of the limit is an upper
         estimate (:doc:`/developer/reference-operating-limits`)
@@ -208,10 +210,10 @@ Air side
         the fan step its user selects, so this is the favourable end of what
         the fans leave open, not a prediction of a controller. At the four
         points of :ref:`ashp-fan-control` the default 4 kW air-to-air unit
-        runs its indoor fan at its largest flow; with the
-        indoor flow held at half of that, the COP is 19 to 21 % lower at
-        half load and 27 to 34 % lower at nameplate load, which the unit
-        then falls 1 to 3 % short of
+        runs its indoor fan at its largest flow (in heating at 2 kW, to the
+        tolerance of the search); with the indoor flow held at half of that,
+        the COP is 12 to 16 % lower at half load and 24 to 34 % lower at
+        nameplate load, which the unit then falls 1 to 3 % short of
       - Not flagged. ``dV_iu_a [m3/s]`` and ``dV_ou_a [m3/s]`` are the flows
         the search chose. Equal limits hold a fan at one flow:
         ``dV_iu_fan_a_min`` / ``dV_iu_fan_a_max`` and ``dV_ou_fan_a_min`` /
@@ -334,7 +336,7 @@ validation.gate.evaluate`` prints where it stands) is the catalogue COP within
 10 % at A−7/W55 on the three Panasonic WH-UQ units, which publish their
 displacement, airflow and compressor (a rotary without injection, the
 machine the single-stage cycle represents). With the present defaults two of
-the three points are within it and the third is not evaluated:
+the three points are within it and the third is just outside it:
 
 .. list-table::
     :header-rows: 1
@@ -347,55 +349,47 @@ the three points are within it and the third is not evaluated:
       - At the solved point
     * - WH-UQ09HE8 (R410A, 9 kW)
       - 2.02
-      - 1.962
-      - −2.9 %
-      - pressure ratio 7.4, 90 rev/s, isentropic efficiency 0.806
+      - 1.817
+      - −10.0 %
+      - pressure ratio 7.3, 68 rev/s, isentropic efficiency 0.659
     * - WH-UQ12HE8 (R410A, 12 kW)
       - 1.92
-      - not evaluated
-      - capacity short
-      - pressure ratio 7.6, at the 120 rev/s ceiling: 96 % of the duty
+      - 1.817
+      - −5.3 %
+      - pressure ratio 7.5, 92 rev/s, isentropic efficiency 0.641
     * - WH-UQ16HE8 (R410A, 16 kW)
       - 1.86
-      - 1.890
-      - +1.6 %
-      - pressure ratio 8.3, 119 rev/s, isentropic efficiency 0.797
+      - 1.763
+      - −5.2 %
+      - pressure ratio 8.0, 84 rev/s, isentropic efficiency 0.637
 
-WH-UQ12HE8 runs at its speed ceiling and delivers 96 % of the published duty,
-so its COP is not compared (``capacity_short``, :doc:`/validation/index`).
-With the ceiling raised the model meets the duty at 126 rev/s; the default
-ceiling is 120 rev/s (:doc:`/developer/reference-operating-limits`). The gate
-is therefore not met as it is written: one of its three points has no
-comparable COP.
+All three deliver the published duty below the 120 rev/s ceiling, so each
+COP is compared (:doc:`/validation/index`). WH-UQ09HE8 lies just past the
+tolerance, so the gate is not met as it is written.
 
-All three points are solved above the rotary data: the rotary forms rest on
-data up to a pressure ratio of 6.84 (``efficiency_extrapolated`` is true at
-each), and the rotary volumetric efficiency there is the form followed past
-its data. How far that reaches is recorded with the coefficients
-(``validation/coefficients/semi-empirical-2026-11-15/eta_v_high_pr.csv``): at
-a pressure ratio of 8 the three PR slopes the archive compares give 0.728 to
-0.763 for R32 at 60 rev/s.
-
-In the previous release, with the BITZER quadratic map, the three points ran
-−19.9, −15.6 and −12.9 % below the catalogue; that map held its isentropic
-efficiency at 0.371 beyond a pressure ratio of 7.15. Of the machines without
-injection, the six rotaries of the parity set, the 17 points evaluated at −7 °C run
-+2.6 % on average (:doc:`/validation/index`).
+All three points are solved inside the data of the maps (pressure ratio,
+speed and evaporating temperature; ``efficiency_extrapolated`` is false at
+each), which reach a pressure ratio of 12.67 at an evaporating temperature
+of −30 °C. In the previous release, with the semi-empirical
+models, two of the three were within the gate (−2.9 and +1.6 %) and
+WH-UQ12HE8 fell short of the duty at the ceiling. Of the machines without
+injection, the six rotaries of the parity set, the 18 points evaluated at
+−7 °C run −3.6 % on average (:doc:`/validation/index`).
 
 **Vapour injection, which the model does not have.** The Panasonic T-CAP M
 units (WH-WXG09/12/16, R290) are sold with an injection scroll; a
 single-stage cycle (`Refused: outside the models`_) cannot hold their
 efficiency or their discharge temperature at these pressure ratios. Their
-A−7/W55 and A−7/W65 points (−22.7 and −20.8 % at 9 kW, −16.6 and −15.8 % at
-12 kW, −9.7 and −10.9 % at 16 kW) are therefore reported beside the gate, not
+A−7/W55 and A−7/W65 points (−18.6 and −14.8 % at 9 kW, −11.0 and −8.7 % at
+12 kW, −3.9 and −3.5 % at 16 kW) are therefore reported beside the gate, not
 part of it. They stay in the parity results of :doc:`/validation/index`,
 where the four injection machines (with the Samsung flash-injection unit) run
-−9.6 % on average and the six without injection −2.2 %.
+−8.5 % on average and the six without injection −4.4 %.
 
 For a result: at outdoor temperatures below about 2 °C and leaving water at
-55 °C or more, a single-stage machine is read from compressor forms past
-their data, and a machine with injection is under-predicted, by 10 to 23 %
-at these points.
+55 °C or more, the three single-stage machines of the gate run 5 to 10 %
+below their catalogues, and a machine with injection is under-predicted, by
+4 to 19 % at these points.
 
 A short checklist for any result
 ================================

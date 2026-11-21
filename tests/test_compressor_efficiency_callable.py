@@ -72,17 +72,12 @@ def test_ground_efficiency_api_and_mass_work_balances(cls, kind):
 @pytest.mark.parametrize("pr,speed", [(1.5, 15), (3, 60), (5, 100)])
 def test_all_five_models_share_baseline_at_same_rated_speed(pr, speed):
     """With one refrigerant and one rated speed, every family builds the same three default models."""
-    import CoolProp.CoolProp as CP
-
     from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
-    from tmhp.compressor_efficiency import CompressorSpec, _eval_eff, default_efficiencies, suction_state
+    from tmhp.compressor_efficiency import SuctionState, _eval_eff, default_efficiencies
 
     names = ("eta_cmp_isen", "eta_cmp_vol", "eta_cmp")
-    # R32 suction at 0 degC evaporation and 5 K superheat, compressed by ``pr``.
-    p_suc = CP.PropsSI("P", "T", 273.15, "Q", 1, "R32")
-    h_suc, s_suc, rho_suc = (CP.PropsSI(k, "P", p_suc, "T", 278.15, "R32") for k in ("H", "S", "D"))
-    state = suction_state(p_suc, rho_suc, h_suc, CP.PropsSI("H", "P", p_suc * pr, "S", s_suc, "R32"))
-    defaults = default_efficiencies(CompressorSpec(), "R32", 60)
+    state = SuctionState(273.15)  # 0 degC evaporation
+    defaults = default_efficiencies()
     expected = [_eval_eff(defaults[k], pr, speed, state) for k in names]
     for cls in (
         AirSourceHeatPump,
@@ -103,7 +98,6 @@ def test_all_five_models_share_baseline_at_same_rated_speed(pr, speed):
                 else {}
             ),
         )
-        assert hp.compressor_type == CompressorSpec()
         assert [_eval_eff(getattr(hp, k), pr, speed, state) for k in names] == expected
 
 

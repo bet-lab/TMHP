@@ -116,15 +116,15 @@ def test_default_machines_run_their_brine_rating_points(machines):
     assert gshpb.ref == "R290"  # (R410A, the default before: 3.847 and 2.404, with glycol as with water)
     # 3.870 and 2.651 with the earlier compressor map, a 5 K tank coil without circulating water and
     # 42 cm3/rev per 9 kW; with the rotary-compressor model, the plate condenser and the catalogue
-    # displacement 3.473 and 2.405.
-    for T_tank, cop_sys in ((35.0, 3.473), (55.0, 2.405)):
+    # displacement 3.473 and 2.405; with the default maps of #217 3.382 and 2.359.
+    for T_tank, cop_sys in ((35.0, 3.382), (55.0, 2.359)):
         with warnings.catch_warnings():
             warnings.simplefilter("error", RuntimeWarning)
             warnings.simplefilter("error", OperatingLimitWarning)
             r = gshpb.analyze_steady(T_tank_w=T_tank, T_source=0.0, Q_ref_tank=8000.0)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["Q_ref_tank [W]"] == pytest.approx(8000.0)
-        assert r["T_bhe_f_in [°C]"] == pytest.approx(-3.0 if T_tank == 35.0 else -2.6, abs=0.1)
+        assert r["T_bhe_f_in [°C]"] == pytest.approx(-2.9 if T_tank == 35.0 else -2.5, abs=0.1)
         assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)
     gshp = machines["GSHP", "default"]
     # 3.520 and 3.921 with a water loop before it had a freezing point: the glycol's
@@ -132,8 +132,9 @@ def test_default_machines_run_their_brine_rating_points(machines):
     # coil on 15 °C standard air instead of the 20 °C room air it draws (#96). 3.495 and
     # 3.908 before the catalogue default inputs (#86): the displacement of an R32 unit of
     # this capacity is 0.65 of the earlier constant and the indoor airflow 1.52 times it. 3.743 and
-    # 4.139 before the rotary-compressor default efficiencies and the approach-temperature conductances.
-    for load, cop_sys in ((-4000.0, 3.697), (-2000.0, 4.265)):
+    # 4.139 before the rotary-compressor default efficiencies and the approach-temperature conductances;
+    # 3.697 and 4.265 with them, 3.632 and 4.002 with the default maps of #217.
+    for load, cop_sys in ((-4000.0, 3.632), (-2000.0, 4.002)):
         r = _quiet(gshp.analyze_steady, Q_r_iu=load, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)

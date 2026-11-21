@@ -324,6 +324,36 @@ def wet_coil_latent_difference(w_a_in: float, T_ref_sat_K: float, P: float = P0_
     return water_latent_heat(T_ref_sat_K) / c_a * excess
 
 
+def saturated_leaving_state(T_C: float, w: float, h_fg: float, T_max_C: float, P: float = P0_PA) -> tuple[float, float]:
+    """Air state ``(T [degC], w [kg/kg])`` of a wet coil's leaving air, no wetter than saturated.
+
+    The straight line of the bypass-factor coil runs from the entering air to
+    saturated air at the surface. The saturation curve is convex, so for
+    entering air close to saturation (or a surface far below the dew point)
+    the line passes above it: the state ``(T_C, w)`` on the line would hold
+    more vapour than air at that temperature can. Such a state is moved onto
+    the saturation curve at the same enthalpy ``c_a T + h_fg w`` -- the excess
+    vapour condenses and its latent heat warms the air -- the correction
+    EnergyPlus applies to the outlet of its DX cooling coils (``DXCoils.cc``,
+    ``CalcDoe2DXCoil``: "check for saturation error and modify temperature at
+    constant enthalpy"). The coil's total heat does not
+    change; more of it is latent. A state at or below saturation is returned
+    as given. ``T_max_C`` is the entering air temperature, above which the
+    leaving air cannot be.
+    """
+    if w <= saturation_humidity_ratio(T_C, P):
+        return T_C, w
+    enthalpy = c_a * T_C + h_fg * w
+
+    def excess(T: float) -> float:
+        return c_a * T + h_fg * saturation_humidity_ratio(T, P) - enthalpy
+
+    if not excess(T_max_C) > 0.0:
+        return T_C, w  # entering air itself beyond saturation: left as computed
+    T_sat = float(root_scalar(excess, bracket=(T_C, T_max_C), method="brentq", xtol=1e-12).root)
+    return T_sat, saturation_humidity_ratio(T_sat, P)
+
+
 def calc_UA_from_dV_fan(
     dV_fan: float,
     dV_fan_rated: float | None = None,
@@ -491,6 +521,13 @@ def calc_HX_perf_for_target_heat(
     the latent heat). A surface below 0 °C is not frosted: condensation
     continues with ``w_sat`` over ice. ``w_a_in`` is ignored for a coil that
     heats the air (``T_ref_sat_K`` above ``T_a_in_C``).
+
+    The leaving air is never wetter than saturated. Where the straight line
+    passes above the saturation curve -- entering air close to saturation, or
+    a surface far below the dew point -- the leaving state is moved onto the
+    curve at the same enthalpy (:func:`saturated_leaving_state`): the total
+    heat and the airflow are unchanged, the leaving air is warmer and drier
+    than on the line, and more of the heat is latent.
 
     Parameters
     ----------
@@ -670,6 +707,13 @@ def calc_HX_perf_for_target_heat(
         if dT_latent > 0.0:
             h_fg = water_latent_heat(T_ref_sat_K)
             w_a_mid = w_a_in - float(eps_sol) * (dT_latent * c_a / h_fg)
+            # A line that passes above the saturation curve ends on the curve,
+            # at the same enthalpy: the same total heat, more of it latent.
+            T_line_C = T_a_mid_C
+            T_a_mid_C, w_a_mid = saturated_leaving_state(T_line_C, w_a_mid, h_fg, T_a_in_C)
+            if T_a_mid_C != T_line_C:
+                T_a_mid_K = cu.C2K(T_a_mid_C)
+                Q_sensible = C_air_sol * abs(T_a_in_K - T_a_mid_K)
             m_dot_condensate = C_air_sol / c_a * (w_a_in - w_a_mid)
             Q_latent = m_dot_condensate * h_fg
             Q_air_sol = Q_sensible + Q_latent

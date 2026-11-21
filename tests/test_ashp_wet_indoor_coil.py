@@ -502,3 +502,54 @@ def test_exergy_columns_stay_those_of_a_dry_air_stream(hp, wet):
     # The indoor-coil balance closes on the thermal exergy of the air and the refrigerant states.
     assert wet["Xc_iu_hx [W]"] == pytest.approx(wet["X_in_iu_hx [W]"] - wet["X_out_iu_hx [W]"], rel=1e-12)
     assert wet["Xc_iu_hx [W]"] > 0.0
+
+
+# ---------------------------------------------------------------------------
+# Leaving air is never beyond saturation
+# ---------------------------------------------------------------------------
+
+
+def test_coil_line_that_crosses_the_saturation_curve_ends_on_it():
+    # Saturated room air and a coil 17 K colder: the straight line between two points of the
+    # (convex) saturation curve lies above it, so the leaving air is put on the curve at the same
+    # enthalpy -- the same total heat, more of it latent.
+    coil = dict(
+        Q_ref_target=4000.0,
+        T_a_in_C=27.0,
+        T_ref_sat_K=283.15,
+        A_cross=0.1,
+        UA_rated=640.0,
+        dV_fan_ref=0.232,
+        exponent=0.65,
+        rho_air="inlet",
+    )
+    w_in = humidity_ratio(27.0, 1.0)
+    out = calc_HX_perf_for_target_heat(**coil, w_a_in=w_in)
+    C, eps = out["C_air"], out["epsilon"]
+    on_the_line = (27.0 - eps * 17.0, w_in - eps * (w_in - saturation_humidity_ratio(10.0)))
+    assert on_the_line[1] > saturation_humidity_ratio(on_the_line[0])  # the line itself is in the fog
+    assert out["w_a_mid"] == pytest.approx(saturation_humidity_ratio(out["T_a_mid_C"]), rel=1e-9)
+    assert out["T_a_mid_C"] > on_the_line[0] and out["w_a_mid"] < on_the_line[1]
+    # Total heat as before the correction, and the balances of the split.
+    assert out["converged"] and out["Q_air"] == pytest.approx(4000.0, rel=1e-9)
+    assert out["Q_air"] == pytest.approx(C * eps * (17.0 + out["dT_latent"]), rel=1e-9)
+    assert out["Q_sensible"] == pytest.approx(C * (27.0 - out["T_a_mid_C"]), rel=1e-9)
+    assert out["m_dot_condensate"] == pytest.approx(C / c_a * (w_in - out["w_a_mid"]), rel=1e-12)
+    assert out["Q_latent"] == pytest.approx(out["m_dot_condensate"] * water_latent_heat(283.15), rel=1e-12)
+    assert out["Q_sensible"] + out["Q_latent"] == pytest.approx(out["Q_air"], rel=1e-9)
+    # An ordinary room is not affected: the leaving air is on the line, below saturation.
+    w_dry = humidity_ratio(27.0, 0.5)
+    ordinary = calc_HX_perf_for_target_heat(**coil, w_a_in=w_dry)
+    assert ordinary["w_a_mid"] < saturation_humidity_ratio(ordinary["T_a_mid_C"])
+    assert ordinary["T_a_mid_C"] == pytest.approx(27.0 - ordinary["epsilon"] * 17.0, rel=1e-12)
+
+
+@pytest.mark.parametrize("load", [150.0, 1500.0, 4000.0, 20000.0])
+@pytest.mark.parametrize("humidity", [0.5, 0.8, 0.9, 0.95, 1.0])
+def test_supply_air_is_never_beyond_saturation(hp, load, humidity):
+    row = hp.analyze_steady(Q_r_iu=load, T0=35.0, T_a_room=27.0, RH_room=humidity, verbose=False, postprocess=False)
+    assert row["failure_reason"] == "none"
+    limit = saturation_humidity_ratio(row["T_iu_a_mid [°C]"])
+    assert row["w_iu_a_out [kg/kg]"] <= limit * (1.0 + 1e-9), (row["w_iu_a_out [kg/kg]"], limit)
+    assert row["Q_iu_sensible [W]"] + row["Q_iu_latent [W]"] == pytest.approx(row["Q_ref_iu [W]"], rel=COIL_TOL)
+    assert row["Q_iu_sensible [W]"] > 0.0 and 0.0 < row["SHR_iu [-]"] <= 1.0

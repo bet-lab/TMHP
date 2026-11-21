@@ -237,6 +237,15 @@ What the model assumes:
   was not derived for a wet coil.
 - **Lewis number 1.** Heat and water vapour are transferred with the same
   effectiveness, which is what puts the leaving air on the straight line.
+- **Leaving air no wetter than saturated.** The saturation curve is convex,
+  so for a room close to saturation, or a coil far below the dew point, the
+  straight line passes above it. The leaving air is then put on the curve at
+  the same enthalpy — the correction EnergyPlus applies to the outlet of its
+  DX cooling coils: the total heat and the airflow are unchanged, the supply
+  air is warmer and drier than on the line and more of the heat is latent
+  (:func:`tmhp.heat_exchanger.saturated_leaving_state`). The default unit at
+  35/27 °C reaches it at its capacity ceiling from 80 % room humidity, and at
+  the nameplate duty only above 95 %.
 - **Condensate leaves at the coil temperature**, and :math:`h_{fg}` is the
   latent heat of water at :math:`T_e` (CoolProp, IAPWS-95: 2 477 kJ/kg at
   10 °C; the triple-point value below 0.01 °C). The sensible cooling of the

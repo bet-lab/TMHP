@@ -1,25 +1,25 @@
 {
- "coefficient_version": "semi-empirical-2026-11-15",
- "rated_within_10pct": 18,
+ "coefficient_version": "ossorio-r290-te-2026-11-21",
+ "rated_within_10pct": 13,
  "rated_total": 19,
- "rated_worst_abs_pct": 10.146907273427193,
+ "rated_worst_abs_pct": 16.40467167183045,
  "headline": [
   {
    "model_class": "ASHP",
    "rating_standard": "EN 14511",
    "units": 5,
    "points": 360,
-   "cop_MAPE_pct": 8.52274448041021,
-   "cop_bias_pct": -5.077732783262324,
-   "meets_target": true
+   "cop_MAPE_pct": 12.614053390017201,
+   "cop_bias_pct": -12.148192903310377,
+   "meets_target": false
   },
   {
    "model_class": "ASHPB",
    "rating_standard": "unknown",
    "units": 10,
-   "points": 136,
-   "cop_MAPE_pct": 8.340542069540172,
-   "cop_bias_pct": -5.023553972949998,
+   "points": 145,
+   "cop_MAPE_pct": 7.944221456465382,
+   "cop_bias_pct": -5.863582980720724,
    "meets_target": true
   }
  ]

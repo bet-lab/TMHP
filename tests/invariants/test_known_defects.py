@@ -53,18 +53,16 @@ def _quiet():
 # ---------------------------------------------------------------------------
 
 
-# C1 fixed by the 0 < eta <= 1 rule (#101). The default models are bounded semi-empirical forms now.
+# C1 fixed by the 0 < eta <= 1 rule (#101). The default models are the polynomial maps of #217 now.
 def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
     """Every default efficiency evaluated where the solver searches is in (0, 1] or rejected.
 
     The solvers evaluate efficiencies through ``_eval_eff``; a value it
     rejects (``InvalidCompressorEfficiency``) never reaches a cycle, so a
     rule that rejects instead of clamping also satisfies this test. The
-    default models read the suction state, so the range is searched at
-    saturated-suction states of three refrigerants from -25 to 15 degC.
+    default maps read the evaporating temperature, so the range is searched
+    from -35 to 30 degC.
     """
-    import CoolProp.CoolProp as CP
-
     from tmhp import compressor_efficiency as ce
 
     rps_lo = min(f.cls.__init__.__kwdefaults__.get("rps_min", 15.0) for f in FAMILIES.values())
@@ -72,38 +70,21 @@ def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
     # search itself evaluates the efficiencies up to RATED_SPEED_SEARCH_MAX.
     rps_hi = max(f.cls.__init__.__kwdefaults__.get("rps_max") or RATED_SPEED_SEARCH_MAX for f in FAMILIES.values())
     pr_hi = max(f.cls.__init__.__kwdefaults__.get("PR_cycle_max", 20.0) for f in FAMILIES.values())
-    specs = [
-        ce.CompressorSpec(ctype, variant)
-        for ctype in ce.COMPRESSOR_TYPES
-        for variant in (ce.ROTARY_SPEED_VARIANTS if ctype != "scroll" else ce.ROTARY_SPEED_VARIANTS[:1])
-    ]
-    states = []
-    for ref in ("R32", "R290", "R410A"):
-        for T_evap_C in (-25.0, 0.0, 15.0):
-            p_suc = CP.PropsSI("P", "T", T_evap_C + 273.15, "Q", 1, ref)
-            h_suc, s_suc, rho_suc = (CP.PropsSI(k, "P", p_suc, "T", T_evap_C + 278.15, ref) for k in ("H", "S", "D"))
-            for pr in np.linspace(1.5, pr_hi, 13):
-                try:
-                    h_isen = CP.PropsSI("H", "P", p_suc * pr, "S", s_suc, ref)
-                except ValueError:  # beyond the fluid's equation of state: no cycle either
-                    continue
-                states.append((ref, float(pr), ce.suction_state(p_suc, rho_suc, h_suc, h_isen)))
-    require(len(states) > 100, f"only {len(states)} suction states")
+    states = [ce.SuctionState(T_evap_C + 273.15) for T_evap_C in (-35.0, -25.0, -10.0, 0.0, 15.0, 30.0)]
+    models = ce.default_efficiencies()
     bad, evaluated = [], 0
-    for spec in specs:
-        for rated in (35.0, 60.0, None):  # None: the model used while the rated speed is solved
-            for ref, pr, state in states:
-                models = ce.default_efficiencies(spec, ref, rated)
-                for name, fn in models.items():
-                    for rps in np.linspace(rps_lo, rps_hi, 10):
-                        try:
-                            value = ce._eval_eff(fn, pr, float(rps), state)
-                        except ce.InvalidCompressorEfficiency:
-                            continue
-                        evaluated += 1
-                        if not 0.0 < value <= 1.0:
-                            bad.append((spec, rated, ref, name, round(pr, 2), round(float(rps), 1), round(value, 4)))
-    require(evaluated > 10_000, f"only {evaluated} efficiencies were evaluated")
+    for state in states:
+        for pr in np.linspace(1.5, pr_hi, 13):
+            for name, fn in models.items():
+                for rps in np.linspace(rps_lo, rps_hi, 10):
+                    try:
+                        value = ce._eval_eff(fn, float(pr), float(rps), state)
+                    except ce.InvalidCompressorEfficiency:
+                        continue
+                    evaluated += 1
+                    if not 0.0 < value <= 1.0:
+                        bad.append((state.T_evap_K, name, round(float(pr), 2), round(float(rps), 1), round(value, 4)))
+    require(evaluated > 2_000, f"only {evaluated} efficiencies were evaluated")
     expect(not bad, f"{len(bad)} efficiency values outside (0, 1], e.g. {bad[:5]}")
 
 

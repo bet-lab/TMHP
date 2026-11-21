@@ -290,14 +290,16 @@ def test_superheat_is_untouched_where_the_approach_allows_it(machines):
 
 
 def test_low_speed_balance_below_1_K_approach_is_solved():
-    """R134a at 15 % against the capacity-scaled evaporator balances at 0.78 K.
+    """R134a at 15 % against the capacity-scaled evaporator balances at 0.83 K (speed floor 10 rev/s).
 
     The approach search started at 1 K, reported ``hx_not_converged`` and took
     its 1024-point scan to say so. (At 25 %, the point of before the
     rotary-compressor default efficiencies and the approach-temperature
-    conductances, the evaporator now balances at 1.37 K.)
+    conductances, the evaporator balances at 1.37 K. With the default maps of
+    #217 the 15 % duty is below the 15 rev/s floor, where the running duty
+    balances at 1.06 K; a 10 rev/s floor runs it continuously.)
     """
-    m = _quiet(GroundSourceHeatPumpBoiler, ref="R134a", t_max_s=86400.0)
+    m = _quiet(GroundSourceHeatPumpBoiler, ref="R134a", t_max_s=86400.0, rps_min=10.0)
     r = _quiet(m.analyze_steady, T_tank_w=55.0, T_source=-5.0, Q_ref_tank=1200.0)
     assert r["failure_reason"] == "none"
     rho_c = m.source_fluid.rho * m.source_fluid.cp

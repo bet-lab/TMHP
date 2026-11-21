@@ -44,7 +44,10 @@ def check_results(database: Path) -> None:
     total, peak = math.fsum(energies), max(powers)
     # Stock 24.2.0-e7ecb2d53b on Linux x86-64 and macOS ARM64 agreed within
     # 0.001 J/day and 1e-6 W. Allow 0.01% for differences in native libraries.
-    if not math.isclose(total, 172_377_180.49, rel_tol=1e-4) or not math.isclose(peak, 2457.35060, rel_tol=1e-4):
+    # Values of the default compressor maps of #217/#218 (172 377 180.49 J and
+    # 2457.35060 W with the semi-empirical models), read from the Linux x86-64
+    # CI run of #223; macOS was not rerun for them.
+    if not math.isclose(total, 159_090_907.60, rel_tol=1e-4) or not math.isclose(peak, 2345.31708, rel_tol=1e-4):
         raise ValueError(f"Design-day output outside reference tolerance: {total} J, {peak} W peak")
     print(f"24 hourly J/W pairs verified; total {total:.3f} J, peak {peak:.6f} W")
 

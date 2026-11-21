@@ -109,24 +109,13 @@ The catalogue file
     The compressor kind and the injection circuit, as the service manual or
     parts list states them; write the evidence in the file's comment or under
     ``source``. ``compressor_type`` is ``rotary``, ``scroll`` or ``swing`` and
-    selects one of the library's type-specific default efficiency models — it
-    carries no coefficient:
-
-    ========== ===========================
-    published  library ``compressor_type``
-    ========== ===========================
-    rotary     ``rotary_twin_inverter``
-    swing      ``rotary_twin_inverter``
-    scroll     ``scroll``
-    ========== ===========================
-
-    Every validation machine is inverter driven, and the documents do not say
-    whether a rotary is single or twin, so both rotary kinds run on the
-    library's one inverter rotary type. ``injection`` is ``none``, ``vapor`` or
-    ``flash``. It is never passed to the model — the cycle is single-stage —
-    and only splits the air-to-water headline into the machines the cycle
-    represents and those it does not; injection machines stay in the parity
-    set and in the pooled figure.
+    ``injection`` is ``none``, ``vapor`` or ``flash``. Both are reporting
+    facts and carry no coefficient. Neither is passed to the model: the
+    library has one set of default efficiency maps for every compressor
+    (#217), and the cycle is single-stage. They are written to the results
+    beside each point, and ``injection`` splits the air-to-water headline into
+    the machines the cycle represents and those it does not; injection
+    machines stay in the parity set and in the pooled figure.
 
 Air-to-water points need no sink field. The harness runs each one as EN 14511
 states the rating: the water enters at ``t_sink_C`` less the standard's rise

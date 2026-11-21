@@ -1,7 +1,8 @@
 """The published compressor kind and injection: what a catalogue may say, and where it goes.
 
-``compressor_type`` selects the library's type-specific default through one
-mapping; ``injection`` is a reporting fact that never reaches the model.
+Both are reporting facts that never reach the model: the library has one
+default efficiency map for every compressor (#217), and the single-stage model
+has no injection.
 """
 
 from __future__ import annotations
@@ -12,14 +13,11 @@ from validation.parity import run
 from validation.parity.spec import (
     ALLOWED_PUBLISHED_INPUTS,
     INJECTION_KINDS,
-    MODEL_COMPRESSOR_TYPE,
     PUBLISHED_COMPRESSOR_TYPES,
     Catalog,
     OperatingPoint,
     load_all,
 )
-
-from tmhp.compressor_efficiency import COMPRESSOR_TYPES
 
 
 def _catalog(model_class: str = "ASHPB", **published) -> Catalog:
@@ -45,7 +43,7 @@ def test_both_inputs_are_allowed_published_inputs():
 @pytest.mark.parametrize("injection", sorted(INJECTION_KINDS))
 def test_allowed_values_load(kind, injection):
     catalog = _catalog(compressor_type=kind, injection=injection)
-    assert catalog.model_compressor_type == MODEL_COMPRESSOR_TYPE[kind]
+    assert catalog.published_inputs["compressor_type"] == kind
     assert catalog.injected is (injection != "none")
 
 
@@ -63,34 +61,9 @@ def test_unknown_values_are_rejected(published):
         _catalog(**published)
 
 
-def test_the_mapping_to_the_library_types():
-    assert MODEL_COMPRESSOR_TYPE == {
-        "rotary": "rotary_twin_inverter",
-        "swing": "rotary_twin_inverter",
-        "scroll": "scroll",
-    }
-    assert set(MODEL_COMPRESSOR_TYPE) == PUBLISHED_COMPRESSOR_TYPES
-    assert set(MODEL_COMPRESSOR_TYPE.values()) <= set(COMPRESSOR_TYPES)
-
-
-def test_unpublished_kind_falls_back_to_the_library_default():
+def test_unpublished_kind_reports_nothing():
     catalog = _catalog()
-    assert catalog.model_compressor_type is None and catalog.injected is None
-    assert run._build_model(catalog).compressor_type.compressor_type == COMPRESSOR_TYPES[0]
-
-
-@pytest.mark.parametrize(
-    ("slug", "expected"),
-    [
-        ("panasonic_wh_wxg09me8", "scroll"),
-        ("samsung_ehs_mono_ht_r32_14kw", "scroll"),
-        ("panasonic_wh_uq09he8", "rotary_twin_inverter"),
-        ("daikin_rxm35a", "rotary_twin_inverter"),
-    ],
-)
-def test_build_model_hands_the_mapped_type_to_the_model(slug, expected):
-    (catalog,) = load_all(slug)
-    assert run._build_model(catalog).compressor_type.compressor_type == expected
+    assert "compressor_type" not in catalog.published_inputs and catalog.injected is None
 
 
 def test_every_catalogue_declares_both_inputs():
@@ -101,7 +74,7 @@ def test_every_catalogue_declares_both_inputs():
 
 
 @pytest.mark.parametrize("model_class", ["ASHPB", "ASHP"])
-def test_injection_never_reaches_the_model_constructor(monkeypatch, model_class):
+def test_neither_input_reaches_the_model_constructor(monkeypatch, model_class):
     seen: dict = {}
 
     def record(**kwargs):
@@ -112,14 +85,7 @@ def test_injection_never_reaches_the_model_constructor(monkeypatch, model_class)
     monkeypatch.setattr(run, "AirSourceHeatPump", record)
     run._build_model(_catalog(model_class, compressor_type="scroll", injection="flash"))
     assert "injection" not in seen
-    assert seen["compressor_type"] == "scroll"
-
-
-def test_overrides_still_win_over_the_published_type(monkeypatch):
-    seen: dict = {}
-    monkeypatch.setattr(run, "AirSourceHeatPumpBoiler", lambda **kw: seen.update(kw))
-    run._build_model(_catalog(compressor_type="scroll", injection="vapor"), {"compressor_type": "rotary_single_fixed"})
-    assert seen["compressor_type"] == "rotary_single_fixed"
+    assert "compressor_type" not in seen
 
 
 def test_unit_rows_carry_the_published_kind(monkeypatch):

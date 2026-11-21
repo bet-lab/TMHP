@@ -548,11 +548,17 @@ def _unreadable_is_not_an_error() -> Iterator[None]:
 
 
 def _shown(value: Any) -> str:
-    """``repr(value)`` for an error message, or the name of its type where it has no usable ``repr``."""
-    shown = f"<{type(value).__name__}>"
+    """``value`` for an error message: its ``repr``, else the name of its type, else a fixed phrase.
+
+    Each is tried only if the one before cannot be had, and each may fail
+    (a ``__repr__`` that raises; a type whose name cannot be read): making
+    the message never replaces the error it is for.
+    """
     with _unreadable_is_not_an_error():
-        shown = repr(value)
-    return shown
+        return repr(value)
+    with _unreadable_is_not_an_error():
+        return f"<{type(value).__name__}>"
+    return "<a value that cannot be shown>"
 
 
 def _check_room_humidity(value: float) -> float:
@@ -618,52 +624,73 @@ def _schedule_entries(schedule: Any, name: str, steps: int) -> np.ndarray:
     further, so that one without an end (``itertools.repeat(0.5)``) is found
     too long instead of being read for ever.
     """
-    shape = "a mapping" if isinstance(schedule, Mapping) else "text" if isinstance(schedule, (str, bytes)) else None
-    if shape is None:
-        # The number of entries, where the schedule says it. A zero-dimensional
-        # array has a length that raises: it is not a sequence, and is refused
-        # below for what it is, not here.
-        length = None
-        if hasattr(schedule, "__len__"):
-            with _unreadable_is_not_an_error():
-                length = len(schedule)
-        elif isinstance(schedule, Iterable):
-            # A generator: its items, once -- as many as the run has steps, and one to see that it goes on.
-            schedule = list(itertools.islice(schedule, steps + 1))
-            if len(schedule) > steps:
-                raise ValueError(f"{name} holds more entries than the run has steps (tN = {steps})")
+    if isinstance(schedule, Iterator):
+        # A generator: its items, once -- as many as the run has steps, and one
+        # to see that it goes on. What producing them raises is the caller's
+        # own error and is left as it is.
+        schedule = list(itertools.islice(schedule, steps + 1))
+        if len(schedule) > steps:
+            raise ValueError(f"{name} holds more entries than the run has steps (tN = {steps})")
+    try:
+        return _entries_of(schedule, name, steps)
+    except (ValueError, MemoryError):
+        # ValueError: what is wrong with the schedule, said by ``_entries_of``.
+        # MemoryError: too large to copy -- that, not a bad schedule.
+        raise
+    except Exception as error:
+        # Not something entries can be taken from, whatever looking at it raised.
+        raise ValueError(
+            f"{name} must hold one entry per step, got {_type_name(schedule)} ({_type_name(error)})"
+        ) from error
+
+
+def _type_name(value: Any) -> str:
+    """The name of the type of ``value`` for an error message, or a fixed phrase where it cannot be read."""
+    with _unreadable_is_not_an_error():
+        return str(type(value).__name__)
+    return "an object of an unnamed type"
+
+
+def _entries_of(schedule: Any, name: str, steps: int) -> np.ndarray:
+    """:func:`_schedule_entries` for a schedule that is not an iterator; may raise anything the schedule does."""
+    if isinstance(schedule, Mapping):
+        raise ValueError(f"{name} must hold one entry per step, got a mapping")
+    if isinstance(schedule, (str, bytes)):
+        raise ValueError(f"{name} must hold one entry per step, got text")
+    # The number of entries, where the schedule says it. A zero-dimensional
+    # array has a length that raises: it is not a sequence, and is refused
+    # below for what it is, not here.
+    length = None
+    if hasattr(schedule, "__len__"):
+        with _unreadable_is_not_an_error():
             length = len(schedule)
-        if length is not None and length != steps:
-            # Before anything is converted: a sequence of the wrong length may be far too long to copy.
-            raise ValueError(f"{name} length ({length}) != tN ({steps})")
-        try:
-            if isinstance(schedule, np.ma.MaskedArray):
-                # np.asarray would drop the mask and hand out the data beneath it.
-                entries = _array_entries(np.asarray(schedule.data))
-                entries[np.ma.getmaskarray(schedule)] = None
-            elif isinstance(schedule, np.ndarray):
-                entries = _array_entries(schedule)
-            elif isinstance(schedule, (list, tuple)):
-                entries = np.empty(len(schedule), dtype=object)
-                for index, item in enumerate(schedule):
-                    entries[index] = item
-            else:
-                # A Series, a DataFrame, another array-like: its values as objects
-                # (pandas hands a time span out as a Timedelta, not as an integer).
-                entries = np.asarray(schedule, dtype=object)
-        except MemoryError:
-            raise  # too large to copy: that, not a bad schedule
-        except Exception as error:
-            # Not something entries can be taken from, whatever it raised on the way.
-            raise ValueError(
-                f"{name} must hold one entry per step, got {type(schedule).__name__} ({type(error).__name__})"
-            ) from error
-        while entries.ndim > 1 and entries.shape[-1] == 1:
-            entries = entries[..., 0]  # one value per step in a column (or a column of columns)
-        if entries.ndim == 1:
-            return entries
-        shape = f"shape {entries.shape}"
-    raise ValueError(f"{name} must hold one entry per step, got {shape}")
+    elif isinstance(schedule, Iterable):
+        schedule = list(itertools.islice(schedule, steps + 1))  # iterable only: its items, no further than needed
+        if len(schedule) > steps:
+            raise ValueError(f"{name} holds more entries than the run has steps (tN = {steps})")
+        length = len(schedule)
+    if length is not None and length != steps:
+        # Before anything is converted: a sequence of the wrong length may be far too long to copy.
+        raise ValueError(f"{name} length ({length}) != tN ({steps})")
+    if isinstance(schedule, np.ma.MaskedArray):
+        # np.asarray would drop the mask and hand out the data beneath it.
+        entries = _array_entries(np.asarray(schedule.data))
+        entries[np.ma.getmaskarray(schedule)] = None
+    elif isinstance(schedule, np.ndarray):
+        entries = _array_entries(schedule)
+    elif isinstance(schedule, (list, tuple)):
+        entries = np.empty(len(schedule), dtype=object)
+        for index, item in enumerate(schedule):
+            entries[index] = item
+    else:
+        # A Series, a DataFrame, another array-like: its values as objects
+        # (pandas hands a time span out as a Timedelta, not as an integer).
+        entries = np.asarray(schedule, dtype=object)
+    while entries.ndim > 1 and entries.shape[-1] == 1:
+        entries = entries[..., 0]  # one value per step in a column (or a column of columns)
+    if entries.ndim != 1:
+        raise ValueError(f"{name} must hold one entry per step, got shape {entries.shape}")
+    return entries
 
 
 #: One-element containers a schedule entry is taken out of. A row of one value in a column of a

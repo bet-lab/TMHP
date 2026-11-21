@@ -826,6 +826,52 @@ def test_running_out_of_memory_on_an_entry_is_not_reported_as_a_bad_humidity(hp,
         _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
 
 
+class _LookingRaises:
+    """A schedule that fails where it is looked at, in ways that say nothing about memory."""
+
+    def __init__(self, where):
+        self.__dict__["where"] = where
+
+    def __getattr__(self, attribute):
+        if self.where == "attribute":
+            raise RuntimeError(f"no {attribute}")
+        raise AttributeError(attribute)
+
+    def __array__(self, dtype=None, copy=None):
+        raise OSError("file gone") if self.where == "array" else RuntimeError("broken")
+
+
+@pytest.mark.parametrize("where", ["attribute", "array", "other"])
+def test_a_schedule_that_fails_where_it_is_looked_at_is_not_one_entry_per_step(hp, where):
+    with pytest.raises(ValueError, match=r"RH_room_schedule must hold one entry per step, got _LookingRaises \("):
+        _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=_LookingRaises(where))
+
+
+def test_a_schedule_of_a_type_without_a_name_is_refused_with_the_schedule_error(hp):
+    class Unnamed(metaclass=_NoTypeName):
+        def __array__(self, dtype=None, copy=None):
+            raise RuntimeError("broken")
+
+    raised = None
+    try:
+        _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=Unnamed())
+    except Exception as error:  # noqa: BLE001 -- the type is what is checked
+        raised = error
+    assert type(raised) is ValueError
+    assert str(raised) == (
+        "RH_room_schedule must hold one entry per step, got an object of an unnamed type (RuntimeError)"
+    )
+
+
+def test_what_a_generator_raises_while_it_is_read_is_left_as_it_is(hp):
+    def reading():
+        yield 0.5
+        raise FileNotFoundError("humidity.csv")
+
+    with pytest.raises(FileNotFoundError, match="humidity.csv"):
+        _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=reading())
+
+
 def test_a_schedule_too_large_to_copy_is_a_memory_error(hp, monkeypatch):
     """The copy of a real array failing: the allocation error is the error, whatever the array holds."""
     import tmhp.air_source_heat_pump as module
@@ -836,6 +882,56 @@ def test_a_schedule_too_large_to_copy_is_a_memory_error(hp, monkeypatch):
     monkeypatch.setattr(module, "_array_entries", no_memory)
     with pytest.raises(MemoryError, match="Unable to allocate"):
         _quiet(hp.analyze_dynamic, *COOLING_TWICE, RH_room_schedule=np.array([0.5, 0.6]))
+
+
+class _NoTypeName(type):
+    @property
+    def __name__(cls):
+        raise RuntimeError("no name")
+
+
+class _NamelessWithRepr(metaclass=_NoTypeName):
+    def __repr__(self):
+        return "a nameless thing"
+
+
+class _NamelessWithoutRepr(metaclass=_NoTypeName):
+    def __repr__(self):
+        raise KeyError("no repr")
+
+
+@pytest.mark.parametrize(
+    "kind, shown",
+    [
+        ("nameless type", "got a nameless thing"),
+        ("nameless type without repr", "got <a value that cannot be shown>"),
+        ("no repr", "got <_ReprRaises>"),
+    ],
+)
+def test_a_value_that_cannot_be_named_or_shown_still_gets_the_humidity_error(hp, kind, shown):
+    """The message is made from the value's ``repr``, else its type's name, else neither: making it never fails."""
+    # Made here, not in the parameters: the test runner cannot name such a value either.
+    value = {
+        "nameless type": _NamelessWithRepr,
+        "nameless type without repr": _NamelessWithoutRepr,
+        "no repr": _ReprRaises,
+    }[kind]()
+    schedule = np.empty(1, dtype=object)
+    schedule[0] = value
+    raised = None
+    try:
+        _quiet(hp.analyze_dynamic, 3600, 3600, [2000.0], [35.0], [27.0], RH_room_schedule=schedule)
+    except Exception as error:  # noqa: BLE001 -- the type is what is checked
+        raised = error
+    assert type(raised) is ValueError, type(raised).__name__
+    assert str(raised) == f"Room relative humidity must be a fraction in [0, 1], {shown} at step 0"
+    raised = None
+    try:
+        hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=value, verbose=False)
+    except Exception as error:  # noqa: BLE001
+        raised = error
+    assert type(raised) is ValueError, type(raised).__name__
+    assert str(raised) == f"Room relative humidity must be a fraction in [0, 1], {shown}"
 
 
 # ---------------------------------------------------------------------------

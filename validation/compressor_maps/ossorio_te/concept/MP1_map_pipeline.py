@@ -118,7 +118,8 @@ with c.group("targets"):
     c.path(
         f"M {X2 + W2 + ARROW_CLEAR:.2f} {STATES_C:.2f} L {X_MERGE - R_NODE:.2f} {STATES_C:.2f} "
         f"Q {X_MERGE:.2f} {STATES_C:.2f} {X_MERGE:.2f} {STATES_C - R_NODE:.2f} L {X_MERGE:.2f} {ROW_C[0]:.2f}",
-        stroke=INK2, sw=S_ARROW,
+        stroke=INK2,
+        sw=S_ARROW,
     )
 
 # ── the axes (rows 4-6) ─────────────────────────────────────────────────────────────────────────
@@ -136,8 +137,11 @@ with c.group("axes"):
     arrow([(X1 + W1, AX_C[2]), (X_AX, AX_C[2])], accent=True)
 
 # ── fitted maps (rows 0-2): targets from the left, axes from below ──────────────────────────────
-MAPS = [("f_{loss}(PR, N)", "CV RMSE 0.015", False), ("η_{ov}(PR, N, T_e)", "CV RMSE 0.022", True),
-        ("η_v(PR, N, T_e)", "CV RMSE 0.008", True)]
+MAPS = [
+    ("f_{loss}(PR, N)", "CV RMSE 0.015", False),
+    ("η_{ov}(PR, N, T_e)", "CV RMSE 0.022", True),
+    ("η_v(PR, N, T_e)", "CV RMSE 0.008", True),
+]
 X_AXN = X4 - 22  # bus of ln PR and N/70: every map
 X_AXT = X4 - 12  # bus of T_e/10: the two maps that carry it
 with c.group("maps"):

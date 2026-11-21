@@ -65,9 +65,12 @@ Run::
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import marshal
 import math
 import re
+import types
 from pathlib import Path
 
 import pandas as pd
@@ -361,21 +364,61 @@ def headline(points: pd.DataFrame) -> dict:
     return out
 
 
+def _definitions_digest(namespace: dict) -> str:
+    """Digest of what a namespace of this script defines: its functions' code and its constants."""
+    digest = hashlib.sha256()
+    for name in sorted(namespace):
+        value = namespace[name]
+        if name.startswith("__") or name == "_LOADED_DIGEST" or isinstance(value, types.ModuleType):
+            continue
+        digest.update(name.encode())
+        if isinstance(value, types.FunctionType):
+            if value.__globals__ is namespace:
+                digest.update(marshal.dumps(value.__code__))
+        else:
+            digest.update(repr(value).encode())
+    return digest.hexdigest()
+
+
+def script_identity() -> dict:
+    """Git blob of this script's file, checked to be the source of the code that is running.
+
+    The interpreter read the file when it loaded the module; the file can
+    have changed since. The bytes on disk are therefore compiled and run in a
+    scratch namespace (definitions only: nothing is solved and nothing
+    written) and must define what the loaded module defined when it was
+    loaded -- the same code in every function, the same constants
+    (:data:`_LOADED_DIGEST`). Only then is their blob hash returned: it is
+    the hash ``git hash-object`` gives the file, taken from the very bytes
+    that were checked. ``SystemExit`` when the file is not the running code.
+    """
+    path = Path(__file__)
+    data = path.read_bytes()
+    scratch: dict = {"__name__": "validation.wet_coil_shr._source_check", "__file__": str(path)}
+    exec(compile(data, str(path), "exec"), scratch)  # noqa: S102 -- this script's own source, definitions only
+    if scratch.get("_LOADED_DIGEST") != _LOADED_DIGEST:
+        raise SystemExit(
+            f"{path} on disk is not the code that is running (edited after it was loaded); nothing written"
+        )
+    return {"study_script_blob": hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()}  # noqa: S324 -- git's blob id
+
+
 def run_state() -> dict:
     """What a run computes with: the model and harness state, and this script's own content.
 
     :func:`validation.parity.run.source_state` (commit, tree hashes, whether
     the model, the harness or the catalogues had uncommitted edits) covers
     ``validation.parity.run.SOURCE_PATHS``, which this script is not part of.
-    Its own git blob and whether anything under ``validation/wet_coil_shr``
-    was uncommitted are added, so that the record vouches for the script that
+    Its own git blob (:func:`script_identity`: the file that is the running
+    code) and whether anything under ``validation/wet_coil_shr`` was
+    uncommitted are added, so that the record vouches for the script that
     made the files as well.
     """
     from validation.parity.run import _git, source_state
 
     return {
         **source_state(),
-        "study_script_blob": _git("hash-object", SCRIPT),
+        **script_identity(),
         "study_script_uncommitted": bool(_git("status", "--porcelain", "--", "validation/wet_coil_shr")),
     }
 
@@ -440,6 +483,9 @@ def main(argv: list[str] | None = None) -> None:
     print(json.dumps(numbers, indent=1))
     print(f"wrote {out_dir / CSV_NAME}")
 
+
+#: What this module defined when it was loaded (:func:`_definitions_digest`); kept last, after every definition.
+_LOADED_DIGEST = _definitions_digest(globals())
 
 if __name__ == "__main__":
     main()

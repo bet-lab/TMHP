@@ -228,6 +228,43 @@ def test_run_writes_nothing_when_the_code_changed_while_it_ran(monkeypatch, tmp_
     assert not out.exists()
 
 
+def _load_copy(path: Path):
+    """The study script loaded from ``path`` as a module of its own."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("wet_coil_shr_copy", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_script_identity_is_the_blob_of_the_running_code(tmp_path):
+    from validation.parity.run import _git
+
+    blob = _git("hash-object", study.SCRIPT)
+    if blob:
+        assert study.script_identity() == {"study_script_blob": blob}
+    assert study.run_state()["study_script_blob"] == study.script_identity()["study_script_blob"]
+
+    # A copy, loaded and then edited on disk: the file is no longer the code that runs.
+    source = (REPO_ROOT / study.SCRIPT).read_text(encoding="utf-8")
+    copy = tmp_path / "simulate.py"
+    copy.write_text(source, encoding="utf-8")
+    loaded = _load_copy(copy)
+    assert len(loaded.script_identity()["study_script_blob"]) == 40
+    for edited in (
+        source.replace('"wet_ua50": (True, 0.5)', '"wet_ua50": (True, 0.4)'),  # a constant
+        source.replace("    worst = 0.0\n", "    worst = 1.0\n"),  # a function body
+    ):
+        assert edited != source
+        copy.write_text(edited, encoding="utf-8")
+        with pytest.raises(SystemExit, match="is not the code that is running"):
+            loaded.script_identity()
+    # Put back, the file is the running code again.
+    copy.write_text(source, encoding="utf-8")
+    assert len(loaded.script_identity()["study_script_blob"]) == 40
+
+
 # ---------------------------------------------------------------------------
 # docs/source/validation/index.rst, "Cooling and latent load"
 # ---------------------------------------------------------------------------

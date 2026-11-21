@@ -171,6 +171,180 @@ A unit that slows its fan for comfort is described with ``dV_iu_fan_a_max``.
    default 4 kW unit near 125 % of its nameplate and cut the rated capacity of
    units above 8 kW.
 
+.. _ashp-wet-coil:
+
+Wet indoor coil (cooling)
+=========================
+
+Without a room humidity the indoor coil is dry: all of the coil heat is
+sensible and the model removes no moisture. Give the room's relative humidity
+and a cooling coil that runs below the room air's dew point also condenses
+water:
+
+.. code-block:: python
+
+   from tmhp import AirSourceHeatPump
+
+   ashp = AirSourceHeatPump()
+   row = ashp.analyze_steady(Q_r_iu=4000, T0=35.0, T_a_room=27.0, RH_room=0.5)
+
+   row["Q_ref_iu [W]"]                # 4000: what the refrigerant takes up
+   row["Q_iu_sensible [W]"]           # 3241
+   row["Q_iu_latent [W]"]             # 759
+   row["SHR_iu [-]"]                  # 0.81
+   row["m_dot_iu_condensate [kg/s]"]  # 3.08e-4 (1.1 kg/h)
+   row["Q_room_sensible [W]"]         # 3218: sensible, less the indoor fan's 23 W
+   row["w_iu_a_out [kg/kg]"]          # 0.01007 (room air: 0.01120)
+
+``RH_room`` is a fraction (0–1) at ``T_a_room`` and one standard atmosphere;
+:meth:`~tmhp.AirSourceHeatPump.max_capacity` takes the same argument and
+``analyze_dynamic`` a ``RH_room_schedule``. Heating ignores it (the indoor coil
+is the condenser there), and ``None`` — the default — is the dry coil, with
+every result as before.
+
+The coil is the apparatus-dew-point / bypass-factor coil, the family
+EnergyPlus uses for DX cooling coils, written so that it reduces to the dry
+coil. With room air at :math:`T_{in}`, :math:`w_{in}`, the evaporating
+temperature :math:`T_e`, the air heat capacity rate :math:`C` and the
+effectiveness :math:`\varepsilon = 1 - e^{-UA/C}` of the dry coil,
+
+.. math::
+
+   Q_s = C\,\varepsilon\,(T_{in} - T_e), \qquad
+   Q_l = C\,\varepsilon\,\frac{h_{fg}}{c_a}\,\max\bigl(0,\; w_{in} - w_{sat}(T_e)\bigr),
+
+and the refrigerant takes up :math:`Q_s + Q_l` (``Q_ref_iu [W]``). The air
+leaves the coil at :math:`T_{in} - \varepsilon\,(T_{in} - T_e)` and
+:math:`w_{in} - \varepsilon\,\max(0,\, w_{in} - w_{sat}(T_e))`: on the straight
+line from the room state to saturated air at the coil, a fraction
+:math:`\varepsilon` of the way. A wet coil is therefore the dry coil with its
+driving temperature difference enlarged by
+:math:`(h_{fg}/c_a)\,\max(0,\, w_{in} - w_{sat}(T_e))`
+(:func:`tmhp.heat_exchanger.wet_coil_latent_difference`); where the coil is at
+or above the room's dew point that term is zero and every number is the dry
+coil's. The airflow that carries the duty, the two approach temperatures and
+the capacity ceiling are solved as before, with that driving difference.
+
+What the model assumes:
+
+- **The surface is at the refrigerant saturation temperature.** The dry coil
+  already works that way through its overall ``UA``; the wet coil keeps it, so
+  condensation starts where the evaporating temperature — not a warmer fin
+  surface — reaches the dew point.
+- **The same ``UA`` wet and dry.** No wet-surface enhancement and no change of
+  fin efficiency; ``UA_iu_rated`` and its airflow law are those of the dry
+  coil. The default (0.16 W/K per W of nameplate) is a provisional rule that
+  was not derived for a wet coil.
+- **Lewis number 1.** Heat and water vapour are transferred with the same
+  effectiveness, which is what puts the leaving air on the straight line.
+- **Condensate leaves at the coil temperature**, and :math:`h_{fg}` is the
+  latent heat of water at :math:`T_e` (CoolProp, IAPWS-95: 2 477 kJ/kg at
+  10 °C; the triple-point value below 0.01 °C). The sensible cooling of the
+  vapour that condenses is left out (about 1 % of the latent heat).
+- **Dry-air heat capacity and density** for :math:`C`, as everywhere in the
+  air-side models (`Air density`_); :math:`w_{in}` and :math:`w_{sat}` are
+  CoolProp humid-air values at 101 325 Pa.
+- **No frost on the indoor coil.** A coil below 0 °C keeps condensing, with
+  :math:`w_{sat}` over ice.
+
+.. list-table:: Default 4 kW unit, 35 °C outdoor, 27 °C room, 4 kW coil heat
+    :header-rows: 1
+    :widths: 12 12 12 14 12 12 12 14
+
+    * - ``RH_room``
+      - Dew point [°C]
+      - :math:`T_e` [°C]
+      - Sensible / latent [W]
+      - ``SHR_iu``
+      - Condensate [kg/h]
+      - ``E_tot`` [W]
+      - ``cop_sys``
+    * - none, 0.3
+      - – / 8.0
+      - 10.8
+      - 4000 / 0
+      - 1.00
+      - 0
+      - 931
+      - 4.27
+    * - 0.4
+      - 12.3
+      - 11.7
+      - 3790 / 210
+      - 0.95
+      - 0.31
+      - 904
+      - 4.40
+    * - 0.5
+      - 15.7
+      - 13.9
+      - 3241 / 759
+      - 0.81
+      - 1.11
+      - 835
+      - 4.76
+    * - 0.6
+      - 18.6
+      - 16.0
+      - 2730 / 1270
+      - 0.68
+      - 1.86
+      - 772
+      - 5.15
+    * - 0.7
+      - 21.1
+      - 17.9
+      - 2253 / 1747
+      - 0.56
+      - 2.56
+      - 714
+      - 5.57
+    * - 0.8
+      - 23.3
+      - 19.7
+      - 1807 / 2193
+      - 0.45
+      - 3.22
+      - 662
+      - 6.01
+
+At a fixed total duty a wetter room needs a smaller temperature difference at
+the coil, so the evaporating temperature rises and the electrical input falls
+— while less of the duty is sensible cooling. The request stays what it was:
+``Q_r_iu`` is the coil's total heat, so a zone model that needs a given
+*sensible* cooling has to ask for more than that when the coil is wet (there
+is no request-on-room-load option), and takes ``Q_room_sensible [W]`` off its
+air node and ``m_dot_iu_condensate [kg/s]`` off its moisture balance.
+
+What it leaves out, beyond the assumptions above:
+
+- **The catalogue comparison is not improved by it.** The published sensible
+  heat ratios are lower than the model's with the default coil, and the wet
+  coil makes cooling more optimistic (:doc:`/validation/index`, *Cooling and
+  latent load*). The shipped validation results are those of the dry coil.
+- **Re-evaporation while cycling.** Below the minimum speed the row is the
+  mean over an on/off period with the latent heat scaled like every other
+  rate; the water that evaporates off a wet coil while the compressor is off
+  (the latent degradation of EnergyPlus) is not modelled.
+- **Low load in mild weather.** At a low outdoor temperature the cycle sits on
+  the pressure-ratio floor, which holds the evaporator cold, and a coil that
+  cold carries more than the minimum-speed duty even at its smallest airflow.
+  Such a request has no operating point and is answered with the unit off
+  (``failure_reason == "cycle_invalid"``), not with an on/off mean. The dry
+  coil has the same limit (default 4 kW unit, 27 °C room, 5 °C outdoor: the
+  requests below 30 % of the nameplate); a wet coil carries more and meets it
+  in warmer weather (the same unit at 80 % room humidity, 15 °C outdoor: the
+  requests below 35 % of the nameplate; none at 20 °C outdoor).
+- **Exergy.** ``X_a_iu_*``, ``Xc_iu_hx [W]``, ``X_eff_iu_hx [-]`` and
+  ``X_eff_sys [-]`` are the thermal exergy of a dry air stream. With a wet
+  coil they leave out the latent part (the moist air's chemical exergy and
+  the condensate), so the indoor coil's destruction is overstated and the
+  system efficiency understated by what the dehumidification is worth.
+- **Rating and defaults.** The reference state, the default inputs and
+  :meth:`~tmhp.AirSourceHeatPump.operating_range` are those of the dry coil.
+- Heating humidification and condensate on the outdoor coil above the frost
+  range are not modelled.
+
 Part load: cycling and unmet load
 =================================
 
@@ -537,7 +711,11 @@ COP boundary
 ``Q_r_iu`` is the coil requirement before fan heat, not net room delivery.
 It retains its sign convention and governs compressor speed, rated capacity,
 part-load ratio and the operating-point search. ``cop_ref [-]`` remains
-``Q_ref_iu [W] / E_cmp [W]``.
+``Q_ref_iu [W] / E_cmp [W]``. ``Q_request [W]`` and ``Q_unmet [W]`` are on the
+same basis: refrigerant-side coil heat. What the room receives is reported
+under its own names — ``Q_room_sensible [W]``, the coil's sensible heat with
+the indoor fan's heat counted (3 977 W of a 4 000 W dry-coil request at
+35/27 °C), and, with a wet coil, ``Q_iu_latent [W]``.
 
 The space-conditioning system metric is
 ``abs(Q_a_iu_out [W] - Q_a_iu_in [W]) / E_tot [W]``. Both air energy
@@ -552,8 +730,12 @@ Opposite-direction transfer or zero airflow during active operation gives
 NaN system COP; off operation has zero air energy flows and NaN COP.
 This reporting diagnostic does not alter the coil-load solver.
 
-This dry-coil model reports sensible cooling, not total latent-plus-sensible
-cooling or a certified rating. Catalogue comparisons must use the catalogue's
+Without ``RH_room`` the coil is dry and the model reports sensible cooling,
+not total latent-plus-sensible cooling or a certified rating. With it
+(`Wet indoor coil (cooling)`_) the numerator of ``cop_sys [-]`` is what the
+room air gives up in total: ``Q_room_sensible [W] + Q_iu_latent [W]``, that
+is, the coil's sensible and latent heat less the indoor fan's heat.
+Catalogue comparisons must use the catalogue's
 own capacity and electrical-input boundary. Earlier results through commit
 ``c5d673e`` used ``Q_ref_iu / E_tot`` and must be labelled as coil-duty COP.
 For a seasonal performance factor, sum actual mode-specific air delivery

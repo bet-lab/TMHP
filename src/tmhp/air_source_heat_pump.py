@@ -80,6 +80,7 @@ from .defrost import (
     FrostState,
     apply_defrost,
     frost_free_keys,
+    humidity_ratio,
     resolve_defrost,
 )
 from .enex_functions import (
@@ -87,7 +88,7 @@ from .enex_functions import (
     calc_fan_power_from_dV_fan,
     calc_HX_perf_for_target_heat,
 )
-from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
+from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits, wet_coil_latent_difference
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .operating_limits import dynamic_notice, note_refusal, steady_notice
 from .reference_state import RATING_STANDARDS, HXSide, RatingCondition, ReferenceStateMixin
@@ -502,6 +503,13 @@ INDOOR_UA_KEPT_REASON = (
 )
 
 
+def _check_room_humidity(value: float) -> float:
+    """``RH_room`` as a float, or ``ValueError`` (the check ``RH_out`` gets in :mod:`tmhp.defrost`)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0.0 <= value <= 1.0:
+        raise ValueError(f"Room relative humidity must be a fraction in [0, 1], got {value!r}")
+    return float(value)
+
+
 class AirSourceHeatPump(ReferenceStateMixin):
     """Air source heat pump with indoor-unit air heat exchange.
 
@@ -531,6 +539,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
     (``discharge_temp_above_max``), and a request below the smallest duty that
     stays inside is met by cycling at that duty (``Q_min [W]``), not answered
     with the unit switched off.
+
+    The indoor coil is dry unless the room humidity is given. With
+    ``RH_room`` (``analyze_steady``, ``max_capacity``; ``RH_room_schedule`` in
+    ``analyze_dynamic``) a cooling coil whose surface -- taken at the
+    evaporating temperature -- is below the room air's dew point also
+    condenses water: ``Q_ref_iu [W]`` is then sensible plus latent heat
+    (``Q_iu_sensible [W]``, ``Q_iu_latent [W]``, ``SHR_iu [-]``,
+    ``m_dot_iu_condensate [kg/s]``), by the apparatus-dew-point / bypass-factor
+    model of :func:`tmhp.heat_exchanger.calc_HX_perf_for_target_heat`. Above
+    the dew point, in heating and without ``RH_room`` the coil is the dry one.
+    The rated state and the default inputs are those of the dry coil.
     """
 
     #: Heat and flow rates averaged with the capacity ratio while cycling.
@@ -542,6 +561,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
         "m_dot_ref [kg/s]",
         "dV_iu_a [m3/s]",
         "dV_ou_a [m3/s]",
+        "Q_iu_sensible [W]",
+        "Q_iu_latent [W]",
+        "m_dot_iu_condensate [kg/s]",
+        "Q_room_sensible [W]",
     )
     #: Electrical powers averaged with the runtime fraction while cycling. The
     #: indoor fan is not among them: it moves the delivered heat and is
@@ -557,6 +580,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
         "m_dot_ref [kg/s]",
         "dV_iu_a [m3/s]",
         "dV_ou_a [m3/s]",
+        "Q_iu_sensible [W]",
+        "Q_iu_latent [W]",
+        "m_dot_iu_condensate [kg/s]",
+        "Q_room_sensible [W]",
     )
     #: Delivered heat and electrical input of the frost-free cycle a row was solved at [W].
     _FROST_FREE_HEAT_KEY = "Q_ref_iu_frost_free [W]"
@@ -564,6 +591,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: EnergyPlus / DOE-2.1E frost adjustment in heating (None: frost-free
     #: steady state). Set by the constructor.
     defrost: DefrostModel | None = None
+
+    #: Room relative humidity of the cooling point being solved [-], and the
+    #: humidity ratio it gives at the room temperature [kg water / kg dry air].
+    #: ``None`` outside such a solve, in heating and where no ``RH_room`` was
+    #: given: the indoor coil is then dry (:meth:`_solving_with_room_humidity`).
+    _RH_room: float | None = None
+    _w_room: float | None = None
 
     _RATING_FAMILY = "ASHP"
     _RATING_DEFAULT_MODE = "cooling"
@@ -952,6 +986,71 @@ class AirSourceHeatPump(ReferenceStateMixin):
         return self.UA_ou_evap_rated if mode == "heating" else self.UA_ou_rated
 
     # =============================================================
+    # Room humidity (wet indoor coil in cooling)
+    # =============================================================
+
+    @contextlib.contextmanager
+    def _solving_with_room_humidity(self, RH_room: float | None, T_a_room: float, cooling: bool) -> Iterator[None]:
+        """Solve the block's operating points with the indoor coil of a room at ``RH_room``.
+
+        In cooling with ``RH_room`` given (a fraction, 0-1) the indoor coil
+        is the wet coil for room air of that humidity at ``T_a_room`` [°C]
+        and one standard atmosphere
+        (:func:`tmhp.defrost.humidity_ratio`). Otherwise -- no ``RH_room``,
+        heating, off -- it is the dry coil, also for a solve nested in a wet
+        one (the frost balance of a heating point). The state before the
+        block is restored on the way out.
+        """
+        outer = (self._RH_room, self._w_room)
+        if cooling and RH_room is not None:
+            self._RH_room, self._w_room = RH_room, humidity_ratio(T_a_room, RH_room)
+        else:
+            self._RH_room = self._w_room = None
+        try:
+            yield
+        finally:
+            self._RH_room, self._w_room = outer
+
+    def _wet_coil_drive(self, approach: float, T_a_room: float) -> float:
+        """Driving temperature difference of the wet indoor coil at ``approach`` [K].
+
+        The approach (room air minus evaporating temperature) plus the latent
+        part at that evaporating temperature
+        (:func:`~tmhp.heat_exchanger.wet_coil_latent_difference`); the
+        approach itself where the coil is above the room's dew point.
+        """
+        assert self._w_room is not None
+        return approach + wet_coil_latent_difference(self._w_room, cu.C2K(T_a_room) - approach)
+
+    def _wet_coil_approach(self, approach: float, factor: float, T_a_room: float) -> float:
+        """Approach at which the wet indoor coil's driving difference is ``factor`` times the present one [K].
+
+        A dry coil's capacity at a fixed airflow is proportional to its
+        approach, so the answer there is ``approach * factor``. A wet coil's
+        is proportional to its driving difference (:meth:`_wet_coil_drive`),
+        which grows faster than the approach once water condenses, so the
+        approach is solved from it. The driving difference is continuous,
+        increasing and never below the approach: the root lies between zero
+        and the wanted driving difference.
+        """
+        scaled = approach * factor
+        present = self._wet_coil_drive(approach, T_a_room)
+        if present == approach and self._wet_coil_drive(scaled, T_a_room) == scaled:
+            return scaled  # dry before and after
+        goal = present * factor
+        if not (math.isfinite(goal) and goal > 0.0):
+            return scaled
+        return float(
+            brentq(
+                lambda x: self._wet_coil_drive(x, T_a_room) - goal,
+                0.0,
+                goal,
+                xtol=1e-13,
+                rtol=4.0 * np.finfo(float).eps,
+            )
+        )
+
+    # =============================================================
     # Refrigerant cycle physics
     # =============================================================
 
@@ -1043,6 +1142,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     # COP metrics
                     "cop_ref [-]": np.nan,
                     "cop_sys [-]": np.nan,
+                    # Indoor coil split and room side: nothing crosses the coil.
+                    "Q_iu_sensible [W]": 0.0,
+                    "Q_iu_latent [W]": 0.0,
+                    "SHR_iu [-]": np.nan,
+                    "m_dot_iu_condensate [kg/s]": 0.0,
+                    "Q_room_sensible [W]": 0.0,
+                    **self._room_humidity_keys(None),
                 }
             )
             return result
@@ -1258,6 +1364,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 is_active=True,
                 exponent=self.n_iu,
                 rho_air="inlet",
+                # Room humidity ratio: the coil condenses water where the
+                # evaporating temperature is below the room's dew point.
+                # None (no RH_room): the dry coil.
+                w_a_in=self._w_room,
             )
         else:
             # Indoor = condenser → ref rejects heat → air is heated
@@ -1316,7 +1426,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
         Q_a_iu_in = calc_energy_flow(G_iu_a, T_a_room_K, T0_K)
         Q_a_iu_out = calc_energy_flow(G_iu_a, cu.C2K(T_iu_a_out), T0_K)
         Q_air = Q_a_iu_out - Q_a_iu_in
-        heat_direction_valid = bool(dV_iu_a > 0 and (Q_air <= 0 if mode == "cooling" else Q_air >= 0))
+        # Sensible and latent heat across the indoor coil (air side, before the
+        # fan). Latent heat is zero for a dry coil: no RH_room, a coil above
+        # the room's dew point, heating.
+        Q_iu_sensible = float(C_iu_a * abs(T_a_room - T_iu_a_mid))
+        Q_iu_latent = float(iu_hx.get("Q_latent", 0.0))
+        Q_iu_total = Q_iu_sensible + Q_iu_latent
+        # What the room air gives up (cooling: sensible net of the fan heat,
+        # plus the latent heat of the water it loses) or receives (heating).
+        Q_room = Q_iu_latent - Q_air if mode == "cooling" else Q_air
+        heat_direction_valid = bool(dV_iu_a > 0 and Q_room >= 0)
 
         # Same name (`result`) is annotated up in the inactive branch (~L216);
         # plain assignment to avoid the mypy [no-redef] false positive.
@@ -1369,12 +1488,38 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 "Q_ref_ou [W]": Q_ref_ou,
                 "E_cmp [W]": E_cmp,
                 "E_tot [W]": E_tot,
-                # Refrigerant COP uses coil duty; system COP uses final air delivery.
+                # Refrigerant COP uses coil duty; system COP uses final air delivery
+                # (with a wet coil: sensible plus latent, less the indoor fan heat).
                 "cop_ref [-]": (Q_ref_iu / E_cmp if E_cmp > 0 else np.nan),
-                "cop_sys [-]": (abs(Q_air) / E_tot if E_tot > 0 and heat_direction_valid else np.nan),
+                "cop_sys [-]": (Q_room / E_tot if E_tot > 0 and heat_direction_valid else np.nan),
+                # Indoor coil split (air side, before the fan) and the net
+                # sensible heat the room gives up (cooling) or receives
+                # (heating) once the fan heat is counted.
+                "Q_iu_sensible [W]": Q_iu_sensible,
+                "Q_iu_latent [W]": Q_iu_latent,
+                "SHR_iu [-]": (Q_iu_sensible / Q_iu_total if Q_iu_total > 0 else np.nan),
+                "m_dot_iu_condensate [kg/s]": float(iu_hx.get("m_dot_condensate", 0.0)),
+                "Q_room_sensible [W]": (Q_iu_sensible - E_iu_fan if mode == "cooling" else Q_iu_sensible + E_iu_fan),
+                **self._room_humidity_keys(iu_hx.get("w_a_mid") if mode == "cooling" else None),
             }
         )
         return result
+
+    def _room_humidity_keys(self, w_coil_out: float | None) -> dict[str, float]:
+        """Humidity keys of a row: the room humidity used and the air's humidity ratio in and out.
+
+        NaN where no room humidity applies (no ``RH_room``, heating, a row
+        not asked to cool). ``w_coil_out`` is the humidity ratio of the air
+        leaving the coil; ``None`` on a row whose coil does not run: the air
+        then leaves as it entered.
+        """
+        if self._w_room is None or self._RH_room is None:
+            return {"RH_room [-]": math.nan, "w_iu_a_in [kg/kg]": math.nan, "w_iu_a_out [kg/kg]": math.nan}
+        return {
+            "RH_room [-]": float(self._RH_room),
+            "w_iu_a_in [kg/kg]": float(self._w_room),
+            "w_iu_a_out [kg/kg]": float(self._w_room if w_coil_out is None else w_coil_out),
+        }
 
     def _optimize_operation(
         self,
@@ -1665,6 +1810,14 @@ class AirSourceHeatPump(ReferenceStateMixin):
         "eta_cmp_isen [-]": math.nan,
         "eta_cmp_vol [-]": math.nan,
         "eta_cmp [-]": math.nan,
+        "Q_iu_sensible [W]": math.nan,
+        "Q_iu_latent [W]": math.nan,
+        "SHR_iu [-]": math.nan,
+        "m_dot_iu_condensate [kg/s]": math.nan,
+        "Q_room_sensible [W]": math.nan,
+        "RH_room [-]": math.nan,
+        "w_iu_a_in [kg/kg]": math.nan,
+        "w_iu_a_out [kg/kg]": math.nan,
     }
 
     def _complete_row(self, result: dict) -> dict:
@@ -1707,6 +1860,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
             result["cop_ref [-]"] = result["Q_ref_iu [W]"] / result["E_cmp [W]"]
             if math.isfinite(float(result["cop_sys [-]"])):
                 result["cop_sys [-]"] = abs(result["Q_a_iu_out [W]"] - result["Q_a_iu_in [W]"]) / result["E_tot [W]"]
+                latent = float(result.get("Q_iu_latent [W]", 0.0))
+                if latent > 0.0:
+                    # A wet coil: the room also gives up the latent heat of the condensate.
+                    sensible = result["Q_a_iu_in [W]"] - result["Q_a_iu_out [W]"]
+                    result["cop_sys [-]"] = (sensible + latent) / result["E_tot [W]"]
             delivered = abs(float(result["Q_ref_iu [W]"]))
         else:
             continuous_keys(
@@ -2034,7 +2192,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: Relative width at which the bisection for a refused request stops.
     _REDUCTION_REL_TOL = 1e-3
 
-    def _largest_airflow_approaches(self, x_iu: float, x_ou: float, perf: dict) -> tuple[float, float] | None:
+    def _largest_airflow_approaches(
+        self, x_iu: float, x_ou: float, perf: dict, T_a_room_wet: float | None = None
+    ) -> tuple[float, float] | None:
         """Approaches at which each coil would carry this state's duty at its largest airflow [K].
 
         ``(indoor, outdoor)``, kept inside the approach bounds. At a fixed
@@ -2044,6 +2204,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         a state of :meth:`_calc_state` whose cycle exists; its coils need not
         have closed. ``None`` when a duty or a capacity is not a positive
         number.
+
+        ``T_a_room_wet`` is the room temperature [°C] of a cooling point
+        solved with a room humidity: the indoor coil's capacity is then
+        proportional to its driving difference, sensible plus latent, and its
+        approach is solved from that (:meth:`_wet_coil_approach`).
         """
         if "_iu_diag" in perf:
             pairs = []
@@ -2089,11 +2254,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ]
         lo, hi = self.dT_approach_bounds
         target = []
-        for x, (duty, margin) in zip((x_iu, x_ou), pairs, strict=True):
+        for indoor, x, (duty, margin) in zip((True, False), (x_iu, x_ou), pairs, strict=True):
             capacity = duty + margin
             if not (math.isfinite(duty) and math.isfinite(capacity) and duty > 0.0 and capacity > 0.0):
                 return None
-            target.append(min(max(x * duty / capacity, lo), hi))
+            if indoor and T_a_room_wet is not None:
+                closing = self._wet_coil_approach(x, duty / capacity, T_a_room_wet)
+            else:
+                closing = x * duty / capacity
+            target.append(min(max(closing, lo), hi))
         return target[0], target[1]
 
     def _largest_airflow_point(
@@ -2141,6 +2310,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         """
         lo, hi = self.dT_approach_bounds
         heating = Q_r_iu < 0
+        # A cooling point solved with a room humidity: the indoor coil may be wet.
+        T_a_room_wet = T_a_room if self._w_room is not None and not heating else None
         rtol = self._LEAST_LIFT_RTOL if rtol is None else rtol
         # Far enough inside to be clear of what the convergence left open.
         step_inside = max(self._LEAST_LIFT_INSIDE, 100.0 * rtol)
@@ -2195,7 +2366,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         flat_out = False
         for _ in range(self._LEAST_LIFT_MAX_ITER):
             flat_out = flat_out or perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX
-            target = self._largest_airflow_approaches(x[0], x[1], perf)
+            target = self._largest_airflow_approaches(x[0], x[1], perf, T_a_room_wet)
             if target is None:
                 return None, None, "cycle_invalid"
             if at_fixed_point(x, target):
@@ -2217,7 +2388,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if not flat_out:
                 return None, None, "cycle_invalid"
             for _ in range(self._LEAST_LIFT_MAX_ITER):
-                target = self._largest_airflow_approaches(x[0], x[1], perf)
+                target = self._largest_airflow_approaches(x[0], x[1], perf, T_a_room_wet)
                 if target is None:
                     return None, None, "cycle_invalid"
                 if at_fixed_point(x, target):
@@ -2260,11 +2431,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
         has an operating point, whatever the compressor can do. The value is
         a hair inside the limit (2e-7 of it), so that the coil closes there by
         more than a rounding error (see :meth:`_largest_airflow_point`).
+        A cooling point solved with a room humidity carries the latent heat
+        of the wet coil at that approach as well (:meth:`_wet_coil_drive`).
         """
         dV = self.dV_iu_fan_a_max
         C_air = float(air_heat_capacity_rate(dV, T_a_room))
         UA = self.UA_iu_rated * (dV / self.dV_iu_fan_a_ref) ** self.n_iu
-        limit = C_air * (1.0 - math.exp(-UA / C_air)) * self.dT_approach_bounds[1]
+        drive = self.dT_approach_bounds[1]
+        if self._w_room is not None:
+            drive = self._wet_coil_drive(drive, T_a_room)
+        limit = C_air * (1.0 - math.exp(-UA / C_air)) * drive
         return limit / (1.0 + 2.0 * self._LEAST_LIFT_INSIDE)
 
     def _largest_deliverable_duty(
@@ -2343,6 +2519,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         grid_points: int | None = None,
         rel_tol: float = 1e-3,
         RH_out: float | None = None,
+        RH_room: float | None = None,
     ) -> dict:
         """Largest duty the unit can actually deliver at this condition.
 
@@ -2401,6 +2578,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
         RH_out : float | None
             Outdoor relative humidity as a fraction (0-1) for the frost
             correction in heating. None: the frost model's default.
+        RH_room : float | None
+            Room relative humidity as a fraction (0-1), for the wet indoor
+            coil in cooling (see :meth:`analyze_steady`). None: the dry coil.
+            Ignored in heating.
 
         Returns
         -------
@@ -2424,6 +2605,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
             :meth:`analyze_steady` delivers there -- and
             ``Q_max_frost_free [W]`` is the frost-free ceiling they come from
             (``defrost_fraction [-]`` > 0). Otherwise the two are equal.
+
+            ``Q_max [W]`` is the refrigerant-side coil heat, as
+            ``Q_ref_iu [W]`` is: with ``RH_room`` in cooling it is sensible
+            plus latent, and ``SHR_iu [-]`` is the sensible share of it there
+            (1 for a dry coil and in heating, NaN when the unit cannot run).
         """
         if mode not in ("heating", "cooling"):
             raise ValueError(f"mode must be 'heating' or 'cooling', got {mode!r}")
@@ -2431,7 +2617,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
             raise ValueError(f"rel_tol must be a positive number, got {rel_tol!r}")
         if T_a_room is None:
             T_a_room = self.T_a_room
+        if RH_room is not None:
+            RH_room = _check_room_humidity(RH_room)
+        with self._solving_with_room_humidity(RH_room, T_a_room, cooling=mode == "cooling"):
+            return self._solve_max_capacity(T0, T_a_room, mode, rel_tol, RH_out)
 
+    def _solve_max_capacity(self, T0: float, T_a_room: float, mode: str, rel_tol: float, RH_out: float | None) -> dict:
+        """:meth:`max_capacity` for checked arguments, with the room humidity of the point already set."""
         empty = {
             "Q_max [W]": 0.0,
             "dT_ref_evap [K]": float("nan"),
@@ -2444,6 +2636,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "T_a_room [°C]": T_a_room,
             "Q_max_frost_free [W]": 0.0,
             "defrost_fraction [-]": 0.0,
+            "SHR_iu [-]": float("nan"),
         }
 
         sign = 1.0 if mode == "cooling" else -1.0
@@ -2475,6 +2668,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "T_a_room [°C]": T_a_room,
             "Q_max_frost_free [W]": lo_q,
             "defrost_fraction [-]": 0.0,
+            "SHR_iu [-]": float(lo_perf.get("SHR_iu [-]", float("nan"))),
         }
         frost = self._frost_state(sign, T0, RH_out, full_load=True)
         if frost.active:
@@ -2551,7 +2745,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         """
         mode = "cooling" if Q_r_iu > 0 else "heating"
         request = abs(Q_r_iu)
-        ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode=mode)
+        if self._RH_room is None:
+            ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode=mode)
+        else:
+            # The ceiling of the same room: its humidity goes with it.
+            ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode=mode, RH_room=self._RH_room)
         # Anything else ("infeasible", a caller's own label) is not a ceiling.
         if ceiling.get("binding") not in self._CEILING_BINDINGS:
             return None
@@ -2643,7 +2841,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # The floor belongs to the condition, not to the request: inside one
         # frost balance or one dynamic run (the model does not change there)
         # it is searched once per condition and reused for smaller requests.
-        memo, key = self._floor_memo, (sign, float(T0), float(T_a_room))
+        memo, key = self._floor_memo, (sign, float(T0), float(T_a_room), self._w_room)
         if memo is not None and key in memo and request < abs(float(memo[key]["Q_ref_iu [W]"])):
             return dict(memo[key])
 
@@ -2691,8 +2889,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         return floor
 
     #: Smallest continuous states found in the frost balance or dynamic run in
-    #: progress, by (mode sign, T0, T_a_room); ``None`` outside one.
-    _floor_memo: dict[tuple[float, float, float], dict] | None = None
+    #: progress, by (mode sign, T0, T_a_room, room humidity ratio); ``None`` outside one.
+    _floor_memo: dict[tuple[float, float, float, float | None], dict] | None = None
 
     @contextlib.contextmanager
     def _remembering_floors(self) -> Iterator[None]:
@@ -2721,13 +2919,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
         postprocess: bool = True,
         verbose: bool = True,
         RH_out: float | None = None,
+        RH_room: float | None = None,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
 
         Parameters
         ----------
         Q_r_iu : float
-            Indoor thermal load [W]. >0 cooling, <0 heating, 0 off.
+            Indoor thermal load [W]. >0 cooling, <0 heating, 0 off. It is the
+            heat the refrigerant exchanges with the room air at the indoor
+            coil (``Q_ref_iu [W]``): in cooling the coil's total heat,
+            sensible plus latent, before the indoor fan's heat. What the room
+            receives is reported as ``Q_room_sensible [W]`` and
+            ``Q_iu_latent [W]`` (below).
         T0 : float
             Dead-state / outdoor-air temperature [°C].
         T_a_room : float | None
@@ -2742,6 +2946,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         RH_out : float | None
             Outdoor relative humidity as a fraction (0-1), used by the frost
             correction in heating. None: the frost model's default (0.84).
+        RH_room : float | None
+            Room relative humidity as a fraction (0-1) at ``T_a_room`` and
+            one standard atmosphere. With it, a cooling coil whose surface --
+            taken at the evaporating temperature -- is below the room air's
+            dew point condenses water (the wet coil of
+            :func:`tmhp.heat_exchanger.calc_HX_perf_for_target_heat`), and
+            the request ``Q_r_iu`` is met by sensible plus latent heat. None
+            (default): the dry coil, all of the coil heat sensible. Ignored
+            in heating, where the indoor coil is the condenser.
 
         Returns
         -------
@@ -2802,6 +3015,26 @@ class AirSourceHeatPump(ReferenceStateMixin):
             at. Without frost those two repeat ``Q_ref_iu [W]`` and
             ``E_tot [W]``.
 
+            The indoor coil's heat is split on every row:
+            ``Q_iu_sensible [W]`` and ``Q_iu_latent [W]`` (air side, before
+            the fan; their sum is ``Q_ref_iu [W]`` within the coil solver's
+            tolerance), ``SHR_iu [-]`` their sensible share,
+            ``m_dot_iu_condensate [kg/s]`` the water condensed, and
+            ``w_iu_a_in [kg/kg]`` / ``w_iu_a_out [kg/kg]`` the humidity ratio
+            of the air entering and leaving the unit, with ``RH_room [-]``
+            the room humidity used (the three NaN without one). Latent heat
+            is zero for a dry coil. ``Q_room_sensible [W]`` is the net
+            sensible heat the room air gives up (cooling:
+            ``Q_iu_sensible - E_iu_fan``) or receives (heating:
+            ``Q_iu_sensible + E_iu_fan``), the indoor fan's heat counted.
+
+            ``Q_request [W]`` and ``Q_unmet [W]`` are on the basis of
+            ``Q_r_iu``: refrigerant-side coil heat, total (sensible plus
+            latent) and before the fan heat -- not the room-side
+            ``Q_room_sensible [W]``. ``cop_sys [-]`` is on the room side:
+            ``Q_room_sensible [W]`` plus ``Q_iu_latent [W]`` over
+            ``E_tot [W]``.
+
         Warns
         -----
         OperatingLimitWarning
@@ -2816,7 +3049,22 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         if T_a_room is None:
             T_a_room = self.T_a_room
+        if RH_room is not None:
+            RH_room = _check_room_humidity(RH_room)
 
+        # A cooling point with a room humidity is solved with the wet indoor
+        # coil; any other point with the dry one.
+        with self._solving_with_room_humidity(RH_room, T_a_room, cooling=Q_r_iu > 0):
+            result = self._solve_steady(Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose, RH_out=RH_out)
+
+        if return_dict:
+            return result
+        return pd.DataFrame([result]) if result else pd.DataFrame()
+
+    def _solve_steady(
+        self, Q_r_iu: float, T0: float, T_a_room: float, *, postprocess: bool, verbose: bool, RH_out: float | None
+    ) -> dict:
+        """:meth:`analyze_steady` for checked arguments, with the room humidity of the point already set."""
         # Heating with a frosting outdoor coil is the mean over frosting and
         # defrost: solved frost-free at a larger duty, then averaged.
         frost = self._frost_state(Q_r_iu, T0, RH_out)
@@ -2973,9 +3221,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         if postprocess and result:
             result = self._exergy_of_row(result)
 
-        if return_dict:
-            return result
-        return pd.DataFrame([result]) if result else pd.DataFrame()
+        return result
 
     # =============================================================
     # Dynamic simulation
@@ -2991,6 +3237,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         T_a_room_schedule=None,
         result_save_csv_path: str | None = None,
         RH_out_schedule=None,
+        *,
+        RH_room_schedule=None,
     ) -> pd.DataFrame:
         """Run a time-stepping dynamic simulation.
 
@@ -3012,6 +3260,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         RH_out_schedule : array-like | None
             Outdoor relative humidity per step, as a fraction (0-1), for the
             frost correction in heating. If None, the frost model's default.
+        RH_room_schedule : array-like | None
+            Room relative humidity per step, as a fraction (0-1), for the wet
+            indoor coil in cooling (``RH_room`` of :meth:`analyze_steady`).
+            If None, the dry coil on every step. Heating and off steps ignore
+            it.
 
         Returns
         -------
@@ -3052,6 +3305,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if len(RH_out_arr) != tN:
                 raise ValueError(f"RH_out_schedule length ({len(RH_out_arr)}) != tN ({tN})")
 
+        RH_room_arr = None
+        if RH_room_schedule is not None:
+            RH_room_arr = np.array(RH_room_schedule, dtype=float)
+            if len(RH_room_arr) != tN:
+                raise ValueError(f"RH_room_schedule length ({len(RH_room_arr)}) != tN ({tN})")
+
         self.time = time
         self.dt = dt_s
 
@@ -3077,6 +3336,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     postprocess=False,  # Exergy postprocessing applied in bulk at the end
                     verbose=False,  # Suppress warnings during long dynamic loops
                     RH_out=None if RH_out_arr is None else float(RH_out_arr[n]),
+                    RH_room=None if RH_room_arr is None else float(RH_room_arr[n]),
                 )
 
                 # Add time columns

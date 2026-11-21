@@ -11,10 +11,12 @@ from scipy.optimize import root_scalar
 from . import calc_util as cu
 from .air_properties import air_density
 from .constants import P0_PA, c_a, c_w, rho_a, rho_w
+from .defrost import saturation_humidity_ratio
 from .reference_state import (
     Fluid,  # noqa: F401 -- named by the annotations AirCoilSide inherits; the docs build resolves them here
     HXSide,
 )
+from .refrigerant import props_si
 
 
 def calc_ground_hx_UA_from_capacity(rated_capacity: float, specific_UA: float = 0.18) -> float:
@@ -280,6 +282,48 @@ class AirCoilSide(HXSide):
         return C * (1.0 - math.exp(-self.UA / C))
 
 
+#: Triple point of water [K] (IAPWS-95, the lower end of CoolProp's saturation curve of liquid water).
+T_TRIPLE_WATER_K = 273.16
+
+
+def water_latent_heat(T_K: float) -> float:
+    """Latent heat of vaporisation of water at ``T_K`` [J/kg]: CoolProp (IAPWS-95) ``h_g - h_f`` at saturation.
+
+    2 500.9 kJ/kg at the triple point, 2 477.2 kJ/kg at 10 °C, 2 453.5 kJ/kg at
+    20 °C. Below the triple point (273.16 K) there is no saturated liquid; the
+    value at the triple point is returned.
+    """
+    T = max(float(T_K), T_TRIPLE_WATER_K)
+    return props_si("H", "T", T, "Q", 1, "Water") - props_si("H", "T", T, "Q", 0, "Water")
+
+
+def wet_coil_latent_difference(w_a_in: float, T_ref_sat_K: float, P: float = P0_PA) -> float:
+    """Latent part of a wet cooling coil's driving difference, as a temperature [K].
+
+    ``(h_fg / c_a) * max(0, w_a_in - w_sat(T_ref_sat))``: the humidity ratio
+    of the entering air ``w_a_in`` [kg water / kg dry air] above that of
+    saturated air at the coil surface, taken at the refrigerant saturation
+    temperature ``T_ref_sat_K`` [K], times the latent heat of water at that
+    temperature (:func:`water_latent_heat`) over the specific heat of dry air
+    (``constants.c_a``). Zero when the surface is at or above the dew point
+    of the entering air: the coil is dry. ``w_sat`` is CoolProp's humid-air
+    saturation at pressure ``P`` [Pa] (:func:`tmhp.defrost.saturation_humidity_ratio`,
+    over ice below 0 °C).
+
+    A coil whose surface is at ``T_ref_sat`` and whose air side has a Lewis
+    number of 1 transfers heat and water vapour with the same effectiveness
+    ``eps = 1 - exp(-UA / C)``, so its total heat is that of a dry coil with
+    the air-to-surface temperature difference enlarged by this amount
+    (:func:`calc_HX_perf_for_target_heat`, ``w_a_in``).
+    """
+    if not (math.isfinite(w_a_in) and w_a_in >= 0.0):
+        raise ValueError("Entering humidity ratio must be nonnegative and finite")
+    excess = w_a_in - saturation_humidity_ratio(cu.K2C(T_ref_sat_K), P)
+    if excess <= 0.0:
+        return 0.0
+    return water_latent_heat(T_ref_sat_K) / c_a * excess
+
+
 def calc_UA_from_dV_fan(
     dV_fan: float,
     dV_fan_rated: float | None = None,
@@ -405,6 +449,7 @@ def calc_HX_perf_for_target_heat(
     dV_fan_max=None,
     custom_fan_curve=False,
     rho_air=None,
+    w_a_in=None,
 ):
     """Numerically solve for the air-side flow rate of an ε-NTU heat exchanger.
 
@@ -418,6 +463,34 @@ def calc_HX_perf_for_target_heat(
     (:func:`tmhp.air_properties.air_density`), and ``None`` (default) keeps
     standard air, ``constants.rho_a`` (15 °C). UA follows the volume flow in
     either case.
+
+    **Wet cooling coil** (``w_a_in`` given). With the humidity ratio of the
+    entering air ``w_a_in`` [kg water / kg dry air] the coil also condenses
+    water where its surface is below the air's dew point (apparatus dew
+    point / bypass factor model, the family EnergyPlus uses for DX cooling
+    coils). The surface is taken at the refrigerant saturation temperature
+    ``T_e`` -- as the dry coil already does through the overall ``UA`` -- and
+    the air leaves on the straight line from its inlet state to saturated air
+    at ``T_e``, a fraction ``eps = 1 - exp(-UA / C)`` of the way (Lewis number
+    1: heat and water vapour are transferred with the same effectiveness):
+
+    .. math::
+
+        Q_s = C\\,\\varepsilon\\,(T_{in} - T_e), \\qquad
+        Q_l = C\\,\\varepsilon\\,\\frac{h_{fg}}{c_a}\\,\\max\\bigl(0,\\; w_{in} - w_{sat}(T_e)\\bigr)
+
+    The target duty is the total ``Q_s + Q_l``, what the refrigerant takes
+    up. The coil is therefore the dry coil with its driving temperature
+    difference enlarged by :func:`wet_coil_latent_difference`; where the
+    surface is at or above the dew point that term is zero and every number
+    is the dry coil's. Assumptions: the same ``UA`` wet and dry (no
+    wet-surface enhancement, no fin-efficiency change), ``C`` the heat
+    capacity rate of dry air, ``h_fg`` the latent heat of water at ``T_e``
+    (:func:`water_latent_heat`), and the condensate leaves at ``T_e``; the
+    sensible cooling of the vapour that condenses is left out (about 1 % of
+    the latent heat). A surface below 0 °C is not frosted: condensation
+    continues with ``w_sat`` over ice. ``w_a_in`` is ignored for a coil that
+    heats the air (``T_ref_sat_K`` above ``T_a_in_C``).
 
     Parameters
     ----------
@@ -460,6 +533,12 @@ def calc_HX_perf_for_target_heat(
         - ``C_air`` — air heat capacity rate at the operating point [W/K]
         - ``converged`` — whether the solver converged
 
+        With ``w_a_in`` given, ``Q_air`` is the total heat (sensible plus
+        latent) and the dictionary also has ``Q_sensible`` and ``Q_latent``
+        [W], ``w_a_mid`` (humidity ratio of the air leaving the coil
+        [kg/kg]), ``m_dot_condensate`` [kg/s] and ``dT_latent`` [K]
+        (:func:`wet_coil_latent_difference`).
+
         All numeric values are ``np.nan`` when ``is_active=False``.
     """
     # Backward-compat: accept legacy parameter names.
@@ -498,8 +577,18 @@ def calc_HX_perf_for_target_heat(
         raise ValueError("Fan reference flow is required")
     dV_min, dV_max = resolve_fan_flow_limits(dV_fan_ref, dV_fan_min, dV_fan_max, custom_curve=custom_fan_curve)
 
+    # Driving temperature difference of the coil. A wet cooling coil adds the
+    # latent part; with ``w_a_in`` not given, or the surface at or above the
+    # dew point, it is the dry coil's difference, unchanged.
+    dT_drive = abs(T_a_in_K - T_ref_sat_K)
+    dT_latent = 0.0
+    if w_a_in is not None and T_ref_sat_K < T_a_in_K:
+        dT_latent = wet_coil_latent_difference(w_a_in, T_ref_sat_K)
+        if dT_latent > 0.0:
+            dT_drive = (T_a_in_K - T_ref_sat_K) + dT_latent
+
     if abs(Q_ref_target) < 1e-6:
-        return {
+        idle = {
             "converged": True,
             "dV_fan": 0.0,
             "UA": 0.0,
@@ -511,6 +600,11 @@ def calc_HX_perf_for_target_heat(
             "T_ou_a_mid": T_a_in_C,
             "Q_ou_air": 0.0,
         }
+        if w_a_in is not None:
+            idle.update(
+                {"Q_sensible": 0.0, "Q_latent": 0.0, "w_a_mid": w_a_in, "m_dot_condensate": 0.0, "dT_latent": dT_latent}
+            )
+        return idle
 
     def _error_function(dV_fan):
         if dV_fan <= 0:
@@ -518,8 +612,8 @@ def calc_HX_perf_for_target_heat(
         UA = calc_UA_from_dV_fan(dV_fan, dV_fan_ref, A_cross, UA_rated, exponent)
         C_air = C_air_per_flow * dV_fan
         epsilon = 1 - np.exp(-UA / C_air)
-        # Heat transfer Q = C_air * epsilon * abs(T_air_in - T_ref_sat)
-        Q_air = C_air * epsilon * abs(T_a_in_K - T_ref_sat_K)
+        # Heat transfer Q = C_air * epsilon * abs(T_air_in - T_ref_sat), plus the latent part of a wet coil
+        Q_air = C_air * epsilon * dT_drive
         return Q_air - Q_ref_target
 
     # Clamp the flow demand, but do not mark an unmatched HX duty feasible.
@@ -548,7 +642,7 @@ def calc_HX_perf_for_target_heat(
             dV_fan_ref,
             exponent,
             C_air_per_flow,
-            abs(T_a_in_K - T_ref_sat_K),
+            dT_drive,
         )
     else:
         # A margin that is not a number: left to SciPy, which reports the
@@ -566,12 +660,34 @@ def calc_HX_perf_for_target_heat(
     T_a_mid_C = cu.K2C(T_a_mid_K)
     Q_air_sol = C_air_sol * abs(T_a_in_K - T_a_mid_K)
 
+    wet = {}
+    if w_a_in is not None:
+        # The air leaves on the line to saturated air at the surface, a fraction
+        # ``eps`` of the way; what it loses in humidity is the condensate.
+        Q_sensible = Q_air_sol
+        m_dot_condensate = Q_latent = 0.0
+        w_a_mid = w_a_in
+        if dT_latent > 0.0:
+            h_fg = water_latent_heat(T_ref_sat_K)
+            w_a_mid = w_a_in - float(eps_sol) * (dT_latent * c_a / h_fg)
+            m_dot_condensate = C_air_sol / c_a * (w_a_in - w_a_mid)
+            Q_latent = m_dot_condensate * h_fg
+            Q_air_sol = Q_sensible + Q_latent
+        wet = {
+            "Q_sensible": Q_sensible,
+            "Q_latent": Q_latent,
+            "w_a_mid": w_a_mid,
+            "m_dot_condensate": m_dot_condensate,
+            "dT_latent": dT_latent,
+        }
+
     if dV_min == dV_max:
         # A constant-speed fan sits at both limits; the direction of the duty
         # mismatch is in capacity_margin_W / min_flow_capacity_margin_W.
         min_limit = max_limit = True
 
     return {
+        **wet,
         "converged": converged,
         "dV_fan": dV_sol,
         "UA": UA_sol,

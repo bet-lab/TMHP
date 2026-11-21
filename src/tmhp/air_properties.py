@@ -17,7 +17,10 @@ What is left out, and how much it is:
   larger; per cubic metre the two nearly cancel. At 20 degC and 50 % relative
   humidity the sensible heat capacity of a cubic metre is 0.2 % above the
   dry-air figure, at 35 degC and 40 % it is 0.3 % above. The coils of the
-  cycle models are dry (sensible heat only), so dry air is used.
+  cycle models exchange sensible heat with a dry-air stream, so dry air is
+  used; the optional wet indoor coil of the air-to-air model adds its latent
+  heat on top of the same dry-air heat capacity rate
+  (:func:`tmhp.heat_exchanger.calc_HX_perf_for_target_heat`).
 - **Specific heat.** ``constants.c_a`` (1005 J/(kg K)) is kept constant: the
   specific heat of dry air changes by 0.1 % between -25 and 40 degC.
 - **Altitude.** The pressure argument defaults to one standard atmosphere.

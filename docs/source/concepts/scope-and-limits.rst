@@ -177,12 +177,26 @@ Air side
       - Not flagged. ``dV_ou_a [m3/s]`` and ``dV_iu_a [m3/s]`` are volumes at
         the coil inlet; at 1 600 m the real density is 18 % lower
         (:ref:`ashp-air-density`)
-    * - Sensible cooling only
-      - The indoor coil is dry: no dehumidification, so the cooling duty is
-        the sensible one
-      - ``Q_ref_iu [W]`` in cooling is below a catalogue's *total* capacity at
-        a low sensible heat ratio (:doc:`/validation/index`, *Cooling and
-        latent load*)
+    * - Dehumidification only on request (ASHP), never in GSHP
+      - Without a room humidity the indoor coil is dry: all of the cooling
+        duty is sensible and no moisture is removed. With ``RH_room``
+        (``RH_room_schedule`` in a dynamic run) the ASHP coil condenses water
+        below the room's dew point: an apparatus-dew-point / bypass-factor
+        coil whose surface is at the evaporating temperature, with the dry
+        coil's ``UA``, Lewis number 1 and condensate leaving at the coil
+        temperature (:ref:`ashp-wet-coil`). Not modelled: wet-surface
+        enhancement, re-evaporation while the compressor cycles, frost on the
+        indoor coil, a request stated as room load, heating humidification.
+        The default indoor ``UA`` was not derived for a wet coil, and the
+        model's sensible heat ratio lies above the catalogues'
+        (:doc:`/validation/index`, *Cooling and latent load*). The GSHP
+        indoor coil is always dry
+      - ``Q_iu_sensible [W]``, ``Q_iu_latent [W]``, ``SHR_iu [-]`` and
+        ``m_dot_iu_condensate [kg/s]`` on every ASHP row (latent 0, ratio 1
+        for a dry coil); ``RH_room [-]`` is NaN where no humidity was used.
+        A dry coil's ``Q_ref_iu [W]`` is all sensible: at a low sensible heat
+        ratio that is not a catalogue's *total* capacity. The exergy columns
+        of the indoor air stay those of a dry air stream
     * - Frost as a correlation (ASHP, ASHPB)
       - Below 5 °C outdoor the EnergyPlus frost multipliers are applied to a
         frost-free cycle. They depend on outdoor temperature and humidity,

@@ -689,6 +689,49 @@ injection stratum above, stated rather than corrected for.
     (:doc:`../models/ashp`).
 
 
+Capacity
+========
+
+The capacity ratio is the duty the model delivers at the catalogue request
+divided by the published duty. The capacity score includes short points.
+A point that falls more than 1 % short contributes to the capacity score and
+is excluded from the COP score.
+
+.. list-table::
+    :header-rows: 1
+
+    * - Model class
+      - Short points
+      - Mean ratio
+      - Minimum ratio
+      - Mean probe headroom
+    * - Air-to-water
+      - 17 / 153
+      - 98.72 %
+      - 72.24 %
+      - 134.83 % (143 points)
+    * - Air-to-air, including held catalogues
+      - 0 / 604
+      - 100.00 %
+      - 100.00 %
+      - 161.54 % (604 points)
+
+Compressor speed binds 12 of the air-to-water points, and the condensing
+temperature limit binds five. Probe headroom is the probed duty divided by
+the published duty. For air-to-air, the probe uses
+:meth:`~tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity`. For
+air-to-water, it requests 1.5 times the published duty at the same outdoor
+temperature, entering water temperature and water flow. This overload reaches
+more limits than a 1.25× request and avoids the larger extrapolation of a 2×
+request. If the model meets the overload, the result is a lower bound on
+maximum capacity. Ten overloads returned less than the ordinary request, so
+their probe values are missing and the mean uses the 143 remaining estimates.
+
+Among scored air-to-water points, COP MAPE and bias were 8.1 % and −6.1 %
+without discharge control (127 points), 6.7 % and +3.1 % with reduced
+superheat (5 points), and 18.0 % and +18.0 % with wet suction (4 points).
+
+
 Cooling and latent load
 =======================
 

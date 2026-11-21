@@ -1,7 +1,7 @@
 {
  "slug": "daikin_rxm25a",
  "coefficient_version": "semi-empirical-2026-11-15",
- "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
+ "git_head": "0b53bbc4f79d5844cf6642a9f5bebd9d87c5bd96",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -11,11 +11,11 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
+ "src_tmhp_tree": "e85b690c643411d534e3c95c2de7ad4d3d73e4ef",
+ "validation_parity_tree": "9c125dca2544cb1c3cc19af81732e9bd99b874b2",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
  "catalog_blob": "75ad7ea42a80cdf6472fec9c57cf76d66e7e8e99",
- "run_at": "2026-11-16T03:01:42+00:00"
+ "run_at": "2026-11-21T04:23:06+00:00"
 }

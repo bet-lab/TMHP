@@ -1,14 +1,14 @@
 {
  "coefficient_version": "semi-empirical-2026-11-15",
- "src_tmhp_tree": "b83c757c5009db1b340d0f9a19b4ebab85149aac",
- "validation_parity_tree": "8675ba1645e31e50f742ae933af39a1cccb7bd49",
+ "src_tmhp_tree": "e85b690c643411d534e3c95c2de7ad4d3d73e4ef",
+ "validation_parity_tree": "9c125dca2544cb1c3cc19af81732e9bd99b874b2",
  "dirty_digest": null,
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "git_head": "3faac8ac39039f969e9de41dbe8553c239579f96",
+ "git_head": "0b53bbc4f79d5844cf6642a9f5bebd9d87c5bd96",
  "git_heads": [
-  "3faac8ac39039f969e9de41dbe8553c239579f96"
+  "0b53bbc4f79d5844cf6642a9f5bebd9d87c5bd96"
  ],
  "dirty": false,
  "dirty_scope": [
@@ -18,8 +18,8 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "run_started": "2026-11-16T03:01:40+00:00",
- "run_finished": "2026-11-16T03:01:45+00:00",
+ "run_started": "2026-11-21T04:23:06+00:00",
+ "run_finished": "2026-11-21T04:23:18+00:00",
  "provenance": "provenance/<slug>.json, one per unit",
  "space_conditioning_cop_basis": "final_indoor_air_sensible",
  "units": 17,
@@ -27,5 +27,189 @@
  "held_units": [
   "fujitsu_asuh09lpas",
   "fujitsu_asuh12lpas"
+ ],
+ "capacity_by_unit": {
+  "daikin_rxm20a": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 1.0000000000000004,
+   "capacity_ratio_min": 0.9999999999999885,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.689307343878993
+  },
+  "daikin_rxm25a": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 1.0000000000000002,
+   "capacity_ratio_min": 0.9999999999999885,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.7304458053726002
+  },
+  "daikin_rxm35a": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 1.0,
+   "capacity_ratio_min": 0.9999999999999892,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.5725908512473004
+  },
+  "daikin_rxm42a": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 1.0000000000000004,
+   "capacity_ratio_min": 0.9999999999999898,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.4688210069645113
+  },
+  "daikin_rxm50a": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 0.9999999999999998,
+   "capacity_ratio_min": 0.999999999999989,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.4774509295895024
+  },
+  "fujitsu_asuh09lpas": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 1.000000000000003,
+   "capacity_ratio_min": 0.9999999999999941,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.7154563367249085
+  },
+  "fujitsu_asuh12lpas": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 1.000000000000002,
+   "capacity_ratio_min": 0.9999999999999938,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.5968655451869505
+  },
+  "panasonic_wh_mxc09j3e8": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 1.0000000000000002,
+   "capacity_ratio_min": 0.9999999999999996,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.3538152255210827
+  },
+  "panasonic_wh_mxc12j9e8": {
+   "points_capacity_short": 2,
+   "capacity_ratio_mean": 0.997152891997232,
+   "capacity_ratio_min": 0.9685337711433908,
+   "capacity_binding_counts": {
+    "compressor": 2
+   },
+   "capacity_headroom_mean": 1.294562876702337
+  },
+  "panasonic_wh_mxc16j9e8": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 0.9999999999999999,
+   "capacity_ratio_min": 0.9999999999999948,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.304977729898355
+  },
+  "panasonic_wh_uq09he8": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 1.0000000000000002,
+   "capacity_ratio_min": 0.9999999999999994,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.364962448788909
+  },
+  "panasonic_wh_uq12he8": {
+   "points_capacity_short": 4,
+   "capacity_ratio_mean": 0.9639017876158047,
+   "capacity_ratio_min": 0.8125873837244758,
+   "capacity_binding_counts": {
+    "compressor": 4
+   },
+   "capacity_headroom_mean": 1.2851214641701645
+  },
+  "panasonic_wh_uq16he8": {
+   "points_capacity_short": 3,
+   "capacity_ratio_mean": 0.9795284408677278,
+   "capacity_ratio_min": 0.8638436648774274,
+   "capacity_binding_counts": {
+    "compressor": 3
+   },
+   "capacity_headroom_mean": 1.3220975619285908
+  },
+  "panasonic_wh_wxg09me8": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 0.9999999999999998,
+   "capacity_ratio_min": 0.9999999999999987,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.4805568661512687
+  },
+  "panasonic_wh_wxg12me8": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 0.9999999999999996,
+   "capacity_ratio_min": 0.9999999999999956,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.4537024235104532
+  },
+  "panasonic_wh_wxg16me8": {
+   "points_capacity_short": 3,
+   "capacity_ratio_mean": 0.9937255006892921,
+   "capacity_ratio_min": 0.9601329451013548,
+   "capacity_binding_counts": {
+    "compressor": 3
+   },
+   "capacity_headroom_mean": 1.2804502294168187
+  },
+  "samsung_ehs_mono_ht_r32_14kw": {
+   "points_capacity_short": 5,
+   "capacity_ratio_mean": 0.9389986944851785,
+   "capacity_ratio_min": 0.7223869238439155,
+   "capacity_binding_counts": {
+    "condensing_temperature": 5
+   },
+   "capacity_headroom_mean": 1.3174285028011363
+  }
+ },
+ "capacity_by_model_class": {
+  "ASHP": {
+   "points_capacity_short": 0,
+   "capacity_ratio_mean": 1.000000000000001,
+   "capacity_ratio_min": 0.9999999999999885,
+   "capacity_binding_counts": {},
+   "capacity_headroom_mean": 1.615370226922278
+  },
+  "ASHPB": {
+   "points_capacity_short": 17,
+   "capacity_ratio_mean": 0.98717774547341,
+   "capacity_ratio_min": 0.7223869238439155,
+   "capacity_binding_counts": {
+    "compressor": 12,
+    "condensing_temperature": 5
+   },
+   "capacity_headroom_mean": 1.3482836677498762
+  }
+ },
+ "discharge_control_strata": [
+  {
+   "model_class": "ASHP",
+   "rating_standard": "EN 14511",
+   "stratum": "no_control",
+   "points_usable": 360,
+   "cop_MAPE_pct": 8.52274448041021,
+   "cop_bias_pct": -5.0777327832623245
+  },
+  {
+   "model_class": "ASHPB",
+   "rating_standard": "unknown",
+   "stratum": "no_control",
+   "points_usable": 127,
+   "cop_MAPE_pct": 8.102762175518347,
+   "cop_bias_pct": -6.067692038877672
+  },
+  {
+   "model_class": "ASHPB",
+   "rating_standard": "unknown",
+   "stratum": "reduced_superheat",
+   "points_usable": 5,
+   "cop_MAPE_pct": 6.679043501754267,
+   "cop_bias_pct": 3.1051681916804776
+  },
+  {
+   "model_class": "ASHPB",
+   "rating_standard": "unknown",
+   "stratum": "wet_suction",
+   "points_usable": 4,
+   "cop_MAPE_pct": 17.96692691446551,
+   "cop_bias_pct": 17.96692691446551
+  }
  ]
 }

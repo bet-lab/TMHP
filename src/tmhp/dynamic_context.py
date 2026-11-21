@@ -1423,9 +1423,12 @@ def resolve_step_operation(
     no cycle of the step ran unless the cycle there runs too; where the other
     limit leaves no operating point inside it, the run ends at the warmest
     temperature a cycle did run at. A cycle the other limit holds at or below
-    the smallest continuous duty counts as not running. A cycle the condensing
-    limit itself refuses at the duty the limit's line gives
-    (``failure_reason == duty_limit_failure``) keeps the stop. The hand-overs
+    the smallest continuous duty counts as not running; where the other limit
+    ends a run that way, or leaves nothing more at its start, no cut-out is
+    reported (``limit_stop`` is the condensing limit's stop and the boiling
+    point) and no failure. A cycle the condensing limit itself refuses at the
+    duty the limit's line gives (``failure_reason == duty_limit_failure``)
+    keeps the stop. The hand-overs
     of one step are bounded; a step that uses them up ends its run without a
     ``limit_stop`` (it has not met a cut-out) and the next step goes on. The
     documentation has the measured agreement between step sizes.
@@ -1724,6 +1727,14 @@ def _resolve_duty_limited(
         """No operating point: the compressor does not run, and the row is the cycle's own (its failure)."""
         return simulate_thermostat_step(Q_on=0.0, **kw), cycle
 
+    def idle(kw: dict) -> tuple[InStepRun, dict | None]:
+        """Another limit leaves no more than the smallest continuous duty: the compressor stays off.
+
+        Not a cut-out (the condensing limit would leave more) and not a cycle
+        that failed (it exists): the step reports neither, and the call stands.
+        """
+        return dataclasses.replace(simulate_thermostat_step(Q_on=0.0, **kw), heat_unavailable=False), None
+
     def up_to(kw: dict, q: float, T_cut_C: float) -> InStepRun:
         """The step of a compressor with the one duty ``q`` and its cut-out at ``T_cut_C``."""
         cut = min(kw["T_limit_C"], T_cut_C)
@@ -1743,8 +1754,8 @@ def _resolve_duty_limited(
         compressor does not run and the row is the failure of the coldest
         cycle that did not.
         A cycle the other limit holds at or below the smallest continuous duty
-        counts as not running, as everywhere in this resolution (the stop
-        stands there: ``None``).
+        counts as not running, as everywhere in this resolution; where that is
+        all there is above the start, the compressor stays off (``idle``).
         """
         if cycle is None:
             return None
@@ -1772,7 +1783,10 @@ def _resolve_duty_limited(
                 if ran(trial, T_mid) <= limit.Q_min:
                     T_closed, probe = T_mid, trial
         if T_first is None or T_ran <= T_first + TEMPERATURE_TOL_K:
-            return no_cycle(kw, probe) if delivered_tank_heat(probe) <= 0.0 else None
+            # Nothing runs above the start of the run: the cycle's failure, or
+            # (a cycle held at no more than the smallest duty) the compressor
+            # stays off without one.
+            return no_cycle(kw, probe) if delivered_tank_heat(probe) <= 0.0 else idle(kw)
         # The run ends where the other limit closes. It is a shorter run with
         # another mean: the cycle at that mean, and the events with the duty
         # it delivers (never above where that duty meets the condensing limit).
@@ -1972,7 +1986,12 @@ def _resolve_duty_limited(
             goes_on = (
                 q_top > limit.Q_min * (1.0 + DUTY_MATCH_RTOL) if q_top is not None else T_ran > T_top + _LINE_SPAN_K
             )
-            return onward(kw, whole, again_up_to, run.limit_stop_C, stages_left) if goes_on else whole
+            further = onward(kw, whole, again_up_to, run.limit_stop_C, stages_left) if goes_on else whole
+            if further[0] is not whole[0]:
+                return further
+            # The other limit ended the run, below the condensing limit's
+            # stop: not one of the cut-outs.
+            return dataclasses.replace(whole[0], limit_stop=False, limit_stop_C=None, limit_stop_s=None), middle
         if T_meet < min(kw["T_limit_C"], limit.stop_C) - TEMPERATURE_TOL_K and run.limit_stop_C >= T_meet:
             # The other limit's line has met the condensing limit's: on from there, on the condensing limit.
             return onward(kw, whole, again_up_to, T_meet, stages_left)
@@ -2153,9 +2172,10 @@ def _resolve_duty_limited(
                     if ran(retry, T_first) > limit.Q_min:
                         q_run, full_result, spare = delivered_tank_heat(retry), None, retry
                         continue
-                # Nothing runs: the cycle's failure; or the stop stands, as for
-                # the full-duty cycle above.
-                return no_cycle(kw, reduced_result) if q_delivered <= 0.0 else None
+                # Nothing runs: the cycle's failure; or a cycle that the other
+                # limit holds at no more than the smallest continuous duty, at
+                # the start of the run too.
+                return no_cycle(kw, reduced_result) if q_delivered <= 0.0 else idle(kw)
             # The whole run was taken for the limit's and is the other limit's:
             # the events again with the duty that limit leaves.
             q_run, full_result, spare = q_delivered, None, reduced_result

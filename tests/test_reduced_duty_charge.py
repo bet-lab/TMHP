@@ -1490,11 +1490,10 @@ def test_a_limit_just_below_the_condensing_one_is_followed_to_where_it_ends():
                 other, T_start=tank, dt=dt, call_start=call, running_prev=running, phase_age_s=age
             )
             assert run.reduced_fraction == 0.0, parts  # never on the condensing limit: 100 W below it
-            if run.limit_stop:
-                # A cut-out is reported only where the other limit has ended: with the tank at the
-                # temperature at which it leaves the smallest duty, or a run that got there.
-                top = tank if run.T_on_max_C is None else max(tank, run.T_on_max_C)
-                assert top >= floor_C - 0.005, (parts, tank, run)
+            # ... and never stopped by it: the other limit ends the charge 0.05 K below the condensing
+            # cut-out (64 degC), and neither that end nor the steps after it are a condensing stop.
+            assert in_step_stop_reason(run, T_WATER_BOIL_C) is None, (parts, tank, run)
+            assert not run.heat_unavailable, parts  # nor a cycle that failed: it runs, at too little
             if row is not None and row.get("hp_is_on") and run.runtime_fraction > 0.0:
                 assert row["capacity_binding"] == OTHER, parts
                 step_heat = row["Q_ref_tank [W]"] * run.runtime_fraction * dt
@@ -1566,6 +1565,12 @@ def test_a_second_limit_of_any_shape_comes_out_the_same_at_any_step(shape):
                 top = tank if run.T_on_max_C is None else max(tank, run.T_on_max_C)
                 left = min(other(top), LIMIT.duty(top))
                 assert left <= LIMIT.Q_min * 1.002, (shape, parts, top, left)
+                # A condensing stop is the condensing limit's: reported with the tank at that limit's
+                # stop (64 degC) only, never where the second limit ended the run below it.
+                assert in_step_stop_reason(run, T_WATER_BOIL_C) == STOP_CONDENSING_LIMIT
+                assert top == pytest.approx(LIMIT.stop_C, abs=0.005), (shape, parts, top)
+            else:
+                assert in_step_stop_reason(run, T_WATER_BOIL_C) is None
             on_limit += run.reduced_fraction * dt
             call, running, age = run.call_end, run.running_end, run.phase_age_end_s
         out[parts] = (tank, heat, on_limit)
@@ -1574,3 +1579,7 @@ def test_a_second_limit_of_any_shape_comes_out_the_same_at_any_step(shape):
         assert out[parts][0] == pytest.approx(fine[0], abs=T_tol), (shape, parts)
         assert out[parts][1] == pytest.approx(fine[1], rel=Q_tol), (shape, parts)
         assert out[parts][2] == pytest.approx(fine[2], abs=t_tol), (shape, parts)
+    # Only the shallow and the rising limit let the tank get to the condensing limit's stop.
+    assert (fine[0] == pytest.approx(LIMIT.stop_C, abs=0.005)) == (
+        shape in ("shallow, meeting the condensing limit", "rising")
+    )

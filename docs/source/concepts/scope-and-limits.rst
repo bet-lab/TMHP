@@ -128,9 +128,11 @@ The refrigerant cycle
     * - Wet suction without an efficiency penalty
       - When the discharge control lets the suction go wet, the efficiency
         maps, fitted to dry-suction data, are used unchanged
-      - Rows with ``discharge_control == True`` are optimistic by a few
-        percent in COP, and their duty at the edge of the limit is an upper
-        estimate (:doc:`/developer/reference-operating-limits`)
+      - The 16 scored air-to-water points with wet suction average +0.4 %
+        COP bias against the catalogues. The 124 scored points without
+        discharge control average −6.7 %. The duty at the edge of the limit
+        is an upper estimate when liquid reduces compressor efficiency
+        (:ref:`discharge-control-against-catalogues`)
     * - No pressure drop
       - Heat exchangers and lines are isobaric and the expansion is
         isenthalpic; superheat and subcooling are set values, not the result

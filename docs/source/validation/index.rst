@@ -715,18 +715,18 @@ and ``hold`` for the groups present in the results.
       - No estimate
     * - Air-to-water
       - Adopted
-      - 17 / 153
-      - 98.72 %
+      - 8 / 153
+      - 99.30 %
       - 72.24 %
-      - 81 (116.44 %)
-      - 71 (150 %)
+      - 65 (123.70 %)
+      - 87 (150 %)
       - 1
     * - Air-to-air
       - Adopted
       - 0 / 360
       - 100.00 %
       - 100.00 %
-      - 360 (158.77 %)
+      - 360 (166.13 %)
       - 0
       - 0
     * - Air-to-air
@@ -734,28 +734,29 @@ and ``hold`` for the groups present in the results.
       - 0 / 244
       - 100.00 %
       - 100.00 %
-      - 244 (165.62 %)
+      - 244 (169.25 %)
       - 0
       - 0
 
-Compressor speed binds 12 of the air-to-water points, and the condensing
+Compressor speed binds three of the air-to-water points, and the condensing
 temperature limit binds five. Probe headroom is the probed duty divided by
 the published duty. For air-to-air, the probe uses
 :meth:`~tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity`. For
 air-to-water, it requests 1.5 times the published duty at the same outdoor
-temperature, entering water temperature and water flow. This overload reaches
-more limits than a 1.25× request and avoids the larger extrapolation of a 2×
-request. Meeting the overload within the relative validation tolerance of
+temperature, entering water temperature and water flow. The multiplier
+allows the probe to reach limits above the published duty with a bounded
+overload request. Meeting the overload within the relative validation tolerance of
 10⁻⁶ establishes a lower bound at the requested multiplier (150 % headroom).
 A smaller return beyond that tolerance gives a ceiling. For either model,
 if the probe returns a lower duty than the ordinary solve within the same
 tolerance, the probe records the duty from the ordinary solve. A larger drop
-leaves the estimate missing. This happened at one air-to-water point. All 604
-air-to-air probes matched their direct maximum-capacity result.
+or a failed probe leaves the estimate missing.
 
-Among scored air-to-water points, COP MAPE and bias were 8.1 % and −6.1 %
-without discharge control (127 points), 6.7 % and +3.1 % with reduced
-superheat (5 points), and 18.0 % and +18.0 % with wet suction (4 points).
+Among scored air-to-water points, COP MAPE and bias were 7.9 % and −6.7 %
+without discharge control (124 points), 8.3 % and −5.9 % with reduced
+superheat (5 points), and 8.2 % and +0.4 % with wet suction (16 points).
+All 360 scored air-to-air points ran without discharge control (12.6 % MAPE
+and −12.1 % bias).
 Scored adopted points with a missing control flag, or with control active
 and missing suction quality, are counted in the ``unknown`` stratum.
 

@@ -493,7 +493,11 @@ limit the one that governs the stretch (checked per source state at three
 tank temperatures; *Where it applies* below has the check and the case it
 does not see) -- the run time and the heat of a step are exact
 whatever the step: on the charges below, 60 s, 600 s and 3600 s steps give the
-same run time to the second and the same heat to 0.05 %.
+same run time to the second and the same heat to 0.05 %. One stretch is
+deliberately not the events': the hold of a step in which the tank first
+cooled to the stop takes its heat from the balance that closes the step, and
+so depends on the step length (*Where the charge ends*; 0.002 % of the heat
+of an hour in the case measured there).
 
 That is a statement about the events, not about every tank. The tank
 temperature a step ends at does not come from them: as on every step of either
@@ -599,7 +603,13 @@ step at that temperature. With the heat of the events' hold the 15 kW R32
 unit at 35 °C outdoor, cooling from 61.8 °C to its stop of 61.3034 °C in a
 600 s step, ended the step 1.3e-4 K above the stop, and the next step counted
 a stop and a second start; it now ends at the stop and the run has one
-start, with 60 s, 600 s and 3600 s steps.) Where the tank reaches the stop in
+start, with 60 s, 600 s and 3600 s steps.) That heat is the closing
+balance's, not the events', so it depends on the step length as that balance
+does: a long step takes the loss of the cooling at the stop's temperature, a
+run of short ones at the warmer temperatures the tank passes through. The
+hour of this case delivers 3624.30, 3624.29, 3624.22 and 3624.22 kJ with 10,
+60, 600 and 3600 s steps -- 79 J or 0.002 % apart, 458.12 to 458.11 s of run
+time -- and ends at the stop with all four. Where the tank reaches the stop in
 the last moments of a step, so that by the closing balance it is not there
 yet, the compressor starts in the next step. A step with reduced-duty
 charging withheld holds at its nameplate cut-out with the kernel of

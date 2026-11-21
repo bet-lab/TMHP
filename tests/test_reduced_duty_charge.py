@@ -1529,6 +1529,40 @@ def test_a_tank_that_cools_to_the_stop_and_is_held_there_starts_once(dt, steps):
     assert state.hp_running_prev and state.hp_phase_age_s < steps * dt
 
 
+def test_the_heat_of_a_hold_after_cooling_depends_on_the_step_as_the_closing_balance_does():
+    """The same hour at 60, 600 and 3600 s steps: one start and the tank at the stop, the heat 0.002 % apart.
+
+    The heat of the step in which the tank gets to the stop is what its closing balance needs, and
+    that balance takes the loss of the whole step at its end temperature: a long step charges the
+    cooling with the loss at the stop, short ones with the larger loss of the warmer tank. So the
+    hour's heat is not the same number at every step size, as the heat of the events is; measured
+    3624.29, 3624.22 and 3624.22 kJ (65 J less with the long steps).
+    """
+    m = _quiet(
+        tmhp.AirSourceHeatPumpBoiler,
+        ref="R32",
+        T_tank_w_lower_bound=62.0,
+        T_tank_w_upper_bound=65.0,
+        condensing_limit_control="reduce_duty",
+    )
+    hour = {}
+    for dt in STEPS:
+        state, heat, starts = m.make_initial_state(61.8), 0.0, 0
+        for i in range(int(round(HORIZON / dt))):
+            inputs = dict(n=i, current_time_s=i * dt, T0=35.0, dV_mix_w_out=1e-5, T_sup_w=15.0, T_sur=20.0)
+            state, row = _quiet(m.step, state, inputs, dt)
+            heat, starts = heat + row["Q_ref_tank [W]"] * dt, starts + row["hp_starts [-]"]
+        hour[dt] = (heat, state.T_tank_w_K - 273.15, starts)
+    assert [hour[dt][2] for dt in STEPS] == [1, 1, 1]
+    for dt in STEPS:
+        assert hour[dt][1] == pytest.approx(hour[60.0][1], abs=1e-9)
+        assert hour[dt][1] == pytest.approx(61.303399, abs=1e-6)
+        assert hour[dt][0] == pytest.approx(3.62429e6, rel=5e-5)
+    # Not the same heat, and in the direction the closing balance gives: less with the longer steps.
+    assert 30.0 < hour[60.0][0] - hour[600.0][0] < 130.0
+    assert hour[3600.0][0] == pytest.approx(hour[600.0][0], abs=5.0)
+
+
 def test_near_the_bound_of_the_scaling_the_row_is_still_one_cycle():
     """A hold at the stop whose cycle has 0.099 % more than it was asked for, against the 0.1 % allowed.
 

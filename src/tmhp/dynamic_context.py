@@ -1056,7 +1056,13 @@ def _simulate_duty_limited_step(
     the cut-out. Where that heat is not positive -- the events' tank reaches
     the cut-out in the last moments of the step, and by the closing balance it
     is not there yet -- the compressor stays off through the step and starts
-    in the next. Only a hold the compressor comes to without having run in the
+    in the next. The heat of such a step is then the closing balance's and
+    not the events': unlike the rest of this function it depends on the step
+    length, as that balance does (a long step takes the loss of the cooling
+    at the cut-out's temperature, short ones at the temperatures the tank
+    passes through). Measured on the R32 unit above over one hour: 3624.30,
+    3624.29, 3624.22 and 3624.22 kJ with 10, 60, 600 and 3600 s steps, 0.002 %
+    apart, the tank at the cut-out at the end of each. Only a hold the compressor comes to without having run in the
     step is treated so: a step that charges up to the cut-out and holds keeps
     the heat of its events. Its tank was colder than the cut-out on the way,
     so with a loss that grows with the temperature its closing balance ends
@@ -1462,8 +1468,9 @@ def resolve_step_operation(
     That second check does depend on the step: its cycles are solved at the
     means of the step's own stretches, which move with the step length and
     with the tank temperature the step starts from. Where the caller's
-    answer is right for the whole stretch the check never acts and the charge
-    is the same at any step. Where another limit acts on a part of the
+    answer is right for the whole stretch the check never acts, and adds no
+    dependence on the step to what the events and the closing balance have
+    of their own. Where another limit acts on a part of the
     stretch the caller did not look at, a step is withheld or not by where
     its cycle lands, and the charge then depends on the step size (measured
     in ``docs/source/developer/reference-operating-limits.rst``, *Where it

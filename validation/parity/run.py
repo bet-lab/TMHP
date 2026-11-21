@@ -53,7 +53,7 @@ import pandas as pd
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
 from tmhp.compressor_efficiency import COEFFICIENT_VERSION
 from tmhp.compressor_envelope import CONTROL_KEY, QUALITY_KEY, SUPERHEAT_KEY
-from tmhp.standard_conditions import en14511_condenser_water
+from tmhp.standard_conditions import en14511_condenser_water, en14511_water_rise
 
 from .spec import Catalog, OperatingPoint, load_all
 
@@ -76,6 +76,7 @@ CAPACITY_POINT_COLUMNS = (
     "t_discharge_C",
     "q_max_pred_kW",
     "capacity_headroom",
+    "capacity_probe",
 )
 
 
@@ -138,11 +139,17 @@ def _build_model(catalog: Catalog, overrides: dict | None = None, mode: str = "c
 
 
 def _run_point(model, catalog: Catalog, point: OperatingPoint, *, request_multiplier: float = 1.0) -> dict:
+    """Solve at the catalogue boundary conditions, or mark a non-finite request unusable."""
+    duty = point.q_kW * 1000.0
+    if not math.isfinite(duty):
+        return {"failure_reason": "invalid_catalogue_duty"}
     if catalog.model_class == "ASHPB":
         # EN 14511: the catalogue's leaving water, entered at the standard's rise below it, at the flow
         # that carries the published duty at that rise (tmhp.standard_conditions.en14511_condenser_water).
-        duty = point.q_kW * 1000.0
-        T_entering, m_dot_w = en14511_condenser_water(point.t_sink_C, duty)
+        if duty == 0.0:
+            T_entering, m_dot_w = point.t_sink_C - en14511_water_rise(point.t_sink_C), 0.0
+        else:
+            T_entering, m_dot_w = en14511_condenser_water(point.t_sink_C, duty)
         result = model.analyze_steady(
             T_tank_w=T_entering,
             T0=point.t_source_C,
@@ -152,9 +159,7 @@ def _run_point(model, catalog: Catalog, point: OperatingPoint, *, request_multip
         )
     else:
         # Air-to-air sign convention: positive load is cooling.
-        load_w = point.q_kW * 1000.0
-        if point.mode == "heating":
-            load_w = -load_w
+        load_w = -duty if point.mode == "heating" else duty
         result = model.analyze_steady(
             Q_r_iu=load_w,
             T0=point.t_source_C,
@@ -181,6 +186,11 @@ def _result_number(result: dict, key: str) -> float:
     return value if math.isfinite(value) else math.nan
 
 
+def _capacity_ratio(duty_kW: float, published_kW: float) -> float:
+    """Divide by the published duty when it is finite and nonzero."""
+    return duty_kW / published_kW if math.isfinite(published_kW) and published_kW != 0.0 else math.nan
+
+
 def _probe_capacity(
     model,
     catalog: Catalog,
@@ -189,26 +199,38 @@ def _probe_capacity(
     *,
     multiplier: float = BOILER_PROBE_MULTIPLIER,
     rel_tol: float = CAPACITY_PROBE_REL_TOL,
-) -> float:
-    """Return the model's capacity probe in kW at the catalogue boundary conditions.
+) -> tuple[float, str | None]:
+    """Return the probed duty in kW and label it as a ceiling or lower bound.
 
-    The boiler overload holds the catalogue water inlet temperature and flow.
-    A successful probe that meets the overload gives a lower bound on the
-    ceiling. If both solves agree within the validation precision, the larger
-    value is a duty the model has delivered. A failed probe or a material drop
-    from the ordinary request gives no estimate.
+    Air-to-air uses the model's maximum-capacity solve. The boiler overload
+    holds the catalogue water inlet temperature and flow and gives a lower
+    bound when it meets the overload to the validation tolerance. Clamp a
+    numerical inversion to the ordinary duty in both paths. A failed probe
+    or a material drop gives a missing duty and label.
     """
+    if not math.isfinite(point.q_kW):
+        return math.nan, None
+    kind = "ceiling"
     if catalog.model_class == "ASHP":
         ceiling = model.max_capacity(T0=point.t_source_C, T_a_room=point.t_sink_C, mode=point.mode)
-        return _result_number(ceiling, "Q_max [W]") / 1000.0
-
-    overload = _run_point(model, catalog, point, request_multiplier=multiplier)
-    delivered = _result_number(overload, "Q_ref_tank [W]") / 1000.0
-    if overload.get("failure_reason", "none") != "none":
-        return math.nan
-    if delivered < delivered_kW:
-        return delivered_kW if math.isclose(delivered, delivered_kW, rel_tol=rel_tol) else math.nan
-    return delivered
+        probed_kW = _result_number(ceiling, "Q_max [W]") / 1000.0
+    else:
+        if point.q_kW == 0.0:
+            return math.nan, None
+        overload = _run_point(model, catalog, point, request_multiplier=multiplier)
+        if overload.get("failure_reason", "none") != "none":
+            return math.nan, None
+        probed_kW = _result_number(overload, "Q_ref_tank [W]") / 1000.0
+        requested_kW = point.q_kW * multiplier
+        if probed_kW >= requested_kW or math.isclose(probed_kW, requested_kW, rel_tol=rel_tol):
+            kind = "lower_bound"
+    if not math.isfinite(probed_kW):
+        return math.nan, None
+    if probed_kW < delivered_kW:
+        if not math.isclose(probed_kW, delivered_kW, rel_tol=rel_tol):
+            return math.nan, None
+        probed_kW = delivered_kW
+    return probed_kW, kind
 
 
 #: Scoring reason: the model meets the published duty only as the mean of on/off cycling.
@@ -230,6 +252,7 @@ def _cycling_mean(result: dict) -> bool:
 
 
 def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame:
+    """Score COP at the published duty and then record independent probes of capacity."""
     models = {"cooling": _build_model(catalog, overrides, "cooling")}
     if catalog.published_inputs.get("rated_indoor_air_flow_heating_m3_s"):
         models["heating"] = _build_model(catalog, overrides, "heating")
@@ -277,7 +300,7 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
                 "cop_basis": "final_indoor_air_sensible" if catalog.model_class == "ASHP" else "tank_duty",
                 "abs_error": abs(cop_pred - cop_target) if usable else float("nan"),
                 "abs_pct_error": abs(cop_pred - cop_target) / cop_target * 100.0 if usable else float("nan"),
-                "power_target_kW": point.q_kW / cop_target,
+                "power_target_kW": point.q_kW / cop_target if cop_target != 0.0 else point.power_kW,
                 # Requested catalogue duty is a coil input, not the final-air
                 # COP numerator; read the actual electrical input directly.
                 "power_pred_kW": float(result["E_tot [W]"]) / 1000 if usable else float("nan"),
@@ -292,7 +315,7 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
                 "failure_reason": failure,
                 "usable": usable,
                 "q_pred_kW": delivered / 1000.0,
-                "capacity_ratio": (delivered / 1000.0) / point.q_kW,
+                "capacity_ratio": _capacity_ratio(delivered / 1000.0, point.q_kW),
                 "capacity_binding": result.get("capacity_binding"),
                 "x_suction": _result_number(result, QUALITY_KEY),
                 "superheat_K": _result_number(result, SUPERHEAT_KEY),
@@ -304,23 +327,33 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
     # solves cannot affect the original scoring path.
     for point, row in zip(catalog.points, rows, strict=True):
         model = models.get(point.mode, models["cooling"])
-        q_max = _probe_capacity(model, catalog, point, row["q_pred_kW"])
-        row.update(q_max_pred_kW=q_max, capacity_headroom=q_max / point.q_kW)
+        q_max, kind = _probe_capacity(model, catalog, point, row["q_pred_kW"])
+        row.update(
+            q_max_pred_kW=q_max,
+            capacity_headroom=_capacity_ratio(q_max, point.q_kW),
+            capacity_probe=kind,
+        )
     return pd.DataFrame(rows)
 
 
 def _capacity_score(df: pd.DataFrame) -> dict:
-    """Calculate point-weighted capacity statistics across all available observations."""
+    """Score delivered duty on all rows and report probe coverage and mean ceiling headroom."""
+    ceilings = df.capacity_probe.eq("ceiling")
+    ceiling_headroom = df.loc[ceilings, "capacity_headroom"]
     return {
         "points_capacity_short": int(df.failure_reason.eq(CAPACITY_SHORT).sum()),
         "capacity_ratio_mean": float(df.capacity_ratio.mean()) if df.capacity_ratio.notna().any() else None,
         "capacity_ratio_min": float(df.capacity_ratio.min()) if df.capacity_ratio.notna().any() else None,
         "capacity_binding_counts": df.capacity_binding.value_counts().sort_index().to_dict(),
-        "capacity_headroom_mean": float(df.capacity_headroom.mean()) if df.capacity_headroom.notna().any() else None,
+        "points_capacity_ceiling": int(ceilings.sum()),
+        "capacity_ceiling_headroom_mean": float(ceiling_headroom.mean()) if ceiling_headroom.notna().any() else None,
+        "points_capacity_lower_bound": int(df.capacity_probe.eq("lower_bound").sum()),
+        "points_capacity_no_estimate": int(df.capacity_probe.isna().sum()),
     }
 
 
 def _summarise(df: pd.DataFrame) -> dict:
+    """Summarize one catalogue, including all rows for capacity and usable rows for COP."""
     good = df[df.usable]
     power_ape = (
         (good.power_pred_kW - good.power_target_kW).abs() / good.power_target_kW * 100.0
@@ -555,14 +588,18 @@ def summarize(catalogs: list[Catalog], results_dir: Path) -> tuple[pd.DataFrame,
     Every path ends here -- the single-process run, ``--unit`` and
     ``--summarize-only`` -- so they write the same files for the same unit
     results. The manifest carries the provenance the unit runs recorded, never
-    that of the process doing the summarising.
+    that of the process doing the summarising. Model-class capacity scores
+    pool points within the same catalogue status.
     """
     frames, records = _read_unit_results(catalogs, results_dir)
     provenance = common_provenance(records)
     summary = pd.DataFrame([_summarise(df) for df in frames])
     summary = summary.sort_values(["model_class", "manufacturer", "nominal_kW"]).reset_index(drop=True)
     points = pd.concat(frames, ignore_index=True)
-    class_scores = {name: _capacity_score(group) for name, group in points.groupby("model_class")}
+    class_scores = {
+        status: {name: _capacity_score(group) for name, group in by_status.groupby("model_class")}
+        for status, by_status in points.groupby("status")
+    }
     adopted = summary[summary.status == "adopted"]
     held = summary[summary.status == "hold"]
     manifest = {
@@ -573,12 +610,19 @@ def summarize(catalogs: list[Catalog], results_dir: Path) -> tuple[pd.DataFrame,
         "adopted_units": int(len(adopted)),
         "held_units": sorted(held.slug.tolist()),
         "capacity_by_unit": {df.slug.iat[0]: _capacity_score(df) for df in frames},
-        "capacity_by_model_class": class_scores,
+        "capacity_by_status_and_model_class": class_scores,
+        "capacity_probe_lower_bound_multiplier": BOILER_PROBE_MULTIPLIER,
         "discharge_control_strata": discharge_control_strata(points).to_dict("records"),
     }
-    # Keep one row per catalogue for the existing site consumers.
-    class_summary = pd.DataFrame.from_dict(class_scores, orient="index").add_prefix("class_")
-    summary = summary.join(class_summary, on="model_class")
+    # Keep one row per catalogue with the class score for that row's status.
+    class_summary = pd.DataFrame(
+        [
+            {"status": status, "model_class": name, **score}
+            for status, scores in class_scores.items()
+            for name, score in scores.items()
+        ]
+    ).set_index(["status", "model_class"])
+    summary = summary.join(class_summary.add_prefix("class_"), on=["status", "model_class"])
     for col in ("capacity_binding_counts", "class_capacity_binding_counts"):
         summary[col] = summary[col].map(json.dumps)
     summary.to_csv(results_dir / SUMMARY_CSV.name, index=False)
@@ -653,13 +697,17 @@ def injection_strata(summary: pd.DataFrame, catalogs: list[Catalog] | None = Non
 
 
 def discharge_control_strata(points: pd.DataFrame) -> pd.DataFrame:
-    """COP error of scored adopted points by model class, standard and suction control."""
+    """Partition scored adopted points by control and suction quality, including missing information."""
     scored = points.loc[points.usable & points.status.eq("adopted")]
-    controlled = scored.discharge_control.eq(True)
+    controlled = scored.discharge_control.eq(True).fillna(False)
+    no_control = scored.discharge_control.eq(False).fillna(False)
+    reduced_superheat = controlled & scored.x_suction.ge(1).fillna(False)
+    wet_suction = controlled & scored.x_suction.lt(1).fillna(False)
     layers = {
-        "no_control": scored.loc[scored.discharge_control.eq(False)],
-        "reduced_superheat": scored.loc[controlled & scored.x_suction.ge(1)],
-        "wet_suction": scored.loc[controlled & scored.x_suction.lt(1)],
+        "no_control": scored.loc[no_control],
+        "reduced_superheat": scored.loc[reduced_superheat],
+        "wet_suction": scored.loc[wet_suction],
+        "unknown": scored.loc[~(no_control | reduced_superheat | wet_suction)],
     }
     rows = []
     for stratum, frame in layers.items():
@@ -680,6 +728,7 @@ def discharge_control_strata(points: pd.DataFrame) -> pd.DataFrame:
 
 
 def _print_summary(summary: pd.DataFrame, manifest: dict) -> None:
+    """Print per-unit scores, adopted COP headlines and status-specific capacity scores."""
     print(f"Catalogue parity -- library defaults applied unchanged (coefficients {COEFFICIENT_VERSION})")
     print()
     cols = [
@@ -696,7 +745,10 @@ def _print_summary(summary: pd.DataFrame, manifest: dict) -> None:
         "capacity_ratio_mean",
         "capacity_ratio_min",
         "capacity_binding_counts",
-        "capacity_headroom_mean",
+        "points_capacity_ceiling",
+        "capacity_ceiling_headroom_mean",
+        "points_capacity_lower_bound",
+        "points_capacity_no_estimate",
     ]
     print(summary[cols].to_string(index=False, float_format=lambda v: f"{v:.2f}"))
     print()
@@ -717,14 +769,21 @@ def _print_summary(summary: pd.DataFrame, manifest: dict) -> None:
             f"{row.points_usable}/{row.points} points, COP MAPE {row.cop_MAPE_pct:.1f} %, bias {row.cop_bias_pct:+.1f} %"
         )
     print()
-    for model_class, score in manifest["capacity_by_model_class"].items():
-        points = summary.loc[summary.model_class.eq(model_class), "points"].sum()
-        capacity = {key: f"{value:.3f}" if isinstance(value, float) else value for key, value in score.items()}
-        print(
-            f"  {model_class:5s} capacity: {score['points_capacity_short']}/{points} short, "
-            f"mean ratio {capacity['capacity_ratio_mean']}, min ratio {capacity['capacity_ratio_min']}, "
-            f"mean headroom {capacity['capacity_headroom_mean']}, bindings {score['capacity_binding_counts']}"
-        )
+    for status, scores in manifest["capacity_by_status_and_model_class"].items():
+        scope = "held" if status == "hold" else status
+        for model_class, score in scores.items():
+            points = summary.loc[summary.model_class.eq(model_class) & summary.status.eq(status), "points"].sum()
+            capacity = {key: f"{value:.3f}" if isinstance(value, float) else value for key, value in score.items()}
+            ceiling_mean = capacity["capacity_ceiling_headroom_mean"]
+            lower_bounds = score["points_capacity_lower_bound"]
+            multiplier = f" ({BOILER_PROBE_MULTIPLIER:g}x)" if lower_bounds else ""
+            print(
+                f"  {model_class:5s} {scope} capacity: {score['points_capacity_short']}/{points} short, "
+                f"mean ratio {capacity['capacity_ratio_mean']}, min ratio {capacity['capacity_ratio_min']}, "
+                f"{score['points_capacity_ceiling']} ceilings (mean headroom {ceiling_mean or 'n/a'}), "
+                f"{lower_bounds} lower bounds{multiplier}, {score['points_capacity_no_estimate']} without an estimate, "
+                f"bindings {score['capacity_binding_counts']}"
+            )
     for row in manifest["discharge_control_strata"]:
         print(
             f"  {row['model_class']:5s} {row['rating_standard']} {row['stratum']}: {row['points_usable']} scored points, "

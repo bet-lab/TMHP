@@ -25,6 +25,8 @@ FAKES = tuple(
         "R32",
         nominal,
         tuple(OperatingPoint(i, t, 45.0, nominal, cop=3.0 + 0.1 * i) for i, t in enumerate((-7.0, 2.0, 7.0), 1)),
+        status="hold" if slug == "fake_c" else "adopted",
+        hold_reason="Fixture for held capacity diagnostics" if slug == "fake_c" else "",
     )
     for slug, nominal in (("fake_a", 9.0), ("fake_b", 12.0), ("fake_c", 16.0))
 )
@@ -103,6 +105,24 @@ def test_manifest_carries_the_unit_provenance_not_the_summariser(harness, tmp_pa
     assert manifest["git_head"] == "0" * 40
     assert manifest["src_tmhp_tree"] == "1" * 40
     assert manifest["python"] == "3.0.0"
+
+
+def test_cli_and_manifest_report_capacity_separately_by_status(harness, tmp_path: Path, capsys) -> None:
+    """The ordinary CLI reports adopted capacity separately from held diagnostics."""
+    harness.main(["--results-dir", str(tmp_path)])
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    groups = manifest["capacity_by_status_and_model_class"]
+    assert set(groups) == {"adopted", "hold"}
+    for status, count in [("adopted", 6), ("hold", 3)]:
+        score = groups[status]["ASHPB"]
+        assert score["points_capacity_ceiling"] == 0
+        assert score["capacity_ceiling_headroom_mean"] is None
+        assert score["points_capacity_lower_bound"] == count
+        assert score["points_capacity_no_estimate"] == 0
+    output = capsys.readouterr().out
+    assert "ASHPB adopted capacity: 0/6 short" in output
+    assert "ASHPB held capacity: 0/3 short" in output
+    assert "6 lower bounds (1.5x), 0 without an estimate" in output
 
 
 @pytest.mark.parametrize("key", ["src_tmhp_tree", "validation_parity_tree", "python", "platform"])
@@ -251,16 +271,18 @@ def test_committed_parity_figure_states_the_adopted_statistics() -> None:
 
 
 @pytest.mark.parametrize(
-    ("probe_duty", "failure", "expected_kW"),
+    ("probe_duty", "failure", "expected_kW", "kind"),
     [
-        (10_000.0, "none", 10.0),
-        (7_999.99999, "none", 8.0),
-        (7_000.0, "none", None),
-        (8_000.0, "cycle", None),
+        (13_500.0, "none", 13.5, "lower_bound"),
+        (13_499.0, "none", 13.499, "ceiling"),
+        (10_000.0, "none", 10.0, "ceiling"),
+        (7_999.99999, "none", 8.0, "ceiling"),
+        (7_000.0, "none", None, None),
+        (8_000.0, "cycle", None, None),
     ],
 )
 def test_boiler_capacity_probe_keeps_the_catalogue_water_conditions(
-    monkeypatch, probe_duty, failure, expected_kW
+    monkeypatch, probe_duty, failure, expected_kW, kind
 ) -> None:
     """The overload changes only the duty request and discards unreliable returns."""
     import math
@@ -300,6 +322,7 @@ def test_boiler_capacity_probe_keeps_the_catalogue_water_conditions(
     assert row.superheat_K == 0.0
     assert row.x_suction == 0.95
     assert row.t_discharge_C == 140.0
+    assert row.capacity_probe == kind
     if expected_kW is None:
         assert math.isnan(row.q_max_pred_kW)
         assert math.isnan(row.capacity_headroom)

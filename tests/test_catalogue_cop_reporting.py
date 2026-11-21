@@ -1,6 +1,7 @@
 """How the parity harness scores a row: the electrical input it reads, and the rows it does not score."""
 
 import math
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -64,3 +65,51 @@ def test_a_row_that_is_not_the_catalogue_operating_point_is_not_scored(
     out = run.run_catalog(catalog).iloc[0]
     assert out["failure_reason"] == reason and bool(out["usable"]) is scored
     assert out["cop_pred"] == pytest.approx(4.9) if scored else math.isnan(out["cop_pred"])
+
+
+@pytest.mark.parametrize("model_class", ["ASHP", "ASHPB"])
+@pytest.mark.parametrize(
+    ("duty", "cop", "power_kW"),
+    [(0.0, 3.0, None), (0.0, None, 1.0), (math.nan, 3.0, None), (math.inf, 3.0, None), (-math.inf, 3.0, None)],
+)
+def test_invalid_capacity_denominator_keeps_the_catalogue_running(model_class, duty, cop, power_kW):
+    """Keep the unusable point and solve the following rated point."""
+    (catalog,) = run.load_all("daikin_rxm20a" if model_class == "ASHP" else "panasonic_wh_uq09he8")
+    valid = catalog.points[0]
+    invalid = replace(valid, id=0, q_kW=duty, cop=cop, power_kW=power_kW)
+    frame = run.run_catalog(replace(catalog, points=(invalid, valid)))
+    row = frame.iloc[0]
+    assert list(frame.point_id) == [0, valid.id]
+    assert not row.usable
+    assert math.isnan(row.cop_pred)
+    assert math.isnan(row.capacity_ratio)
+    assert math.isnan(row.capacity_headroom)
+    if power_kW is not None:
+        assert row.power_target_kW == power_kW
+    if model_class == "ASHP" and duty == 0.0:
+        assert row.failure_reason == "none"
+        assert row.q_pred_kW == 0.0
+
+
+@pytest.mark.parametrize(
+    ("ceiling_W", "expected_kW", "kind"),
+    [(4_500.0, 4.5, "ceiling"), (2_999.999, 3.0, "ceiling"), (2_999.0, math.nan, None)],
+)
+def test_air_to_air_probe_never_reports_less_than_the_ordinary_duty(monkeypatch, ceiling_W, expected_kW, kind):
+    """Keep numerical ties at the ordinary duty and discard larger inversions."""
+    catalog = Catalog(
+        "fixture", "fixture", "fixture", "ASHP", "R32", 3.0, (OperatingPoint(1, 30, 26, 3, cop=5, mode="cooling"),)
+    )
+    model = SimpleNamespace(
+        analyze_steady=lambda **kw: {"Q_ref_iu [W]": 3000.0, "cop_sys [-]": 5.0, "E_tot [W]": 600.0},
+        max_capacity=lambda **kw: {"Q_max [W]": ceiling_W},
+    )
+    monkeypatch.setattr(run, "_build_model", lambda *args: model)
+    row = run.run_catalog(catalog).iloc[0]
+    assert row.usable and row.cop_pred == 5.0
+    assert row.capacity_probe == kind
+    if kind is None:
+        assert math.isnan(row.q_max_pred_kW) and math.isnan(row.capacity_headroom)
+    else:
+        assert row.q_max_pred_kW == expected_kW
+        assert row.capacity_headroom == pytest.approx(expected_kW / 3.0)

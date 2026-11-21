@@ -196,7 +196,10 @@ def test_strata_and_summary_print_without_air_to_water_units(capsys):
         "capacity_ratio_mean": 1.0,
         "capacity_ratio_min": 1.0,
         "capacity_binding_counts": {},
-        "capacity_headroom_mean": 1.5,
+        "points_capacity_ceiling": 4,
+        "capacity_ceiling_headroom_mean": 1.5,
+        "points_capacity_lower_bound": 0,
+        "points_capacity_no_estimate": 0,
     }
     summary = pd.DataFrame(
         [
@@ -218,7 +221,10 @@ def test_strata_and_summary_print_without_air_to_water_units(capsys):
     )
     strata = run.injection_strata(summary, [])
     assert strata.empty and list(strata.columns) == list(run.STRATA_COLUMNS)
-    run._print_summary(summary, {"capacity_by_model_class": {"ASHP": capacity}, "discharge_control_strata": []})
+    run._print_summary(
+        summary,
+        {"capacity_by_status_and_model_class": {"adopted": {"ASHP": capacity}}, "discharge_control_strata": []},
+    )
     printed = capsys.readouterr().out
     assert "by injection" not in printed
-    assert "capacity: 0/4 short, mean ratio 1.000, min ratio 1.000, mean headroom 1.500" in printed
+    assert "adopted capacity: 0/4 short, mean ratio 1.000, min ratio 1.000, 4 ceilings (mean headroom 1.500)" in printed

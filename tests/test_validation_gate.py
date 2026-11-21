@@ -144,12 +144,14 @@ def test_evaluation_computes_a_value_for_every_entry_and_matches_the_committed_r
             # A point the model does not deliver has no COP to compare: it is named, and it is outside.
             assert row["failure_reason"] != "none" and math.isnan(row["rel_diff"]), row
             assert row["within_tolerance"] is False
-    # The gate as the committed results have it: two of the three points inside +-10 %, and the 12 kW unit
-    # short of its catalogue duty at the 120 rev/s speed ceiling (so not scored; the gate is not met).
+    # The gate as the committed results have it with the default maps of #217: all three points deliver the
+    # catalogue duty, the 12 and 16 kW units inside +-10 % (-5.3 and -5.2 %) and the 9 kW unit just outside it
+    # (-10.0 %), so the gate is not met. (With the semi-empirical models: 9 and 16 kW inside, 12 kW short of
+    # its duty at the 120 rev/s speed ceiling.)
     gate = {r["id"]: (r["within_tolerance"], r["failure_reason"]) for r in report["gate"] if r["kind"] == "catalogue"}
     assert gate == {
-        "wh-uq09he8-a-7-w55": (True, "none"),
-        "wh-uq12he8-a-7-w55": (False, "capacity_short"),
+        "wh-uq09he8-a-7-w55": (False, "none"),
+        "wh-uq12he8-a-7-w55": (True, "none"),
         "wh-uq16he8-a-7-w55": (True, "none"),
     }
     for row in report["reported"]:

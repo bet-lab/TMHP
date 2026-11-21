@@ -73,7 +73,10 @@ def band() -> pd.DataFrame:
 
 
 def _curve(sweep: pd.DataFrame, t_outdoor: float, lwt: float) -> dict[str, float]:
-    """Full-load COP, COP nearest 75 % load, the speed-floor edge and its COP, the gain to it [%], the peak."""
+    """Full-load COP, COP nearest 75 % load, the speed-floor edge and its COP, the gain to it [%], the peak.
+
+    ``running`` is the COP of the rows above the floor, from full load down; ``below`` that of the floor rows.
+    """
     rows = sweep[(sweep.t_outdoor_C == t_outdoor) & (sweep.lwt_C == lwt)].sort_values("plr", ascending=False)
     assert (rows.failure_reason == "none").all(), f"{t_outdoor}/{lwt}: a sweep point did not converge"
     full = rows.iloc[0]
@@ -93,6 +96,8 @@ def _curve(sweep: pd.DataFrame, t_outdoor: float, lwt: float) -> dict[str, float
         "peak_pct": float(peak.plr) * 100.0,
         "peak_rps": float(peak.rps),
         "peak_at_floor": bool(peak.at_floor),
+        "running": rows[~rows.at_floor].cop.to_numpy(),
+        "below": floor.cop.to_numpy(),
     }
 
 
@@ -113,8 +118,8 @@ def test_panel_a_sentence_quotes_the_sweep(page: str, sweep: pd.DataFrame) -> No
     w45 = _curve(sweep, 7.0, 45.0)
     cold = _curve(sweep, -7.0, 45.0)
     text = _flat(page)
-    # The three curves fall from full load to the floor; the page words them as losses, so a sign change fails here.
-    assert w35["gain_pct"] < 0 and w45["gain_pct"] < 0 and cold["gain_pct"] < 0
+    # The three curves rise from full load to the floor; the page words them as gains, so a sign change fails here.
+    assert w35["gain_pct"] > 0 and w45["gain_pct"] > 0 and cold["gain_pct"] > 0
     expected = (
         f"{_change(w35['gain_pct'])} between full load and the speed floor "
         f"(reached at {w35['edge_pct']:.0f} % load) at 7 °C air / 35 °C water, and "
@@ -123,19 +128,21 @@ def test_panel_a_sentence_quotes_the_sweep(page: str, sweep: pd.DataFrame) -> No
         f"{cold['floor']:.2f} at the floor, reached at {cold['edge_pct']:.0f} % load)"
     )
     assert expected in text, f"part-load.rst panel (a) should read {expected!r}. {HINT}."
-    # "Each curve peaks above the floor and falls before the compressor reaches it".
+    # "No curve peaks before the floor: ... the COP rises at every step of the sweep down to the speed floor and
+    # stays flat below it." Flat: the floor rows are one operating point, so their COP agrees to a few in 1e4.
     for curve in (w35, w45, cold):
-        assert not curve["peak_at_floor"] and curve["peak"] > curve["floor"]
-    expected = (
-        f"at 7/35 °C the peak is COP {w35['peak']:.2f} at {w35['peak_pct']:.0f} % load ({w35['peak_rps']:.0f} rev/s), "
-        f"at -7/45 °C {cold['peak']:.2f} at {cold['peak_pct']:.0f} % load ({cold['peak_rps']:.0f} rev/s)"
-    )
-    assert expected in text, f"part-load.rst should read {expected!r}. {HINT}."
+        steps = [curve["running"][i + 1] - curve["running"][i] for i in range(len(curve["running"]) - 1)]
+        assert min(steps) > 0 and curve["floor"] > curve["running"][-1], curve["running"]
+        assert curve["below"] == pytest.approx(curve["floor"], rel=2e-4), curve["below"]
+    assert (
+        "No curve peaks before the floor: at each condition the COP rises at every step of the sweep down to the "
+        "speed floor and stays flat below it"
+    ) in text
 
 
 def test_panel_a_decomposition_quotes_the_study(page: str) -> None:
-    """'with the three efficiencies frozen ... gains 22.0 % ... with the shipped efficiencies loses 18.3 %; the
-    air-to-air model, at pressure ratios of 2.4 to 2.8 at full load, keeps +33 to +40 %'."""
+    """'with the three efficiencies frozen ... gains 19.8 % ... with the shipped efficiencies gains 11.2 %; the
+    air-to-air model, at pressure ratios of 2.4 to 2.8 at full load, keeps +26 to +35 %'."""
     decomposition = pd.read_csv(REPO_ROOT / "validation" / "data" / "fixed_boundary_plr" / "decomposition.csv")
 
     def gain(variant: str, model_class: str, ref: str | None = None, t: float | None = None) -> list[tuple]:
@@ -152,15 +159,41 @@ def test_panel_a_decomposition_quotes_the_study(page: str) -> None:
     text = _flat(page)
     ((frozen, _),) = gain("hx_only", "ASHPB", "R32", 7.0)
     ((shipped, _),) = gain("current", "ASHPB", "R32", 7.0)
-    assert frozen > 0 > shipped
-    assert f"rated values the same model gains {frozen:.1f} % between full load and the speed floor" in text
-    assert f"with the shipped efficiencies loses {-shipped:.1f} %" in text
+    # The compressor takes back part of the heat exchangers' gain, not all of it.
+    assert frozen > shipped > 0
+    assert f"full-load values the same model gains {frozen:.1f} % between full load and the speed floor" in text
+    assert f"with the shipped efficiencies gains {shipped:.1f} %" in text
+    assert "take back part of what the heat exchangers give, not all of it" in text
     a2a = gain("current", "ASHP")
     gains, prs = [g for g, _ in a2a], [p for _, p in a2a]
     assert (
         f"at pressure ratios of {min(prs):.1f} to {max(prs):.1f} at full load, keeps "
         f"+{min(gains):.0f} to +{max(gains):.0f} %"
     ) in text
+
+
+def test_floor_note_quotes_the_fan_and_air_side_of_the_sweeps(page: str) -> None:
+    """'the outdoor fan now stays above 58 % of rated flow ... within 5.26 K; the air-to-air sweep stays above 46 %
+    and 6.6 K', from the committed fixed-boundary sweeps (9 kW R32 at 7 degC air, water entering at 42.5 degC)."""
+    data = REPO_ROOT / "validation" / "data" / "fixed_boundary_plr"
+    water = pd.read_csv(data / "ashpb_sweep.csv")
+    water = water[
+        (water.refrigerant == "R32")
+        & (water.capacity_W == 9000.0)
+        & (water.t_outdoor_C == 7.0)
+        & (water.t_sink_C == 42.5)
+    ]
+    air = pd.read_csv(data / "ashp_sweep.csv")
+    assert len(water) and (water.failure_reason == "none").all() and (air.failure_reason == "none").all()
+    note = _flat(_section(page, "Below the speed floor the model delivers", "Panel (b)"))
+    assert (
+        f"the outdoor fan now stays above {math.floor(100 * water.fan_fraction.min()):.0f} % of rated flow over the "
+        f"whole sweep and the air-side temperature drop stays within {water.air_dT_K.max():.2f} K"
+    ) in note
+    assert (
+        f"the air-to-air sweep stays above {math.floor(100 * air.fan_fraction.min()):.0f} % and "
+        f"{air.air_dT_K.max():.1f} K"
+    ) in note
 
 
 def test_floor_note_quotes_the_cold_floor(page: str, sweep: pd.DataFrame) -> None:
@@ -203,48 +236,40 @@ def test_delivered_callout_quotes_the_trajectory(page: str, trajectory: pd.DataF
 def test_trajectory_claims_hold(page: str, trajectory: pd.DataFrame, band: pd.DataFrame) -> None:
     """Where in the certified band each point of the R32 9 kW trajectory sits, as the page states it.
 
-    'rises monotonically A -> D and sits inside the certified band at A, B and D; at C it is 0.1 % below
-    the 10th percentile', and the sentence under the table. Until the catalogue default inputs (issue #86)
-    all four points were inside the band; in the previous release A was above the 90th percentile. If a
-    point moves to another band position, or C comes back inside or goes further out, this fails.
+    'rises monotonically A -> D and sits inside the certified band at all four points', and the sentence
+    under the table. With the semi-empirical model of before #217 C was just under the 10th percentile;
+    if a point moves to another band position or leaves the band, this fails.
     """
     cop = trajectory.cop
     assert list(cop.index) == ["A", "B", "C", "D"]
     assert cop.is_monotonic_increasing, cop.to_dict()
-    for point in ("A", "B", "D"):
+    for point in "ABCD":
         assert band.at[point, "cop_p10"] <= cop[point] <= band.at[point, "cop_p90"], point
-    assert cop["C"] < band.at["C", "cop_p10"]
-    below = 100.0 * (1.0 - cop["C"] / band.at["C", "cop_p10"])
     text = _flat(page)
-    assert (
-        f"sits inside the certified band at A, B and D; at C it is {below:.1f} % below the 10th percentile "
-        f"({cop['C']:.2f} against {band.at['C', 'cop_p10']:.2f})"
-    ) in text
+    assert "rises monotonically A → D and sits inside the certified band at all four points" in text
     assert band.at["A", "cop_p25"] < cop["A"] < band.at["A", "cop_median"]
-    assert band.at["B", "cop_p10"] < cop["B"] < band.at["B", "cop_p25"]
-    assert band.at["D", "cop_median"] < cop["D"] < band.at["D", "cop_p75"]
-    assert (
-        "between the 25th percentile and the median at A, between the 10th and the 25th at B, "
-        "just under the 10th at C and between the median and the 75th at D"
-    ) in text
+    for point in "BCD":
+        assert band.at[point, "cop_p10"] < cop[point] < band.at[point, "cop_p25"], point
+    assert "between the 25th percentile and the median at A and between the 10th and the 25th at B, C and D" in text
     # C and D deliver more than the point asks for; A and B modulate to it.
     assert not trajectory.loc[["A", "B"], "clamped"].any()
     assert trajectory.loc[["C", "D"], "clamped"].all()
 
 
 def test_trajectory_check_counts_quote_the_study(page: str) -> None:
-    """'the present defaults pass that shape check in 30 and the level check ... in 9'; the previous release 18."""
+    """'the present defaults pass that shape check in 30 and the level check ... in 30', as the committed verdict has it."""
     verdict = pd.read_csv(REPO_ROOT / "validation" / "data" / "en14825_trend_verdict.csv")
     defaults = verdict[verdict.variant == "defaults"]
-    previous = verdict[verdict.variant == "quadratic-2026-10-06"]
     text = _flat(page)
-    assert "the number of cases whose COP(D)/COP(A) lies inside" in text
+    assert "counts the number of cases whose COP(D)/COP(A) lies inside the certified population's p10–p90" in text
+    assert f"runs this trajectory for {len(defaults)} cases" in text
     assert (
         f"On the study's {len(defaults)} cases the present defaults pass that shape check in "
         f"{int(defaults.C3_gradient.sum())} and the level check (every point inside its p10–p90) in "
         f"{int(defaults.C2_level.sum())}"
     ) in text
-    assert f"The previous release passed the level check in {int(previous.C2_level.sum())} of {len(previous)}" in text
+    # The shape check of the page is the study's D/A criterion, and the level check every point inside.
+    assert (defaults.C2_level == (defaults.points_inside == 4)).all()
 
 
 # ---------------------------------------------------------------------------
@@ -291,9 +316,9 @@ def test_committed_csvs_are_what_the_model_gives(figure) -> None:
 def test_the_cold_rise_is_the_defrost_adjustment(
     page: str, figure, sweep: pd.DataFrame, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """'that easing is the rise to 75 % load. Without it (defrost=False) the same curve reads COP 2.75 at full
-    load (90 rev/s), 2.76 at 75 % load and 1.81 at the speed floor (16 % load): flat to 75 % load and falling
-    below it.' and the floor point it names (15 rev/s, its pressure ratio and isentropic efficiency)."""
+    """'that easing is most of the rise. Without it (defrost=False) the same curve reads COP 2.64 at full load
+    (76 rev/s), 2.68 at 75 % load and 2.59 at the speed floor (19 % load): within 2 % of its full-load value all
+    the way down.' and the floor point it names (15 rev/s, its pressure ratio and efficiencies)."""
     frosted = _curve(sweep, -7.0, 45.0)
     monkeypatch.setattr(figure, "MODEL_SETTINGS", {**figure.MODEL_SETTINGS, "defrost": False})
     floor = frosted["edge_pct"] / 100.0
@@ -304,27 +329,83 @@ def test_the_cold_rise_is_the_defrost_adjustment(
     text = _flat(page)
     assert (
         f"the same curve reads COP {cop[0]:.2f} at full load ({rows.rps.iloc[0]:.0f} rev/s), {cop[1]:.2f} at 75 % "
-        f"load and {cop[2]:.2f} at the speed floor ({frosted['edge_pct']:.0f} % load)"
+        f"load and {cop[2]:.2f} at the speed floor ({frosted['edge_pct']:.0f} % load): within 2 % of its full-load "
+        "value all the way down"
     ) in text, f"frost-free -7/45 °C: {cop}. {HINT}."
-    # "flat to 75 % load and falling below it"; the frosted curve's rise to 75 % is the adjustment easing.
-    assert abs(cop[1] / cop[0] - 1.0) < 0.01, cop
-    assert cop[2] < 0.75 * cop[1], cop
+    # "within 2 % ... all the way down", over the page's whole sweep; the frosted curve's rise is the adjustment.
+    curve = pd.DataFrame(figure.sweep_fixed_temperatures(conditions=((-7.0, 45.0),)))
+    assert (curve.failure_reason == "none").all()
+    assert (curve.cop / curve.cop.iloc[0] - 1.0).abs().max() < 0.02, curve.cop.to_numpy()
     assert frosted["at_75"] / frosted["full"] - 1.0 > 0.02 + (cop[1] / cop[0] - 1.0)
-    # The floor point: below the rotary data in speed, its efficiency as the page states it.
+    assert frosted["gain_pct"] > 10.0 + 100.0 * (cop[2] / cop[0] - 1.0)
+    # The floor point: below the maps' data in speed, its efficiencies as the page states them.
     monkeypatch.setattr(figure, "MODEL_SETTINGS", {**figure.MODEL_SETTINGS, "defrost": True})
     model = figure._model()
-    from tmhp.compressor_efficiency import COMPRESSOR_TYPES, SEMI_EMPIRICAL_TYPES
+    from tmhp.compressor_efficiency import DOMAIN
 
     results = [
         figure.solve_at_leaving_water(model, -7.0, 45.0, figure.NOMINAL_W * f, figure.WATER_FLOW_KG_S)[0]
         for f in (1.0, floor)
     ]
     full, low = results
-    speed_floor = min(n for _, n in SEMI_EMPIRICAL_TYPES[COMPRESSOR_TYPES[0]]["hull_PR_N"])
+    speed_floor = DOMAIN.rps_range[0]
     assert low["cmp_rpm [rpm]"] / 60.0 == pytest.approx(model.rps_min) and model.rps_min < speed_floor
     assert low["efficiency_extrapolated"] and not full["efficiency_extrapolated"]
+
+    def overall(result: dict) -> float:
+        return result["eta_cmp_isen [-]"] * result["eta_cmp [-]"]
+
+    assert overall(low) < overall(full) and low["eta_cmp [-]"] < full["eta_cmp [-]"]
     assert (
-        f"runs at {model.rps_min:.0f} rev/s and a pressure ratio of {low['pr_cmp [-]']:.1f}, with isentropic "
-        f"efficiency {low['eta_cmp_isen [-]']:.3f} against {full['eta_cmp_isen [-]']:.3f} at full load"
+        f"runs at {model.rps_min:.0f} rev/s and a pressure ratio of {low['pr_cmp [-]']:.1f}, with an overall "
+        f"efficiency (``eta_cmp_isen`` times ``eta_cmp``) of {overall(low):.3f} against {overall(full):.3f} at full "
+        f"load. Its isentropic efficiency is {low['eta_cmp_isen [-]']:.3f} against {full['eta_cmp_isen [-]']:.3f}; "
+        f"what falls is ``eta_cmp``, the share of the electrical input that reaches the gas, "
+        f"{low['eta_cmp [-]']:.3f} against {full['eta_cmp [-]']:.3f}"
     ) in text
-    assert f"the rotary data end at {speed_floor:.0f} rev/s" in text
+    assert f"The maps' data start at {speed_floor:.0f} rev/s" in text
+
+
+def test_panel_b_frost_paragraph_is_what_the_model_returns(
+    page: str, figure, trajectory: pd.DataFrame, band: pd.DataFrame, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The trajectory without the frost adjustment and with it in full at every load, the frost-free duty at B,
+    the load ratios at A and B and the share of the full correction each keeps."""
+    from tmhp.defrost import DefrostModel
+
+    def run(defrost) -> pd.DataFrame:
+        monkeypatch.setattr(figure, "MODEL_SETTINGS", {**figure.MODEL_SETTINGS, "defrost": defrost})
+        rows = pd.DataFrame(figure.trajectory_en14825()).set_index("point")
+        assert (rows.failure_reason == "none").all()
+        return rows
+
+    without, in_full = run(False).cop, run(DefrostModel(load_weighted=False)).cop
+    shipped = trajectory.cop
+    text = _flat(page)
+    assert band.at["A", "cop_median"] < without["A"] < band.at["A", "cop_p90"]
+    assert (
+        f"Without the frost and defrost adjustment the same trajectory reads {without['A']:.2f} at A, just under "
+        f"the 90th percentile ({band.at['A', 'cop_p90']:.2f}), and {without['B']:.2f} at B"
+    ) in text
+    assert in_full["B"] < band.at["B", "cop_p10"]
+    assert f"it reads {in_full['A']:.2f} at A and {in_full['B']:.2f} at B, below the 10th percentile at B" in text
+    # Frost acts on A and B only (C and D are above the 5 degC limit of the adjustment).
+    assert (without[["C", "D"]] - shipped[["C", "D"]]).abs().max() < 1e-9
+    monkeypatch.setattr(figure, "MODEL_SETTINGS", {**figure.MODEL_SETTINGS, "defrost": True})
+    model = figure._model()
+    ratio = {}
+    for label, t_outdoor, lwt, load_ratio in figure.EN14825_LOW[:2]:
+        result, _ = figure.solve_at_leaving_water(
+            model, t_outdoor, lwt, figure.DESIGN_LOAD_W * load_ratio, figure.WATER_FLOW_KG_S
+        )
+        frost_free = result["Q_ref_tank_frost_free [W]"]
+        ratio[label] = (frost_free, DefrostModel.load_ratio(frost_free, model.hp_capacity, t_outdoor))
+    assert (
+        f"the unit at B delivers {ratio['B'][0] / 1000:.2f} kW frost-free, {ratio['B'][1]:.2f} of what the "
+        "adjustment's coil-temperature correlation is written for"
+    ) in text
+    assert f"at A the unit is at {ratio['A'][1]:.2f} of that load" in text
+    assert f"machine that delivers {ratio['B'][0] / 1000:.2f} kW frost-free" in text
+    kept = {p: (without[p] - shipped[p]) / (without[p] - in_full[p]) for p in "AB"}
+    assert kept["A"] > 0.9 and 0.25 < kept["B"] < 0.3, kept
+    assert "keeps nearly the whole correction, at B a little over a quarter of it" in text

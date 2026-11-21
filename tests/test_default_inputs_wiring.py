@@ -79,15 +79,15 @@ def test_default_input_estimates_is_read_only():
 )
 @pytest.mark.parametrize("capacity", [3500.0, 8000.0, 15000.0])
 def test_the_rated_speed_of_a_default_machine_is_inside_the_fitted_speed_range(cls, kwargs, capacity):
-    """The catalogue displacement puts the rated speed where the default efficiency models have data.
+    """The catalogue displacement puts the rated speed where the default efficiency maps have data.
 
-    The range is the speed span of the data hull of the machine's compressor
-    type (``validity_domain``). With the earlier refrigerant-blind constant an
-    R134a boiler was rated at 89.8 rev/s and an R32 split at 31.2 rev/s.
+    The range is the measured speed span of the default maps (``validity_domain``,
+    30-110 rev/s). With the earlier refrigerant-blind constant an R134a boiler
+    was rated at 89.8 rev/s and an R32 split at 31.2 rev/s.
     """
     model = cls(hp_capacity=capacity, **kwargs)
-    speeds = [rps for _, rps in model.eta_cmp_isen.validity_domain.vertices]
-    assert min(speeds) < model.rps_rated < max(speeds)
+    lo, hi = model.eta_cmp_isen.validity_domain.rps_range
+    assert lo < model.rps_rated < hi
 
 
 # ---------------------------------------------------------------------------

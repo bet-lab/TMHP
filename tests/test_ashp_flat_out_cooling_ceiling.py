@@ -19,7 +19,9 @@ import pytest
 
 from tmhp import AirSourceHeatPump
 
-COOLING = [(40.0, 24.0), (35.0, 27.0), (25.0, 27.0), (46.0, 32.0)]
+#: Outdoor / room [degC]. The hottest case was 46/32 degC until the default maps of #217; with them the
+#: condensing-temperature limit binds there before the compressor, so 44/32 degC is the hot case.
+COOLING = [(40.0, 24.0), (35.0, 27.0), (25.0, 27.0), (44.0, 32.0)]
 
 
 @pytest.fixture(scope="module")

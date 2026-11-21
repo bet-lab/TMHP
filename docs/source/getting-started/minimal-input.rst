@@ -86,7 +86,7 @@ delivers exactly ``hp_capacity`` there, whatever the refrigerant.
        print(f"{name:6s} {row['failure_reason']:5s} COP {row['cop_sys [-]']:.2f}")
 
 Each call returns a running point (``failure_reason == "none"``) with a system
-COP of 4.50, 6.26, 3.05, 3.13 and 3.24 respectively. The keys of the result
+COP of 4.33, 5.59, 3.00, 3.14 and 3.19 respectively. The keys of the result
 are listed in :doc:`/concepts/result-keys`. A time series needs the same
 quantities as schedules; see :doc:`first-dynamic-simulation`.
 
@@ -222,8 +222,8 @@ What follows the refrigerant
         is kept when the refrigerant is swapped. The displacement follows the
         refrigerant in every family, so the rated speed moves little with the
         fluid: over R32, R290, R410A, R134a, R600a, R1234yf and R1234ze(E)
-        36–38 rev/s for the default GSHP, 48–50 ASHP, 54–64 WSHPB, 63–79
-        ASHPB and 75–101 GSHPB (its rating point is B0/W55)
+        36–38 rev/s for the default GSHP, 46–47 ASHP, 49–53 WSHPB, 55–62
+        ASHPB and 63–74 GSHPB (its rating point is B0/W55)
       - :doc:`/concepts/refrigerant-and-coolprop`
     * - Discharge-temperature limit ``T_dis_max``
       - 150 °C for R32, 135 °C for every other refrigerant

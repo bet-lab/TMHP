@@ -212,13 +212,14 @@ def test_rating_point_cop_depends_on_the_capacity_through_the_indoor_airflow_onl
         assert row["Q_ref_iu [W]"] == pytest.approx(cap, rel=1e-9)
         assert 2.5 < row["T_bhe_f_out [°C]"] - row["T_bhe_f_in [°C]"] < 3.5
         assert row["E_pmp [W]"] / cap == pytest.approx(75.0 / 3516.853)
-    # What is left between the sizes is the catalogue airflow (the test above): 4.13 at 3 kW,
-    # 4.05 at 4 kW, 3.69 at 30 kW, 3.62 at 100 kW with the rotary-compressor default efficiencies
-    # (4.09, 4.05, 3.82 and 3.77 with the earlier compressor map: a ratio of 0.92, now 0.88).
+    # What is left between the sizes is the catalogue airflow (the test above): 4.02 at 3 kW,
+    # 3.94 at 4 kW, 3.58 at 30 kW, 3.52 at 100 kW with the default maps of #217 (4.13, 4.05, 3.69
+    # and 3.62 with the rotary-compressor models; 4.09, 4.05, 3.82 and 3.77 with the earlier
+    # compressor map: a ratio of 0.92, then 0.88, now 0.875).
     cops = [rows[cap]["cop_sys [-]"] for cap in CAPACITIES]
     assert cops == sorted(cops, reverse=True)
     assert 0.85 < cops[-1] / cops[0] < 0.90
-    assert rows[4000.0]["cop_sys [-]"] == pytest.approx(4.053, rel=2e-3)
+    assert rows[4000.0]["cop_sys [-]"] == pytest.approx(3.937, rel=2e-3)
     assert 3.2 < rows[4000.0]["cop_sys [-]"] < 4.2
 
 
@@ -417,5 +418,7 @@ def test_ground_closure_at_the_pressure_ratio_floor_closes_every_candidate():
     # default glycol's slightly larger borehole resistance adds 0.8 W; the 27 °C
     # room air, 3.9 % lighter than standard air, another 0.9 W, #96 -- 372.6 W in all).
     # 354.6 W with the catalogue displacement and indoor airflow of a 4 kW R32 unit (#86); 303.3 W
-    # with the rotary-compressor default efficiencies and approach-temperature conductances.
-    assert row["E_tot [W]"] == pytest.approx(303.3, rel=2e-3)
+    # with the rotary-compressor default efficiencies and approach-temperature conductances; 406.1 W
+    # with the default maps of #217 (this low-lift cooling point sits on the pressure-ratio floor
+    # 1.5 at 26 rev/s, where the measured scroll over-compresses: eta_cmp_isen 0.51).
+    assert row["E_tot [W]"] == pytest.approx(406.1, rel=2e-3)

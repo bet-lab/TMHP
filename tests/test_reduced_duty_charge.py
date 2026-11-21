@@ -1465,3 +1465,110 @@ def test_one_long_step_names_the_limit_that_governed_most_of_its_run():
     assert set(fine) == {"compressor", "discharge_temperature"} and fine["compressor"] > fine["discharge_temperature"]
     assert list(one) == ["compressor"]
     assert sum(one.values()) == pytest.approx(sum(fine.values()), rel=0.03)
+
+
+def test_a_limit_just_below_the_condensing_one_is_followed_to_where_it_ends():
+    """Stop-time review of the stages: a second limit 100 W below the condensing limit all the way.
+
+    A run at one duty ends where that duty meets the condensing limit, and with the two limits this
+    close each run gets a few hundredths of a kelvin further: one 3600 s step used up its stages
+    and reported a cut-out at 63.51 degC with 2.9 kW still to be had, where 360 steps reach
+    63.95 degC (the limit leaves the smallest duty, 2 kW, there). The other limit is now followed as
+    what it is, a duty that falls with the tank temperature: a straight line through the cycle at
+    the start of the run and the one at its mean, integrated in closed form like the condensing limit.
+    """
+
+    def other(T_C):
+        return LIMIT.duty(T_C) - 100.0
+
+    floor_C = LIMIT.stop_C - 100.0 / LIMIT.K  # 63.95 degC
+    ends = {}
+    for parts in (360, 36, 6, 1):
+        tank, call, running, age, heat, dt = 61.0, True, False, math.inf, 0.0, 3600.0 / parts
+        for _ in range(parts):
+            run, row, _ = _resolve_two_limits(
+                other, T_start=tank, dt=dt, call_start=call, running_prev=running, phase_age_s=age
+            )
+            assert run.reduced_fraction == 0.0, parts  # never on the condensing limit: 100 W below it
+            if run.limit_stop:
+                # A cut-out is reported only where the other limit has ended: with the tank at the
+                # temperature at which it leaves the smallest duty, or a run that got there.
+                top = tank if run.T_on_max_C is None else max(tank, run.T_on_max_C)
+                assert top >= floor_C - 0.005, (parts, tank, run)
+            if row is not None and row.get("hp_is_on") and run.runtime_fraction > 0.0:
+                assert row["capacity_binding"] == OTHER, parts
+                step_heat = row["Q_ref_tank [W]"] * run.runtime_fraction * dt
+                heat, tank = heat + step_heat, tank + step_heat / C
+            call, running, age = run.call_end, run.running_end, run.phase_age_end_s
+        ends[parts] = (tank, heat)
+        assert tank == pytest.approx(floor_C, abs=0.005), parts
+    for parts in (36, 6, 1):
+        assert ends[parts][1] == pytest.approx(ends[360][1], rel=0.005), parts
+    # The one step: the run follows the limit's line from 61 degC, C dT/dt = 2000 (64.95 - T).
+    run, row = _charge_two_limits(other, 1, 3600.0)[3][0]
+    t_floor = TAU * math.log((64.95 - 61.0) / (64.95 - floor_C))
+    assert run.runtime_fraction * 3600.0 == pytest.approx(t_floor, rel=1e-3)
+    assert row["Q_ref_tank [W]"] * run.runtime_fraction * 3600.0 == pytest.approx((floor_C - 61.0) * C, rel=1e-3)
+
+
+def test_running_out_of_stages_is_not_reported_as_a_cut_out(monkeypatch):
+    """A step whose resolution runs out of stages has not met a cut-out: the next step takes the charge on."""
+    import tmhp.dynamic_context as dc
+
+    def other(T_C):
+        return 9_000.0 - 1_500.0 * (T_C - 58.0)
+
+    monkeypatch.setattr(dc, "_DUTY_LIMIT_STAGES", 0)
+    run, row, _ = _resolve_two_limits(other, T_start=56.0, dt=3600.0)
+    # The first run ends at 60.5 degC, where its 9 kW meet the condensing limit and 5.25 kW could still be had.
+    assert run.T_on_max_C == pytest.approx(60.5) and row["Q_ref_tank [W]"] == pytest.approx(9_000.0)
+    assert not run.limit_stop and run.limit_stop_C is None
+    assert in_step_stop_reason(run, T_WATER_BOIL_C) is None
+    assert run.call_end  # the call stands: the next step goes on from there
+
+
+#: Second limits of several shapes on the tank of the event tests: name -> (duty left [W] by tank temperature
+#: [degC], start [degC], tolerances on the end temperature [K], the heat [-] and the time on the condensing limit [s]).
+OTHER_LIMITS = {
+    "just below the condensing limit": (lambda T_C: LIMIT.duty(T_C) - 100.0, 61.0, 0.005, 0.005, 0.0),
+    "falling, met below the cut-out": (lambda T_C: 9_000.0 - 1_500.0 * (T_C - 58.0), 56.0, 0.005, 0.005, 0.0),
+    "taking over above the start": (lambda T_C: 6_000.0 - 4_000.0 * (T_C - 62.0), 61.0, 0.005, 0.005, 15.0),
+    "shallow, meeting the condensing limit": (lambda T_C: 5_000.0 - 500.0 * (T_C - 61.0), 61.0, 0.005, 0.005, 1.0),
+    "curved": (lambda T_C: 7_000.0 - 900.0 * (T_C - 61.0) ** 2, 61.0, 0.06, 0.025, 40.0),
+    "rising": (lambda T_C: 3_000.0 + 50.0 * (T_C - 61.0), 61.0, 0.005, 0.005, 6.0),
+    "ending abruptly": (lambda T_C: 6_000.0 - 2_000.0 * (T_C - 61.0) if T_C <= 62.4 else 0.0, 61.0, 0.03, 0.02, 0.0),
+}
+
+
+@pytest.mark.parametrize("shape", list(OTHER_LIMITS))
+def test_a_second_limit_of_any_shape_comes_out_the_same_at_any_step(shape):
+    """One hour under a second limit in 360, 36 and 6 steps and in one: the same tank, heat and time on the condensing limit.
+
+    On every step: the heat of the row is the heat the events integrated (the compressor is never
+    seen warmer than the tank its heat gives, to 0.05 K), and a cut-out is reported only where
+    nothing above the smallest continuous duty is left to be had.
+    """
+    other, T_init, T_tol, Q_tol, t_tol = OTHER_LIMITS[shape]
+    out = {}
+    for parts in (360, 36, 6, 1):
+        tank, call, running, age, heat, on_limit, dt = T_init, True, False, math.inf, 0.0, 0.0, 3600.0 / parts
+        for _ in range(parts):
+            run, row, _ = _resolve_two_limits(
+                other, T_start=tank, dt=dt, call_start=call, running_prev=running, phase_age_s=age
+            )
+            if row is not None and row.get("hp_is_on") and run.runtime_fraction > 0.0:
+                step_heat = row["Q_ref_tank [W]"] * run.runtime_fraction * dt
+                heat, tank = heat + step_heat, tank + step_heat / C
+                assert run.T_on_max_C <= tank + 0.05, (shape, parts)
+            if run.limit_stop:
+                top = tank if run.T_on_max_C is None else max(tank, run.T_on_max_C)
+                left = min(other(top), LIMIT.duty(top))
+                assert left <= LIMIT.Q_min * 1.002, (shape, parts, top, left)
+            on_limit += run.reduced_fraction * dt
+            call, running, age = run.call_end, run.running_end, run.phase_age_end_s
+        out[parts] = (tank, heat, on_limit)
+    fine = out[360]
+    for parts in (36, 6, 1):
+        assert out[parts][0] == pytest.approx(fine[0], abs=T_tol), (shape, parts)
+        assert out[parts][1] == pytest.approx(fine[1], rel=Q_tol), (shape, parts)
+        assert out[parts][2] == pytest.approx(fine[2], abs=t_tol), (shape, parts)

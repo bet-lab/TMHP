@@ -454,6 +454,96 @@ then serves ``analyze_steady`` and the steps that go past the cut-out all the
 same: a stratified tank whose coil-side water is hotter than the sensor, a
 minimum run time, a set point moved after construction.
 
+.. _reduced-duty-charging:
+
+**Charging past the cut-out at reduced duty**
+(``condensing_limit_control="reduce_duty"`` on ASHPB, GSHPB and WSHPB; the
+default ``"stop"`` is everything above). The cut-out is where the *nameplate*
+duty meets the limit. A fixed-speed unit stops there. An inverter unit lowers
+its frequency and keeps charging at the largest duty the limit leaves, which
+is what ``analyze_steady`` returns against a hotter tank; ending the charge at
+the nameplate cut-out understates the temperature such a unit reaches on the
+heat pump alone (R32, 15 kW: 58.0 against about 63 °C). With ``"reduce_duty"``
+a dynamic run follows the unit along the limit.
+
+*The limit as a duty.* The cycle condenses at the tank temperature plus
+``Q / K_tank_hx``, so on the limit the compressor delivers
+``Q_lim(T) = K_tank_hx (T_reach − T)``, with ``T_reach`` the bubble point of
+the limit pressure (:func:`tmhp.compressor_envelope.condensing_tank_reach`).
+The nameplate cut-out is where ``Q_lim`` equals ``hp_capacity``. Above it the
+tank follows ``C_tank dT/dt = K_tank_hx (T_reach − T) + P(T)`` (``P``: draw,
+loss, subsystems): a first-order approach to ``T_reach`` with the time
+constant ``C_tank / K_tank_hx``, 295 s for the default 151 L tank of a 15 kW
+unit. An explicit step that applies one cycle's heat over an hour cannot
+follow that; this is why the default caps the thermostat at the cut-out.
+
+*Inside the step.* The in-step thermostat
+(:func:`tmhp.dynamic_context.simulate_thermostat_step`, ``duty_limit``)
+already integrates a linear tank equation exactly between its events. The
+stretch on the limit is one more linear equation, so it is integrated exactly
+too, with the knee (the cut-out) as an event. The step's heat is therefore
+exact for the linearised free heat ``P(T)`` whatever the step: 60 s, 600 s and
+3600 s steps give the same run time to the second and the same heat to
+0.05 %.
+
+*Where the charge ends.* The compressor has a smallest duty it runs at
+continuously: its speed floor, or the envelope's lower side where the
+discharge runs too hot at low speed
+(:func:`tmhp.compressor_envelope.smallest_continuous_duty`; the probe is the
+lowest rung of the duty reduction's ladder, 10 % of the nameplate, so the
+floor is the one ``analyze_steady`` has). The charging limit is the tank
+temperature at which that duty condenses on the limit,
+``T_reach − Q_min / K_tank_hx``
+(:func:`tmhp.compressor_envelope.smallest_duty_on_condensing_limit`: two or
+three cycle solves). Above it nothing runs. ``Q_min`` depends on the source --
+denser suction gas from a warmer source gives more duty at the lowest speed --
+so a step uses the limit of its own source, and the thermostat's cap is that
+limit at one stated reference: the rating point's outdoor air for ASHPB, the
+source at ``Ts`` for GSHPB and WSHPB (``charge_limit_reference_C``;
+:func:`tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit`). Where
+a step's own stop lies below the set point the compressor holds the tank
+there, cycling at ``Q_min`` against the tank's losses, and the row says
+``hp_stop_reason == "condensing_limit"``.
+
+*Electricity.* Along the stretch on the limit the condensing pressure is the
+limit's; only the duty changes, from ``hp_capacity`` down to ``Q_min``. A step
+that spends time there solves one more cycle, at the stretch's mean tank
+temperature and the limit's duty at it -- which is the stretch's mean duty
+exactly, the limit being linear in the tank temperature. That is the midpoint
+rule in the one variable that varies, as the full-duty stretch is the midpoint
+rule in the tank temperature. Its error is the curvature of the power over the
+duty (the power is close to linear in it: 0.29–0.30 W per W from 15 to 4 kW
+for the R32 unit) times the spread of the duty inside one step. Measured on a
+whole charge from 50 °C, 3600 s against 60 s steps: −0.13 % (ASHPB R32 at
+15 °C outdoor), −0.56 % (the same with a frosting coil at 0 °C), −0.42 %
+(GSHPB R290), −0.37 % (WSHPB R290). A step that does not reach the cut-out is
+solved exactly as with ``"stop"``; one that does costs the floor's two or
+three solves (kept per source state by ASHPB and WSHPB) and the second cycle.
+
+*The row.* A step with both stretches reports the run-time-weighted mean of
+their two cycles for every rate (heat, power, flow), ``cop_ref`` and
+``cop_sys`` as the ratios of those means, and the state quantities
+(temperatures, pressures, speed) of the stretch that ran longer
+(:func:`tmhp.dynamic_context.merge_running_rows`). ``reduced_duty_fraction
+[-]`` is the part of the step run on the limit; ``capacity_clamped``,
+``capacity_binding == "condensing_temperature"``, ``Q_max [W]`` (the mean
+running duty) and ``Q_request [W]`` are written as on any reduced step, so the
+end-of-run summary counts these steps as run below the request.
+
+*What it does not cover.* The multi-node tanks of GSHPB keep the stop: the
+water around their coil has its own cut-out, at which the compressor already
+holds it, and the constructor refuses ``"reduce_duty"`` with them. With a
+frosting outdoor coil (ASHPB) the limit binds the frost-free cycle and the
+delivered heat is its mean over frosting and defrost, still a straight line in
+the tank temperature; the frost state is the nameplate's, as on every step.
+For the ASHPB, ``analyze_steady`` itself keeps returning a running point for
+0.05 to 0.6 K above the charging limit (R32, 15 kW: 63.7 against 63.5 °C at
+7 °C outdoor, 62.7 against 62.1 °C at 35 °C): its duty search finds states at
+the speed floor that deliver less than the minimum-speed duty by widening the
+outdoor coil's approach. The dynamic run stops at the minimum-speed duty
+``analyze_steady`` reports as ``Q_min [W]``; for GSHPB and WSHPB the two
+coincide (within the 0.05 K the comparison resolved).
+
 Discharge-temperature control (``x_suction_min``, default 0.9; ``None`` switches
 it off, ``1`` keeps the superheat stage only) comes first. A running unit whose
 discharge runs hot opens its expansion valve and, if that is not enough, lets

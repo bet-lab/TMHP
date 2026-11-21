@@ -272,6 +272,15 @@ its envelope stop is held there against its losses the same way. Such a
 step is a normal stop: ``failure_reason`` stays ``"none"`` and
 ``hp_stop_reason`` is ``"condensing_limit"``.
 
+An inverter unit does not stop at that temperature: it slows its compressor
+and keeps charging at the duty the limit leaves. Build the boiler with
+``condensing_limit_control="reduce_duty"`` to model it (lumped tanks): the
+run then goes on past the envelope stop, the tank approaching the limit as a
+first-order lag that is solved inside the step, and ends where the limit
+leaves less than the compressor's smallest continuous duty. See
+:ref:`ashpb-reduced-duty-charging` and the
+:ref:`operating-limits reference <reduced-duty-charging>`.
+
 ``hp_on_schedule`` limits when the heat pump may run, as windows
 ``[(start_h, end_h), ...]`` of the hour of day (``start_h <= hour <
 end_h``). ``None`` (the default) is always; an empty list has no window,

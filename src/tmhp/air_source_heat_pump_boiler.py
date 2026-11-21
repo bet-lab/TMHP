@@ -385,6 +385,25 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     ``defrost=False`` (or ``None``) returns the frost-free steady state;
     ``RH_out`` (``RH_out_schedule`` in a dynamic run, ``inputs["RH_out"]`` in
     ``step``) is the outdoor relative humidity, 0.84 when not given.
+
+    **Charging at the condensing limit.** ``condensing_limit_control`` says
+    what a dynamic run does where the nameplate duty condenses on
+    ``T_cond_max`` (the tank at ``T_cond_max`` less ``hp_capacity /
+    K_tank_hx``). ``"stop"``, the default, ends the charge there and caps the
+    set points at it: a fixed-speed unit, or a controller that stops on its
+    high-pressure protection. ``"reduce_duty"`` is an inverter unit: the
+    compressor slows down and keeps charging at the largest duty inside the
+    limit, ``K_tank_hx (T_reach - T)``, which is the duty ``analyze_steady``
+    reports there, down to the smallest duty it runs at continuously. The
+    tank's first-order approach to the limit is solved inside each step, so
+    the result does not depend on the step
+    (:func:`tmhp.dynamic_context.resolve_step_operation`); rows carry
+    ``reduced_duty_fraction [-]``. The set points are then capped where the
+    smallest continuous duty meets the limit, evaluated at the rating point's outdoor air
+    (``charge_limit_reference_C``); each step applies the limit of its own
+    source. ``analyze_steady`` is the same with either value. With a
+    frosting coil the limit binds the frost-free cycle and the heat delivered
+    is its mean over frosting and defrost.
     """
 
     _RATING_FAMILY = "ASHPB"
@@ -2816,7 +2835,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         the tank temperature at which the nameplate duty condenses on
         ``T_cond_max``) whatever ``min_on_time_s`` says; such a step is a
         normal one with ``hp_stop_reason == "condensing_limit"``
-        (``hp_stop_reason`` is on every row, ``None`` otherwise). The heat, power and
+        (``hp_stop_reason`` is on every row, ``None`` otherwise). With
+        ``condensing_limit_control="reduce_duty"`` the compressor runs on past
+        that temperature at the duty the limit leaves, and stops where it
+        leaves less than its smallest continuous duty; the row then has
+        ``reduced_duty_fraction [-]``, the part of the step run on the limit,
+        and its rates are the mean of the two stretches. The heat, power and
         refrigerant-flow rates in ``result_row`` are averages over ``dt_s``
         (the running cycle times ``runtime_fraction [-]``), so
         ``rate * dt_s`` is the step's energy; ``hp_is_on`` says the

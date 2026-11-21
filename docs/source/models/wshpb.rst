@@ -58,6 +58,11 @@ point above the tank temperature it allows at the nameplate duty is capped
 there with a ``UserWarning``, and ``analyze_steady`` against a hotter tank
 returns a reduced duty (``capacity_binding == "condensing_temperature"``) or
 the off state with ``failure_reason == "condensing_temp_above_max"``.
+``condensing_limit_control="reduce_duty"`` (default ``"stop"``) lets a dynamic
+run charge on past that cut-out at the duty the limit leaves, as an inverter
+unit does, down to the smallest continuous duty; the set points are then
+capped where that duty meets the limit, evaluated with the source water at
+``Ts`` (:ref:`operating-limits reference <reduced-duty-charging>`).
 
 The cycle closures are those of :doc:`gshpb`: the suction superheat is capped
 at the evaporator approach less ``dT_hx_min``, and on a compressor speed bound

@@ -135,7 +135,22 @@ tank temperature plus the tank heat-exchanger approach, so the highest tank
 temperature the machine heats at its nameplate duty is ``T_cond_max`` less
 ``hp_capacity / K_tank_hx``. A ``T_tank_w_upper_bound`` above that cut-out
 is capped at it (``UserWarning``; ``T_tank_w_setpoints_requested`` keeps the
-values asked for), and the thermostat stops the heat pump there.
+values asked for), and the thermostat stops the heat pump there. That is
+``condensing_limit_control="stop"``, the default: a fixed-speed unit, or a
+controller that ends the charge on its high-pressure protection. With
+``"reduce_duty"`` (an inverter unit) a dynamic run of the lumped tank charges
+on past the cut-out at the duty the limit leaves, ``K_tank_hx (T_reach − T)``,
+down to the smallest continuous duty; the set points are capped where that
+duty meets the limit, evaluated with the fluid from the ground at ``Ts``, and
+each step applies the stop of the ground as it finds it. The tank's approach
+to the limit is solved inside the step, so the result does not depend on the
+step: one hour from 50 °C with set points 70–72 °C ends within 0.03 K, 0.05 %
+of heat and 0.5 % of electricity with 60 s, 600 s and 3600 s steps (see
+:ref:`the operating-limits reference <reduced-duty-charging>`; rows carry
+``reduced_duty_fraction [-]``). The
+multi-node tanks keep the stop: their coil has its own cut-out, at which the
+compressor already holds its water (below), and the constructor refuses the
+combination.
 ``analyze_steady`` against a hotter tank returns the duty that condenses on
 the limit (``capacity_clamped == "max"``, ``capacity_binding ==
 "condensing_temperature"``), or the off state with

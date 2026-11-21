@@ -208,6 +208,23 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     delivers more than the request. Dynamic runs are not affected: there the
     tank thermostat switches the compressor, which runs at ``hp_capacity`` for
     ``runtime_fraction [-]`` of a step.
+
+    **Charging at the condensing limit.** ``condensing_limit_control`` says
+    what a dynamic run does where the nameplate duty condenses on
+    ``T_cond_max`` (the tank at ``T_cond_max`` less ``hp_capacity /
+    K_tank_hx``). ``"stop"``, the default, ends the charge there and caps the
+    set points at it: a fixed-speed unit, or a controller that stops on its
+    high-pressure protection. ``"reduce_duty"`` is an inverter unit: the
+    compressor slows down and keeps charging at the largest duty inside the
+    limit, ``K_tank_hx (T_reach - T)``, which is the duty ``analyze_steady``
+    reports there, down to the smallest duty it runs at continuously. The
+    tank's first-order approach to the limit is solved inside each step, so
+    the result does not depend on the step
+    (:func:`tmhp.dynamic_context.resolve_step_operation`); rows carry
+    ``reduced_duty_fraction [-]``. The set points are then capped where the
+    smallest continuous duty meets the limit, evaluated with the source water at ``Ts``
+    (``charge_limit_reference_C``); each step applies the limit of its own
+    source. ``analyze_steady`` is the same with either value.
     """
 
     # Heat and power rates of the running cycle; a step reports them

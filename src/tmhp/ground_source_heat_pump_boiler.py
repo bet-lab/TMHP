@@ -321,6 +321,26 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     instead of falling back; ``False`` is the steady borehole (a resistance
     without heat capacity), with the results the model gave before this
     default. ``T_bhe [°C]`` is the physical borehole wall in both.
+
+    **Charging at the condensing limit.** ``condensing_limit_control`` says
+    what a dynamic run does where the nameplate duty condenses on
+    ``T_cond_max`` (the tank at ``T_cond_max`` less ``hp_capacity /
+    K_tank_hx``). ``"stop"``, the default, ends the charge there and caps the
+    set points at it: a fixed-speed unit, or a controller that stops on its
+    high-pressure protection. ``"reduce_duty"`` is an inverter unit: the
+    compressor slows down and keeps charging at the largest duty inside the
+    limit, ``K_tank_hx (T_reach - T)``, which is the duty ``analyze_steady``
+    reports there, down to the smallest duty it runs at continuously. The
+    tank's first-order approach to the limit is solved inside each step, so
+    the result does not depend on the step
+    (:func:`tmhp.dynamic_context.resolve_step_operation`); rows carry
+    ``reduced_duty_fraction [-]``. The set points are then capped where the
+    smallest continuous duty meets the limit, evaluated with the fluid from the ground at ``Ts``
+    (``charge_limit_reference_C``); each step applies the limit of its own
+    source. ``analyze_steady`` is the same with either value. Lumped
+    tank only: the multi-node tanks (``tank_model="stratified"`` /
+    ``"hybrid"``) keep the stop, where the compressor holds the water around
+    the coil at its own cut-out, and the combination is refused.
     """
 
     # Heat and power rates of the running cycle; a step reports them

@@ -133,7 +133,7 @@ L 43.359678 17.1804
      </g>
     </g>
     <g id="text_7">
-     <text style="font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="132.337418" y="213.3096" transform="rotate(-0 132.337418 213.3096)">Part load of nominal capacity [-]</text>
+     <text style="font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="132.337418" y="213.3096" transform="rotate(-0 132.337418 213.3096)">Delivered heat, share of maximum capacity [-]</text>
     </g>
    </g>
    <g id="matplotlib.axis_2">
@@ -223,99 +223,166 @@ L 230.681236 17.1804
    </g>
    <g id="patch_3">
     <path d="M 230.681236 190.8096 
-L 188.421493 190.8096 
-L 188.421493 17.1804 
+L 202.06547 190.8096 
+L 202.06547 17.1804 
 L 230.681236 17.1804 
 z
 " clip-path="url(#p04f9e1d094)" style="fill: #dee2e6; opacity: 0.35"/>
    </g>
    <g id="line2d_23">
-    <path d="M 208.202649 110.151992 
-L 201.60893 110.15093 
-L 195.015212 110.149867 
-L 188.421493 110.148802 
-L 181.827774 107.488761 
-L 175.234055 104.442981 
-L 168.640336 101.973078 
-L 162.046617 99.960902 
-L 155.452898 98.318786 
-L 148.85918 96.980006 
-L 142.265461 95.892712 
-L 135.671742 94.989721 
-L 129.078023 94.26187 
-L 122.484304 93.685079 
-L 115.890585 93.237544 
-L 109.296866 92.901187 
-L 102.703148 92.660889 
-L 96.109429 92.503915 
-L 89.51571 92.419463 
-L 82.921991 92.411855 
-L 76.328272 92.563662 
-L 69.734553 92.765468 
-L 63.140834 93.011039 
-L 56.547116 93.298379 
-L 49.953397 93.639396 
-L 43.359678 94.030491 
+    <path d="M 205.990467 110.151296 
+L 205.990455 110.150216 
+L 205.990443 110.149135 
+L 204.456218 108.524114 
+L 200.709787 105.231985 
+L 196.963356 102.576397 
+L 193.216925 100.422134 
+L 189.470494 98.670136 
+L 185.724062 97.24579 
+L 181.977631 96.091613 
+L 178.2312 95.141565 
+L 174.484769 94.372412 
+L 170.738338 93.763452 
+L 166.991906 93.291094 
+L 163.245475 92.935862 
+L 159.499044 92.681535 
+L 155.752613 92.514498 
+L 152.006182 92.423242 
+L 148.259751 92.405173 
+L 144.513319 92.556897 
+L 140.766888 92.760513 
+L 137.020457 93.009451 
+L 133.274026 93.301568 
+L 129.527595 93.649055 
+L 125.93747 94.030491 
+L 125.781164 94.048094 
+L 122.034732 94.492983 
+L 118.288301 94.978638 
+L 114.54187 95.500511 
+L 110.795439 96.05453 
+L 107.049008 96.637038 
+L 103.302577 97.244745 
+L 99.556145 97.874688 
+L 95.809714 98.524193 
+L 92.063283 99.190841 
+L 88.316852 99.872445 
+L 84.570421 100.567019 
+L 80.82399 101.272762 
+L 77.077558 101.988038 
+L 73.331127 102.711357 
+L 69.584696 103.441361 
+L 65.838265 104.176814 
+L 62.091834 104.916587 
+L 58.345403 105.659646 
+L 54.598971 106.405051 
+L 50.85254 107.151936 
+L 47.106109 107.899512 
+L 43.360715 108.646774 
 " clip-path="url(#p04f9e1d094)" style="fill: none; stroke: #4c6ef5; stroke-width: 2; stroke-linecap: square"/>
    </g>
    <g id="line2d_24">
-    <path d="M 208.202649 135.222504 
-L 201.60893 135.221942 
-L 195.015212 135.221379 
-L 188.421493 135.220816 
-L 181.827774 132.526721 
-L 175.234055 129.769252 
-L 168.640336 127.431567 
-L 162.046617 125.436168 
-L 155.452898 123.724367 
-L 148.85918 122.250584 
-L 142.265461 120.978693 
-L 135.671742 119.880441 
-L 129.078023 118.914775 
-L 122.484304 118.078295 
-L 115.890585 117.35465 
-L 109.296866 116.730053 
-L 102.703148 116.192793 
-L 96.109429 115.732849 
-L 89.51571 115.341592 
-L 82.921991 115.022595 
-L 76.328272 114.843694 
-L 69.734553 114.715921 
-L 63.140834 114.633963 
-L 56.547116 114.593134 
-L 49.953397 114.589849 
-L 43.359678 114.629646 
+    <path d="M 205.707119 135.222195 
+L 205.707108 135.221638 
+L 205.707097 135.221082 
+L 204.456218 134.035107 
+L 200.709787 131.068433 
+L 196.963356 128.559523 
+L 193.216925 126.421163 
+L 189.470494 124.588102 
+L 185.724062 123.010135 
+L 181.977631 121.647772 
+L 178.2312 120.469383 
+L 174.484769 119.443371 
+L 170.738338 118.544872 
+L 166.991906 117.765739 
+L 163.245475 117.091237 
+L 159.499044 116.50888 
+L 155.752613 116.00801 
+L 152.006182 115.57947 
+L 148.259751 115.215348 
+L 144.513319 114.953469 
+L 140.766888 114.794607 
+L 137.020457 114.683963 
+L 133.274026 114.616604 
+L 129.527595 114.588164 
+L 125.781164 114.597093 
+L 123.130352 114.629646 
+L 122.034732 114.649243 
+L 118.288301 114.7418 
+L 114.54187 114.871231 
+L 110.795439 115.034331 
+L 107.049008 115.228185 
+L 103.302577 115.450138 
+L 99.556145 115.697766 
+L 95.809714 115.968851 
+L 92.063283 116.261363 
+L 88.316852 116.573439 
+L 84.570421 116.903366 
+L 80.82399 117.24957 
+L 77.077558 117.6106 
+L 73.331127 117.985115 
+L 69.584696 118.371879 
+L 65.838265 118.769747 
+L 62.091834 119.17766 
+L 58.345403 119.594634 
+L 54.598971 120.019759 
+L 50.85254 120.452188 
+L 47.106109 120.891133 
+L 43.361624 121.33552 
 " clip-path="url(#p04f9e1d094)" style="fill: none; stroke: #fd7e14; stroke-width: 2; stroke-linecap: square"/>
    </g>
    <g id="line2d_25">
-    <path d="M 208.202649 151.461841 
-L 201.60893 151.461674 
-L 195.015212 148.134283 
-L 188.421493 145.347649 
-L 181.827774 143.286756 
-L 175.234055 141.718872 
-L 168.640336 140.551443 
-L 162.046617 139.714313 
-L 155.452898 139.15249 
-L 148.85918 138.821729 
-L 142.265461 138.685693 
-L 135.671742 138.714026 
-L 129.078023 138.874707 
-L 122.484304 139.148572 
-L 115.890585 139.520176 
-L 109.296866 139.411186 
-L 102.703148 139.374043 
-L 96.109429 139.388792 
-L 89.51571 139.444486 
-L 82.921991 139.537676 
-L 76.328272 139.675342 
-L 69.734553 139.85164 
-L 63.140834 140.062076 
-L 56.547116 140.302666 
-L 49.953397 140.569867 
-L 43.359678 140.860515 
+    <path d="M 202.065479 151.462014 
+L 202.065476 151.461915 
+L 202.065473 151.461817 
+L 202.06547 151.461718 
+L 200.709787 150.539503 
+L 196.963356 148.398682 
+L 193.216925 146.565424 
+L 189.470494 145.103398 
+L 185.724062 143.852567 
+L 181.977631 142.785867 
+L 178.2312 141.881093 
+L 174.484769 141.119693 
+L 170.738338 140.485941 
+L 166.991906 139.966334 
+L 163.245475 139.549156 
+L 159.499044 139.224149 
+L 155.752613 138.982257 
+L 152.006182 138.815431 
+L 148.259751 138.716469 
+L 144.513319 138.678894 
+L 140.766888 138.696849 
+L 137.020457 138.764633 
+L 133.274026 138.872344 
+L 129.527595 139.021012 
+L 125.781164 139.206583 
+L 122.034732 139.425328 
+L 118.288301 139.511117 
+L 114.54187 139.418112 
+L 110.795439 139.382649 
+L 107.049008 139.373422 
+L 103.302577 139.380454 
+L 99.556145 139.402406 
+L 95.809714 139.438058 
+L 92.063283 139.486296 
+L 88.316852 139.549088 
+L 84.570421 139.628063 
+L 80.82399 139.721107 
+L 77.077558 139.827229 
+L 73.331127 139.945505 
+L 69.584696 140.075076 
+L 65.838265 140.21514 
+L 62.091834 140.36495 
+L 58.345403 140.523806 
+L 54.598971 140.691056 
+L 50.969411 140.860515 
+L 50.85254 140.866087 
+L 47.106109 141.048327 
+L 43.362838 141.23701 
 " clip-path="url(#p04f9e1d094)" style="fill: none; stroke: #339af0; stroke-width: 2; stroke-linecap: square"/>
    </g>
+   <g id="line2d_26"/>
    <g id="patch_4">
     <path d="M 33.9936 190.8096 
 L 33.9936 17.1804 
@@ -332,8 +399,8 @@ L 230.681236 190.8096
    <g id="text_15">
     <text style="font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="33.9936" y="11.1804" transform="rotate(-0 33.9936 11.1804)">Load falls, temperatures held</text>
    </g>
-   <g id="line2d_26">
-    <path d="M 188.421493 110.148802 
+   <g id="line2d_27">
+    <path d="M 205.990443 110.149135 
 " clip-path="url(#p04f9e1d094)" style="fill: none; stroke: #4c6ef5; stroke-linecap: square"/>
     <defs>
      <path id="m7ff3d1d717" d="M -0 3.5 
@@ -343,11 +410,11 @@ z
 " style="stroke: #4c6ef5; stroke-linejoin: miter"/>
     </defs>
     <g clip-path="url(#p04f9e1d094)">
-     <use xlink:href="#m7ff3d1d717" x="188.421493" y="110.148802" style="fill: #4c6ef5; stroke: #4c6ef5; stroke-linejoin: miter"/>
+     <use xlink:href="#m7ff3d1d717" x="205.990443" y="110.149135" style="fill: #4c6ef5; stroke: #4c6ef5; stroke-linejoin: miter"/>
     </g>
    </g>
-   <g id="line2d_27">
-    <path d="M 188.421493 135.220816 
+   <g id="line2d_28">
+    <path d="M 205.707097 135.221082 
 " clip-path="url(#p04f9e1d094)" style="fill: none; stroke: #fd7e14; stroke-linecap: square"/>
     <defs>
      <path id="m2814a936b6" d="M -0 3.5 
@@ -357,11 +424,11 @@ z
 " style="stroke: #fd7e14; stroke-linejoin: miter"/>
     </defs>
     <g clip-path="url(#p04f9e1d094)">
-     <use xlink:href="#m2814a936b6" x="188.421493" y="135.220816" style="fill: #fd7e14; stroke: #fd7e14; stroke-linejoin: miter"/>
+     <use xlink:href="#m2814a936b6" x="205.707097" y="135.221082" style="fill: #fd7e14; stroke: #fd7e14; stroke-linejoin: miter"/>
     </g>
    </g>
-   <g id="line2d_28">
-    <path d="M 201.60893 151.461674 
+   <g id="line2d_29">
+    <path d="M 202.06547 151.461718 
 " clip-path="url(#p04f9e1d094)" style="fill: none; stroke: #339af0; stroke-linecap: square"/>
     <defs>
      <path id="m26b2a8db7c" d="M -0 3.5 
@@ -371,11 +438,11 @@ z
 " style="stroke: #339af0; stroke-linejoin: miter"/>
     </defs>
     <g clip-path="url(#p04f9e1d094)">
-     <use xlink:href="#m26b2a8db7c" x="201.60893" y="151.461674" style="fill: #339af0; stroke: #339af0; stroke-linejoin: miter"/>
+     <use xlink:href="#m26b2a8db7c" x="202.06547" y="151.461718" style="fill: #339af0; stroke: #339af0; stroke-linejoin: miter"/>
     </g>
    </g>
    <g id="legend_1">
-    <g id="line2d_29">
+    <g id="line2d_30">
      <path d="M 36.9936 22.5804 
 L 42.9936 22.5804 
 L 48.9936 22.5804 
@@ -384,7 +451,7 @@ L 48.9936 22.5804
     <g id="text_16">
      <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="50.7936" y="24.6804" transform="rotate(-0 50.7936 24.6804)">air 7 °C, water 35 °C</text>
     </g>
-    <g id="line2d_30">
+    <g id="line2d_31">
      <path d="M 36.9936 30.9804 
 L 42.9936 30.9804 
 L 48.9936 30.9804 
@@ -393,7 +460,7 @@ L 48.9936 30.9804
     <g id="text_17">
      <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="50.7936" y="33.0804" transform="rotate(-0 50.7936 33.0804)">air 7 °C, water 45 °C</text>
     </g>
-    <g id="line2d_31">
+    <g id="line2d_32">
      <path d="M 36.9936 39.3804 
 L 42.9936 39.3804 
 L 48.9936 39.3804 
@@ -402,16 +469,71 @@ L 48.9936 39.3804
     <g id="text_18">
      <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="50.7936" y="41.4804" transform="rotate(-0 50.7936 41.4804)">air -7 °C, water 45 °C</text>
     </g>
+    <g id="line2d_33">
+     <defs>
+      <path id="meba8aacd41" d="M -0 2.298097 
+L 2.298097 0 
+L 0 -2.298097 
+L -2.298097 -0 
+z
+" style="stroke: #343a40; stroke-linejoin: miter"/>
+     </defs>
+     <g>
+      <use xlink:href="#meba8aacd41" x="42.9936" y="47.7804" style="fill: #343a40; stroke: #343a40; stroke-linejoin: miter"/>
+     </g>
+    </g>
+    <g id="text_19">
+     <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="50.7936" y="49.8804" transform="rotate(-0 50.7936 49.8804)">9 kW nameplate</text>
+    </g>
     <g id="patch_6">
-     <path d="M 36.9936 49.942275 
-L 48.9936 49.942275 
-L 48.9936 45.742275 
-L 36.9936 45.742275 
+     <path d="M 36.9936 58.342275 
+L 48.9936 58.342275 
+L 48.9936 54.142275 
+L 36.9936 54.142275 
 z
 " style="fill: #dee2e6; opacity: 0.35"/>
     </g>
-    <g id="text_19">
-     <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="50.7936" y="49.942275" transform="rotate(-0 50.7936 49.942275)">below the speed floor</text>
+    <g id="text_20">
+     <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="50.7936" y="58.342275" transform="rotate(-0 50.7936 58.342275)">below the speed floor</text>
+    </g>
+   </g>
+   <g id="line2d_34">
+    <defs>
+     <path id="md5a75f9db5" d="M -0 4.596194 
+L 4.596194 0 
+L 0 -4.596194 
+L -4.596194 -0 
+z
+" style="stroke: #ffffff; stroke-width: 0.6; stroke-linejoin: miter"/>
+    </defs>
+    <g clip-path="url(#p04f9e1d094)">
+     <use xlink:href="#md5a75f9db5" x="125.93747" y="94.030491" style="fill: #4c6ef5; stroke: #ffffff; stroke-width: 0.6; stroke-linejoin: miter"/>
+    </g>
+   </g>
+   <g id="line2d_35">
+    <defs>
+     <path id="mf44ae2c598" d="M -0 4.596194 
+L 4.596194 0 
+L 0 -4.596194 
+L -4.596194 -0 
+z
+" style="stroke: #ffffff; stroke-width: 0.6; stroke-linejoin: miter"/>
+    </defs>
+    <g clip-path="url(#p04f9e1d094)">
+     <use xlink:href="#mf44ae2c598" x="123.130352" y="114.629646" style="fill: #fd7e14; stroke: #ffffff; stroke-width: 0.6; stroke-linejoin: miter"/>
+    </g>
+   </g>
+   <g id="line2d_36">
+    <defs>
+     <path id="m6c9ea32279" d="M -0 4.596194 
+L 4.596194 0 
+L 0 -4.596194 
+L -4.596194 -0 
+z
+" style="stroke: #ffffff; stroke-width: 0.6; stroke-linejoin: miter"/>
+    </defs>
+    <g clip-path="url(#p04f9e1d094)">
+     <use xlink:href="#m6c9ea32279" x="50.969411" y="140.860515" style="fill: #339af0; stroke: #ffffff; stroke-width: 0.6; stroke-linejoin: miter"/>
     </g>
    </g>
   </g>
@@ -426,176 +548,176 @@ z
    </g>
    <g id="matplotlib.axis_3">
     <g id="xtick_7">
-     <g id="line2d_32">
+     <g id="line2d_37">
       <path d="M 466.7064 190.8096 
 L 466.7064 17.1804 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_33">
+     <g id="line2d_38">
       <g>
        <use xlink:href="#m4b486a58f8" x="466.7064" y="190.8096" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_20">
+     <g id="text_21">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="466.7064" y="202.6096" transform="rotate(-0 466.7064 202.6096)">0.0</text>
      </g>
     </g>
     <g id="xtick_8">
-     <g id="line2d_34">
+     <g id="line2d_39">
       <path d="M 427.368873 190.8096 
 L 427.368873 17.1804 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_35">
+     <g id="line2d_40">
       <g>
        <use xlink:href="#m4b486a58f8" x="427.368873" y="190.8096" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_21">
+     <g id="text_22">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="427.368873" y="202.6096" transform="rotate(-0 427.368873 202.6096)">0.2</text>
      </g>
     </g>
     <g id="xtick_9">
-     <g id="line2d_36">
+     <g id="line2d_41">
       <path d="M 388.031345 190.8096 
 L 388.031345 17.1804 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_37">
+     <g id="line2d_42">
       <g>
        <use xlink:href="#m4b486a58f8" x="388.031345" y="190.8096" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_22">
+     <g id="text_23">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="388.031345" y="202.6096" transform="rotate(-0 388.031345 202.6096)">0.4</text>
      </g>
     </g>
     <g id="xtick_10">
-     <g id="line2d_38">
+     <g id="line2d_43">
       <path d="M 348.693818 190.8096 
 L 348.693818 17.1804 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_39">
+     <g id="line2d_44">
       <g>
        <use xlink:href="#m4b486a58f8" x="348.693818" y="190.8096" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_23">
+     <g id="text_24">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="348.693818" y="202.6096" transform="rotate(-0 348.693818 202.6096)">0.6</text>
      </g>
     </g>
     <g id="xtick_11">
-     <g id="line2d_40">
+     <g id="line2d_45">
       <path d="M 309.356291 190.8096 
 L 309.356291 17.1804 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_41">
+     <g id="line2d_46">
       <g>
        <use xlink:href="#m4b486a58f8" x="309.356291" y="190.8096" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_24">
+     <g id="text_25">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="309.356291" y="202.6096" transform="rotate(-0 309.356291 202.6096)">0.8</text>
      </g>
     </g>
     <g id="xtick_12">
-     <g id="line2d_42">
+     <g id="line2d_47">
       <path d="M 270.018764 190.8096 
 L 270.018764 17.1804 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_43">
+     <g id="line2d_48">
       <g>
        <use xlink:href="#m4b486a58f8" x="270.018764" y="190.8096" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_25">
+     <g id="text_26">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="270.018764" y="202.6096" transform="rotate(-0 270.018764 202.6096)">1.0</text>
      </g>
     </g>
-    <g id="text_26">
+    <g id="text_27">
      <text style="font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="368.362582" y="215.1096" transform="rotate(-0 368.362582 215.1096)">Part load of design heating demand [-]</text>
     </g>
    </g>
    <g id="matplotlib.axis_4">
     <g id="ytick_6">
-     <g id="line2d_44">
+     <g id="line2d_49">
       <path d="M 270.018764 190.8096 
 L 466.7064 190.8096 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_45">
+     <g id="line2d_50">
       <g>
        <use xlink:href="#m2fd442cf18" x="270.018764" y="190.8096" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_27">
+     <g id="text_28">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: end" x="267.018764" y="193.8096" transform="rotate(-0 267.018764 193.8096)">0</text>
      </g>
     </g>
     <g id="ytick_7">
-     <g id="line2d_46">
+     <g id="line2d_51">
       <path d="M 270.018764 147.4023 
 L 466.7064 147.4023 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_47">
+     <g id="line2d_52">
       <g>
        <use xlink:href="#m2fd442cf18" x="270.018764" y="147.4023" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_28">
+     <g id="text_29">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: end" x="267.018764" y="150.4023" transform="rotate(-0 267.018764 150.4023)">3</text>
      </g>
     </g>
     <g id="ytick_8">
-     <g id="line2d_48">
+     <g id="line2d_53">
       <path d="M 270.018764 103.995 
 L 466.7064 103.995 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_49">
+     <g id="line2d_54">
       <g>
        <use xlink:href="#m2fd442cf18" x="270.018764" y="103.995" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_29">
+     <g id="text_30">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: end" x="267.018764" y="106.995" transform="rotate(-0 267.018764 106.995)">6</text>
      </g>
     </g>
     <g id="ytick_9">
-     <g id="line2d_50">
+     <g id="line2d_55">
       <path d="M 270.018764 60.5877 
 L 466.7064 60.5877 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_51">
+     <g id="line2d_56">
       <g>
        <use xlink:href="#m2fd442cf18" x="270.018764" y="60.5877" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_30">
+     <g id="text_31">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: end" x="267.018764" y="63.5877" transform="rotate(-0 267.018764 63.5877)">9</text>
      </g>
     </g>
     <g id="ytick_10">
-     <g id="line2d_52">
+     <g id="line2d_57">
       <path d="M 270.018764 17.1804 
 L 466.7064 17.1804 
 " clip-path="url(#p52f5bf3566)" style="fill: none; stroke: #dee2e6; stroke-opacity: 0.25; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
-     <g id="line2d_53">
+     <g id="line2d_58">
       <g>
        <use xlink:href="#m2fd442cf18" x="270.018764" y="17.1804" style="stroke: #000000; stroke-width: 0.3"/>
       </g>
      </g>
-     <g id="text_31">
+     <g id="text_32">
       <text style="font-weight: 200; font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: end" x="267.018764" y="20.1804" transform="rotate(-0 267.018764 20.1804)">12</text>
      </g>
     </g>
-    <g id="text_32">
+    <g id="text_33">
      <text style="font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: middle" x="252.213764" y="103.995" transform="rotate(-90 252.213764 103.995)">System COP [-]</text>
     </g>
    </g>
@@ -637,7 +759,7 @@ z
      <use xlink:href="#m2c95ad80f0" x="0" y="221.52" style="fill: #a5d8ff; fill-opacity: 0.6"/>
     </g>
    </g>
-   <g id="line2d_54">
+   <g id="line2d_59">
     <path d="M 437.203255 76.793092 
 L 397.865727 101.679944 
 L 360.495076 125.264577 
@@ -654,25 +776,25 @@ L 270.018764 17.1804
 L 466.7064 190.8096 
 " style="fill: none; stroke: #000000; stroke-width: 0.3; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
-   <g id="text_33">
+   <g id="text_34">
     <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start; fill: #343a40" x="297.62128" y="158.061705" transform="rotate(-0 297.62128 158.061705)">A  -7/34 °C</text>
    </g>
-   <g id="text_34">
+   <g id="text_35">
     <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start; fill: #343a40" x="364.495076" y="140.330518" transform="rotate(-0 364.495076 140.330518)">B  2/30 °C</text>
    </g>
-   <g id="text_35">
+   <g id="text_36">
     <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start; fill: #343a40" x="401.865727" y="123.199802" transform="rotate(-0 401.865727 123.199802)">C  7/27 °C</text>
    </g>
-   <g id="text_36">
+   <g id="text_37">
     <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start; fill: #343a40" x="441.203255" y="81.04293" transform="rotate(-0 441.203255 81.04293)">D  12/24 °C</text>
    </g>
-   <g id="text_37">
+   <g id="text_38">
     <text style="font-size: 9px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="245.658764" y="11.1804" transform="rotate(-0 245.658764 11.1804)">b</text>
    </g>
-   <g id="text_38">
+   <g id="text_39">
     <text style="font-size: 8px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="270.018764" y="11.1804" transform="rotate(-0 270.018764 11.1804)">Load and flow temperature fall together (EN 14825)</text>
    </g>
-   <g id="line2d_55">
+   <g id="line2d_60">
     <path d="M 293.62128 148.061705 
 L 360.495076 130.330518 
 L 397.865727 113.199802 
@@ -688,7 +810,7 @@ L 273.018764 20.74665
 z
 " style="fill: #dee2e6; fill-opacity: 0.5"/>
     </g>
-    <g id="text_39">
+    <g id="text_40">
      <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="286.818764" y="24.94665" transform="rotate(-0 286.818764 24.94665)">Keymark p10–p90 (n = 9,062)</text>
     </g>
     <g id="patch_11">
@@ -699,25 +821,25 @@ L 273.018764 29.14665
 z
 " style="fill: #a5d8ff; fill-opacity: 0.6"/>
     </g>
-    <g id="text_40">
+    <g id="text_41">
      <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="286.818764" y="33.34665" transform="rotate(-0 286.818764 33.34665)">Keymark p25–p75</text>
     </g>
-    <g id="line2d_56">
+    <g id="line2d_61">
      <path d="M 273.018764 39.64665 
 L 279.018764 39.64665 
 L 285.018764 39.64665 
 " style="fill: none; stroke-dasharray: 3,1.5; stroke-dashoffset: 0; stroke: #adb5bd"/>
     </g>
-    <g id="text_41">
+    <g id="text_42">
      <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="286.818764" y="41.74665" transform="rotate(-0 286.818764 41.74665)">Keymark median</text>
     </g>
-    <g id="line2d_57">
+    <g id="line2d_62">
      <path d="M 273.018764 48.108525 
 L 279.018764 48.108525 
 L 285.018764 48.108525 
 " style="fill: none; stroke: #4c6ef5; stroke-width: 2; stroke-linecap: square"/>
     </g>
-    <g id="text_42">
+    <g id="text_43">
      <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="286.818764" y="50.208525" transform="rotate(-0 286.818764 50.208525)">TMHP, defaults</text>
     </g>
     <g id="PathCollection_1">
@@ -738,7 +860,7 @@ z
       <use xlink:href="#m4c3d8eac83" x="279.018764" y="57.033525" style="fill: #ffffff; stroke: #4c6ef5; stroke-width: 2"/>
      </g>
     </g>
-    <g id="text_43">
+    <g id="text_44">
      <text style="font-weight: 200; font-size: 6px; font-family: 'Roboto', 'Inter', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Noto Sans Math', 'Noto Sans Symbols', 'Noto Sans Symbols 2', sans-serif; text-anchor: start" x="286.818764" y="58.608525" transform="rotate(-0 286.818764 58.608525)">delivers more than requested</text>
     </g>
    </g>

@@ -3,21 +3,32 @@
 Two curves, because two different questions get confused with each other.
 
 **Panel (a) -- fixed temperatures.** Hold the source and sink where they are and
-take load away. COP rises, because the heat exchangers grow relative to the duty
-while the lift shrinks. It keeps rising until the compressor reaches its speed
-floor.
+vary the load over the machine's whole speed range: from the compressor's speed
+floor up to its top speed. The horizontal axis is the delivered heat as a share
+of what the *same machine delivers at the same temperatures at its top speed*
+(``Q_max [W]``, the ``capacity_clamped == "max"`` ceiling), not of the 9 kW
+nameplate. The nameplate is a label for one rating point; at these conditions it
+sits well below the top-speed capacity (the table in ``part-load.rst``), and a
+curve cut off at the nameplate shows only the left half of the shape. Each curve
+carries a marker where the nameplate duty falls.
 
-Below that floor the curve is flat, and that is the honest answer rather than a
+COP rises as load is taken off the top speed -- the heat exchangers grow
+relative to the duty while the lift shrinks, and the compressor runs more
+efficiently at lower speed -- until the compressor's efficiency loss at low
+speed takes it back, so the curve peaks and then falls towards the speed floor.
+
+Below that floor the curve ends and that is the honest answer rather than a
 part-load result: the machine cannot follow a smaller request, so it runs at its
 minimum capacity and every request below the floor resolves to the same
 operating point -- same speed, same delivered heat, same condensing temperature,
-same COP. The shaded band marks that region. (Two earlier artefacts used to live
-there. The operating-point search once minimised absolute electrical input and
-therefore starved the outdoor coil to its 5 % flow bound, pushing the air-side
-drop to about 17 K against a catalogue maximum of 7.7 K across the 1,414 coils
-inverted in ``validation/extraction/``; and the tank-side condenser was closed on
-the *requested* duty, so the condensing temperature kept falling as the request
-did. Both are gone -- see ``tmhp._opt_utils`` and
+same COP. Those requests therefore share one point on a delivered-heat axis;
+the shaded band marks the heat the machine cannot deliver. (Two earlier artefacts
+used to live there. The operating-point search once minimised absolute electrical
+input and therefore starved the outdoor coil to its 5 % flow bound, pushing the
+air-side drop to about 17 K against a catalogue maximum of 7.7 K across the 1,414
+coils inverted in ``validation/extraction/``; and the tank-side condenser was
+closed on the *requested* duty, so the condensing temperature kept falling as the
+request did. Both are gone -- see ``tmhp._opt_utils`` and
 ``AirSourceHeatPumpBoiler._calc_state``.)
 
 A real machine cycles below its modulation floor. This figure shows the
@@ -54,6 +65,7 @@ against a rerun of this script's functions.
 from __future__ import annotations
 
 import sys
+import warnings
 from pathlib import Path
 
 import dartwork_mpl as dm
@@ -73,7 +85,8 @@ from _dmpl_common import (  # noqa: E402
     ticks,
 )
 
-from tmhp import AirSourceHeatPumpBoiler  # noqa: E402
+from tmhp import AirSourceHeatPumpBoiler, OperatingLimitWarning  # noqa: E402
+from tmhp.constants import c_w  # noqa: E402
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -83,6 +96,7 @@ KEYMARK_SUMMARY = REPO_ROOT / "validation" / "data" / "keymark_en14825_summary.c
 DATA_DIR = REPO_ROOT / "validation" / "data" / "part_load_figure"
 SWEEP_CSV = DATA_DIR / "sweep.csv"
 TRAJECTORY_CSV = DATA_DIR / "trajectory.csv"
+ENTERING_WATER_CSV = DATA_DIR / "entering_water.csv"
 PROVENANCE = REPO_ROOT / "validation" / "data" / "provenance" / "part_load_figure.json"
 
 #: Fixed-temperature sweep: outdoor air and leaving water held, load varied.
@@ -91,7 +105,17 @@ SWEEP_CONDITIONS = (
     (7.0, 45.0, COLORS["warm"]),
     (-7.0, 45.0, COLORS["cool"]),
 )
-LOAD_FRACTIONS = np.linspace(1.0, 0.12, 26)
+#: The same sweep with the *entering* water held instead of the leaving water:
+#: outdoor air and the water entering the condenser [°C], at the same water
+#: flow. 30 °C is the entering water of the EN 14511 30/35 °C rating, so at the
+#: nameplate duty this is the 7/35 °C point of the sweep above. Written to
+#: ``entering_water.csv`` and quoted by the page; not drawn.
+ENTERING_WATER_CONDITION = (7.0, 30.0)
+#: Requested heat as a share of the maximum capacity at the same temperatures,
+#: top speed (1.00) down to below the speed floor (0.08; the floor is 13-15 % of
+#: the maximum at these conditions) in steps of 2 %. The nameplate duty is added
+#: as one more request per condition (:func:`sweep_fixed_temperatures`).
+LOAD_FRACTIONS_OF_MAX = tuple(round(1.0 - 0.02 * i, 2) for i in range(47))
 
 #: EN 14825 average climate, low-temperature application: outdoor air, leaving
 #: water and part load of the design heating demand at each test point.
@@ -117,39 +141,133 @@ WATER_FLOW_KG_S = en14825_water_flow(NOMINAL_W, "low")
 #: cycling period, ``tmhp.cycling``), with frost and defrost on, as shipped.
 MODEL_SETTINGS = {"hp_capacity": NOMINAL_W, "ref": "R32", "Cd_cycling": None, "defrost": True}
 
+#: A request this far above the nameplate is above what the machine delivers at
+#: any of the sweep conditions, so the model returns its top-speed capacity
+#: (``capacity_clamped == "max"``, ``Q_max [W]``). The same request every time,
+#: because the water-entering iteration makes ``Q_max [W]`` differ by under a
+#: watt between two different over-requests.
+MAX_PROBE_W = 3.0 * NOMINAL_W
+
 
 def _model() -> AirSourceHeatPumpBoiler:
     return AirSourceHeatPumpBoiler(**MODEL_SETTINGS)
+
+
+def maximum_capacity(model: AirSourceHeatPumpBoiler, t_outdoor: float, lwt: float) -> float:
+    """Heat the model delivers at its top speed at these temperatures [W] (``Q_max [W]``)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", OperatingLimitWarning)  # the clamp is the point of the request
+        result, _ = solve_at_leaving_water(model, t_outdoor, lwt, MAX_PROBE_W, WATER_FLOW_KG_S)
+    if result.get("failure_reason", "none") != "none" or result.get("capacity_clamped") != "max":
+        raise RuntimeError(f"{t_outdoor}/{lwt} °C: a {MAX_PROBE_W:.0f} W request did not reach the top speed: {result}")
+    return float(result["Q_max [W]"])
+
+
+def _sweep_row(
+    model: AirSourceHeatPumpBoiler, t_outdoor: float, lwt: float, q_request: float, q_max: float, *, nameplate: bool
+) -> dict:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", OperatingLimitWarning)
+        result, t_entering = solve_at_leaving_water(model, t_outdoor, lwt, q_request, WATER_FLOW_KG_S)
+    failure = result.get("failure_reason", "none")
+    rps = float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0
+    q_delivered = float(result["Q_ref_tank [W]"]) if failure == "none" else np.nan
+    return {
+        "t_outdoor_C": t_outdoor,
+        "lwt_C": lwt,
+        "t_water_in_C": t_entering,
+        "plr": q_request / NOMINAL_W,
+        "q_request_W": q_request,
+        "q_max_W": q_max,
+        "plr_max": q_request / q_max,
+        "delivered_fraction_of_max": q_delivered / q_max,
+        "is_nameplate": nameplate,
+        "q_delivered_W": q_delivered,
+        "cop": float(result["cop_sys [-]"]) if failure == "none" else np.nan,
+        "rps": rps,
+        "at_floor": failure == "none" and abs(rps - model.rps_min) < 1e-6,
+        "capacity_clamped": result.get("capacity_clamped") or "none",
+        "failure_reason": failure,
+    }
 
 
 def sweep_fixed_temperatures(
     conditions: tuple[tuple[float, float], ...] | None = None,
     fractions: tuple[float, ...] | None = None,
 ) -> list[dict]:
-    """Panel (a): every requested point, including any that did not converge (``cop`` NaN)."""
+    """Panel (a): every requested point, including any that did not converge (``cop`` NaN).
+
+    ``fractions`` are shares of the maximum capacity at the condition
+    (:func:`maximum_capacity`); the nameplate duty is added as one more request
+    per condition (``is_nameplate``). ``plr`` stays the request over the
+    nameplate, so it runs above 1 here; ``plr_max`` is the request over the
+    maximum and ``delivered_fraction_of_max`` the heat actually delivered over
+    it -- the two differ only below the speed floor, where the machine delivers
+    more than it is asked.
+    """
     model = _model()
     conditions = conditions or tuple((t, lwt) for t, lwt, _ in SWEEP_CONDITIONS)
-    fractions = fractions or tuple(float(f) for f in LOAD_FRACTIONS)
+    fractions = fractions or LOAD_FRACTIONS_OF_MAX
     rows = []
     for t_outdoor, lwt in conditions:
+        q_max = maximum_capacity(model, t_outdoor, lwt)
         for fraction in fractions:
-            result, t_entering = solve_at_leaving_water(model, t_outdoor, lwt, NOMINAL_W * fraction, WATER_FLOW_KG_S)
-            failure = result.get("failure_reason", "none")
-            rps = float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0
-            rows.append(
-                {
-                    "t_outdoor_C": t_outdoor,
-                    "lwt_C": lwt,
-                    "t_water_in_C": t_entering,
-                    "plr": fraction,
-                    "q_request_W": NOMINAL_W * fraction,
-                    "q_delivered_W": float(result["Q_ref_tank [W]"]) if failure == "none" else np.nan,
-                    "cop": float(result["cop_sys [-]"]) if failure == "none" else np.nan,
-                    "rps": rps,
-                    "at_floor": failure == "none" and abs(rps - model.rps_min) < 1e-6,
-                    "failure_reason": failure,
-                }
+            rows.append(_sweep_row(model, t_outdoor, lwt, q_max * float(fraction), q_max, nameplate=False))
+        rows.append(_sweep_row(model, t_outdoor, lwt, NOMINAL_W, q_max, nameplate=True))
+    return rows
+
+
+def sweep_entering_water(fractions: tuple[float, ...] | None = None) -> list[dict]:
+    """The fixed-temperature sweep with the entering water held (:data:`ENTERING_WATER_CONDITION`).
+
+    The model's own boundary: ``analyze_steady`` takes the water entering the
+    condenser, so no iteration is needed. The leaving water then follows the
+    delivered heat, and the rise across the condenser shrinks with the load --
+    which the leaving-water sweep of panel (a) does not let it do. Columns as
+    :func:`sweep_fixed_temperatures`, with ``lwt_C`` the resulting leaving water.
+    """
+    model = _model()
+    t_outdoor, t_entering = ENTERING_WATER_CONDITION
+
+    def solve(q_request: float) -> dict:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", OperatingLimitWarning)
+            result = model.analyze_steady(
+                T_tank_w=t_entering, T0=t_outdoor, Q_ref_tank=q_request, m_dot_w=WATER_FLOW_KG_S, return_dict=True
             )
+        assert isinstance(result, dict)
+        return result
+
+    top = solve(MAX_PROBE_W)
+    if top.get("failure_reason", "none") != "none" or top.get("capacity_clamped") != "max":
+        raise RuntimeError(f"entering water {t_entering} °C: a {MAX_PROBE_W:.0f} W request did not reach the top speed")
+    q_max = float(top["Q_max [W]"])
+    rows = []
+    requests = [(q_max * float(f), False) for f in (fractions or LOAD_FRACTIONS_OF_MAX)] + [(NOMINAL_W, True)]
+    for q_request, nameplate in requests:
+        result = solve(q_request)
+        failure = result.get("failure_reason", "none")
+        rps = float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0
+        q_delivered = float(result["Q_ref_tank [W]"]) if failure == "none" else np.nan
+        rows.append(
+            {
+                "t_outdoor_C": t_outdoor,
+                "lwt_C": t_entering + q_delivered / (WATER_FLOW_KG_S * c_w),
+                "t_water_in_C": t_entering,
+                "plr": q_request / NOMINAL_W,
+                "q_request_W": q_request,
+                "q_max_W": q_max,
+                "plr_max": q_request / q_max,
+                "delivered_fraction_of_max": q_delivered / q_max,
+                "is_nameplate": nameplate,
+                "q_delivered_W": q_delivered,
+                "cop": float(result["cop_sys [-]"]) if failure == "none" else np.nan,
+                "rps": rps,
+                "at_floor": failure == "none" and abs(rps - model.rps_min) < 1e-6,
+                "capacity_clamped": result.get("capacity_clamped") or "none",
+                "failure_reason": failure,
+            }
+        )
     return rows
 
 
@@ -177,7 +295,7 @@ def trajectory_en14825() -> list[dict]:
     return rows
 
 
-def write_data(sweep: pd.DataFrame, trajectory: pd.DataFrame) -> None:
+def write_data(sweep: pd.DataFrame, trajectory: pd.DataFrame, entering_water: pd.DataFrame) -> None:
     """The plotted values and their provenance record."""
     if str(REPO_ROOT) not in sys.path:
         sys.path.insert(0, str(REPO_ROOT))
@@ -186,16 +304,19 @@ def write_data(sweep: pd.DataFrame, trajectory: pd.DataFrame) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     sweep.to_csv(SWEEP_CSV, index=False)
     trajectory.to_csv(TRAJECTORY_CSV, index=False)
+    entering_water.to_csv(ENTERING_WATER_CSV, index=False)
     study_provenance.write(
         PROVENANCE,
         "scripts/validation/part_load_figure.py",
-        [SWEEP_CSV, TRAJECTORY_CSV, static_path("validation_part_load.svg")],
+        [SWEEP_CSV, TRAJECTORY_CSV, ENTERING_WATER_CSV, static_path("validation_part_load.svg")],
         {
             "model": MODEL_SETTINGS,
             "water": "leaving water named; entering water at a fixed flow (EN 14825 study rule)",
             "water_flow_kg_s": WATER_FLOW_KG_S,
             "sweep_conditions": [(t, lwt) for t, lwt, _ in SWEEP_CONDITIONS],
-            "load_fractions": [float(f) for f in LOAD_FRACTIONS],
+            "entering_water_condition": ENTERING_WATER_CONDITION,
+            "load_fractions_of_max": list(LOAD_FRACTIONS_OF_MAX),
+            "max_probe_W": MAX_PROBE_W,
             "en14825_points": EN14825_LOW,
             "design_load_W": DESIGN_LOAD_W,
         },
@@ -209,7 +330,7 @@ def main() -> None:
     apply_style("report", hashsalt="tmhp.validation.part-load")
     sweep = pd.DataFrame(sweep_fixed_temperatures())
     trajectory = pd.DataFrame(trajectory_en14825())
-    write_data(sweep, trajectory)
+    write_data(sweep, trajectory, pd.DataFrame(sweep_entering_water()))
     sweep = sweep[sweep.failure_reason == "none"]
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.46))
@@ -217,34 +338,50 @@ def main() -> None:
 
     # --- (a) fixed temperatures -------------------------------------------
     ax = axes[0]
+    x = "delivered_fraction_of_max"
     for (t_outdoor, lwt, color), (_, group) in zip(
         SWEEP_CONDITIONS, sweep.groupby(["t_outdoor_C", "lwt_C"], sort=False), strict=False
     ):
-        group = group.sort_values("plr")
+        group = group.sort_values(x)
         ax.plot(
-            group.plr, group.cop, color=color, linewidth=dm.lw(1), label=f"air {t_outdoor:.0f} °C, water {lwt:.0f} °C"
+            group[x], group.cop, color=color, linewidth=dm.lw(1), label=f"air {t_outdoor:.0f} °C, water {lwt:.0f} °C"
         )
         floor = group[group.at_floor]
         if not floor.empty:
-            edge = floor.plr.max()
-            ax.plot(
-                [edge],
-                [float(floor.loc[floor.plr.idxmax(), "cop"])],
-                marker="v",
-                markersize=dm.fs(-1),
-                color=color,
-                zorder=5,
-            )
+            # Every request below the floor resolves to this one point.
+            edge = floor.loc[floor[x].idxmax()]
+            ax.plot([edge[x]], [edge.cop], marker="v", markersize=dm.fs(-1), color=color, zorder=5)
+        mark = group[group.is_nameplate]
+        ax.plot(
+            mark[x],
+            mark.cop,
+            marker="D",
+            markersize=dm.fs(-1.5),
+            linestyle="none",
+            markerfacecolor=color,
+            markeredgecolor="white",
+            markeredgewidth=HAIRLINE,
+            zorder=6,
+        )
+    ax.plot(
+        [],
+        [],
+        marker="D",
+        markersize=dm.fs(-1.5),
+        linestyle="none",
+        color=COLORS["ink"],
+        label=f"{NOMINAL_W / 1000:.0f} kW nameplate",
+    )
     ax.axvspan(
         0.0,
-        float(sweep[sweep.at_floor].plr.max()) if sweep.at_floor.any() else 0.0,
+        float(sweep[sweep.at_floor][x].max()) if sweep.at_floor.any() else 0.0,
         color=COLORS["band20"],
         alpha=0.35,
         linewidth=0,
         edgecolor="none",
         label="below the speed floor",
     )
-    ax.set_xlabel("Part load of nominal capacity [-]")
+    ax.set_xlabel("Delivered heat, share of maximum capacity [-]")
     ax.set_ylabel("System COP [-]")
     ax.set_xlim(0.0, 1.05)
     ax.set_xticks(ticks(0.0, 1.0, 0.2))

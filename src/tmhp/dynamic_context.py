@@ -727,7 +727,10 @@ def simulate_thermostat_step(
         is then where the limit leaves no more than the smallest continuous
         duty (:attr:`DutyLimit.stop_C`, never above ``T_limit_C``; the knee
         when the floor is not below ``Q_on``), and a call that stands there is
-        held by cycling at that duty. The run reports the stretch on the limit
+        held by cycling at that duty -- unless the tank loses more there than
+        that duty: the compressor then runs on, and the tank settles below the
+        cut-out where the limit's duty is the loss. The run reports the stretch
+        on the limit
         separately (``reduced_fraction``, ``T_reduced_mean_C``,
         ``T_full_mean_C``): the mean duty of the stretch is the limit's duty at
         its mean temperature, exactly, whatever the step. Mixed tanks only:
@@ -1031,8 +1034,17 @@ def _simulate_duty_limited_step(
             break
         want = call and scheduled
         above_cut = tw > T_cut + TEMPERATURE_TOL_K
-        at_limit = tw >= T_cut - TEMPERATURE_TOL_K
+        at_cut = tw >= T_cut - TEMPERATURE_TOL_K
         q_hold = 0.0 if above_cut else q_hold_tank
+        # At the cut-out the compressor has ``q_cut``. Where the tank loses
+        # less than that, it holds the tank there by cycling. Where the tank
+        # loses as much or more, it cannot hold it and is not stopped either:
+        # it runs on, and as the tank cools the limit leaves it more duty, so
+        # the tank settles below the cut-out where that duty is the loss. (A
+        # hold at the constant ``q_cut`` would be right for a compressor with
+        # one duty, the model without a limit; here the duty follows the tank.)
+        outrun = want and at_cut and not above_cut and q_cut > 0.0 and q_hold >= q_cut
+        at_limit = at_cut and not outrun
         hold = want and at_limit and q_hold > 0.0 and q_cut > 0.0
         holding = False
         if running:
@@ -1057,9 +1069,10 @@ def _simulate_duty_limited_step(
         # --- next event ---
         rem = dt - t
         if holding:
-            # Held at the cut-out, cycling at the duty the limit leaves there,
-            # until the call ends or the step does.
-            share = min(1.0, q_hold / q_cut)
+            # Held at the cut-out, cycling at the duty the limit leaves there
+            # (which covers the loss: ``q_hold < q_cut``), until the call ends
+            # or the step does.
+            share = q_hold / q_cut
             drive = p_const + share * q_cut
             step, target = rem, None
             if tw < T_hi - tol:

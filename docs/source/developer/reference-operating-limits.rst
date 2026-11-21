@@ -503,7 +503,11 @@ source at ``Ts`` for GSHPB and WSHPB (``charge_limit_reference_C``;
 :func:`tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit`). Where
 a step's own stop lies below the set point the compressor holds the tank
 there, cycling at ``Q_min`` against the tank's losses, and the row says
-``hp_stop_reason == "condensing_limit"``.
+``hp_stop_reason == "condensing_limit"``. If the tank loses more there than
+``Q_min`` (a draw), the compressor is not held to that duty: it runs on, the
+tank cools, the limit leaves it more, and the tank settles below the stop
+where the limit's duty is the loss (R32, 35 °C outdoor, a 10.5 kW draw: the
+stop is 62.1 °C with 6.3 kW, the tank settles at 60.1 °C).
 
 *Electricity.* Along the stretch on the limit the condensing pressure is the
 limit's; only the duty changes, from ``hp_capacity`` down to ``Q_min``. A step

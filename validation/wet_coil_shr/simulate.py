@@ -77,6 +77,8 @@ OUT_DIR = REPO_ROOT / "validation" / "results" / "wet_coil_shr_once"
 CSV_NAME = "wet_coil_shr_once.csv"
 BANDS_NAME = "shr_bands.csv"
 UNITS_NAME = "shr_by_unit.csv"
+#: This script, relative to the repository root (the provenance record names it and its content).
+SCRIPT = "validation/wet_coil_shr/simulate.py"
 
 #: Catalogues whose cooling rows record the indoor wet bulb.
 UNITS = ("daikin_rxm20a", "daikin_rxm25a", "daikin_rxm35a", "daikin_rxm42a", "daikin_rxm50a")
@@ -388,10 +390,19 @@ def main(argv: list[str] | None = None) -> None:
     (out_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
 
     from validation import study_provenance
+    from validation.parity.run import _git
 
+    # The record's commit and dirty flag cover the model and the harness
+    # (validation.parity.run.SOURCE_PATHS), not this script. Its own content
+    # is recorded here, and whether it was committed when it ran, so that the
+    # record vouches for the script that made the files as well.
+    script = {
+        "study_script_blob": _git("hash-object", SCRIPT),
+        "study_script_uncommitted": bool(_git("status", "--porcelain", "--", "validation/wet_coil_shr")),
+    }
     study_provenance.write(
         out_dir / "provenance.json",
-        "validation/wet_coil_shr/simulate.py",
+        SCRIPT,
         sorted(p for p in out_dir.iterdir() if p.suffix in (".csv", ".json") and p.name != "provenance.json"),
         {
             "model": "validation.parity.run._build_model(catalog, None, 'cooling'): the shipped parity construction",
@@ -401,6 +412,7 @@ def main(argv: list[str] | None = None) -> None:
         },
         "sensible heat ratio of the wet indoor coil against the catalogue's, and the COP bias dry against wet",
         command="python -m validation.wet_coil_shr.simulate",
+        extra=script,
     )
 
     pd.set_option("display.width", 200)

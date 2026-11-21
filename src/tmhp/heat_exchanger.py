@@ -333,10 +333,11 @@ def saturated_leaving_state(T_C: float, w: float, h_fg: float, T_max_C: float, P
     the line passes above it: the state ``(T_C, w)`` on the line would hold
     more vapour than air at that temperature can. Such a state is moved onto
     the saturation curve at the same enthalpy ``c_a T + h_fg w`` -- the excess
-    vapour condenses and its latent heat warms the air -- the correction
-    EnergyPlus applies to the outlet of its DX cooling coils (``DXCoils.cc``,
-    ``CalcDoe2DXCoil``: "check for saturation error and modify temperature at
-    constant enthalpy"). The coil's total heat does not
+    vapour condenses and its latent heat warms the air. EnergyPlus's DX
+    cooling coil, the apparatus-dew-point / bypass-factor coil of its
+    Engineering Reference, corrects a supersaturated outlet the same way: its
+    ``CalcDoe2DXCoil`` routine moves the outlet temperature at constant
+    enthalpy onto the saturation curve. The coil's total heat does not
     change; more of it is latent. A state at or below saturation is returned
     as given. ``T_max_C`` is the entering air temperature, above which the
     leaving air cannot be.

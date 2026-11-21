@@ -238,31 +238,56 @@ def _load_copy(path: Path):
     return module
 
 
-def test_script_identity_is_the_blob_of_the_running_code(tmp_path):
+def _blob(data: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()  # noqa: S324 -- git's blob id
+
+
+def test_script_identity_is_the_blob_of_the_running_code(tmp_path, monkeypatch):
     from validation.parity.run import _git
 
+    # The loaded module knows the source it runs: the file, compiled to the code object it executes.
+    path = REPO_ROOT / study.SCRIPT
+    assert path.read_bytes() == study._SOURCE_AT_LOAD
+    assert compile(study._SOURCE_AT_LOAD, str(path), "exec", dont_inherit=True) == study._LOADED_CODE
     blob = _git("hash-object", study.SCRIPT)
     if blob:
         assert study.script_identity() == {"study_script_blob": blob}
-    assert study.run_state()["study_script_blob"] == study.script_identity()["study_script_blob"]
+    state = study.run_state()
+    assert state["study_script_blob"] == _blob(path.read_bytes())
+    committed = _git("rev-parse", f"{state['git_head']}:{study.SCRIPT}")
+    assert state["study_script_uncommitted"] is (state["study_script_blob"] != committed)
 
-    # A copy, loaded and then edited on disk: the file is no longer the code that runs.
-    source = (REPO_ROOT / study.SCRIPT).read_text(encoding="utf-8")
+    # A copy, loaded and then edited on disk: what is recorded stays the source that was loaded.
+    source = path.read_bytes()
     copy = tmp_path / "simulate.py"
-    copy.write_text(source, encoding="utf-8")
+    copy.write_bytes(source)
     loaded = _load_copy(copy)
-    assert len(loaded.script_identity()["study_script_blob"]) == 40
+    assert loaded.script_identity() == {"study_script_blob": _blob(source)}
+    copy.write_bytes(source.replace(b'"wet_ua50": (True, 0.5)', b'"wet_ua50": (True, 0.4)'))
+    assert copy.read_bytes() != source
+    assert loaded.script_identity() == {"study_script_blob": _blob(source)}
+
+    # Without a source known to be the running code, nothing is recorded.
+    monkeypatch.setattr(loaded, "_SOURCE_AT_LOAD", None)
+    with pytest.raises(SystemExit, match="did not compile to the code that is running"):
+        loaded.script_identity()
+
+
+def test_source_is_accepted_only_if_it_compiles_to_the_running_code():
+    """The check behind ``_SOURCE_AT_LOAD``: bytes are compiled and compared, never run."""
+    code, name = study._LOADED_CODE, str(REPO_ROOT / study.SCRIPT)
+    source = (REPO_ROOT / study.SCRIPT).read_bytes()
+    assert study._source_of(code, source, name) == source
     for edited in (
-        source.replace('"wet_ua50": (True, 0.5)', '"wet_ua50": (True, 0.4)'),  # a constant
-        source.replace("    worst = 0.0\n", "    worst = 1.0\n"),  # a function body
+        source.replace(b'"wet_ua50": (True, 0.5)', b'"wet_ua50": (True, 0.4)'),  # a constant
+        source.replace(b"    worst = 0.0\n", b"    worst = 1.0\n"),  # a function body
+        source + b"\nraise SystemExit('this must never run')\n",  # code that would act if it were executed
+        b"def broken(:\n",  # not Python
     ):
         assert edited != source
-        copy.write_text(edited, encoding="utf-8")
-        with pytest.raises(SystemExit, match="is not the code that is running"):
-            loaded.script_identity()
-    # Put back, the file is the running code again.
-    copy.write_text(source, encoding="utf-8")
-    assert len(loaded.script_identity()["study_script_blob"]) == 40
+        assert study._source_of(code, edited, name) is None
 
 
 # ---------------------------------------------------------------------------

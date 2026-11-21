@@ -67,13 +67,39 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import marshal
 import math
 import re
+import sys
 import types
 from pathlib import Path
 
 import pandas as pd
+
+
+def _source_of(code: types.CodeType, data: bytes, filename: str) -> bytes | None:
+    """``data`` if it is source that compiles to ``code``, else ``None``.
+
+    Nothing is executed: the bytes are compiled and the code objects compared
+    (instructions, constants, names and positions, in every function).
+    """
+    try:
+        same = compile(data, filename, "exec", dont_inherit=True) == code
+    except (SyntaxError, ValueError):
+        return None
+    return data if same else None
+
+
+#: The code object the interpreter is running as this module -- what was
+#: loaded, whatever the file on disk has become since -- and the source it was
+#: compiled from: the file as read here, at load, kept only if it compiles to
+#: that code (``None`` otherwise: edited while it was being loaded, or a stale
+#: bytecode cache). The provenance record takes the script's blob from these
+#: bytes (:func:`script_identity`), never from a later read of the file.
+_LOADED_CODE: types.CodeType = sys._getframe().f_code
+try:
+    _SOURCE_AT_LOAD: bytes | None = _source_of(_LOADED_CODE, Path(__file__).read_bytes(), __file__)
+except OSError:
+    _SOURCE_AT_LOAD = None
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "validation" / "results" / "wet_coil_shr_once"
@@ -364,43 +390,23 @@ def headline(points: pd.DataFrame) -> dict:
     return out
 
 
-def _definitions_digest(namespace: dict) -> str:
-    """Digest of what a namespace of this script defines: its functions' code and its constants."""
-    digest = hashlib.sha256()
-    for name in sorted(namespace):
-        value = namespace[name]
-        if name.startswith("__") or name == "_LOADED_DIGEST" or isinstance(value, types.ModuleType):
-            continue
-        digest.update(name.encode())
-        if isinstance(value, types.FunctionType):
-            if value.__globals__ is namespace:
-                digest.update(marshal.dumps(value.__code__))
-        else:
-            digest.update(repr(value).encode())
-    return digest.hexdigest()
-
-
 def script_identity() -> dict:
-    """Git blob of this script's file, checked to be the source of the code that is running.
+    """Git blob of the source of the code that is running as this script.
 
-    The interpreter read the file when it loaded the module; the file can
-    have changed since. The bytes on disk are therefore compiled and run in a
-    scratch namespace (definitions only: nothing is solved and nothing
-    written) and must define what the loaded module defined when it was
-    loaded -- the same code in every function, the same constants
-    (:data:`_LOADED_DIGEST`). Only then is their blob hash returned: it is
-    the hash ``git hash-object`` gives the file, taken from the very bytes
-    that were checked. ``SystemExit`` when the file is not the running code.
+    The hash ``git hash-object`` gives a file with the bytes this module was
+    loaded from (:data:`_SOURCE_AT_LOAD`: read at load and compiled, without
+    being run, to the very code object the interpreter runs). The file on
+    disk is not read again, so an edit after the module was loaded cannot
+    change what is recorded. ``SystemExit`` when the source of the running
+    code is not known.
     """
-    path = Path(__file__)
-    data = path.read_bytes()
-    scratch: dict = {"__name__": "validation.wet_coil_shr._source_check", "__file__": str(path)}
-    exec(compile(data, str(path), "exec"), scratch)  # noqa: S102 -- this script's own source, definitions only
-    if scratch.get("_LOADED_DIGEST") != _LOADED_DIGEST:
+    if _SOURCE_AT_LOAD is None:
         raise SystemExit(
-            f"{path} on disk is not the code that is running (edited after it was loaded); nothing written"
+            f"{__file__} did not compile to the code that is running when it was loaded "
+            "(edited during the load, or a stale bytecode cache); run it again. Nothing written"
         )
-    return {"study_script_blob": hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()}  # noqa: S324 -- git's blob id
+    header = b"blob %d\0" % len(_SOURCE_AT_LOAD)
+    return {"study_script_blob": hashlib.sha1(header + _SOURCE_AT_LOAD).hexdigest()}  # noqa: S324 -- git's blob id
 
 
 def run_state() -> dict:
@@ -409,18 +415,17 @@ def run_state() -> dict:
     :func:`validation.parity.run.source_state` (commit, tree hashes, whether
     the model, the harness or the catalogues had uncommitted edits) covers
     ``validation.parity.run.SOURCE_PATHS``, which this script is not part of.
-    Its own git blob (:func:`script_identity`: the file that is the running
-    code) and whether anything under ``validation/wet_coil_shr`` was
-    uncommitted are added, so that the record vouches for the script that
-    made the files as well.
+    Its own git blob is added (:func:`script_identity`: the source of the
+    running code), and whether that blob is the script of the recorded commit
+    (``study_script_uncommitted`` is true when it is not), so that the record
+    vouches for the script that made the files as well.
     """
     from validation.parity.run import _git, source_state
 
-    return {
-        **source_state(),
-        **script_identity(),
-        "study_script_uncommitted": bool(_git("status", "--porcelain", "--", "validation/wet_coil_shr")),
-    }
+    state = source_state()
+    identity = script_identity()
+    committed = _git("rev-parse", f"{state['git_head']}:{SCRIPT}")
+    return {**state, **identity, "study_script_uncommitted": identity["study_script_blob"] != committed}
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -483,9 +488,6 @@ def main(argv: list[str] | None = None) -> None:
     print(json.dumps(numbers, indent=1))
     print(f"wrote {out_dir / CSV_NAME}")
 
-
-#: What this module defined when it was loaded (:func:`_definitions_digest`); kept last, after every definition.
-_LOADED_DIGEST = _definitions_digest(globals())
 
 if __name__ == "__main__":
     main()

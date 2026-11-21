@@ -751,13 +751,15 @@ elsewhere and charge at once:
 
 That is 0.21 K, 4.8 % of the heat and 8.1 % of the electricity between 60 s
 steps and the longer ones, against 0.02 K, 0.05 % and 0.4 % for the default
-water-source unit, on whose charge the condensing limit governs throughout. Every row is still consistent
-in itself -- none is credited with heat its cycle did not deliver, and each
+water-source unit, on whose charge the condensing limit governs throughout.
+Every row is still consistent in itself -- none is credited with heat its cycle did not deliver, and each
 withheld row is the row of ``"stop"`` -- but the run as a whole is not the
 same run at two step sizes, and none of them follows the unit along the limit
-that actually holds it there. The rows say so: a run with ``"cycle"`` in
-``reduced_duty_withheld`` at a source state whose stretch qualified is one in
-which a limit acts between the sampled points
+that actually holds it there. The 60 s rows say so: ``"cycle"`` in
+``reduced_duty_withheld`` at a source state whose stretch qualified means a
+limit acts where the three points did not look. The 600 s and 3600 s rows say
+nothing, because their cycles did not land on it: a run without that value is
+not shown to be free of such a limit
 (``tests/test_reduced_duty_charge.py`` pins this case). More sampling points
 would move the gap, not close it; following another limit inside the step is
 the later work named under *What it does not cover*.

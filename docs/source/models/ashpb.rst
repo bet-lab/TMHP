@@ -236,9 +236,9 @@ on by default, in ``analyze_steady`` and in the cycle of every dynamic step:
 leaves no frost and is not corrected; the fixed losses grow to their full
 size as the frost point rises 3 K above it (:ref:`dry air <ashp-frost-dry>`).
 At −5 °C and 50 % relative humidity the default 15 kW unit delivering 10 kW
-to a 40 °C tank draws 3,271 W, the frost-free figure, where the EnergyPlus
-multipliers (``frost_point_band_K=None``) give 3,614 W; at 60 % it draws
-3,435 W against 3,660 W, and at the rating humidity, 84 %, 3,897 W either
+to a 40 °C tank draws 3,394 W, the frost-free figure, where the EnergyPlus
+multipliers (``frost_point_band_K=None``) give 3,736 W; at 60 % it draws
+3,559 W against 3,783 W, and at the rating humidity, 84 %, 4,019 W either
 way.
 
 **Part load.** The correction is that of the load the coil carries

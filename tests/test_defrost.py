@@ -555,3 +555,34 @@ def test_the_steady_result_has_no_step_at_the_frost_limit(hp):
         assert a["cop_sys [-]"] == pytest.approx(b["cop_sys [-]"], rel=1e-12)
     stepped = [_solve(switch, -2000.0, T0=T, **room)["cop_sys [-]"] for T in (5.0, 5.25)]
     assert stepped[1] / stepped[0] > 1.2
+
+
+def test_the_dry_air_example_of_the_model_page_is_what_the_model_gives():
+    """docs/source/models/ashpb.rst, 'Dry air': the default 15 kW unit, 10 kW to a 40 degC tank at -5 degC."""
+    import re
+    import warnings
+    from pathlib import Path
+
+    import tmhp
+
+    page = re.sub(r"\s+", " ", (Path(__file__).resolve().parents[1] / "docs/source/models/ashpb.rst").read_text())
+    point = dict(T_tank_w=40.0, T0=-5.0, Q_ref_tank=10000.0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        default = tmhp.AirSourceHeatPumpBoiler()
+        energyplus = tmhp.AirSourceHeatPumpBoiler(defrost=DefrostModel(frost_point_band_K=None))
+        free = tmhp.AirSourceHeatPumpBoiler(defrost=False)
+        power = {
+            (name, humidity): model.analyze_steady(RH_out=humidity, **point)["E_tot [W]"]
+            for name, model in (("default", default), ("energyplus", energyplus), ("free", free))
+            for humidity in (0.5, 0.6, 0.84)
+        }
+    assert default.hp_capacity == 15000.0
+    assert power["default", 0.5] == pytest.approx(power["free", 0.5], rel=1e-9)  # "the frost-free figure"
+    assert power["default", 0.84] == pytest.approx(power["energyplus", 0.84], rel=1e-12)  # "either way"
+    assert (
+        f"draws {power['default', 0.5]:,.0f} W, the frost-free figure, where the EnergyPlus multipliers "
+        f"(``frost_point_band_K=None``) give {power['energyplus', 0.5]:,.0f} W; at 60 % it draws "
+        f"{power['default', 0.6]:,.0f} W against {power['energyplus', 0.6]:,.0f} W, and at the rating humidity, "
+        f"84 %, {power['default', 0.84]:,.0f} W either way"
+    ) in page

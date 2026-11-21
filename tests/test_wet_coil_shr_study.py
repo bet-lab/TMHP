@@ -133,7 +133,10 @@ def test_tables_and_headline_are_those_of_the_committed_rows(committed):
         assert not _mismatches(fresh, old), name
     manifest = json.loads((OUT / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["units"] == list(study.UNITS) and manifest["partial_run"] is False
-    assert manifest["point_ids"] == "all cooling rows"
+    assert manifest["points_run"] == {slug: study.cooling_point_ids(slug) for slug in study.UNITS}
+    assert manifest["points_run"] == study.points_run(committed)
+    record = json.loads((OUT / "provenance.json").read_text(encoding="utf-8"))
+    assert record["model_settings"]["points_run"] == manifest["points_run"]
     for key, value in study.headline(committed).items():
         assert value == pytest.approx(manifest["headline"][key], rel=1e-6, abs=1e-9), key
 
@@ -208,7 +211,8 @@ def test_main_records_the_blob_of_the_bytes_it_ran(tmp_path, capsys):
     assert len(pd.read_csv(tmp_path / study.CSV_NAME)) == 1
     manifest = json.loads((tmp_path / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["partial_run"] is True and manifest["units"] == ["daikin_rxm20a"]
-    assert manifest["point_ids"] == [1] and record["model_settings"]["point_ids"] == [1]
+    # ... and which rows: read off the rows computed, not off the request.
+    assert manifest["points_run"] == record["model_settings"]["points_run"] == {"daikin_rxm20a": [1]}
     # The record says what was run: one row of one unit, into another folder -- not the whole study.
     assert record["command"] == f"{study.COMMAND} --unit daikin_rxm20a --point-id 1 --out-dir {tmp_path.resolve()}"
     assert record["model_settings"]["units"] == ["daikin_rxm20a"]
@@ -266,6 +270,53 @@ def test_recorded_command_carries_the_options_of_the_run(tmp_path):
     assert study.run_command(None, (1, 23), None) == f"{study.COMMAND} --point-id 1 --point-id 23"
     spaced = tmp_path / "a folder"
     assert study.run_command(None, None, spaced) == f"{study.COMMAND} --out-dir '{spaced}'"
+
+
+@pytest.mark.parametrize(
+    "selection, says",
+    [
+        (["--unit", "daikin_rxm20a", "--point-id", "999"], "--point-id 999: not a cooling row of daikin_rxm20a"),
+        # Point 37 is a heating row: it would select nothing and still be recorded.
+        (["--unit", "daikin_rxm20a", "--point-id", "37"], "--point-id 37: not a cooling row of daikin_rxm20a"),
+        (["--point-id", "1", "--point-id", "37"], "--point-id 37: not a cooling row of daikin_rxm20a"),
+    ],
+)
+def test_a_point_id_that_selects_nothing_is_refused_before_anything_runs(tmp_path, capsys, selection, says):
+    out = tmp_path / "out"
+    with pytest.raises(SystemExit):
+        study.main([*selection, "--out-dir", str(out)])
+    assert says in capsys.readouterr().err
+    assert not out.exists()
+
+
+def test_points_run_are_read_off_the_rows_computed(tmp_path, capsys):
+    study.main(
+        [
+            "--unit",
+            "daikin_rxm20a",
+            "--unit",
+            "daikin_rxm50a",
+            "--point-id",
+            "36",
+            "--point-id",
+            "1",
+            "--out-dir",
+            str(tmp_path),
+        ]
+    )
+    capsys.readouterr()
+    rows = pd.read_csv(tmp_path / study.CSV_NAME)
+    assert list(zip(rows.slug, rows.point_id, strict=True)) == [
+        ("daikin_rxm20a", 1),
+        ("daikin_rxm20a", 36),
+        ("daikin_rxm50a", 1),
+        ("daikin_rxm50a", 36),
+    ]
+    manifest = json.loads((tmp_path / "run_manifest.json").read_text(encoding="utf-8"))
+    record = json.loads((tmp_path / "provenance.json").read_text(encoding="utf-8"))
+    expected = {"daikin_rxm20a": [1, 36], "daikin_rxm50a": [1, 36]}
+    assert manifest["points_run"] == record["model_settings"]["points_run"] == expected
+    assert manifest["units"] == ["daikin_rxm20a", "daikin_rxm50a"] and manifest["partial_run"] is True
 
 
 def test_partial_run_cannot_replace_the_committed_study(capsys):

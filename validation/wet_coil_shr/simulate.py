@@ -223,6 +223,18 @@ def run_point(catalog, point, model, name: str, rh: float | None) -> dict:
     }
 
 
+def cooling_point_ids(slug: str) -> list[int]:
+    """Ids of the cooling rows of one catalogue: the rows this study can run."""
+    from validation.parity.spec import load_all
+
+    return [point.id for point in load_all(slug)[0].points if point.mode == "cooling"]
+
+
+def points_run(points: pd.DataFrame) -> dict[str, list[int]]:
+    """The point ids a result frame holds, by catalogue: what was run, read off what was computed."""
+    return {slug: [int(i) for i in frame.point_id] for slug, frame in points.groupby("slug", sort=False)}
+
+
 def run_unit(slug: str, passes: tuple[str, ...] = tuple(PASSES), point_ids: tuple[int, ...] | None = None):
     """All cooling rows of one catalogue (or ``point_ids`` of it) in ``passes``: one row per catalogue row."""
     from validation.parity.spec import load_all
@@ -462,6 +474,13 @@ def run(argv: list[str] | None = None) -> None:
     partial = bool(args.unit or args.point_id)
     if partial and out_dir == OUT_DIR.resolve():
         parser.error("a partial run (--unit, --point-id) does not replace the committed study: give another --out-dir")
+    if point_ids is not None:
+        # Every id asked for has to be a cooling row of every catalogue it is asked of: an id that
+        # selects nothing somewhere would otherwise be recorded as run.
+        for slug in slugs:
+            absent = sorted(set(point_ids) - set(cooling_point_ids(slug)))
+            if absent:
+                parser.error(f"--point-id {', '.join(map(str, absent))}: not a cooling row of {slug}")
 
     # Captured before any catalogue is evaluated (as the parity harness does):
     # the record describes the code the numbers were computed with, not what
@@ -484,7 +503,7 @@ def run(argv: list[str] | None = None) -> None:
     units.to_csv(out_dir / UNITS_NAME, index=False)
     manifest = {
         "units": list(slugs),
-        "point_ids": list(point_ids) if point_ids else "all cooling rows",
+        "points_run": points_run(points),
         "partial_run": partial,
         "units_not_run_no_indoor_wet_bulb": list(UNITS_WITHOUT_WET_BULB),
         "passes": {name: {"wet_coil": wet, "UA_iu_scale": scale} for name, (wet, scale) in PASSES.items()},
@@ -505,7 +524,7 @@ def run(argv: list[str] | None = None) -> None:
             "passes": manifest["passes"],
             "RH_room": "from the row's indoor dry bulb and wet bulb, one standard atmosphere (wet passes); None (dry)",
             "units": list(slugs),
-            "point_ids": list(point_ids) if point_ids else "all cooling rows",
+            "points_run": points_run(points),
         },
         "sensible heat ratio of the wet indoor coil against the catalogue's, and the COP bias dry against wet",
         command=run_command(

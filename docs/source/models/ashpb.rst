@@ -225,11 +225,19 @@ on by default, in ``analyze_steady`` and in the cycle of every dynamic step:
    AirSourceHeatPumpBoiler()                                   # frost and defrost, 84 % RH
    AirSourceHeatPumpBoiler(defrost=False)                      # the frost-free steady state
    AirSourceHeatPumpBoiler(defrost=DefrostModel(RH_out=0.70))  # another default humidity
+   AirSourceHeatPumpBoiler(defrost=DefrostModel(frost_point_band_K=None))  # EnergyPlus in dry air too
 
    # Humidity per call, per step, or as a schedule (fraction, 0-1):
    # model.analyze_steady(T_tank_w=45.0, T0=0.0, Q_ref_tank=8000.0, RH_out=0.9)
    # model.analyze_dynamic(..., RH_out_schedule=rh)      # one value per step
    # model.step(state, {..., "RH_out": 0.9}, dt_s)
+
+**Dry air.** Air whose frost point is at or below the coil of the correlation
+leaves no frost and is not corrected; the fixed losses grow to their full
+size as the frost point rises 3 K above it (:ref:`dry air <ashp-frost-dry>`).
+At −5 °C and 50 % relative humidity the default 15 kW unit delivering 10 kW
+at 40 °C draws 3,371 W, the frost-free figure, where the EnergyPlus
+multipliers gave 3,667 W. At the rating humidity nothing changes.
 
 **Part load.** The correction is that of the load the coil carries
 (:ref:`frost at part load <ashp-frost-load>`): the coil sits ``r (0.18 T_out + 8.589)`` below the

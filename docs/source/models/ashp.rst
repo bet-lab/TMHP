@@ -493,7 +493,7 @@ difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
      - 4.40
      - 3.70
 
-``DefrostModel(load_weighted=False)`` is EnergyPlus at every load. A unit that
+``DefrostModel(load_weighted=False)`` is the rated-load correction at every load. A unit that
 cycles below its minimum capacity is loaded by what the running machine
 delivers. What the load term assumes: the air flow over the coil does not
 follow the load — a unit that slows its outdoor fan with the compressor has a
@@ -506,28 +506,103 @@ condition A2 (dry bulb 2 °C, wet bulb 1 °C). ``defrost=None`` switches the
 correction off, and a :class:`tmhp.DefrostModel` sets the outdoor limit, the
 width of the transition below it and the default humidity.
 
-Four things differ from EnergyPlus: the load term above, and three more. The transition above replaces a switch:
+Five things differ from EnergyPlus: the load term above, and four more. The transition above replaces a switch:
 in EnergyPlus the correction is in full at 5.0 °C and absent at 5.1 °C, where
 its cost is at its largest, so the COP of the default unit steps from 3.32 to
 4.88 between 5.0 and 5.5 °C at nameplate capacity. The 5 °C limit is a setting of the defrost
 controller, not the temperature at which a coil frosts over, and a coil near
 freezing frosts on part of its surface and for part of the time.
-``DefrostModel(transition_K=0)`` restores the switch. The other two are there
-so that nothing has to be entered: EnergyPlus asks for a curve of defrost
+``DefrostModel(transition_K=0)`` restores the switch. Air too dry to frost
+the coil is not corrected (next paragraph). The other two are there so that
+nothing has to be entered: EnergyPlus asks for a curve of defrost
 power, and here the compressor draws, while it defrosts, what it draws while it
 heats; and the coil temperature is EnergyPlus' correlation rather than the
 evaporating temperature this model solves — the constants were fitted with
 that estimate.
 
-What it leaves out: dry air is not frost-free in the source model (the
-frosted-coil multipliers 0.875 and 0.954 apply whenever the outdoor air is
-below the limit, whatever its humidity), and that is kept at the rated load.
-It shows through the load term in one place: in air too dry to frost even the
-rated-load coil (below −18.3 °C at 60 % relative humidity, below −39 °C at
-84 %) there is no frost drive for the load to scale, and the fixed
-multipliers stay at every load — at half load and 60 % humidity the COP
-multiplier is 0.997 at −15 °C and 0.917 at −18.3 °C. And the room is not
-cooled in time during a defrost — its effect is in the mean.
+.. _ashp-frost-dry:
+
+**Dry air.** In the source model dry air is not frost-free: the frosted-coil
+multipliers 0.875 and 0.954 apply whenever the outdoor air is below the
+limit, whatever its humidity. They are what a coil loses, on average, to the
+frost it carries between two defrosts, and the rating conditions they
+describe are humid (EN 14511 puts the wet bulb 1 K below the dry bulb: 84 %
+at 2 °C, 75 % at −7 °C). At −5 °C and 50 % relative humidity the air cannot
+deposit on the coil of the correlation — its frost point, −12.9 °C, is below
+the coil at −12.7 °C — and EnergyPlus still multiplies the COP by 0.917, with
+a defrost time of 0.01 % of the runtime. In a cold, dry winter that is 8 to
+9 % on the electricity of every sub-zero hour. Here the correction ends where
+the frost does. With the humidity ratio of the air above saturation at the
+coil, :math:`\Delta\omega`,
+
+.. math::
+
+   s = \min\left(1,\ \frac{\max(0, \Delta\omega)}
+       {\omega_{sat}(T_{coil} + 3\,\mathrm{K}) - \omega_{sat}(T_{coil})}\right), \qquad
+   \text{multipliers} = (1 - 0.125\,s)(1 - t_{frac}),\ (1 - 0.046\,s)(1 - t_{frac})
+
+— nothing when the frost point of the air is at or below the coil
+temperature, the fixed losses in full when it is 3 K or more above it, and in
+proportion to the frost drive in between (a coil is not at one temperature,
+so near the onset part of it frosts). No measurement fixes the width of that
+band; 3 K is the width of the temperature transition above, and it leaves
+every rating condition that gives a wet bulb (EN 14511 A2 and A−7, AHRI
+210/240 H2) and the default 84 % down to −20 °C at the full correction, so
+the table above and the catalogue comparison are EnergyPlus unchanged.
+The band ends at 0 °C whatever its width — air with a dew point at or above
+freezing leaves all the frost a coil can take — so any finite width is valid.
+``DefrostModel(frost_point_band_K=0)`` switches the fixed losses at the frost
+point and ``frost_point_band_K=None`` is EnergyPlus.
+
+.. list-table:: COP multiplier of the frost adjustment at the rated load, by outdoor humidity
+   :header-rows: 1
+   :widths: 16 14 14 14 14 14 14
+
+   * - Outdoor
+     - 84 %
+     - 70 %
+     - 60 %
+     - 50 %
+     - 30 %
+     - EnergyPlus, 30 %
+   * - 2 °C
+     - 0.823
+     - 0.858
+     - 0.897
+     - 0.984
+     - 1
+     - 0.917
+   * - −5 °C
+     - 0.865
+     - 0.887
+     - 0.937
+     - 1
+     - 1
+     - 0.917
+   * - −10 °C
+     - 0.886
+     - 0.906
+     - 0.965
+     - 1
+     - 1
+     - 0.917
+   * - −15 °C
+     - 0.899
+     - 0.937
+     - 0.987
+     - 1
+     - 1
+     - 0.917
+
+With the load term, air too dry to frost even the rated-load coil (below
+−18.3 °C at 60 % relative humidity, below −39 °C at 84 %) is not corrected at
+any load. Without the band there is no frost drive there for the load to
+scale and the fixed multipliers stay at every load — at half load and 60 %
+humidity the COP multiplier would fall from 0.997 at −15 °C to 0.917 at
+−18.3 °C.
+
+What it leaves out: the room is not cooled in time during a defrost — its
+effect is in the mean.
 :meth:`~tmhp.AirSourceHeatPump.max_capacity` reports the same mean
 ceiling, with the frost-free one as ``Q_max_frost_free [W]``.
 

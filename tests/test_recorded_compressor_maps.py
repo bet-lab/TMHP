@@ -15,7 +15,7 @@ library's default:
 
 The rules every efficiency obeys, whatever its origin (``0 < eta <= 1``, call
 forms), are in ``test_compressor_efficiency_guards.py``; the library's default
-models in ``test_compressor_semi_empirical.py``.
+models in ``test_compressor_default_map.py``.
 """
 
 from __future__ import annotations

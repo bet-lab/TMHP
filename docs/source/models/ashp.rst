@@ -53,7 +53,9 @@ controller.
 
 How much rides on it, for the default 4 kW unit (cooling at 35 °C outdoor and
 a 27 °C room, heating at 7 °C outdoor and a 20 °C room). The search runs the
-indoor fan at its largest flow, 0.232 m³/s, in all four cases:
+indoor fan at its largest flow, 0.232 m³/s, in three of the four cases. In
+heating at 2 kW it stops at 0.229 m³/s, where the total input is within 0.1 W
+of the input at the largest flow, inside the tolerance of the search:
 
 .. list-table:: System COP by fan flow
    :header-rows: 1
@@ -65,31 +67,31 @@ indoor fan at its largest flow, 0.232 m³/s, in all four cases:
      - Cooling 4 kW
      - Heating 4 kW
    * - Least power (the model)
-     - 5.82
-     - 5.91
-     - 4.27
-     - 4.65
+     - 5.28
+     - 5.38
+     - 3.99
+     - 4.45
    * - Indoor fan held at 70 % of its largest flow
-     - 5.33
-     - 5.47
-     - 3.53
-     - 4.05
+     - 4.99
+     - 5.16
+     - 3.35
+     - 3.95
    * - Indoor fan held at 50 %
-     - 4.59
-     - 4.80
-     - 2.82
-     - 3.40
+     - 4.44
+     - 4.73
+     - 2.65
+     - 3.37
    * - Both fans held at their largest flow
-     - 5.60
-     - 5.50
-     - 4.27
-     - 4.64
+     - 5.00
+     - 5.00
+     - 3.99
+     - 4.43
 
-With the indoor flow at half, the COP is 21 % and 19 % lower at half load and
-34 % and 27 % lower at nameplate load: the coil needs a larger temperature
+With the indoor flow at half, the COP is 16 % and 12 % lower at half load and
+34 % and 24 % lower at nameplate load: the coil needs a larger temperature
 difference to carry the duty, and the compressor pays for it. Holding both
-fans at full flow costs 4 % and 7 % at half load — the outdoor fan draws
-more than the compressor saves — and under 0.3 % at nameplate load. At half
+fans at full flow costs 5 % and 7 % at half load — the outdoor fan draws
+more than the compressor saves — and at most 0.4 % at nameplate load. At half
 the indoor flow the unit no longer carries its nameplate either: its coil
 takes 3.90 kW in cooling and gives 3.98 kW in heating (refrigerant side),
 and the figures in that row are at those duties. A fan is held at one flow
@@ -110,7 +112,7 @@ therefore the condition the catalogues were measured at: that comparison is
 like with like. In use the indoor fan runs at the step its user selects, or at
 what an automatic setting picks, and the COP falls as the rows above show. The
 outdoor fan is the unit's own to control in either case, and the search slows
-it with the load as a controller does (0.61 to 0.47 m³/s from nameplate to
+it with the load as a controller does (0.61 to 0.43 m³/s from nameplate to
 half load in cooling).
 
 For a seasonal figure of a unit whose fan setting is known, hold the fan
@@ -181,9 +183,9 @@ against those releases:
   nameplate capacity is up to 4 % lower.
 - **Ceiling.** The largest duty the indoor coil carries inside the approach
   bounds (``dT_approach_bounds``) falls with the room-air density, by 1.3 % at
-  a 20 °C room. Where that ceiling is close to the request it now binds: at
-  −7 °C / 20 °C the frosted unit delivers 98.8 % of its nameplate
-  (``capacity_clamped == "max"``) where it delivered 100 %.
+  a 20 °C room. It is the heating ceiling of the default unit in mild
+  weather: at 7 °C / 20 °C, 189 % of its nameplate
+  (``capacity_binding == "cycle"``).
 
 The volume flows are the fan's actual flows at the coil inlet. Rating airflows
 are commonly quoted as standard air (1.204 kg/m³, the mass flow divided by that
@@ -235,7 +237,11 @@ what such equipment declares.) The indoor fan draws about 0.6 % of the
 nameplate capacity at rated flow, both fans together 1.5 to 2.1 %.
 
 Because the fan power is small against the compressor's, the least-power
-operating point keeps the indoor fan at its largest airflow at every load; the
+operating point keeps the indoor fan at its largest airflow, to the tolerance
+of the search, from nameplate down to half load (:ref:`ashp-fan-control`).
+Below that, in heating, the compressor's input is small enough for the fan's
+to count, and the search turns the fan down: for the default unit at 7 °C
+outdoor and a 20 °C room, to 86 % of its largest airflow at 1.5 kW. The
 supply-air temperature therefore approaches the room temperature at part load.
 A unit that slows its fan for comfort is described with ``dV_iu_fan_a_max``.
 
@@ -244,14 +250,12 @@ A unit that slows its fan for comfort is described with ``dV_iu_fan_a_max``.
    The approach-temperature search domain (``dT_approach_bounds``) is 1 to
    30 K. A default unit runs its indoor coil 12 to 24 K from the room air at
    nameplate capacity, depending on its size (2 to 30 kW), so at the rating
-   points the box is not what limits it. In mild weather the delivered heat of
-   the default 4 kW unit is capped by the compressor's speed range, at about
-   160 % of the nameplate at 7/20 °C
-   (``capacity_clamped == "max"``, ``capacity_binding == "compressor"``).
-   A larger unit moves less air per kW, and from 8 kW the indoor coil at its
-   largest airflow and the widest approach is the ceiling there
-   (``capacity_binding == "cycle"``): 155 % of the nameplate at 8 kW, 137 % at
-   15 kW. Until November 2026 the default was 1 to 20 K, which capped the
+   points the box is not what limits it. In mild weather it is: at 7/20 °C
+   the delivered heat of a default unit is capped by the indoor coil at its
+   largest airflow and the widest approach (``capacity_clamped == "max"``,
+   ``capacity_binding == "cycle"``), at 189 % of the nameplate at 4 kW, 155 %
+   at 8 kW and 137 % at 15 kW; a larger unit moves less air per kW. Until
+   November 2026 the default was 1 to 20 K, which capped the
    default 4 kW unit near 125 % of its nameplate and cut the rated capacity of
    units above 8 kW.
 
@@ -405,7 +409,7 @@ speed than flat out, a duty can be refused although a larger one runs (the
 4 kW R32 unit as a bare constructor built it until November 2026 --
 18.7 cm³/rev, 0.8 m³/s outdoors, the efficiency map of then -- at −25 °C
 outdoor / 24 °C room: 2.3 kW had no operating point, 3.6 kW had; the present
-default unit runs at every duty up to its 2.8 kW ceiling there). Such a
+default unit runs at every duty up to its 3.4 kW ceiling there). Such a
 request runs at the largest duty below it that has one, again with
 ``capacity_clamped == "max"`` and the binding that names the limit, as the
 water-heating models do. A request is switched off (``failure_reason``) only
@@ -557,25 +561,25 @@ difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
      - −7 °C
      - −15 °C
    * - 3 kW (:math:`r = 1` at each)
-     - 3.81
-     - 3.72
-     - 3.37
-     - 2.82
-   * - 2 kW
-     - 4.64
-     - 4.46
-     - 3.97
      - 3.33
+     - 3.23
+     - 2.92
+     - 2.53
+   * - 2 kW
+     - 4.17
+     - 3.96
+     - 3.39
+     - 2.79
    * - 2 kW, ``load_weighted=False``
-     - 4.21
-     - 4.11
-     - 3.80
-     - 3.32
+     - 3.74
+     - 3.61
+     - 3.23
+     - 2.77
    * - 1 kW (cycling at the minimum speed at 2 and 0 °C)
-     - 5.24
-     - 5.05
-     - 4.40
-     - 3.70
+     - 4.93
+     - 4.74
+     - 4.00
+     - 3.24
 
 ``DefrostModel(load_weighted=False)`` is EnergyPlus at every load. A unit that
 cycles below its minimum capacity is loaded by what the running machine
@@ -592,8 +596,8 @@ width of the transition below it and the default humidity.
 
 Four things differ from EnergyPlus: the load term above, and three more. The transition above replaces a switch:
 in EnergyPlus the correction is in full at 5.0 °C and absent at 5.1 °C, where
-its cost is at its largest, so the COP of the default unit steps from 3.32 to
-4.88 between 5.0 and 5.5 °C at nameplate capacity. The 5 °C limit is a setting of the defrost
+its cost is at its largest, so the COP of the default unit steps from 3.04 to
+4.29 between 5.0 and 5.5 °C at nameplate capacity. The 5 °C limit is a setting of the defrost
 controller, not the temperature at which a coil frosts over, and a coil near
 freezing frosts on part of its surface and for part of the time.
 ``DefrostModel(transition_K=0)`` restores the switch. The other two are there

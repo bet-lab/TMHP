@@ -39,29 +39,29 @@
     0.12
   ],
   "fixed_displacement_cm3": {
-    "ASHP_heating": 10.545636973558356,
-    "ASHP_cooling": 10.545636973558356,
-    "ASHPB_heating": 27.11735221772149
+    "ASHP_heating": 10.545636973558357,
+    "ASHP_cooling": 10.545636973558357,
+    "ASHPB_heating": 27.117352217721493
   },
   "own_displacement_cm3": {
-    "ASHP_heating/R32": 10.545636973558356,
-    "ASHP_heating/R410A": 11.642534254246954,
-    "ASHP_heating/R290": 19.679304683983126,
-    "ASHP_heating/R407C": 18.227677205558532,
-    "ASHP_heating/R134a": 25.596769714794547,
-    "ASHP_heating/R22": 16.626564395880855,
-    "ASHP_cooling/R32": 10.545636973558356,
-    "ASHP_cooling/R410A": 11.642534254246954,
-    "ASHP_cooling/R290": 19.679304683983126,
-    "ASHP_cooling/R407C": 18.227677205558532,
-    "ASHP_cooling/R134a": 25.596769714794547,
-    "ASHP_cooling/R22": 16.626564395880855,
-    "ASHPB_heating/R32": 27.11735221772149,
-    "ASHPB_heating/R410A": 29.937945225206448,
-    "ASHPB_heating/R290": 50.603926330242324,
-    "ASHPB_heating/R407C": 46.87116995715051,
-    "ASHPB_heating/R134a": 65.82026498090026,
-    "ASHPB_heating/R22": 42.75402273226505
+    "ASHP_heating/R32": 10.545636973558357,
+    "ASHP_heating/R410A": 11.642534254246964,
+    "ASHP_heating/R290": 19.679304683983162,
+    "ASHP_heating/R407C": 18.22767720555855,
+    "ASHP_heating/R134a": 25.596769714794558,
+    "ASHP_heating/R22": 16.62656439588009,
+    "ASHP_cooling/R32": 10.545636973558357,
+    "ASHP_cooling/R410A": 11.642534254246964,
+    "ASHP_cooling/R290": 19.679304683983162,
+    "ASHP_cooling/R407C": 18.22767720555855,
+    "ASHP_cooling/R134a": 25.596769714794558,
+    "ASHP_cooling/R22": 16.62656439588009,
+    "ASHPB_heating/R32": 27.117352217721493,
+    "ASHPB_heating/R410A": 29.93794522520648,
+    "ASHPB_heating/R290": 50.603926330242416,
+    "ASHPB_heating/R407C": 46.871169957150556,
+    "ASHPB_heating/R134a": 65.82026498090029,
+    "ASHPB_heating/R22": 42.754022732263095
   },
   "own_displacement_skipped": {},
   "regression_max_rel_dev": {
@@ -75,8 +75,8 @@
     "m_ref": 0.0
   },
   "n_rows": 828,
-  "n_failures": 23,
-  "n_speed_floor": 121,
+  "n_failures": 0,
+  "n_speed_floor": 182,
   "n_fan_floor_ou": 0,
   "fit_domain_n_star": [
     0.27,
@@ -86,5 +86,5 @@
     1.5,
     7.3
   ],
-  "coefficient_version": "semi-empirical-2026-11-15"
+  "coefficient_version": "ossorio-r290-te-2026-11-21"
 }

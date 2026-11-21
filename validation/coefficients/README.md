@@ -2,12 +2,19 @@
 
 One folder per release of the library's default compressor efficiency models.
 
-`semi-empirical-2026-11-15/` is the fit behind the models the library ships
+`ossorio-r290-te-2026-11-21/` is the fit behind the maps the library ships
 (`src/tmhp/compressor_efficiency.py`,
-`COEFFICIENT_VERSION = "semi-empirical-2026-11-15"`): compressor-type-specific
-semi-empirical forms. Its README describes the data, the fit and what is
-provisional; `validation/compressor_maps/semi_empirical/emit.py` writes the
-constants of the library module from it.
+`COEFFICIENT_VERSION = "ossorio-r290-te-2026-11-21"`): three polynomial maps in
+the pressure ratio, the speed and the evaporating temperature, fitted to 134
+measured points of one R290 scroll (#217, #218). Its README describes the data,
+the fit and the comparison that chose the axes;
+`validation/compressor_maps/ossorio_te/emit.py` writes the constants of the
+library module from it.
+
+`semi-empirical-2026-11-15/` is the release before (compressor-type-specific
+semi-empirical forms with a drive model), discarded by #217. Its folder and the
+pipeline under `validation/compressor_maps/semi_empirical/` are kept as a
+record; that pipeline's `emit.py` no longer has a block to write.
 
 The earlier releases are records. Their maps are no longer in the library; the
 code that evaluates them is kept, number for number, in `recorded_maps/` for

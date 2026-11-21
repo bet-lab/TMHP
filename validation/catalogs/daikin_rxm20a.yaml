@@ -18,7 +18,8 @@
 #
 # The compressor is Daikin's swing compressor -- a rolling-piston rotary whose
 # vane is integral to the piston -- with no injection (compressor_type: swing,
-# injection: none). It runs on the library's inverter rotary model.
+# injection: none). Both are reporting facts: the library has one default
+# efficiency map for every compressor (#217).
 slug: daikin_rxm20a
 name: FTXM20A / RXM20A
 manufacturer: Daikin

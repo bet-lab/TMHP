@@ -10,11 +10,11 @@ equation. The 2024 correlations (Eqs. 10/17/22) were fitted to the same tests an
 they are not on this path (2026-11-21, user question).
 
 Full width (1044 u), one source and labelled edges, rows chosen so that no edge crosses another (merges are dots):
-  rows 0-2  per-point efficiencies f_loss, eta_ov, eta_v (fit targets) -> fitted maps -> what the cycle reads
+  rows 0-2  per-point efficiencies f_loss, eta_ov, eta_v (fit targets) -> fitted maps
   row 3     CoolProp states rho_1, h_1, h_2s, h_2 (from T_e, T_c, T_suc, T_dis), merged into rows 0-2
   rows 4-6  the axes: PR -> ln PR, N -> N/70, T_e -> T_e/10
 The map rows run f_loss, eta_ov, eta_v so that the T_e term (accent) reaches eta_v and eta_ov and stops short of
-f_loss, and f_loss sits next to eta_ov for eta_cmp_isen = eta_ov / (1 - f_loss).
+f_loss. How the cycle uses the three maps is MP2 (the column "read by the cycle" was taken out, user 2026-11-21).
 Independent review 2026-11-21: v1 wired eta_ov to eta_cmp, fed t to f_loss and left the pressures out of CoolProp.
 
 Source of every value: validation/coefficients/ossorio-r290-te-2026-11-21/ (README, coefficients.json),
@@ -34,13 +34,12 @@ ACC = HIGHLIGHT
 ACC_TEXT = HIGHLIGHT_TEXT
 
 # ── columns ───────────────────────────────────────────────────────────────────────────────────
-X1, W1 = M, 132  # the measured table (one tall source node)
-EDGE_W = 132  # room for the edge labels between the source and the first boxes
-X2, W2 = X1 + W1 + EDGE_W, 120  # CoolProp states, pressure ratio
-X3, W3 = X2 + W2 + GAP_FLOW, 188  # per-point efficiencies, axis terms
-X4, W4 = X3 + W3 + GAP_FLOW, 136  # fitted maps
-X5 = X4 + W4 + GAP_FLOW + 12  # what the cycle reads (12 u more: two buses run in this gap)
-W5 = W - M - X5
+X1, W1 = M, 150  # the measured table (one tall source node)
+EDGE_W = 168  # room for the edge labels between the source and the first boxes
+X2, W2 = X1 + W1 + EDGE_W, 160  # CoolProp states, pressure ratio
+X3, W3 = X2 + W2 + GAP_FLOW, 236  # per-point efficiencies, axis terms
+X4 = X3 + W3 + GAP_FLOW  # fitted maps (the last column: how the cycle uses them is MP2)
+W4 = W - M - X4
 
 # ── rows ──────────────────────────────────────────────────────────────────────────────────────
 HEAD = M + CAP * T_BLOCK
@@ -53,7 +52,7 @@ ROW_C = [y + RH / 2 for y in ROW_Y]  # rows 0-2 centres
 STATES_C = ROW_Y[2] + RH + GAP_SECTION + SH / 2  # row 3
 AX_C = [STATES_C + (k + 1) * (SH + GAP_GROUP) for k in range(3)]  # rows 4-6: PR, N, T_e
 BOTTOM = AX_C[2] + SH / 2
-AX_W = 104  # axis-term boxes
+AX_W = 120  # axis-term boxes
 X_AX = X3 + (W3 - AX_W) / 2
 
 c = Canvas(W, 10)
@@ -98,7 +97,6 @@ with c.group("headers"):
     head(X2, W2, "CoolProp")
     head(X3, W3, "Per point")
     head(X4, W4, "Fitted maps", "least squares")
-    head(X5, W5, "Read by the cycle")
 
 # ── the source: one measured table ────────────────────────────────────────────────────────────
 with c.group("measured"):
@@ -120,8 +118,7 @@ with c.group("targets"):
     c.path(
         f"M {X2 + W2 + ARROW_CLEAR:.2f} {STATES_C:.2f} L {X_MERGE - R_NODE:.2f} {STATES_C:.2f} "
         f"Q {X_MERGE:.2f} {STATES_C:.2f} {X_MERGE:.2f} {STATES_C - R_NODE:.2f} L {X_MERGE:.2f} {ROW_C[0]:.2f}",
-        stroke=INK2,
-        sw=S_ARROW,
+        stroke=INK2, sw=S_ARROW,
     )
 
 # ── the axes (rows 4-6) ─────────────────────────────────────────────────────────────────────────
@@ -139,11 +136,8 @@ with c.group("axes"):
     arrow([(X1 + W1, AX_C[2]), (X_AX, AX_C[2])], accent=True)
 
 # ── fitted maps (rows 0-2): targets from the left, axes from below ──────────────────────────────
-MAPS = [
-    ("f_{loss}(PR, N)", "CV RMSE 0.015", False),
-    ("η_{ov}(PR, N, T_e)", "CV RMSE 0.022", True),
-    ("η_v(PR, N, T_e)", "CV RMSE 0.008", True),
-]
+MAPS = [("f_{loss}(PR, N)", "CV RMSE 0.015", False), ("η_{ov}(PR, N, T_e)", "CV RMSE 0.022", True),
+        ("η_v(PR, N, T_e)", "CV RMSE 0.008", True)]
 X_AXN = X4 - 22  # bus of ln PR and N/70: every map
 X_AXT = X4 - 12  # bus of T_e/10: the two maps that carry it
 with c.group("maps"):
@@ -162,22 +156,6 @@ with c.group("maps"):
     for k in (1, 2):
         dot(X_AXT, ROW_C[k], accent=True)
 
-# ── what the cycle reads (rows 0-2), evaluated at the cycle's own state (row 5) ────────────────
-READ = [("eta\\_cmp", "= 1 − f_{loss}"), ("eta\\_cmp\\_isen", "= η_{ov}/(1 − f_{loss})"), ("eta\\_cmp\\_vol", "= η_v")]
-X_FL = X4 + W4 + 12  # f_loss also enters eta_cmp_isen
-X_CYC = X5 - 12  # the cycle's state enters every evaluation
-with c.group("library"):
-    for k, (label, sub) in enumerate(READ):
-        c.node(X5, ROW_Y[k], W5, RH, label, sub, role="neutral", align="start")
-        arrow([(X4 + W4, ROW_C[k]), (X5, ROW_C[k])])
-    line([(X_FL, ROW_C[0]), (X_FL, ROW_C[1])])
-    dot(X_FL, ROW_C[0])
-    dot(X_FL, ROW_C[1])
-    box(X5, AX_C[1], W5, "cycle: PR, N, T_{evap}", accent=True, align="start")
-    line([(X5, AX_C[1]), (X_CYC, AX_C[1]), (X_CYC, ROW_C[0])])
-    for k in range(3):
-        dot(X_CYC, ROW_C[k])
-
 c.height = BOTTOM + M
 save(
     c,
@@ -188,7 +166,7 @@ save(
         concept=(
             "One measured table: flow, power and speed with CoolProp states give three efficiencies per point; "
             "pressures, speed and evaporating temperature give the axes; least squares joins them into f_loss in PR "
-            "and N and eta_ov, eta_v in PR, N and T_e, which the cycle reads at its own PR, N and T_evap."
+            "and N and eta_ov, eta_v in PR, N and T_e."
         ),
         use="paper",
         width_note="full width (1044 u)",

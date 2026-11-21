@@ -248,12 +248,10 @@ def test_without_cycling_the_unit_runs_at_its_smallest_continuous_wet_duty():
     assert row["Q_ref_iu [W]"] == pytest.approx(1350.0, rel=5e-3) and row["Q_unmet [W]"] == 0.0
 
 
-def test_fans_that_leave_no_continuous_duty_are_named_as_a_coil_limit():
-    # Both fans held within a few percent of their largest flow: in cold weather the coils carry
-    # more than any duty the compressor can be turned down to, at every approach, so no larger
-    # duty runs either. The row says a coil cannot carry the duty inside its flow range --
-    # not that the cycle or the search failed.
-    stiff = _quiet(
+@pytest.fixture(scope="module")
+def stiff():
+    # Both fans held within a few percent of their largest flow.
+    return _quiet(
         AirSourceHeatPump,
         dV_ou_fan_a_min=0.55,
         dV_ou_fan_a_max=0.6,
@@ -262,11 +260,33 @@ def test_fans_that_leave_no_continuous_duty_are_named_as_a_coil_limit():
         dV_iu_fan_a_max=0.2,
         dV_iu_fan_a_rated=0.2,
     )
-    row = stiff.analyze_steady(200.0, 5.0, 27.0, RH_room=0.9, verbose=False)
-    assert row["failure_reason"] == "hx_not_converged"
-    assert row["Q_ref_iu [W]"] == 0.0 and row["Q_unmet [W]"] == 200.0 and row["runtime_fraction [-]"] == 0.0
+
+
+def test_fans_that_leave_no_continuous_duty_are_named_as_a_coil_limit(stiff):
+    # In cold weather the coils carry more than any duty the compressor reaches, at every
+    # approach: no larger duty runs either, and the ceiling is 0 W. The row says a coil cannot
+    # carry the duty inside its flow range -- not that the cycle or the search failed.
+    assert stiff.max_capacity(-5.0, 27.0, mode="cooling", RH_room=0.9)["Q_max [W]"] == 0.0
+    for load in (200.0, 12000.0):
+        row = stiff.analyze_steady(load, -5.0, 27.0, RH_room=0.9, verbose=False)
+        assert row["failure_reason"] == "hx_not_converged", load
+        assert row["Q_ref_iu [W]"] == 0.0 and row["Q_unmet [W]"] == load and row["runtime_fraction [-]"] == 0.0
     # The dry coil does not run there either.
-    assert stiff.analyze_steady(200.0, 5.0, 27.0, verbose=False)["failure_reason"] != "none"
+    assert stiff.analyze_steady(200.0, -5.0, 27.0, verbose=False)["failure_reason"] != "none"
+
+
+def test_stiff_fans_cycle_at_a_smallest_continuous_duty_above_twice_the_nameplate(stiff):
+    # At 5 degC this unit was answered as off with "hx_not_converged" -- "no larger duty runs
+    # either" -- while it ran 10 kW on request: the search for the smallest continuous duty
+    # ended at twice the nameplate (8 kW), under the 9.53 kW at which the coils first balance.
+    running = stiff.analyze_steady(10000.0, 5.0, 27.0, RH_room=0.9, verbose=False)
+    assert running["failure_reason"] == "none" and running["capacity_clamped"] is None
+    row = stiff.analyze_steady(200.0, 5.0, 27.0, RH_room=0.9, verbose=False)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
+    assert row["Q_ref_iu [W]"] == pytest.approx(200.0, rel=1e-9) and row["Q_unmet [W]"] == 0.0
+    assert row["Q_min [W]"] == pytest.approx(9531.25, rel=5e-3)
+    ceiling = stiff.max_capacity(5.0, 27.0, mode="cooling", RH_room=0.9)
+    assert ceiling["binding"] == "compressor" and ceiling["Q_max [W]"] > row["Q_min [W]"]
 
 
 # ---------------------------------------------------------------------------

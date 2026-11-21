@@ -147,9 +147,13 @@ to the limit is solved inside the step: one hour from 50 °C with set points
 70–72 °C ends within 0.03 K, 0.05 % of heat and 0.5 % of electricity with
 60 s, 600 s and 3600 s steps (see
 :ref:`the operating-limits reference <reduced-duty-charging>` for where that
-stops holding: a tank that loses much heat, or the ground loop's freezing
-limit governing above the cut-out, which is then followed at its own duty;
-rows carry ``reduced_duty_fraction [-]``). The
+stops holding, a tank that loses much heat; rows carry
+``reduced_duty_fraction [-]``). It applies where the condensing limit governs
+the stretch from the cut-out to that stop, which every step that gets there
+checks with three cycles against the ground as it finds it. Where another
+limit does -- the ground loop's freezing limit with a cold field -- reduced-duty
+charging is withheld: the step is solved exactly as ``"stop"`` solves it, and
+``reduced_duty_withheld`` names the limit (``"source_fluid_freezing"``). The
 multi-node tanks keep the stop: their coil has its own cut-out, at which the
 compressor already holds its water (below), and the constructor refuses the
 combination.

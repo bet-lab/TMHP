@@ -124,8 +124,8 @@ a 15 kW unit), far shorter than an hourly step. The in-step thermostat follows
 it in closed form, so the charge below comes out the same at any step; see
 :ref:`the operating-limits reference <reduced-duty-charging>` for the method,
 its error, and where that stops holding (a tank that loses much of the
-compressor's heat; another limit than the condensing one on the way). A row
-of such a run
+compressor's heat) or does not apply (another limit than the condensing one
+on the way, below). A row of such a run
 has ``reduced_duty_fraction [-]`` (the part of the step run on the limit), and
 a step that ran there reports ``capacity_clamped == "max"`` and
 ``capacity_binding == "condensing_temperature"``, as the steady solve does.
@@ -177,16 +177,26 @@ time (``min_off_time_s``), rests for that time and restarts, each restart a
 counted start. With a frosting coil the limit binds the frost-free cycle and
 the heat delivered is its mean over frosting and defrost.
 
-Another limit can govern above the envelope stop: the discharge temperature at
-a high pressure ratio (R32 at −7 °C with ``T_dis_max = 105 °C`` has no
-operating point above about 59 °C). The step is then resolved at the duty its
-cycle delivers, as a step of ``"stop"`` is under such a limit; its rows keep
-that limit in ``capacity_binding`` and count no time in
-``reduced_duty_fraction [-]``, and where the cycle stops existing the rows
-carry its ``failure_reason``. Such a charge depends on the step more than one
-on the condensing limit: up to 0.06 K and 0.6 % of heat between 60 s steps
-and 300 s, 600 s or one 1800 s step in that case (the :ref:`reference <reduced-duty-charging>` has
-the method and the numbers).
+All of this covers the outdoor states in which the condensing limit is the
+limit that governs the stretch from the envelope stop to the charging limit.
+Each outdoor state is checked for it once, with three cycles: at the envelope
+stop, at the middle of the stretch and at its end, each asked for the duty
+the condensing limit leaves there. If one of them does not run, delivers
+another duty (by more than 0.1 %) or names another limit, reduced-duty
+charging is **withheld** in that outdoor state: the step is solved exactly as
+``"stop"`` solves it, ending the charge at the envelope stop, with
+``reduced_duty_fraction [-]`` 0 and ``reduced_duty_withheld`` naming what
+withheld it on the rows in which the envelope stop acted. The thermostat band
+is not capped again, so the call above the envelope stop stands. Cold air does
+this through the compressor's speed ceiling, which then leaves less than the
+nameplate duty at the envelope stop (``"compressor"``: the 15 kW R290 unit at
+2 °C and below, the R32 unit at −5 °C and below), and through a low
+discharge-temperature limit (``"discharge_temperature"``). R32, 15 kW, −12 °C
+outdoor, ``T_dis_max = 115 °C``, set points 61–63.3 °C, one hour from
+57.5 °C: 57.99 °C, 0.1296 kWh of heat and 0.0741 kWh of electricity with 60 s,
+600 s and 3600 s steps alike, the rows of ``"stop"`` with
+``reduced_duty_withheld == "compressor"`` (the
+:ref:`reference <reduced-duty-charging>` has the rule and the other cases).
 
 ``analyze_steady`` is not changed by the option. For this family it keeps
 returning a running point for a few tenths of a kelvin above the charging

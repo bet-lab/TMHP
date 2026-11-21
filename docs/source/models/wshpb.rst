@@ -62,12 +62,16 @@ the off state with ``failure_reason == "condensing_temp_above_max"``.
 run charge on past that cut-out at the duty the limit leaves, as an inverter
 unit does, down to the smallest continuous duty; the set points are then
 capped where that duty meets the limit, evaluated with the source water at
-``Ts`` (:ref:`operating-limits reference <reduced-duty-charging>`). With cold
-source water the freezing limit can leave less than the condensing limit
-above the cut-out (3.1 against 7.3 kW at 4 °C with a 68 °C tank): the step
-then runs at that duty, its rows name ``source_fluid_freezing`` in
-``capacity_binding`` and count no time in ``reduced_duty_fraction [-]``, and
-where it leaves no duty at all the rows carry that ``failure_reason``.
+``Ts`` (:ref:`operating-limits reference <reduced-duty-charging>`). That
+applies where the condensing limit governs the stretch from the cut-out to
+that stop, which is checked once per source-water temperature with three
+cycles (the default unit qualifies from 6 to 25 °C). With colder source water
+the freezing limit leaves less than the condensing limit at the cut-out (3.1
+against 8 kW at 4 °C), and reduced-duty charging is withheld: the step is
+solved exactly as ``"stop"`` solves it -- the compressor stops at the cut-out
+of 68.0 °C and stays off above it while the call stands -- with
+``reduced_duty_fraction [-]`` 0 and ``reduced_duty_withheld ==
+"source_fluid_freezing"`` on the rows in which the cut-out acted.
 
 The cycle closures are those of :doc:`gshpb`: the suction superheat is capped
 at the evaporator approach less ``dT_hx_min``, and on a compressor speed bound

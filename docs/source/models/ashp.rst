@@ -468,6 +468,25 @@ coil carries more at a given evaporating temperature:
   asked for no longer moves the condensing temperature but still sets the
   subcooling (10 kW unit with its indoor fan held, −10 °C outdoor and a
   saturated 35 °C room: 35.43 kW against 34.99 kW).
+
+  A request equal to the ceiling runs at it: ``Q_ref_iu [W]`` is the
+  ``Q_max [W]`` that ``max_capacity`` reported with the same ``RH_room``,
+  ``capacity_clamped == "max"`` and ``Q_unmet [W] == 0`` (default 10 kW unit
+  at 46 °C outdoor and a 27 °C room at 30 %: 13 771.58 W, on the
+  condensing-temperature limit). The same row answers a request that is under
+  the ceiling by no more than 0.1 % and that the search of the request does
+  not deliver. That search starts from the request's own least-lift point,
+  solved to a looser tolerance than the ceiling's, and close under the
+  ceiling it reads the request as beyond the limit, or as short of it flat
+  out, where the ceiling search has verified an operating point. On default
+  units of 2 to 10 kW (180 conditions: 20 to 46 °C outdoor, 20 to 32 °C room,
+  30 to 80 %) the requests it does not deliver reach from 0.0007 % to
+  0.006 % of the ceiling under it; every request 0.01 % under is delivered
+  as asked. The 0.1 % is the width the ceiling itself is searched to
+  (``rel_tol`` of ``max_capacity``): the search does not tell duties that
+  close apart, so the unit is run at the one it verified. Such a row
+  delivers more than was asked, by at most that 0.1 % (0.006 % in those
+  conditions). A request the search delivers is not touched.
 - *The smallest continuous duty in mild weather.* At a low outdoor temperature
   the cycle sits on the pressure-ratio floor (1.5), which holds the condensing
   temperature well above the outdoor air, and each coil has to carry its duty
@@ -535,6 +554,9 @@ much from the same request solved alone.)
   ``failure_reason == "cycle_invalid"`` (default unit, 27 °C room, 0 °C
   outdoor: 1 200 W, 30 % of the nameplate, runs and 1 150 W is refused),
   where the 1 150 W request with a room humidity of 20 % cycles at 1.24 kW.
+  A dry request equal to the dry ceiling is likewise answered as before: by
+  the dry searches, which run the unit up to 0.012 % under it at 42 of 60
+  conditions of the default units (none is answered with the unit off).
 
 What it leaves out, beyond the assumptions above:
 

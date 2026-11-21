@@ -89,25 +89,35 @@ from .compressor_efficiency import (
     suction_state,
 )
 from .compressor_envelope import (
+    CONTROL_REDUCE_DUTY,
+    CONTROL_STOP,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     condensing_tank_cutout,
+    condensing_tank_reach,
     discharge_controlled,
     envelope_violation,
+    limit_tank_setpoints_to_charge_limit,
     limit_tank_setpoints_to_envelope,
+    on_condensing_limit,
     reduce_duty_within_envelope,
+    resolve_condensing_limit_control,
     resolve_condensing_temp_max,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
+    smallest_continuous_duty,
+    smallest_duty_on_condensing_limit,
     steady_envelope,
+    steady_smallest_duty,
 )
 from .compressor_speed import solve_compressor_speed
 from .constants import c_w, rho_w
 from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    REDUCED_DUTY_FRACTION_KEY,
     STOP_BOILING_LIMIT,
     STOP_CONDENSING_LIMIT,
     T_WATER_BOIL_C,
@@ -480,8 +490,19 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # Compressor type whose default efficiency models are used where
         # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
         compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
+        # What a dynamic run does where the nameplate duty meets the condensing
+        # limit: "stop" (the charge ends there) or "reduce_duty" (an inverter:
+        # the compressor slows down and keeps charging). See the class docstring.
+        condensing_limit_control: str = CONTROL_STOP,
     ) -> None:
         validate_ctor("GSHPB", locals())
+        self.condensing_limit_control: str = resolve_condensing_limit_control(condensing_limit_control)
+        if self.condensing_limit_control == CONTROL_REDUCE_DUTY and tank_model != "lumped":
+            raise ValueError(
+                f"condensing_limit_control='reduce_duty' is the lumped tank's (tank_model='lumped'); with "
+                f"tank_model={tank_model!r} the coil's own water has its own cut-out, at which the compressor "
+                "holds it (hp_stop_reason='condensing_limit'): use condensing_limit_control='stop' there"
+            )
         self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
@@ -869,6 +890,19 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         # NOTE: Removed self.dV_mix_w_out, self.dV_tank_w_in, self.dV_mix_sup_w_in
         # They will be passed inside `flow_state: dict`.
+
+        # Reduced-duty charging: the thermostat's cap is the charging limit
+        # with the fluid from the ground at its undisturbed temperature ``Ts``
+        # (it solves cycles, so it comes last).
+        #: Source temperature the thermostat's cap was evaluated at [degC].
+        self.charge_limit_reference_C: float = float(self.Ts)
+        if self.condensing_limit_control == CONTROL_REDUCE_DUTY:
+            limit_tank_setpoints_to_charge_limit(
+                self,
+                "GroundSourceHeatPumpBoiler",
+                steady_smallest_duty(self, T_source=self.charge_limit_reference_C),
+                f"with the fluid from the ground at Ts={self.charge_limit_reference_C:g} °C",
+            )
 
     @staticmethod
     def _calc_tank_flow_context(
@@ -1503,7 +1537,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         perf.update({"converged": True, "failure_reason": "none"})
         return perf
 
-    def _solve_cycle_at(self, ctx: StepContext, T_tank_w: float, runtime_fraction: float = 1.0) -> dict:
+    def _solve_cycle_at(
+        self, ctx: StepContext, T_tank_w: float, runtime_fraction: float = 1.0, Q_request: float | None = None
+    ) -> dict:
         """Cycle delivering ``hp_capacity`` to a tank at ``T_tank_w`` [°C].
 
         A running result, or an off-mode row (no heat to the tank, no heat
@@ -1515,13 +1551,47 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         runs at the largest duty inside it, as ``analyze_steady`` does
         (:func:`reduce_duty_within_envelope`), and likewise at the largest
         duty that keeps the ground-loop liquid on its freezing limit
-        (:meth:`_duty_within_limits`).
+        (:meth:`_duty_within_limits`). ``Q_request`` [W] is another duty to
+        ask for than the nameplate (the stretch a reduced-duty step runs on
+        the condensing limit).
         """
         return self._duty_within_limits(
-            ctx, T_tank_w, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q, runtime_fraction)
+            ctx, T_tank_w, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q, runtime_fraction), Q_request
         )
 
-    def _duty_within_limits(self, ctx: StepContext, T_tank_w: float, at_duty: Callable[[float], dict]) -> dict:
+    # ---- reduced-duty charging (condensing_limit_control="reduce_duty") ----
+
+    def _duty_line(self) -> tuple[float, float] | None:
+        """Duty the condensing limit lets the running compressor deliver: ``(T_zero_C, K)`` of ``K (T_zero_C - T)``.
+
+        ``K_tank_hx (T_reach - T)`` (:func:`condensing_tank_reach`); ``None``
+        without a condensing limit.
+        """
+        T_reach = condensing_tank_reach(self)
+        return None if T_reach is None else (T_reach, self.K_tank_hx)
+
+    def _smallest_delivered_duty(self, ctx: StepContext) -> float | None:
+        """Smallest duty the compressor runs at continuously on the condensing limit in this step [W].
+
+        :func:`smallest_duty_on_condensing_limit` with the step's cycle at
+        the lowest duty that runs, against the ground as this step finds it
+        (the compressor running the whole step at that duty).
+        """
+        return smallest_duty_on_condensing_limit(
+            self,
+            lambda T_tank_w: smallest_continuous_duty(self, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q)),
+        )
+
+    def _solve_cycle_on_limit(
+        self, ctx: StepContext, T_tank_w: float, Q_request: float, runtime_fraction: float
+    ) -> dict:
+        """Cycle of the stretch a step runs on the condensing limit: ``Q_request`` [W] at ``T_tank_w`` [°C]."""
+        result = self._solve_cycle_at(ctx, T_tank_w, runtime_fraction, Q_request)
+        return on_condensing_limit(self, result, self.hp_capacity)
+
+    def _duty_within_limits(
+        self, ctx: StepContext, T_tank_w: float, at_duty: Callable[[float], dict], Q_request: float | None = None
+    ) -> dict:
         """``hp_capacity``, or the largest duty below it inside the envelope and the freezing limit.
 
         ``at_duty(q)`` is the step's cycle at duty ``q`` [W]. The compressor
@@ -1534,14 +1604,16 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         in the run's end-of-run warning (:mod:`tmhp.operating_limits`).
         """
 
+        request = self.hp_capacity if Q_request is None else float(Q_request)
+
         def within_envelope(q: float) -> dict:
             return reduce_duty_within_envelope(self, at_duty(q), at_duty, q)
 
         return limit_duty_to_source_freeze(
             self,
-            within_envelope(self.hp_capacity),
+            within_envelope(request),
             within_envelope,
-            self.hp_capacity,
+            request,
             lambda detail: self._failed_cycle_result(
                 T_tank_w, cu.K2C(ctx.T0_K), self._step_flow_state(ctx, T_tank_w), SOURCE_FLUID_FREEZING, detail
             ),
@@ -2700,6 +2772,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         _use_solar = self._needs_solar_input()
         cutout = condensing_tank_cutout(self)
         self._envelope_cutout = cutout
+        # Reduced-duty charging (lumped tank): past the cut-out the compressor
+        # runs on the condensing limit, down to its smallest continuous duty.
+        reducing = self.condensing_limit_control == CONTROL_REDUCE_DUTY
+        duty_line = self._duty_line() if reducing else None
 
         for n in tqdm(range(tN), desc="GSHPB Simulating"):
             t_s = time[n]
@@ -2792,6 +2868,16 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             )
             T_upper_step, run_limit_s, Q_hold = self._setpoint_at_coil_stop(run_limit_s, Q_hold)
             self._coil_run_limit_s, self._coil_cap_C = run_limit_s, None
+            on_limit: dict[str, Any] = {}
+            if duty_line is not None:
+                on_limit = dict(
+                    duty_line=duty_line,
+                    min_duty=lambda ctx=ctx: self._smallest_delivered_duty(ctx),
+                    solve_cycle_at_duty=lambda T_C, q, fraction, ctx=ctx: self._solve_cycle_on_limit(
+                        ctx, T_C, q, fraction
+                    ),
+                    rate_keys=self._RUNTIME_SCALED_KEYS,
+                )
             run, cycle_result = resolve_step_operation(
                 T_start_K=ctx.T_tank_w_K,
                 call_start=call_start,
@@ -2821,9 +2907,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 Q_request=self.hp_capacity,
                 min_on_time_s=self.min_on_time_s,
                 min_off_time_s=self.min_off_time_s,
-                T_limit_C=T_limit_C,
+                T_limit_C=T_WATER_BOIL_C if on_limit else T_limit_C,
                 run_limit_s=run_limit_s,
                 Q_hold=Q_hold,
+                **on_limit,
             )
             hp_result = step_hp_result(
                 run,
@@ -2832,6 +2919,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 self._RUNTIME_SCALED_KEYS,
             )
             hp_result["hp_stop_reason"] = in_step_stop_reason(run, T_limit_C, run_limit_s)
+            if reducing:
+                ran = bool(hp_result.get("hp_is_on", False))
+                hp_result[REDUCED_DUTY_FRACTION_KEY] = float(run.reduced_fraction) if ran else 0.0
             is_on_prev = run.call_end
             running_prev = run.running_end
             phase_age_s = run.phase_age_end_s

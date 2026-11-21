@@ -74,6 +74,8 @@ from .compressor_efficiency import (
 )
 from .compressor_envelope import (
     CONDENSING_TEMP_ABOVE_MAX,
+    CONTROL_REDUCE_DUTY,
+    CONTROL_STOP,
     CYCLE_KEY,
     DISCHARGE_TEMP_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
@@ -81,16 +83,23 @@ from .compressor_envelope import (
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     condensing_tank_cutout,
+    condensing_tank_reach,
     discharge_controlled,
     envelope_excess,
     envelope_violation,
+    limit_tank_setpoints_to_charge_limit,
     limit_tank_setpoints_to_envelope,
+    on_condensing_limit,
     reduce_duty_within_envelope,
     remember_smallest_duty,
+    resolve_condensing_limit_control,
     resolve_condensing_temp_max,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
+    smallest_continuous_duty,
+    smallest_duty_on_condensing_limit,
     steady_envelope,
+    steady_smallest_duty,
 )
 from .compressor_speed import solve_compressor_speed
 from .constants import c_w, rho_w
@@ -113,6 +122,7 @@ from .defrost import (
 )
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    REDUCED_DUTY_FRACTION_KEY,
     T_WATER_BOIL_C,
     TANK_LEVEL_MIN,
     ControlState,
@@ -519,8 +529,15 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # Compressor type whose default efficiency models are used where
         # eta_cmp_* are not given (tmhp.compressor_efficiency.COMPRESSOR_TYPES).
         compressor_type: str | CompressorSpec = COMPRESSOR_TYPES[0],
+        # What a dynamic run does where the nameplate duty meets the condensing
+        # limit: "stop" (the charge ends there) or "reduce_duty" (an inverter:
+        # the compressor slows down and keeps charging). See the class docstring.
+        condensing_limit_control: str = CONTROL_STOP,
     ):
         validate_ctor("ASHPB", locals())
+        self.condensing_limit_control: str = resolve_condensing_limit_control(condensing_limit_control)
+        #: Smallest continuous duty on the condensing limit of the step's outdoor state (reduced-duty charging).
+        self._charge_floor_cache: tuple[tuple[float, float | None], float | None] | None = None
         self.compressor_type: CompressorSpec = resolve_compressor_type(compressor_type)
         #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
@@ -759,6 +776,37 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self.dV_tank_w_out: float = 0.0
         self.dV_mix_sup_w_in: float = 0.0
         self.dV_mix_w_out: float = 0.0
+
+        # Reduced-duty charging: the thermostat's cap is the charging limit at
+        # the rating point's outdoor air (it solves cycles, so it comes last).
+        #: Source temperature the thermostat's cap was evaluated at [degC].
+        self.charge_limit_reference_C: float = float(self.rated_condition.source.T_in_C)
+        if self.condensing_limit_control == CONTROL_REDUCE_DUTY:
+            limit_tank_setpoints_to_charge_limit(
+                self,
+                "AirSourceHeatPumpBoiler",
+                self._frost_free_steady_floor(self.charge_limit_reference_C),
+                f"at the rating point's {self.charge_limit_reference_C:g} °C outdoor air",
+            )
+
+    def _frost_free_steady_floor(self, T0: float) -> Callable[[float], float | None]:
+        """Smallest continuous duty of the frost-free cycle at outdoor ``T0`` [°C], by tank temperature.
+
+        The condensing limit binds the frost-free cycle (the mean over frost
+        and defrost is taken afterwards), so the steady solve that gives the
+        floor (:func:`~tmhp.compressor_envelope.steady_smallest_duty`) runs
+        with the frost correction switched off for its duration.
+        """
+        floor_at = steady_smallest_duty(self, T0=T0)
+
+        def frost_free(T_tank_w: float) -> float | None:
+            defrost, self.defrost = self.defrost, None
+            try:
+                return floor_at(T_tank_w)
+            finally:
+                self.defrost = defrost
+
+        return frost_free
 
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """Outdoor-air evaporator (source) and the tank heat exchanger (load).
@@ -2245,14 +2293,17 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             self._frost_step_cache = cached
         return cached[1]
 
-    def _solve_cycle_at(self, ctx: StepContext, T_tank_w: float) -> dict:
+    def _solve_cycle_at(self, ctx: StepContext, T_tank_w: float, Q_delivered: float | None = None) -> dict:
         """Cycle delivering ``hp_capacity`` to a tank at ``T_tank_w`` [°C].
 
         A running result (``failure_reason='none'``), or an off-mode row (no
         heat, no power, NaN COP) carrying the reason the call could not run.
         When an operating limit refuses the nameplate duty and a smaller duty
         runs, the step runs at the largest such duty, as ``analyze_steady``
-        does (:func:`reduce_duty_within_envelope`).
+        does (:func:`reduce_duty_within_envelope`). ``Q_delivered`` [W] is
+        another duty to deliver than the nameplate (the stretch a
+        reduced-duty step runs on the condensing limit); the frost state and
+        the request the row reports stay those of the nameplate.
 
         With a frosting outdoor coil the running cycle is the mean over
         frosting and defrost, again as ``analyze_steady`` reports it: the
@@ -2262,12 +2313,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         its nameplate duty, never on its speed floor, so nothing cycles here.
         """
         frost = self._step_frost(ctx)
-        duty = self.hp_capacity
+        duty = self.hp_capacity if Q_delivered is None else float(Q_delivered)
         if frost.active:
             assert self.defrost is not None
-            duty = self.defrost.gross_duty(
-                frost, self.hp_capacity, self.defrost.defrost_load(frost, ctx.T0, self.hp_capacity)
-            )
+            duty = self.defrost.gross_duty(frost, duty, self.defrost.defrost_load(frost, ctx.T0, self.hp_capacity))
         result = self._solve_cycle_at_duty(ctx, T_tank_w, duty)
         result = reduce_duty_within_envelope(
             self,
@@ -2286,6 +2335,58 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             if frost.active:
                 self._restore_request(result, self.hp_capacity)
         return result
+
+    # ---- reduced-duty charging (condensing_limit_control="reduce_duty") ----
+
+    def _frost_mean_terms(self, ctx: StepContext) -> tuple[float, float]:
+        """``(m, Q_defrost)`` of the step: the mean heat delivered is ``m`` times the frost-free heat less ``Q_defrost``."""
+        frost = self._step_frost(ctx)
+        if not frost.active:
+            return 1.0, 0.0
+        assert self.defrost is not None
+        return float(frost.capacity_multiplier), float(self.defrost.defrost_load(frost, ctx.T0, self.hp_capacity))
+
+    def _duty_line(self, ctx: StepContext) -> tuple[float, float] | None:
+        """Heat the condensing limit lets the running compressor deliver: ``(T_zero_C, K)`` of ``K (T_zero_C - T)``.
+
+        The limit binds the frost-free cycle, whose duty is
+        ``K_tank_hx (T_reach - T)`` (:func:`condensing_tank_reach`). With a
+        frosting coil the heat delivered is the mean over frosting and
+        defrost, ``m`` times that duty less the defrost heat
+        (:meth:`_average_over_frost`), which is again a straight line in the
+        tank temperature. ``None`` without a condensing limit.
+        """
+        T_reach = condensing_tank_reach(self)
+        if T_reach is None:
+            return None
+        multiplier, q_defrost = self._frost_mean_terms(ctx)
+        K = multiplier * self.K_tank_hx
+        return T_reach - q_defrost / K, K
+
+    def _smallest_delivered_duty(self, ctx: StepContext) -> float | None:
+        """Smallest heat the compressor delivers continuously on the condensing limit in this step [W].
+
+        The frost-free floor (:func:`smallest_duty_on_condensing_limit`, the
+        step's cycle at the lowest duty that runs) as the mean over frosting
+        and defrost. It depends on the outdoor state only, and is kept for it.
+        """
+        key = (float(ctx.T0), self._RH_out_step)
+        cached = self._charge_floor_cache
+        if cached is None or cached[0] != key:
+            floor = smallest_duty_on_condensing_limit(
+                self,
+                lambda T_tank_w: smallest_continuous_duty(self, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q)),
+            )
+            cached = (key, floor)
+            self._charge_floor_cache = cached
+        if cached[1] is None:
+            return None
+        multiplier, q_defrost = self._frost_mean_terms(ctx)
+        return max(0.0, multiplier * cached[1] - q_defrost)
+
+    def _solve_cycle_on_limit(self, ctx: StepContext, T_tank_w: float, Q_delivered: float) -> dict:
+        """Cycle of the stretch a step runs on the condensing limit: ``Q_delivered`` [W] at ``T_tank_w`` [°C]."""
+        return on_condensing_limit(self, self._solve_cycle_at(ctx, T_tank_w, Q_delivered), self.hp_capacity)
 
     def _solve_cycle_at_duty(self, ctx: StepContext, T_tank_w: float, Q_ref_tank: float) -> dict:
         """:meth:`_solve_cycle_at` for a requested duty ``Q_ref_tank`` [W]."""
@@ -2836,6 +2937,17 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # node: the water around the coil is the tank).
         cutout = condensing_tank_cutout(self)
         T_limit_C = T_WATER_BOIL_C if cutout is None else min(T_WATER_BOIL_C, cutout)
+        # Reduced-duty charging: past the cut-out the compressor runs on the
+        # condensing limit, down to its smallest continuous duty.
+        reducing = self.condensing_limit_control == CONTROL_REDUCE_DUTY
+        on_limit: dict[str, Any] = {}
+        if reducing and cutout is not None:
+            on_limit = dict(
+                duty_line=self._duty_line(ctx),
+                min_duty=lambda: self._smallest_delivered_duty(ctx),
+                solve_cycle_at_duty=lambda T_C, q, _fraction: self._solve_cycle_on_limit(ctx, T_C, q),
+                rate_keys=self._RUNTIME_SCALED_KEYS,
+            )
         run, cycle_result = resolve_step_operation(
             T_start_K=ctx.T_tank_w_K,
             call_start=call_start,
@@ -2855,7 +2967,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             Q_request=self.hp_capacity,
             min_on_time_s=self.min_on_time_s,
             min_off_time_s=self.min_off_time_s,
-            T_limit_C=T_limit_C,
+            T_limit_C=T_WATER_BOIL_C if on_limit else T_limit_C,
+            **on_limit,
         )
         hp_result = step_hp_result(
             run,
@@ -2864,6 +2977,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             self._RUNTIME_SCALED_KEYS,
         )
         hp_result["hp_stop_reason"] = in_step_stop_reason(run, T_limit_C)
+        if reducing:
+            ran = bool(hp_result.get("hp_is_on", False))
+            hp_result[REDUCED_DUTY_FRACTION_KEY] = float(run.reduced_fraction) if ran else 0.0
         hp_is_on = bool(hp_result.get("hp_is_on", False))
         Q_ref_cond = delivered_tank_heat(hp_result)
 

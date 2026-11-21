@@ -239,13 +239,13 @@ def test_air_too_dry_to_frost_the_rated_load_coil_is_not_corrected_at_any_load()
             assert not state.active and state.capacity_multiplier == 1.0 and state.power_multiplier == 1.0
     temperatures = np.round(np.arange(-10.0, -30.001, -0.01), 2)
     rated = [_cop_factor(LOAD_WEIGHTED.frost_state(float(T), RH)) for T in temperatures]
-    assert rated[0] == pytest.approx(0.965, abs=2e-3) and rated[-1] == 1.0
+    assert rated[0] == pytest.approx(0.962, abs=2e-3) and rated[-1] == 1.0
     assert all(b >= a for a, b in zip(rated, rated[1:], strict=False))  # colder, drier: less correction
     assert max(b - a for a, b in zip(rated, rated[1:], strict=False)) < 0.002  # no step
     # A half-loaded coil is above the frost point of this air throughout: what is left is the floor
-    # of the load term (a deposition of 1e-6 kg/kg, 0.06 % of the COP), and nothing below -18.3 degC.
+    # of the load term (a deposition of 1e-6 kg/kg, under 0.1 % of the COP), and nothing below -18.3 degC.
     half = [_cop_factor(LOAD_WEIGHTED.frost_state(float(T), RH, load_ratio=0.5)) for T in temperatures]
-    assert min(half) > 0.9994 and half[-1] == 1.0
+    assert min(half) > 0.999 and half[-1] == 1.0
     # At the rating humidity the same end is reached at -39 degC, from the full correction at -20 degC.
     assert LOAD_WEIGHTED.frost_state(-20.0, 0.84).frost_onset == 1.0
     assert 0.0 < LOAD_WEIGHTED.frost_state(-30.0, 0.84).frost_onset < 1.0

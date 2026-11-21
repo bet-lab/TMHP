@@ -78,14 +78,14 @@ humidity, here, and the load on the coil, in the next section:
   at -7 degC); a cold dry winter is not, and there the fixed losses add 8 to
   9 % to the electricity of every sub-zero hour. A coil warmer than the frost
   point of the air collects no frost, so here the correction ends there: with
-  the coil of the correlation at ``T_coil`` and
-  :math:`\\Delta\\omega = \\omega_{out} - \\omega_{sat}(T_{coil})`,
+  the coil of the correlation at ``T_coil``, the frost point of the air at
+  ``T_fp`` and :math:`\\Delta\\omega = \\omega_{out} - \\omega_{sat}(T_{coil})`
+  (positive exactly when ``T_fp`` is above ``T_coil``),
 
   .. math::
 
       s &= \\min\\left(1,\\;
-          \\frac{\\max(0, \\Delta\\omega)}
-               {\\omega_{sat}(T_{coil} + \\Delta T_{band}) - \\omega_{sat}(T_{coil})}\\right)
+          \\frac{\\max(0,\\, T_{fp} - T_{coil})}{\\Delta T_{band}}\\right)
 
       t_{frac} &= \\frac{\\max(0, \\Delta\\omega)}{\\max(0, \\Delta\\omega) + 0.01446}
 
@@ -94,8 +94,8 @@ humidity, here, and the load on the coil, in the next section:
 
   -- no correction when the frost point of the air is at or below the coil
   temperature (:math:`\\Delta\\omega \\le 0`), the fixed losses in full when
-  it is ``frost_point_band_K`` (3 K) or more above it, and in proportion to
-  the frost drive in between: a coil is not at one temperature, so near the
+  it is ``frost_point_band_K`` (3 K) or more above it, and linearly in the
+  frost point in between: a coil is not at one temperature, so near the
   onset part of it frosts. No measurement fixes the width of that band. 3 K
   is the width this module already uses for the onset with the outdoor
   temperature, and it leaves the rating conditions that give a wet bulb at
@@ -104,7 +104,8 @@ humidity, here, and the load on the coil, in the next section:
   result is EnergyPlus unchanged. The band ends at 0 degC whatever its
   width (:math:`T_{coil} + \\Delta T_{band}` is taken at most 0 degC): air
   with a dew point at or above freezing leaves all the frost a coil can
-  take. ``frost_point_band_K=0`` switches the fixed losses at the frost
+  take. Only the frost point of the air itself enters, so the share is
+  defined wherever the air state is, at any pressure. ``frost_point_band_K=0`` switches the fixed losses at the frost
   point; ``None`` is EnergyPlus (the fixed losses whatever the deposition).
 
 The other two are there so that no input is added:
@@ -240,6 +241,7 @@ __all__ = [
     "steady_defrost",
     "saturation_humidity_ratio",
     "humidity_ratio",
+    "frost_point",
 ]
 
 #: Maximum outdoor dry-bulb temperature for defrost operation [degC] (EnergyPlus default).
@@ -474,7 +476,7 @@ class DefrostModel:
                 False, 0.0, 1.0, 1.0, T_coil_C=coil, RH_out=rh, frost_share=0.0, load_ratio=ratio, frost_onset=0.0
             )
         else:
-            onset, deposit = self._frost_onset(excess, w_coil, rated_coil, P_Pa), excess
+            onset, deposit = self._frost_onset(T_out_C, w_out, rated_coil, P_Pa), excess
         drive = 1.0 if ratio >= 1.0 else self._frost_drive_ratio(w_out, rated_coil, coil, P_Pa)
         # At the rated load (drive 1) the deposition and the fixed part are
         # those of the rated-load coil; below it both follow the drive.
@@ -499,27 +501,28 @@ class DefrostModel:
             frost_onset=onset,
         )
 
-    def _frost_onset(self, excess: float, w_coil: float, coil_C: float, P_Pa: float) -> float:
-        """Share of the fixed frosted losses air with a drive ``excess`` > 0 leaves on the coil (0-1).
+    def _frost_onset(self, T_out_C: float, w_out: float, coil_C: float, P_Pa: float) -> float:
+        """Share of the fixed frosted losses air that can frost the coil leaves on it (0-1).
 
-        The fixed losses are those of the frost a coil carries between two
-        defrosts. They are taken in proportion to the frost drive -- the
-        humidity ratio of the air above saturation at the coil -- up to the
-        drive of air whose frost point is ``frost_point_band_K`` above the
-        coil temperature, and in full from there: a coil is not at one
-        temperature, so with a frost point just above its mean temperature
-        only part of it frosts. A band of zero switches them at the frost
-        point. The band ends at 0 degC whatever its width: air with a dew
-        point at or above freezing deposits all the frost a coil can take
-        (the frostable humidity of :meth:`_frost_drive_ratio`), so the fixed
-        losses are in full there, and a wide band never asks for saturation
-        outside the range of the humid-air properties.
+        ``w_out`` is the humidity ratio of the outdoor air, above saturation at
+        the coil temperature ``coil_C`` (below 0 degC). The fixed losses are
+        those of the frost a coil carries between two defrosts. They grow
+        linearly with the frost point of the air, from nothing with a frost
+        point on the coil temperature to their full size with one
+        ``frost_point_band_K`` above it: a coil is not at one temperature, so
+        with a frost point just above its mean temperature only part of it
+        frosts. A band of zero switches them at the frost point. The band
+        ends at 0 degC whatever its width: air with a dew point at or above
+        freezing deposits all the frost a coil can take (the frostable
+        humidity of :meth:`_frost_drive_ratio`), so the fixed losses are in
+        full there. Only the frost point of the air itself is evaluated,
+        which exists wherever its humidity ratio does, at any pressure.
         """
         band_K = cast(float, self.frost_point_band_K)
-        if not band_K > 0.0:
+        width = min(coil_C + band_K, 0.0) - coil_C
+        if not width > 0.0:
             return 1.0
-        band = saturation_humidity_ratio(min(coil_C + band_K, 0.0), P_Pa) - w_coil
-        return min(1.0, excess / band) if band > 0.0 else 1.0
+        return min(1.0, max(0.0, (frost_point(T_out_C, w_out, P_Pa) - coil_C) / width))
 
     @staticmethod
     def _frost_drive_ratio(w_out: float, rated_coil_C: float, coil_C: float, P_Pa: float) -> float:
@@ -629,6 +632,17 @@ class DefrostModel:
     def gross_duty(frost: FrostState, Q_request: float, Q_defrost: float) -> float:
         """Frost-free duty [W] whose mean over frosting and defrost is ``Q_request``."""
         return (abs(Q_request) + Q_defrost) / frost.capacity_multiplier
+
+
+def frost_point(T_C: float, W: float, P_Pa: float = P_ATM) -> float:
+    """Frost point (dew point above 0 degC) of moist air at dry bulb ``T_C`` with humidity ratio ``W`` [degC].
+
+    The temperature at which air of this humidity ratio is saturated -- over
+    ice below 0 degC, as :func:`saturation_humidity_ratio`.
+    """
+    from CoolProp.HumidAirProp import HAPropsSI
+
+    return float(HAPropsSI("D", "T", T_C + 273.15, "P", P_Pa, "W", W)) - 273.15
 
 
 def _check_humidity(value: float) -> float:

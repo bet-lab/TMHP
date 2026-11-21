@@ -32,6 +32,7 @@ from tmhp.defrost import (
     FrostState,
     apply_defrost,
     frost_free_keys,
+    frost_point,
     humidity_ratio,
     resolve_defrost,
     saturation_humidity_ratio,
@@ -166,12 +167,13 @@ def test_the_fixed_losses_grow_across_the_frost_point_band():
     T_out = -5.0
     coil = 0.82 * T_out - 8.589
     w_coil = saturation_humidity_ratio(coil)
-    band = saturation_humidity_ratio(coil + 3.0) - w_coil
     seen = []
     for RH in (0.52, 0.56, 0.60, 0.64, 0.68, 0.72, 0.84, 1.0):
         excess = humidity_ratio(T_out, RH) - w_coil
         assert excess > 0.0
-        onset = min(1.0, excess / band)
+        T_fp = frost_point(T_out, humidity_ratio(T_out, RH))
+        assert saturation_humidity_ratio(T_fp) == pytest.approx(humidity_ratio(T_out, RH), rel=1e-5)
+        onset = min(1.0, (T_fp - coil) / 3.0)
         frost = MODEL.frost_state(T_out, RH)
         assert frost.active and frost.frost_onset == pytest.approx(onset, rel=1e-12)
         assert frost.humidity_ratio_difference == pytest.approx(excess, rel=1e-12)
@@ -234,6 +236,12 @@ def test_any_finite_band_gives_a_correction_at_every_outdoor_state(band_K):
     assert humid.capacity_multiplier == pytest.approx(NO_BAND.frost_state(2.0, 1.0).capacity_multiplier, rel=1e-12)
     # A given coil temperature just below freezing: the band is what is left up to 0 degC.
     assert 0.0 < model.frost_state(2.0, 0.84, T_coil_C=-0.5).frost_onset <= 1.0
+    # At any pressure the air state itself exists at (saturation at the band's end may not).
+    for P_Pa in (2.0e5, 7.0e4, 2000.0, 700.0, 640.0, 560.0, 400.0):
+        for T_out, RH in ((0.0, 0.6), (-3.0, 0.6), (-7.0, 0.84), (-20.0, 1.0), (-40.0, 1.0)):
+            low = model.frost_state(T_out, RH, P_Pa=P_Pa)
+            assert 0.0 <= low.frost_onset <= 1.0 and 0.0 < low.capacity_multiplier <= 1.0
+            assert low.capacity_multiplier >= NO_BAND.frost_state(T_out, RH, P_Pa=P_Pa).capacity_multiplier - 1e-12
     # ... and through a unit.
     row = AirSourceHeatPump(defrost=model).analyze_steady(
         Q_r_iu=-3000.0, T0=-7.0, T_a_room=20.0, RH_out=0.6, return_dict=True, verbose=False

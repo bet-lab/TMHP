@@ -532,19 +532,20 @@ deposit on the coil of the correlation — its frost point, −12.9 °C, is belo
 the coil at −12.7 °C — and EnergyPlus still multiplies the COP by 0.917, with
 a defrost time of 0.01 % of the runtime. In a cold, dry winter that is 8 to
 9 % on the electricity of every sub-zero hour. Here the correction ends where
-the frost does. With the humidity ratio of the air above saturation at the
-coil, :math:`\Delta\omega`,
+the frost does. With the frost point of the air :math:`T_{fp}` and its
+humidity ratio above saturation at the coil, :math:`\Delta\omega` (positive
+exactly when the frost point is above the coil),
 
 .. math::
 
-   s = \min\left(1,\ \frac{\max(0, \Delta\omega)}
-       {\omega_{sat}(T_{coil} + 3\,\mathrm{K}) - \omega_{sat}(T_{coil})}\right), \qquad
+   s = \min\left(1,\ \frac{\max(0,\ T_{fp} - T_{coil})}{3\,\mathrm{K}}\right), \qquad
+   t_{frac} = \frac{\max(0, \Delta\omega)}{\max(0, \Delta\omega) + 0.01446}, \qquad
    \text{multipliers} = (1 - 0.125\,s)(1 - t_{frac}),\ (1 - 0.046\,s)(1 - t_{frac})
 
 — nothing when the frost point of the air is at or below the coil
-temperature, the fixed losses in full when it is 3 K or more above it, and in
-proportion to the frost drive in between (a coil is not at one temperature,
-so near the onset part of it frosts). No measurement fixes the width of that
+temperature, the fixed losses in full when it is 3 K or more above it, and
+linearly in the frost point in between (a coil is not at one temperature, so
+near the onset part of it frosts). No measurement fixes the width of that
 band; 3 K is the width of the temperature transition above, and it leaves
 every rating condition that gives a wet bulb (EN 14511 A2 and A−7, AHRI
 210/240 H2) and the default 84 % down to −20 °C at the full correction, so
@@ -568,28 +569,28 @@ point and ``frost_point_band_K=None`` is EnergyPlus.
    * - 2 °C
      - 0.823
      - 0.858
-     - 0.897
-     - 0.984
+     - 0.896
+     - 0.983
      - 1
      - 0.917
    * - −5 °C
      - 0.865
      - 0.887
-     - 0.937
+     - 0.935
      - 1
      - 1
      - 0.917
    * - −10 °C
      - 0.886
-     - 0.906
-     - 0.965
+     - 0.905
+     - 0.962
      - 1
      - 1
      - 0.917
    * - −15 °C
      - 0.899
-     - 0.937
-     - 0.987
+     - 0.935
+     - 0.986
      - 1
      - 1
      - 0.917

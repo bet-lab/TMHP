@@ -33,8 +33,8 @@ Discharge temperature (``T_dis_max``)
     the discharge *pipe* temperature (Daikin room units reduce frequency from
     about 100 degC and stop at 110--120 degC). A point whose computed
     discharge temperature exceeds the limit is **not an operating point**
-    (:data:`DISCHARGE_TEMP_ABOVE_MAX`). The defaults
-    (:data:`DISCHARGE_TEMP_MAX_C`, :func:`default_discharge_temp_max`) are the
+    (:data:`DISCHARGE_TEMP_ABOVE_MAX`). The defaults, one per refrigerant
+    (:data:`DISCHARGE_TEMP_MAX_C`, :func:`default_discharge_temp_max`), are the
     *protection* values -- R32 150 degC, every other fluid 135 degC -- not the
     controllers' earlier set points: the cycle's discharge state is the gas
     leaving the compression (the default models send the share of the loss
@@ -54,7 +54,9 @@ Discharge temperature (``T_dis_max``)
     with the suction superheat reduced from its value towards 0 K until the
     discharge temperature equals ``T_dis_max``, then -- if 0 K is not enough --
     with a two-phase suction of quality ``x`` lowered towards
-    ``x_suction_min`` (default :data:`X_SUCTION_MIN_DEFAULT` = 0.9). Wet
+    ``x_suction_min``. Its default ``"auto"`` is the refrigerant's value
+    (:data:`X_SUCTION_MIN`, :func:`default_x_suction_min`; provisionally 0.9
+    for every fluid), and a number given by the caller takes precedence. Wet
     suction is modelled as a homogeneous two-phase state at the evaporating
     pressure (see :func:`tmhp.refrigerant.calc_ref_state`); the evaporator
     outlet is then two-phase, the swept mass flow follows the homogeneous
@@ -64,6 +66,21 @@ Discharge temperature (``T_dis_max``)
     that is still above the limit at ``x_suction_min`` is outside the envelope.
     ``x_suction_min=1`` keeps the superheat stage only; ``None`` switches the
     control off.
+
+    Known limitation: this control is the model's assumption, not a confirmed
+    description of how heat pumps hold their discharge temperature. Neither
+    the order (superheat to 0 K, then suction quality, then a smaller duty),
+    nor stopping at the driest suction state that meets ``T_dis_max``, nor
+    bounding the wet suction by its quality has been confirmed against a
+    manufacturer's control. One patent describes a similar order
+    (Daikin, US 6,581,397 B1, FIG. 10: wet the suction down to quality
+    0.85--0.75 once the discharge pipe exceeds 125--135 degC, then lower the
+    compressor frequency) without naming the compressor type or the test.
+    Units also hold a discharge or discharge-superheat target with the
+    expansion valve, and compressor makers bound liquid return by the oil or
+    shell superheat rather than by the suction quality. The per-refrigerant
+    quality floors are placeholders until the literature collected on issue
+    #216 is reviewed (issue #229).
 
     How a family answers a point the control cannot bring inside the limit: the space-conditioning models
     (ASHP, GSHP) reject the candidate inside the operating-point search, so the
@@ -169,6 +186,39 @@ Condensing pressure (``T_cond_max``)
     the step, so without the cap a long step overran the limit and the
     temperature at which the heat pump stopped depended on the step.
 
+    That is the boiler constructors' ``condensing_limit_control="stop"``, the
+    default: a fixed-speed unit, or one whose controller ends the charge on
+    its high-pressure protection. ``"reduce_duty"`` is the inverter unit,
+    which slows the compressor on the limit and keeps charging: a dynamic step
+    then runs past the nameplate cut-out at the largest duty inside the limit,
+    ``K_tank_hx (T_reach - T)`` (:func:`condensing_tank_reach`), which is what
+    ``analyze_steady`` reports there. The tank approaches ``T_reach`` as a
+    first-order lag with the time constant ``C_tank / K_tank_hx`` (about five
+    minutes for the default 151 L tank and 15 kW unit), which the in-step
+    thermostat follows in closed form
+    (:func:`tmhp.dynamic_context.resolve_step_operation`): the run time and
+    the heat of a step on this limit do not depend on the step (the tank
+    temperature a step ends at is still one implicit solve with the loss at
+    its end, as with ``"stop"``, so a tank that loses much heat needs short
+    steps). The charge ends where the limit leaves less than
+    the smallest duty the compressor runs at continuously
+    (:func:`smallest_continuous_duty`: the speed floor, or the envelope's
+    lower side). That duty depends on the source, so each step applies the
+    stop of its own conditions (:func:`smallest_duty_on_condensing_limit`);
+    the thermostat's cap is the stop at one stated reference source
+    (:func:`limit_tank_setpoints_to_charge_limit`).
+
+    That treatment covers the source states in which the condensing limit is
+    the one that governs the stretch from the nameplate cut-out to that stop.
+    Each source state is checked once, with three cycles
+    (:func:`condensing_stretch`). Where another limit governs somewhere on
+    the stretch -- the source fluid's freezing limit, the pressure-ratio
+    ceiling, a discharge-temperature ceiling, the compressor's speed ceiling
+    at a cold source -- reduced-duty
+    charging is withheld for the step: it is solved exactly as ``"stop"``
+    solves it, and the row names what withheld it
+    (``reduced_duty_withheld``).
+
 Speed (``rps_min`` / ``rps_max``)
     ``rps_min`` is the inverter's floor (15 rev/s). ``rps_max`` defaults to
     :func:`default_rps_max` of the rated speed the model solves at its rating
@@ -200,6 +250,7 @@ from scipy.optimize import brentq
 from . import calc_util as cu
 from .compressor_efficiency import efficiency_extrapolated
 from .compressor_speed import CAPACITY_CLAMPED_MAX
+from .dynamic_context import DUTY_MATCH_RTOL, T_WATER_BOIL_C
 from .operating_limits import OperatingLimitWarning
 from .refrigerant import _props
 
@@ -223,8 +274,20 @@ __all__ = [
     "condensing_temp_exceeded",
     "condensing_violation",
     "check_rated_condensing",
+    "condensing_tank_reach",
     "condensing_tank_cutout",
     "limit_tank_setpoints_to_envelope",
+    "CONDENSING_LIMIT_CONTROLS",
+    "CONTROL_STOP",
+    "CONTROL_REDUCE_DUTY",
+    "resolve_condensing_limit_control",
+    "smallest_continuous_duty",
+    "smallest_duty_on_condensing_limit",
+    "steady_smallest_duty",
+    "limit_tank_setpoints_to_charge_limit",
+    "on_condensing_limit",
+    "condensing_stretch",
+    "WITHHELD_NO_SMALLER_DUTY",
     "BINDING_DISCHARGE",
     "BINDING_CONDENSING",
     "BINDING_PRESSURE_RATIO",
@@ -249,7 +312,9 @@ __all__ = [
     "raise_duty_within_envelope",
     "remembering_smallest_duties",
     "remember_smallest_duty",
+    "X_SUCTION_MIN",
     "X_SUCTION_MIN_DEFAULT",
+    "default_x_suction_min",
     "resolve_x_suction_min",
     "discharge_controlled",
 ]
@@ -283,7 +348,23 @@ BINDING_CYCLE = "cycle"
 BINDING_COMPRESSOR = "compressor"
 
 #: Default discharge-temperature limit by refrigerant [degC]; see the module docstring.
-DISCHARGE_TEMP_MAX_C: Mapping[str, float] = {"R32": 150.0}
+#:
+#: Only R410A (Danfoss SH / PSH, 135 degC) and R32 (Danfoss DSF, 150 degC)
+#: rest on a protection value published for the fluid. Every other entry is
+#: the 135 degC of :data:`DISCHARGE_TEMP_MAX_DEFAULT_C`, set provisionally so
+#: that each refrigerant has its own value to replace (issue #229).
+DISCHARGE_TEMP_MAX_C: Mapping[str, float] = {
+    "R410A": 135.0,
+    "R32": 150.0,
+    "R407C": 135.0,
+    "R290": 135.0,
+    "R134a": 135.0,
+    "R1234yf": 135.0,
+    "R1234ze(E)": 135.0,
+    "R600a": 135.0,
+    "IsoButane": 135.0,
+    "R717": 135.0,
+}
 #: Default for every refrigerant not in :data:`DISCHARGE_TEMP_MAX_C` [degC].
 DISCHARGE_TEMP_MAX_DEFAULT_C = 135.0
 
@@ -313,18 +394,39 @@ CONDENSING_PRESSURE_MAX_REDUCED = 0.9
 #: limit has, and it keeps the verdict the same on every platform.
 CONDENSING_TOL_K = 0.01
 
-#: Default lowest suction vapour quality the discharge-temperature control may use.
+#: Default lowest suction vapour quality of the discharge-temperature control, by refrigerant [-].
 #:
 #: Two-phase suction (wet compression) is one of the methods experimentally used
-#: to hold the discharge temperature of R32 scroll compressors (Wang et al.,
-#: International Compressor Engineering Conference 2014, paper 1595; Yang et
-#: al., Int. J. Refrig. 2015), alongside liquid and two-phase injection; lower
-#: suction quality lowers the discharge temperature but raises the risk of
-#: over-wet compression and liquid slugging. No published lower bound on the
-#: suction quality was found: 0.9 is a conservative default without a
-#: quantitative basis (at most 10 % liquid by mass, of the order of the
-#: liquid-injection ratios used for discharge-temperature control). Override it
-#: with the constructor argument ``x_suction_min``.
+#: to hold the discharge temperature of R32 compressors (Wang et al.,
+#: International Compressor Engineering Conference 2014, paper 1595; Zheng et
+#: al., International Refrigeration and Air Conditioning Conference 2016, paper
+#: 1766; Seong et al., Appl. Sci. 2017), alongside liquid and two-phase
+#: injection; a lower suction quality lowers the discharge temperature but
+#: raises the risk of over-wet compression and liquid slugging.
+#:
+#: Every value is a provisional placeholder: 0.9, the single default this
+#: table replaced, for every fluid. It has no quantitative basis and is not a
+#: reliability limit. The sources collected on issue #216 disagree: for R32,
+#: a Daikin patent rates quality 0.75 and above as reliable
+#: (US 6,581,397 B1), a 3.5 kW water-to-water unit lost refrigerant flow below
+#: 0.84--0.91 (Seong et al. 2017), and a measured efficiency relation holds
+#: above 0.9 (Cheng et al., Appl. Sci. 2023). Values based on that literature
+#: are to replace these (issue #229). A number given as the constructor
+#: argument ``x_suction_min`` takes precedence; ``"auto"`` (the default) takes
+#: the value here.
+X_SUCTION_MIN: Mapping[str, float] = {
+    "R410A": 0.9,
+    "R32": 0.9,
+    "R407C": 0.9,
+    "R290": 0.9,
+    "R134a": 0.9,
+    "R1234yf": 0.9,
+    "R1234ze(E)": 0.9,
+    "R600a": 0.9,
+    "IsoButane": 0.9,
+    "R717": 0.9,
+}
+#: Default for every refrigerant not in :data:`X_SUCTION_MIN` [-].
 X_SUCTION_MIN_DEFAULT = 0.9
 
 #: ``rps_max`` default [rev/s]: 7200 rpm, the upper end of the speed ranges inverter rotary compressors
@@ -380,13 +482,27 @@ def resolve_discharge_temp_max(value: float | Literal["auto"] | None, ref: str) 
     return limit
 
 
-def resolve_x_suction_min(value: float | None) -> float | None:
-    """Constructor argument -> lowest suction quality of the control (``None``: no control)."""
+def default_x_suction_min(ref: str) -> float:
+    """Default lowest suction quality of the discharge-temperature control for refrigerant ``ref`` [-]."""
+    return float(X_SUCTION_MIN.get(_fluid_name(ref), X_SUCTION_MIN_DEFAULT))
+
+
+def resolve_x_suction_min(value: float | Literal["auto"] | None, ref: str) -> float | None:
+    """Constructor argument -> lowest suction quality of the control.
+
+    ``"auto"`` takes the refrigerant's default (:func:`default_x_suction_min`),
+    a number given by the caller takes precedence over it, and ``None``
+    switches the control off.
+    """
     if value is None:
         return None
+    if isinstance(value, str):
+        if value != "auto":
+            raise ValueError(f"x_suction_min must be a vapour quality in (0, 1], 'auto' or None, got {value!r}")
+        return default_x_suction_min(ref)
     x = float(value)
     if not (math.isfinite(x) and 0.0 < x <= 1.0):
-        raise ValueError(f"x_suction_min must be a vapour quality in (0, 1] or None, got {value!r}")
+        raise ValueError(f"x_suction_min must be a vapour quality in (0, 1], 'auto' or None, got {value!r}")
     return x
 
 
@@ -544,6 +660,25 @@ def check_rated_condensing(model: Any, T_cond_sat_C: float, standard: str) -> st
     )
 
 
+def condensing_tank_reach(model: Any) -> float | None:
+    """Tank temperature at which the condensing limit leaves a boiler no duty [degC].
+
+    The hottest the cycle may condense: the bubble point of the limit
+    pressure (``T_cond_max`` itself for a pure fluid, lower by the glide for a
+    blend). A duty ``Q`` needs the tank ``Q / K_tank_hx`` colder than this
+    (:func:`condensing_tank_cutout` for the nameplate duty). ``None`` without
+    a limit.
+    """
+    limit, ref = getattr(model, "T_cond_max", None), getattr(model, "ref", None)
+    if limit is None or ref is None:
+        return None
+    try:
+        (T_reach_K,) = _props("T", "P", _condensing_pressure_limits(ref, float(limit))[0], "Q", 0, ref)
+    except ValueError:
+        return None
+    return float(cu.K2C(T_reach_K))
+
+
 def condensing_tank_cutout(model: Any) -> float | None:
     """Highest tank temperature a boiler heats at its nameplate duty inside the condensing limit [degC].
 
@@ -553,14 +688,33 @@ def condensing_tank_cutout(model: Any) -> float | None:
     water entering a plate condenser), and the hottest it may condense is the
     bubble point of the limit pressure. ``None`` without a limit.
     """
-    limit, ref = getattr(model, "T_cond_max", None), getattr(model, "ref", None)
-    if limit is None or ref is None:
+    T_reach = condensing_tank_reach(model)
+    if T_reach is None:
         return None
-    try:
-        (T_reach_K,) = _props("T", "P", _condensing_pressure_limits(ref, float(limit))[0], "Q", 0, ref)
-    except ValueError:
-        return None
-    return float(cu.K2C(T_reach_K)) - float(model.hp_capacity) / float(model.K_tank_hx)
+    return T_reach - float(model.hp_capacity) / float(model.K_tank_hx)
+
+
+#: ``condensing_limit_control``: the charge ends where the nameplate duty meets the condensing limit.
+CONTROL_STOP = "stop"
+#: ``condensing_limit_control``: the compressor reduces its duty on the limit and keeps charging.
+CONTROL_REDUCE_DUTY = "reduce_duty"
+#: Values of the boilers' ``condensing_limit_control``.
+CONDENSING_LIMIT_CONTROLS: tuple[str, ...] = (CONTROL_STOP, CONTROL_REDUCE_DUTY)
+
+
+def resolve_condensing_limit_control(value: object) -> str:
+    """Constructor argument -> one of :data:`CONDENSING_LIMIT_CONTROLS`."""
+    if value not in CONDENSING_LIMIT_CONTROLS:
+        raise ValueError(f"condensing_limit_control must be one of {CONDENSING_LIMIT_CONTROLS}, got {value!r}")
+    return str(value)
+
+
+def _cap_tank_setpoints(model: Any, limit: float) -> str:
+    """Move the thermostat band below ``limit`` [degC]; the clause of the warning that says what moved."""
+    lower, upper = model.T_tank_w_setpoints_requested
+    new_lower = lower if lower < limit else limit - (upper - lower)
+    model.T_tank_w_upper_bound, model.T_tank_w_lower_bound = limit, new_lower
+    return "" if new_lower == lower else f", and the lower bound is moved from {lower:g} to {new_lower:.1f} °C"
 
 
 def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
@@ -581,16 +735,20 @@ def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
     duty; the duty reduction of :func:`reduce_duty_within_envelope` then
     serves ``analyze_steady`` and the steps a tank model or a minimum run
     time takes past it.
+
+    This is ``condensing_limit_control="stop"``. With ``"reduce_duty"`` the
+    band is only recorded here; the cap is the charging limit, set once the
+    model can solve a cycle (:func:`limit_tank_setpoints_to_charge_limit`).
     """
     lower, upper = float(model.T_tank_w_lower_bound), float(model.T_tank_w_upper_bound)
     model.T_tank_w_setpoints_requested = (lower, upper)
+    if getattr(model, "condensing_limit_control", CONTROL_STOP) == CONTROL_REDUCE_DUTY:
+        return
     cutout = condensing_tank_cutout(model)
     if cutout is None or upper <= cutout:
         return
-    new_lower = lower if lower < cutout else cutout - (upper - lower)
-    model.T_tank_w_upper_bound, model.T_tank_w_lower_bound = cutout, new_lower
+    moved = _cap_tank_setpoints(model, cutout)
     approach = float(model.hp_capacity) / float(model.K_tank_hx)
-    moved = "" if new_lower == lower else f", and the lower bound is moved from {lower:g} to {new_lower:.1f} °C"
     warnings.warn(
         f"{what}: T_tank_w_upper_bound={upper:g} °C is above the tank temperature the compressor envelope "
         f"of {model.ref} allows at the nameplate duty, {cutout:.1f} °C (T_cond_max={float(model.T_cond_max):g} °C "
@@ -600,6 +758,300 @@ def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
         OperatingLimitWarning,
         stacklevel=3,
     )
+
+
+#: Fixed-point steps :func:`smallest_duty_on_condensing_limit` takes at most.
+_FLOOR_ITERATIONS = 4
+#: ... and the tank temperature within which it is closed [K]: 0.005 K of
+#: condenser approach, half the tolerance of the limit itself
+#: (:data:`CONDENSING_TOL_K`).
+_FLOOR_CLOSE_K = 0.005
+
+
+def smallest_continuous_duty(
+    model: Any, solve: Callable[[float], Any], delivered_key: str = "Q_ref_tank [W]"
+) -> float | None:
+    """Smallest duty a boiler's compressor runs at continuously at one operating point [W].
+
+    ``solve(q)`` solves the point at duty ``q``. The probe is the smallest
+    duty the duty reduction itself tries, the lowest rung of its ladder at the
+    nameplate request (``0.1 hp_capacity``), so the answer is the floor
+    ``analyze_steady`` has for a nameplate request at this point:
+
+    - the probe runs with the compressor on its speed floor: what the machine
+      delivers there (more than the probe);
+    - the probe runs as asked: the probe itself (the reduction looks no
+      lower);
+    - the envelope refuses it from below (the discharge temperature at low
+      speed): the smallest duty that runs above it
+      (:func:`raise_duty_within_envelope`).
+
+    ``None`` when no such duty runs (the point is beyond the condensing limit
+    at every duty, or refused for another reason). The solves run silently.
+    """
+    probe = _REDUCTION_LADDER[-1] * float(model.hp_capacity)
+    if not (probe > 0.0 and math.isfinite(probe)):
+        return None
+
+    def quiet(q: float) -> dict:
+        with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
+            warnings.simplefilter("ignore")
+            out = solve(q)
+        return out if isinstance(out, dict) else {}
+
+    result = quiet(probe)
+    if not _running(result) and result.get("failure_reason") in _RAISED_OVER:
+        result = raise_duty_within_envelope(model, result, quiet, probe, delivered_key)
+    if not _running(result):
+        return None
+    delivered = _delivered(result, delivered_key)
+    return delivered if math.isfinite(delivered) and delivered > 0.0 else None
+
+
+def smallest_duty_on_condensing_limit(model: Any, floor_at: Callable[[float], float | None]) -> float | None:
+    """Smallest continuous duty of a boiler where that duty condenses on the limit [W].
+
+    ``floor_at(T)`` is the smallest continuous duty at tank temperature ``T``
+    [degC] (:func:`smallest_continuous_duty` at the source of interest). The
+    tank temperature at which it condenses on the limit is
+    ``T_reach - floor / K_tank_hx`` (:func:`condensing_tank_reach`); the floor
+    depends on that temperature only through the condensing pressure, weakly,
+    so a fixed-point iteration from the nameplate cut-out closes in two or
+    three evaluations (to :data:`_FLOOR_CLOSE_K`). A trial the limit refuses
+    is retried half-way back.
+
+    The search stays where a tank can be: no trial is above the boiling point
+    of the stored water (:data:`tmhp.dynamic_context.T_WATER_BOIL_C`, the
+    upper end of the tank temperatures the models accept). A refrigerant
+    whose limit lies high enough (R600a with ``T_cond_max`` above about
+    101 °C) meets its smallest duty above 100 °C; the duty returned is then
+    the one at 100 °C, the tank temperature it gives
+    (``T_reach - duty / K_tank_hx``) is above the boiling point, and the
+    boiling cut-out, not the condensing limit, ends the charge.
+
+    Above the tank temperature the returned duty gives,
+    ``T_reach - duty / K_tank_hx``, no duty runs: the charging limit of
+    ``condensing_limit_control="reduce_duty"``. ``None`` without a condensing
+    limit, or when no duty below the nameplate runs at the nameplate cut-out
+    (there is then no reduced stretch: the cut-out is the limit).
+    """
+    T_reach = condensing_tank_reach(model)
+    if T_reach is None:
+        return None
+    K, capacity = float(model.K_tank_hx), float(model.hp_capacity)
+    T = min(T_reach - capacity / K, T_WATER_BOIL_C)
+    floor = floor_at(T)
+    if floor is None or not floor < capacity:
+        return None
+    for _ in range(_FLOOR_ITERATIONS):
+        T_next = min(T_reach - floor / K, T_WATER_BOIL_C)
+        if abs(T_next - T) <= _FLOOR_CLOSE_K:
+            break
+        floor_next = floor_at(T_next)
+        if floor_next is None:
+            T_next = 0.5 * (T + T_next)
+            floor_next = floor_at(T_next)
+            if floor_next is None:
+                break
+        T, floor = T_next, min(floor_next, capacity)
+    return floor
+
+
+def steady_smallest_duty(model: Any, **source: Any) -> Callable[[float], float | None]:
+    """``floor_at`` of :func:`smallest_duty_on_condensing_limit` from a boiler's ``analyze_steady``.
+
+    ``source`` are the steady call's source arguments (``T0=...`` or
+    ``T_source=...``). The probe request of :func:`smallest_continuous_duty`
+    is solved by ``analyze_steady`` itself; a row on the speed floor carries
+    the continuous duty in ``Q_min [W]`` (the row is the on/off mean).
+    """
+    from .operating_limits import silenced
+
+    probe = _REDUCTION_LADDER[-1] * float(model.hp_capacity)
+
+    def floor_at(T_tank_w: float) -> float | None:
+        with silenced(), warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
+            warnings.simplefilter("ignore")
+            row = model.analyze_steady(T_tank_w=T_tank_w, Q_ref_tank=probe, **source)
+        if not _running(row):
+            return None
+        duty = _delivered(row, "Q_min [W]") if row.get("capacity_clamped") == "min" else math.nan
+        if not math.isfinite(duty):
+            duty = _delivered(row, "Q_ref_tank [W]")
+        return duty if math.isfinite(duty) and duty > 0.0 else None
+
+    return floor_at
+
+
+def limit_tank_setpoints_to_charge_limit(
+    model: Any, what: str, floor_at: Callable[[float], float | None], reference: str
+) -> None:
+    """Cap a reduced-duty boiler's thermostat band at its charging limit.
+
+    The counterpart of :func:`limit_tank_setpoints_to_envelope` for
+    ``condensing_limit_control="reduce_duty"``, called at the end of
+    construction (it solves cycles). Past the nameplate cut-out the compressor
+    charges on at the duty the condensing limit leaves, down to its smallest
+    continuous duty; the charging limit is the tank temperature at which that
+    duty condenses on the limit,
+    ``T_reach - Q_min / K_tank_hx`` (:func:`smallest_duty_on_condensing_limit`
+    with ``floor_at``). An upper set point above it becomes it, the lower one
+    keeps the band's width, the values asked for stay in
+    ``T_tank_w_setpoints_requested`` and an
+    :class:`~tmhp.OperatingLimitWarning` says what was changed.
+
+    The smallest continuous duty depends on the source (a warmer source gives
+    the compressor denser suction gas, so more duty at its lowest speed, and
+    the limit is met at a colder tank). The cap is evaluated once, at the
+    source ``floor_at`` solves at -- ``reference`` names it in the warning --
+    and each dynamic step applies the stop of its own source: below the cap
+    the compressor then stops at that stop
+    (``hp_stop_reason == "condensing_limit"``) and, while the call stands,
+    holds the tank there or, with a minimum rest time, rests and restarts
+    (``duty_limit`` of
+    :func:`tmhp.dynamic_context.simulate_thermostat_step`). A set point at or
+    below the nameplate cut-out needs no cycle solve and is left alone. For a
+    blend the warning names the bubble point the tank is held below as well as
+    ``T_cond_max``, the dew point of the same pressure.
+    """
+    lower, upper = model.T_tank_w_setpoints_requested
+    cutout = condensing_tank_cutout(model)
+    T_reach = condensing_tank_reach(model)
+    if cutout is None or T_reach is None or upper <= cutout:
+        return
+    floor = smallest_duty_on_condensing_limit(model, floor_at)
+    limit = cutout if floor is None else max(cutout, T_reach - floor / float(model.K_tank_hx))
+    if upper <= limit:
+        return
+    moved = _cap_tank_setpoints(model, limit)
+    duty = float(model.hp_capacity) if floor is None else floor
+    # A blend condenses over a glide: the limit is the dew point of T_cond_max,
+    # and the tank is held below the bubble point of that pressure.
+    glide = float(model.T_cond_max) - T_reach
+    bubble = f", whose pressure has its bubble point at {T_reach:.1f} °C," if glide > 0.05 else ""
+    warnings.warn(
+        f"{what}: T_tank_w_upper_bound={upper:g} °C is above the tank temperature the compressor envelope "
+        f"of {model.ref} allows at the smallest continuous duty, {limit:.1f} °C (T_cond_max="
+        f"{float(model.T_cond_max):g} °C{bubble} less the {duty / float(model.K_tank_hx):.1f} K tank heat-exchanger "
+        f"approach of {duty:.0f} W, {reference}). The compressor reduces its duty from {cutout:.1f} °C and "
+        f"the thermostat stops it at {limit:.1f} °C{moved}. Lower the set points, use a refrigerant with a "
+        "higher limit (e.g. R290, R134a), or give the T_cond_max of the actual compressor (None switches "
+        "the limit off)",
+        OperatingLimitWarning,
+        stacklevel=3,
+    )
+
+
+#: :func:`condensing_stretch`: no continuous duty below the nameplate runs on
+#: the condensing limit at this source, so there is no stretch to charge on.
+WITHHELD_NO_SMALLER_DUTY = "no_smaller_duty"
+
+
+def condensing_stretch(
+    solve: Callable[[float, float], Any],
+    T_zero_C: float,
+    K: float,
+    Q_knee: float,
+    min_duty: Callable[[], float | None],
+    delivered_key: str = "Q_ref_tank [W]",
+) -> tuple[float | None, str | None]:
+    """The stretch a reduced-duty step charges on at one source state: ``(Q_min, None)``, or ``(None, what withholds it)``.
+
+    A step of ``condensing_limit_control="reduce_duty"`` integrates the tank
+    along the condensing limit's duty, ``K (T_zero_C - T)`` [W]
+    (:class:`tmhp.dynamic_context.DutyLimit`), from the knee -- the tank
+    temperature at which that duty is ``Q_knee``, the nameplate duty -- to the
+    stop, where it is ``Q_min``, the smallest continuous duty (``min_duty()``:
+    :func:`smallest_duty_on_condensing_limit` at this source; neither point
+    above the boiling point of the stored water). That is the tank's path only
+    if the condensing limit is the limit that governs the whole stretch. This
+    function checks it for one source state, with three cycles: ``solve(T,
+    q)`` -- the step's cycle at tank temperature ``T`` [degC] asked for duty
+    ``q`` [W], solved with the source as the step finds it -- at the knee, at
+    the middle of the stretch and at the stop, each asked for the limit's
+    duty there. The stretch qualifies if each of them runs, delivers that
+    duty to :data:`tmhp.dynamic_context.DUTY_MATCH_RTOL`, and names no limit
+    but the condensing one; ``Q_min`` is then returned.
+
+    Otherwise reduced-duty charging is withheld at this source state, and the
+    first check that fails says by what (later ones are not made; the knee
+    comes first, before the search for ``Q_min``, which is the costly part):
+
+    - a cycle that does not run: its ``failure_reason``
+      (``"source_fluid_freezing"``, ``"discharge_temp_above_max"``, ...);
+    - a cycle held at another duty, or naming another limit: its
+      ``capacity_binding`` (``"discharge_temperature"``,
+      ``"source_fluid_freezing"``, ...), and :data:`BINDING_COMPRESSOR` for one
+      that names none -- the compressor at its speed ceiling, which a cold
+      source leaves short of the nameplate duty at the knee;
+    - no ``Q_min`` below ``Q_knee`` (``None``, or not smaller):
+      :data:`WITHHELD_NO_SMALLER_DUTY`.
+
+    The answer is a property of the machine and the source state: it does not
+    depend on the step, nor on where the tank is. The boilers keep it for as
+    long as the source state stays the same. Three points are a sample: a
+    limit that acts only strictly between two of them is not seen. The check
+    assumes that a limit which leaves the knee, the middle and the stop alone
+    leaves the stretch between them alone. Where one does not, the check each
+    step makes of its own cycles
+    (:func:`tmhp.dynamic_context.resolve_step_operation`) withholds the steps
+    whose cycle lands on it; which steps those are depends on the step length
+    and the tank temperature, so the charge at that source state then depends
+    on the step size. The solves run silently.
+    """
+
+    def other_limit(T: float) -> str | None:
+        """What but the condensing limit governs the cycle asked for the limit's duty at ``T`` (``None``: nothing)."""
+        duty = K * (T_zero_C - T)
+        with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
+            warnings.simplefilter("ignore")
+            out = solve(T, duty)
+        result: Mapping[str, Any] = out if isinstance(out, Mapping) else {}
+        if not _running(result):
+            reason = result.get("failure_reason")
+            return str(reason) if reason and reason != "none" else BINDING_CYCLE
+        binding = result.get("capacity_binding")
+        if not abs(_delivered(result, delivered_key) - duty) <= DUTY_MATCH_RTOL * duty:
+            return str(binding) if binding else BINDING_COMPRESSOR
+        return str(binding) if binding and binding != BINDING_CONDENSING else None
+
+    T_knee = min(T_zero_C - Q_knee / K, T_WATER_BOIL_C)
+    withheld = other_limit(T_knee)
+    if withheld is not None:
+        return None, withheld
+    Q_min = min_duty()
+    if Q_min is None or not (math.isfinite(Q_min) and 0.0 <= Q_min < Q_knee):
+        return None, WITHHELD_NO_SMALLER_DUTY
+    T_stop = max(T_knee, min(T_zero_C - Q_min / K, T_WATER_BOIL_C))
+    for T in (0.5 * (T_knee + T_stop), T_stop):
+        withheld = other_limit(T)
+        if withheld is not None:
+            return None, withheld
+    return Q_min, None
+
+
+def on_condensing_limit(model: Any, result: dict, request: float, delivered_key: str = "Q_ref_tank [W]") -> dict:
+    """Capacity keys of a cycle a dynamic step ran on the condensing limit (in place).
+
+    A step of ``condensing_limit_control="reduce_duty"`` solves the stretch it
+    spends on the limit directly at the limit's duty, so the duty reduction
+    (:func:`reduce_duty_within_envelope`) has nothing to reduce and writes no
+    keys. The row is the one that reduction lands on for the nameplate
+    ``request``, and gets its keys: ``capacity_clamped = "max"``,
+    ``Q_max [W]``, ``Q_request [W]`` and ``capacity_binding`` -- the condensing
+    limit, unless the solve was itself reduced further onto another limit,
+    which then names it. An off row is returned unchanged.
+    """
+    if not _running(result):
+        return result
+    if result.get("capacity_clamped") != CAPACITY_CLAMPED_MAX or not result.get("capacity_binding"):
+        result["capacity_binding"] = BINDING_CONDENSING
+    result["capacity_clamped"] = CAPACITY_CLAMPED_MAX
+    result["Q_max [W]"] = _delivered(result, delivered_key)
+    result["Q_request [W]"] = float(request)
+    if "PLR_request [-]" in result and getattr(model, "hp_capacity", 0) > 0:
+        result["PLR_request [-]"] = request / model.hp_capacity
+    return result
 
 
 def discharge_temp_exceeded(T_dis_C: object, T_dis_max: float | None) -> bool:

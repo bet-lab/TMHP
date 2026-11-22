@@ -128,9 +128,11 @@ The refrigerant cycle
     * - Wet suction without an efficiency penalty
       - When the discharge control lets the suction go wet, the efficiency
         maps, fitted to dry-suction data, are used unchanged
-      - Rows with ``discharge_control == True`` are optimistic by a few
-        percent in COP, and their duty at the edge of the limit is an upper
-        estimate (:doc:`/developer/reference-operating-limits`)
+      - The 16 scored air-to-water points with wet suction average +0.4 %
+        COP bias against the catalogues. The 124 scored points without
+        discharge control average −6.7 %. The duty at the edge of the limit
+        is an upper estimate when liquid reduces compressor efficiency
+        (:ref:`discharge control against the catalogues <discharge-control-against-catalogues>`)
     * - No pressure drop
       - Heat exchangers and lines are isobaric and the expansion is
         isenthalpic; superheat and subcooling are set values, not the result
@@ -223,12 +225,13 @@ Air side
       - Below 5 °C outdoor the EnergyPlus frost multipliers are applied to a
         frost-free cycle. They depend on outdoor temperature and humidity,
         not on the coil the model solves, and a defrost is in the mean, not
-        resolved in time. The multipliers were fitted to air-to-air units;
+        resolved in time. Air too dry to frost the correlation's coil is not
+        corrected; the 3 K band over which the fixed losses come in is a
+        modelling choice, not a measurement. The multipliers were fitted to air-to-air units;
         the boiler takes them unchanged, with the defrost heat drawn from
         the tank water. Below the capacity of the unit the correlation
         describes, the correction shrinks with the frost drive of a less
-        loaded coil (air flow taken as independent of the load); in air too
-        dry to frost at all, the EnergyPlus fixed loss stays at every load
+        loaded coil (air flow taken as independent of the load)
       - ``defrost_fraction [-]``, ``frost_capacity_factor [-]``,
         ``E_defrost [W]``; ``Q_ref_iu_frost_free [W]`` (ASHP) or
         ``Q_ref_tank_frost_free [W]`` (ASHPB) is the cycle that was solved

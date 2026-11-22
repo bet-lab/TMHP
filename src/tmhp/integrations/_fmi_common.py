@@ -9,12 +9,17 @@ from xml.etree.ElementTree import Element, SubElement
 
 UnitSpec = tuple[str, Mapping[str, str]]
 
+# FMI inputs have a start value. A value outside the physical fraction range
+# lets an unconnected input follow the model default without pinning it here.
+RH_OUT_USE_MODEL_DEFAULT = -1.0
+
 VARIABLE_DESCRIPTIONS: Mapping[str, str] = {
     "ref": "Working fluid (CoolProp name, e.g. R32, R290, R410A)",
     "hp_capacity": "Nominal heat pump heating capacity",
     "T_tank_w_init": "Initial tank water temperature",
     "T_sur": "Surrounding temperature for tank heat loss",
     "T0": "Outdoor air temperature",
+    "RH_out": "Outdoor relative humidity as a fraction (0 to 1); -1 uses the model default",
     "dhw_draw": "DHW draw-off volumetric flow rate",
     "T_sup_w": "Mains supply water temperature",
     "E_cmp": "Compressor electric power averaged over the communication step",
@@ -72,6 +77,14 @@ def is_finite(value: Any) -> bool:
     except (TypeError, ValueError):
         return False
     return math.isfinite(out)
+
+
+def valid_outdoor_humidity(value: Any) -> bool:
+    """Accept a relative humidity fraction or the unconnected FMI start value."""
+    if not is_finite(value):
+        return False
+    rh = float(value)
+    return rh == RH_OUT_USE_MODEL_DEFAULT or 0.0 <= rh <= 1.0
 
 
 def failure_reason(value: object) -> str:

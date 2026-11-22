@@ -22,6 +22,7 @@ from tmhp.defrost import (
     DEFROST_LOAD_KEY,
     DEFROST_POWER_KEY,
     FROST_CAPACITY_FACTOR_KEY,
+    FROST_POINT_BAND_K,
     FROST_POWER_FACTOR_KEY,
     FROST_TRANSITION_K,
     NO_FROST,
@@ -31,12 +32,15 @@ from tmhp.defrost import (
     FrostState,
     apply_defrost,
     frost_free_keys,
+    frost_point,
     humidity_ratio,
     resolve_defrost,
     saturation_humidity_ratio,
 )
 
 MODEL = DefrostModel()
+#: The EnergyPlus fixed losses, applied whatever the air can deposit (no frost-point band).
+NO_BAND = DefrostModel(frost_point_band_K=None)
 
 
 # ── EnergyPlus frost adjustment ───────────────────────────────────────────
@@ -51,11 +55,11 @@ def test_defaults_are_the_energyplus_limit_and_the_en14511_a2_humidity():
     assert HAPropsSI("R", "T", 275.15, "P", 101325.0, "B", 274.15) == pytest.approx(0.84, abs=0.005)
 
 
-@pytest.mark.parametrize("T_out,RH", [(2.0, 0.84), (-7.0, 0.75), (-15.0, 0.9), (5.0, 0.6)])
+@pytest.mark.parametrize("T_out,RH", [(2.0, 0.84), (-7.0, 0.75), (-15.0, 0.9), (5.0, 0.6), (-10.0, 0.4)])
 def test_on_demand_defrost_follows_the_published_equations(T_out, RH):
-    # At and below 2 degC the default model is EnergyPlus'; up to its 5 degC
-    # limit the switch (``transition_K=0``) is.
-    frost = (MODEL if T_out <= 2.0 else DefrostModel(transition_K=0.0)).frost_state(T_out, RH)
+    # EnergyPlus as published: the switch at its 5 degC limit (``transition_K=0``)
+    # and the fixed losses whatever the deposition (``frost_point_band_K=None``).
+    frost = DefrostModel(transition_K=0.0, frost_point_band_K=None).frost_state(T_out, RH)
     assert frost.active
     coil = 0.82 * T_out - 8.589
     assert frost.T_coil_C == pytest.approx(coil, rel=1e-12)
@@ -66,6 +70,16 @@ def test_on_demand_defrost_follows_the_published_equations(T_out, RH):
     assert frost.capacity_multiplier == pytest.approx(0.875 * (1.0 - t_frac), rel=1e-12)
     assert frost.power_multiplier == pytest.approx(0.954 * (1.0 - t_frac), rel=1e-12)
     assert frost.RH_out == RH
+
+
+@pytest.mark.parametrize("T_out,RH", [(2.0, 0.84), (-7.0, 0.75), (-15.0, 0.9), (-20.0, 0.84)])
+def test_the_default_model_is_energyplus_where_the_air_frosts_the_coil(T_out, RH):
+    """At and below 2 degC, in air whose frost point is the band above the coil or more."""
+    frost, published = MODEL.frost_state(T_out, RH), NO_BAND.frost_state(T_out, RH)
+    assert frost.active and frost.frost_onset == 1.0
+    assert frost.defrost_fraction == pytest.approx(published.defrost_fraction, rel=1e-12)
+    assert frost.capacity_multiplier == pytest.approx(published.capacity_multiplier, rel=1e-12)
+    assert frost.power_multiplier == pytest.approx(published.power_multiplier, rel=1e-12)
 
 
 def test_values_at_the_a2_rating_condition():
@@ -119,12 +133,149 @@ def test_a_zero_transition_is_the_energyplus_switch():
             DefrostModel(transition_K=bad)  # type: ignore[arg-type]
 
 
-def test_dry_air_leaves_only_the_frosted_coil_multipliers():
-    frost = MODEL.frost_state(-10.0, 0.0)
+def test_without_the_band_dry_air_leaves_the_frosted_coil_multipliers():
+    """EnergyPlus: the deposition sits on its floor and the fixed losses stay."""
+    frost = NO_BAND.frost_state(-10.0, 0.0)
+    assert frost.active and frost.frost_onset == 1.0
     assert frost.humidity_ratio_difference == 1.0e-6
     assert frost.defrost_fraction == pytest.approx(1.0 / (1.0 + 0.01446 / 1.0e-6), rel=1e-12)
     assert frost.capacity_multiplier == pytest.approx(0.875, abs=1e-4)
     assert frost.power_multiplier == pytest.approx(0.954, abs=1e-4)
+
+
+# ── air too dry to frost the coil ─────────────────────────────────────────
+
+
+@pytest.mark.parametrize("T_out,RH", [(2.0, 0.3), (-5.0, 0.49), (-10.0, 0.5), (-15.0, 0.5), (-10.0, 0.0), (-30.0, 0.6)])
+def test_air_whose_frost_point_is_above_the_coil_is_not_corrected(T_out, RH):
+    """No frost can form on a coil warmer than the air's frost point: nothing to average."""
+    coil = 0.82 * T_out - 8.589
+    assert humidity_ratio(T_out, RH) <= saturation_humidity_ratio(coil)  # the air cannot deposit on this coil
+    frost = MODEL.frost_state(T_out, RH)
+    assert not frost.active and frost.frost_onset == 0.0
+    assert (frost.defrost_fraction, frost.capacity_multiplier, frost.power_multiplier) == (0.0, 1.0, 1.0)
+    assert frost.T_coil_C == pytest.approx(coil, rel=1e-12) and frost.RH_out == RH
+    # ... where EnergyPlus keeps 12.5 % of the capacity and 4.6 % of the power off.
+    published = NO_BAND.frost_state(T_out, RH)
+    assert published.capacity_multiplier == pytest.approx(0.875, abs=1e-4)
+
+
+def test_the_fixed_losses_grow_across_the_frost_point_band():
+    """From nothing at a frost point on the coil to their full size ``frost_point_band_K`` above it."""
+    assert FROST_POINT_BAND_K == 3.0 and MODEL.frost_point_band_K == 3.0
+    T_out = -5.0
+    coil = 0.82 * T_out - 8.589
+    w_coil = saturation_humidity_ratio(coil)
+    seen = []
+    for RH in (0.52, 0.56, 0.60, 0.64, 0.68, 0.72, 0.84, 1.0):
+        excess = humidity_ratio(T_out, RH) - w_coil
+        assert excess > 0.0
+        T_fp = frost_point(T_out, humidity_ratio(T_out, RH))
+        assert saturation_humidity_ratio(T_fp) == pytest.approx(humidity_ratio(T_out, RH), rel=1e-5)
+        onset = min(1.0, (T_fp - coil) / 3.0)
+        frost = MODEL.frost_state(T_out, RH)
+        assert frost.active and frost.frost_onset == pytest.approx(onset, rel=1e-12)
+        assert frost.humidity_ratio_difference == pytest.approx(excess, rel=1e-12)
+        t_frac = excess / (excess + 0.01446)
+        assert frost.defrost_fraction == pytest.approx(t_frac, rel=1e-12)
+        assert frost.capacity_multiplier == pytest.approx((1.0 - 0.125 * onset) * (1.0 - t_frac), rel=1e-12)
+        assert frost.power_multiplier == pytest.approx((1.0 - 0.046 * onset) * (1.0 - t_frac), rel=1e-12)
+        seen.append((onset, frost.capacity_multiplier))
+    onsets, capacities = zip(*seen, strict=True)
+    assert onsets[0] < 0.1 and onsets[-1] == 1.0 and 0.0 < onsets[3] < 1.0
+    assert all(b < a for a, b in zip(capacities, capacities[1:], strict=False))  # more humid: more correction
+    # Continuous at the onset: a frost point a hair above the coil corrects by a hair.
+    from scipy.optimize import brentq
+
+    RH_onset = brentq(lambda rh: humidity_ratio(T_out, rh) - w_coil, 0.3, 0.7, xtol=1e-14)
+    assert not MODEL.frost_state(T_out, RH_onset - 1e-6).active
+    just_above = MODEL.frost_state(T_out, RH_onset + 1e-6)
+    assert just_above.active and just_above.capacity_multiplier == pytest.approx(1.0, abs=1e-5)
+
+
+def test_rating_conditions_carry_the_full_correction():
+    """EN 14511 A2 (2/1 degC) and A-7 (-7/-8 degC), AHRI 210/240 H2 (1.67/0.56 degC): frost onset 1."""
+    from CoolProp.HumidAirProp import HAPropsSI
+
+    for dry, wet in ((2.0, 1.0), (-7.0, -8.0), (1.67, 0.56)):
+        RH = float(HAPropsSI("R", "T", dry + 273.15, "B", wet + 273.15, "P", 101325.0))
+        frost = MODEL.frost_state(dry, RH)
+        assert frost.frost_onset == 1.0
+        assert frost.capacity_multiplier == pytest.approx(NO_BAND.frost_state(dry, RH).capacity_multiplier, rel=1e-12)
+    # The default humidity (84 %) down to -20 degC, the coldest catalogue row.
+    for T_out in (2.0, 0.0, -7.0, -15.0, -20.0):
+        assert MODEL.frost_state(T_out).frost_onset == 1.0
+
+
+def test_a_zero_band_switches_the_fixed_losses_at_the_frost_point():
+    step = DefrostModel(frost_point_band_K=0.0)
+    assert not step.frost_state(-10.0, 0.5).active  # frost point below the coil
+    wet = step.frost_state(-10.0, 0.6)  # a little above it: the fixed losses in full
+    assert wet.active and wet.frost_onset == 1.0
+    assert wet.capacity_multiplier == pytest.approx(NO_BAND.frost_state(-10.0, 0.6).capacity_multiplier, rel=1e-12)
+    for bad in (-1.0, math.nan, math.inf, True, "3"):
+        with pytest.raises(ValueError, match="frost_point_band_K"):
+            DefrostModel(frost_point_band_K=bad)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("band_K", [1e-300, 1e-6, 0.5, 3.0, 10.0, 30.0, 120.0, 1e3, 1e6, 1e300])
+def test_any_finite_band_gives_a_correction_at_every_outdoor_state(band_K):
+    """The band ends at 0 degC: a wide one does not leave the range of the humid-air properties."""
+    model = DefrostModel(frost_point_band_K=band_K)
+    for T_out in (4.9, 2.0, 0.0, -7.0, -15.0, -30.0, -45.0):
+        for RH in (0.0, 0.3, 0.6, 0.84, 1.0):
+            frost = model.frost_state(T_out, RH)
+            assert 0.0 <= frost.frost_onset <= 1.0
+            assert 0.0 < frost.capacity_multiplier <= 1.0 and 0.0 < frost.power_multiplier <= 1.0
+            # Never more than EnergyPlus, never less than no correction.
+            assert frost.capacity_multiplier >= NO_BAND.frost_state(T_out, RH).capacity_multiplier - 1e-12
+    # Air with a dew point at or above freezing carries the fixed losses in full, whatever the band.
+    humid = model.frost_state(2.0, 1.0)
+    assert humid.frost_onset == 1.0
+    assert humid.capacity_multiplier == pytest.approx(NO_BAND.frost_state(2.0, 1.0).capacity_multiplier, rel=1e-12)
+    # At a total pressure where saturation 3 K above the coil is outside the humid-air range.
+    assert 0.0 < model.frost_state(-7.0, 0.6, P_Pa=240.0).capacity_multiplier <= 1.0
+    # At any pressure the air state itself exists at (saturation at the band's end may not).
+    for P_Pa in (2.0e5, 7.0e4, 2000.0, 700.0, 640.0, 560.0, 400.0):
+        for T_out, RH in ((0.0, 0.6), (-3.0, 0.6), (-7.0, 0.84), (-20.0, 1.0), (-40.0, 1.0)):
+            low = model.frost_state(T_out, RH, P_Pa=P_Pa)
+            assert 0.0 <= low.frost_onset <= 1.0 and 0.0 < low.capacity_multiplier <= 1.0
+            assert low.capacity_multiplier >= NO_BAND.frost_state(T_out, RH, P_Pa=P_Pa).capacity_multiplier - 1e-12
+    # ... and through a unit.
+    row = AirSourceHeatPump(defrost=model).analyze_steady(
+        Q_r_iu=-3000.0, T0=-7.0, T_a_room=20.0, RH_out=0.6, return_dict=True, verbose=False
+    )
+    assert row["failure_reason"] == "none" and 0.0 < row[FROST_CAPACITY_FACTOR_KEY] <= 1.0
+
+
+def test_the_band_ends_at_freezing():
+    """A coil 0.5 K below freezing: the fixed losses come in over that 0.5 K, not over 3 K."""
+    T_fp = frost_point(2.0, humidity_ratio(2.0, 0.84))
+    assert -0.5 < T_fp < 0.0
+    frost = MODEL.frost_state(2.0, 0.84, T_coil_C=-0.5)
+    assert frost.frost_onset == pytest.approx((T_fp + 0.5) / 0.5, rel=1e-12)
+    assert frost.frost_onset == pytest.approx(0.267, abs=1e-3)  # 0.045 over a band of 3 K
+    # A dew point above freezing: the full fixed losses on any coil below 0 degC.
+    assert MODEL.frost_state(4.0, 1.0, T_coil_C=-0.5).frost_onset == 1.0
+    # A coil at or above 0 degC collects water, not frost (the EnergyPlus condition, kept).
+    assert not MODEL.frost_state(2.0, 1.0, T_coil_C=0.0).active
+
+
+@pytest.mark.parametrize("name", ["transition_K", "frost_point_band_K"])
+def test_a_width_too_large_for_a_float_is_an_input_error(name):
+    with pytest.raises(ValueError, match=name):
+        DefrostModel(**{name: 10**1000})
+
+
+def test_a_dry_cold_hour_of_a_unit_is_the_frost_free_hour():
+    """Outdoor -5 degC at 50 % relative humidity: the result of the model with no frost model."""
+    kwargs = dict(Q_r_iu=-3000.0, T0=-5.0, T_a_room=20.0, return_dict=True, verbose=False)
+    dry = AirSourceHeatPump(defrost=True).analyze_steady(RH_out=0.49, **kwargs)
+    free = AirSourceHeatPump(defrost=False).analyze_steady(**kwargs)
+    assert dry[FROST_CAPACITY_FACTOR_KEY] == 1.0 and dry[DEFROST_FRACTION_KEY] == 0.0
+    assert dry["E_tot [W]"] == pytest.approx(free["E_tot [W]"], rel=1e-9)
+    humid = AirSourceHeatPump(defrost=True).analyze_steady(RH_out=0.84, **kwargs)
+    assert humid["E_tot [W]"] > 1.05 * free["E_tot [W]"]
 
 
 def test_more_humid_air_defrosts_more():
@@ -404,3 +555,34 @@ def test_the_steady_result_has_no_step_at_the_frost_limit(hp):
         assert a["cop_sys [-]"] == pytest.approx(b["cop_sys [-]"], rel=1e-12)
     stepped = [_solve(switch, -2000.0, T0=T, **room)["cop_sys [-]"] for T in (5.0, 5.25)]
     assert stepped[1] / stepped[0] > 1.2
+
+
+def test_the_dry_air_example_of_the_model_page_is_what_the_model_gives():
+    """docs/source/models/ashpb.rst, 'Dry air': the default 15 kW unit, 10 kW to a 40 degC tank at -5 degC."""
+    import re
+    import warnings
+    from pathlib import Path
+
+    import tmhp
+
+    page = re.sub(r"\s+", " ", (Path(__file__).resolve().parents[1] / "docs/source/models/ashpb.rst").read_text())
+    point = dict(T_tank_w=40.0, T0=-5.0, Q_ref_tank=10000.0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        default = tmhp.AirSourceHeatPumpBoiler()
+        energyplus = tmhp.AirSourceHeatPumpBoiler(defrost=DefrostModel(frost_point_band_K=None))
+        free = tmhp.AirSourceHeatPumpBoiler(defrost=False)
+        power = {
+            (name, humidity): model.analyze_steady(RH_out=humidity, **point)["E_tot [W]"]
+            for name, model in (("default", default), ("energyplus", energyplus), ("free", free))
+            for humidity in (0.5, 0.6, 0.84)
+        }
+    assert default.hp_capacity == 15000.0
+    assert power["default", 0.5] == pytest.approx(power["free", 0.5], rel=1e-9)  # "the frost-free figure"
+    assert power["default", 0.84] == pytest.approx(power["energyplus", 0.84], rel=1e-12)  # "either way"
+    assert (
+        f"draws {power['default', 0.5]:,.0f} W, the frost-free figure, where the EnergyPlus multipliers "
+        f"(``frost_point_band_K=None``) give {power['energyplus', 0.5]:,.0f} W; at 60 % it draws "
+        f"{power['default', 0.6]:,.0f} W against {power['energyplus', 0.6]:,.0f} W, and at the rating humidity, "
+        f"84 %, {power['default', 0.84]:,.0f} W either way"
+    ) in page

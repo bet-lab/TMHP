@@ -203,3 +203,130 @@ def test_manifest_stamp_is_current_or_the_results_still_reproduce() -> None:
         f"results no longer reproduce ({sum(map(len, stale.values()))} value(s) in {len(stale)} catalogue(s): "
         f"{', '.join(sorted(stale))}). {REGEN_HINT}."
     )
+
+
+def _assert_capacity_score(score, points: pd.DataFrame, *, csv: bool = False) -> None:
+    """The score includes short points and reports headroom by probe kind."""
+    assert score["points_capacity_short"] == (points.failure_reason == "capacity_short").sum()
+    assert score["capacity_ratio_mean"] == pytest.approx(points.capacity_ratio.mean())
+    assert score["capacity_ratio_min"] == pytest.approx(points.capacity_ratio.min())
+    ceilings = points[points.capacity_probe.eq("ceiling")]
+    assert score["points_capacity_ceiling"] == len(ceilings)
+    ceiling_mean = score["capacity_ceiling_headroom_mean"]
+    if ceilings.capacity_headroom.notna().any():
+        assert ceiling_mean == pytest.approx(ceilings.capacity_headroom.mean())
+    else:
+        assert pd.isna(ceiling_mean)
+    assert score["points_capacity_lower_bound"] == points.capacity_probe.eq("lower_bound").sum()
+    assert score["points_capacity_no_estimate"] == points.capacity_probe.isna().sum()
+    counts = score["capacity_binding_counts"]
+    if csv:
+        counts = json.loads(counts)
+    assert counts == points.capacity_binding.value_counts().to_dict()
+
+
+def test_committed_capacity_scores_match_the_point_rows() -> None:
+    """Per-unit and status-specific class scores agree with the point rows."""
+    manifest = _load_manifest()
+    summary = pd.read_csv(RESULTS / "summary.csv").set_index("slug")
+    frames = []
+    for slug in _slugs():
+        points = _committed(slug)
+        assert {
+            "q_pred_kW",
+            "capacity_ratio",
+            "capacity_binding",
+            "x_suction",
+            "superheat_K",
+            "discharge_control",
+            "t_discharge_C",
+            "q_max_pred_kW",
+            "capacity_headroom",
+            "capacity_probe",
+        } <= set(points)
+        pd.testing.assert_series_equal(points.capacity_ratio, points.q_pred_kW / points.q_kW, check_names=False)
+        pd.testing.assert_series_equal(points.capacity_headroom, points.q_max_pred_kW / points.q_kW, check_names=False)
+        short = points[points.failure_reason == "capacity_short"]
+        assert (short.capacity_ratio < 0.99).all()
+        assert short.capacity_binding.notna().all()
+        assert not short.usable.any()
+        available = points.dropna(subset=["q_max_pred_kW"])
+        pd.testing.assert_series_equal(points.capacity_probe.notna(), points.q_max_pred_kW.notna(), check_names=False)
+        kinds = {"ceiling", "lower_bound"} if points.model_class.iat[0] == "ASHPB" else {"ceiling"}
+        assert set(available.capacity_probe) <= kinds
+        assert (available.q_max_pred_kW >= available.q_pred_kW).all()
+        for headroom in available.loc[available.capacity_probe.eq("lower_bound"), "capacity_headroom"]:
+            assert headroom == pytest.approx(manifest["capacity_probe_lower_bound_multiplier"], rel=1e-6)
+        _assert_capacity_score(summary.loc[slug], points, csv=True)
+        _assert_capacity_score(manifest["capacity_by_unit"][slug], points)
+        frames.append(points)
+
+    for (status, model_class), points in pd.concat(frames).groupby(["status", "model_class"]):
+        _assert_capacity_score(manifest["capacity_by_status_and_model_class"][status][model_class], points)
+        group = summary[summary.model_class.eq(model_class) & summary.status.eq(status)]
+        for row in group.to_dict("records"):
+            _assert_capacity_score(
+                {key.removeprefix("class_"): value for key, value in row.items() if key.startswith("class_")},
+                points,
+                csv=True,
+            )
+
+
+def test_committed_discharge_strata_partition_scored_points() -> None:
+    """The control split uses point-weighted COP errors of scored adopted points."""
+    points = pd.concat([_committed(slug) for slug in _slugs()], ignore_index=True)
+    scored = points[points.usable & (points.status == "adopted")]
+    controlled = scored.discharge_control.eq(True)
+    expected = {
+        (model_class, standard, stratum): group
+        for stratum, mask in {
+            "no_control": scored.discharge_control.eq(False),
+            "reduced_superheat": controlled & (scored.x_suction >= 1),
+            "wet_suction": controlled & (scored.x_suction < 1),
+            "unknown": scored.discharge_control.isna() | (controlled & scored.x_suction.isna()),
+        }.items()
+        for (model_class, standard), group in scored[mask].groupby(["model_class", "rating_standard"])
+    }
+    actual = _load_manifest()["discharge_control_strata"]
+    assert sum(row["points_usable"] for row in actual) == len(scored)
+    assert len(actual) == len(expected)
+    for row in actual:
+        group = expected.pop((row["model_class"], row["rating_standard"], row["stratum"]))
+        assert row["points_usable"] == len(group)
+        assert row["cop_MAPE_pct"] == pytest.approx(group.abs_pct_error.mean())
+        bias = (group.cop_pred / group.cop_target - 1).mean() * 100
+        assert row["cop_bias_pct"] == pytest.approx(bias)
+
+
+def test_discharge_strata_include_scored_points_with_missing_control_information() -> None:
+    """Missing flags and missing controlled suction quality form the unknown stratum."""
+    from validation.parity.run import discharge_control_strata
+
+    points = pd.DataFrame(
+        [
+            {
+                "model_class": "ASHPB",
+                "rating_standard": "EN 14511",
+                "status": status,
+                "usable": usable,
+                "discharge_control": flag,
+                "x_suction": quality,
+                "cop_target": 4.0,
+                "cop_pred": 4.0,
+                "abs_pct_error": 0.0,
+            }
+            for flag, quality, status, usable in [
+                (False, None, "adopted", True),
+                (True, 1.0, "adopted", True),
+                (True, 0.95, "adopted", True),
+                (None, 1.0, "adopted", True),
+                (math.nan, 0.95, "adopted", True),
+                (True, math.nan, "adopted", True),
+                (None, None, "hold", True),
+                (None, None, "adopted", False),
+            ]
+        ]
+    )
+    counts = discharge_control_strata(points).set_index("stratum").points_usable
+    assert counts.sum() == (points.usable & points.status.eq("adopted")).sum()
+    assert counts.to_dict() == {"no_control": 1, "reduced_superheat": 1, "wet_suction": 1, "unknown": 3}

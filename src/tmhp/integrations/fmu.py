@@ -56,6 +56,7 @@ _REAL_UNITS = {
     "T_tank_w_init": "degC",
     "T_sur": "degC",
     "T0": "degC",
+    "RH_out": "1",
     "dhw_draw": "m3/s",
     "T_sup_w": "degC",
     "E_cmp": "W",
@@ -200,6 +201,17 @@ class TmhpAshpbSlave(Fmi2Slave):
                 )
             )
 
+        # Append the optional input to preserve every existing value reference.
+        self.RH_out = _fmi_common.RH_OUT_USE_MODEL_DEFAULT
+        self.register_variable(
+            Real(
+                "RH_out",
+                causality=Fmi2Causality.input,
+                variability=Fmi2Variability.continuous,
+                description=_DESCRIPTIONS["RH_out"],
+            )
+        )
+
         self._hp: AirSourceHeatPumpBoiler | None = None
         self._state: DynamicState | None = None
         self._n = 0
@@ -234,6 +246,7 @@ class TmhpAshpbSlave(Fmi2Slave):
             and _is_finite(step_size)
             and float(step_size) > 0.0
             and _is_finite(self.T0)
+            and _fmi_common.valid_outdoor_humidity(self.RH_out)
             and _is_finite(self.dhw_draw)
             and float(self.dhw_draw) >= 0.0
             and _is_finite(self.T_sup_w)
@@ -254,6 +267,9 @@ class TmhpAshpbSlave(Fmi2Slave):
             "I_DN": 0.0,
             "I_dH": 0.0,
         }
+        rh_out = float(self.RH_out)
+        if rh_out != _fmi_common.RH_OUT_USE_MODEL_DEFAULT:
+            inputs["RH_out"] = rh_out
         self._state, res = self._hp.step(self._state, inputs, float(step_size))
 
         self.E_cmp = _finite(res["E_cmp [W]"])

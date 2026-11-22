@@ -133,11 +133,11 @@ def _failure_reason(row: dict) -> str:
     return str(value)
 
 
-def _make_slave() -> TmhpAshpbSlave:
+def _make_slave(*, tank_temperature: float = T_TANK_INIT) -> TmhpAshpbSlave:
     slave = TmhpAshpbSlave(instance_name="tmhp_ashpb")
     slave.ref = "R32"
     slave.hp_capacity = HPCAP
-    slave.T_tank_w_init = T_TANK_INIT
+    slave.T_tank_w_init = tank_temperature
     slave.T_sur = T_SUR
     slave.exit_initialization_mode()
     return slave
@@ -221,6 +221,9 @@ def test_fmu_slave_validated_preset_reproduces_standalone_step_kernel():
         ("T_sup_w", float("inf"), DT),
         ("T_sur", float("-inf"), DT),
         ("T0", 7.0, 0.0),
+        ("RH_out", float("nan"), DT),
+        ("RH_out", -0.1, DT),
+        ("RH_out", 35.0, DT),
     ],
 )
 def test_fmu_slave_rejects_invalid_importer_inputs(field, value, step_size):
@@ -233,6 +236,34 @@ def test_fmu_slave_rejects_invalid_importer_inputs(field, value, step_size):
     assert slave.failure_reason == "invalid_input"
     assert slave.hp_is_on is False
     assert slave._n == 0
+
+
+@pytest.mark.parametrize("rh_out", [None, 0.0, 0.35, 1.0])
+def test_fmu_slave_outdoor_humidity_matches_step_kernel(rh_out: float | None) -> None:
+    """Check the unconnected and connected inputs against the public step kernel."""
+    slave = _make_slave(tank_temperature=40.0)
+    slave.T0 = 2.0
+    model = AirSourceHeatPumpBoiler(ref="R32", hp_capacity=HPCAP)
+    state = model.make_initial_state(slave.T_tank_w_init, 1.0)
+    inputs = {
+        "n": 0,
+        "current_time_s": 0.0,
+        "T0": slave.T0,
+        "dV_mix_w_out": 0.0,
+        "T_sup_w": T_SUP,
+        "T_sur": T_SUR,
+        "I_DN": 0.0,
+        "I_dH": 0.0,
+    }
+    if rh_out is not None:
+        inputs["RH_out"] = slave.RH_out = rh_out
+
+    _, expected = model.step(state, inputs, DT)
+
+    assert slave.do_step(0.0, DT) is True
+    assert slave.E_tot > 0.0
+    for output, result_key in _ANALYZE_DYNAMIC_OUTPUTS.items():
+        assert getattr(slave, output) == _finite(expected[result_key])
 
 
 def test_fmu_slave_reproduces_step_kernel():
@@ -286,7 +317,14 @@ def test_fmu_builds_and_validates(fmu_file):
         root = ElementTree.fromstring(archive.read("modelDescription.xml"))
     variable_names = [scalar.attrib["name"] for scalar in root.findall("./ModelVariables/ScalarVariable")]
     assert variable_names[: len(_LEGACY_VARIABLE_ORDER)] == list(_LEGACY_VARIABLE_ORDER)
-    assert variable_names[-3:] == ["preset", "V_cmp_disp_cc", "dV_fan_a_rated"]
+    assert variable_names[-4:] == ["preset", "V_cmp_disp_cc", "dV_fan_a_rated", "RH_out"]
+    humidity = root.find("./ModelVariables/ScalarVariable[@name='RH_out']")
+    assert humidity is not None
+    assert humidity.attrib["causality"] == "input"
+    assert humidity.attrib["variability"] == "continuous"
+    real = humidity.find("Real")
+    assert real is not None
+    assert float(real.attrib["start"]) == -1.0
     descriptions = {
         scalar.attrib["name"]: scalar.attrib.get("description")
         for scalar in root.findall("./ModelVariables/ScalarVariable")
@@ -301,6 +339,7 @@ def test_fmu_builds_and_validates(fmu_file):
         if real is not None:
             units[scalar.attrib["name"]] = real.attrib["unit"]
     assert units["T0"] == "degC"
+    assert units["RH_out"] == "1"
     assert units["dhw_draw"] == "m3/s"
     assert units["E_cmp"] == "W"
     assert units["cop_sys"] == "1"

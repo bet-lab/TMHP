@@ -523,6 +523,23 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
         raise ValueError(f"{error} at step {step}") from None
 
 
+#: ``request_basis``: the request is the refrigerant-side heat of the indoor
+#: coil (``Q_ref_iu [W]``; in cooling its total heat, before the fan's heat).
+REQUEST_BASIS_COIL = "coil"
+#: ``request_basis``: the request is the net sensible heat the room air gives
+#: up or receives (``Q_room_sensible [W]``), a zone's sensible load.
+REQUEST_BASIS_ROOM_SENSIBLE = "room_sensible"
+#: Result key naming the basis of ``Q_request [W]`` and ``Q_unmet [W]``.
+REQUEST_BASIS_KEY = "request_basis"
+
+
+def _check_request_basis(value: Any) -> str:
+    """``request_basis`` as given, or ``ValueError``: one of the two names."""
+    if isinstance(value, str) and value in (REQUEST_BASIS_COIL, REQUEST_BASIS_ROOM_SENSIBLE):
+        return value
+    raise ValueError(f"request_basis must be {REQUEST_BASIS_COIL!r} or {REQUEST_BASIS_ROOM_SENSIBLE!r}, got {value!r}")
+
+
 class AirSourceHeatPump(ReferenceStateMixin):
     """Air source heat pump with indoor-unit air heat exchange.
 
@@ -563,6 +580,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
     model of :func:`tmhp.heat_exchanger.calc_HX_perf_for_target_heat`. Above
     the dew point, in heating and without ``RH_room`` the coil is the dry one.
     The rated state and the default inputs are those of the dry coil.
+
+    A request is the heat of the indoor coil unless ``request_basis`` says
+    otherwise. With ``request_basis="room_sensible"`` (``analyze_steady``,
+    ``analyze_dynamic``) it is the net sensible heat the room air gives up or
+    receives -- a zone's sensible load -- and the model finds the coil duty
+    whose ``Q_room_sensible [W]`` equals it: more than the request in cooling
+    (the indoor fan's heat, and the latent heat of a wet coil), less in
+    heating. ``Q_request [W]`` and ``Q_unmet [W]`` are then on that basis, and
+    every row names its basis (``request_basis``).
     """
 
     #: Heat and flow rates averaged with the capacity ratio while cycling.
@@ -1936,7 +1962,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         """Write the part-load keys of a solved row and average a cycling one (in place).
 
         Every row gets ``Q_request [W]`` (signed, as asked), ``Q_unmet [W]``
-        (how far the delivered heat falls short of the request, >= 0) and the
+        (how far the delivered heat falls short of the request, >= 0),
+        ``request_basis`` (``"coil"``: the two are coil heat) and the
         cycling keys of :mod:`tmhp.cycling`. A row on the compressor's speed
         floor is averaged over the cycling period; one at its ceiling gains
         ``Q_max [W]`` and ``capacity_binding`` when the search did not already
@@ -1974,6 +2001,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         result["Q_request [W]"] = float(Q_r_iu)
         unmet = max(request - delivered, 0.0)
         result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
+        # A solved row is the row of a coil duty; a request on another basis
+        # is the caller's to write over these three (:meth:`_solve_room_sensible`).
+        result[REQUEST_BASIS_KEY] = REQUEST_BASIS_COIL
         if clamp == CAPACITY_CLAMPED_MAX:
             result.setdefault("Q_max [W]", delivered)
             result.setdefault("capacity_binding", "compressor")
@@ -3224,6 +3254,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
             plus latent, and ``SHR_iu [-]`` is the sensible share of it there
             (1 for a dry coil and in heating, NaN when the unit cannot run).
 
+            ``Q_room_sensible_max [W]`` is the same ceiling as the room's
+            net sensible heat: ``Q_room_sensible [W]`` of the state the unit
+            runs at there -- the coil's sensible heat less the indoor fan's
+            heat in cooling, plus it in heating, under frost the mean over
+            frosting and defrost -- and 0.0 when the unit cannot run. It is
+            the ceiling of a request made with
+            ``request_basis="room_sensible"`` (:meth:`analyze_steady`): the
+            net sensible heat at the largest coil duty, which is the
+            largest net sensible heat wherever that heat rises with the
+            coil duty.
+
         Notes
         -----
         With ``RH_room`` in cooling the ceiling is searched together with the
@@ -3294,6 +3335,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "Q_max_frost_free [W]": 0.0,
             "defrost_fraction [-]": 0.0,
             "SHR_iu [-]": float("nan"),
+            "Q_room_sensible_max [W]": 0.0,
         }
 
         sign = 1.0 if mode == "cooling" else -1.0
@@ -3357,6 +3399,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "Q_max_frost_free [W]": lo_q,
             "defrost_fraction [-]": 0.0,
             "SHR_iu [-]": float(lo_perf.get("SHR_iu [-]", float("nan"))),
+            # The same ceiling as the room's net sensible heat: the coil's
+            # sensible heat there with the indoor fan's heat counted.
+            "Q_room_sensible_max [W]": float(lo_perf.get("Q_room_sensible [W]", float("nan"))),
         }
         frost = self._frost_state(sign, T0, RH_out, full_load=True)
         if frost.active:
@@ -3366,6 +3411,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ceiling["E_tot [W]"] = float(mean["E_tot [W]"])
             ceiling["cop_sys [-]"] = float(mean["cop_sys [-]"])
             ceiling["defrost_fraction [-]"] = frost.defrost_fraction
+            ceiling["Q_room_sensible_max [W]"] = float(mean["Q_room_sensible [W]"])
         return ceiling
 
     def _least_power_at_ceiling(self, result: dict, Q_r_iu: float, T0: float, T_a_room: float) -> dict:
@@ -3823,18 +3869,22 @@ class AirSourceHeatPump(ReferenceStateMixin):
         verbose: bool = True,
         RH_out: float | None = None,
         RH_room: float | None = None,
+        request_basis: str = REQUEST_BASIS_COIL,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
 
         Parameters
         ----------
         Q_r_iu : float
-            Indoor thermal load [W]. >0 cooling, <0 heating, 0 off. It is the
+            Indoor thermal load [W]. >0 cooling, <0 heating, 0 off. With the
+            default ``request_basis`` it is the
             heat the refrigerant exchanges with the room air at the indoor
             coil (``Q_ref_iu [W]``): in cooling the coil's total heat,
             sensible plus latent, before the indoor fan's heat. What the room
             receives is reported as ``Q_room_sensible [W]`` and
-            ``Q_iu_latent [W]`` (below).
+            ``Q_iu_latent [W]`` (below). With
+            ``request_basis="room_sensible"`` it is the net sensible heat
+            the room air gives up (cooling) or receives (heating).
         T0 : float
             Dead-state / outdoor-air temperature [°C].
         T_a_room : float | None
@@ -3860,6 +3910,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
             on a heating request, where the indoor coil is the condenser, nor
             on an off one (``Q_r_iu <= 0``): anything may be given there. On
             a cooling request a value that is not a number in 0-1 raises
+            ``ValueError``.
+        request_basis : str
+            What ``Q_r_iu`` is a request for. ``"coil"`` (default): the
+            refrigerant-side heat of the indoor coil, ``Q_ref_iu [W]``.
+            ``"room_sensible"``: the net sensible heat of the room air,
+            ``Q_room_sensible [W]`` -- the sensible load a zone of a building
+            simulation hands over. The coil then has to carry more than the
+            request in cooling (the indoor fan's heat, and with ``RH_room``
+            the latent heat of the water it condenses) and less in heating
+            (the fan's heat is part of what the room receives), and the
+            model finds the coil duty at which ``Q_room_sensible [W]`` of the
+            row equals the request (see *Notes*). Any other value raises
             ``ValueError``.
 
         Returns
@@ -3968,10 +4030,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
             (:meth:`postprocess_exergy`).
 
             ``Q_request [W]`` and ``Q_unmet [W]`` are on the basis of
-            ``Q_r_iu``: refrigerant-side coil heat, total (sensible plus
+            ``Q_r_iu``, which ``request_basis`` names on every row. With
+            ``"coil"``: refrigerant-side coil heat, total (sensible plus
             latent) and before the fan heat -- not the room-side
-            ``Q_room_sensible [W]``. ``cop_sys [-]`` is on the room side:
-            ``Q_room_sensible [W]`` plus ``Q_iu_latent [W]`` over
+            ``Q_room_sensible [W]``. With ``"room_sensible"``: that
+            room-side heat, ``Q_unmet [W]`` being what
+            ``Q_room_sensible [W]`` is short of the request. Every other key
+            means the same on either basis: ``Q_ref_iu [W]``, ``Q_max [W]``
+            and ``Q_min [W]`` are coil heat. ``cop_sys [-]`` is on the room
+            side: ``Q_room_sensible [W]`` plus ``Q_iu_latent [W]`` over
             ``E_tot [W]``.
 
         Warns
@@ -3983,8 +4050,67 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "max"``): the request, what is delivered, the limit in words and
             what removes it. Issued once per model and limit unless the
             ``"always"`` filter is set (:mod:`tmhp.operating_limits`).
+
+        Notes
+        -----
+        A request on the room's net sensible heat
+        (``request_basis="room_sensible"``) is answered with the row of a
+        coil duty -- the row ``request_basis="coil"`` returns for that duty,
+        key for key, with ``Q_request [W]``, ``Q_unmet [W]`` and
+        ``request_basis`` written over. The duty is searched: the request
+        itself first, then that duty scaled by the request over the net
+        sensible heat it gave, then by the secant through the last two
+        duties. ``Q_room_sensible [W]`` is read from the row as it is
+        reported, so a request the unit meets by cycling, and a heating
+        request with frost on the outdoor coil, are matched in their means.
+        While the compressor is off the indoor fan is off with it: a cycling
+        row carries the running coil heat, the fan's power and so the net
+        sensible heat all times ``capacity_ratio [-]`` (:mod:`tmhp.cycling`),
+        and nothing for a fan that circulates air between the compressor's
+        runs.
+
+        The match is to 1e-6 of the request where the first three solves
+        reach it, which they do on a row whose coil is dry (no ``RH_room``,
+        a coil above the room's dew point, heating) of a unit whose fans
+        modulate: such a row is smooth along the duty. Otherwise it is to
+        1e-4. On a row that condenses water the operating point of a duty is
+        the optimiser's, located to 1e-3 K of approach and 0.1 W of input,
+        and the sensible share of neighbouring wet duties scatters by up to
+        that much; a fan held at one flow scatters a dry row by about 1e-5
+        (:attr:`_ROOM_SENSIBLE_LOOSE_RTOL`). A row inside the tolerance is
+        met, ``Q_unmet [W]`` zero. Asked again as ``request_basis="coil"``
+        for the ``Q_ref_iu [W]`` it reports, the row repeats to 1e-6 where
+        it is smooth along the duty and to the same scatter where it is not.
+
+        The search ends without a match on
+
+        - a row at a limit: the coil duty asked for is delivered short
+          (``capacity_clamped == "max"``) with less net sensible heat than
+          the request. Above the ceiling of the condition that is the
+          ceiling's row, the largest coil duty the unit delivers
+          (:meth:`max_capacity`, ``Q_room_sensible_max [W]``); the rest is
+          ``Q_unmet [W]``;
+        - an off row (``failure_reason`` other than ``"none"``): the model
+          answers the coil duty tried with the unit off. Nothing is
+          delivered and the whole request is unmet. A unit with a fan held
+          at one flow can have such duties below its ceiling, and duties
+          delivered short (see :meth:`max_capacity`); the first one tried is
+          reported, and the duties around it are not searched;
+        - a row that delivers more than the request where no duty tried
+          delivers less (a unit without the cycling model, below its
+          smallest continuous duty), with nothing unmet, as on the coil
+          basis;
+        - after :attr:`_ROOM_SENSIBLE_MAX_SOLVES` solves, the row that comes
+          closest to the request from below, with what is missing in
+          ``Q_unmet [W]``. A unit with its outdoor fan held at one flow can
+          pass from one indoor airflow to another between two neighbouring
+          coil duties, and its net sensible heat with it (4 kW unit, 35 degC
+          outdoor, room 35 degC at 60 %: 1,665 W at a coil duty of 3,571 W,
+          2,490 W at 3,586 W); a request between the two is answered with
+          the lower row.
         """
         validate_steady(locals())
+        request_basis = _check_request_basis(request_basis)
 
         if T_a_room is None:
             T_a_room = self.T_a_room
@@ -3992,14 +4118,215 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # point has no use for it, whatever it is given.
         RH_room = _check_room_humidity(RH_room) if RH_room is not None and Q_r_iu > 0 else None
 
-        # A cooling point with a room humidity is solved with the wet indoor
-        # coil; any other point with the dry one.
-        with self._solving_with_room_humidity(RH_room, T_a_room, cooling=Q_r_iu > 0):
-            result = self._solve_steady(Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose, RH_out=RH_out)
+        if request_basis == REQUEST_BASIS_ROOM_SENSIBLE and Q_r_iu != 0:
+            # The coil duty whose row has the requested net sensible heat.
+            result = self._solve_room_sensible(
+                Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose, RH_out=RH_out, RH_room=RH_room
+            )
+        else:
+            # A cooling point with a room humidity is solved with the wet indoor
+            # coil; any other point with the dry one.
+            with self._solving_with_room_humidity(RH_room, T_a_room, cooling=Q_r_iu > 0):
+                result = self._solve_steady(
+                    Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose, RH_out=RH_out
+                )
+        if result:
+            result[REQUEST_BASIS_KEY] = request_basis
 
         if return_dict:
             return result
         return pd.DataFrame([result]) if result else pd.DataFrame()
+
+    #: Relative tolerance to which ``Q_room_sensible [W]`` is matched with a
+    #: request on that basis (``request_basis="room_sensible"``) by the first
+    #: :attr:`_ROOM_SENSIBLE_STRICT_SOLVES` solves of a row whose coil is dry.
+    #: A search tolerance, not a physical constant: such a row of a unit
+    #: whose fans modulate is smooth along the coil duty (its net sensible
+    #: heat departs from a straight line by less than 6e-7 of itself over
+    #: 1 % of the duty, default 4 kW unit at 35/27 degC), and the secant
+    #: reaches 1e-6 on its third solve.
+    _ROOM_SENSIBLE_RTOL = 1e-6
+    #: The tolerance of a row that condenses water (``Q_iu_latent [W]`` > 0),
+    #: and of any row from the solve after
+    #: :attr:`_ROOM_SENSIBLE_STRICT_SOLVES` on. The operating point of a duty
+    #: is where the refinement of :meth:`_optimize_operation` stops -- 1e-3 K
+    #: of approach, 0.1 W of input -- and a wet coil's sensible share moves
+    #: with the evaporating approach, so the net sensible heat of
+    #: neighbouring wet duties scatters around a smooth curve: by up to
+    #: 1.1e-4 of itself in the scans it was measured on (default 4 kW unit,
+    #: 35/27 degC at 50 %, 4.97 kW: 0.39 W of 3,599 W over 81 duties 0.005 %
+    #: apart; 30/27 degC at 80 %, 3 kW: 4e-5). A dry row of a unit with a fan
+    #: held at one flow scatters too, by about 1e-5 (both fans of a 4 kW unit
+    #: held, 46/27 degC, 2 kW: a step of 0.018 W between duties 0.0003 W
+    #: apart). No duty need have a net sensible heat closer to the request
+    #: than that scatter, so a search that has not arrived by then is not
+    #: held to 1e-6.
+    _ROOM_SENSIBLE_LOOSE_RTOL = 1e-4
+    #: Solves a dry row is held to :attr:`_ROOM_SENSIBLE_RTOL` for: the
+    #: request, the first guess from it, and one secant step, which is where
+    #: a smooth row arrives.
+    _ROOM_SENSIBLE_STRICT_SOLVES = 3
+    #: Coil-basis solves one request on the room's net sensible heat may
+    #: take. A budget of the search, not a physical constant: on the grids
+    #: it was measured on (default units of 4 and 10 kW, dry and wet,
+    #: cooling and heating) a request that is met took three solves on a dry
+    #: row and four on a wet one on average, and at most seven.
+    _ROOM_SENSIBLE_MAX_SOLVES = 8
+
+    def _solve_room_sensible(
+        self,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        *,
+        postprocess: bool,
+        verbose: bool,
+        RH_out: float | None,
+        RH_room: float | None,
+    ) -> dict:
+        """:meth:`analyze_steady` for a request on the room's net sensible heat (checked arguments, not zero).
+
+        The row returned is the row of a coil duty, solved the ordinary way
+        (``request_basis="coil"``), in which ``Q_request [W]`` and
+        ``Q_unmet [W]`` are then written on the basis of the request. The
+        duty is found by an outer search on it, every trial a coil-basis
+        solve whose ``Q_room_sensible [W]`` is read as the row reports it
+        (the mean over a cycling period, and over frosting and defrost):
+
+        1. the request itself. In cooling it gives too little (the coil's
+           heat less the latent part and the fan's heat), in heating too
+           much (the coil's heat plus the fan's);
+        2. that duty times the request over the net sensible heat it gave
+           -- exact for a cycling row, whose heats all scale with the
+           capacity ratio, and the fan heat (dry coil) or the sensible heat
+           ratio (wet coil) of the first solve otherwise;
+        3. the secant through the last two trials; where trials lie on both
+           sides of the request and the secant leaves the interval between
+           the closest of them, its middle. Without such an interval the
+           step is kept within a factor two of the last duty.
+
+        The search ends on a trial whose net sensible heat is within the
+        tolerance of the request: :attr:`_ROOM_SENSIBLE_RTOL` for the first
+        :attr:`_ROOM_SENSIBLE_STRICT_SOLVES` trials of a dry coil,
+        :attr:`_ROOM_SENSIBLE_LOOSE_RTOL` where the trial's coil condenses
+        water and for every later trial. It also ends on a trial that says
+        no other duty is the unit's answer:
+
+        - the unit delivers the coil duty short (``capacity_clamped ==
+          "max"`` with coil heat unmet) and its net sensible heat is under
+          the request: the unit is at a limit. A coil duty above the ceiling
+          of the condition gives the ceiling's row, so this is where a
+          request above the largest net sensible heat ends;
+        - the unit is off (``failure_reason`` set): the coil duty has no
+          operating point and no smaller one is run in its place. The row
+          is reported as it is; duties around it are not tried.
+
+        Where the trials stop moving (two with the same net sensible heat:
+        a unit without the cycling model below its smallest duty) or
+        :attr:`_ROOM_SENSIBLE_MAX_SOLVES` are used up, no duty tried has the
+        requested net sensible heat. The answer is then the trial that comes
+        closest to the request from below, so that what is missing shows as
+        ``Q_unmet [W]``; where every trial delivers more than the request,
+        the one that delivers least. This is where the coil-basis rows of
+        neighbouring duties are not neighbours themselves -- a unit with its
+        outdoor fan held at one flow whose operating point passes from one
+        indoor airflow to another between two duties (4 kW unit, 35 degC
+        outdoor, room 35 degC at 60 %: 1,665 W of net sensible heat at a
+        coil duty of 3,571 W, 2,490 W at 3,586 W) has no duty for a request
+        between the two.
+
+        The trials of a wet cooling condition share what its searches find
+        (:meth:`_sharing_wet_points`), which changes none of them; nothing
+        else is carried from one trial to the next, and nothing from one
+        request to another: the row is a function of the request and the
+        condition.
+        """
+        sign, request = math.copysign(1.0, Q_r_iu), abs(float(Q_r_iu))
+        # The trials in the order solved: (coil duty the row sits at, its net
+        # sensible heat, the row).
+        trials: list[tuple[float, float, dict]] = []
+
+        def tolerance(row: dict) -> float:
+            """Largest difference from the request at which ``row``, the last trial, is met."""
+            wet = float(row.get("Q_iu_latent [W]", 0.0)) > 0.0
+            strict = not wet and len(trials) <= self._ROOM_SENSIBLE_STRICT_SOLVES
+            return (self._ROOM_SENSIBLE_RTOL if strict else self._ROOM_SENSIBLE_LOOSE_RTOL) * request
+
+        def solve(duty: float) -> bool:
+            """Solve the coil-basis row of ``duty``; whether the search ends on it."""
+            row = self.analyze_steady(
+                Q_r_iu=sign * duty,
+                T0=T0,
+                T_a_room=T_a_room,
+                return_dict=True,
+                postprocess=postprocess,
+                verbose=verbose,
+                RH_out=RH_out,
+                RH_room=RH_room,
+            )
+            assert isinstance(row, dict)
+            running = bool(row.get("hp_is_on", False)) and row.get("failure_reason", "none") == "none"
+            sensible = float(row.get("Q_room_sensible [W]", 0.0)) if running else 0.0
+            if not math.isfinite(sensible):
+                sensible = 0.0
+            # Delivered short of the coil duty asked for: the row sits at the
+            # duty it delivers, and no larger request moves it.
+            short = (
+                running
+                and row.get("capacity_clamped") == CAPACITY_CLAMPED_MAX
+                and float(row.get("Q_unmet [W]", 0.0)) > 0.0
+            )
+            trials.append((abs(float(row["Q_ref_iu [W]"])) if short else duty, sensible, row))
+            return not running or abs(sensible - request) <= tolerance(row) or (short and sensible < request)
+
+        def next_duty() -> float | None:
+            """The coil duty to try after the trials made; ``None`` where they give none."""
+            duty, sensible, _ = trials[-1]
+            if len(trials) == 1:
+                return request * duty / sensible if sensible > 0.0 else None
+            before, sensible_before, _ = trials[-2]
+            if sensible == sensible_before or duty == before:
+                return None
+            step = duty + (request - sensible) * (duty - before) / (sensible - sensible_before)
+            under = max((t[0] for t in trials if t[1] < request), default=math.nan)
+            over = min((t[0] for t in trials if t[1] > request), default=math.nan)
+            if under < over:
+                if not under < step < over:
+                    step = 0.5 * (under + over)
+            else:
+                step = min(max(step, 0.5 * duty), 2.0 * duty)
+            if not (math.isfinite(step) and step > 0.0) or step == duty:
+                return None
+            return step
+
+        ended = False
+        duty: float | None = request
+        # What the wet coil's searches find of the condition serves every trial.
+        with self._sharing_wet_points():
+            for _ in range(self._ROOM_SENSIBLE_MAX_SOLVES):
+                assert duty is not None
+                ended = solve(duty)
+                if ended:
+                    break
+                duty = next_duty()
+                if duty is None:
+                    break
+        if ended:
+            _, sensible, result = trials[-1]
+        else:
+            # No trial has the requested net sensible heat: the closest from
+            # below, else the least of those above.
+            below = [t for t in trials if t[1] < request]
+            _, sensible, result = max(below, key=lambda t: t[1]) if below else min(trials, key=lambda t: t[1])
+
+        result["Q_request [W]"] = float(Q_r_iu)
+        unmet = request - sensible
+        result["Q_unmet [W]"] = unmet if unmet > self._ROOM_SENSIBLE_LOOSE_RTOL * request else 0.0
+        # The binding of the row was settled by the solve it came from: the
+        # envelope's check of this call (:func:`~tmhp.compressor_envelope.steady_envelope`)
+        # has nothing left to solve again.
+        self._condensing_rejected = False
+        return result
 
     def _solve_steady(
         self, Q_r_iu: float, T0: float, T_a_room: float, *, postprocess: bool, verbose: bool, RH_out: float | None
@@ -4198,6 +4525,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         RH_out_schedule=None,
         *,
         RH_room_schedule=None,
+        request_basis: str = REQUEST_BASIS_COIL,
     ) -> pd.DataFrame:
         """Run a time-stepping dynamic simulation.
 
@@ -4228,6 +4556,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
             whose entry is not a number in 0-1 raises ``ValueError`` naming
             the step; what a heating or an off step holds (a missing value)
             is not looked at.
+        request_basis : str
+            What the entries of ``Q_r_iu_schedule`` are requests for, on
+            every step: ``"coil"`` (default), the refrigerant-side heat of
+            the indoor coil, or ``"room_sensible"``, the net sensible heat
+            of the room air -- the zone sensible loads of a building
+            simulation, with its room temperatures and humidities as
+            ``T_a_room_schedule`` and ``RH_room_schedule``
+            (``request_basis`` of :meth:`analyze_steady`, which solves each
+            step). Any other value raises ``ValueError``.
 
         Returns
         -------
@@ -4244,6 +4581,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             (:func:`tmhp.operating_limits.summarize_operating_limits`).
         """
         validate_dynamic(locals())
+        request_basis = _check_request_basis(request_basis)
         time: np.ndarray = np.arange(0, simulation_period_sec, dt_s)
         tN: int = len(time)
 
@@ -4312,6 +4650,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     RH_room=(
                         None if RH_room_arr is None or not Q_r_iu_n > 0 else _room_humidity_of_step(RH_room_arr[n], n)
                     ),
+                    request_basis=request_basis,
                 )
 
                 # Add time columns

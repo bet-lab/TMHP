@@ -503,17 +503,28 @@ def steady_message(
     Nothing is said about a row whose compressor was not asked to run
     (``Q_request [W]`` zero or absent), a row that meets its request, or an
     on/off mean (``capacity_clamped == "min"``): those are normal operation.
+
+    What is delivered is read from ``delivered_key``, the basis of
+    ``Q_request [W]`` -- except on a row that says its request is the room's
+    net sensible heat (``request_basis == "room_sensible"``, the air-source
+    heat pump's option), where it is ``Q_room_sensible [W]`` and the text
+    names the basis.
     """
     request = abs(_number(row, "Q_request [W]"))
     if not (math.isfinite(request) and request > 0.0):
         return None
     reason = _text(row.get("failure_reason")) or "none"
     running = bool(row.get("hp_is_on", False))
-    delivered = abs(_number(row, delivered_key))
+    # A space load asked for as the room's net sensible heat (the air-source
+    # heat pump's ``request_basis``) is delivered as that, not as coil heat.
+    room_sensible = _text(row.get("request_basis")) == "room_sensible"
+    delivered = abs(_number(row, "Q_room_sensible [W]" if room_sensible else delivered_key))
     delivered = delivered if math.isfinite(delivered) else 0.0
     service = ""
     if delivered_key == "Q_ref_iu [W]":  # a space load is signed: heating below zero
         service = " of heating" if _number(row, "Q_request [W]") < 0 else " of cooling"
+        if room_sensible:
+            service = " of sensible" + service[3:]
 
     if reason != "none":
         limit = limit_for(reason=reason)
@@ -539,6 +550,8 @@ def steady_message(
     limit = limit_for(binding=binding) if binding is not None else limit_for(binding="compressor")
     note = _note_for(notes or [], limit.reason) if limit.reason is not None else None
     named = "capacity_clamped='max'" + (f", capacity_binding={binding!r}" if binding else "")
+    if room_sensible:
+        named += ", request_basis='room_sensible'"
     text = (
         f"{who}: the heat pump delivers {delivered:.0f} W of the {request:.0f} W{service} requested "
         f"({100.0 * delivered / request:.0f} %; {named}): the largest duty that runs at this point. "

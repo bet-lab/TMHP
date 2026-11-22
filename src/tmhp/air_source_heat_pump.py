@@ -4166,12 +4166,24 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: request, the first guess from it, and one secant step, which is where
     #: a smooth row arrives.
     _ROOM_SENSIBLE_STRICT_SOLVES = 3
+    #: Factor by which the outer search moves the coil duty where every trial
+    #: so far lies on one side of the request and the secant through the last
+    #: two points the wrong way, or nowhere: the net sensible heat is not
+    #: monotone in the coil duty everywhere (a wet coil that cycles on the
+    #: pressure-ratio floor: default 2.5 kW unit, 20 degC outdoor, room 30
+    #: degC at 50 %, 119.8 W at a coil duty of 135.5 W and 118.3 W at
+    #: 158.2 W). A search step, not a physical constant: the trials that
+    #: follow close on the duty whatever it is.
+    _ROOM_SENSIBLE_GROWTH = 1.5
     #: Coil-basis solves one request on the room's net sensible heat may
-    #: take. A budget of the search, not a physical constant: on the grids
-    #: it was measured on (default units of 4 and 10 kW, dry and wet,
-    #: cooling and heating) a request that is met took three solves on a dry
-    #: row and four on a wet one on average, and at most seven.
-    _ROOM_SENSIBLE_MAX_SOLVES = 8
+    #: take. A budget of the search, not a physical constant: on 2,646
+    #: requests of three default units (2.5 to 10 kW, dry and wet, cooling
+    #: and heating) a request that was met took 2.8 solves on a dry row and
+    #: 4.1 on a wet one on average, at most four on a dry row and at most
+    #: seven on 846 of the 848 wet ones; the other two took nine and twelve
+    #: (the cycling unit of :attr:`_ROOM_SENSIBLE_GROWTH`, which eight
+    #: solves left 1.1 % short).
+    _ROOM_SENSIBLE_MAX_SOLVES = 12
 
     def _solve_room_sensible(
         self,
@@ -4200,10 +4212,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
            -- exact for a cycling row, whose heats all scale with the
            capacity ratio, and the fan heat (dry coil) or the sensible heat
            ratio (wet coil) of the first solve otherwise;
-        3. the secant through the last two trials; where trials lie on both
+        3. the secant through the last two trials. Where trials lie on both
            sides of the request and the secant leaves the interval between
-           the closest of them, its middle. Without such an interval the
-           step is kept within a factor two of the last duty.
+           the closest of them, its middle is taken. Where every trial so
+           far gives too little, the duty is above them all: the secant is
+           kept if it points there, by no more than a factor two, and
+           :attr:`_ROOM_SENSIBLE_GROWTH` times the largest duty tried is
+           taken otherwise (the net sensible heat is not monotone in the
+           coil duty everywhere); likewise downwards where every trial
+           gives too much.
 
         The search ends on a trial whose net sensible heat is within the
         tolerance of the request: :attr:`_ROOM_SENSIBLE_RTOL` for the first
@@ -4290,10 +4307,22 @@ class AirSourceHeatPump(ReferenceStateMixin):
             step = duty + (request - sensible) * (duty - before) / (sensible - sensible_before)
             under = max((t[0] for t in trials if t[1] < request), default=math.nan)
             over = min((t[0] for t in trials if t[1] > request), default=math.nan)
+            grow = self._ROOM_SENSIBLE_GROWTH
             if under < over:
+                # Trials on both sides: the duty lies between the closest two.
                 if not under < step < over:
                     step = 0.5 * (under + over)
+            elif math.isnan(over):
+                # Every trial gives too little: the duty is above them all,
+                # whatever the last two say of the slope.
+                if not under < step <= 2.0 * under:
+                    step = grow * under
+            elif math.isnan(under):
+                # Every trial gives too much: below them all.
+                if not 0.5 * over <= step < over:
+                    step = over / grow
             else:
+                # Both sides, out of order along the duty (not monotone there).
                 step = min(max(step, 0.5 * duty), 2.0 * duty)
             if not (math.isfinite(step) and step > 0.0) or step == duty:
                 return None

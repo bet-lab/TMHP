@@ -12,8 +12,9 @@ request:
 - the row is the coil-basis row of that duty, key for key; only
   ``Q_request [W]`` and ``Q_unmet [W]`` are in the requested basis, and
   ``request_basis`` says which it is;
-- the match is to 1e-6 of the request on a row whose coil is dry and in
-  heating, and to 1e-4 on a row that condenses water;
+- the match is to 1e-6 of the request where three solves reach it (a dry coil
+  or heating, fans that modulate), and to 1e-4 otherwise (a row that
+  condenses water, a fan held at one flow);
 - above what the unit delivers flat out the row is the ceiling's and the rest
   is unmet, in the basis; ``max_capacity`` reports that ceiling as
   ``Q_room_sensible_max [W]``;
@@ -40,7 +41,7 @@ WET_TOL = 1e-4
 #: differ in from the coil-basis row of the same coil duty.
 BASIS_KEYS = frozenset({"Q_request [W]", "Q_unmet [W]", "request_basis"})
 #: The most coil-basis solves one request may take (the search's budget).
-MAX_SOLVES = 8
+MAX_SOLVES = 12
 #: Keys ``max_capacity`` returned before this option.
 CEILING_KEYS = frozenset(
     {
@@ -406,6 +407,73 @@ def test_a_request_the_unit_is_off_for_is_the_off_row_with_all_of_it_unmet() -> 
     assert room["Q_room_sensible [W]"] == 0.0
     assert room["Q_request [W]"] == 4000.0
     assert room["Q_unmet [W]"] == 4000.0
+
+
+def test_a_request_is_met_where_the_net_sensible_heat_is_not_monotone_in_the_coil_duty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A wet coil cycling on the pressure-ratio floor: more coil heat can mean less sensible heat."""
+    small = AirSourceHeatPump(hp_capacity=2500.0)
+    conditions = dict(T0=20.0, T_a_room=30.0, RH_room=0.5)
+    # The running state of the cycling unit changes with the request, and the
+    # latent share with it: between these two coil duties the room loses less.
+    lower = _solve(small, 135.5, **conditions)
+    higher = _solve(small, 158.2, **conditions)
+    assert lower["capacity_clamped"] == higher["capacity_clamped"] == "min"
+    assert higher["Q_room_sensible [W]"] < lower["Q_room_sensible [W]"] < 125.0
+
+    recorded = _Recorded(monkeypatch)
+    row = _solve(small, 125.0, request_basis="room_sensible", **conditions)
+    assert row["Q_unmet [W]"] == 0.0
+    assert row["Q_room_sensible [W]"] == pytest.approx(125.0, rel=WET_TOL)
+    assert row["Q_ref_iu [W]"] > 158.2
+    assert len(recorded.rows) <= MAX_SOLVES
+
+
+def _fans_held(capacity: float, *, indoor: bool, outdoor: bool) -> AirSourceHeatPump:
+    base = AirSourceHeatPump(hp_capacity=capacity)
+    limits: dict[str, float] = {}
+    if indoor:
+        limits.update(dV_iu_fan_a_min=base.dV_iu_fan_a_max, dV_iu_fan_a_max=base.dV_iu_fan_a_max)
+    if outdoor:
+        limits.update(dV_ou_fan_a_min=base.dV_ou_fan_a_max, dV_ou_fan_a_max=base.dV_ou_fan_a_max)
+    return AirSourceHeatPump(hp_capacity=capacity, **limits)
+
+
+def test_a_fan_held_at_one_flow_is_matched_to_the_looser_tolerance(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A dry row of a unit with held fans scatters by about 1e-5 along the duty: met to 1e-4, nothing unmet."""
+    held = _fans_held(4000.0, indoor=True, outdoor=True)
+    recorded = _Recorded(monkeypatch)
+    row = _solve(held, 2000.0, 46.0, 27.0, RH_room=0.6, request_basis="room_sensible")
+    assert row["Q_iu_latent [W]"] == 0.0
+    assert row["Q_unmet [W]"] == 0.0
+    assert row["Q_room_sensible [W]"] == pytest.approx(2000.0, rel=WET_TOL)
+    assert len(recorded.rows) <= 5
+
+
+def test_a_request_no_duty_has_is_answered_from_below_with_the_rest_unmet(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Outdoor fan held: neighbouring coil duties run at different indoor airflows, with a gap in sensible heat."""
+    held = _fans_held(4000.0, indoor=False, outdoor=True)
+    conditions = dict(T0=35.0, T_a_room=35.0, RH_room=0.6)
+    recorded = _Recorded(monkeypatch)
+    row = _solve(held, 2000.0, request_basis="room_sensible", **conditions)
+
+    assert len(recorded.rows) <= MAX_SOLVES
+    assert any(_differing_keys(solved, row) == [] for solved in recorded.rows)
+    assert row["hp_is_on"] is True
+    sensible = row["Q_room_sensible [W]"]
+    if row["Q_unmet [W]"] == 0.0:
+        # The inner search no longer jumps there (issue #234): the request is met.
+        assert sensible == pytest.approx(2000.0, rel=WET_TOL)
+    else:
+        # Never more than was asked while something is reported unmet.
+        assert sensible < 2000.0
+        assert row["Q_unmet [W]"] == pytest.approx(2000.0 - sensible, rel=1e-12)
+        # No duty tried has the request: those under it and those over it are apart.
+        under = [r["Q_room_sensible [W]"] for r in recorded.rows if r["Q_room_sensible [W]"] < 2000.0]
+        over = [r["Q_room_sensible [W]"] for r in recorded.rows if r["Q_room_sensible [W]"] > 2000.0]
+        assert sensible == max(under)
+        assert over and min(over) - max(under) > WET_TOL * 2000.0
 
 
 # ---------------------------------------------------------------------------

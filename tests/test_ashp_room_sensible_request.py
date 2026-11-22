@@ -401,6 +401,8 @@ def test_a_request_the_unit_is_off_for_is_the_off_row_with_all_of_it_unmet() -> 
     assert room["Q_room_sensible [W]"] == 0.0
     assert room["Q_request [W]"] == 4000.0
     assert room["Q_unmet [W]"] == 4000.0
+    # The one trial that was refused is counted: a zero count is the zero request's alone.
+    assert room["request_solves [-]"] == 1
 
 
 def test_a_request_is_met_where_the_net_sensible_heat_is_not_monotone_in_the_coil_duty() -> None:

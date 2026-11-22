@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-11-21T23:50:11+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -196,8 +196,20 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.compressor_envelope.condensing_temp_exceeded"><code class="docutils literal notranslate"><span class="pre">condensing_temp_exceeded()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.condensing_violation"><code class="docutils literal notranslate"><span class="pre">condensing_violation()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.check_rated_condensing"><code class="docutils literal notranslate"><span class="pre">check_rated_condensing()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.condensing_tank_reach"><code class="docutils literal notranslate"><span class="pre">condensing_tank_reach()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.condensing_tank_cutout"><code class="docutils literal notranslate"><span class="pre">condensing_tank_cutout()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.limit_tank_setpoints_to_envelope"><code class="docutils literal notranslate"><span class="pre">limit_tank_setpoints_to_envelope()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.CONDENSING_LIMIT_CONTROLS"><code class="docutils literal notranslate"><span class="pre">CONDENSING_LIMIT_CONTROLS</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.CONTROL_STOP"><code class="docutils literal notranslate"><span class="pre">CONTROL_STOP</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.CONTROL_REDUCE_DUTY"><code class="docutils literal notranslate"><span class="pre">CONTROL_REDUCE_DUTY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.resolve_condensing_limit_control"><code class="docutils literal notranslate"><span class="pre">resolve_condensing_limit_control()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.smallest_continuous_duty"><code class="docutils literal notranslate"><span class="pre">smallest_continuous_duty()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.smallest_duty_on_condensing_limit"><code class="docutils literal notranslate"><span class="pre">smallest_duty_on_condensing_limit()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.steady_smallest_duty"><code class="docutils literal notranslate"><span class="pre">steady_smallest_duty()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit"><code class="docutils literal notranslate"><span class="pre">limit_tank_setpoints_to_charge_limit()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.on_condensing_limit"><code class="docutils literal notranslate"><span class="pre">on_condensing_limit()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.condensing_stretch"><code class="docutils literal notranslate"><span class="pre">condensing_stretch()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.WITHHELD_NO_SMALLER_DUTY"><code class="docutils literal notranslate"><span class="pre">WITHHELD_NO_SMALLER_DUTY</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_DISCHARGE"><code class="docutils literal notranslate"><span class="pre">BINDING_DISCHARGE</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_CONDENSING"><code class="docutils literal notranslate"><span class="pre">BINDING_CONDENSING</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.compressor_envelope.BINDING_PRESSURE_RATIO"><code class="docutils literal notranslate"><span class="pre">BINDING_PRESSURE_RATIO</span></code></a></li>
@@ -1008,6 +1020,37 @@ tank temperature at which the nameplate duty condenses on the limit
 <code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code>. A dynamic step solves one cycle and applies its heat over
 the step, so without the cap a long step overran the limit and the
 temperature at which the heat pump stopped depended on the step.</p>
+<p>That is the boiler constructors’ <code class="docutils literal notranslate"><span class="pre">condensing_limit_control=&quot;stop&quot;</span></code>, the
+default: a fixed-speed unit, or one whose controller ends the charge on
+its high-pressure protection. <code class="docutils literal notranslate"><span class="pre">&quot;reduce_duty&quot;</span></code> is the inverter unit,
+which slows the compressor on the limit and keeps charging: a dynamic step
+then runs past the nameplate cut-out at the largest duty inside the limit,
+<code class="docutils literal notranslate"><span class="pre">K_tank_hx</span> <span class="pre">(T_reach</span> <span class="pre">-</span> <span class="pre">T)</span></code> (<a class="reference internal" href="#tmhp.compressor_envelope.condensing_tank_reach" title="tmhp.compressor_envelope.condensing_tank_reach"><code class="xref py py-func docutils literal notranslate"><span class="pre">condensing_tank_reach()</span></code></a>), which is what
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> reports there. The tank approaches <code class="docutils literal notranslate"><span class="pre">T_reach</span></code> as a
+first-order lag with the time constant <code class="docutils literal notranslate"><span class="pre">C_tank</span> <span class="pre">/</span> <span class="pre">K_tank_hx</span></code> (about five
+minutes for the default 151 L tank and 15 kW unit), which the in-step
+thermostat follows in closed form
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.resolve_step_operation()</span></code>): the run time and
+the heat of a step on this limit do not depend on the step (the tank
+temperature a step ends at is still one implicit solve with the loss at
+its end, as with <code class="docutils literal notranslate"><span class="pre">&quot;stop&quot;</span></code>, so a tank that loses much heat needs short
+steps). The charge ends where the limit leaves less than
+the smallest duty the compressor runs at continuously
+(<a class="reference internal" href="#tmhp.compressor_envelope.smallest_continuous_duty" title="tmhp.compressor_envelope.smallest_continuous_duty"><code class="xref py py-func docutils literal notranslate"><span class="pre">smallest_continuous_duty()</span></code></a>: the speed floor, or the envelope’s
+lower side). That duty depends on the source, so each step applies the
+stop of its own conditions (<a class="reference internal" href="#tmhp.compressor_envelope.smallest_duty_on_condensing_limit" title="tmhp.compressor_envelope.smallest_duty_on_condensing_limit"><code class="xref py py-func docutils literal notranslate"><span class="pre">smallest_duty_on_condensing_limit()</span></code></a>);
+the thermostat’s cap is the stop at one stated reference source
+(<a class="reference internal" href="#tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit" title="tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit"><code class="xref py py-func docutils literal notranslate"><span class="pre">limit_tank_setpoints_to_charge_limit()</span></code></a>).</p>
+<p>That treatment covers the source states in which the condensing limit is
+the one that governs the stretch from the nameplate cut-out to that stop.
+Each source state is checked once, with three cycles
+(<a class="reference internal" href="#tmhp.compressor_envelope.condensing_stretch" title="tmhp.compressor_envelope.condensing_stretch"><code class="xref py py-func docutils literal notranslate"><span class="pre">condensing_stretch()</span></code></a>). Where another limit governs somewhere on
+the stretch – the source fluid’s freezing limit, the pressure-ratio
+ceiling, a discharge-temperature ceiling, the compressor’s speed ceiling
+at a cold source – reduced-duty
+charging is withheld for the step: it is solved exactly as <code class="docutils literal notranslate"><span class="pre">&quot;stop&quot;</span></code>
+solves it, and the row names what withheld it
+(<code class="docutils literal notranslate"><span class="pre">reduced_duty_withheld</span></code>).</p>
 </dd>
 <dt>Speed (<code class="docutils literal notranslate"><span class="pre">rps_min</span></code> / <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>)</dt><dd><p><code class="docutils literal notranslate"><span class="pre">rps_min</span></code> is the inverter’s floor (15 rev/s). <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> defaults to
 <a class="reference internal" href="#tmhp.compressor_envelope.default_rps_max" title="tmhp.compressor_envelope.default_rps_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_rps_max()</span></code></a> of the rated speed the model solves at its rating
@@ -1272,6 +1315,25 @@ reads it (<code class="xref py py-func docutils literal notranslate"><span class
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.condensing_tank_reach">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">condensing_tank_reach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#condensing_tank_reach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.condensing_tank_reach" title="Link to this definition">¶</a></dt>
+<dd><p>Tank temperature at which the condensing limit leaves a boiler no duty [degC].</p>
+<p>The hottest the cycle may condense: the bubble point of the limit
+pressure (<code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> itself for a pure fluid, lower by the glide for a
+blend). A duty <code class="docutils literal notranslate"><span class="pre">Q</span></code> needs the tank <code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">/</span> <span class="pre">K_tank_hx</span></code> colder than this
+(<a class="reference internal" href="#tmhp.compressor_envelope.condensing_tank_cutout" title="tmhp.compressor_envelope.condensing_tank_cutout"><code class="xref py py-func docutils literal notranslate"><span class="pre">condensing_tank_cutout()</span></code></a> for the nameplate duty). <code class="docutils literal notranslate"><span class="pre">None</span></code> without
+a limit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.condensing_tank_cutout">
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">condensing_tank_cutout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#condensing_tank_cutout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.condensing_tank_cutout" title="Link to this definition">¶</a></dt>
 <dd><p>Highest tank temperature a boiler heats at its nameplate duty inside the condensing limit [degC].</p>
@@ -1309,6 +1371,9 @@ changed. Up to the cut-out the machine runs at its nameplate
 duty; the duty reduction of <a class="reference internal" href="#tmhp.compressor_envelope.reduce_duty_within_envelope" title="tmhp.compressor_envelope.reduce_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_duty_within_envelope()</span></code></a> then
 serves <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> and the steps a tank model or a minimum run
 time takes past it.</p>
+<p>This is <code class="docutils literal notranslate"><span class="pre">condensing_limit_control=&quot;stop&quot;</span></code>. With <code class="docutils literal notranslate"><span class="pre">&quot;reduce_duty&quot;</span></code> the
+band is only recorded here; the cap is the charging limit, set once the
+model can solve a cycle (<a class="reference internal" href="#tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit" title="tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit"><code class="xref py py-func docutils literal notranslate"><span class="pre">limit_tank_setpoints_to_charge_limit()</span></code></a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1318,6 +1383,283 @@ time takes past it.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.CONDENSING_LIMIT_CONTROLS">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONDENSING_LIMIT_CONTROLS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('stop',</span> <span class="pre">'reduce_duty')</span></span><a class="headerlink" href="#tmhp.compressor_envelope.CONDENSING_LIMIT_CONTROLS" title="Link to this definition">¶</a></dt>
+<dd><p>Values of the boilers’ <code class="docutils literal notranslate"><span class="pre">condensing_limit_control</span></code>.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.CONTROL_STOP">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONTROL_STOP</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'stop'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.CONTROL_STOP" title="Link to this definition">¶</a></dt>
+<dd><p>the charge ends where the nameplate duty meets the condensing limit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">condensing_limit_control</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.CONTROL_REDUCE_DUTY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">CONTROL_REDUCE_DUTY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'reduce_duty'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.CONTROL_REDUCE_DUTY" title="Link to this definition">¶</a></dt>
+<dd><p>the compressor reduces its duty on the limit and keeps charging.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">condensing_limit_control</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.resolve_condensing_limit_control">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">resolve_condensing_limit_control</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#resolve_condensing_limit_control"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.resolve_condensing_limit_control" title="Link to this definition">¶</a></dt>
+<dd><p>Constructor argument -&gt; one of <a class="reference internal" href="#tmhp.compressor_envelope.CONDENSING_LIMIT_CONTROLS" title="tmhp.compressor_envelope.CONDENSING_LIMIT_CONTROLS"><code class="xref py py-data docutils literal notranslate"><span class="pre">CONDENSING_LIMIT_CONTROLS</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.smallest_continuous_duty">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">smallest_continuous_duty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Q_ref_tank</span> <span class="pre">[W]'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#smallest_continuous_duty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.smallest_continuous_duty" title="Link to this definition">¶</a></dt>
+<dd><p>Smallest duty a boiler’s compressor runs at continuously at one operating point [W].</p>
+<p><code class="docutils literal notranslate"><span class="pre">solve(q)</span></code> solves the point at duty <code class="docutils literal notranslate"><span class="pre">q</span></code>. The probe is the smallest
+duty the duty reduction itself tries, the lowest rung of its ladder at the
+nameplate request (<code class="docutils literal notranslate"><span class="pre">0.1</span> <span class="pre">hp_capacity</span></code>), so the answer is the floor
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> has for a nameplate request at this point:</p>
+<ul class="simple">
+<li><p>the probe runs with the compressor on its speed floor: what the machine
+delivers there (more than the probe);</p></li>
+<li><p>the probe runs as asked: the probe itself (the reduction looks no
+lower);</p></li>
+<li><p>the envelope refuses it from below (the discharge temperature at low
+speed): the smallest duty that runs above it
+(<a class="reference internal" href="#tmhp.compressor_envelope.raise_duty_within_envelope" title="tmhp.compressor_envelope.raise_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">raise_duty_within_envelope()</span></code></a>).</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">None</span></code> when no such duty runs (the point is beyond the condensing limit
+at every duty, or refused for another reason). The solves run silently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>solve</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
+<li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.smallest_duty_on_condensing_limit">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">smallest_duty_on_condensing_limit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">floor_at</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#smallest_duty_on_condensing_limit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.smallest_duty_on_condensing_limit" title="Link to this definition">¶</a></dt>
+<dd><p>Smallest continuous duty of a boiler where that duty condenses on the limit [W].</p>
+<p><code class="docutils literal notranslate"><span class="pre">floor_at(T)</span></code> is the smallest continuous duty at tank temperature <code class="docutils literal notranslate"><span class="pre">T</span></code>
+[degC] (<a class="reference internal" href="#tmhp.compressor_envelope.smallest_continuous_duty" title="tmhp.compressor_envelope.smallest_continuous_duty"><code class="xref py py-func docutils literal notranslate"><span class="pre">smallest_continuous_duty()</span></code></a> at the source of interest). The
+tank temperature at which it condenses on the limit is
+<code class="docutils literal notranslate"><span class="pre">T_reach</span> <span class="pre">-</span> <span class="pre">floor</span> <span class="pre">/</span> <span class="pre">K_tank_hx</span></code> (<a class="reference internal" href="#tmhp.compressor_envelope.condensing_tank_reach" title="tmhp.compressor_envelope.condensing_tank_reach"><code class="xref py py-func docutils literal notranslate"><span class="pre">condensing_tank_reach()</span></code></a>); the floor
+depends on that temperature only through the condensing pressure, weakly,
+so a fixed-point iteration from the nameplate cut-out closes in two or
+three evaluations (to <code class="xref py py-data docutils literal notranslate"><span class="pre">_FLOOR_CLOSE_K</span></code>). A trial the limit refuses
+is retried half-way back.</p>
+<p>The search stays where a tank can be: no trial is above the boiling point
+of the stored water (<code class="xref py py-data docutils literal notranslate"><span class="pre">tmhp.dynamic_context.T_WATER_BOIL_C</span></code>, the
+upper end of the tank temperatures the models accept). A refrigerant
+whose limit lies high enough (R600a with <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> above about
+101 °C) meets its smallest duty above 100 °C; the duty returned is then
+the one at 100 °C, the tank temperature it gives
+(<code class="docutils literal notranslate"><span class="pre">T_reach</span> <span class="pre">-</span> <span class="pre">duty</span> <span class="pre">/</span> <span class="pre">K_tank_hx</span></code>) is above the boiling point, and the
+boiling cut-out, not the condensing limit, ends the charge.</p>
+<p>Above the tank temperature the returned duty gives,
+<code class="docutils literal notranslate"><span class="pre">T_reach</span> <span class="pre">-</span> <span class="pre">duty</span> <span class="pre">/</span> <span class="pre">K_tank_hx</span></code>, no duty runs: the charging limit of
+<code class="docutils literal notranslate"><span class="pre">condensing_limit_control=&quot;reduce_duty&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code> without a condensing
+limit, or when no duty below the nameplate runs at the nameplate cut-out
+(there is then no reduced stretch: the cut-out is the limit).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>floor_at</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.steady_smallest_duty">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">steady_smallest_duty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#steady_smallest_duty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.steady_smallest_duty" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">floor_at</span></code> of <a class="reference internal" href="#tmhp.compressor_envelope.smallest_duty_on_condensing_limit" title="tmhp.compressor_envelope.smallest_duty_on_condensing_limit"><code class="xref py py-func docutils literal notranslate"><span class="pre">smallest_duty_on_condensing_limit()</span></code></a> from a boiler’s <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">source</span></code> are the steady call’s source arguments (<code class="docutils literal notranslate"><span class="pre">T0=...</span></code> or
+<code class="docutils literal notranslate"><span class="pre">T_source=...</span></code>). The probe request of <a class="reference internal" href="#tmhp.compressor_envelope.smallest_continuous_duty" title="tmhp.compressor_envelope.smallest_continuous_duty"><code class="xref py py-func docutils literal notranslate"><span class="pre">smallest_continuous_duty()</span></code></a>
+is solved by <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> itself; a row on the speed floor carries
+the continuous duty in <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> (the row is the on/off mean).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">limit_tank_setpoints_to_charge_limit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">what</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">floor_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#limit_tank_setpoints_to_charge_limit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit" title="Link to this definition">¶</a></dt>
+<dd><p>Cap a reduced-duty boiler’s thermostat band at its charging limit.</p>
+<p>The counterpart of <a class="reference internal" href="#tmhp.compressor_envelope.limit_tank_setpoints_to_envelope" title="tmhp.compressor_envelope.limit_tank_setpoints_to_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">limit_tank_setpoints_to_envelope()</span></code></a> for
+<code class="docutils literal notranslate"><span class="pre">condensing_limit_control=&quot;reduce_duty&quot;</span></code>, called at the end of
+construction (it solves cycles). Past the nameplate cut-out the compressor
+charges on at the duty the condensing limit leaves, down to its smallest
+continuous duty; the charging limit is the tank temperature at which that
+duty condenses on the limit,
+<code class="docutils literal notranslate"><span class="pre">T_reach</span> <span class="pre">-</span> <span class="pre">Q_min</span> <span class="pre">/</span> <span class="pre">K_tank_hx</span></code> (<a class="reference internal" href="#tmhp.compressor_envelope.smallest_duty_on_condensing_limit" title="tmhp.compressor_envelope.smallest_duty_on_condensing_limit"><code class="xref py py-func docutils literal notranslate"><span class="pre">smallest_duty_on_condensing_limit()</span></code></a>
+with <code class="docutils literal notranslate"><span class="pre">floor_at</span></code>). An upper set point above it becomes it, the lower one
+keeps the band’s width, the values asked for stay in
+<code class="docutils literal notranslate"><span class="pre">T_tank_w_setpoints_requested</span></code> and an
+<code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingLimitWarning</span></code> says what was changed.</p>
+<p>The smallest continuous duty depends on the source (a warmer source gives
+the compressor denser suction gas, so more duty at its lowest speed, and
+the limit is met at a colder tank). The cap is evaluated once, at the
+source <code class="docutils literal notranslate"><span class="pre">floor_at</span></code> solves at – <code class="docutils literal notranslate"><span class="pre">reference</span></code> names it in the warning –
+and each dynamic step applies the stop of its own source: below the cap
+the compressor then stops at that stop
+(<code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span> <span class="pre">==</span> <span class="pre">&quot;condensing_limit&quot;</span></code>) and, while the call stands,
+holds the tank there or, with a minimum rest time, rests and restarts
+(<code class="docutils literal notranslate"><span class="pre">duty_limit</span></code> of
+<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.simulate_thermostat_step()</span></code>). A set point at or
+below the nameplate cut-out needs no cycle solve and is left alone. For a
+blend the warning names the bubble point the tank is held below as well as
+<code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>, the dew point of the same pressure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>what</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>floor_at</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
+<li><p><strong>reference</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.on_condensing_limit">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">on_condensing_limit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Q_ref_tank</span> <span class="pre">[W]'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#on_condensing_limit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.on_condensing_limit" title="Link to this definition">¶</a></dt>
+<dd><p>Capacity keys of a cycle a dynamic step ran on the condensing limit (in place).</p>
+<p>A step of <code class="docutils literal notranslate"><span class="pre">condensing_limit_control=&quot;reduce_duty&quot;</span></code> solves the stretch it
+spends on the limit directly at the limit’s duty, so the duty reduction
+(<a class="reference internal" href="#tmhp.compressor_envelope.reduce_duty_within_envelope" title="tmhp.compressor_envelope.reduce_duty_within_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_duty_within_envelope()</span></code></a>) has nothing to reduce and writes no
+keys. The row is the one that reduction lands on for the nameplate
+<code class="docutils literal notranslate"><span class="pre">request</span></code>, and gets its keys: <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">=</span> <span class="pre">&quot;max&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> – the condensing
+limit, unless the solve was itself reduced further onto another limit,
+which then names it. An off row is returned unchanged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.condensing_stretch">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">condensing_stretch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solve</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_zero_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_knee</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_duty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Q_ref_tank</span> <span class="pre">[W]'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#condensing_stretch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.condensing_stretch" title="Link to this definition">¶</a></dt>
+<dd><p>The stretch a reduced-duty step charges on at one source state: <code class="docutils literal notranslate"><span class="pre">(Q_min,</span> <span class="pre">None)</span></code>, or <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">what</span> <span class="pre">withholds</span> <span class="pre">it)</span></code>.</p>
+<p>A step of <code class="docutils literal notranslate"><span class="pre">condensing_limit_control=&quot;reduce_duty&quot;</span></code> integrates the tank
+along the condensing limit’s duty, <code class="docutils literal notranslate"><span class="pre">K</span> <span class="pre">(T_zero_C</span> <span class="pre">-</span> <span class="pre">T)</span></code> [W]
+(<code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.dynamic_context.DutyLimit</span></code>), from the knee – the tank
+temperature at which that duty is <code class="docutils literal notranslate"><span class="pre">Q_knee</span></code>, the nameplate duty – to the
+stop, where it is <code class="docutils literal notranslate"><span class="pre">Q_min</span></code>, the smallest continuous duty (<code class="docutils literal notranslate"><span class="pre">min_duty()</span></code>:
+<a class="reference internal" href="#tmhp.compressor_envelope.smallest_duty_on_condensing_limit" title="tmhp.compressor_envelope.smallest_duty_on_condensing_limit"><code class="xref py py-func docutils literal notranslate"><span class="pre">smallest_duty_on_condensing_limit()</span></code></a> at this source; neither point
+above the boiling point of the stored water). That is the tank’s path only
+if the condensing limit is the limit that governs the whole stretch. This
+function checks it for one source state, with three cycles: <code class="docutils literal notranslate"><span class="pre">solve(T,</span>
+<span class="pre">q)</span></code> – the step’s cycle at tank temperature <code class="docutils literal notranslate"><span class="pre">T</span></code> [degC] asked for duty
+<code class="docutils literal notranslate"><span class="pre">q</span></code> [W], solved with the source as the step finds it – at the knee, at
+the middle of the stretch and at the stop, each asked for the limit’s
+duty there. The stretch qualifies if each of them runs, delivers that
+duty to <code class="xref py py-data docutils literal notranslate"><span class="pre">tmhp.dynamic_context.DUTY_MATCH_RTOL</span></code>, and names no limit
+but the condensing one; <code class="docutils literal notranslate"><span class="pre">Q_min</span></code> is then returned.</p>
+<p>Otherwise reduced-duty charging is withheld at this source state, and the
+first check that fails says by what (later ones are not made; the knee
+comes first, before the search for <code class="docutils literal notranslate"><span class="pre">Q_min</span></code>, which is the costly part):</p>
+<ul class="simple">
+<li><p>a cycle that does not run: its <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>
+(<code class="docutils literal notranslate"><span class="pre">&quot;source_fluid_freezing&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code>, …);</p></li>
+<li><p>a cycle held at another duty, or naming another limit: its
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;source_fluid_freezing&quot;</span></code>, …), and <a class="reference internal" href="#tmhp.compressor_envelope.BINDING_COMPRESSOR" title="tmhp.compressor_envelope.BINDING_COMPRESSOR"><code class="xref py py-data docutils literal notranslate"><span class="pre">BINDING_COMPRESSOR</span></code></a> for one
+that names none – the compressor at its speed ceiling, which a cold
+source leaves short of the nameplate duty at the knee;</p></li>
+<li><p>no <code class="docutils literal notranslate"><span class="pre">Q_min</span></code> below <code class="docutils literal notranslate"><span class="pre">Q_knee</span></code> (<code class="docutils literal notranslate"><span class="pre">None</span></code>, or not smaller):
+<a class="reference internal" href="#tmhp.compressor_envelope.WITHHELD_NO_SMALLER_DUTY" title="tmhp.compressor_envelope.WITHHELD_NO_SMALLER_DUTY"><code class="xref py py-data docutils literal notranslate"><span class="pre">WITHHELD_NO_SMALLER_DUTY</span></code></a>.</p></li>
+</ul>
+<p>The answer is a property of the machine and the source state: it does not
+depend on the step, nor on where the tank is. The boilers keep it for as
+long as the source state stays the same. Three points are a sample: a
+limit that acts only strictly between two of them is not seen. The check
+assumes that a limit which leaves the knee, the middle and the stop alone
+leaves the stretch between them alone. Where one does not, the check each
+step makes of its own cycles
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.resolve_step_operation()</span></code>) withholds the steps
+whose cycle lands on it; which steps those are depends on the step length
+and the tank temperature, so the charge at that source state then depends
+on the step size. The solves run silently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solve</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
+<li><p><strong>T_zero_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_knee</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>min_duty</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
+<li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.WITHHELD_NO_SMALLER_DUTY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">WITHHELD_NO_SMALLER_DUTY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'no_smaller_duty'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.WITHHELD_NO_SMALLER_DUTY" title="Link to this definition">¶</a></dt>
+<dd><p>no continuous duty below the nameplate runs on
+the condensing limit at this source, so there is no stretch to charge on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tmhp.compressor_envelope.condensing_stretch" title="tmhp.compressor_envelope.condensing_stretch"><code class="xref py py-func docutils literal notranslate"><span class="pre">condensing_stretch()</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -2386,7 +2728,7 @@ process-wide cache, so identical constructions solve once.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 21, 2026
+  Last updated Nov 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

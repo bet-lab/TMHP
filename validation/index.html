@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it is meant to describe. This page is that check. The harder question is whether it keeps landin..." />
 
-    <meta property="article:modified_time" content="2026-11-21T11:16:58+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -152,6 +152,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#parity">Parity</a></li>
 <li><a class="reference internal" href="#per-unit-results">Per-unit results</a></li>
 <li><a class="reference internal" href="#reading-the-residuals">Reading the residuals</a></li>
+<li><a class="reference internal" href="#capacity">Capacity</a></li>
 <li><a class="reference internal" href="#cooling-and-latent-load">Cooling and latent load</a></li>
 <li><a class="reference internal" href="#scope">Scope</a></li>
 <li><a class="reference internal" href="#reproduce">Reproduce</a></li>
@@ -949,6 +950,82 @@ use final indoor-air delivery with fan heat counted once
 (<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>).</p>
 </div>
 </section>
+<section id="capacity">
+<h2>Capacity<a class="headerlink" href="#capacity" title="Link to this heading">¶</a></h2>
+<p>The capacity ratio is the duty the model delivers at the catalogue request
+divided by the published duty. The capacity score includes short points.
+A point that falls more than 1 % short contributes to the capacity score and
+is excluded from the COP score.
+Capacity scores are grouped by catalogue status and model class. The held
+group is diagnostic. In <code class="docutils literal notranslate"><span class="pre">summary.csv</span></code>, the <code class="docutils literal notranslate"><span class="pre">class_</span></code> columns describe
+the model class and status of the catalogue on that row. In <code class="docutils literal notranslate"><span class="pre">manifest.json</span></code>,
+<code class="docutils literal notranslate"><span class="pre">capacity_by_status_and_model_class</span></code> uses the status keys <code class="docutils literal notranslate"><span class="pre">adopted</span></code>
+and <code class="docutils literal notranslate"><span class="pre">hold</span></code> for the groups present in the results.</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model class</p></th>
+<th class="head"><p>Scope</p></th>
+<th class="head"><p>Short points</p></th>
+<th class="head"><p>Mean ratio</p></th>
+<th class="head"><p>Minimum ratio</p></th>
+<th class="head"><p>Ceilings (mean headroom)</p></th>
+<th class="head"><p>Lower bounds</p></th>
+<th class="head"><p>No estimate</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Air-to-water</p></td>
+<td><p>Adopted</p></td>
+<td><p>8 / 153</p></td>
+<td><p>99.30 %</p></td>
+<td><p>72.24 %</p></td>
+<td><p>65 (123.70 %)</p></td>
+<td><p>87 (150 %)</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>Air-to-air</p></td>
+<td><p>Adopted</p></td>
+<td><p>0 / 360</p></td>
+<td><p>100.00 %</p></td>
+<td><p>100.00 %</p></td>
+<td><p>360 (166.13 %)</p></td>
+<td><p>0</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>Air-to-air</p></td>
+<td><p>Held</p></td>
+<td><p>0 / 244</p></td>
+<td><p>100.00 %</p></td>
+<td><p>100.00 %</p></td>
+<td><p>244 (169.25 %)</p></td>
+<td><p>0</p></td>
+<td><p>0</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Compressor speed binds three of the air-to-water points, and the condensing
+temperature limit binds five. Probe headroom is the probed duty divided by
+the published duty. For air-to-air, the probe uses
+<a class="reference internal" href="../models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code></a>. For
+air-to-water, it requests 1.5 times the published duty at the same outdoor
+temperature, entering water temperature and water flow. The multiplier
+allows the probe to reach limits above the published duty with a bounded
+overload request. Meeting the overload within the relative validation tolerance of
+10⁻⁶ establishes a lower bound at the requested multiplier (150 % headroom).
+A smaller return beyond that tolerance gives a ceiling. For either model,
+if the probe returns a lower duty than the ordinary solve within the same
+tolerance, the probe records the duty from the ordinary solve. A larger drop
+or a failed probe leaves the estimate missing.</p>
+<p>Among scored air-to-water points, COP MAPE and bias were 7.9 % and −6.7 %
+without discharge control (124 points), 8.3 % and −5.9 % with reduced
+superheat (5 points), and 8.2 % and +0.4 % with wet suction (16 points).
+All 360 scored air-to-air points ran without discharge control (12.6 % MAPE
+and −12.1 % bias).
+Scored adopted points with a missing control flag, or with control active
+and missing suction quality, are counted in the <code class="docutils literal notranslate"><span class="pre">unknown</span></code> stratum.</p>
+</section>
 <section id="cooling-and-latent-load">
 <h2>Cooling and latent load<a class="headerlink" href="#cooling-and-latent-load" title="Link to this heading">¶</a></h2>
 <p>TMHP’s indoor coil is a dry sensible-heat exchanger. Manufacturer cooling
@@ -1015,7 +1092,7 @@ catalogues</em> (2025).</p></li>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 21, 2026
+  Last updated Nov 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

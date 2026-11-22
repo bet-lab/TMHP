@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="For ASHPB, analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest p..." />
 
-    <meta property="article:modified_time" content="2026-11-21T11:16:58+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -440,6 +440,23 @@ one start), instead of failing step after step; a lumped tank called at
 its envelope stop is held there against its losses the same way. Such a
 step is a normal stop: <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> stays <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> and
 <code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;condensing_limit&quot;</span></code>.</p>
+<p>An inverter unit does not stop at that temperature: it slows its compressor
+and keeps charging at the duty the limit leaves. Build the boiler with
+<code class="docutils literal notranslate"><span class="pre">condensing_limit_control=&quot;reduce_duty&quot;</span></code> to model it (lumped tanks): the
+run then goes on past the envelope stop, the tank approaching the limit as a
+first-order lag that is solved inside the step, and ends where the limit
+leaves less than the compressor’s smallest continuous duty (or at 100 °C,
+<code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span> <span class="pre">==</span> <span class="pre">&quot;boiling_limit&quot;</span></code>, if that comes first). This applies in
+the source states in which the condensing limit governs that whole stretch;
+in the others (a cold source that brings in the pressure-ratio ceiling, the
+freezing limit, a discharge-temperature limit or a low speed ceiling) the
+step is the one <code class="docutils literal notranslate"><span class="pre">&quot;stop&quot;</span></code> solves
+and <code class="docutils literal notranslate"><span class="pre">reduced_duty_withheld</span></code> says why (<code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> where a cycle did not
+run as required and gave no name: the reference lists what that can be, one
+of them a limit the check of the source state did not see, with which the
+charge depends on the step size). See
+<a class="reference internal" href="../models/ashpb.html#ashpb-reduced-duty-charging"><span class="std std-ref">Charging past the cut-out at reduced duty</span></a> and the
+<a class="reference internal" href="../developer/reference-operating-limits.html#reduced-duty-charging"><span class="std std-ref">operating-limits reference</span></a>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">hp_on_schedule</span></code> limits when the heat pump may run, as windows
 <code class="docutils literal notranslate"><span class="pre">[(start_h,</span> <span class="pre">end_h),</span> <span class="pre">...]</span></code> of the hour of day (<code class="docutils literal notranslate"><span class="pre">start_h</span> <span class="pre">&lt;=</span> <span class="pre">hour</span> <span class="pre">&lt;</span>
 <span class="pre">end_h</span></code>). <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default) is always; an empty list has no window,
@@ -449,7 +466,7 @@ so the heat pump never runs, as <code class="docutils literal notranslate"><span
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 21, 2026
+  Last updated Nov 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This procedure is fixed. Follow it and the documentation site picks the new unit up on the next push to main — parity plot, error table and summary, all of it. The design goal is that adding a mach..." />
 
-    <meta property="article:modified_time" content="2026-11-21T11:16:58+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -227,6 +227,18 @@ which is the audit trail for “nobody has checked this file yet”.</p>
 <p><strong>4. Run the harness.</strong> It writes <code class="docutils literal notranslate"><span class="pre">validation/results/&lt;slug&gt;.csv</span></code> and updates
 <code class="docutils literal notranslate"><span class="pre">validation/results/summary.csv</span></code> and <code class="docutils literal notranslate"><span class="pre">manifest.json</span></code>, which records the
 commit and the <code class="docutils literal notranslate"><span class="pre">src/tmhp</span></code> tree the numbers came from.</p>
+<p>The per-point CSV records the delivered duty (<code class="docutils literal notranslate"><span class="pre">q_pred_kW</span></code>), its ratio to
+the published duty (<code class="docutils literal notranslate"><span class="pre">capacity_ratio</span></code>), and the model’s active limit
+(<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code>). It records suction quality (<code class="docutils literal notranslate"><span class="pre">x_suction</span></code>), superheat
+(<code class="docutils literal notranslate"><span class="pre">superheat_K</span></code>), the discharge-control flag and discharge temperature
+(<code class="docutils literal notranslate"><span class="pre">discharge_control</span></code>, <code class="docutils literal notranslate"><span class="pre">t_discharge_C</span></code>), and the capacity probe
+(<code class="docutils literal notranslate"><span class="pre">q_max_pred_kW</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_headroom</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity_probe</span></code>). The probe
+kind is <code class="docutils literal notranslate"><span class="pre">ceiling</span></code> for observed ceilings and <code class="docutils literal notranslate"><span class="pre">lower_bound</span></code> when the
+air-to-water overload request was met. The two capacity ratios are missing
+when the published duty is zero or non-finite. Missing values appear as empty CSV
+fields. Each summary row represents one catalogue, with the model-class
+totals and averages repeated in the <code class="docutils literal notranslate"><span class="pre">class_</span></code> columns. The binding counts
+are JSON objects keyed by the model’s limit labels.</p>
 <p><strong>5. Refresh the derived artefacts.</strong> The figure and the site’s JSON both read
 from <code class="docutils literal notranslate"><span class="pre">validation/results/</span></code>, so they follow automatically.</p>
 <p><strong>6. Commit.</strong> Pushing to <code class="docutils literal notranslate"><span class="pre">main</span></code> rebuilds the site.</p>
@@ -371,7 +383,7 @@ drop them.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 21, 2026
+  Last updated Nov 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

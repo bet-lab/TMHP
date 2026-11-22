@@ -517,8 +517,6 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/subsystems.html#tmhp.uv_treatment.calc_uv_lamp_power">(in module tmhp.uv_treatment)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/simulation.html#tmhp.defrost.FrostState.capacity_multiplier">capacity_multiplier (tmhp.defrost.FrostState attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.EquivalentCylinderBorehole.capacity_ratio">capacity_ratio (tmhp.borehole_capacity.EquivalentCylinderBorehole property)</a>
@@ -529,6 +527,8 @@ data-aria-dark="Switch to auto color mode">
       </ul></li>
       <li><a href="api/support/simulation.html#tmhp.cycling.CAPACITY_RATIO_KEY">CAPACITY_RATIO_KEY (in module tmhp.cycling)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.CapacityStepResponse">CapacityStepResponse (class in tmhp.borehole_capacity)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.cycling.CC_WATER_DEFAULT">CC_WATER_DEFAULT (in module tmhp.cycling)</a>
@@ -537,6 +537,14 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.charge">charge() (tmhp.subsystems.EnergyStorageSystem method)</a>
 </li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.charge_limit_reference_C">charge_limit_reference_C (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.charge_limit_reference_C">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/wshpb.html#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.charge_limit_reference_C">(tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.check_field">check_field() (tmhp.borefield.BoreNetwork method)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.check_fits">check_fits() (tmhp.borehole.BoreholePipe method)</a>
@@ -565,11 +573,23 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/simulation.html#tmhp.standard_conditions.COLUMNS">COLUMNS (in module tmhp.standard_conditions)</a>
 </li>
+      <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.condensing_limit_control">condensing_limit_control (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.condensing_limit_control">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.CONDENSING_LIMIT_CONTROLS">CONDENSING_LIMIT_CONTROLS (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.condensing_pressure_max">condensing_pressure_max() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.CONDENSING_PRESSURE_MAX_REDUCED">CONDENSING_PRESSURE_MAX_REDUCED (in module tmhp.compressor_envelope)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.condensing_stretch">condensing_stretch() (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.condensing_tank_cutout">condensing_tank_cutout() (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.condensing_tank_reach">condensing_tank_reach() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.CONDENSING_TEMP_ABOVE_MAX">CONDENSING_TEMP_ABOVE_MAX (in module tmhp.compressor_envelope)</a>
 </li>
@@ -590,6 +610,10 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.connectivity">connectivity (tmhp.borefield.BoreNetwork attribute)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.cycling.continuous_keys">continuous_keys() (in module tmhp.cycling)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.CONTROL_REDUCE_DUTY">CONTROL_REDUCE_DUTY (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.CONTROL_STOP">CONTROL_STOP (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.enex_functions.convert_electricity_to_exergy">convert_electricity_to_exergy() (in module tmhp.enex_functions)</a>
 
@@ -1019,12 +1043,12 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.CapacityStepResponse.fluid_no_capacity">fluid_no_capacity (tmhp.borehole_capacity.CapacityStepResponse attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler.fluid_referenced">fluid_referenced (tmhp.ground_coupling.AggregateGFunctionCoupler property)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.fluid_to_fluid_resistance">fluid_to_fluid_resistance() (tmhp.borehole.BoreholePipe method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.fluid_to_pipe_resistance">fluid_to_pipe_resistance() (in module tmhp.borehole_capacity)</a>
 
       <ul>
@@ -1052,6 +1076,14 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/simulation.html#tmhp.defrost.FrostState.frost_drive_ratio">frost_drive_ratio (tmhp.defrost.FrostState attribute)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.defrost.frost_free_keys">frost_free_keys() (in module tmhp.defrost)</a>
+</li>
+      <li><a href="api/support/simulation.html#tmhp.defrost.FrostState.frost_onset">frost_onset (tmhp.defrost.FrostState attribute)</a>
+</li>
+      <li><a href="api/support/simulation.html#tmhp.defrost.frost_point">frost_point() (in module tmhp.defrost)</a>
+</li>
+      <li><a href="api/support/simulation.html#tmhp.defrost.FROST_POINT_BAND_K">FROST_POINT_BAND_K (in module tmhp.defrost)</a>
+</li>
+      <li><a href="api/support/simulation.html#tmhp.defrost.DefrostModel.frost_point_band_K">frost_point_band_K (tmhp.defrost.DefrostModel attribute)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.defrost.FROST_POWER_FACTOR_KEY">FROST_POWER_FACTOR_KEY (in module tmhp.defrost)</a>
 </li>
@@ -1307,16 +1339,18 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/simulation.html#tmhp.operating_limits.limit_for">limit_for() (in module tmhp.operating_limits)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.limit_tank_setpoints_to_charge_limit">limit_tank_setpoints_to_charge_limit() (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.limit_tank_setpoints_to_envelope">limit_tank_setpoints_to_envelope() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.operating_limits.LIMITS">LIMITS (in module tmhp.operating_limits)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.line_source_wall">line_source_wall() (in module tmhp.borehole_capacity)</a>
 </li>
-      <li><a href="api/support/simulation.html#tmhp.enex_functions.linear_function">linear_function() (in module tmhp.enex_functions)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/simulation.html#tmhp.enex_functions.linear_function">linear_function() (in module tmhp.enex_functions)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RatingCondition.load">load (tmhp.reference_state.RatingCondition attribute)</a>
 </li>
       <li><a href="api/support/demand-weather.html#tmhp.weather.load_kma_solar_csv">load_kma_solar_csv() (in module tmhp.weather)</a>
@@ -1579,6 +1613,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.OBJ_CAPACITY_LIMITED">OBJ_CAPACITY_LIMITED (in module tmhp.air_source_heat_pump)</a>
 </li>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.OBJ_INFEASIBLE">OBJ_INFEASIBLE (in module tmhp.air_source_heat_pump)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.on_condensing_limit">on_condensing_limit() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/integrations.html#tmhp.integrations.energyplus_plugin.TmhpPlantInit.on_user_defined_component_model">on_user_defined_component_model() (tmhp.integrations.energyplus_plugin.TmhpPlantInit method)</a>
 
@@ -1906,6 +1942,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/simulation.html#tmhp.operating_limits.reset_notices">reset_notices() (in module tmhp.operating_limits)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.resolve_condensing_limit_control">resolve_condensing_limit_control() (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.resolve_condensing_temp_max">resolve_condensing_temp_max() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.cycling.resolve_cycling">resolve_cycling() (in module tmhp.cycling)</a>
@@ -2010,6 +2048,10 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.sky_model">(tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.smallest_continuous_duty">smallest_continuous_duty() (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.smallest_duty_on_condensing_limit">smallest_duty_on_condensing_limit() (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.SOC_ess">SOC_ess (tmhp.subsystems.EnergyStorageSystem attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.SOC_init">SOC_init (tmhp.subsystems.EnergyStorageSystem attribute)</a>
@@ -2086,6 +2128,8 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.EquivalentCylinderBorehole.steady_resistance">(tmhp.borehole_capacity.EquivalentCylinderBorehole property)</a>
 </li>
       </ul></li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.steady_smallest_duty">steady_smallest_duty() (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.step">step() (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler method)</a>
 
       <ul>
@@ -2798,6 +2842,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="models/wshpb.html#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler">WaterSourceHeatPumpBoiler (class in tmhp.water_source_heat_pump_boiler)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.with_borehole_capacity">with_borehole_capacity() (in module tmhp.borehole_capacity)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.WITHHELD_NO_SMALLER_DUTY">WITHHELD_NO_SMALLER_DUTY (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.EquivalentCylinderBorehole.without_capacity">without_capacity() (tmhp.borehole_capacity.EquivalentCylinderBorehole method)</a>
 </li>

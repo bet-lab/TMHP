@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-20T03:30:10+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -225,6 +225,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#id1">How a result row is averaged</a></li>
 <li><a class="reference internal" href="#tmhp.defrost.T_OUT_MAX_DEFROST_C"><code class="docutils literal notranslate"><span class="pre">T_OUT_MAX_DEFROST_C</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.FROST_TRANSITION_K"><code class="docutils literal notranslate"><span class="pre">FROST_TRANSITION_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FROST_POINT_BAND_K"><code class="docutils literal notranslate"><span class="pre">FROST_POINT_BAND_K</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.RH_OUT_DEFAULT"><code class="docutils literal notranslate"><span class="pre">RH_OUT_DEFAULT</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.T_RATING_HEATING_C"><code class="docutils literal notranslate"><span class="pre">T_RATING_HEATING_C</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.DEFROST_FRACTION_KEY"><code class="docutils literal notranslate"><span class="pre">DEFROST_FRACTION_KEY</span></code></a></li>
@@ -238,6 +239,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.defrost.DefrostModel.RH_out"><code class="docutils literal notranslate">RH_out</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.DefrostModel.transition_K"><code class="docutils literal notranslate">transition_K</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.DefrostModel.load_weighted"><code class="docutils literal notranslate">load_weighted</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.DefrostModel.frost_point_band_K"><code class="docutils literal notranslate">frost_point_band_K</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.DefrostModel.frost_share"><code class="docutils literal notranslate">frost_share()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.DefrostModel.frost_state"><code class="docutils literal notranslate">frost_state()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.DefrostModel.frost_state_at_duty"><code class="docutils literal notranslate">frost_state_at_duty()</span></code></a></li>
@@ -259,6 +261,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.defrost.FrostState.frost_share"><code class="docutils literal notranslate">frost_share</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.FrostState.frost_drive_ratio"><code class="docutils literal notranslate">frost_drive_ratio</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.FrostState.load_ratio"><code class="docutils literal notranslate">load_ratio</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.FrostState.frost_onset"><code class="docutils literal notranslate">frost_onset</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.FrostState.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 </ul>
 </li>
@@ -269,6 +272,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.defrost.steady_defrost"><code class="docutils literal notranslate"><span class="pre">steady_defrost()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.saturation_humidity_ratio"><code class="docutils literal notranslate"><span class="pre">saturation_humidity_ratio()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.defrost.humidity_ratio"><code class="docutils literal notranslate"><span class="pre">humidity_ratio()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.defrost.frost_point"><code class="docutils literal notranslate"><span class="pre">frost_point()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.operating_limits">Operating-limit warnings and summaries</a><ul>
@@ -538,6 +542,114 @@ cycle that closes both heat exchangers and passes
 
 <dl class="py class">
 <dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DutyLimit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_zero_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DutyLimit"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Largest duty a running compressor gives a mixed tank on an operating limit.</p>
+<p><code class="docutils literal notranslate"><span class="pre">K</span> <span class="pre">*</span> <span class="pre">(T_zero_C</span> <span class="pre">-</span> <span class="pre">T)</span></code> [W] at tank temperature <code class="docutils literal notranslate"><span class="pre">T</span></code> [°C]: a limit on the
+condensing temperature of a compressor whose tank heat exchanger needs an
+approach proportional to the duty (<code class="docutils literal notranslate"><span class="pre">T_zero_C</span></code>: the tank temperature at
+which the limit leaves no duty; <code class="docutils literal notranslate"><span class="pre">K</span></code> [W/K]: the heat the exchanger
+carries per kelvin of approach). <code class="docutils literal notranslate"><span class="pre">Q_min</span></code> [W] is the smallest duty the
+compressor runs at continuously: where the limit leaves less
+(<code class="xref py py-attr docutils literal notranslate"><span class="pre">stop_C</span></code>) it stops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_zero_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">T_zero_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Q_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">duty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DutyLimit.duty"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Duty the limit allows at tank temperature <code class="docutils literal notranslate"><span class="pre">T_C</span></code> [W].</p>
+<p><code class="docutils literal notranslate"><span class="pre">K</span> <span class="pre">(T_zero_C</span> <span class="pre">-</span> <span class="pre">T_C)</span></code>, and at or below <code class="xref py py-attr docutils literal notranslate"><span class="pre">stop_C</span></code> never less than
+<code class="docutils literal notranslate"><span class="pre">Q_min</span></code>. That is the line’s own value there; the bound only keeps
+the last digits from saying otherwise (<code class="docutils literal notranslate"><span class="pre">stop_C</span></code> is
+<code class="docutils literal notranslate"><span class="pre">T_zero_C</span> <span class="pre">-</span> <span class="pre">Q_min</span> <span class="pre">/</span> <span class="pre">K</span></code> in floating point, and the line computed back
+from it falls a few 1e-11 W short of <code class="docutils literal notranslate"><span class="pre">Q_min</span></code> for most numbers), so
+that a compressor on the limit is never resolved below its smallest
+continuous duty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">knee_C</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_on</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DutyLimit.knee_C"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Tank temperature above which the limit allows less than <code class="docutils literal notranslate"><span class="pre">Q_on</span></code> [°C].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Q_on</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">stop_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd><p>Tank temperature at which the limit allows no more than <code class="docutils literal notranslate"><span class="pre">Q_min</span></code> [°C].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_zero_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_zero_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DUTY_MATCH_RTOL</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001</span></span></dt>
+<dd><p>Fraction by which a cycle may miss the duty asked of it and still count as
+delivering it, in reduced-duty charging.</p>
+<p>A cycle asked for the condensing limit’s duty at a tank temperature on the
+limit delivers it to the solver’s last digits when that limit is the one that
+governs (measured ratio 1.000000 on the documented charges of the three boiler
+families), and so does a cycle asked for the nameplate duty below the limit.
+One that is off by more than this was held by another limit. Used where the
+stretch on the limit is qualified
+(<a class="reference internal" href="refrigerant-thermo.html#tmhp.compressor_envelope.condensing_stretch" title="tmhp.compressor_envelope.condensing_stretch"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.condensing_stretch()</span></code></a>) and for the cycles of a
+step resolved on the limit (<code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_step_operation()</span></code>).</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DynamicState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_running_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_phase_age_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsystem_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DynamicState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Carried state threaded across <code class="docutils literal notranslate"><span class="pre">step()</span></code> calls.</p>
@@ -727,7 +839,7 @@ a subsystem reads and writes its entry.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">InStepRun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit_stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#InStepRun"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">InStepRun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit_stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_reduced_mean_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_full_mean_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit_stop_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced_withheld</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#InStepRun"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Compressor operation inside one step, resolved at thermostat events.</p>
 <dl class="py attribute">
@@ -849,6 +961,77 @@ not the thermostat reaching its upper bound.</p>
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reduced_fraction</span></span></dt>
+<dd><p>Fraction of the step the compressor ran on the duty limit, below the
+duty it runs at otherwise (0 without a <code class="docutils literal notranslate"><span class="pre">duty_limit</span></code>); part of
+<code class="docutils literal notranslate"><span class="pre">runtime_fraction</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">T_reduced_mean_C</span></span></dt>
+<dd><p>Run-time-weighted mean tank temperature of that stretch [°C]: the
+limit’s duty at it is the stretch’s mean duty. <code class="docutils literal notranslate"><span class="pre">None</span></code> without one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">T_full_mean_C</span></span></dt>
+<dd><p>Run-time-weighted mean tank temperature of the rest of the run, at
+the full duty [°C]; set only with a <code class="docutils literal notranslate"><span class="pre">duty_limit</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">limit_stop_C</span></span></dt>
+<dd><p>The tank cut-out that stopped a run resolved with a <code class="docutils literal notranslate"><span class="pre">duty_limit</span></code>
+[°C]: the lower of the boiling point and the tank temperature at which
+the limit leaves the smallest continuous duty, which the caller does
+not know before the step is resolved (<code class="xref py py-func docutils literal notranslate"><span class="pre">in_step_stop_reason()</span></code>
+names the stop from it). <code class="docutils literal notranslate"><span class="pre">None</span></code> without a <code class="docutils literal notranslate"><span class="pre">limit_stop</span></code>, and for a
+run resolved with the cut-out the caller gave (<code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code>), who
+names it. It labels the run and is not part of comparing two runs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reduced_withheld</span></span></dt>
+<dd><p>Reduced-duty charging was withheld in this step
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_step_operation()</span></code>): it was resolved without the duty
+limit, exactly as for a compressor that stops at the cut-out, and that
+cut-out, below the boiling point, acted in it – the compressor
+stopped, or stayed off, where it would otherwise have charged on. A
+stop at the boiling point is not marked. Like
+<code class="docutils literal notranslate"><span class="pre">limit_stop_C</span></code> it labels the run and is not part of comparing two.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -862,6 +1045,11 @@ not the thermostat reaching its upper bound.</p>
 <li><p><strong>heat_unavailable</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>T_on_first_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>limit_stop</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>reduced_fraction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_reduced_mean_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>T_full_mean_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>limit_stop_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>reduced_withheld</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -915,9 +1103,34 @@ not the thermostat reaching its upper bound.</p>
 <span class="sig-name descname"><span class="pre">limit_stop</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reduced_fraction</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">T_reduced_mean_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">T_full_mean_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">limit_stop_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reduced_withheld</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit_stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit_stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_reduced_mean_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_full_mean_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit_stop_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced_withheld</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -931,6 +1144,11 @@ not the thermostat reaching its upper bound.</p>
 <li><p><strong>heat_unavailable</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>T_on_first_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>limit_stop</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>reduced_fraction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_reduced_mean_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>T_full_mean_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>limit_stop_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>reduced_withheld</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -1604,12 +1822,17 @@ limits both flows to what the tank can pass (<code class="xref py py-func docuti
 <dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">in_step_stop_reason</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_limit_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#in_step_stop_reason"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">hp_stop_reason</span></code> of a step: why a cut-out stopped the compressor, <code class="docutils literal notranslate"><span class="pre">None</span></code> if none did.</p>
-<p>A tank cut-out below the boiling point, or a coil cut-out (a finite
-<code class="docutils literal notranslate"><span class="pre">run_limit_s</span></code>), is the envelope stop the boiler passed
+<p>The stop is the one the step was resolved with (<code class="docutils literal notranslate"><span class="pre">run.limit_stop_C</span></code>;
+<code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code>, the cut-out the boiler passed, for a run that does not
+carry it). A tank cut-out below the boiling point, or a coil cut-out (a
+finite <code class="docutils literal notranslate"><span class="pre">run_limit_s</span></code>), is the envelope stop
 (<code class="xref py py-data docutils literal notranslate"><span class="pre">STOP_CONDENSING_LIMIT</span></code>); otherwise it is the boiling point
-(<code class="xref py py-data docutils literal notranslate"><span class="pre">STOP_BOILING_LIMIT</span></code>). Such a stop is a normal end of the run (no
-<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>): the heat pump has charged the tank as far as its
-compressor allows.</p>
+(<code class="xref py py-data docutils literal notranslate"><span class="pre">STOP_BOILING_LIMIT</span></code>). With reduced-duty charging the stop that
+acts is the lower of the boiling point and the tank temperature at which
+the condensing limit leaves the smallest continuous duty, which a boiler
+does not know before the step is resolved: the run says which it was.
+Such a stop is a normal end of the run (no <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>): the heat
+pump has charged the tank as far as its compressor allows.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1626,7 +1849,7 @@ compressor allows.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">resolve_step_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_curr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_free</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve_cycle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_limit_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#resolve_step_operation"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">resolve_step_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_curr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_free</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve_cycle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_limit_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duty_line</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_duty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve_cycle_at_duty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#resolve_step_operation"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Compressor operation in one step and the cycle it ran.</p>
 <p><code class="docutils literal notranslate"><span class="pre">residual_free(T_K)</span></code> is the boiler’s own implicit tank residual built
 with a zero heat-source rate; it supplies the heat the tank gains or
@@ -1661,6 +1884,80 @@ and <code class="docutils literal notranslate"><span class="pre">Q_hold</span></
 are passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">simulate_thermostat_step()</span></code>: a boiler gives its
 envelope stop, so the compressor stops there inside the step whatever
 its minimum run time.</p>
+<p><strong>Reduced-duty charging</strong> (<code class="docutils literal notranslate"><span class="pre">duty_line</span></code>, <code class="docutils literal notranslate"><span class="pre">min_duty</span></code>,
+<code class="docutils literal notranslate"><span class="pre">solve_cycle_at_duty</span></code>, <code class="docutils literal notranslate"><span class="pre">rate_keys</span></code> all given; a mixed tank). The
+boiler’s compressor does not stop where its requested duty meets an
+operating limit: it runs on at the largest duty the limit allows.
+<code class="docutils literal notranslate"><span class="pre">duty_line</span> <span class="pre">=</span> <span class="pre">(T_zero_C,</span> <span class="pre">K)</span></code> is that duty as a function of the tank
+temperature, <code class="docutils literal notranslate"><span class="pre">K</span> <span class="pre">(T_zero_C</span> <span class="pre">-</span> <span class="pre">T)</span></code> [W] (<code class="xref py py-class docutils literal notranslate"><span class="pre">DutyLimit</span></code>), and
+<code class="docutils literal notranslate"><span class="pre">min_duty()</span></code> the smallest duty the compressor runs at continuously in
+this step’s conditions [W], or <code class="docutils literal notranslate"><span class="pre">None</span></code> when reduced-duty charging is
+withheld in them (below); it is called – it costs cycle solves – only
+for a step that gets to the limit. <code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code> is the cut-out of the
+compressor that stops instead, as without these arguments (the tank
+temperature at which the nameplate duty meets the limit, or the boiling
+point); on the limit the cut-out is the limit’s stop, at the latest the
+boiling point. A step that gets to the limit is resolved with the events
+of <code class="xref py py-func docutils literal notranslate"><span class="pre">simulate_thermostat_step()</span></code> on that limit, and its run has up to
+two stretches, each with one cycle:</p>
+<ul class="simple">
+<li><p>at the full duty, the cycle <code class="docutils literal notranslate"><span class="pre">solve_cycle</span></code> gives at the stretch’s mean
+tank temperature (as above);</p></li>
+<li><p>on the limit, <code class="docutils literal notranslate"><span class="pre">solve_cycle_at_duty(T_C,</span> <span class="pre">Q,</span> <span class="pre">runtime_fraction)</span></code> at the
+stretch’s mean tank temperature and the limit’s duty there. The limit is
+linear in the tank temperature, so that is the stretch’s mean duty
+exactly, and the condensing pressure is the limit’s all along: only the
+duty varies over the stretch, and the cycle at its mean is the midpoint
+rule in that one variable.</p></li>
+</ul>
+<p>The cycle returned is then the run-time-weighted mean of the two
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">merge_running_rows()</span></code> over <code class="docutils literal notranslate"><span class="pre">rate_keys</span></code>), which
+<code class="xref py py-func docutils literal notranslate"><span class="pre">step_hp_result()</span></code> averages over the step like any other. Each
+stretch’s cycle is given the run time that carries the step’s mean load at
+its own duty. A step that does not get to the limit is resolved exactly as
+without these arguments, with the cut-out at the limit’s knee. The
+round-off confirmation below (the implicit solve of the full step) assumes
+one heat rate for the step and is not applied to a step on the limit.</p>
+<p>The events take the limit’s duty for the whole stretch above the knee.
+That is right where this limit is the one that governs the stretch, and
+the caller says so for the step’s source conditions: <code class="docutils literal notranslate"><span class="pre">min_duty()</span></code>
+returns <code class="docutils literal notranslate"><span class="pre">None</span></code> where it is not (another limit holds the compressor
+below this one’s duty somewhere on the stretch, or leaves it no operating
+point, or no duty runs below the request). Reduced-duty charging is then
+<strong>withheld</strong>: the step is resolved again from the start exactly as without
+these arguments – the compressor that stops at <code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code>, the same
+events and the same cycle solves – and the run says so where that
+cut-out then acts (<code class="docutils literal notranslate"><span class="pre">reduced_withheld</span></code>; <code class="docutils literal notranslate"><span class="pre">reduced_fraction</span></code> is 0; with
+the duty its cycle delivers a withheld step may also end below the
+cut-out, and is then an ordinary step; and where <code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code> is the
+boiling point the stop that acts is that one, which is not marked). A
+step whose knee lies at or above the boiling point never gets to the
+limit and is resolved as without these arguments. What the caller says of
+the step’s conditions does not depend on the step or on where in the
+stretch the tank is. One check of the step itself stands behind it, so
+that no step is credited with heat its cycles do not deliver and none
+under another limit is counted as on this one: each cycle of a step on
+the limit has to deliver the duty the events took for its stretch (the
+request below the knee, the limit’s duty at the stretch’s mean above it)
+to <code class="xref py py-data docutils literal notranslate"><span class="pre">DUTY_MATCH_RTOL</span></code>, and to name no limit as holding it but this
+one (the condensing limit: <code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> is absent or
+<code class="docutils literal notranslate"><span class="pre">&quot;condensing_temperature&quot;</span></code>). A step in which one does not – it has no
+operating point, or another limit holds it although the caller gave a
+duty – is withheld the same way. That includes a full-duty cycle that
+fails outright: whether the compressor then runs at all is for the step
+resolved without these arguments to say, with its own cycle solves.
+That second check does depend on the step: its cycles are solved at the
+means of the step’s own stretches, which move with the step length and
+with the tank temperature the step starts from. Where the caller’s
+answer is right for the whole stretch the check never acts, and adds no
+dependence on the step to what the events and the closing balance have
+of their own. Where another limit acts on a part of the
+stretch the caller did not look at, a step is withheld or not by where
+its cycle lands, and the charge then depends on the step size (measured
+in <code class="docutils literal notranslate"><span class="pre">docs/source/developer/reference-operating-limits.rst</span></code>, <em>Where it
+applies</em>).</p>
+<p>A compressor stopped at the limit’s stop rests for its minimum rest time
+before it restarts (<code class="docutils literal notranslate"><span class="pre">duty_limit</span></code> of <code class="xref py py-func docutils literal notranslate"><span class="pre">simulate_thermostat_step()</span></code>).</p>
 <p>Returns the <code class="xref py py-class docutils literal notranslate"><span class="pre">InStepRun</span></code> and the cycle result (<code class="docutils literal notranslate"><span class="pre">None</span></code> if the
 compressor never had to run in this step).</p>
 <p>When the linearised model puts a switching event within round-off of the
@@ -1688,6 +1985,10 @@ result.</p>
 <li><p><strong>T_limit_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>run_limit_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>Q_hold</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>duty_line</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>min_duty</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>solve_cycle_at_duty</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>rate_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>]</span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1720,7 +2021,7 @@ running values. Adds <code class="docutils literal notranslate"><span class="pre
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">simulate_thermostat_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free_heat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_limit_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#simulate_thermostat_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">simulate_thermostat_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free_heat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_limit_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duty_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">closing_heat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#simulate_thermostat_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Resolve the on/off thermostat inside one step at its switching events.</p>
 <p>The tank is one fully mixed node, <code class="docutils literal notranslate"><span class="pre">C·dT/dt</span> <span class="pre">=</span> <span class="pre">s(t)·Q_on</span> <span class="pre">+</span> <span class="pre">P(T)</span></code>, where
 <code class="docutils literal notranslate"><span class="pre">s</span></code> is the compressor state and <code class="docutils literal notranslate"><span class="pre">P</span></code> the heat rate from everything else
@@ -1785,8 +2086,57 @@ water to reach its envelope stop; 0: already there; <code class="docutils litera
 this step) the compressor stops, and while the call stands it holds
 that water there by giving <code class="docutils literal notranslate"><span class="pre">Q_hold</span></code> [W] (running <code class="docutils literal notranslate"><span class="pre">Q_hold</span> <span class="pre">/</span> <span class="pre">Q_on</span></code>
 of the time; 0: it stays off for the rest of the step).</p></li>
+<li><p><strong>duty_limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DutyLimit</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A compressor that reduces its duty on an operating limit instead of
+stopping (an inverter on its condensing limit). Above the tank
+temperature at which the limit allows <code class="docutils literal notranslate"><span class="pre">Q_on</span></code>
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">DutyLimit.knee_C()</span></code>) the running compressor delivers the
+limit’s duty, <code class="docutils literal notranslate"><span class="pre">K</span> <span class="pre">(T_zero</span> <span class="pre">-</span> <span class="pre">T)</span></code>, so the tank follows
+<code class="docutils literal notranslate"><span class="pre">C</span> <span class="pre">dT/dt</span> <span class="pre">=</span> <span class="pre">K</span> <span class="pre">(T_zero</span> <span class="pre">-</span> <span class="pre">T)</span> <span class="pre">+</span> <span class="pre">P(T)</span></code> – again a linear equation,
+solved exactly between events; the knee is an event. The tank cut-out
+is then where the limit leaves no more than the smallest continuous
+duty (<code class="xref py py-attr docutils literal notranslate"><span class="pre">DutyLimit.stop_C</span></code>, never above <code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code>; the knee
+when the floor is not below <code class="docutils literal notranslate"><span class="pre">Q_on</span></code>). What a compressor stopped there
+does while the call stands depends on its minimum rest time. With one
+(<code class="docutils literal notranslate"><span class="pre">min_off_time_s</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>) the stop is a real one: the compressor rests
+for that time while the tank cools, restarts (an event: a counted
+start, the phase age from it) and runs back to the cut-out, so the run
+time, the starts and the timers describe the same compressor. Without
+one it holds the tank there by cycling at the cut-out’s duty, which is
+what those rests and restarts tend to as the rest time goes to zero:
+a mean of on/off cycling without a differential, reported as one run
+(one start, <code class="docutils literal notranslate"><span class="pre">running_end</span></code> true, <code class="docutils literal notranslate"><span class="pre">phase_age_end_s</span></code> counting from
+that start although the compressor was on for <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span></code> of
+the time). Either way, a tank that loses more at the cut-out than the
+duty the limit leaves there is not held and not stopped: the
+compressor runs on, and the tank settles below the cut-out where the
+limit’s duty is the loss. Above the cut-out the
+compressor never runs, so it never delivers less than <code class="docutils literal notranslate"><span class="pre">Q_min</span></code> on the
+limit (a tank within <code class="xref py py-data docutils literal notranslate"><span class="pre">TEMPERATURE_TOL_K</span></code> above the cut-out is at
+it). A called tank above the cut-out cools to it and is held from
+there; the heat of that hold in the step it begins in is the one the
+implicit balance closing the step needs to end at the cut-out
+(<code class="docutils literal notranslate"><span class="pre">closing_heat</span></code>), so that the next step finds the tank at the
+cut-out and the hold is one start (without it the step ended above
+the cut-out, by the loss the warmer tank had on the way, and the next
+step counted a stop and a start). The run reports the stretch on the limit
+separately (<code class="docutils literal notranslate"><span class="pre">reduced_fraction</span></code>, <code class="docutils literal notranslate"><span class="pre">T_reduced_mean_C</span></code>,
+<code class="docutils literal notranslate"><span class="pre">T_full_mean_C</span></code>): the mean duty of the stretch is the limit’s duty at
+its mean temperature, exactly, whatever the step. Mixed tanks only:
+not combined with <code class="docutils literal notranslate"><span class="pre">run_limit_s</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_hold</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code>: the
+compressor delivers <code class="docutils literal notranslate"><span class="pre">Q_on</span></code> whenever it runs.</p></li>
+<li><p><strong>closing_heat</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – With a <code class="docutils literal notranslate"><span class="pre">duty_limit</span></code> only: the heat [J] the compressor has to give
+in this step for the balance the caller closes the step with to end
+at a tank temperature [°C] (negative: without any heat the step ends
+above it). It decides whether a tank that cooled to the cut-out in
+this step is held in it, and with how much heat; the caller’s own
+balance is asked because it need not be the straight line of
+<code class="docutils literal notranslate"><span class="pre">free_heat</span></code> (<code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_step_operation()</span></code> passes the boiler’s
+implicit tank residual). <code class="docutils literal notranslate"><span class="pre">None</span></code>: the implicit balance of that line,
+<code class="docutils literal notranslate"><span class="pre">dt</span> <span class="pre">(-P(T))</span> <span class="pre">-</span> <span class="pre">C</span> <span class="pre">(T_start</span> <span class="pre">-</span> <span class="pre">T)</span></code>.</p></li>
 <li><p><strong>thermostat</strong> (<em>A stop</em><em> or </em><em>a blocked start either cut-out causes while the</em>)</p></li>
-<li><p><strong>limit_stop.</strong> (<em>would have run sets</em>)</p></li>
+<li><p><strong>also</strong> (<em>would have run sets limit_stop</em><em> (</em><em>with a duty_limit</em>)</p></li>
+<li><p><strong>limit_stop_C</strong></p></li>
+<li><p><strong>gave</strong><strong>)</strong><strong>.</strong> (<em>the cut-out the limit</em>)</p></li>
 <li><p><strong>the</strong> (<em>More than 1000 switching events in one step</em><em> (</em><em>a band too narrow for</em>)</p></li>
 <li><p><strong>limit</strong> (<em>step</em><em>) </em><em>are closed by the fast-cycling</em>)</p></li>
 <li><p><strong>rest</strong> (<em>temperature it reached and the compressor runs the fraction</em><em> of </em><em>the</em>)</p></li>
@@ -1820,6 +2170,30 @@ but had no cycle reports the cycle’s off-mode failure row; otherwise
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">REDUCED_DUTY_FRACTION_KEY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'reduced_duty_fraction</span> <span class="pre">[-]'</span></span></dt>
+<dd><p>Row key of a boiler built with <code class="docutils literal notranslate"><span class="pre">condensing_limit_control=&quot;reduce_duty&quot;</span></code>:
+the fraction of the step the compressor ran at reduced duty on the
+condensing limit (<code class="docutils literal notranslate"><span class="pre">InStepRun.reduced_fraction</span></code>; 0 when it did not). It is
+part of <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">REDUCED_DUTY_WITHHELD_KEY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'reduced_duty_withheld'</span></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">None</span></code>, or what withheld reduced-duty
+charging in a step that was therefore resolved as
+<code class="docutils literal notranslate"><span class="pre">condensing_limit_control=&quot;stop&quot;</span></code> resolves it and in which the nameplate
+cut-out acted (<code class="docutils literal notranslate"><span class="pre">InStepRun.reduced_withheld</span></code>;
+<a class="reference internal" href="refrigerant-thermo.html#tmhp.compressor_envelope.condensing_stretch" title="tmhp.compressor_envelope.condensing_stretch"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.condensing_stretch()</span></code></a> has the values).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Row key of the same boilers</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1964,11 +2338,6 @@ tank at <code class="xref py py-data docutils literal notranslate"><span class="
 <span class="sig-name descname"><span class="pre">level_next</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out_unmet</span></span></em><span class="sig-paren">)</span></dt>
@@ -1985,6 +2354,11 @@ tank at <code class="xref py py-data docutils literal notranslate"><span class="
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
@@ -2033,6 +2407,36 @@ drawn from until the make-up lifts it).</p>
 <li><p><strong>level_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>level_max</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">merge_running_rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_reduced</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_keys</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#merge_running_rows"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Mean running cycle of a step that ran <code class="docutils literal notranslate"><span class="pre">f_full</span></code> of it on one cycle and <code class="docutils literal notranslate"><span class="pre">f_reduced</span></code> on another.</p>
+<p>Every finite rate in <code class="docutils literal notranslate"><span class="pre">rate_keys</span></code> (heat, power, flow) is the
+run-time-weighted mean of the two cycles, so the row times the step’s run
+time is the step’s energy. <code class="docutils literal notranslate"><span class="pre">cop_ref</span> <span class="pre">[-]</span></code> and <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> are the
+ratios of the merged heat and power. Every other quantity – temperatures,
+pressures, speed, efficiencies – is a state of one machine at one moment
+and has no mean: it is that of the cycle that ran longer (the full-duty
+one at a tie). The capacity keys are those of <code class="docutils literal notranslate"><span class="pre">reduced</span></code> (the step ran
+below its request for part of the time) with <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> the mean running
+duty, so <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span> <span class="pre">*</span> <span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> is the row’s step-average
+heat as on every reduced step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>full</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
+<li><p><strong>f_full</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>reduced</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
+<li><p><strong>f_reduced</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rate_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3452,8 +3856,9 @@ runs, an extra heating load of</p>
 <div class="math notranslate nohighlight">
 \[Q_{defrost} = 0.01\,t_{frac}\,(7.222 - T_{out})\,Q_{rated} / 1.01667 .\]</div>
 </div>
-<p>Four things differ from EnergyPlus. The first two change the correction –
-the onset of frosting, here, and the load on the coil, in the next section:</p>
+<p>Five things differ from EnergyPlus. The first three change the correction –
+the onset of frosting with the outdoor temperature and with the outdoor
+humidity, here, and the load on the coil, in the next section:</p>
 <ul>
 <li><p><strong>Onset.</strong> In EnergyPlus the correction is a switch at the maximum outdoor
 temperature for defrost operation: at 5.0 degC and the default humidity the
@@ -3475,8 +3880,50 @@ share <code class="docutils literal notranslate"><span class="pre">w</span></cod
 \[ \begin{align}\begin{aligned}t_{frac} &amp;\leftarrow w\,t_{frac}\\\text{capacity multiplier} &amp;= 1 - w\,\left(1 - 0.875\,(1 - t_{frac})\right)\\\text{power multiplier} &amp;= 1 - w\,\left(1 - 0.954\,(1 - t_{frac})\right)\end{aligned}\end{align} \]</div>
 </div>
 <p>– the mean of a unit that frosts for the share <code class="docutils literal notranslate"><span class="pre">w</span></code> of its runtime and
-runs frost-free for the rest. At and below 2 degC and above 5 degC nothing
-differs from EnergyPlus; <code class="docutils literal notranslate"><span class="pre">transition_K=0</span></code> restores the switch.</p>
+runs frost-free for the rest. Above 5 degC nothing differs from
+EnergyPlus, nor at and below 2 degC at the rated load in air whose frost
+point is the band of the next item above the coil or more (at 2 degC and
+50 % relative humidity it is not: the COP multiplier is 0.983 here and
+0.912 in EnergyPlus); <code class="docutils literal notranslate"><span class="pre">transition_K=0</span></code> restores the switch.</p>
+</li>
+<li><p><strong>Air too dry to frost the coil.</strong> The factors 0.875 and 0.954 are what a
+coil loses, on average, between two defrosts: the frost that builds up on
+it. EnergyPlus applies them wherever the outdoor temperature is below the
+limit – also to air that cannot deposit on the coil, where
+<span class="math notranslate nohighlight">\(\Delta\omega\)</span> sits on its floor of 1e-6: at -5 degC and 50 %
+relative humidity the defrost time is 0.01 % of the runtime and the COP is
+still multiplied by 0.917. The rating conditions the factors describe are
+humid (EN 14511: wet bulb 1 K below the dry bulb, 84 % at 2 degC and 75 %
+at -7 degC); a cold dry winter is not, and there the fixed losses add 8 to
+9 % to the electricity of every sub-zero hour. A coil warmer than the frost
+point of the air collects no frost, so here the correction ends there: with
+the coil of the correlation at <code class="docutils literal notranslate"><span class="pre">T_coil</span></code>, the frost point of the air at
+<code class="docutils literal notranslate"><span class="pre">T_fp</span></code> and <span class="math notranslate nohighlight">\(\Delta\omega = \omega_{out} - \omega_{sat}(T_{coil})\)</span>
+(positive exactly when <code class="docutils literal notranslate"><span class="pre">T_fp</span></code> is above <code class="docutils literal notranslate"><span class="pre">T_coil</span></code>),</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}s &amp;= \min\left(1,\;
+    \frac{\max(0,\, T_{fp} - T_{coil})}{\min(\Delta T_{band},\, -T_{coil})}\right)\\t_{frac} &amp;= \frac{\max(0, \Delta\omega)}{\max(0, \Delta\omega) + 0.01446}\\\text{capacity multiplier} &amp;= (1 - 0.125\,s)(1 - t_{frac}), \qquad
+\text{power multiplier} = (1 - 0.046\,s)(1 - t_{frac})\end{aligned}\end{align} \]</div>
+</div>
+<p>– no correction when the frost point of the air is at or below the coil
+temperature (<span class="math notranslate nohighlight">\(\Delta\omega \le 0\)</span>), the fixed losses in full when
+it is <code class="docutils literal notranslate"><span class="pre">frost_point_band_K</span></code> (3 K) or more above it, and linearly in the
+frost point in between: a coil is not at one temperature, so near the
+onset part of it frosts. No measurement fixes the width of that band. 3 K
+is the width this module already uses for the onset with the outdoor
+temperature, and it leaves the rating conditions that give a wet bulb at
+the full correction (EN 14511 A2 and A-7, AHRI 210/240 H2, and the default
+84 % down to -20 degC), so wherever the air is as humid as a test room the
+result is EnergyPlus unchanged. The band ends at 0 degC whatever its
+width (the denominator above: <code class="docutils literal notranslate"><span class="pre">T_coil</span></code> is below 0 degC): air with a dew
+point at or above freezing leaves all the frost a coil can take. Only the
+frost point of the air itself enters, so the share is defined wherever
+the air state is, at any pressure. A coil at or above 0 degC is not
+corrected, as in EnergyPlus; with the default limit of 5 degC the coil of
+the correlation is at -4.5 degC or colder and never reaches that step,
+which a higher <code class="docutils literal notranslate"><span class="pre">T_out_max</span></code> or a given <code class="docutils literal notranslate"><span class="pre">T_coil_C</span></code> near 0 degC does. <code class="docutils literal notranslate"><span class="pre">frost_point_band_K=0</span></code> switches the fixed losses at the frost
+point; <code class="docutils literal notranslate"><span class="pre">None</span></code> is EnergyPlus (the fixed losses whatever the deposition).</p>
 </li>
 </ul>
 <p>The other two are there so that no input is added:</p>
@@ -3531,22 +3978,28 @@ not frost) – is a share <code class="docutils literal notranslate"><span class
 t_{frac} = \frac{1}{1 + 0.01446 / \Delta\omega(r)}\\\text{capacity multiplier} &amp;= \left(1 - 0.125\,\varphi\right)(1 - t_{frac}), \qquad
 \text{power multiplier} = \left(1 - 0.046\,\varphi\right)(1 - t_{frac})\end{aligned}\end{align} \]</div>
 </div>
-<p>At <code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">=</span> <span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">phi</span> <span class="pre">=</span> <span class="pre">1</span></code> and the result is EnergyPlus unchanged at every
-outdoor state; it goes to no correction continuously as the load falls and the
-coil rises to the air’s frost point.</p>
-<p><em>What it inherits.</em> The factors 0.875 and 0.954 are what a coil loses, on
-average, between two defrosts, and EnergyPlus applies them wherever the
-outdoor temperature is below the limit – also to air that cannot deposit
-even on the rated-load coil, where <span class="math notranslate nohighlight">\(\Delta\omega\)</span> sits on its floor
-of 1e-6 (at 60 % relative humidity below -18.3 degC, at 84 % below -39 degC).
-There is no drive there for the load to scale, and they stay at every load.
-Just above that limit a part-loaded coil has no frost and no correction; just
-below it the full fixed loss is back. At half load and 60 % humidity the COP
-multiplier falls from 0.997 at -15 degC to 0.917 at -18.3 degC – more
-correction in drier, colder air. At 84 % the same return is spread from about
--29 degC to -39 degC. The cliff is the EnergyPlus floor showing through, not a
-property of the load term: it cannot be removed while <code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">=</span> <span class="pre">1</span></code> is EnergyPlus
-and the correction is continuous in <code class="docutils literal notranslate"><span class="pre">r</span></code>.</p>
+<p>At <code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">=</span> <span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">phi</span> <span class="pre">=</span> <span class="pre">1</span></code> and the result is the rated-load correction
+unchanged at every outdoor state; it goes to no correction continuously as
+the load falls and the coil rises to the air’s frost point.</p>
+<p><em>Air too dry to frost the rated-load coil.</em> The fixed losses carry the onset
+share <code class="docutils literal notranslate"><span class="pre">s</span></code> of the rated-load coil as well as <code class="docutils literal notranslate"><span class="pre">phi</span></code>: <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">0.125</span> <span class="pre">s</span> <span class="pre">phi</span></code>
+and <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">0.046</span> <span class="pre">s</span> <span class="pre">phi</span></code>. Where the air cannot deposit even on the rated-load
+coil (at 60 % relative humidity below -18.4 degC, at 84 % below -39.2 degC)
+there is no correction at any load, and the approach to it is continuous in
+the outdoor state and in the load. A part-loaded coil at or above the frost
+point of the air is not corrected either: the drive of the load term is cut
+at zero, not at the EnergyPlus floor. Without the frost-point band
+(<code class="docutils literal notranslate"><span class="pre">frost_point_band_K=None</span></code>) that floor shows through: there is no drive in
+dry air for the load to scale, the fixed losses stay at every load, and at
+half load and 60 % humidity the COP multiplier falls from 0.997 at -15 degC
+to 0.917 at -18.4 degC – more correction in drier, colder air. A band of
+zero, or one much narrower than the default, keeps one thing of that form:
+where the air can barely frost the rated-load coil the fixed losses switch
+between none and all over a small range of load, so the load a request
+resolves to can step from a part-loaded coil to the rated-load one. The form
+without the band steps too, though not at the same requests; only
+<code class="docutils literal notranslate"><span class="pre">frost_point_band_K=None</span></code> reproduces it request for request. At one
+atmosphere the default band has no such step.</p>
 <p><em>What it assumes.</em> The air flow over the coil does not follow the load. A
 unit that slows its outdoor fan with the compressor has a colder coil than
 this, so the part-load frost here is a lower bound.</p>
@@ -3584,6 +4037,17 @@ defrost takes comes out of the water it heats.</p>
 <dd><p>Width of the outdoor-temperature band below <code class="docutils literal notranslate"><span class="pre">T_out_max</span></code> over which the frost
 correction grows to its full size [K]: from the EnergyPlus limit (5 degC, no
 frost above) to the frosting rating condition of EN 14511 (A2, 2 degC dry bulb).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.defrost.FROST_POINT_BAND_K">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">FROST_POINT_BAND_K</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3.0</span></span><a class="headerlink" href="#tmhp.defrost.FROST_POINT_BAND_K" title="Link to this definition">¶</a></dt>
+<dd><p>Width of the band of frost points above the coil temperature over which the
+fixed frosted-coil losses grow to their full size [K]. No measurement fixes
+it: it is the width of the temperature onset above (<a class="reference internal" href="#tmhp.defrost.FROST_TRANSITION_K" title="tmhp.defrost.FROST_TRANSITION_K"><code class="xref py py-data docutils literal notranslate"><span class="pre">FROST_TRANSITION_K</span></code></a>),
+and it keeps the rating conditions that give a wet bulb (EN 14511 A2, A-7;
+AHRI 210/240 H2) and the default humidity down to -20 degC at the full
+correction. See “Air too dry to frost the coil” in the module docstring.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -3644,7 +4108,7 @@ nameplate to it (<a class="reference internal" href="#tmhp.defrost.DefrostModel.
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.defrost.DefrostModel">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">DefrostModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.84</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transition_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_weighted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#DefrostModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.DefrostModel" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">DefrostModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.84</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transition_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_weighted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_point_band_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#DefrostModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.DefrostModel" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>EnergyPlus / DOE-2.1E frost adjustment with on-demand reverse-cycle defrost.</p>
 <dl class="field-list simple">
@@ -3662,8 +4126,16 @@ frosted losses with the frost drive that is left
 (<code class="docutils literal notranslate"><span class="pre">frost_state_at_duty</span></code>; “The load on the coil” in the module
 docstring). The ratio is the frost-free duty over the capacity the
 correlation’s unit has at that outdoor temperature
-(<code class="docutils literal notranslate"><span class="pre">reference_capacity</span></code>); at a ratio of one the result is EnergyPlus
-unchanged. On by default; <code class="docutils literal notranslate"><span class="pre">False</span></code> is EnergyPlus at every load.</p></li>
+(<code class="docutils literal notranslate"><span class="pre">reference_capacity</span></code>); at a ratio of one the result is the
+rated-load correction unchanged. On by default; <code class="docutils literal notranslate"><span class="pre">False</span></code> is the
+rated-load correction at every load.</p></li>
+<li><p><strong>frost_point_band_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Width of the band of frost points above the coil temperature over
+which the fixed frosted-coil losses (<code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">0.875</span></code>, <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">0.954</span></code>)
+grow from nothing to their full size [K]. Air whose frost point is at
+or below the coil of the correlation is not corrected at all. The
+band ends at 0 degC, so any finite width is valid. <code class="docutils literal notranslate"><span class="pre">0</span></code> switches
+the fixed losses at the frost point; <code class="docutils literal notranslate"><span class="pre">None</span></code> is EnergyPlus: the
+fixed losses apply whatever the air can deposit.</p></li>
 </ul>
 </dd>
 </dl>
@@ -3685,6 +4157,11 @@ unchanged. On by default; <code class="docutils literal notranslate"><span class
 <dl class="py attribute">
 <dt class="sig sig-object py" id="tmhp.defrost.DefrostModel.load_weighted">
 <span class="sig-name descname"><span class="pre">load_weighted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#tmhp.defrost.DefrostModel.load_weighted" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.DefrostModel.frost_point_band_K">
+<span class="sig-name descname"><span class="pre">frost_point_band_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3.0</span></span><a class="headerlink" href="#tmhp.defrost.DefrostModel.frost_point_band_K" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -3711,7 +4188,10 @@ linear in between. With <code class="docutils literal notranslate"><span class="
 <p><code class="docutils literal notranslate"><span class="pre">T_coil_C</span></code> replaces the coil-temperature correlation
 <code class="docutils literal notranslate"><span class="pre">0.82</span> <span class="pre">T_out</span> <span class="pre">-</span> <span class="pre">8.589</span></code>. No frost above <code class="docutils literal notranslate"><span class="pre">T_out_max</span></code>; below it the
 correction grows to its full size across <code class="docutils literal notranslate"><span class="pre">transition_K</span></code>
-(<a class="reference internal" href="#tmhp.defrost.DefrostModel.frost_share" title="tmhp.defrost.DefrostModel.frost_share"><code class="xref py py-meth docutils literal notranslate"><span class="pre">frost_share()</span></code></a>). No frost on a coil at or above 0 degC either.
+(<a class="reference internal" href="#tmhp.defrost.DefrostModel.frost_share" title="tmhp.defrost.DefrostModel.frost_share"><code class="xref py py-meth docutils literal notranslate"><span class="pre">frost_share()</span></code></a>). No frost on a coil at or above 0 degC either,
+nor (with <code class="docutils literal notranslate"><span class="pre">frost_point_band_K</span></code>) on one at or above the frost point
+of the air; the fixed losses grow to their full size across that band
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">_frost_onset()</span></code>).
 <code class="docutils literal notranslate"><span class="pre">load_ratio</span></code> (0-1, with <code class="docutils literal notranslate"><span class="pre">load_weighted</span></code>) scales the difference
 between the air and the coil of that correlation, and with it the
 frost drive of the rated-load state (<code class="xref py py-meth docutils literal notranslate"><span class="pre">_frost_drive_ratio()</span></code>);
@@ -3743,7 +4223,9 @@ correlation’s unit delivers at this outdoor temperature, at most 1).
 The duty depends on the correction, so the ratio <code class="docutils literal notranslate"><span class="pre">r</span></code> is the root of
 <code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">=</span> <span class="pre">load_ratio(gross_duty(frost_state(r)))</span></code>, which lies between the
 request’s own ratio and 1: more load means a colder coil, more frost
-and a larger duty still.</p>
+and a larger duty still. A request whose own load leaves the coil
+without frost is answered there; one the rated-load state cannot
+deliver is answered with the rated-load state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3846,7 +4328,7 @@ the correlation (ratio 1: the rated-load state, EnergyPlus unchanged).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.defrost.DefrostModel.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.84</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transition_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_weighted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.defrost.DefrostModel.__init__" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.84</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transition_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_weighted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_point_band_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.defrost.DefrostModel.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3854,6 +4336,7 @@ the correlation (ratio 1: the rated-load state, EnergyPlus unchanged).</p>
 <li><p><strong>RH_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>transition_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>load_weighted</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>frost_point_band_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -3863,7 +4346,7 @@ the correlation (ratio 1: the rated-load state, EnergyPlus unchanged).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.defrost.FrostState">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">FrostState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">active</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defrost_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_coil_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">humidity_ratio_difference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_share</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_drive_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#FrostState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.FrostState" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">FrostState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">active</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defrost_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_coil_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">humidity_ratio_difference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_share</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_drive_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_onset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#FrostState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.FrostState" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Frost correction at one outdoor condition.</p>
 <dl class="field-list simple">
@@ -3879,6 +4362,7 @@ the correlation (ratio 1: the rated-load state, EnergyPlus unchanged).</p>
 <li><p><strong>frost_share</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>frost_drive_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>load_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>frost_onset</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -3956,9 +4440,17 @@ losses (1 - 0.875, 1 - 0.954) that applies. 1 at the rated load.</p>
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.defrost.FrostState.frost_onset">
+<span class="sig-name descname"><span class="pre">frost_onset</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.0</span></span><a class="headerlink" href="#tmhp.defrost.FrostState.frost_onset" title="Link to this definition">¶</a></dt>
+<dd><p>Share of the fixed frosted losses the frost point of the air leaves [-]
+(<code class="docutils literal notranslate"><span class="pre">s</span></code>): 0 with a frost point at or below the rated-load coil, 1 with one
+<code class="docutils literal notranslate"><span class="pre">frost_point_band_K</span></code> or more above it (and without the band).</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.defrost.FrostState.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">active</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defrost_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_coil_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">humidity_ratio_difference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_share</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_drive_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.defrost.FrostState.__init__" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">active</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defrost_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_coil_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">humidity_ratio_difference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_share</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_drive_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost_onset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.defrost.FrostState.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3972,6 +4464,7 @@ losses (1 - 0.875, 1 - 0.954) that applies. 1 at the rated load.</p>
 <li><p><strong>frost_share</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>frost_drive_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>load_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>frost_onset</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -3981,7 +4474,7 @@ losses (1 - 0.875, 1 - 0.954) that applies. 1 at the rated load.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.defrost.NO_FROST">
-<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">NO_FROST</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">FrostState(active=False,</span> <span class="pre">defrost_fraction=0.0,</span> <span class="pre">capacity_multiplier=1.0,</span> <span class="pre">power_multiplier=1.0,</span> <span class="pre">T_coil_C=nan,</span> <span class="pre">humidity_ratio_difference=nan,</span> <span class="pre">RH_out=nan,</span> <span class="pre">frost_share=0.0,</span> <span class="pre">frost_drive_ratio=1.0,</span> <span class="pre">load_ratio=1.0)</span></span><a class="headerlink" href="#tmhp.defrost.NO_FROST" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">NO_FROST</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">FrostState(active=False,</span> <span class="pre">defrost_fraction=0.0,</span> <span class="pre">capacity_multiplier=1.0,</span> <span class="pre">power_multiplier=1.0,</span> <span class="pre">T_coil_C=nan,</span> <span class="pre">humidity_ratio_difference=nan,</span> <span class="pre">RH_out=nan,</span> <span class="pre">frost_share=0.0,</span> <span class="pre">frost_drive_ratio=1.0,</span> <span class="pre">load_ratio=1.0,</span> <span class="pre">frost_onset=0.0)</span></span><a class="headerlink" href="#tmhp.defrost.NO_FROST" title="Link to this definition">¶</a></dt>
 <dd><p>nothing is corrected.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -4006,7 +4499,7 @@ losses (1 - 0.875, 1 - 0.954) that applies. 1 at the rated load.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.defrost.frost_free_keys">
-<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">frost_free_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">FrostState(active=False,</span> <span class="pre">defrost_fraction=0.0,</span> <span class="pre">capacity_multiplier=1.0,</span> <span class="pre">power_multiplier=1.0,</span> <span class="pre">T_coil_C=nan,</span> <span class="pre">humidity_ratio_difference=nan,</span> <span class="pre">RH_out=nan,</span> <span class="pre">frost_share=0.0,</span> <span class="pre">frost_drive_ratio=1.0,</span> <span class="pre">load_ratio=1.0)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#frost_free_keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.frost_free_keys" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">frost_free_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">FrostState(active=False,</span> <span class="pre">defrost_fraction=0.0,</span> <span class="pre">capacity_multiplier=1.0,</span> <span class="pre">power_multiplier=1.0,</span> <span class="pre">T_coil_C=nan,</span> <span class="pre">humidity_ratio_difference=nan,</span> <span class="pre">RH_out=nan,</span> <span class="pre">frost_share=0.0,</span> <span class="pre">frost_drive_ratio=1.0,</span> <span class="pre">load_ratio=1.0,</span> <span class="pre">frost_onset=0.0)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#frost_free_keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.frost_free_keys" title="Link to this definition">¶</a></dt>
 <dd><p>Write the frost keys of a row that was not corrected (in place).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -4108,6 +4601,26 @@ frost-free rows.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>T_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>RH</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>P_Pa</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.defrost.frost_point">
+<span class="sig-prename descclassname"><span class="pre">tmhp.defrost.</span></span><span class="sig-name descname"><span class="pre">frost_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">W</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_Pa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">101325.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/defrost.html#frost_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.defrost.frost_point" title="Link to this definition">¶</a></dt>
+<dd><p>Frost point (dew point above 0 degC) of moist air at dry bulb <code class="docutils literal notranslate"><span class="pre">T_C</span></code> with humidity ratio <code class="docutils literal notranslate"><span class="pre">W</span></code> [degC].</p>
+<p>The temperature at which air of this humidity ratio is saturated – over
+ice below 0 degC, as <a class="reference internal" href="#tmhp.defrost.saturation_humidity_ratio" title="tmhp.defrost.saturation_humidity_ratio"><code class="xref py py-func docutils literal notranslate"><span class="pre">saturation_humidity_ratio()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>W</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>P_Pa</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
@@ -4846,7 +5359,7 @@ was called but did not run, or ran below the request.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 20, 2026
+  Last updated Nov 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

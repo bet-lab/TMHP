@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-11-21T23:50:11+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -732,7 +732,8 @@ t_{frac} \leftarrow w\,t_{frac}, \qquad
 \text{multiplier} \leftarrow 1 - w\,(1 - \text{multiplier})\]</div>
 </div>
 <p>— the mean of a unit that frosts for that share and runs frost-free for the
-rest. At and below 2 °C and above 5 °C nothing differs from EnergyPlus. A
+rest. Above 5 °C nothing differs from EnergyPlus, nor at and below 2 °C at the
+rated load in air as humid as a rating condition (<a class="reference internal" href="#ashp-frost-dry"><span class="std std-ref">dry air</span></a>). A
 request <code class="docutils literal notranslate"><span class="pre">Q</span></code> has to
 be met by the mean, so the cycle is solved frost-free at
 <code class="docutils literal notranslate"><span class="pre">(Q</span> <span class="pre">+</span> <span class="pre">Q_defrost)</span> <span class="pre">/</span> <span class="pre">capacity</span> <span class="pre">multiplier</span></code> and the row is then averaged:</p>
@@ -872,7 +873,7 @@ difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
 </tbody>
 </table>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">DefrostModel(load_weighted=False)</span></code> is EnergyPlus at every load. A unit that
+<p><code class="docutils literal notranslate"><span class="pre">DefrostModel(load_weighted=False)</span></code> is the rated-load correction at every load. A unit that
 cycles below its minimum capacity is loaded by what the running machine
 delivers. What the load term assumes: the air flow over the coil does not
 follow the load — a unit that slows its outdoor fan with the compressor has a
@@ -883,27 +884,119 @@ fraction. Without it the model uses 84 %, the humidity of the EN 14511 rating
 condition A2 (dry bulb 2 °C, wet bulb 1 °C). <code class="docutils literal notranslate"><span class="pre">defrost=None</span></code> switches the
 correction off, and a <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.DefrostModel</span></code> sets the outdoor limit, the
 width of the transition below it and the default humidity.</p>
-<p>Four things differ from EnergyPlus: the load term above, and three more. The transition above replaces a switch:
+<p>Five things differ from EnergyPlus: the load term above, and four more. The transition above replaces a switch:
 in EnergyPlus the correction is in full at 5.0 °C and absent at 5.1 °C, where
 its cost is at its largest, so the COP of the default unit steps from 3.04 to
 4.29 between 5.0 and 5.5 °C at nameplate capacity. The 5 °C limit is a setting of the defrost
 controller, not the temperature at which a coil frosts over, and a coil near
 freezing frosts on part of its surface and for part of the time.
-<code class="docutils literal notranslate"><span class="pre">DefrostModel(transition_K=0)</span></code> restores the switch. The other two are there
-so that nothing has to be entered: EnergyPlus asks for a curve of defrost
+<code class="docutils literal notranslate"><span class="pre">DefrostModel(transition_K=0)</span></code> restores the switch. Air too dry to frost
+the coil is not corrected (next paragraph). The other two are there so that
+nothing has to be entered: EnergyPlus asks for a curve of defrost
 power, and here the compressor draws, while it defrosts, what it draws while it
 heats; and the coil temperature is EnergyPlus’ correlation rather than the
 evaporating temperature this model solves — the constants were fitted with
 that estimate.</p>
-<p>What it leaves out: dry air is not frost-free in the source model (the
-frosted-coil multipliers 0.875 and 0.954 apply whenever the outdoor air is
-below the limit, whatever its humidity), and that is kept at the rated load.
-It shows through the load term in one place: in air too dry to frost even the
-rated-load coil (below −18.3 °C at 60 % relative humidity, below −39 °C at
-84 %) there is no frost drive for the load to scale, and the fixed
-multipliers stay at every load — at half load and 60 % humidity the COP
-multiplier is 0.997 at −15 °C and 0.917 at −18.3 °C. And the room is not
-cooled in time during a defrost — its effect is in the mean.
+<p id="ashp-frost-dry"><strong>Dry air.</strong> In the source model dry air is not frost-free: the frosted-coil
+multipliers 0.875 and 0.954 apply whenever the outdoor air is below the
+limit, whatever its humidity. They are what a coil loses, on average, to the
+frost it carries between two defrosts, and the rating conditions they
+describe are humid (EN 14511 puts the wet bulb 1 K below the dry bulb: 84 %
+at 2 °C, 75 % at −7 °C). At −5 °C and 50 % relative humidity the air cannot
+deposit on the coil of the correlation — its frost point, −12.9 °C, is below
+the coil at −12.7 °C — and EnergyPlus still multiplies the COP by 0.917, with
+a defrost time of 0.01 % of the runtime. In a cold, dry winter that is 8 to
+9 % on the electricity of every sub-zero hour. Here the correction ends where
+the frost does. With the frost point of the air <span class="math notranslate nohighlight">\(T_{fp}\)</span> and its
+humidity ratio above saturation at the coil, <span class="math notranslate nohighlight">\(\Delta\omega\)</span> (positive
+exactly when the frost point is above the coil),</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[s = \min\left(1,\ \frac{\max(0,\ T_{fp} - T_{coil})}{\min(3\,\mathrm{K},\ -T_{coil})}\right), \qquad
+t_{frac} = \frac{\max(0, \Delta\omega)}{\max(0, \Delta\omega) + 0.01446}, \qquad
+\text{multipliers} = (1 - 0.125\,s)(1 - t_{frac}),\ (1 - 0.046\,s)(1 - t_{frac})\]</div>
+</div>
+<p>— nothing when the frost point of the air is at or below the coil
+temperature, the fixed losses in full when it is 3 K or more above it, and
+linearly in the frost point in between (a coil is not at one temperature, so
+near the onset part of it frosts). No measurement fixes the width of that
+band; 3 K is the width of the temperature transition above, and it leaves
+every rating condition that gives a wet bulb (EN 14511 A2 and A−7, AHRI
+210/240 H2) and the default 84 % down to −20 °C at the full correction, so
+the table above and the catalogue comparison are EnergyPlus unchanged.
+The band ends at 0 °C whatever its width — air with a dew point at or above
+freezing leaves all the frost a coil can take — so any finite width is valid.
+<code class="docutils literal notranslate"><span class="pre">DefrostModel(frost_point_band_K=0)</span></code> switches the fixed losses at the frost
+point and <code class="docutils literal notranslate"><span class="pre">frost_point_band_K=None</span></code> is EnergyPlus.</p>
+<div class="table-wrapper colwidths-given docutils container" id="id5">
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">COP multiplier of the frost adjustment at the rated load, by outdoor humidity</span><a class="headerlink" href="#id5" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 16.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Outdoor</p></th>
+<th class="head"><p>84 %</p></th>
+<th class="head"><p>70 %</p></th>
+<th class="head"><p>60 %</p></th>
+<th class="head"><p>50 %</p></th>
+<th class="head"><p>30 %</p></th>
+<th class="head"><p>EnergyPlus, 30 %</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2 °C</p></td>
+<td><p>0.823</p></td>
+<td><p>0.858</p></td>
+<td><p>0.896</p></td>
+<td><p>0.983</p></td>
+<td><p>1</p></td>
+<td><p>0.917</p></td>
+</tr>
+<tr class="row-odd"><td><p>−5 °C</p></td>
+<td><p>0.865</p></td>
+<td><p>0.887</p></td>
+<td><p>0.935</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>0.917</p></td>
+</tr>
+<tr class="row-even"><td><p>−10 °C</p></td>
+<td><p>0.886</p></td>
+<td><p>0.905</p></td>
+<td><p>0.962</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>0.917</p></td>
+</tr>
+<tr class="row-odd"><td><p>−15 °C</p></td>
+<td><p>0.899</p></td>
+<td><p>0.935</p></td>
+<td><p>0.986</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>0.917</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>With the load term, air too dry to frost even the rated-load coil (below
+−18.4 °C at 60 % relative humidity, below −39.2 °C at 84 %) is not corrected
+at any load, and neither is a part-loaded coil at or above the frost point of
+the air. Without the band there is no frost drive in dry air for the load to
+scale and the fixed multipliers stay at every load — at half load and 60 %
+humidity the COP multiplier would fall from 0.997 at −15 °C to 0.917 at
+−18.4 °C. A coil at or above 0 °C is not corrected, as in EnergyPlus; the
+coil of the correlation is at −4.5 °C or colder below the 5 °C limit, so that
+step is reached only with a higher <code class="docutils literal notranslate"><span class="pre">T_out_max</span></code> or a given coil temperature.</p>
+<p>What it leaves out: the room is not cooled in time during a defrost — its
+effect is in the mean.
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code> reports the same mean
 ceiling, with the frost-free one as <code class="docutils literal notranslate"><span class="pre">Q_max_frost_free</span> <span class="pre">[W]</span></code>.</p>
 </section>
@@ -1597,7 +1690,7 @@ changed.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 21, 2026
+  Last updated Nov 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

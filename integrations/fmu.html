@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP’s current FMU adapter wraps AirSourceHeatPumpBoiler as an FMI Co-Simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB reference dynamic state and advanc..." />
 
-    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T09:53:26+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -322,8 +322,8 @@ cycle-resolved core by exactly one <code class="docutils literal notranslate"><s
 message at a time:</p>
 <div class="tmhp-diagram" data-diagram="fmu-seq"></div><p>The headline difference between the two adapters lives in that <code class="docutils literal notranslate"><span class="pre">do_step</span></code>
 return: the FMI 2.0 slave returns a bare <code class="docutils literal notranslate"><span class="pre">bool</span></code>, while the FMI 3.0 slave
-returns an <code class="docutils literal notranslate"><span class="pre">Fmi3StepResult</span></code> and can signal an invalid input as a discarded
-step with early return. Either way, <code class="docutils literal notranslate"><span class="pre">step()</span></code> is the only TMHP call per
+returns an <code class="docutils literal notranslate"><span class="pre">Fmi3StepResult</span></code>, which can also carry <code class="docutils literal notranslate"><span class="pre">fmi3Error</span></code> (see
+<a class="reference internal" href="#fmu-invalid-inputs"><span class="std std-ref">Invalid importer inputs</span></a>). Either way, <code class="docutils literal notranslate"><span class="pre">step()</span></code> is the only TMHP call per
 communication step, which is what keeps the FMU output aligned with a native
 <code class="docutils literal notranslate"><span class="pre">analyze_dynamic()</span></code> run.</p>
 </section>
@@ -341,8 +341,9 @@ target operating system, architecture, and Python ABI.</p>
 <li><p>FMI outputs are sanitized so NaN or infinity does not cross the
 importer boundary.</p></li>
 </ul>
-<p>The FMI 3.0 adapter returns <code class="docutils literal notranslate"><span class="pre">Fmi3StepResult</span></code> and can signal invalid
-input as a discarded step with early return. It otherwise exposes the
+<p>The FMI 3.0 adapter returns <code class="docutils literal notranslate"><span class="pre">Fmi3StepResult</span></code>; how both adapters answer a
+step they cannot take is described in <a class="reference internal" href="#fmu-invalid-inputs"><span class="std std-ref">Invalid importer inputs</span></a>. It otherwise
+exposes the
 same scalar boundary as the FMI 2.0 adapter so regression tests can
 compare both FMUs against the same native <code class="docutils literal notranslate"><span class="pre">analyze_dynamic()</span></code> schedule.</p>
 </section>
@@ -510,18 +511,68 @@ communication step.</p></td>
 </div>
 </section>
 <section id="invalid-importer-inputs">
-<h2>Invalid importer inputs<a class="headerlink" href="#invalid-importer-inputs" title="Link to this heading">¶</a></h2>
-<p>Before advancing the internal state, the slave rejects non-finite time
-or input values, non-positive communication step sizes, negative
-<code class="docutils literal notranslate"><span class="pre">dhw_draw</span></code>, and <code class="docutils literal notranslate"><span class="pre">RH_out</span></code> values outside the documented range or
-start value. FMI 2.0 returns <code class="docutils literal notranslate"><span class="pre">False</span></code> and FMI 3.0 returns discard with
-early return. Both set the diagnostic outputs to:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span><span data-line="1">hp_is_on = false
-</span><span data-line="2">converged = false
-</span><span data-line="3">failure_reason = &quot;invalid_input&quot;
-</span></pre></div>
+<span id="fmu-invalid-inputs"></span><h2>Invalid importer inputs<a class="headerlink" href="#invalid-importer-inputs" title="Link to this heading">¶</a></h2>
+<p>Before advancing the internal state, the slave checks the step it is asked
+to take. A step it refuses changes nothing the importer can observe: the
+carried model state, the step counter, the time and every output keep the
+values of the last accepted step. The reason (which value, and what it was)
+goes to the importer’s log callback with the returned status (discard or
+error). The PythonFMU and PythonFMU3 bridges forward it only while debug
+logging is on: <code class="docutils literal notranslate"><span class="pre">loggingOn</span></code> at instantiation, or a later
+<code class="docutils literal notranslate"><span class="pre">fmi2SetDebugLogging</span></code> / <code class="docutils literal notranslate"><span class="pre">fmi3SetDebugLogging</span></code> call (FMPy:
+<code class="docutils literal notranslate"><span class="pre">simulate_fmu(...,</span> <span class="pre">debug_logging=True)</span></code>).</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 30.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Refused step</p></th>
+<th class="head"><p>FMI 3.0 status</p></th>
+<th class="head"><p>FMI 2.0 status</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Unusable input or parameter value: non-finite <code class="docutils literal notranslate"><span class="pre">T0</span></code>, <code class="docutils literal notranslate"><span class="pre">T_sup_w</span></code> or
+<code class="docutils literal notranslate"><span class="pre">T_sur</span></code>, negative or non-finite <code class="docutils literal notranslate"><span class="pre">dhw_draw</span></code>, or <code class="docutils literal notranslate"><span class="pre">RH_out</span></code> outside
+0 to 1 that is not the start value <code class="docutils literal notranslate"><span class="pre">-1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fmi3Discard</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fmi2Discard</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Illegal <code class="docutils literal notranslate"><span class="pre">doStep</span></code> argument: a non-finite communication point, or a
+communication step size that is not finite and positive</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fmi3Error</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fmi2Discard</span></code></p></td>
+</tr>
+</tbody>
+</table>
 </div>
-<p>The state is not advanced for that rejected step.</p>
+<p>Under FMI 3.0, <code class="docutils literal notranslate"><span class="pre">fmi3Discard</span></code> keeps “the same state as before the call”
+(FMI 3.0.2, section 2.2.4). An importer may correct an input and repeat the
+step from the same communication point, and the result is the one an
+uninterrupted run with the corrected input gives. <code class="docutils literal notranslate"><span class="pre">T_sur</span></code> is a fixed
+parameter and cannot be corrected that way. An importer that does not try
+another approach must end the run, as the standard requires. <code class="docutils literal notranslate"><span class="pre">fmi3Error</span></code>
+answers illegal arguments (section 2.2.4) and ends the run: the instance is
+then terminated (section 2.3.1) and answers any further step with
+<code class="docutils literal notranslate"><span class="pre">fmi3Error</span></code> until it is reset. The adapter never uses <code class="docutils literal notranslate"><span class="pre">earlyReturn</span></code> to
+signal a refused step (section 4.2.1).</p>
+<p>Under FMI 2.0 a discarded step ends the run: PythonFMU reports
+<code class="docutils literal notranslate"><span class="pre">fmi2Terminated</span></code> with <code class="docutils literal notranslate"><span class="pre">fmi2LastSuccessfulTime</span></code> at the communication point
+of the refused step, and it offers no FMU-state restore to repeat the step
+from. FMPy’s <code class="docutils literal notranslate"><span class="pre">simulate_fmu</span></code> then returns the result up to that point
+without raising; the log line gives the reason. PythonFMU has no
+<code class="docutils literal notranslate"><span class="pre">fmi2Error</span></code> path (it maps <code class="docutils literal notranslate"><span class="pre">False</span></code> to <code class="docutils literal notranslate"><span class="pre">fmi2Discard</span></code> and a Python
+exception to <code class="docutils literal notranslate"><span class="pre">fmi2Fatal</span></code>), so an illegal step size is discarded as well.</p>
+<p>PythonFMU3 does not write the <code class="docutils literal notranslate"><span class="pre">earlyReturn</span></code> and <code class="docutils literal notranslate"><span class="pre">eventHandlingNeeded</span></code>
+arguments of <code class="docutils literal notranslate"><span class="pre">fmi3DoStep</span></code>. After a refused step it sets
+<code class="docutils literal notranslate"><span class="pre">lastSuccessfulTime</span></code> to the communication point the step started from; FMI
+leaves that value undefined after a discard or an error, so an importer
+should rely on the returned status instead.
+FMPy’s <code class="docutils literal notranslate"><span class="pre">simulate_fmu</span></code> raises <code class="docutils literal notranslate"><span class="pre">FMICallException</span></code> for an FMI 3.0 discard or
+error.</p>
 </section>
 <section id="relationship-to-native-python-simulation">
 <h2>Relationship to native Python simulation<a class="headerlink" href="#relationship-to-native-python-simulation" title="Link to this heading">¶</a></h2>
@@ -606,5 +657,5 @@ same schedule, especially <code class="docutils literal notranslate"><span class
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=4f6155f3"></script></body>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=a010399f"></script></body>
 </html>

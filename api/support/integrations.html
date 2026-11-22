@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T09:53:26+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -291,11 +291,14 @@ FMI 2.0 uses PythonFMU; FMI 3.0 uses PythonFMU3. The generated FMUs are
 tool-coupling artifacts: Python, TMHP, CoolProp, NumPy, and SciPy must be
 available in the importing environment. The FMU model descriptions are validated
 with FMPy in tests. The XML declares units for power, temperature, DHW draw, and
-COP so importers can perform basic unit checks. The slaves reject invalid
-importer inputs (non-finite time/input values, non-positive communication step
-sizes, or negative DHW draw) before advancing the internal <code class="docutils literal notranslate"><span class="pre">step()</span></code> state and
-expose <code class="docutils literal notranslate"><span class="pre">failure_reason=&quot;invalid_input&quot;</span></code>. The FMI 3.0 slave reports that case
-as a discarded step with early return.</p>
+COP so importers can perform basic unit checks. The slaves refuse a step with
+unusable input values (non-finite values, negative DHW draw, outdoor humidity
+outside 0 to 1 other than the start value -1) with a discard, and an illegal
+step argument (non-finite time, step size not finite and positive) with
+<code class="docutils literal notranslate"><span class="pre">fmi3Error</span></code> under FMI 3.0 and a discard under FMI 2.0. A refused step leaves
+the model state and every output unchanged and, with debug logging on,
+logs the reason; see
+<a class="reference internal" href="../../integrations/fmu.html#fmu-invalid-inputs"><span class="std std-ref">Invalid importer inputs</span></a>.</p>
 <p>EnergyPlus coupling uses the Python Plugin DataExchange API. The adapter first
 resolves and validates all handles, then reads only finite boundary values
 before calling <code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code>. Invalid boundary data is reported through
@@ -1196,5 +1199,5 @@ groundwater flow (they set the thermal front velocity).</p></li>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="../../_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="../../_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="../../_static/js/widgets/integration-diagrams.js?v=4f6155f3"></script></body>
+      <script defer="defer" src="../../_static/js/widgets/integration-diagrams.js?v=a010399f"></script></body>
 </html>

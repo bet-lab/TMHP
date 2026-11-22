@@ -14,7 +14,8 @@
   },
   "heating_scales": {
    "heat_ua_x50": 0.5,
-   "heat_ua_x200": 2.0
+   "heat_ua_x200": 2.0,
+   "heat_ua_limit": 100.0
   },
   "rules": [
    "nameplate",
@@ -56,7 +57,7 @@
   "validation/results/indoor_ua_wet_coil_once/ua_from_shr_held.csv"
  ],
  "coefficient_version": "ossorio-r290-te-2026-11-21",
- "git_head": "65822fdd4d11fc3f2ed720ec28eafa6d04e9ecc4",
+ "git_head": "09f8fba17dad5c30db934658063ff96f3660fbe3",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -71,7 +72,7 @@
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-22T04:50:24+00:00",
- "study_script_blob": "d2094db57e74015abc944b9c1bf140af5555883b",
+ "run_at": "2026-11-22T05:10:43+00:00",
+ "study_script_blob": "413a41e7827b229abb5b83d4f7af6088aec18ba6",
  "study_script_uncommitted": false
 }

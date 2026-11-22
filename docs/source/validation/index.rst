@@ -1007,12 +1007,13 @@ sensible heat ratio falls from 0.047 to 0.005. The COP bias goes from −3.1 % t
 from the catalogue, the rows towards it. By unit the bias runs from −13.4 %
 (2.0 kW) to +12.6 % (5.0 kW) with the shipped conductance and from −12.5 % to
 +2.9 % with the solved one, so the run with the size of the unit narrows from
-26.1 to 15.3 points, 41 % of it. The two smaller units stay 12 % low, and no
-indoor conductance brings them to the catalogue: with the solved conductance
-doubled, their bias is still −9.8 % and −9.4 %. Passing the conductance alone
-also re-solves the model's rated speed, from 51.5 to 64.1 rev/s for the 5.0 kW
-unit, and leaves every operating point where it was, because the efficiency
-map takes the speed in rev/s.
+26.1 to 15.3 points, 41 % of it. The two smaller units stay 12 % low, and a
+larger indoor conductance does not bring them to the catalogue: with a hundred
+times the shipped conductance, a contact factor of 1, their bias is −9.3 % and
+−9.0 %. Passing the conductance alone also re-solves the model's rated speed,
+from 51.5 to 64.1 rev/s for the 5.0 kW unit; the COP, the evaporating
+temperature and the pressure ratio of every row are the same as with the
+rated speed held (the efficiency map takes the speed in rev/s).
 
 **Where the rest lies.** With the solved conductance, 13 of the 180 rows lie
 outside the data of the efficiency map
@@ -1022,15 +1023,19 @@ pressure-ratio floor of 1.5; none is outside its speed range of 30 to
 110 rev/s. Their bias is −3.1 % against −6.5 % for the rows inside, and they
 carry 0.2 of the 6.2 points. Along the pressure ratio the bias stays between
 −2.5 % and −7.4 % over five bands from the floor to above 2.3, and along the
-evaporating temperature it is not ordered. What it follows is the unit, and
-within a unit the indoor condition: over all units from −11.6 % at 20 °C dry
-bulb / 14 °C wet bulb to +0.2 % at 32 °C / 24 °C, where the dry coil's rows
-stay between −14.9 % and −10.9 %. Unit and indoor condition together account
-for 91 % of the variance of the rows' bias. By unit, the model's compressor
-draws 17 % more than the published COP leaves for it for the 2.0 kW unit and
-3 % less for the 5.0 kW unit. The study does not say why: the outdoor coil and
-fan, whose size the catalogues do not publish, the compressor displacement and
-the compressor's level all differ by unit and are not separated here.
+evaporating temperature it is not ordered. It differs by unit, and within
+every unit it rises with the indoor condition: over all units from −11.6 % at
+20 °C dry bulb / 14 °C wet bulb to +0.2 % at 32 °C / 24 °C, where the dry
+coil's rows stay between −14.9 % and −10.9 %. A least-squares fit on the unit
+and the indoor condition as categories accounts for 91 % of the variance of
+the rows' bias, and a linear fit on the three axes of the map for 64 %; the
+axes move with the unit and the room, so the two figures are not shares of
+one total. At the model's own delivery and fan powers, its compressor draws
+17 % more than the published COP leaves for it for the 2.0 kW unit and 3 %
+less for the 5.0 kW unit. The study varies the indoor conductance only: the
+outdoor coil and fan and the compressor displacement, which these catalogues
+do not publish and the model sets by its default rules, are not varied, and
+nothing here says which of them the difference between the units comes from.
 
 **Heating.** The indoor coil is the condenser in heating, and the heating
 grids publish no ratio to solve a conductance from. With the conductance of
@@ -1038,19 +1043,20 @@ the cooling ratio the heating bias goes from −11.4 % to −14.6 %, and 7 rows 
 the two largest units fall short of the published capacity. By unit it runs
 from −13.9 % (2.0 kW) to −9.6 % (5.0 kW) with the shipped conductance, and
 from −12.4 % to −19.0 % with the solved one: closer for the two units whose
-conductance rises, further for the three whose conductance falls. With the
-shipped conductance doubled the bias is still −8.6 %, so the indoor coil is
-not the whole of the low heating bias either.
+conductance rises, further for the three whose conductance falls. With a
+hundred times the shipped conductance the bias is −8.1 %, between −9.0 % and
+−7.5 % by unit.
 
 **Candidate rules.** Five rules are fitted on four units and tested on the
 fifth: proportional to the nameplate, proportional to the airflow, a power of
 the airflow, one conductance for every size, and one heat per kelvin of
-driving difference. The best for the ratio is one conductance for every size
-(389 W/K when fitted on all five): it gives the left-out unit's ratio within
-0.019 on average, where the shipped rule has 0.047 and a refitted nameplate
-rule 0.070. Out of the family it does not hold: the two held Fujitsu tables
-imply 153 and 226 W/K, the rules give 315 to 420 W/K, and the ratio is 0.11 to
-0.12 off with any rule.
+driving difference. The last two give the left-out unit's ratio most closely,
+within 0.019 and 0.020 on average, where the shipped rule has 0.047 and a
+refitted nameplate rule 0.070; one conductance for every size is 389 W/K when
+fitted on all five. Each fit rests on four values. On the two held Fujitsu
+units the rules do not reproduce the ratio: their tables imply 153 and
+226 W/K, the rules give 315 to 420 W/K, and the ratio is 0.11 to 0.12 off with
+any rule.
 
 **As the default.** Each rule, fitted on the five units, is run in place of
 the default on the two paths of the parity results above. With one conductance
@@ -1059,20 +1065,22 @@ and the heating rows from −11.4 % to −14.6 %; over the two together the bias
 goes from −12.1 % to −16.4 % and the mean absolute error from 12.6 % to
 16.7 %, with 358 of the 360 rows scored. The other four rules end between
 −15.7 % and −16.8 %. On the wet cooling path the same rule moves the bias from
-−3.1 % to −5.8 % (mean absolute error 9.6 % to 8.7 %). The default is
-therefore kept: the published ratio supports a conductance that does not grow
-with the nameplate for this family, and every rule that follows it moves the
-parity results of this page away from the catalogue, because those results
-are low for a reason the indoor coil does not hold.
+−3.1 % to −5.8 % (mean absolute error 9.6 % to 8.7 %). No rule is adopted and
+the default is kept. On these five units every rule lowers both parity paths.
+At the limit of a large indoor conductance the dry-coil cooling rows are still
+−7.7 % and the heating rows −8.1 %, low for every unit, so no indoor
+conductance brings those results to the catalogue, and a rule that lowers the
+conductance of the larger units moves them further from it.
 
 **Limits.** One family of five wall-mounted units of one manufacturer. The
-ratio is published to two decimals, and the data book does not say whether its
-sensible capacities are measured or computed from a fixed bypass factor, which
-a single value per unit would also be consistent with. The fan heat is the
-model's, not a published one. The coil has one surface temperature: the
-refrigerant of a real coil is colder than the surface the air sees, by a
-margin these tables do not give. The heating conductance is not measured at
-all.
+ratio is published to two decimals. One value per unit to that rounding is
+also what a table computed with a fixed bypass factor would give; the study
+cannot tell that from a measured one. The fan heat is the model's rated fan
+power, not a published one, and on 21 of the 180 rows the model runs its
+indoor fan below the published airflow. The coil of the model has one surface
+temperature, equal to the evaporating temperature, and the tables print no
+refrigerant temperature to test that with. The heating tables print nothing
+to solve a heating conductance from.
 
 
 Scope

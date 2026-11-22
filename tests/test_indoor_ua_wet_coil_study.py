@@ -49,6 +49,8 @@ TABLES = (
     study.HEATING_NAME,
     study.HEATING_UNITS_NAME,
     study.RULES_NAME,
+    study.SCAN_NAME,
+    study.SCAN_SUMMARY_NAME,
     study.DEFAULT_NAME,
     study.DEFAULT_SUMMARY_NAME,
     study.HELD_UA_POINTS_NAME,
@@ -90,7 +92,7 @@ def _mismatches(fresh: pd.DataFrame, old: pd.DataFrame, *, rerun: bool = False) 
             if pd.isna(new) and pd.isna(was):
                 continue
             numbers = all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in (new, was))
-            saturation = rerun and column.startswith(("T_evap_C_", "T_cond_C_"))
+            saturation = rerun and (column.startswith(("T_evap_C_", "T_cond_C_")) or column == "T_sat_indoor_C")
             abs_ = RERUN_T_SAT_ABS_K if saturation else 1e-9
             same = new == pytest.approx(was, rel=1e-6, abs=abs_) if numbers else new == was
             if not same:
@@ -256,6 +258,11 @@ def test_sample_rows_reproduce_and_the_shipped_passes_are_the_shipped_ones(commi
     old = committed[study.DEFAULT_NAME]
     old = old[(old.slug == "daikin_rxm50a") & old.point_id.isin((23, 47))].reset_index(drop=True)
     mismatches += [f"default {m}" for m in _mismatches(fresh, old, rerun=True)]
+    # The scan of the conductance, the same two rows.
+    fresh = study.run_scan("daikin_rxm50a", point_ids={"cooling": (23,), "heating": (47,)})
+    old = committed[study.SCAN_NAME]
+    old = old[(old.slug == "daikin_rxm50a") & old.point_id.isin((23, 47))].reset_index(drop=True)
+    mismatches += [f"scan {m}" for m in _mismatches(fresh, old, rerun=True)]
     assert not mismatches, f"validation/results/indoor_ua_wet_coil_once: {HINT}.\n  " + "\n  ".join(mismatches[:15])
 
 
@@ -288,6 +295,7 @@ def test_tables_and_manifest_are_those_of_the_committed_rows(committed):
         (study.BY_INDOOR_NAME, study.bias_by_indoor_condition(points)),
         (study.HEATING_UNITS_NAME, study.heating_by_unit(heating)),
         (study.RULES_NAME, loo),
+        (study.SCAN_SUMMARY_NAME, study.scan_summary(committed[study.SCAN_NAME])),
         (study.DEFAULT_SUMMARY_NAME, study.default_summary(defaults, points, heating)),
         (study.HELD_RULES_NAME, for_held),
     ):
@@ -430,21 +438,6 @@ def test_what_the_conductance_of_the_ratio_does_in_cooling(committed):
     assert (by_unit.cop_bias_pct_wet_ua_shr[slugs[:2]] - by_unit.cop_bias_pct_wet[slugs[:2]]).between(0.4, 1.1).all()
     assert by_unit.cop_bias_pct_wet_ua_shr_x200[slugs[:2]].between(-10.0, -9.0).all()
     assert by_unit.shr_error_wet_ua_shr_x200[slugs[:2]].between(0.03, 0.07).all()
-    # The limit of a large conductance (a hundred times the shipped one: a contact factor of 1 to 1e-12)
-    # leaves them 9 % low: no larger indoor conductance brings them to the catalogue. The bias rises with
-    # the conductance over every scale run, for every unit, so the limit is the most it reaches.
-    points = committed[study.COOLING_NAME]
-    assert (points.UA_W_K_wet_ua_limit == study.LIMIT_SCALE * points.UA_W_K_wet).all()
-    coils = committed[study.UA_POINTS_NAME]
-    assert (points.UA_W_K_wet_ua_limit.to_numpy() / coils.C_air_W_K.to_numpy()).min() > 100.0
-    assert numbers["scored_wet_ua_limit"] == numbers["scored_dry_ua_limit"] == 180
-    assert [round(v, 1) for v in by_unit.cop_bias_pct_wet_ua_limit[slugs]] == [-9.3, -9.0, -3.1, 4.4, 14.2]
-    ladder = ["wet_ua_shr_x70", "wet_ua_shr", "wet_ua_shr_x140", "wet_ua_shr_x200", "wet_ua_limit"]
-    for slug in slugs:
-        assert pd.Series([by_unit.at[slug, f"cop_bias_pct_{name}"] for name in ladder]).is_monotonic_increasing, slug
-    # The dry coil of the parity path at the same limit: low for every unit.
-    assert [round(v, 1) for v in by_unit.cop_bias_pct_dry_ua_limit[slugs]] == [-9.6, -9.9, -10.5, -6.6, -1.7]
-    assert numbers["cop_bias_pct_dry_ua_limit"] == pytest.approx(-7.67, abs=0.01)
     assert numbers["cop_bias_pct_wet_ua_shr_x70"] < numbers["cop_bias_pct_wet_ua_shr"] < 0.0
     assert numbers["cop_bias_pct_wet_ua_shr"] < numbers["cop_bias_pct_wet_ua_shr_x140"] < 0.0
     assert numbers["shr_error_wet_ua_shr_x70"] == pytest.approx(-0.054, abs=1e-3)
@@ -544,11 +537,6 @@ def test_heating_does_not_agree_with_the_conductance_of_the_ratio(committed):
     assert numbers["cop_bias_pct_common_heat_ua_x50"] < numbers["cop_bias_pct_common_heat"] < 0.0
     assert numbers["cop_bias_pct_common_heat"] < numbers["cop_bias_pct_common_heat_ua_x200"] < 0.0
     assert numbers["cop_bias_pct_heat_ua_x200"] == pytest.approx(-8.58, abs=0.01)
-    # ... and not to it: at the limit of a large conductance every unit is still 7.5 to 9 % low, on all rows.
-    assert numbers["cop_bias_pct_heat_ua_limit"] == pytest.approx(-8.15, abs=0.01)
-    assert numbers["scored_heat_ua_limit"] == 180
-    assert by_unit.cop_bias_pct_heat_ua_limit[list(study.UNITS)].between(-9.01, -7.5).all()
-    assert numbers["cop_bias_pct_heat_ua_x200"] < numbers["cop_bias_pct_heat_ua_limit"]
     # ... so the conductance of the ratio helps the two units it enlarges and hurts the three it reduces,
     # and seven rows of the two largest fall short of the published capacity with it.
     assert numbers["cop_bias_pct_heat_ua_shr"] == pytest.approx(-14.61, abs=0.01)
@@ -566,6 +554,53 @@ def test_heating_does_not_agree_with_the_conductance_of_the_ratio(committed):
         -17.3,
         -19.0,
     ]
+
+
+def test_what_a_scan_of_the_conductance_reaches(committed):
+    """Ten conductances from half to a hundred times the shipped one, on the three paths, and each row's best."""
+    scan, summary = committed[study.SCAN_NAME], committed[study.SCAN_SUMMARY_NAME]
+    slugs = list(study.UNITS)
+    assert len(scan) == len(study.DEFAULT_PATHS) * len(study.SCAN_SCALES) * 180
+    assert sorted(set(scan.scale)) == sorted(study.SCAN_SCALES) and max(study.SCAN_SCALES) == 100.0
+    # At the largest scale the coil's contact factor is 1: the conductance is more than 100 times the air's
+    # heat capacity rate.
+    coils = committed[study.UA_POINTS_NAME].drop_duplicates("slug").set_index("slug")
+    largest = scan[scan.scale == 100.0].drop_duplicates("slug").set_index("slug")
+    assert (largest.UA_W_K / coils.C_air_W_K).min() > 100.0
+    # At scale 1 the scan is the shipped passes.
+    at_one = scan[scan.scale == 1.0]
+    for path, table, name in (
+        ("dry", study.COOLING_NAME, "dry"),
+        ("wet", study.COOLING_NAME, "wet"),
+        ("heat", study.HEATING_NAME, "heat"),
+    ):
+        both = at_one[at_one.path == path].merge(
+            committed[table][["slug", "point_id", f"cop_{name}"]], on=["slug", "point_id"]
+        )
+        assert len(both) == 180 and both.usable.all()
+        assert ((both.cop - both[f"cop_{name}"]).abs() <= 1e-6 * both.cop).all(), path
+    best = summary[summary.which == "best"].set_index(["path", "slug"]).sort_index()
+    by_scale = summary[summary.which == "scale"].set_index(["path", "slug", "scale"]).sort_index()
+    # Every row is scored at some conductance of the scan, on every path.
+    assert (best.scored == best.points).all()
+    # A row's COP is not always highest at the largest conductance, so that scale alone is no bound ...
+    for path in study.DEFAULT_PATHS:
+        assert best.rows_highest_at_the_largest_scale[path, "all"] < 180, path
+        assert best.rows_cop_never_falls[path, "all"] < 180, path
+        # ... though it is short of a row's highest by less than a twentieth of a percent,
+        assert 0.0 < best.largest_scale_below_highest_pct_max[path, "all"] < 0.05, path
+        # and the bias with every row at its best conductance is not below the bias at any one scale,
+        assert (by_scale.cop_bias_pct[path, "all"] <= best.cop_bias_pct[path, "all"] + 1e-9).all(), path
+        # nor more than 0.02 point above it from five times the shipped conductance up.
+        assert 0.0 <= best.best_minus_scale_5_and_above_pct_points_max[path, "all"] < 0.02, path
+    # With every row at its best conductance of the scan: the wet coil leaves the two smaller units 9 % low,
+    assert [round(v, 1) for v in best.cop_bias_pct["wet"][slugs]] == [-9.3, -9.0, -3.1, 4.4, 14.2]
+    # the dry coil of the parity path is low for every unit,
+    assert [round(v, 1) for v in best.cop_bias_pct["dry"][slugs]] == [-9.6, -9.9, -10.5, -6.6, -1.7]
+    assert best.cop_bias_pct["dry", "all"] == pytest.approx(-7.67, abs=0.01)
+    # and so is heating.
+    assert best.cop_bias_pct["heat"][slugs].between(-9.01, -7.5).all()
+    assert best.cop_bias_pct["heat", "all"] == pytest.approx(-8.15, abs=0.01)
 
 
 def test_candidate_rules_out_of_sample(committed):
@@ -661,13 +696,6 @@ def test_no_rule_improves_the_shipped_parity_results_as_the_default(committed):
     assert one.cop_MAPE_pct["wet"] < one.cop_MAPE_pct_shipped["wet"]
     # As the default the reference state is re-solved: the largest unit's rated speed rises from 51 to 60 rev/s.
     assert summary.rps_rated["constant", "dry", LARGE] == pytest.approx(60.5, abs=0.05)
-    # At the limit of a large indoor conductance both parity paths are still low, for every unit: the rules
-    # lower them from a level no indoor conductance brings to the catalogue.
-    by_unit = committed[study.BY_UNIT_NAME].set_index("slug")
-    heat = committed[study.HEATING_UNITS_NAME].set_index("slug")
-    assert (by_unit.cop_bias_pct_dry_ua_limit < -1.5).all() and (heat.cop_bias_pct_heat_ua_limit < -7.0).all()
-    assert by_unit.cop_bias_pct_dry_ua_limit["all"] == pytest.approx(-7.67, abs=0.01)
-    assert heat.cop_bias_pct_heat_ua_limit["all"] == pytest.approx(-8.15, abs=0.01)
     # By unit, one conductance moves the smallest unit up and the three larger ones down, the largest by 11 points.
     change = summary.cop_bias_pct["constant", "parity"] - summary.cop_bias_pct_shipped["constant", "parity"]
     assert change[SMALL] == pytest.approx(1.98, abs=0.01) and change[LARGE] == pytest.approx(-10.6, abs=0.05)
@@ -733,10 +761,12 @@ def test_docs_prose_quotes_the_study(committed):
     five = ["on the floor", "floor to 1.7", "1.7 to 1.94", "1.94 to 2.3", "2.3 and above"]
     parity = [summary.cop_bias_pct[rule, "parity", "all"] for rule in study.RULES]
     small, large = by_unit.loc[SMALL], by_unit.loc[LARGE]
-    second = by_unit.loc["daikin_rxm25a"]
+    scan_summary = committed[study.SCAN_SUMMARY_NAME]
+    best = scan_summary[scan_summary.which == "best"].set_index(["path", "slug"]).sort_index()
+    assert best.best_minus_scale_5_and_above_pct_points_max.xs("all", level="slug").between(0.0, 0.01).all()
     # "low for every unit", and "every rule lowers both parity paths".
-    assert (by_unit.cop_bias_pct_dry_ua_limit[list(study.UNITS)] < 0.0).all()
-    assert (heat.cop_bias_pct_heat_ua_limit[list(study.UNITS)] < 0.0).all()
+    assert (best.cop_bias_pct["dry"][list(study.UNITS)] < 0.0).all()
+    assert (best.cop_bias_pct["heat"][list(study.UNITS)] < 0.0).all()
     for rule in study.RULES:
         for path in ("dry", "heat"):
             assert summary.cop_bias_pct[rule, path, "all"] < summary.cop_bias_pct_shipped[rule, path, "all"], (
@@ -772,8 +802,9 @@ def test_docs_prose_quotes_the_study(committed):
         f"{_signed(large.cop_bias_pct_wet_ua_shr)} % with the solved one",
         f"{numbers['cop_bias_pct_spread_of_units_wet']:.1f} to {numbers['cop_bias_pct_spread_of_units_wet_ua_shr']:.1f} "
         f"points, {numbers['cop_bias_spread_of_units_closed_by_UA_of_shr_pct']:.0f} % of it",
-        f"with a hundred times the shipped conductance, a contact factor of 1, their bias is "
-        f"{_signed(small.cop_bias_pct_wet_ua_limit)} % and {_signed(second.cop_bias_pct_wet_ua_limit)} %",
+        f"with every row at the conductance that gives it its highest COP, their bias is "
+        f"{_signed(best.cop_bias_pct['wet', SMALL])} % and {_signed(best.cop_bias_pct['wet', 'daikin_rxm25a'])} %",
+        f"{len(study.SCAN_SCALES)} conductances from half to a hundred times the shipped one",
         f"from {by_unit.rps_rated[LARGE]:.1f} to {by_unit.rps_rated_wet_ua_shr_rerated[LARGE]:.1f} rev/s",
         # Where the rest lies.
         f"{numbers['rows_outside_map']} of the {numbers['scored_wet_ua_shr']} rows lie outside the data of the "
@@ -799,9 +830,9 @@ def test_docs_prose_quotes_the_study(committed):
         f"from {_signed(heat.cop_bias_pct_heat[SMALL])} % (2.0 kW) to {_signed(heat.cop_bias_pct_heat[LARGE])} % "
         f"(5.0 kW) with the shipped conductance, and from {_signed(heat.cop_bias_pct_heat_ua_shr[SMALL])} % to "
         f"{_signed(heat.cop_bias_pct_heat_ua_shr[LARGE])} % with the solved one",
-        f"hundred times the shipped conductance the bias is {_signed(numbers['cop_bias_pct_heat_ua_limit'])} %, between "
-        f"{_signed(heat.cop_bias_pct_heat_ua_limit[list(study.UNITS)].min())} % and "
-        f"{_signed(heat.cop_bias_pct_heat_ua_limit[list(study.UNITS)].max())} % by unit",
+        f"the heating bias is {_signed(best.cop_bias_pct['heat', 'all'])} %, between "
+        f"{_signed(best.cop_bias_pct['heat'][list(study.UNITS)].min())} % and "
+        f"{_signed(best.cop_bias_pct['heat'][list(study.UNITS)].max())} % by unit",
         # Rules.
         f"within {loo['constant']['shr_abs_error_mean']:.3f} and {loo['conductance']['shr_abs_error_mean']:.3f} on "
         f"average, where the shipped rule has {loo['shipped']['shr_abs_error_mean']:.3f} and a refitted nameplate rule "
@@ -821,8 +852,11 @@ def test_docs_prose_quotes_the_study(committed):
         f"between {_signed(max(parity))} % and {_signed(min(parity))} %",
         f"from {_signed(one.cop_bias_pct_shipped['wet'])} % to {_signed(one.cop_bias_pct['wet'])} % "
         f"(mean absolute error {one.cop_MAPE_pct_shipped['wet']:.1f} % to {one.cop_MAPE_pct['wet']:.1f} %)",
-        f"the dry-coil cooling rows are still {_signed(numbers['cop_bias_pct_dry_ua_limit'])} % and the heating rows "
-        f"{_signed(numbers['cop_bias_pct_heat_ua_limit'])} %, low for every unit",
+        f"the dry-coil cooling rows are still {_signed(best.cop_bias_pct['dry', 'all'])} % and the heating rows "
+        f"{_signed(best.cop_bias_pct['heat', 'all'])} %, low for every unit",
+        f"on {180 - int(best.rows_highest_at_the_largest_scale.xs('all', level='slug').min())} of the 180 rows of a path "
+        f"at most",
+        "within 0.01 point of the figure",
         # Limits.
         f"on {low_airflow} of the {numbers['cooling_rows']} rows the model runs its indoor fan below the published "
         f"airflow",

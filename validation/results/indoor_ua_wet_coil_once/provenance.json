@@ -4,7 +4,19 @@
  "question": "the indoor coil's conductance read from the catalogues' sensible heat ratio, what it does to the cooling and heating COP bias on the present compressor map, and what a rule for it would move as the default",
  "model_settings": {
   "model": "validation.parity.run._build_model(catalog, overrides, mode): the shipped parity construction",
-  "overrides": "UA_iu_rated of the pass; with it rps_rated of the shipped build, except in wet_ua_shr_rerated and the default passes (UA_iu_rated alone) and in dry, wet and heat (none)",
+  "overrides": "UA_iu_rated of the pass (of the scale, in the scan); with it rps_rated of the shipped build, except in wet_ua_shr_rerated and the default passes (UA_iu_rated alone) and in dry, wet and heat (none)",
+  "scan_scales": [
+   0.5,
+   0.7,
+   1.0,
+   1.4,
+   2.0,
+   3.0,
+   5.0,
+   10.0,
+   30.0,
+   100.0
+  ],
   "RH_room": "from the row's indoor dry bulb and wet bulb, one standard atmosphere (wet passes); None (dry)",
   "request": "the published capacity, as the parity harness passes it",
   "ua_scales": {
@@ -14,8 +26,7 @@
   },
   "heating_scales": {
    "heat_ua_x50": 0.5,
-   "heat_ua_x200": 2.0,
-   "heat_ua_limit": 100.0
+   "heat_ua_x200": 2.0
   },
   "rules": [
    "nameplate",
@@ -42,6 +53,8 @@
   "validation/results/indoor_ua_wet_coil_once/bias_by_pressure_ratio.csv",
   "validation/results/indoor_ua_wet_coil_once/bias_by_speed.csv",
   "validation/results/indoor_ua_wet_coil_once/bias_by_unit.csv",
+  "validation/results/indoor_ua_wet_coil_once/conductance_scan.csv",
+  "validation/results/indoor_ua_wet_coil_once/conductance_scan_summary.csv",
   "validation/results/indoor_ua_wet_coil_once/cooling_passes.csv",
   "validation/results/indoor_ua_wet_coil_once/cooling_passes_held.csv",
   "validation/results/indoor_ua_wet_coil_once/default_passes.csv",
@@ -57,7 +70,7 @@
   "validation/results/indoor_ua_wet_coil_once/ua_from_shr_held.csv"
  ],
  "coefficient_version": "ossorio-r290-te-2026-11-21",
- "git_head": "09f8fba17dad5c30db934658063ff96f3660fbe3",
+ "git_head": "2810dbf662cca944f0dd5c053b028d81c284a951",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -72,7 +85,7 @@
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-22T05:10:43+00:00",
- "study_script_blob": "413a41e7827b229abb5b83d4f7af6088aec18ba6",
+ "run_at": "2026-11-22T05:27:00+00:00",
+ "study_script_blob": "d1facddad35cf5f629631b969aa1f865e621a873",
  "study_script_uncommitted": false
 }

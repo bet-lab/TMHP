@@ -1007,9 +1007,10 @@ sensible heat ratio falls from 0.047 to 0.005. The COP bias goes from −3.1 % t
 from the catalogue, the rows towards it. By unit the bias runs from −13.4 %
 (2.0 kW) to +12.6 % (5.0 kW) with the shipped conductance and from −12.5 % to
 +2.9 % with the solved one, so the run with the size of the unit narrows from
-26.1 to 15.3 points, 41 % of it. The two smaller units stay 12 % low, and a
-larger indoor conductance does not bring them to the catalogue: with a hundred
-times the shipped conductance, a contact factor of 1, their bias is −9.3 % and
+26.1 to 15.3 points, 41 % of it. The two smaller units stay 12 % low, and none
+of the conductances the study runs brings them to the catalogue: over a scan
+of 10 conductances from half to a hundred times the shipped one, with every
+row at the conductance that gives it its highest COP, their bias is −9.3 % and
 −9.0 %. Passing the conductance alone also re-solves the model's rated speed,
 from 51.5 to 64.1 rev/s for the 5.0 kW unit; the COP, the evaporating
 temperature and the pressure ratio of every row are the same as with the
@@ -1043,9 +1044,9 @@ the cooling ratio the heating bias goes from −11.4 % to −14.6 %, and 7 rows 
 the two largest units fall short of the published capacity. By unit it runs
 from −13.9 % (2.0 kW) to −9.6 % (5.0 kW) with the shipped conductance, and
 from −12.4 % to −19.0 % with the solved one: closer for the two units whose
-conductance rises, further for the three whose conductance falls. With a
-hundred times the shipped conductance the bias is −8.1 %, between −9.0 % and
-−7.5 % by unit.
+conductance rises, further for the three whose conductance falls. Over the
+scan, with every row at its best conductance, the heating bias is −8.1 %,
+between −9.0 % and −7.5 % by unit.
 
 **Candidate rules.** Five rules are fitted on four units and tested on the
 fifth: proportional to the nameplate, proportional to the airflow, a power of
@@ -1067,10 +1068,15 @@ goes from −12.1 % to −16.4 % and the mean absolute error from 12.6 % to
 −15.7 % and −16.8 %. On the wet cooling path the same rule moves the bias from
 −3.1 % to −5.8 % (mean absolute error 9.6 % to 8.7 %). No rule is adopted and
 the default is kept. On these five units every rule lowers both parity paths.
-At the limit of a large indoor conductance the dry-coil cooling rows are still
-−7.7 % and the heating rows −8.1 %, low for every unit, so no indoor
-conductance brings those results to the catalogue, and a rule that lowers the
-conductance of the larger units moves them further from it.
+Over the scan, with every row at the conductance that gives it its highest
+COP, the dry-coil cooling rows are still −7.7 % and the heating rows −8.1 %,
+low for every unit: none of the conductances run brings those results to the
+catalogue, and a rule that lowers the conductance of the larger units moves
+them further from it. That figure is a bound over the conductances of the
+scan, not over every conductance. A row's COP is not always highest at the
+largest one (it is not on 13 of the 180 rows of a path at most), and from
+five times the shipped conductance up the bias at a single conductance is
+within 0.01 point of the figure.
 
 **Limits.** One family of five wall-mounted units of one manufacturer. The
 ratio is published to two decimals. One value per unit to that rounding is

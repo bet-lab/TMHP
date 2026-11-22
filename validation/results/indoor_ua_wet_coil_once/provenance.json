@@ -1,0 +1,77 @@
+{
+ "script": "validation/indoor_ua_wet_coil/simulate.py",
+ "command": "python -m validation.indoor_ua_wet_coil.simulate",
+ "question": "the indoor coil's conductance read from the catalogues' sensible heat ratio, what it does to the cooling and heating COP bias on the present compressor map, and what a rule for it would move as the default",
+ "model_settings": {
+  "model": "validation.parity.run._build_model(catalog, overrides, mode): the shipped parity construction",
+  "overrides": "UA_iu_rated of the pass; with it rps_rated of the shipped build, except in wet_ua_shr_rerated and the default passes (UA_iu_rated alone) and in dry, wet and heat (none)",
+  "RH_room": "from the row's indoor dry bulb and wet bulb, one standard atmosphere (wet passes); None (dry)",
+  "request": "the published capacity, as the parity harness passes it",
+  "ua_scales": {
+   "wet_ua_shr_x70": 0.7,
+   "wet_ua_shr_x140": 1.4,
+   "wet_ua_shr_x200": 2.0
+  },
+  "heating_scales": {
+   "heat_ua_x50": 0.5,
+   "heat_ua_x200": 2.0
+  },
+  "rules": [
+   "nameplate",
+   "airflow",
+   "airflow_power",
+   "constant",
+   "conductance"
+  ],
+  "units": [
+   "daikin_rxm20a",
+   "daikin_rxm25a",
+   "daikin_rxm35a",
+   "daikin_rxm42a",
+   "daikin_rxm50a"
+  ],
+  "held_units": [
+   "fujitsu_asuh09lpas",
+   "fujitsu_asuh12lpas"
+  ]
+ },
+ "outputs": [
+  "validation/results/indoor_ua_wet_coil_once/bias_by_evaporating_temperature.csv",
+  "validation/results/indoor_ua_wet_coil_once/bias_by_indoor_condition.csv",
+  "validation/results/indoor_ua_wet_coil_once/bias_by_pressure_ratio.csv",
+  "validation/results/indoor_ua_wet_coil_once/bias_by_speed.csv",
+  "validation/results/indoor_ua_wet_coil_once/bias_by_unit.csv",
+  "validation/results/indoor_ua_wet_coil_once/cooling_passes.csv",
+  "validation/results/indoor_ua_wet_coil_once/cooling_passes_held.csv",
+  "validation/results/indoor_ua_wet_coil_once/default_passes.csv",
+  "validation/results/indoor_ua_wet_coil_once/default_summary.csv",
+  "validation/results/indoor_ua_wet_coil_once/heating_by_unit.csv",
+  "validation/results/indoor_ua_wet_coil_once/heating_passes.csv",
+  "validation/results/indoor_ua_wet_coil_once/rules_held.csv",
+  "validation/results/indoor_ua_wet_coil_once/rules_leave_one_out.csv",
+  "validation/results/indoor_ua_wet_coil_once/run_manifest.json",
+  "validation/results/indoor_ua_wet_coil_once/ua_by_unit.csv",
+  "validation/results/indoor_ua_wet_coil_once/ua_by_unit_held.csv",
+  "validation/results/indoor_ua_wet_coil_once/ua_from_shr.csv",
+  "validation/results/indoor_ua_wet_coil_once/ua_from_shr_held.csv"
+ ],
+ "coefficient_version": "ossorio-r290-te-2026-11-21",
+ "git_head": "65822fdd4d11fc3f2ed720ec28eafa6d04e9ecc4",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "d01c27cc9f510ec22521969dca2ad610f93f4b01",
+ "validation_parity_tree": "1018184edb56360bb48c2b06daf283ae5a7c5b65",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-22T04:50:24+00:00",
+ "study_script_blob": "d2094db57e74015abc944b9c1bf140af5555883b",
+ "study_script_uncommitted": false
+}

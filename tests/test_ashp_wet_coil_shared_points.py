@@ -439,11 +439,16 @@ CEILING_REL_TOL = 1e-3
 
 
 def _assert_ceiling_row(row: dict, request: float, ceiling: dict) -> None:
-    """``row`` is the unit at the ceiling ``max_capacity`` reported, to the last bit, with nothing unmet under it."""
+    """``row`` is the unit at the ceiling ``max_capacity`` reported, with nothing unmet under it.
+
+    ``Q_max [W]`` of the row is the reported ceiling itself; the delivered heat and the input are
+    those of the state re-solved at the ceiling's approaches, the same to rounding.
+    """
     assert row["failure_reason"] == "none" and row["converged"] and row["hp_is_on"]
     assert row["capacity_clamped"] == "max" and row["capacity_binding"] == ceiling["binding"]
-    assert row["Q_ref_iu [W]"] == ceiling["Q_max [W]"] and row["Q_max [W]"] == ceiling["Q_max [W]"]
-    assert row["E_tot [W]"] == ceiling["E_tot [W]"]
+    assert row["Q_max [W]"] == ceiling["Q_max [W]"]
+    assert row["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-12)
+    assert row["E_tot [W]"] == pytest.approx(ceiling["E_tot [W]"], rel=1e-12)
     assert row["Q_request [W]"] == request
     unmet = request - ceiling["Q_max [W]"]
     assert row["Q_unmet [W]"] == (pytest.approx(unmet, rel=1e-9) if unmet > 1e-9 * request else 0.0)
@@ -479,8 +484,8 @@ def test_request_at_the_ceiling_or_a_hair_under_it_runs_at_the_ceiling(hot_day, 
     row = _steady(unit, request, 46.0, 27.0, RH_room=0.3)
     _assert_ceiling_row(row, request, ceiling)
     assert row["Q_unmet [W]"] == 0.0
-    # Over the request by no more than the search of the ceiling tells apart.
-    assert 0.0 <= row["Q_ref_iu [W]"] - request <= CEILING_REL_TOL * top
+    # Over the request by no more than the search of the ceiling tells apart (to rounding at the ceiling itself).
+    assert -1e-12 * top <= row["Q_ref_iu [W]"] - request <= CEILING_REL_TOL * top
 
 
 @pytest.mark.parametrize("over", ["one float step", 1.05])
@@ -539,7 +544,7 @@ def test_request_at_the_flat_out_ceiling_of_both_fans_held_runs_at_it(capacity, 
         row = _steady(unit, request, **room)
         assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
         assert row["Q_ref_iu [W]"] == pytest.approx(request, rel=1e-12) and row["Q_unmet [W]"] == 0.0
-        assert row["Q_min [W]"] == exact
+        assert row["Q_min [W]"] == pytest.approx(exact, rel=1e-12)
 
 
 @pytest.mark.parametrize("humidity", [None, 0.0])
@@ -586,5 +591,5 @@ def test_dynamic_rows_at_and_around_the_ceiling_do_not_depend_on_the_steps_befor
         steady = pd.Series(_steady(unit, load, room[0], room[1], RH_room=room[2]), dtype=object)
         _assert_same_row(alone, steady)
     for load in loads[1:3]:
-        assert as_given[load]["capacity_clamped"] == "max" and as_given[load]["Q_ref_iu [W]"] == top
-        assert as_given[load]["Q_unmet [W]"] == 0.0
+        assert as_given[load]["capacity_clamped"] == "max" and as_given[load]["Q_max [W]"] == top
+        assert as_given[load]["Q_ref_iu [W]"] == pytest.approx(top, rel=1e-12) and as_given[load]["Q_unmet [W]"] == 0.0

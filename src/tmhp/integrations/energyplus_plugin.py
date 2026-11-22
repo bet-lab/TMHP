@@ -89,6 +89,8 @@ variables ``"... for Plant Connection 1"``) are verified against EnergyPlus
 
 from __future__ import annotations
 
+import atexit
+import contextlib
 import math
 import os
 from typing import Any
@@ -118,12 +120,22 @@ LOOP_DESIGN_VDOT = float(os.environ.get("TMHP_LOOP_DESIGN_VDOT", "0.003"))  # m�
 ECMP_ENERGY_GLOBAL = os.environ.get("TMHP_EPLUS_ECMP_ENERGY_GLOBAL", "tmhp_E_cmp_J")
 ECMP_POWER_GLOBAL = os.environ.get("TMHP_EPLUS_ECMP_POWER_GLOBAL", "tmhp_E_cmp_W")
 ECMP_LEGACY_GLOBAL = "tmhp_E_cmp"
-_LOG = os.environ.get("TMHP_PLUGIN_LOG")  # None -> stdout only
+# None -> stdout only. Resolved once, so the exit summary lands in the same
+# file even if a Python API host changes its working directory before exiting.
+_LOG = os.path.abspath(os.environ["TMHP_PLUGIN_LOG"]) if os.environ.get("TMHP_PLUGIN_LOG") else None
 
 MDOT_FLOOR = 0.05  # kg/s — below this the inlet flow is treated as "off"
 TOUT_MAX = 95.0  # °C — clamp inside the liquid-water property range
 RHO_WATER = 1000.0  # kg/m³ — sizing only
 GUARD_WARNING_LIMIT = 5  # repeated warnings per failure reason before suppression
+# The EPW data dictionary accepts relative humidity from 0 to 110 %, and
+# EnergyPlus 24.2 passes such readings to Site Outdoor Air Relative Humidity
+# unclipped. A reading from 100 to 110 % is saturated air and is used as 100 %.
+EPW_RH_MAX_PERCENT = 110.0
+# EnergyPlus interpolates hourly weather to the zone timestep; between two
+# 110 % hours that can land a few ULP above 110 (110.00000000000001 at 15
+# steps per hour), which is still the EPW endpoint.
+EPW_RH_ROUNDING_PERCENT = 1e-9
 _WEATHER_VARIABLES = {
     "t0": "Site Outdoor Air Drybulb Temperature",
     "rh_out": "Site Outdoor Air Relative Humidity",
@@ -234,6 +246,15 @@ def _issue_warning(api: Any, state: Any, msg: str) -> None:
         _log(msg)
 
 
+_RH_OUTCOME_RANK = {"weather": 0, "clipped_to_100": 1, "default": 2}
+
+
+def _log_humidity_summary(counts: dict[str, int]) -> None:
+    """Log the final outdoor-humidity counts of a run."""
+    text = " ".join(f"{name}={count}" for name, count in counts.items())
+    _log(f"[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: {text}")
+
+
 def _set_global_if_valid(ex: Any, state: Any, handle: int, value: float) -> None:
     """Write an EnergyPlus plugin global only when it was declared in the IDF."""
     if handle != -1:
@@ -241,7 +262,9 @@ def _set_global_if_valid(ex: Any, state: Any, handle: int, value: float) -> None
 
 
 def _log(msg: str) -> None:
-    print(msg, flush=True)
+    # A closed stdout at interpreter shutdown must not drop the file copy.
+    with contextlib.suppress(OSError, ValueError):
+        print(msg, flush=True)
     if _LOG:
         try:
             with open(_LOG, "a") as f:
@@ -328,6 +351,16 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         # so memoize on rounded inputs to avoid recomputing the CoolProp-heavy cycle.
         self._cache: dict[tuple[float, float, float, float, float | None], dict[str, Any]] = {}
         self._warned_humidity = False
+        # Zone timesteps with a heating dispatch (warmup days excluded) by the
+        # humidity the solve used: the weather reading, a reading above 100 %
+        # used as 100 %, or the model default after a missing or invalid
+        # reading. Logged with the periodic tally and once when EnergyPlus
+        # shuts the plugin interpreter down (the CLI calls Py_FinalizeEx).
+        self._rh_timesteps = {"weather": 0, "clipped_to_100": 0, "default": 0}
+        self._rh_timestep_key: tuple[int, int, int, int, int] | None = None
+        self._rh_timestep_outcome = ""
+        # Hold only the counters, not the plugin and its solve cache.
+        atexit.register(_log_humidity_summary, self._rh_timesteps)
         # Convergence tally over dispatched calls (cold-climate high-lift hours
         # may trip the pressure-ratio guard); dumped periodically to the log.
         self._ndispatch = 0
@@ -357,7 +390,12 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         return res
 
     def _read_outdoor_humidity(self, state: Any) -> float | None:
-        """Read the weather percentage as a fraction, using the model default on bad data."""
+        """Read the weather percentage as a fraction, using the model default on bad data.
+
+        Readings above 100 % up to the EPW limit of 110 % are used as 100 %.
+        Each zone timestep outside warmup is counted once in the tally by the
+        humidity the solve used.
+        """
         handle = self.h["rh_out"]
         ex = self.api.exchange
         raw = None
@@ -371,7 +409,12 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
                 raw = None
         percent = _finite_float_or_none(raw)
         if percent is not None and 0.0 <= percent <= 100.0:
+            self._count_humidity_timestep(state, "weather")
             return percent / 100.0
+        if percent is not None and 100.0 < percent <= EPW_RH_MAX_PERCENT + EPW_RH_ROUNDING_PERCENT:
+            self._count_humidity_timestep(state, "clipped_to_100")
+            return 1.0
+        self._count_humidity_timestep(state, "default")
         if not self._warned_humidity:
             self._warned_humidity = True
             _issue_warning(
@@ -380,6 +423,38 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
                 f"[TmhpSurrogate] missing or invalid outdoor relative humidity ({raw!r}); using the model default.",
             )
         return None
+
+    def _count_humidity_timestep(self, state: Any, outcome: str) -> None:
+        """Count a zone timestep once, however often the plant solver calls within it.
+
+        The key is the zone timestep, not the clock: ``current_time()`` moves
+        with HVAC system substeps inside one zone timestep.
+        """
+        ex = self.api.exchange
+        if ex.warmup_flag(state):
+            return
+        key = (
+            ex.current_environment_num(state),
+            ex.year(state),
+            ex.day_of_year(state),
+            ex.hour(state),
+            ex.zone_time_step_number(state),
+        )
+        if key != self._rh_timestep_key:
+            self._rh_timestep_key = key
+            self._rh_timestep_outcome = outcome
+            self._rh_timesteps[outcome] += 1
+            return
+        # A later call in the same timestep that fell back (or was clipped)
+        # reclassifies it, so the counts never hide a fallback the log shows.
+        if _RH_OUTCOME_RANK[outcome] > _RH_OUTCOME_RANK[self._rh_timestep_outcome]:
+            self._rh_timesteps[self._rh_timestep_outcome] -= 1
+            self._rh_timesteps[outcome] += 1
+            self._rh_timestep_outcome = outcome
+
+    def _log_humidity_summary(self) -> None:
+        """Log the outdoor-humidity counts of the run so far."""
+        _log_humidity_summary(self._rh_timesteps)
 
     def _warn_guard_trip(self, state: Any, reason: str, t_in: float, t0: float, q_target: float) -> None:
         """Issue a bounded number of warnings for a thermodynamic guard."""
@@ -532,7 +607,8 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         if self._ndispatch % self._tally_every == 0:
             _log(
                 f"[tally @ dispatch {self._ndispatch}] converged={self._nconv} "
-                f"({100.0 * self._nconv / self._ndispatch:.1f}%) guard_trips={dict(self._reasons)}"
+                f"({100.0 * self._nconv / self._ndispatch:.1f}%) guard_trips={dict(self._reasons)} "
+                f"outdoor_RH_timesteps={self._rh_timesteps} (heating-dispatch zone timesteps, warmup excluded)"
             )
 
         guard_trip = reason == "t_cond_below_t_in"

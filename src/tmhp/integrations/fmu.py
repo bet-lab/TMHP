@@ -264,8 +264,8 @@ class TmhpAshpbSlave(Fmi2Slave):
             "I_DN": 0.0,
             "I_dH": 0.0,
         }
-        rh_out = float(self.RH_out)
-        if rh_out != _fmi_common.RH_OUT_USE_MODEL_DEFAULT:
+        rh_out = _fmi_common.outdoor_humidity_input(self.RH_out)
+        if rh_out is not None:
             inputs["RH_out"] = rh_out
         self._state, res = self._hp.step(self._state, inputs, float(step_size))
 

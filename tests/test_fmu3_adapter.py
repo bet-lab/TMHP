@@ -215,6 +215,7 @@ _INVALID_INPUTS = [
     ("T_sur", float("-inf")),
     ("RH_out", float("nan")),
     ("RH_out", -0.1),
+    ("RH_out", 1.1 + 1e-9),
     ("RH_out", 1.5),
     ("RH_out", 35.0),
 ]
@@ -309,6 +310,22 @@ def test_fmu3_slave_answers_illegal_step_arguments_with_error(current_time: floa
     assert slave._n == 1
     slave.exit_initialization_mode()
     assert slave.do_step(0.0, 60.0) == Fmi3StepResult(status=Fmi3Status.error)
+
+
+@pytest.mark.parametrize("rh_out", [1.0 + 1e-9, 1.005, 1.1])
+def test_fmu3_slave_uses_humidity_up_to_110_percent_as_saturated(rh_out: float) -> None:
+    """A fraction above 1 up to the EPW limit of 1.1 is saturated air, used as 1 (#232)."""
+    a = _make_slave(tank_temperature=40.0)
+    b = _make_slave(tank_temperature=40.0)
+    a.T0 = b.T0 = 2.0
+    a.RH_out = rh_out
+    b.RH_out = 1.0
+
+    assert a.do_step(0.0, 60.0).status == Fmi3Status.ok
+    assert b.do_step(0.0, 60.0).status == Fmi3Status.ok
+
+    assert _observable(a) == _observable(b)
+    assert a.E_tot > 0.0
 
 
 @pytest.mark.parametrize("rh_out", [None, 0.0, 0.35, 1.0])

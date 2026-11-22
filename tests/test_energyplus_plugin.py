@@ -12,6 +12,7 @@ dependency-light; the plugin-class structure is checked only when
 
 from __future__ import annotations
 
+import atexit
 import random
 from types import SimpleNamespace
 
@@ -62,6 +63,14 @@ class _FakeExchange:
         self.globals = {}
         self.failed_variable_handles = set()
         self.error_flag = False
+        # Simulation clock read by the humidity tally.
+        self.environment = 1
+        self.year_value = 2026
+        self.day = 1
+        self.hour_value = 1
+        self.zone_step = 1
+        self.system_clock = 1.0
+        self.warmup = False
 
     def api_data_fully_ready(self, state):
         return True
@@ -92,6 +101,28 @@ class _FakeExchange:
 
     def system_time_step(self, state):
         return self._system_time_step
+
+    def current_environment_num(self, state):
+        return self.environment
+
+    def year(self, state):
+        return self.year_value
+
+    def day_of_year(self, state):
+        return self.day
+
+    def hour(self, state):
+        return self.hour_value
+
+    def zone_time_step_number(self, state):
+        return self.zone_step
+
+    def current_time(self, state):
+        """The system-step clock, which moves with HVAC substeps."""
+        return self.system_clock
+
+    def warmup_flag(self, state):
+        return self.warmup
 
 
 class _FakeRuntime:
@@ -201,9 +232,14 @@ def test_surrogate_solve_passes_loop_flow_and_cp_and_caches_by_flow():
     [
         (10, (35.0, 60.0, 35.0), [0.35, 0.60], 0),
         (-1, (None,) * 3, [None], 1),
-        (10, (None, float("nan"), float("inf"), -0.1, 100.1, 35.0), [None, 0.35], 1),
+        (10, (None, float("nan"), float("inf"), -0.1, 110.1, 35.0), [None, 0.35], 1),
+        # The EPW format allows up to 110 %, and EnergyPlus 24.2 passes such
+        # readings on unclipped: 100-110 % is saturated air at 100 %.
+        (10, (100.5, 110.0, 100.0, 110.1), [1.0, None], 1),
+        # Interpolating between two 110 % hours can land one ULP above 110.
+        (10, (110.00000000000001,), [1.0], 0),
     ],
-    ids=["cache-by-humidity", "missing-handle", "invalid-readings"],
+    ids=["cache-by-humidity", "missing-handle", "invalid-readings", "above-saturation", "interpolated-110"],
 )
 def test_surrogate_outdoor_humidity(monkeypatch, capsys, handle, readings, expected, warnings):
     """Forward usable humidity, separate cache entries, and warn once on fallback."""
@@ -235,6 +271,57 @@ def test_surrogate_outdoor_humidity(monkeypatch, capsys, handle, readings, expec
         assert "relative humidity" in plant.api.runtime.warnings[0]
     if 0.35 in expected:
         assert "RH_out=35.00%" in capsys.readouterr().out
+
+
+def test_surrogate_tallies_outdoor_humidity_timesteps(monkeypatch, capsys):
+    """The tally counts zone timesteps solved with weather, clipped and default humidity.
+
+    Plant iterations and HVAC system substeps re-call the plugin within one
+    zone timestep, so a timestep is counted once (by environment, year, day,
+    hour and zone step number); warmup days are left out. The counts appear in
+    the periodic tally line and in a final summary.
+    """
+    plant = _real_surrogate(40.0, 2.0, 15000.0)
+    plant._tally_every = 4
+    ex = plant.api.exchange
+
+    def analyze_steady(**kwargs):
+        return {"converged": True, "failure_reason": "none", "Q_ref_tank [W]": 15000.0, "E_tot [W]": 5000.0}
+
+    monkeypatch.setattr(plant.hp, "analyze_steady", analyze_steady)
+    timesteps = [
+        # (warmup, day, hour, zone step, reading in percent, system substeps)
+        (True, 1, 0, 1, float("nan"), 3),
+        (False, 1, 0, 1, 35.0, 2),
+        (False, 1, 0, 2, 100.5, 3),
+        (False, 1, 1, 1, 110.0, 1),
+        (False, 1, 1, 2, float("nan"), 2),
+        (False, 1, 2, 1, 110.1, 1),
+        (False, 1, 3, 1, -1.0, 1),
+        (False, 2, 0, 1, 100.0, 2),
+        (False, 2, 0, 2, 35.0, 1),  # this zone timestep falls back on a later call
+    ]
+    for warmup, day, hour, step, percent, substeps in timesteps:
+        ex.warmup, ex.day, ex.hour_value, ex.zone_step = warmup, day, hour, step
+        ex.values[10] = percent
+        for substep in range(substeps):
+            ex.system_clock = hour + (step - 1 + (substep + 1) / substeps) / 4
+            assert plant.on_user_defined_component_model(object()) == 0
+    ex.values[10] = float("nan")  # a second call in the last zone timestep fails
+    assert plant.on_user_defined_component_model(object()) == 0
+    plant._log_humidity_summary()
+
+    out = capsys.readouterr().out.splitlines()
+    tally = [line for line in out if line.startswith("[tally")]
+    assert len(tally) == 4  # dispatches 4, 8, 12 and 16 of 17 (the first 3 are warmup)
+    assert tally[2].endswith(
+        "outdoor_RH_timesteps={'weather': 1, 'clipped_to_100': 2, 'default': 2} "
+        "(heating-dispatch zone timesteps, warmup excluded)"
+    )
+    assert out[-1] == (
+        "[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: "
+        "weather=2 clipped_to_100=2 default=4"
+    )
 
 
 def test_surrogate_uses_default_on_failed_humidity_read_and_recovers(capsys):
@@ -687,6 +774,9 @@ def _real_surrogate(t_in, t0, load, mdot=3.0):
     plant._tally_every = 10_000
     plant.h = _surrogate_handles()
     plant.api = _FakeApi({1: t_in, 2: mdot, 3: CP_WATER, 4: load, 7: t0})
+    from tmhp.integrations.energyplus_plugin import _log_humidity_summary
+
+    atexit.unregister(_log_humidity_summary)
     return plant
 
 

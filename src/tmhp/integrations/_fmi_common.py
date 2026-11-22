@@ -12,6 +12,10 @@ UnitSpec = tuple[str, Mapping[str, str]]
 # FMI inputs have a start value. A value outside the physical fraction range
 # lets an unconnected input follow the model default without pinning it here.
 RH_OUT_USE_MODEL_DEFAULT = -1.0
+# The EPW data dictionary accepts relative humidity up to 110 %, and EnergyPlus
+# passes such readings on unclipped. A fraction from 1 to 1.1 is saturated air
+# and is used as 1, as the EnergyPlus plugin does.
+RH_OUT_MAX_ACCEPTED = 1.1
 
 VARIABLE_DESCRIPTIONS: Mapping[str, str] = {
     "ref": "Working fluid (CoolProp name, e.g. R32, R290, R410A)",
@@ -19,7 +23,7 @@ VARIABLE_DESCRIPTIONS: Mapping[str, str] = {
     "T_tank_w_init": "Initial tank water temperature",
     "T_sur": "Surrounding temperature for tank heat loss",
     "T0": "Outdoor air temperature",
-    "RH_out": "Outdoor relative humidity as a fraction (0 to 1); -1 uses the model default",
+    "RH_out": "Outdoor relative humidity as a fraction (0 to 1; up to 1.1 is used as 1); -1 uses the model default",
     "dhw_draw": "DHW draw-off volumetric flow rate",
     "T_sup_w": "Mains supply water temperature",
     "E_cmp": "Compressor electric power averaged over the communication step",
@@ -84,7 +88,18 @@ def valid_outdoor_humidity(value: Any) -> bool:
     if not is_finite(value):
         return False
     rh = float(value)
-    return rh == RH_OUT_USE_MODEL_DEFAULT or 0.0 <= rh <= 1.0
+    return rh == RH_OUT_USE_MODEL_DEFAULT or 0.0 <= rh <= RH_OUT_MAX_ACCEPTED
+
+
+def outdoor_humidity_input(value: Any) -> float | None:
+    """The ``RH_out`` fraction for ``step()``, or ``None`` for the model default.
+
+    Call only after :func:`valid_outdoor_humidity` accepted *value*.
+    """
+    rh = float(value)
+    if rh == RH_OUT_USE_MODEL_DEFAULT:
+        return None
+    return min(rh, 1.0)
 
 
 def invalid_step_arguments(current_time: Any, step_size: Any) -> str | None:
@@ -112,7 +127,8 @@ def invalid_step_inputs(*, T0: Any, RH_out: Any, dhw_draw: Any, T_sup_w: Any, T_
         problems.append(f"dhw_draw must be finite and non-negative but was {dhw_draw!r}")
     if not valid_outdoor_humidity(RH_out):
         problems.append(
-            f"RH_out must be a fraction from 0 to 1, or the start value {RH_OUT_USE_MODEL_DEFAULT:g}, but was {RH_out!r}"
+            f"RH_out must be a fraction from 0 to {RH_OUT_MAX_ACCEPTED:g}, or the start value "
+            f"{RH_OUT_USE_MODEL_DEFAULT:g}, but was {RH_out!r}"
         )
     return "; ".join(problems) or None
 

@@ -30,7 +30,7 @@ available in the importing environment. The FMU model descriptions are validated
 with FMPy in tests. The XML declares units for power, temperature, DHW draw, and
 COP so importers can perform basic unit checks. The slaves refuse a step with
 unusable input values (non-finite values, negative DHW draw, outdoor humidity
-outside 0 to 1 other than the start value -1) with a discard, and an illegal
+outside 0 to 1.1 other than the start value -1) with a discard, and an illegal
 step argument (non-finite time, step size not finite and positive) with
 ``fmi3Error`` under FMI 3.0 and a discard under FMI 2.0. A refused step leaves
 the model state and every output unchanged and, with debug logging on,

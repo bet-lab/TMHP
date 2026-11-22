@@ -734,7 +734,8 @@ def test_air_to_air_prose_quotes_the_sweep(page: str, ashp: pd.DataFrame, sweep:
         f'airflow first and the ceiling is at {h7["top_rps"]:.0f} rev/s (``capacity_binding == "{h7["top_binding"]}"``)'
     ) in text
     air = ashp.q_air_delivered_W / ashp.q_delivered_W - 1.0
-    assert f"by at most {air.abs().max() * 100:.1f} % over the six curves" in text
+    bound = math.ceil(air.abs().max() * 1000.0) / 10.0  # rounded up: "at most"
+    assert f"by at most {bound:.1f} % over the six curves" in text
 
 
 def test_extrapolation_split_draws_dashed_where_flagged() -> None:
@@ -761,4 +762,6 @@ def test_extrapolation_split_draws_dashed_where_flagged() -> None:
     n = len(ax.get_lines())
     plot_extrapolation_split(ax, [], [], [], label="empty")
     assert len(ax.get_lines()) == n
+    plot_extrapolation_split(ax, [5], [5], [False], marker="s")  # one point: a marker, the caller's if given
+    assert ax.get_lines()[-1].get_marker() == "s" and ax.get_lines()[-1].get_linestyle() == "None"
     plt.close(fig)

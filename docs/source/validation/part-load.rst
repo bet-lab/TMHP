@@ -379,8 +379,8 @@ Air-to-air — fixed temperatures
 
 .. figure:: ../_static/validation_ashp_part_load.svg
     :alt: System COP (heating, left) and EER (cooling, right) of the 3.5 kW
-        air-to-air model against the heat delivered as a share of the maximum at
-        the same temperatures, at three outdoor temperatures each, with a diamond
+        air-to-air model against the refrigerant-side coil duty as a share of
+        its maximum at the same temperatures, at three outdoor temperatures each, with a diamond
         on each curve where the 3.5 kW nameplate falls and the stretches outside
         the compressor-map data dashed.
     :align: center
@@ -399,7 +399,7 @@ horizontal axis is the refrigerant-side coil duty over its maximum at the same
 temperatures (``AirSourceHeatPump.max_capacity``), and the nameplate is the
 3.5 kW cooling capacity for both duties. The COP and EER divide the heat the
 indoor air carries by the electrical input; that heat differs from the coil duty
-by at most 1.3 % over the six curves. The maximum is the top speed's, 120 rev/s,
+by at most 1.4 % over the six curves. The maximum is the top speed's, 120 rev/s,
 except in heating at +7 °C: there a coil reaches its largest airflow
 first and the ceiling is at 115 rev/s (``capacity_binding == "cycle"``).
 

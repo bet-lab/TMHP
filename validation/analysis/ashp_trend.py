@@ -185,7 +185,10 @@ def _above_nameplate(q_max_w: float, capacity_w: float) -> list[float]:
 
 
 def sweep() -> pd.DataFrame:
-    """Fixed-temperature part-load sweep: both air temperatures held, from the speed floor to the top speed."""
+    """Fixed-temperature part-load sweep: both air temperatures held, from the speed floor to the capacity ceiling.
+
+    The ceiling is the top speed's unless another limit binds first (``capacity_binding``).
+    """
     rows = []
     for capacity_w, refrigerant in CONFIGURATIONS:
         for duty in DUTIES:
@@ -342,7 +345,7 @@ def main() -> None:
         floor = (part.capacity_clamped == "min").mean() * 100.0
         top = (part.capacity_clamped == "max").mean() * 100.0
         print(
-            f"    {duty.name:8s} {len(part):4d} points, {floor:5.1f} % at the speed floor, {top:4.1f} % at the top speed"
+            f"    {duty.name:8s} {len(part):4d} points, {floor:5.1f} % at the speed floor, {top:4.1f} % at the capacity ceiling"
         )
     print()
 

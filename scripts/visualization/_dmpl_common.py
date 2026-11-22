@@ -218,7 +218,7 @@ def plot_extrapolation_split(ax, x, y, extrapolated, **kwargs) -> None:
     if label is not None:
         ax.plot([], [], linestyle="-", label=label, **kwargs)
     if x.size == 1:
-        ax.plot(x, y, linestyle="none", marker="o", **kwargs)
+        ax.plot(x, y, **({"marker": "o"} | kwargs), linestyle="none")
         return
     segment = flag[:-1] | flag[1:]
     start = 0

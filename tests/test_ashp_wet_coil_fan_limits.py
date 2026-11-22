@@ -382,7 +382,11 @@ def test_ceiling_of_a_stiff_outdoor_fan_is_the_top_of_its_upper_band(smallest, c
     assert ceiling["Q_max [W]"] == pytest.approx(top, rel=3e-3) and ceiling["Q_max [W]"] >= inside
     above = stiff.analyze_steady(1.5 * top, outdoor, room, RH_room=1.0, verbose=False)
     assert above["failure_reason"] == "none" and above["capacity_clamped"] == "max"
-    assert above["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-9)
+    # The top of a band is bisected to 0.1 %, so duties within that of the reported ceiling still
+    # run when asked for (first case: 16,157.39 W in full against a reported 16,151.51 W, on macOS
+    # and Linux alike). Which of them a request far above ends on is the reported ceiling to the
+    # last digits on macOS and 16,157.39 W on Linux (3.6e-4 apart): the same search tolerance.
+    assert above["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-3)
 
 
 def test_what_the_refused_top_delivered_does_not_replace_the_ladder(default):

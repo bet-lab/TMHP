@@ -1,7 +1,7 @@
 {
  "slug": "daikin_rxm50a",
  "coefficient_version": "ossorio-r290-te-2026-11-21",
- "git_head": "58d481ed56df01ddc6fbaa7efb3acad563a771e5",
+ "git_head": "3bb6d39ec6e6db572dc2426aefce9f95c7ba4dcc",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -11,11 +11,11 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "11e32032acec1bf19aef6b77ef00267be4e9904e",
- "validation_parity_tree": "f806d541a72190c373b8a97ae4606cc02bf07ebe",
- "python": "3.11.15",
+ "src_tmhp_tree": "d9c690af2519556f8d18725bad00ad6648c57135",
+ "validation_parity_tree": "1018184edb56360bb48c2b06daf283ae5a7c5b65",
+ "python": "3.14.7",
  "coolprop": "7.2.0",
- "platform": "Linux-x86_64",
- "catalog_blob": "336a63fddadebc823418b980cb08233c885378c0",
- "run_at": "2026-11-21T10:06:27+00:00"
+ "platform": "Darwin-arm64",
+ "catalog_blob": "d7bc5627ee63bdcc5f4941c01c15f3001e4c447a",
+ "run_at": "2026-11-21T11:14:06+00:00"
 }

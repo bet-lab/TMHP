@@ -603,6 +603,25 @@ A−10 against a 55 °C tank and at A−15 against a 50 °C tank, with suction
 qualities of 0.96, 0.94 and 0.93. A penalty would therefore act on points
 that run at full duty (an inference; not measured).
 
+.. _discharge-control-against-catalogues:
+
+Discharge control acts on 22 of 153 air-to-water catalogue points. It
+reduces superheat alone on 5 points, including 2 with R410A. The 17 wet-suction
+points all use R32, with suction quality from 0.934 to 0.995. One wet-suction
+point falls short of its published duty and is excluded from the COP score.
+The other 16 average +0.4 % COP bias against the catalogue. The 5 points with
+reduced superheat average −5.9 %, and the 124 scored points without control
+average −6.7 %. These groups cover different operating conditions and units,
+so their biases describe agreement with the catalogues at those points.
+See :doc:`/validation/index` (*Capacity*) for the errors by control state.
+
+Real units can limit discharge temperature by reducing suction superheat,
+using two-phase suction or injection where supported, and reducing compressor
+speed. For example, Panasonic lists 8.7 kW at −15 °C outdoors and 60 °C leaving
+water for its nominal 12 kW WH-MXC12J9E8. The model meets that published duty
+with wet suction. The wet-suction stage stays enabled by default. Its quality
+floor is a model input for a controller whose suction state is unspecified.
+
 How each family answers a point the control cannot hold:
 
 * **ASHP, GSHP** — the candidate is rejected inside the operating-point

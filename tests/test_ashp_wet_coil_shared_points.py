@@ -508,6 +508,19 @@ def test_request_above_the_ceiling_runs_at_it_as_before(hot_day, over):
     _assert_ceiling_row(_steady(unit, request, 46.0, 27.0, RH_room=0.3), request, ceiling)
 
 
+def test_request_at_the_ceiling_the_search_delivers_is_an_ordinary_row():
+    # Default 2 kW unit at 46 degC outdoor, room 27 degC at 55 %: the search of the request arrives
+    # at the ceiling duty by itself, and the row is not relabelled -- the ceiling's state is taken
+    # only for a request the search does not deliver. Delivered, and nothing unmet, either way.
+    unit = _build(hp_capacity=2000.0)
+    ceiling = unit.max_capacity(46.0, 27.0, mode="cooling", RH_room=0.55)
+    top = ceiling["Q_max [W]"]
+    assert ceiling["binding"] == "condensing_temperature" and top == pytest.approx(4049.239, rel=1e-6)
+    row = _steady(unit, top, 46.0, 27.0, RH_room=0.55)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] is None
+    assert row["Q_ref_iu [W]"] == pytest.approx(top, rel=1e-12) and row["Q_unmet [W]"] == 0.0
+
+
 def test_ceiling_row_is_the_same_from_under_at_and_above_the_ceiling(hot_day):
     unit, ceiling = hot_day
     top = ceiling["Q_max [W]"]

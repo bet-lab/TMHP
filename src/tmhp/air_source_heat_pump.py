@@ -3236,8 +3236,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
         unit with a fan held at one flow, on the pressure-ratio floor, is
         what the ordinary search delivers there. The answer is the same
         whatever was solved before. A request for the ``Q_max [W]``
-        returned, with the same ``RH_room``, runs at this state
-        (:meth:`analyze_steady`).
+        returned, with the same ``RH_room``, is delivered that duty with
+        nothing unmet (:meth:`analyze_steady`): by the search of the
+        request where it arrives there, else at this state
+        (``capacity_clamped == "max"``).
 
         A fan held at one flow (``dV_*_fan_a_min == dV_*_fan_a_max``) leaves
         its coil one approach temperature per duty. On the pressure-ratio
@@ -3451,7 +3453,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         while a request one float step above the ceiling ran at it. Such a
         request runs at the ceiling now: the state :meth:`max_capacity`
         reported, re-solved at its approaches (:meth:`_delivering_state`),
-        with ``Q_ref_iu [W]`` equal to its ``Q_max [W]`` and nothing unmet.
+        with ``Q_ref_iu [W]`` its ``Q_max [W]`` to rounding and nothing
+        unmet.
         That is more than was asked by at most the 0.1 % the ceiling is
         known to (by the width of the sliver, in those conditions). A
         request the ordinary search delivers never comes here, and the dry
@@ -3935,13 +3938,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
             With ``RH_room`` in cooling both ends of the range are the wet
             coil's. A request above its ceiling runs there
             (``capacity_clamped == "max"``; :meth:`max_capacity` with the
-            same ``RH_room``). So does a request equal to the ceiling, and
-            one the search does not deliver that is under it by no more
-            than the 0.1 % the ceiling is searched to: the row is the
-            ceiling's, ``Q_ref_iu [W]`` equal to the ``Q_max [W]``
-            :meth:`max_capacity` reports and ``Q_unmet [W]`` zero, which is
-            up to that 0.1 % more than was asked (measured on default
-            units: 0.006 %). In mild weather, on the pressure-ratio floor,
+            same ``RH_room``). A request equal to the ceiling is delivered
+            it, with ``Q_unmet [W]`` zero: as an ordinary row
+            (``capacity_clamped`` ``None``) where the search of the request
+            delivers that duty, and otherwise as the ceiling's own state
+            (``capacity_clamped == "max"``, ``Q_ref_iu [W]`` the
+            ``Q_max [W]`` :meth:`max_capacity` reports, to rounding). The
+            ceiling's state also answers a request the search does not
+            deliver that is under the ceiling by no more than the 0.1 % the
+            ceiling is searched to, which is up to that 0.1 % more than was
+            asked (measured on default units: 0.006 %). A request the
+            search delivers is an ordinary row at any distance from the
+            ceiling. In mild weather, on the pressure-ratio floor,
             the fans' smallest airflows leave no continuous operation below
             some duty; a smaller request is met by cycling at that duty
             (``capacity_clamped == "min"``, ``Q_min [W]``). Where the

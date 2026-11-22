@@ -540,7 +540,16 @@ flat-out state of the ceiling — but a window narrower than the spacing of
 the samples can be missed by all of them. The caller then sees ``Q_max [W] == 0`` with
 ``binding == "infeasible"`` from ``max_capacity`` and an off row with
 ``failure_reason == "hx_not_converged"`` from ``analyze_steady``, although a
-duty inside the window would run. Two ways out: leave the fan a flow range
+duty inside the window would run. A held fan can also leave a request under
+the ceiling short instead of off: the row then has
+``capacity_clamped == "max"`` and an unmet duty although ``max_capacity``
+reports more. On a grid of 2.5, 4 and 10 kW units with the outdoor fan held
+at its largest flow (162 wet conditions) no request does so at 25 or 35 °C
+outdoor; at 0, 8 and 15 °C outdoor, and at 46 °C with the room at 90 %
+relative humidity or more, requests up to 20 % under the ceiling are run
+up to 28 % short (4 kW unit, 46 °C outdoor, saturated 27 °C room: ceiling
+7,325 W, a request 0.2 % under it runs at 5,270 W). Requests within 0.1 % of
+the ceiling run at it. Two ways out: leave the fan a flow range
 (the default smallest flow is 15 % of the largest; a held fan is an input,
 not a default), or request a duty inside the window. With fans that modulate
 the duties that run are a wide band and the samples fall inside it.

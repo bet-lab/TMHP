@@ -41,6 +41,7 @@ Run
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 from typing import NamedTuple
 
@@ -174,6 +175,8 @@ def _run(
 
 def _above_nameplate(q_max_w: float, capacity_w: float) -> list[float]:
     """Request fractions of the nameplate above 1: the grid steps up to the first one at or above the maximum."""
+    if not (math.isfinite(q_max_w) and q_max_w > 0.0 and capacity_w > 0.0):
+        raise ValueError(f"no capacity ceiling to sweep up to: Q_max {q_max_w!r} W, nameplate {capacity_w!r} W")
     fractions = []
     k = 1
     while True:
@@ -194,7 +197,15 @@ def sweep() -> pd.DataFrame:
         for duty in DUTIES:
             model = AirSourceHeatPump(hp_capacity=capacity_w, ref=refrigerant, **SWEEP_SETTINGS)
             for t_outdoor in duty.sweep_outdoor_C:
-                q_max = float(model.max_capacity(t_outdoor, duty.t_room_C, mode=duty.name)["Q_max [W]"])
+                ceiling = model.max_capacity(t_outdoor, duty.t_room_C, mode=duty.name)
+                q_max = float(ceiling["Q_max [W]"])
+                if ceiling.get("binding") == "infeasible" or not (math.isfinite(q_max) and q_max > 0.0):
+                    # No duty has an operating point here, so there is no maximum to divide by: stop rather than
+                    # write a curve on an undefined axis.
+                    raise RuntimeError(
+                        f"{capacity_w / 1000:g} kW {refrigerant} {duty.name} at {t_outdoor} °C: no capacity ceiling "
+                        f"(binding {ceiling.get('binding')!r}, Q_max {q_max!r} W)"
+                    )
                 for fraction in (*_above_nameplate(q_max, capacity_w)[::-1], *SWEEP_FRACTIONS):
                     point = _run(model, duty, capacity_w * fraction, t_outdoor, sweep_columns=True)
                     if point is None:

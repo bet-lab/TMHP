@@ -352,3 +352,19 @@ def test_every_study_has_a_provenance_record() -> None:
     assert folders <= covered, f"study folders without a provenance record: {sorted(folders - covered)}"
     figures = {p.stem for p in FIGURE_RECORDS.glob("*.json")}
     assert {"mollier_cycle_R32", "mollier_ts_R32", "refrigerant_compare_ph", "source_cop_timeseries"} <= figures
+
+
+def test_ashp_trend_sweep_stops_on_a_missing_ceiling(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An infeasible ceiling (``binding == "infeasible"``, ``Q_max`` 0) or a NaN one has no maximum to divide by:
+    the sweep raises instead of dividing by zero or stepping up forever."""
+    from validation.analysis import ashp_trend as at
+
+    from tmhp import AirSourceHeatPump
+
+    for bad in (0.0, float("nan"), float("inf"), -1.0):
+        with pytest.raises(ValueError):
+            at._above_nameplate(bad, 3500.0)
+    for ceiling in ({"Q_max [W]": 0.0, "binding": "infeasible"}, {"Q_max [W]": float("nan"), "binding": "cycle"}):
+        monkeypatch.setattr(AirSourceHeatPump, "max_capacity", lambda self, *a, _c=ceiling, **k: dict(_c))
+        with pytest.raises(RuntimeError, match="no capacity ceiling"):
+            at.sweep()

@@ -4350,11 +4350,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
           operating point and no smaller one is run in its place. Duties
           around it are not tried.
 
+        Two trials with the same net sensible heat are a unit without the
+        cycling model below its smallest duty; what follows applies where
+        the later of them did not end the search (met, off, or short of the
+        request at a limit, above). Under the request the search
+        goes on: inside the bracket where a trial over the request lies
+        above them (its middle, or the step of step 4 from the solve named
+        there on), and otherwise :attr:`_ROOM_SENSIBLE_GROWTH` times higher,
+        twice where no trial has yet given positive net sensible heat, as
+        every step up then is. Over the request they end it.
+
         Where the trials stop moving (two with the same net sensible heat
-        over the request: a unit without the cycling model below its
-        smallest duty; under the request the duty is taken
-        :attr:`_ROOM_SENSIBLE_GROWTH` times higher, twice where no trial has
-        yet given positive net sensible heat, as every step up then is), where
+        over the request), where
         :attr:`_ROOM_SENSIBLE_MAX_SOLVES` are used up, or where the search
         ends on one of the two trials above, no duty tried has the
         requested net sensible heat. The answer is then the trial that comes
@@ -4447,14 +4454,22 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # the coil's sensible heat in every one), the slope says nothing
             # of how far the duty is: the largest step upwards.
             grow = 2.0 if max(t[1] for t in trials) <= 0.0 else self._ROOM_SENSIBLE_GROWTH
+            under = max((t[0] for t in trials if t[1] < request), default=math.nan)
+            over = min((t[0] for t in trials if t[1] > request), default=math.nan)
             if sensible == sensible_before:
                 # Flat: a unit without the cycling model below its smallest
                 # duty. Over the request that row is the answer; under it
-                # (the fan's heat outweighs the coil's) the duty is above.
-                return None if sensible > request else grow * max(duty, before)
+                # (the fan's heat outweighs the coil's) the duty is above --
+                # inside the bracket where a trial over the request lies
+                # above, by the bracket's rule (middle, then step 4).
+                if sensible > request:
+                    return None
+                if not under < over:
+                    return grow * max(duty, before)
+                if len(trials) >= self._ROOM_SENSIBLE_SECANT_SOLVES:
+                    return step_from_the_sides(under, over)
+                return 0.5 * (under + over)
             step = duty + (request - sensible) * (duty - before) / (sensible - sensible_before)
-            under = max((t[0] for t in trials if t[1] < request), default=math.nan)
-            over = min((t[0] for t in trials if t[1] > request), default=math.nan)
             if under < over:
                 # Trials on both sides: the duty lies between the closest two.
                 if len(trials) >= self._ROOM_SENSIBLE_SECANT_SOLVES:

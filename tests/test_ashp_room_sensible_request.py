@@ -873,3 +873,54 @@ def test_the_coil_basis_is_not_touched_by_a_room_sensible_solve_before_it() -> N
     after = _solve(model, 4000.0, 35.0, 27.0, RH_room=0.5)
     assert _differing_keys(before, after, skip=frozenset()) == []
     assert np.isfinite(after["Q_room_sensible [W]"])
+
+
+class _ScriptedRows(AirSourceHeatPump):
+    """A unit whose coil-basis rows follow a given net sensible heat along the coil duty (the search alone is tested)."""
+
+    def __init__(self, sensible, ceiling: float, at_ceiling: float) -> None:
+        super().__init__(hp_capacity=4000.0)
+        self._sensible, self._ceiling, self._at_ceiling = sensible, ceiling, at_ceiling
+        self.duties: list[float] = []
+
+    def analyze_steady(self, Q_r_iu, T0, T_a_room, **kwargs):  # type: ignore[override]
+        duty = abs(float(Q_r_iu))
+        self.duties.append(duty)
+        short = duty > self._ceiling
+        return {
+            "hp_is_on": True,
+            "failure_reason": "none",
+            "Q_ref_iu [W]": self._ceiling if short else duty,
+            "Q_room_sensible [W]": self._at_ceiling if short else self._sensible(duty),
+            "Q_iu_latent [W]": 0.0,
+            "capacity_clamped": "max" if short else None,
+            "Q_unmet [W]": duty - self._ceiling if short else 0.0,
+        }
+
+
+def test_a_plateau_under_the_request_inside_a_bracket_stays_in_the_bracket() -> None:
+    """Two trials with the same net sensible heat under the request, a trial over it above them: the duty is between.
+
+    Scripted rows, 800 W requested: 400 W flat below a coil duty of 1,500 W,
+    rising 8 W per watt to 1,200 W at 1,600 W, then falling to 600 W at the
+    ceiling of 2,000 W, at which a larger request is delivered short. The
+    search brackets the request between 1,400 W (flat) and 1,600 W; a step
+    up from the plateau past the bracket lands above the ceiling, whose
+    short row would end the search 200 W short.
+    """
+
+    def sensible(duty: float) -> float:
+        if duty < 1500.0:
+            return 400.0
+        if duty < 1600.0:
+            return 400.0 + 8.0 * (duty - 1500.0)
+        return 1200.0 - 1.5 * (duty - 1600.0)
+
+    unit = _ScriptedRows(sensible, ceiling=2000.0, at_ceiling=sensible(2000.0))
+    row, solves = unit._solve_room_sensible(
+        800.0, 35.0, 27.0, postprocess=False, verbose=False, RH_out=None, RH_room=None
+    )
+    assert row["Q_unmet [W]"] == 0.0
+    assert row["Q_room_sensible [W]"] == pytest.approx(800.0, rel=DRY_TOL)
+    assert max(unit.duties) <= 2000.0
+    assert solves <= MAX_SOLVES

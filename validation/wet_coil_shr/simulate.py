@@ -238,7 +238,7 @@ def _leaving_air_saturated(result: dict) -> bool:
 
 def run_point(catalog, point, model, name: str, rh: float | None) -> dict:
     """One catalogue row in one pass, scored as ``validation.parity.run.run_catalog`` scores it."""
-    from validation.parity.run import CAPACITY_SHORT, CYCLING_MEAN, _capacity_short, _cycling_mean
+    from validation.parity.run import CAPACITY_SHORT, CAPACITY_SHORT_TOL, CYCLING_MEAN, _cycling_mean, _result_number
 
     result = model.analyze_steady(
         Q_r_iu=point.q_kW * 1000.0,
@@ -249,7 +249,10 @@ def run_point(catalog, point, model, name: str, rh: float | None) -> dict:
         verbose=False,
     )
     failure = result.get("failure_reason", "none")
-    if failure == "none" and _capacity_short(catalog, point, result):
+    # The parity harness's own test of a duty short of the published one (``run_catalog``).
+    delivered = abs(_result_number(result, "Q_ref_iu [W]"))
+    requested = point.q_kW * 1000.0
+    if failure == "none" and math.isfinite(delivered) and delivered < requested * (1.0 - CAPACITY_SHORT_TOL):
         failure = CAPACITY_SHORT
     elif failure == "none" and _cycling_mean(result):
         failure = CYCLING_MEAN

@@ -193,6 +193,44 @@ def cover_data_ylim(ax, lo: float, hi: float, step: float, *, tol: float = 0.01,
     return lo, hi, step
 
 
+#: Line style of the stretch of a curve evaluated outside the compressor
+#: maps' data (``efficiency_extrapolated``).
+EXTRAPOLATED_LINESTYLE = (0, (3.0, 2.0))
+
+
+def plot_extrapolation_split(ax, x, y, extrapolated, **kwargs) -> None:
+    """Draw one curve solid where it lies on the map data and dashed where it does not.
+
+    ``x``, ``y`` and ``extrapolated`` are in drawing order. A segment is drawn
+    dashed when either end is flagged, so a curve that crosses the data
+    boundary turns dashed one grid step early rather than late. ``label`` (in
+    ``kwargs``) goes to an empty solid line, so the legend shows the series in
+    its plain style whichever end of the curve is extrapolated.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    flag = np.asarray(extrapolated, dtype=bool)
+    label = kwargs.pop("label", None)
+    if label is not None:
+        ax.plot([], [], linestyle="-", label=label, **kwargs)
+    if x.size == 0:
+        return
+    if x.size == 1:
+        ax.plot(x, y, linestyle=EXTRAPOLATED_LINESTYLE if flag[0] else "-", **kwargs)
+        return
+    segment = flag[:-1] | flag[1:]
+    start = 0
+    for i in range(1, segment.size + 1):
+        if i == segment.size or segment[i] != segment[start]:
+            ax.plot(
+                x[start : i + 1],
+                y[start : i + 1],
+                linestyle=EXTRAPOLATED_LINESTYLE if segment[start] else "-",
+                **kwargs,
+            )
+            start = i
+
+
 def record_figure(name: str, script: str, model_settings: dict, question: str, data: dict) -> Path:
     """Write ``docs/source/_static/provenance/<name>.json`` for a figure drawn from the model.
 

@@ -141,7 +141,7 @@ def test_ashp_trend_sample_reproduces() -> None:
     q_max = float(model.max_capacity(7.0, at.HEATING.t_room_C, mode="heating")["Q_max [W]"])
     top = at._above_nameplate(q_max, capacity)[-1]
     for fraction in (top, 1.0, 0.4, 0.12):
-        fresh = at._run(model, at.HEATING, capacity * fraction, 7.0)
+        fresh = at._run(model, at.HEATING, capacity * fraction, 7.0, extrapolation=True)
         row = sweep[
             (sweep.duty == "heating")
             & (sweep.capacity_kW == capacity / 1000.0)

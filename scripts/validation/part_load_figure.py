@@ -12,10 +12,13 @@ sits well below the top-speed capacity (the table in ``part-load.rst``), and a
 curve cut off at the nameplate shows only the left half of the shape. Each curve
 carries a marker where the nameplate duty falls.
 
-COP rises as load is taken off the top speed -- the heat exchangers grow
-relative to the duty while the lift shrinks, and the compressor runs more
-efficiently at lower speed -- until the compressor's efficiency loss at low
-speed takes it back, so the curve peaks and then falls towards the speed floor.
+COP rises as load is taken off the top speed: the heat exchangers grow
+relative to the duty while the lift shrinks. The compressor maps take back part
+of that at low speed, not all of it, so with the shipped maps each curve rises
+at every step down to the speed floor (``part-load.rst`` gives the numbers).
+Where the maps are evaluated outside their data (``efficiency_extrapolated``:
+outside 30-110 rev/s or the measured pressure-ratio and evaporating-temperature
+hull) the curve is dashed; with these conditions that is both ends of each curve.
 
 Below that floor the curve ends and that is the honest answer rather than a
 part-load result: the machine cannot follow a smaller request, so it runs at its
@@ -77,10 +80,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
 from _dmpl_common import (  # noqa: E402
     COLORS,
+    EXTRAPOLATED_LINESTYLE,
     GRIDLINE,
     HAIRLINE,
     apply_style,
     finalize,
+    plot_extrapolation_split,
     static_path,
     ticks,
 )
@@ -187,6 +192,7 @@ def _sweep_row(
         "rps": rps,
         "at_floor": failure == "none" and abs(rps - model.rps_min) < 1e-6,
         "capacity_clamped": result.get("capacity_clamped") or "none",
+        "efficiency_extrapolated": failure == "none" and bool(result.get("efficiency_extrapolated", False)),
         "failure_reason": failure,
     }
 
@@ -265,6 +271,7 @@ def sweep_entering_water(fractions: tuple[float, ...] | None = None) -> list[dic
                 "rps": rps,
                 "at_floor": failure == "none" and abs(rps - model.rps_min) < 1e-6,
                 "capacity_clamped": result.get("capacity_clamped") or "none",
+                "efficiency_extrapolated": failure == "none" and bool(result.get("efficiency_extrapolated", False)),
                 "failure_reason": failure,
             }
         )
@@ -343,8 +350,14 @@ def main() -> None:
         SWEEP_CONDITIONS, sweep.groupby(["t_outdoor_C", "lwt_C"], sort=False), strict=False
     ):
         group = group.sort_values(x)
-        ax.plot(
-            group[x], group.cop, color=color, linewidth=dm.lw(1), label=f"air {t_outdoor:.0f} °C, water {lwt:.0f} °C"
+        plot_extrapolation_split(
+            ax,
+            group[x],
+            group.cop,
+            group.efficiency_extrapolated,
+            color=color,
+            linewidth=dm.lw(1),
+            label=f"air {t_outdoor:.0f} °C, water {lwt:.0f} °C",
         )
         floor = group[group.at_floor]
         if not floor.empty:
@@ -372,6 +385,15 @@ def main() -> None:
         color=COLORS["ink"],
         label=f"{NOMINAL_W / 1000:.0f} kW nameplate",
     )
+    if sweep.efficiency_extrapolated.any():
+        ax.plot(
+            [],
+            [],
+            color=COLORS["ink"],
+            linewidth=dm.lw(1),
+            linestyle=EXTRAPOLATED_LINESTYLE,
+            label="outside the compressor-map data",
+        )
     ax.axvspan(
         0.0,
         float(sweep[sweep.at_floor][x].max()) if sweep.at_floor.any() else 0.0,

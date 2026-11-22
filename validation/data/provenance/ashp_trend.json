@@ -40,7 +40,7 @@
   "validation/data/ashp_part_load_sweep.csv"
  ],
  "coefficient_version": "ossorio-r290-te-2026-11-21",
- "git_head": "3016d725c0c6a542817c894e3973469e2e56955e",
+ "git_head": "6d782480d5eb970a1508977e9f3a7d9c485125f4",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -50,10 +50,10 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "11e32032acec1bf19aef6b77ef00267be4e9904e",
- "validation_parity_tree": "f806d541a72190c373b8a97ae4606cc02bf07ebe",
- "python": "3.11.15",
+ "src_tmhp_tree": "9f390d086c20d6064629b47bd1ea2ab2fc7f3615",
+ "validation_parity_tree": "1018184edb56360bb48c2b06daf283ae5a7c5b65",
+ "python": "3.14.7",
  "coolprop": "7.2.0",
- "platform": "Linux-x86_64",
- "run_at": "2026-11-21T10:08:07+00:00"
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-22T08:04:35+00:00"
 }

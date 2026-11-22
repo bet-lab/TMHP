@@ -66,8 +66,11 @@ def test_the_quoted_envelope_stops_are_the_models():
     # the run sentence pairs them again
     assert f"the default R290 GSHPB and WSHPB at {stop290:.2f} °C, an R32 ASHPB at {stop32:.2f} °C" in text
     # the R290 default upper set point lies below the stop, so it is not capped
-    assert float(r290.T_tank_w_upper_bound) < stop290
-    assert f"the default {float(r290.T_tank_w_upper_bound):g} °C of the R290 GSHPB and WSHPB lies below it" in text
+    for name in ("GSHPB", "WSHPB"):
+        requested = models[name].T_tank_w_setpoints_requested[1]
+        assert float(models[name].T_tank_w_upper_bound) == float(requested) < stop290, name
+        assert f"the default {float(requested):g} °C of the R290 GSHPB and WSHPB lies below it" in text
+    assert 'With the default condensing_limit_control="stop", a requested upper set point' in text
 
 
 @pytest.mark.parametrize("name", list(FAMILIES))
@@ -93,7 +96,7 @@ def test_the_page_quotes_the_run_it_was_measured_on():
     text = _text()
     assert "min_on_time_s=1800" in text
     assert "60, 300 and 600 s steps" in text
-    assert f"a {HOURS} h run from {T_INIT_C:g} °C with no draw" in text
+    assert f"a {HOURS} h run from {T_INIT_C:g} °C with no draw and a {T_SOURCE_C:g} °C source" in text
     assert f"within {PEAK_TOL_K:.2f} K below the stop" in text
 
 

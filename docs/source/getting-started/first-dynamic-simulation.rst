@@ -256,11 +256,12 @@ condensing-limit pressure (the bubble point for a blend) less the tank
 heat-exchanger approach ``hp_capacity / K_tank_hx``. The approach is
 7.01 K, so the stop is 67.99 °C for the default R290 boilers
 (``T_cond_max`` 75 °C) and 57.99 °C for an R32 ASHPB (65 °C).
-A requested upper set point above the stop is capped there (see
-:doc:`../models/gshpb`); the default 65 °C of the R290 GSHPB and WSHPB
-lies below it. The stop matters when a minimum run time would carry the
+With the default ``condensing_limit_control="stop"``, a requested upper set
+point above the stop is capped there (see :doc:`../models/gshpb`); the
+default 65 °C of the R290 GSHPB and WSHPB lies below it. The stop matters when a minimum run time would carry the
 run past it, and the protection stop outranks the minimum run time. With
-``min_on_time_s=1800``, a 2 h run from 50 °C with no draw stops the
+``min_on_time_s=1800``, a 2 h run from 50 °C with no draw and a 7 °C
+source (outdoor air for the ASHPB) stops the
 compressor once, in a ``condensing_limit`` stop and not in a
 ``condensing_temp_above_max`` step, with 60, 300 and 600 s steps alike:
 the default R290 GSHPB and WSHPB at 67.99 °C, an R32 ASHPB at 57.99 °C,

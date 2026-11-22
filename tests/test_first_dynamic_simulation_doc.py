@@ -64,7 +64,10 @@ def test_the_quoted_envelope_stops_are_the_models():
     assert f"{stop290:.2f} °C for the default R290 boilers (T_cond_max {float(r290.T_cond_max):g} °C)" in text
     assert f"{stop32:.2f} °C for an R32 ASHPB ({float(r32.T_cond_max):g} °C)" in text
     # the run sentence pairs them again
-    assert f"the default R290 machine at {stop290:.2f} °C, an R32 ASHPB at {stop32:.2f} °C" in text
+    assert f"the default R290 GSHPB and WSHPB at {stop290:.2f} °C, an R32 ASHPB at {stop32:.2f} °C" in text
+    # the R290 default upper set point lies below the stop, so it is not capped
+    assert float(r290.T_tank_w_upper_bound) < stop290
+    assert f"the default {float(r290.T_tank_w_upper_bound):g} °C of the R290 GSHPB and WSHPB lies below it" in text
 
 
 @pytest.mark.parametrize("name", list(FAMILIES))
@@ -81,13 +84,17 @@ def test_a_minimum_run_time_stops_at_the_quoted_envelope_stop(name, dt):
     # set point of GSHPB/WSHPB lies below the stop, so their minimum run carries the tank up to it).
     peak = float(df["T_tank_w [°C]"].max())
     assert stop - PEAK_TOL_K <= peak <= stop + 1e-6, (name, dt, peak, stop)
+    # the step that stops the compressor ends at the stop too
+    at_stop = float(df.loc[df["hp_stop_reason"] == "condensing_limit", "T_tank_w [°C]"].iloc[0])
+    assert stop - PEAK_TOL_K <= at_stop <= stop + 1e-6, (name, dt, at_stop, stop)
 
 
 def test_the_page_quotes_the_run_it_was_measured_on():
     text = _text()
     assert "min_on_time_s=1800" in text
     assert "60, 300 and 600 s steps" in text
-    assert f"within {PEAK_TOL_K:.2f} K" in text
+    assert f"a {HOURS} h run from {T_INIT_C:g} °C with no draw" in text
+    assert f"within {PEAK_TOL_K:.2f} K below the stop" in text
 
 
 def test_the_figure_caption_band_is_the_capped_band_of_the_r32_machine():
@@ -96,7 +103,4 @@ def test_the_figure_caption_band_is_the_capped_band_of_the_r32_machine():
     lower, upper = model.T_tank_w_setpoints_requested
     text = _text()
     capped = f"{model.T_tank_w_lower_bound:.0f}–{model.T_tank_w_upper_bound:.0f} °C"
-    assert (
-        f"caps the thermostat band at {model.T_tank_w_upper_bound:.0f} °C ({capped} instead of the default {lower:g}–{upper:g} °C)"
-        in text
-    )
+    assert f"caps the default {lower:g}–{upper:g} °C thermostat band at {capped}" in text

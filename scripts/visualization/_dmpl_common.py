@@ -210,13 +210,15 @@ def plot_extrapolation_split(ax, x, y, extrapolated, **kwargs) -> None:
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     flag = np.asarray(extrapolated, dtype=bool)
+    if not (x.size == y.size == flag.size):
+        raise ValueError(f"x, y and extrapolated differ in length: {x.size}, {y.size}, {flag.size}")
+    if x.size == 0:
+        return
     label = kwargs.pop("label", None)
     if label is not None:
         ax.plot([], [], linestyle="-", label=label, **kwargs)
-    if x.size == 0:
-        return
     if x.size == 1:
-        ax.plot(x, y, linestyle=EXTRAPOLATED_LINESTYLE if flag[0] else "-", **kwargs)
+        ax.plot(x, y, linestyle="none", marker="o", **kwargs)
         return
     segment = flag[:-1] | flag[1:]
     start = 0

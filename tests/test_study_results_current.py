@@ -141,7 +141,7 @@ def test_ashp_trend_sample_reproduces() -> None:
     q_max = float(model.max_capacity(7.0, at.HEATING.t_room_C, mode="heating")["Q_max [W]"])
     top = at._above_nameplate(q_max, capacity)[-1]
     for fraction in (top, 1.0, 0.4, 0.12):
-        fresh = at._run(model, at.HEATING, capacity * fraction, 7.0, extrapolation=True)
+        fresh = at._run(model, at.HEATING, capacity * fraction, 7.0, sweep_columns=True)
         row = sweep[
             (sweep.duty == "heating")
             & (sweep.capacity_kW == capacity / 1000.0)
@@ -167,7 +167,13 @@ def test_ashp_trend_sample_reproduces() -> None:
             if not _same(v, row[k].iat[0])
         ]
     assert row.capacity_clamped.iat[0] == "min"
-    assert sweep[sweep.plr_nameplate == top].capacity_clamped.eq("max").any()
+    curve = sweep[
+        (sweep.duty == "heating")
+        & (sweep.capacity_kW == capacity / 1000.0)
+        & (sweep.refrigerant == ref)
+        & (sweep.t_outdoor_C == 7.0)
+    ]
+    assert (curve[curve.plr_nameplate == top].capacity_clamped == "max").all()
     points = pd.read_csv(DATA / "ashp_en14825_points.csv")
     oversizing = at.HEATING.oversizing[1]
     model = AirSourceHeatPump(hp_capacity=capacity, ref=ref, **at.TRAJECTORY_SETTINGS)

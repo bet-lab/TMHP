@@ -4,9 +4,10 @@ Two panels because air-to-air runs two duties and the nameplate is the cooling
 one. Reads whatever ``validation.analysis.ashp_trend`` last wrote.
 
 The horizontal axis is the delivered heat as a share of what the same unit
-delivers at the same temperatures at its top speed (``AirSourceHeatPump.max_capacity``),
+delivers at the same temperatures at its ceiling (``AirSourceHeatPump.max_capacity``:
+the top speed, or a lower speed where a coil reaches its largest airflow first),
 not of the nameplate: the nameplate is a label for one rating point and sits
-at 51-64 % of the top-speed capacity at the conditions drawn, so a curve that
+at 51-64 % of that ceiling at the conditions drawn, so a curve that
 stops there shows only part of the speed range. A marker on each curve is where
 the nameplate duty falls. Requests below the unit's speed floor all resolve to
 one operating point, which is where each curve ends on the left. Stretches
@@ -116,7 +117,7 @@ def main() -> None:
                 linestyle=EXTRAPOLATED_LINESTYLE,
                 label="outside map data",
             )
-        ax.set_xlabel("Delivered capacity, share of maximum capacity [-]")
+        ax.set_xlabel("Coil duty (refrigerant side), share of maximum [-]")
         ax.set_xlim(0.0, 1.02)
         ax.set_xticks(ticks(0.0, 1.0, 0.2))
         ax.grid(lw=GRIDLINE, color=COLORS["muted"], alpha=0.35)

@@ -280,7 +280,8 @@ above the floor.
     sweeps on this page were run before the air-to-water model reported that
     cycling (see below), so their sub-floor rows are a continuous-operation
     figure at the minimum capacity, not a part-load COP.
-    They are drawn hollow in the figures and excluded from every trend verdict.
+    In panel (a) they collapse onto the floor point at the low end of each
+    curve (the triangle), and they are excluded from every trend verdict.
 
     At −7 °C air and 45 °C water the requests below the floor resolve to the
     minimum-capacity point as well (COP 2.59 at the floor, which delivers
@@ -386,17 +387,21 @@ Air-to-air — fixed temperatures
     :width: 100%
 
     The 3.5 kW R32 air-to-air model at fixed temperatures, heating (indoor air
-    20 °C) and cooling (27 °C), from the top speed (right) to the speed floor
-    (left end of each curve). Diamonds mark the 3.5 kW nameplate; dashed
+    20 °C) and cooling (27 °C), from the maximum capacity (right) to the speed
+    floor (left end of each curve). Diamonds mark the 3.5 kW nameplate; dashed
     stretches lie outside the compressor maps' data.
 
 The air-to-air model (``AirSourceHeatPump``, 3.5 kW R32) is swept the same way by
 ``validation.analysis.ashp_trend``, with the running machine and frost and
 defrost off (the sweep isolates what the correlations and heat exchangers do as
-the load moves), from the top speed down to below the speed floor. The
-horizontal axis is again the heat delivered over the maximum at the same
+the load moves), from the maximum capacity down to below the speed floor. The
+horizontal axis is the refrigerant-side coil duty over its maximum at the same
 temperatures (``AirSourceHeatPump.max_capacity``), and the nameplate is the
-3.5 kW cooling capacity for both duties.
+3.5 kW cooling capacity for both duties. The COP and EER divide the heat the
+indoor air carries by the electrical input; that heat differs from the coil duty
+by at most 1.3 % over the six curves. The maximum is the top speed's, 120 rev/s,
+except in heating at +7 °C: there a coil reaches its largest airflow
+first and the ceiling is at 115 rev/s (``capacity_binding == "cycle"``).
 
 .. list-table::
     :header-rows: 1

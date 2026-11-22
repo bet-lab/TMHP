@@ -131,13 +131,15 @@ PROVENANCE = DATA / "provenance" / "ashp_trend.json"
 
 
 def _run(
-    model: AirSourceHeatPump, duty: Duty, load_w: float, t_outdoor: float, *, extrapolation: bool = False
+    model: AirSourceHeatPump, duty: Duty, load_w: float, t_outdoor: float, *, sweep_columns: bool = False
 ) -> dict | None:
     """One steady-state point, or None when the model declined to converge.
 
-    ``extrapolation`` adds the result's ``efficiency_extrapolated`` flag (the
-    point lies outside the default compressor maps' data); the sweep records it
-    so the figure can draw that stretch apart, the trajectory does not need it.
+    ``sweep_columns`` adds the result's ``capacity_binding`` (what stops a
+    request at the ceiling: the compressor's top speed, or a coil at its largest
+    airflow, ``"cycle"``, before it) and ``efficiency_extrapolated`` (the point
+    lies outside the default compressor maps' data); the sweep records them so
+    the figure can draw that stretch apart, the trajectory does not need them.
     """
     result = model.analyze_steady(
         Q_r_iu=duty.sign * load_w,
@@ -160,7 +162,14 @@ def _run(
         "q_delivered_W": abs(float(result.get("Q_ref_iu [W]", float("nan")))),
         "e_tot_W": float(result.get("E_tot [W]", float("nan"))),
         "capacity_clamped": result.get("capacity_clamped"),
-    } | ({"efficiency_extrapolated": bool(result.get("efficiency_extrapolated", False))} if extrapolation else {})
+    } | (
+        {
+            "capacity_binding": result.get("capacity_binding"),
+            "efficiency_extrapolated": bool(result.get("efficiency_extrapolated", False)),
+        }
+        if sweep_columns
+        else {}
+    )
 
 
 def _above_nameplate(q_max_w: float, capacity_w: float) -> list[float]:
@@ -184,7 +193,7 @@ def sweep() -> pd.DataFrame:
             for t_outdoor in duty.sweep_outdoor_C:
                 q_max = float(model.max_capacity(t_outdoor, duty.t_room_C, mode=duty.name)["Q_max [W]"])
                 for fraction in (*_above_nameplate(q_max, capacity_w)[::-1], *SWEEP_FRACTIONS):
-                    point = _run(model, duty, capacity_w * fraction, t_outdoor, extrapolation=True)
+                    point = _run(model, duty, capacity_w * fraction, t_outdoor, sweep_columns=True)
                     if point is None:
                         continue
                     rows.append(

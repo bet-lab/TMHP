@@ -63,6 +63,11 @@ def _list_table_row(text: str, label: str) -> str:
     return _flat(rest[: end.start() if end else len(rest)])
 
 
+def _cells(text: str, label: str) -> list[str]:
+    """The cells after the label of a list-table row, in order."""
+    return [cell.strip() for cell in _list_table_row(text, label).split(" - ") if cell.strip()]
+
+
 @pytest.fixture(scope="module")
 def page() -> str:
     return PAGE.read_text(encoding="utf-8")
@@ -170,21 +175,17 @@ def test_panel_a_tables_quote_the_sweep(page: str, sweep: pd.DataFrame) -> None:
     for t_outdoor, lwt in CONDITIONS:
         c = _curve(sweep, t_outdoor, lwt)
         label = _condition(t_outdoor, lwt)
-        cells = _list_table_row(ranges, label)
-        for expected in (
-            f"{c['q_min'] / 1000:.2f} kW",
-            f"{c['q_max'] / 1000:.2f} kW",
-            f"{c['nameplate_of_max_pct']:.0f} %",
-        ):
-            assert expected in cells, f"capacity range {label}: {cells!r} lacks {expected!r}. {HINT}."
-        cells = _list_table_row(cops, label) + " -"
-        for expected in (
-            f"- {c['top']:.2f} -",
+        expected = [f"{c['q_min'] / 1000:.2f} kW", f"{c['q_max'] / 1000:.2f} kW", f"{c['nameplate_of_max_pct']:.0f} %"]
+        cells = _cells(ranges, label)
+        assert cells == expected, f"capacity range {label}: {cells!r}, expected {expected!r}. {HINT}."
+        expected = [
+            f"{c['top']:.2f}",
             f"{c['at_nameplate']:.2f} ({c['nameplate_rps']:.0f} rev/s)",
-            f"- {c['floor']:.2f} -",
+            f"{c['floor']:.2f}",
             f"{c['top_to_floor_pct']:+.1f} %",
-        ):
-            assert expected in cells, f"COP table {label}: {cells!r} lacks {expected!r}. {HINT}."
+        ]
+        cells = _cells(cops, label)
+        assert cells == expected, f"COP table {label}: {cells!r}, expected {expected!r}. {HINT}."
     text = _flat(page)
     w45, cold = _curve(sweep, 7.0, 45.0), _curve(sweep, -7.0, 45.0)
     assert (
@@ -275,6 +276,11 @@ def test_entering_water_paragraph_quotes_its_sweep(page: str, sweep: pd.DataFram
     floor = rows[rows.at_floor].iloc[0]
     # "That curve rises to the speed floor as well".
     assert peak.at_floor and floor.cop == pytest.approx(peak.cop, rel=2e-4)
+    assert (rows.t_water_in_C == 30.0).all()
+    assert (
+        f"water entering at {rows.t_water_in_C.iloc[0]:.0f} °C at the same flow, which is the 7/35 °C point at the "
+        "9 kW duty"
+    ) in _flat(page)
     expected = (
         f"rises to the speed floor as well, and there reaches COP {floor.cop:.2f}, "
         f"{(floor.cop / nameplate.cop - 1) * 100:.1f} % above the 9 kW duty against {_bare(held['gain_pct'])} with "
@@ -641,6 +647,8 @@ def _a2a_curve(ashp: pd.DataFrame, duty: str, t_outdoor: float) -> dict:
     low, top = rows.iloc[0], rows.iloc[-1]
     assert top.delivered_fraction_of_max == pytest.approx(1.0, rel=1e-3) and top.capacity_clamped == "max"
     assert low.capacity_clamped == "min" and low.rps == pytest.approx(15.0)
+    # The ceiling is the top speed's unless another limit binds first, and then it is at a lower speed.
+    assert (top.capacity_binding == "compressor") == (top.rps == pytest.approx(120.0)), (top.capacity_binding, top.rps)
     nameplate = rows[rows.plr_nameplate == 1.0].iloc[0]
     distinct = rows.drop_duplicates("delivered_fraction_of_max")
     inside = rows[~rows.efficiency_extrapolated]
@@ -651,6 +659,8 @@ def _a2a_curve(ashp: pd.DataFrame, duty: str, t_outdoor: float) -> dict:
         "floor": float(low.cop_sys),
         "top": float(top.cop_sys),
         "at_nameplate": float(nameplate.cop_sys),
+        "top_rps": float(top.rps),
+        "top_binding": str(top.capacity_binding),
         "rise_pct": (float(low.cop_sys) / float(top.cop_sys) - 1.0) * 100.0,
         "rises_every_step": bool((distinct.cop_sys.diff().iloc[1:] < 0).all()),  # COP up as the heat falls
         "inside_min_pct": float(inside.delivered_fraction_of_max.min()) * 100.0,
@@ -668,14 +678,16 @@ def test_air_to_air_table_quotes_the_sweep(page: str, ashp: pd.DataFrame) -> Non
     table = _section(page, "3.5 kW as a share of the maximum", "All six curves rise")
     for duty, t_outdoor, label in A2A_CONDITIONS:
         c = _a2a_curve(ashp, duty, t_outdoor)
-        cells = _list_table_row(table, label).strip() + " -"
-        for expected in (
+        expected = [
             f"{c['q_min'] / 1000:.2f} kW",
             f"{c['q_max'] / 1000:.2f} kW",
             f"{c['nameplate_of_max_pct']:.0f} %",
-            f"- {c['floor']:.2f} - {c['at_nameplate']:.2f} - {c['top']:.2f} -",
-        ):
-            assert expected in cells, f"air-to-air {label}: {cells!r} lacks {expected!r}. {HINT}."
+            f"{c['floor']:.2f}",
+            f"{c['at_nameplate']:.2f}",
+            f"{c['top']:.2f}",
+        ]
+        cells = _cells(table, label)
+        assert cells == expected, f"air-to-air {label}: {cells!r}, expected {expected!r}. {HINT}."
 
 
 def test_air_to_air_prose_quotes_the_sweep(page: str, ashp: pd.DataFrame, sweep: pd.DataFrame) -> None:
@@ -713,3 +725,40 @@ def test_air_to_air_prose_quotes_the_sweep(page: str, ashp: pd.DataFrame, sweep:
     )
     assert expected in text, f"{expected!r}. {HINT}."
     assert min(v["inside_min_pct"] for (d, _), v in c.items() if d == "cooling") > 44.0
+    # "The maximum is the top speed's, 120 rev/s, except in heating at +7 °C: ... at 115 rev/s".
+    below_top = {key: v for key, v in c.items() if v["top_binding"] != "compressor"}
+    assert list(below_top) == [("heating", 7.0)], below_top
+    h7 = below_top["heating", 7.0]
+    assert (
+        "The maximum is the top speed's, 120 rev/s, except in heating at +7 °C: there a coil reaches its largest "
+        f'airflow first and the ceiling is at {h7["top_rps"]:.0f} rev/s (``capacity_binding == "{h7["top_binding"]}"``)'
+    ) in text
+    air = ashp.q_air_delivered_W / ashp.q_delivered_W - 1.0
+    assert f"by at most {air.abs().max() * 100:.1f} % over the six curves" in text
+
+
+def test_extrapolation_split_draws_dashed_where_flagged() -> None:
+    """The figure helper: solid on the map data, dashed where either end of a segment is flagged, one legend line."""
+    import sys
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
+    from _dmpl_common import plot_extrapolation_split
+
+    fig, ax = plt.subplots()
+    plot_extrapolation_split(ax, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4], [True, False, False, False, True], label="s")
+    lines = ax.get_lines()
+    legend, runs = lines[0], lines[1:]
+    assert legend.get_label() == "s" and len(legend.get_xdata()) == 0 and legend.get_linestyle() == "-"
+    assert [list(line.get_xdata()) for line in runs] == [[0, 1], [1, 2, 3], [3, 4]]
+    assert [line.get_linestyle() for line in runs] == ["--", "-", "--"]
+    with pytest.raises(ValueError):
+        plot_extrapolation_split(ax, [0, 1], [0, 1], [True])
+    n = len(ax.get_lines())
+    plot_extrapolation_split(ax, [], [], [], label="empty")
+    assert len(ax.get_lines()) == n
+    plt.close(fig)

@@ -396,7 +396,9 @@ def main() -> None:
         )
     ax.axvspan(
         0.0,
-        float(sweep[sweep.at_floor][x].max()) if sweep.at_floor.any() else 0.0,
+        # Below the lowest of the curves' floors: heat none of them can deliver. Each curve's own floor is its
+        # triangle; a band to the highest floor would shade heat the other curves do deliver.
+        float(sweep[sweep.at_floor].groupby(["t_outdoor_C", "lwt_C"])[x].max().min()) if sweep.at_floor.any() else 0.0,
         color=COLORS["band20"],
         alpha=0.35,
         linewidth=0,

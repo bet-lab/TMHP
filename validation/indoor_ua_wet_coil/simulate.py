@@ -89,14 +89,22 @@ short of it, or met only as an on/off mean, is not scored):
                          unit and its sensible heat ratio, and where the bias
                          of a unit crosses zero if it does
                          (``UA_scale_for_zero_cop_bias``).
-``wet_ua_limit`` / ``dry_ua_limit``
-                         the wet and the dry coil with a hundred times the
-                         shipped conductance (:data:`LIMIT_SCALE`): a contact
-                         factor of 1, the limit a growing indoor conductance
-                         tends to. The bias there is what no larger indoor
-                         conductance removes on these rows.
 ``wet_rule_<rule>``      the conductance a candidate rule gives the unit when
                          fitted **on the other four units** (step 5).
+
+2b. A scan of the conductance
+-----------------------------
+How close to the catalogue can a different indoor conductance bring the
+rows? The cooling rows with the dry coil, the cooling rows with the wet coil
+and the heating rows are run at ten conductances from half to a hundred
+times the shipped one (:data:`SCAN_SCALES`; ``conductance_scan.csv``), the
+compressor as shipped. ``conductance_scan_summary.csv`` has the bias at each
+scale and the bias with every row at the conductance of the scan that gives
+it its highest COP (``which == "best"``). The second is the figure to read
+for rows that run low: a row's COP is not always highest at the largest
+conductance (the summary counts the rows where it is not, and by how much),
+so the largest scale alone is not a bound. It is a bound over the ten
+conductances run, not over every conductance.
 
 3. Where the bias that is left lies
 -----------------------------------
@@ -122,9 +130,8 @@ The indoor coil is the condenser in heating, and the heating grids print no
 ratio, so the conductance cannot be solved there. The heating rows are run
 with the shipped conductance (``heat``; gated on the committed results like
 ``dry``), with the conductance of step 1 (``heat_ua_shr``), with the shipped
-one halved, doubled and times a hundred (``heat_ua_x50``, ``heat_ua_x200``,
-``heat_ua_limit``) and with each rule's (``heat_rule_<rule>``), the
-compressor as shipped
+one halved and doubled (``heat_ua_x50``, ``heat_ua_x200``) and with each
+rule's (``heat_rule_<rule>``), the compressor as shipped
 (``heating_passes.csv``, ``heating_by_unit.csv``).
 
 5. Candidate rules
@@ -164,13 +171,13 @@ rule by path and unit beside those of the shipped conductance; the path
 what ``validation/results/<slug>.csv`` holds for these units. Nothing is
 written to those files.
 
-Run (about four minutes)::
+Run (about six minutes)::
 
     PYTHONPATH=. uv run --extra integrations python -m validation.indoor_ua_wet_coil.simulate
 
 ``--out-dir`` writes the study somewhere else. Part of the study is run
-through :func:`run_cooling`, :func:`run_heating` and :func:`run_defaults`
-(``point_ids``), as the tests do; the command line runs all of it.
+through :func:`run_cooling`, :func:`run_heating`, :func:`run_scan` and
+:func:`run_defaults` (``point_ids``), as the tests do; the command line runs all of it.
 """
 
 from __future__ import annotations
@@ -203,6 +210,8 @@ BY_PR_NAME = "bias_by_pressure_ratio.csv"
 BY_SPEED_NAME = "bias_by_speed.csv"
 BY_TEVAP_NAME = "bias_by_evaporating_temperature.csv"
 BY_INDOOR_NAME = "bias_by_indoor_condition.csv"
+SCAN_NAME = "conductance_scan.csv"
+SCAN_SUMMARY_NAME = "conductance_scan_summary.csv"
 DEFAULT_NAME = "default_passes.csv"
 DEFAULT_SUMMARY_NAME = "default_summary.csv"
 HEATING_NAME = "heating_passes.csv"
@@ -229,12 +238,12 @@ SHR_ROUNDING = 0.005
 T_RATING_INDOOR_C = 27.0
 #: Scales of the unit's conductance of step 1 in the ``wet_ua_shr_x..`` passes.
 UA_SCALES: dict[str, float] = {"wet_ua_shr_x70": 0.70, "wet_ua_shr_x140": 1.40, "wet_ua_shr_x200": 2.00}
-#: Scale of the shipped conductance in the ``..._ua_limit`` passes: a coil whose contact factor is 1 to
-#: every printed digit (``1 - exp(-UA / C)`` with ``UA / C`` above 100 on these units), so that the pass is
-#: the most any indoor conductance can do.
-LIMIT_SCALE = 100.0
 #: Scales of the shipped conductance in the heating passes.
-HEATING_SCALES: dict[str, float] = {"heat_ua_x50": 0.5, "heat_ua_x200": 2.0, "heat_ua_limit": LIMIT_SCALE}
+HEATING_SCALES: dict[str, float] = {"heat_ua_x50": 0.5, "heat_ua_x200": 2.0}
+#: Scales of the shipped conductance in the scan of step 2b: from half of it to a hundred times it, at
+#: which the coil's contact factor ``1 - exp(-UA / C)`` is 1 to every printed digit (``UA / C`` above 100
+#: on these units).
+SCAN_SCALES = (0.5, 0.7, 1.0, 1.4, 2.0, 3.0, 5.0, 10.0, 30.0, 100.0)
 #: Candidate rules for the indoor conductance (module docstring, step 5).
 RULES = ("nameplate", "airflow", "airflow_power", "constant", "conductance")
 #: Passes whose rows carry the compressor's state, not the COP and the coil alone.
@@ -647,8 +656,6 @@ def cooling_conductances(slug: str, units: pd.DataFrame, rules: pd.DataFrame) ->
     if slug in UNITS:
         passes["wet_ua_shr_rerated"] = (True, own, False)
         passes.update({name: (True, own * scale, True) for name, scale in UA_SCALES.items()})
-        passes["wet_ua_limit"] = (True, shipped * LIMIT_SCALE, True)
-        passes["dry_ua_limit"] = (False, shipped * LIMIT_SCALE, True)
     of_unit = rules[rules.slug == slug].set_index("rule")
     passes.update({_pass_name(rule): (True, float(of_unit.UA_rule_W_K[rule]), True) for rule in RULES})
     return passes
@@ -928,17 +935,159 @@ def run_heating(slug: str, conductances: dict[str, float], point_ids: tuple[int,
     return pd.DataFrame(rows)
 
 
-# ---------------------------------------------------------------------------
-# 6. What a rule would move as the default
-# ---------------------------------------------------------------------------
-
-#: Paths of the default passes: name -> (rows of which mode, wet coil?). ``dry`` and ``heat`` are the
+#: Paths of the scan and of the default passes: name -> (rows of which mode, wet coil?). ``dry`` and ``heat`` are the
 #: paths of the shipped parity results, ``wet`` the wet pass of ``validation/wet_coil_shr``.
 DEFAULT_PATHS: dict[str, tuple[str, bool]] = {
     "dry": ("cooling", False),
     "wet": ("cooling", True),
     "heat": ("heating", False),
 }
+
+
+# ---------------------------------------------------------------------------
+# 2b. A scan of the indoor conductance
+# ---------------------------------------------------------------------------
+
+
+def _solve_row(model, catalog, point, wet: bool) -> dict:
+    """One catalogue row with ``model``: the heating row as the harness runs it, the cooling row dry or wet."""
+    from validation.parity.run import _run_point
+
+    if point.mode == "heating":
+        return _run_point(model, catalog, point)
+    humidity = None
+    if wet:
+        parsed = parse_note(point.note)
+        if parsed is None:
+            raise SystemExit(f"{catalog.slug} point {point.id}: no indoor wet bulb in {point.note!r}")
+        humidity = room_humidity(point.t_sink_C, parsed[0])
+    return model.analyze_steady(
+        Q_r_iu=point.q_kW * 1000.0,
+        T0=point.t_source_C,
+        T_a_room=point.t_sink_C,
+        RH_room=humidity,
+        return_dict=True,
+        verbose=False,
+    )
+
+
+def run_scan(slug: str, point_ids: dict[str, tuple[int, ...]] | None = None) -> pd.DataFrame:
+    """One catalogue at every conductance of :data:`SCAN_SCALES`: one row per (path, scale, catalogue row).
+
+    The paths are those of :data:`DEFAULT_PATHS` (cooling dry, cooling wet,
+    heating). The conductance is the shipped one times the scale, the
+    compressor left as shipped (``rps_rated`` of the shipped build passed).
+    ``point_ids`` limits the rows by mode.
+    """
+    from validation.parity.run import _build_model
+    from validation.parity.spec import load_all
+
+    catalog = load_all(slug)[0]
+    rows = []
+    for path, (mode, wet) in DEFAULT_PATHS.items():
+        shipped = _build_model(catalog, None, mode)
+        for scale in SCAN_SCALES:
+            ua = float(shipped.UA_iu_rated) * scale
+            model = _model(catalog, mode, shipped, ua, True)
+            for point in catalog.points:
+                if point.mode != mode or (point_ids is not None and point.id not in point_ids.get(mode, ())):
+                    continue
+                result = _solve_row(model, catalog, point, wet)
+                failure, usable, cop = _scored(point, result)
+                saturation = "T_ref_cond_sat_l [°C]" if mode == "heating" else "T_ref_evap_sat [°C]"
+                rows.append(
+                    {
+                        "path": path,
+                        "slug": slug,
+                        "unit": catalog.name,
+                        "nominal_kW": catalog.nominal_capacity_kW,
+                        "point_id": point.id,
+                        "t_source_C": point.t_source_C,
+                        "t_sink_C": point.t_sink_C,
+                        "q_kW": point.q_kW,
+                        "cop_target": point.target_cop(),
+                        "scale": scale,
+                        "UA_W_K": ua,
+                        "cop": cop,
+                        # The indoor coil's refrigerant temperature: evaporating in cooling, condensing in heating.
+                        "T_sat_indoor_C": float(result.get(saturation, math.nan)) if usable else math.nan,
+                        "pr": float(result.get("pr_cmp [-]", math.nan)) if usable else math.nan,
+                        "failure": failure,
+                        "usable": usable,
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def scan_summary(scan: pd.DataFrame) -> pd.DataFrame:
+    """COP bias at every conductance of the scan, and with each row at the conductance that suits it best.
+
+    One row per (path, unit or all units, scale), and one with ``which ==
+    "best"`` per (path, unit): every row is given the highest COP that any
+    conductance of the scan scores for it, and the bias and error of those
+    are taken. That is the closest to the catalogue the scan's conductances
+    can bring rows that run low -- not the value at the largest
+    conductance, which need not be a row's highest. On the ``best`` rows,
+    ``rows_highest_at_the_largest_scale`` counts the rows whose COP at the
+    largest scale is within 1e-6 of their highest,
+    ``largest_scale_below_highest_pct_max`` is how far below it the others
+    are at most, ``rows_cop_never_falls`` counts the rows whose COP does not
+    fall (by more than 1e-6) from one scale to the next, and
+    ``best_minus_scale_5_and_above_pct_points_max`` is how far the bias of
+    the ``best`` row is from the bias at any scale from 5 up.
+    """
+    rows = []
+    for path, of_path in scan.groupby("path", sort=False):
+        groups = [(slug, frame) for slug, frame in of_path.groupby("slug", sort=False)]
+        for slug, frame in [*groups, ("all", of_path)]:
+            cop = frame.assign(cop=frame.cop.where(frame.usable)).pivot(
+                index=["slug", "point_id"], columns="scale", values="cop"
+            )
+            target = frame.drop_duplicates(["slug", "point_id"]).set_index(["slug", "point_id"]).cop_target
+            target = target.reindex(cop.index)
+            bias_at = {}
+            for scale in cop.columns:
+                relative = ((cop[scale] - target) / target * 100.0).dropna()
+                bias_at[float(scale)] = _mean(relative)
+                rows.append(
+                    {
+                        "path": path,
+                        "slug": slug,
+                        "which": "scale",
+                        "scale": float(scale),
+                        "points": int(len(cop)),
+                        "scored": int(len(relative)),
+                        "cop_bias_pct": _mean(relative),
+                        "cop_MAPE_pct": _mean(relative.abs()),
+                    }
+                )
+            highest = cop.max(axis=1)
+            relative = ((highest - target) / target * 100.0).dropna()
+            largest = cop[cop.columns.max()]
+            steps = cop.ffill(axis=1).diff(axis=1).iloc[:, 1:].div(highest, axis=0)
+            top = [bias for scale, bias in bias_at.items() if scale >= 5.0]
+            rows.append(
+                {
+                    "path": path,
+                    "slug": slug,
+                    "which": "best",
+                    "scale": math.nan,
+                    "points": int(len(cop)),
+                    "scored": int(len(relative)),
+                    "cop_bias_pct": _mean(relative),
+                    "cop_MAPE_pct": _mean(relative.abs()),
+                    "rows_highest_at_the_largest_scale": int((largest >= highest * (1.0 - 1e-6)).sum()),
+                    "largest_scale_below_highest_pct_max": float(((1.0 - largest / highest) * 100.0).max()),
+                    "rows_cop_never_falls": int((steps.fillna(0.0) >= -1e-6).all(axis=1).sum()),
+                    "best_minus_scale_5_and_above_pct_points_max": float(max(_mean(relative) - bias for bias in top)),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------
+# 6. What a rule would move as the default
+# ---------------------------------------------------------------------------
 
 
 def default_conductances(units: pd.DataFrame) -> pd.DataFrame:
@@ -971,7 +1120,7 @@ def run_defaults(
     rated speed, is re-solved with the new coil. ``point_ids`` limits the
     rows by mode (``{"cooling": (...), "heating": (...)}``).
     """
-    from validation.parity.run import _build_model, _run_point
+    from validation.parity.run import _build_model
     from validation.parity.spec import load_all
 
     catalog = load_all(slug)[0]
@@ -1005,20 +1154,7 @@ def run_defaults(
                     rows.append({**row, "cop": math.nan, "shr_net": math.nan, "failure": NO_CONDUCTANCE})
                     rows[-1]["usable"] = False
                     continue
-                if mode == "heating":
-                    result = _run_point(model, catalog, point)
-                else:
-                    parsed = parse_note(point.note)
-                    if parsed is None:
-                        raise SystemExit(f"{slug} point {point.id}: no indoor wet bulb in {point.note!r}")
-                    result = model.analyze_steady(
-                        Q_r_iu=point.q_kW * 1000.0,
-                        T0=point.t_source_C,
-                        T_a_room=point.t_sink_C,
-                        RH_room=room_humidity(point.t_sink_C, parsed[0]) if wet else None,
-                        return_dict=True,
-                        verbose=False,
-                    )
+                result = _solve_row(model, catalog, point, wet)
                 failure, usable, cop = _scored(point, result)
                 net_sensible = float(result.get("Q_room_sensible [W]", math.nan))
                 net_total = net_sensible + float(result.get("Q_iu_latent [W]", math.nan))
@@ -1766,6 +1902,7 @@ def run(argv: list[str] | None = None) -> None:
     heating = pd.concat(
         [run_heating(slug, heating_conductances(slug, units, loo)) for slug in UNITS], ignore_index=True
     )
+    scan = pd.concat([run_scan(slug) for slug in UNITS], ignore_index=True)
     defaults = pd.concat([run_defaults(slug, as_default) for slug in UNITS], ignore_index=True)
 
     for label, frame, slugs, ids in (
@@ -1781,6 +1918,12 @@ def run(argv: list[str] | None = None) -> None:
         ids = cooling_point_ids(slug) if DEFAULT_PATHS[path][0] == "cooling" else heating_point_ids(slug)
         if [int(i) for i in rows.point_id] != ids:
             raise SystemExit(f"the rows of {rule} / {path} / {slug} are not the rows of the catalogue; nothing written")
+    for (path, scale, slug), rows in scan.groupby(["path", "scale", "slug"], sort=False):
+        ids = cooling_point_ids(slug) if DEFAULT_PATHS[path][0] == "cooling" else heating_point_ids(slug)
+        if [int(i) for i in rows.point_id] != ids:
+            raise SystemExit(
+                f"the rows of the scan at {path} / {scale:g} / {slug} are not the catalogue's; nothing written"
+            )
     worst = max(parity_gate(points, "dry"), parity_gate(held, "dry"), parity_gate(heating, "heat"))
     print(f"shipped passes against the committed parity results: largest relative COP difference {worst:.3e}")
     if not worst <= 1e-6:
@@ -1801,6 +1944,8 @@ def run(argv: list[str] | None = None) -> None:
         HEATING_NAME: heating,
         HEATING_UNITS_NAME: heating_by_unit(heating),
         RULES_NAME: loo,
+        SCAN_NAME: scan,
+        SCAN_SUMMARY_NAME: scan_summary(scan),
         DEFAULT_NAME: defaults,
         DEFAULT_SUMMARY_NAME: default_summary(defaults, points, heating),
         HELD_UA_POINTS_NAME: held_coils,
@@ -1825,7 +1970,7 @@ def run(argv: list[str] | None = None) -> None:
         "shr_rounding": SHR_ROUNDING,
         "ua_scales": UA_SCALES,
         "heating_scales": HEATING_SCALES,
-        "limit_scale": LIMIT_SCALE,
+        "scan_scales": list(SCAN_SCALES),
         "pressure_ratio_edges": list(PR_EDGES),
         "relative_speed_edges": list(RELATIVE_SPEED_EDGES),
         "rating_row_speed_edges": list(RATING_ROW_SPEED_EDGES),
@@ -1855,8 +2000,9 @@ def run(argv: list[str] | None = None) -> None:
         written,
         {
             "model": "validation.parity.run._build_model(catalog, overrides, mode): the shipped parity construction",
-            "overrides": "UA_iu_rated of the pass; with it rps_rated of the shipped build, except in "
-            "wet_ua_shr_rerated and the default passes (UA_iu_rated alone) and in dry, wet and heat (none)",
+            "overrides": "UA_iu_rated of the pass (of the scale, in the scan); with it rps_rated of the shipped build, "
+            "except in wet_ua_shr_rerated and the default passes (UA_iu_rated alone) and in dry, wet and heat (none)",
+            "scan_scales": list(SCAN_SCALES),
             "RH_room": "from the row's indoor dry bulb and wet bulb, one standard atmosphere (wet passes); None (dry)",
             "request": "the published capacity, as the parity harness passes it",
             "ua_scales": UA_SCALES,
@@ -1875,7 +2021,15 @@ def run(argv: list[str] | None = None) -> None:
 
     pd.set_option("display.width", 220)
     pd.set_option("display.max_columns", 40)
-    for name in (UA_UNITS_NAME, BY_PR_NAME, BY_SPEED_NAME, BY_TEVAP_NAME, HEATING_UNITS_NAME, RULES_NAME):
+    for name in (
+        UA_UNITS_NAME,
+        BY_PR_NAME,
+        BY_SPEED_NAME,
+        BY_TEVAP_NAME,
+        HEATING_UNITS_NAME,
+        RULES_NAME,
+        SCAN_SUMMARY_NAME,
+    ):
         print(name)
         print(tables[name].to_string(index=False, float_format=lambda v: f"{v:.3f}"))
     print(json.dumps(_json_ready({"headline": numbers, "headline_held": numbers_held}), indent=1))

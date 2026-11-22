@@ -4627,7 +4627,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
             simulation, with its room temperatures and humidities as
             ``T_a_room_schedule`` and ``RH_room_schedule``
             (``request_basis`` of :meth:`analyze_steady`, which solves each
-            step). Any other value raises ``ValueError``.
+            step). Any other value raises ``ValueError``. The argument is
+            handed to :meth:`analyze_steady` only where it is not
+            ``"coil"``: a subclass that overrides :meth:`analyze_steady`
+            without it runs a coil-basis schedule as before, and has to
+            accept it to run another (Python's ``TypeError`` otherwise).
             A run on ``"room_sensible"`` has one column more,
             ``request_solves [-]``: the coil-basis solves of each step.
 
@@ -4689,6 +4693,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         results_data: list[dict] = []
 
+        # A coil-basis run calls ``analyze_steady`` as it was called before the
+        # option existed, so a subclass that overrides it without the option
+        # still runs; only another basis is handed over.
+        basis = {} if request_basis == REQUEST_BASIS_COIL else {"request_basis": request_basis}
+
         # The model does not change during a run: the smallest continuous
         # duty of a condition (where the envelope refuses lower speeds) is searched once,
         # and so is what the searches of a wet cooling condition find (no row depends on it).
@@ -4715,7 +4724,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     RH_room=(
                         None if RH_room_arr is None or not Q_r_iu_n > 0 else _room_humidity_of_step(RH_room_arr[n], n)
                     ),
-                    request_basis=request_basis,
+                    **basis,
                 )
 
                 # Add time columns

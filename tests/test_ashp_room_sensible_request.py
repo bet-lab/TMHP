@@ -20,7 +20,9 @@ request:
   ``Q_room_sensible_at_Q_max [W]``;
 - a row does not depend on what was solved before it;
 - the row says how many coil-basis solves the search took
-  (``request_solves [-]``, on a row of this basis only), twelve at most.
+  (``request_solves [-]``, on a row of this basis only), twelve at most;
+- a default run does not hand the option to ``analyze_steady``: a subclass
+  that overrides it with the signature it had before runs as it did.
 
 No test here looks at how the search calls the coil-basis solve: the row is
 checked through the public round trip (a coil request for the ``Q_ref_iu [W]``
@@ -614,6 +616,54 @@ def test_a_dynamic_run_reports_the_solves_of_every_step(run: pd.DataFrame) -> No
     # The two steps above the ceiling end on the first or the second solve.
     assert solves.iloc[3] <= 2
     assert solves.iloc[7] <= 2
+
+
+class _EarlierSignature(AirSourceHeatPump):
+    """A subclass written before the option: ``analyze_steady`` overridden with the signature it had then."""
+
+    def analyze_steady(  # type: ignore[override]
+        self,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float | None = None,
+        *,
+        return_dict: bool = True,
+        postprocess: bool = True,
+        verbose: bool = True,
+        RH_out: float | None = None,
+        RH_room: float | None = None,
+    ) -> dict | pd.DataFrame:
+        self.overridden_method_ran = True
+        return super().analyze_steady(
+            Q_r_iu,
+            T0,
+            T_a_room,
+            return_dict=return_dict,
+            postprocess=postprocess,
+            verbose=verbose,
+            RH_out=RH_out,
+            RH_room=RH_room,
+        )
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"request_basis": "coil"}], ids=["default", "coil"])
+def test_a_coil_basis_run_does_not_hand_the_basis_to_analyze_steady(hp: AirSourceHeatPump, kwargs: dict) -> None:
+    """A subclass that overrides ``analyze_steady`` without the option runs a coil-basis schedule as before."""
+    earlier = _EarlierSignature()
+    frame = _run(earlier, STEPS, **kwargs)
+    assert earlier.overridden_method_ran
+    plain = _run(hp, STEPS)
+    assert list(frame.columns) == list(plain.columns)
+    assert list(frame["request_basis"]) == ["coil"] * len(STEPS)
+    for n in range(len(STEPS)):
+        assert _row_differences(frame.iloc[n], plain.iloc[n]) == [], n
+    assert frame.attrs["operating_limits"] == plain.attrs["operating_limits"]
+
+
+def test_a_room_sensible_run_hands_the_basis_to_analyze_steady() -> None:
+    """Such a subclass has to take the option to be asked on the room's sensible heat: Python's ``TypeError``."""
+    with pytest.raises(TypeError, match="request_basis"):
+        _run(_EarlierSignature(), STEPS[:1], request_basis="room_sensible")
 
 
 def _row_differences(a: pd.Series, b: pd.Series) -> list[str]:

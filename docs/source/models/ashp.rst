@@ -524,7 +524,7 @@ be met by the mean, so the cycle is solved frost-free at
      - 0.912
    * - −15
      - −20.9
-     - 0.019
+     - 0.018
      - 0.859
      - 0.936
 
@@ -692,7 +692,7 @@ point and ``frost_point_band_K=None`` is EnergyPlus.
      - 0.917
 
 With the load term, air too dry to frost even the rated-load coil (below
-−18.4 °C at 60 % relative humidity, below −39.2 °C at 84 %) is not corrected
+−18.4 °C at 60 % relative humidity, below −39.1 °C at 84 %) is not corrected
 at any load, and neither is a part-loaded coil at or above the frost point of
 the air. Without the band there is no frost drive in dry air for the load to
 scale and the fixed multipliers stay at every load — at half load and 60 %

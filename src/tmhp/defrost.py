@@ -183,7 +183,7 @@ the load falls and the coil rises to the air's frost point.
 *Air too dry to frost the rated-load coil.* The fixed losses carry the onset
 share ``s`` of the rated-load coil as well as ``phi``: ``1 - 0.125 s phi``
 and ``1 - 0.046 s phi``. Where the air cannot deposit even on the rated-load
-coil (at 60 % relative humidity below -18.4 degC, at 84 % below -39.2 degC)
+coil (at 60 % relative humidity below -18.4 degC, at 84 % below -39.1 degC)
 there is no correction at any load, and the approach to it is continuous in
 the outdoor state and in the load. A part-loaded coil at or above the frost
 point of the air is not corrected either: the drive of the load term is cut

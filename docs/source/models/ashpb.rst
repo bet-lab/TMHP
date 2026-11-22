@@ -455,19 +455,19 @@ The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP
       - −7 °C
       - −15 °C
     * - Frost-free
-      - 3.87
-      - 3.68
-      - 3.56
-      - 3.44
-      - 2.97
-      - 2.28
+      - 3.51
+      - 3.28
+      - 3.14
+      - 3.01
+      - 2.59
+      - 2.21
     * - With frost and defrost
-      - 3.87
-      - 3.61
-      - 3.16
-      - 3.05
-      - 2.65
-      - 2.02
+      - 3.51
+      - 3.21
+      - 2.75
+      - 2.63
+      - 2.30
+      - 1.97
     * - Load ratio ``r``
       - —
       - 0.58
@@ -483,17 +483,17 @@ The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP
       - 0.036
       - 0.018
     * - ``load_weighted=False``
-      - 3.87
-      - 3.47
-      - 2.94
-      - 2.87
-      - 2.57
-      - 2.02
+      - 3.51
+      - 3.06
+      - 2.54
+      - 2.46
+      - 2.23
+      - 1.97
 
-At 4 kW the same unit hardly frosts (``r`` 0.3: 3.42 at 2 °C against 3.46
+At 4 kW the same unit hardly frosts (``r`` 0.3: 3.17 at 2 °C against 3.21
 frost-free). Frost also lowers what the unit can deliver: at A2 against a
-35 °C tank the default unit reaches its speed ceiling at a frost-free 24.2 kW,
-a mean of 19.0 kW -- what a 20 kW request receives. The frost of a request the
+35 °C tank the default unit reaches its speed ceiling at a frost-free 25.5 kW,
+a mean of 20.1 kW -- what a 25 kW request receives. The frost of a request the
 unit cannot meet is that of the duty it runs at its ceiling, not of the
 request (the ceiling the envelope search reports varies by a few per cent
 with the request, where the search starts; the correction is that of the

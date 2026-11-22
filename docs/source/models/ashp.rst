@@ -1174,10 +1174,11 @@ many it took (``request_solves [-]``; a run on this basis has the column). A
 dry-coil or heating request takes three (the request, a first guess from it,
 one secant step), a wet one four on average, a request above the ceiling one
 or two; twelve is the most a request may take, and eight the most one of
-these requests took (ten among 528 requests around the kink above). Over the same 2 646 requests the run took 3.0
-times the wall time of those requests on the coil basis: 2.9 times on the
-dry-coil and heating rows, 5.0 times on the wet ones (their trials are at
-larger duties than the request), 1.8 times at the ceiling. A dynamic run
+these requests took (ten among 528 requests around the kink above). Over the
+same 2 646 requests the run took 3.0 times the wall time of those requests on
+the coil basis: 2.9 times on the dry-coil and heating rows, 5.0 times on the
+wet ones (their trials are at larger duties than the request), 1.8 times at
+the ceiling. A dynamic run
 solves each step as ``analyze_steady`` does, in either basis, and a row does
 not depend on the steps before it — with the exception the coil basis has: a
 dry request the compressor envelope refuses from below is cycled at a

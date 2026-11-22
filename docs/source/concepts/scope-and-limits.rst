@@ -206,12 +206,13 @@ Air side
       - Below 5 °C outdoor the EnergyPlus frost multipliers are applied to a
         frost-free cycle. They depend on outdoor temperature and humidity,
         not on the coil the model solves, and a defrost is in the mean, not
-        resolved in time. The multipliers were fitted to air-to-air units;
+        resolved in time. Air too dry to frost the correlation's coil is not
+        corrected; the 3 K band over which the fixed losses come in is a
+        modelling choice, not a measurement. The multipliers were fitted to air-to-air units;
         the boiler takes them unchanged, with the defrost heat drawn from
         the tank water. Below the capacity of the unit the correlation
         describes, the correction shrinks with the frost drive of a less
-        loaded coil (air flow taken as independent of the load); in air too
-        dry to frost at all, the EnergyPlus fixed loss stays at every load
+        loaded coil (air flow taken as independent of the load)
       - ``defrost_fraction [-]``, ``frost_capacity_factor [-]``,
         ``E_defrost [W]``; ``Q_ref_iu_frost_free [W]`` (ASHP) or
         ``Q_ref_tank_frost_free [W]`` (ASHPB) is the cycle that was solved

@@ -1,0 +1,131 @@
+{
+ "points": 134,
+ "cv": {
+  "folds": 10,
+  "seed": 0
+ },
+ "scores": {
+  "current": {
+   "eta_v": {
+    "terms": 8,
+    "rmse": 0.0075,
+    "cv_rmse": 0.0081,
+    "max_abs_error": 0.025,
+    "condition_number": 272.0
+   },
+   "eta_ov": {
+    "terms": 8,
+    "rmse": 0.0206,
+    "cv_rmse": 0.0221,
+    "max_abs_error": 0.075,
+    "condition_number": 272.0
+   },
+   "f_loss": {
+    "terms": 7,
+    "rmse": 0.0137,
+    "cv_rmse": 0.0149,
+    "max_abs_error": 0.041,
+    "condition_number": 268.0
+   }
+  },
+  "current_raw": {
+   "eta_v": {
+    "terms": 8,
+    "rmse": 0.0075,
+    "cv_rmse": 0.0081,
+    "max_abs_error": 0.025,
+    "condition_number": 261000.0
+   },
+   "eta_ov": {
+    "terms": 8,
+    "rmse": 0.0206,
+    "cv_rmse": 0.0221,
+    "max_abs_error": 0.075,
+    "condition_number": 261000.0
+   },
+   "f_loss": {
+    "terms": 7,
+    "rmse": 0.0137,
+    "cv_rmse": 0.0149,
+    "max_abs_error": 0.041,
+    "condition_number": 261000.0
+   }
+  },
+  "ln_quadratic": {
+   "eta_v": {
+    "terms": 7,
+    "rmse": 0.0076,
+    "cv_rmse": 0.0082,
+    "max_abs_error": 0.024,
+    "condition_number": 93800.0
+   },
+   "eta_ov": {
+    "terms": 7,
+    "rmse": 0.0281,
+    "cv_rmse": 0.0298,
+    "max_abs_error": 0.092,
+    "condition_number": 93800.0
+   },
+   "f_loss": {
+    "terms": 6,
+    "rmse": 0.0139,
+    "cv_rmse": 0.0146,
+    "max_abs_error": 0.045,
+    "condition_number": 88200.0
+   }
+  },
+  "pr_quadratic": {
+   "eta_v": {
+    "terms": 7,
+    "rmse": 0.0074,
+    "cv_rmse": 0.008,
+    "max_abs_error": 0.025,
+    "condition_number": 64400.0
+   },
+   "eta_ov": {
+    "terms": 7,
+    "rmse": 0.0481,
+    "cv_rmse": 0.0503,
+    "max_abs_error": 0.183,
+    "condition_number": 64400.0
+   },
+   "f_loss": {
+    "terms": 6,
+    "rmse": 0.0122,
+    "cv_rmse": 0.0129,
+    "max_abs_error": 0.035,
+    "condition_number": 59600.0
+   }
+  },
+  "pr_full_2nd": {
+   "eta_v": {
+    "terms": 10,
+    "rmse": 0.0062,
+    "cv_rmse": 0.007,
+    "max_abs_error": 0.022,
+    "condition_number": 72300.0
+   },
+   "eta_ov": {
+    "terms": 10,
+    "rmse": 0.0444,
+    "cv_rmse": 0.0479,
+    "max_abs_error": 0.16,
+    "condition_number": 72300.0
+   },
+   "f_loss": {
+    "terms": 6,
+    "rmse": 0.0122,
+    "cv_rmse": 0.0129,
+    "max_abs_error": 0.035,
+    "condition_number": 59600.0
+   }
+  }
+ },
+ "eta_ov_peak_PR_at_70rps_Te0": {
+  "current": 3.78,
+  "current_raw": 3.78,
+  "ln_quadratic": 4.79,
+  "pr_quadratic": 6.23,
+  "pr_full_2nd": 10.0
+ }
+}

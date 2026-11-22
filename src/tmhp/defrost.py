@@ -155,7 +155,11 @@ more than the correlation says. Against the nameplate alone, a unit delivering
 part-loaded. The ratio depends on the correction it gives (the duty is the
 request over the capacity multiplier), so the two are solved together
 (:meth:`DefrostModel.frost_state_at_duty`); a unit cycling on its speed floor
-is loaded by what the running machine delivers.
+is loaded by what the running machine delivers, and so is one held at its
+capacity ceiling: the frost of a request the unit cannot meet is that of the
+ceiling duty, not of the request (the models keep the request's state where
+the ceiling's would deliver more than was asked, which takes a frost-point
+band of zero or none).
 
 *The frost drive.* The humidity ratio the air can leave on the coil as frost
 -- what it holds, up to saturation at 0 degC, less saturation at the coil
@@ -239,6 +243,7 @@ __all__ = [
     "T_OUT_MAX_DEFROST_C",
     "FROST_TRANSITION_K",
     "FROST_POINT_BAND_K",
+    "LOAD_RATIO_ATOL",
     "RH_OUT_DEFAULT",
     "T_RATING_HEATING_C",
     "DEFROST_FRACTION_KEY",
@@ -306,6 +311,12 @@ _POWER_FROSTED = 0.954
 _LOAD_COEFFICIENT = 0.01
 _LOAD_T_REF_C = 7.222
 _LOAD_CAPACITY_DIVISOR = 1.01667
+
+#: Two load ratios closer than this are the same load [-]. Not a physical
+#: constant: :meth:`DefrostModel.frost_state_at_duty` finds its ratio to
+#: 1e-12, and a duty read back from a solved row differs from the one asked
+#: for in its last digits.
+LOAD_RATIO_ATOL = 1.0e-9
 
 
 def saturation_humidity_ratio(T_C: float, P_Pa: float = P_ATM) -> float:

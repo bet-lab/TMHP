@@ -7,6 +7,8 @@ R32 15 kW ASHPB (the #226 example): one hour from 50 degC, set points 60-62 degC
 - ``figures/reduce_duty_th.png``: T-h cycles where the nameplate duty first meets the
   condensing limit (tank 57.9 degC) and on the limit at the end of the charge (tank 62 degC).
 - ``figures/timeseries.csv``: the two runs the first figure draws.
+- ``figures/reduce_duty_window.png``: the duty against the tank temperature, where the stretch on
+  the limit starts (the nameplate duty) and ends (the speed floor's duty at -7, 15 and 35 degC).
 
 Run from the repository root::
 
@@ -259,3 +261,69 @@ az.set_ylim(54, 68)
 az.set_xlabel("비엔탈피 h [kJ/kg]")
 az.set_title("온도차가 줄면 넘어가는 열도 준다", loc="left", fontsize=FS)
 finalize(fig, OUT / "reduce_duty_th", formats=("png",))
+
+# ── c: where reduced-duty charging starts and ends ───────────────────
+from tmhp.compressor_envelope import (  # noqa: E402
+    condensing_tank_cutout,
+    condensing_tank_reach,
+    smallest_duty_on_condensing_limit,
+)
+
+T0_WINDOW = (-7.0, 15.0, 35.0)  # outdoor temperatures whose stop is marked [degC]
+SIZE_C = ("13cm", "7.6cm")
+T_reach, K = condensing_tank_reach(mr), float(mr.K_tank_hx)
+T_knee = condensing_tank_cutout(mr)
+Q_cap = float(mr.hp_capacity)
+stops = {}
+for T0w in T0_WINDOW:
+    q_min = smallest_duty_on_condensing_limit(mr, mr._frost_free_steady_floor(T0w))
+    stops[T0w] = (q_min, T_reach - q_min / K)
+    print(f"window: T0 {T0w:g}  Q_min {q_min / 1e3:.2f} kW  T_stop {T_reach - q_min / K:.2f}")
+
+fig, ax = plt.subplots(figsize=dm.figsize(*SIZE_C))
+Tt = np.linspace(50.0, T_knee, 20)
+ax.plot(Tt, np.full_like(Tt, Q_cap / 1e3), color=base.C_INK, lw=1.1)
+T_line = np.linspace(T_knee, T_reach, 50)
+ax.plot(T_line, K * (T_reach - T_line) / 1e3, color=C_RED, lw=1.1)
+ax.text(51.0, Q_cap / 1e3 + 0.6, f"정격 열량 {Q_cap / 1e3:.0f} kW로 충전", fontsize=FS, color=base.C_INK)
+ax.annotate(
+    f"감속 시작: 탱크 {T_knee:.2f} °C\n(정격 열량에서 응축온도가 {T_reach:.0f} °C 상한에 닿음)",
+    xy=(T_knee, Q_cap / 1e3),
+    xytext=(51.0, 9.5),
+    fontsize=FS,
+    color=TXT_HL,
+    arrowprops=dict(arrowstyle="-", color=C_RED, lw=HAIRLINE),
+)
+ax.text(
+    59.4,
+    13.5,
+    f"상한을 따라 감속\n열량 = {K / 1e3:.2f} kW/K × ({T_reach:.0f} °C − 탱크)",
+    fontsize=FS,
+    color=TXT_HL,
+)
+for T0w, (q_min, T_stop) in stops.items():
+    ax.plot([T_stop], [q_min / 1e3], "o", ms=4, color=C_RED, mec="white", mew=0.5, zorder=4)
+    ax.plot([50.0, T_stop], [q_min / 1e3, q_min / 1e3], color=C_RED, lw=HAIRLINE, ls=":")
+    ax.text(
+        50.2,
+        q_min / 1e3 + 0.25,
+        f"외기 {T0w:g} °C: 회전수 하한 15 rev/s의 열량 {q_min / 1e3:.1f} kW".replace("-", "−"),
+        fontsize=FS,
+        color=TXT_HL,
+    )
+ax.annotate(
+    "감속 끝(정지): 하한 열량이 상한에 닿는 탱크 온도\n외기 −7 / 15 / 35 °C에서 "
+    + " / ".join(f"{stops[t][1]:.1f}" for t in T0_WINDOW)
+    + " °C",
+    xy=(stops[15.0][1], stops[15.0][0] / 1e3),
+    xytext=(57.2, 1.0),
+    fontsize=FS,
+    color=TXT_HL,
+    arrowprops=dict(arrowstyle="-", color=C_RED, lw=HAIRLINE),
+)
+ax.axvline(T_reach, color=base.C_INK, lw=HAIRLINE, ls=":")
+ax.set_xlim(50, 66)
+ax.set_ylim(0, 17.5)
+ax.set_xlabel("탱크 물 온도 [°C]")
+ax.set_ylabel("물에 넣는 열 [kW]")
+finalize(fig, OUT / "reduce_duty_window", formats=("png",))

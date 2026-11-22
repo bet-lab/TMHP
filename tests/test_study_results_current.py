@@ -308,6 +308,7 @@ STUDY_RECORDS = {
     "validation/results/auxiliary_power_pto_proxy/": "validation/results/auxiliary_power_pto_proxy/provenance.json",
     "validation/results/fan_model_sensitivity_once/": "validation/results/fan_model_sensitivity_once/provenance.json",
     "validation/results/compressor_group_fitting_once/": "validation/results/compressor_group_fitting_once/provenance.json",
+    "validation/results/frost_band_sensitivity/": "validation/results/frost_band_sensitivity/provenance.json",
 }
 
 

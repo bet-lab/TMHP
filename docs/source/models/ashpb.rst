@@ -231,6 +231,55 @@ widening the outdoor coil's approach. The dynamic run does not use those; its
 floor is the minimum-speed duty ``analyze_steady`` itself reports as
 ``Q_min [W]``.
 
+**Which control each option stands for, and the default** (#227). The two
+options are two kinds of control found in manufacturers' manuals:
+
+- ``"reduce_duty"`` is an inverter compressor's high-pressure limiting. Above
+  a set condensing pressure the controller lowers the compressor's frequency
+  limit in steps and releases it when the pressure falls (Daikin ERQ service
+  manual: above 3.04 MPa; Mitsubishi City Multi: the frequency is lowered
+  every 30 s while the high pressure is above its limit). The option follows
+  that as a continuous duty. It starts where the nameplate duty condenses on
+  ``T_cond_max`` (57.99 °C for the R32 unit above, whatever the outdoor
+  air), lowers the duty by ``K_tank_hx`` (2.14 kW) per kelvin of tank, and
+  ends where the duty at the compressor's speed floor condenses on the limit
+  (63.63 / 62.66 / 61.30 °C at −7 / 15 / 35 °C outdoor) or at the set point.
+- ``"stop"`` is a fixed-speed unit, which its high-pressure switch stops, or
+  a domestic-hot-water controller whose highest heat-pump tank temperature
+  (the "HP MAX" setting of Daikin Altherma controllers, for one) is the
+  nameplate cut-out.
+- Real units heat a tank above the heat pump's reach with an electric
+  booster heater. The boilers have none, so a set point above the end of the
+  charge is capped (with a warning), and the heat a booster would add is not
+  in the results.
+
+The start and the end are kept as they are (co-author decision on #227,
+2026-11-22). The start is the protection limit itself: no data was found on
+the margin between the pressure at which a controller starts limiting and the
+pressure of its high-pressure switch. The end is the duty at the speed floor;
+it is to be checked against the manufacturers' published envelopes (the
+highest leaving water temperature by outdoor temperature).
+
+The default stays ``"stop"``. It changes to ``"reduce_duty"`` once all of
+these hold:
+
+1. The withheld outdoor states no longer break the charge, or the annual
+   effect of the break has been measured and accepted. The break: the 15 kW
+   R290 unit with set points of 70–72 °C, one hour from 60 °C, reaches
+   72.00 °C with 2.114 kWh at −12 °C but stops at 67.99 °C with 1.456 kWh at
+   −13 °C (``reduced_duty_withheld == "outdoor_coil"``).
+2. The cost of a year with hourly outdoor states is acceptable. A week of
+   hourly steps of the R32 unit (set points 60–62 °C) takes 17.6 s against
+   2.7 s with ``"stop"``.
+3. The per-refrigerant limits of #229 are settled; they move the start and
+   the end.
+4. ``GroundSourceHeatPumpBoiler`` with a stratified or hybrid tank, which
+   refuses ``"reduce_duty"``, gets a default that depends on the tank model.
+
+Figures of the R32 example (the hour, the two cycles on a T-h diagram, and
+the start and end by outdoor temperature) are in
+``validation/reduced_duty_charge/``.
+
 Steady state below the minimum capacity
 =======================================
 

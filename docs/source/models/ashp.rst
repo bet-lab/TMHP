@@ -598,7 +598,11 @@ colder coil than this, so the part-load frost here is a lower bound.
 The outdoor humidity is an optional input: ``analyze_steady(..., RH_out=0.7)``
 and ``analyze_dynamic(..., RH_out_schedule=...)`` take a relative humidity as a
 fraction. Without it the model uses 84 %, the humidity of the EN 14511 rating
-condition A2 (dry bulb 2 °C, wet bulb 1 °C). ``defrost=None`` switches the
+condition A2 (dry bulb 2 °C, wet bulb 1 °C). Below 0 °C it is relative to
+saturation over ice (:func:`tmhp.defrost.humidity_ratio`), where a weather
+station's relative humidity and dew point are usually over liquid water: 80 %
+over water at −20 °C is 97 % over ice (:ref:`what that is worth
+<ashp-frost-band>`). ``defrost=None`` switches the
 correction off, and a :class:`tmhp.DefrostModel` sets the outdoor limit, the
 width of the transition below it and the default humidity.
 
@@ -700,6 +704,191 @@ humidity the COP multiplier would fall from 0.997 at −15 °C to 0.917 at
 −18.4 °C. A coil at or above 0 °C is not corrected, as in EnergyPlus; the
 coil of the correlation is at −4.5 °C or colder below the 5 °C limit, so that
 step is reached only with a higher ``T_out_max`` or a given coil temperature.
+
+.. _ashp-frost-band:
+
+**How much the band matters.** The width of the frost-point band is an input
+without a measurement behind it, so here is what depends on it
+(``validation/frost_band_sensitivity/``). At the rated load the band changes
+the multipliers only where the frost point of the air is within its width of
+the coil: air drier than a rating condition, and humid air colder than about
+−20 °C. In air as humid as a test room (85 % and more) down to −20 °C a band
+of 0 K and the default 3 K give the same figures and 6 K differs by at most
+0.04 in the COP multiplier; on the whole grid, −30 to 5 °C and 30 to 100 %,
+the largest difference from the default is 0.08 (0 K at −18 °C and 60 %),
+where a band of zero switches the whole fixed loss on at the frost point.
+
+.. list-table:: COP multiplier at the rated load with a frost-point band of 0 / 3 / 6 K
+   :header-rows: 1
+   :widths: 16 21 21 21 21
+
+   * - Outdoor
+     - 60 %
+     - 70 %
+     - 85 %
+     - 100 %
+   * - 2 °C
+     - 0.884 / 0.896 / 0.931
+     - 0.858 / 0.858 / 0.880
+     - 0.821 / 0.821 / 0.821
+     - 0.787 / 0.787 / 0.787
+   * - −5 °C
+     - 0.902 / 0.935 / 0.960
+     - 0.887 / 0.887 / 0.920
+     - 0.864 / 0.864 / 0.867
+     - 0.842 / 0.842 / 0.842
+   * - −10 °C
+     - 0.911 / 0.962 / 0.978
+     - 0.900 / 0.905 / 0.945
+     - 0.885 / 0.885 / 0.900
+     - 0.870 / 0.870 / 0.870
+   * - −15 °C
+     - 0.915 / 0.986 / 0.992
+     - 0.909 / 0.935 / 0.963
+     - 0.899 / 0.899 / 0.925
+     - 0.889 / 0.889 / 0.891
+   * - −20 °C
+     - 1.000 / 1.000 / 1.000
+     - 0.914 / 0.961 / 0.979
+     - 0.907 / 0.907 / 0.945
+     - 0.901 / 0.901 / 0.915
+   * - −25 °C
+     - 1.000 / 1.000 / 1.000
+     - 0.916 / 0.984 / 0.991
+     - 0.912 / 0.927 / 0.962
+     - 0.908 / 0.908 / 0.936
+   * - −30 °C
+     - 1.000 / 1.000 / 1.000
+     - 1.000 / 1.000 / 1.000
+     - 0.915 / 0.954 / 0.976
+     - 0.913 / 0.913 / 0.952
+
+.. list-table:: Capacity multiplier at the rated load with a frost-point band of 0 / 3 / 6 K
+   :header-rows: 1
+   :widths: 16 21 21 21 21
+
+   * - Outdoor
+     - 60 %
+     - 70 %
+     - 85 %
+     - 100 %
+   * - 2 °C
+     - 0.845 / 0.862 / 0.914
+     - 0.821 / 0.821 / 0.852
+     - 0.787 / 0.787 / 0.787
+     - 0.756 / 0.756 / 0.756
+   * - −5 °C
+     - 0.861 / 0.909 / 0.947
+     - 0.847 / 0.847 / 0.896
+     - 0.826 / 0.826 / 0.830
+     - 0.807 / 0.807 / 0.807
+   * - −10 °C
+     - 0.869 / 0.945 / 0.969
+     - 0.860 / 0.866 / 0.924
+     - 0.846 / 0.846 / 0.866
+     - 0.832 / 0.832 / 0.832
+   * - −15 °C
+     - 0.873 / 0.979 / 0.988
+     - 0.867 / 0.905 / 0.948
+     - 0.858 / 0.858 / 0.896
+     - 0.849 / 0.849 / 0.852
+   * - −20 °C
+     - 1.000 / 1.000 / 1.000
+     - 0.872 / 0.941 / 0.969
+     - 0.866 / 0.866 / 0.922
+     - 0.860 / 0.860 / 0.881
+   * - −25 °C
+     - 1.000 / 1.000 / 1.000
+     - 0.874 / 0.975 / 0.987
+     - 0.871 / 0.892 / 0.944
+     - 0.867 / 0.867 / 0.906
+   * - −30 °C
+     - 1.000 / 1.000 / 1.000
+     - 1.000 / 1.000 / 1.000
+     - 0.873 / 0.930 / 0.964
+     - 0.871 / 0.871 / 0.929
+
+.. figure:: /_static/frost_band_sensitivity.svg
+   :alt: COP and capacity multipliers of the frost adjustment against outdoor temperature at four humidities, for a frost-point band of 0, 3 and 6 K and without one
+   :width: 100%
+
+   The multipliers of the tables against the outdoor dry bulb. Without a band
+   the fixed losses stay in air that deposits nothing, which is EnergyPlus'
+   rule (the rest of the frost model is this one's: the transition between 2
+   and 5 °C is kept); a band of zero switches them at the frost point; 3 K
+   and 6 K spread that step over the band.
+
+Over a heating season the band matters less than these tables suggest: a
+part-loaded coil is warmer than the correlation's, and where the weather
+file's dew point is taken at its word most cold hours are humid ones. The
+default 4 kW unit against a 20 °C room, in three cold climates of the United
+States: the load is a straight line from nothing at 16 °C outdoor to the
+nameplate capacity at the site's 99.6 % heating design temperature, counted at
+the indoor coil; resistance heat makes up what the unit does not deliver; and
+each hour of the typical year (NREL TMY3) is taken at its own temperature and
+humidity, in bins of 1 K and 5 %. The humidity of such a file can be read in
+two ways that are far apart in cold air, and its two columns do not settle
+which is meant, so the season is computed for both: from the dew point, taken
+as one over liquid water (the meteorological convention) and converted to the
+model's humidity over ice, and from the relative-humidity column as it is.
+Below −20 °C in Fairbanks 82 % of the hours are at 85 % or more under the
+first reading and 7 % under the second.
+
+.. list-table:: Electricity of a heating season against the default band of 3 K (humidity read from the dew point / from the relative-humidity column)
+   :header-rows: 1
+   :widths: 28 14 14 15 15 14
+
+   * - Site (ASHRAE 169 zone)
+     - Heating hours (below −10 °C)
+     - Seasonal COP, 3 K
+     - No band
+     - 0 K
+     - 6 K
+   * - Denver, CO (5B, cool and dry)
+     - 5,509 (117)
+     - 4.02 / 4.07
+     - +1.4 % / +2.0 %
+     - +0.2 % / +0.3 %
+     - −0.7 % / −1.0 %
+   * - Helena, MT (6B, cold and dry)
+     - 6,624 (459)
+     - 3.80 / 3.86
+     - +0.5 % / +1.0 %
+     - +0.1 % / +0.5 %
+     - −0.9 % / −1.2 %
+   * - Fairbanks, AK (8, subarctic)
+     - 7,441 (2,926)
+     - 2.79 / 2.89
+     - +1.4 % / +4.2 %
+     - +0.6 % / +2.0 %
+     - −2.2 % / −2.1 %
+
+Within a site and a reading, a band of 0 or 6 K moves a season's electricity
+by −2.2 to +2.0 % against the default, and dropping the band (the fixed losses
+in any air below 5 °C, with this model's load term and transition) by 0.5 to
+4.2 %. The reading of the weather file's humidity moves it by as much: 1.2 %
+(Denver), 1.4 % (Helena) and 3.6 % (Fairbanks) at the default band.
+
+What the literature says about it. No measurement of capacity or COP against
+the excess of the frost point over a known coil temperature was found, so 3 K
+stays an assumption; what was found bears on where frosting begins. The
+frosting map of Zhu et al. (2015, *Applied Thermal Engineering* 90, 782–791)
+draws its condensing line, above which frost can form below 6 °C, at a
+relative humidity of 40 to 57.8 % (as reported by Zhang et al. 2018,
+*Energies* 11, 2642); the frost point reaches the coil of the correlation at
+48 % at 0 °C. The map grades the frosting region into mild, moderate and
+severe zones and gives no loss of capacity or COP across them. One
+variable-frequency vapour-injection unit in a severe cold region had a
+critical humidity of 80.60 % at 1 °C and 62.75 % at −26.5 °C, which its
+authors relate to the heating load (Wei et al. 2020, *Renewable Energy* 161,
+184–199; abstract only). And a ductless unit monitored in Fairbanks spent 8 to
+15 % of the heating run time defrosting in the temperature bins from −17.5 to
+−32.5 °C under its factory control, which also defrosts on a timer, while its
+authors saw it defrost before any significant frost had built up in their
+example below −20 °C (Munk et al. 2026, *Energies* 19, 733, Table 4 and
+Figure 1). The correction here is that of a demand defrost: a unit that
+defrosts on a timer loses more in dry air than this model says, with or
+without the band.
 
 What it leaves out: the room is not cooled in time during a defrost — its
 effect is in the mean.

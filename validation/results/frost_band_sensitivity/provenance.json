@@ -1,0 +1,61 @@
+{
+ "script": "validation/frost_band_sensitivity/study.py",
+ "command": "python -m validation.frost_band_sensitivity.study",
+ "question": "how much the rated-load frost multipliers and a heating season in a cold climate depend on the frost-point band",
+ "model_settings": {
+  "model": "AirSourceHeatPump(defrost=DefrostModel(frost_point_band_K=band)), every other argument the default",
+  "bands": {
+   "none": null,
+   "0": 0.0,
+   "3": 3.0,
+   "6": 6.0
+  },
+  "T_room_C": 20.0,
+  "T_balance_C": 16.0,
+  "load_line": "hp_capacity * (T_balance - T_out) / (T_balance - T_design)",
+  "sites": {
+   "denver": {
+    "station": "Denver Intl AP, CO (WMO 725650)",
+    "zone": "5B",
+    "T_design": -17.4
+   },
+   "helena": {
+    "station": "Helena Regional AP, MT (WMO 727720)",
+    "zone": "6B",
+    "T_design": -26.3
+   },
+   "fairbanks": {
+    "station": "Fairbanks Intl AP, AK (WMO 702610)",
+    "zone": "8",
+    "T_design": -41.9
+   }
+  },
+  "weather": "validation/frost_band_sensitivity/weather_bins.csv (NREL TMY3, hours per 1 K and 5 % bin)",
+  "humidity_readings": [
+   "dew_point",
+   "relative_humidity"
+  ]
+ },
+ "outputs": [
+  "validation/results/frost_band_sensitivity/multipliers.csv",
+  "validation/results/frost_band_sensitivity/seasonal.csv",
+  "validation/results/frost_band_sensitivity/seasonal_by_temperature.csv"
+ ],
+ "coefficient_version": "ossorio-r290-te-2026-11-21",
+ "git_head": "20981ddb5f933bdb9cf2a631163eca2a06524668",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "42d288a6acc6f9b62ea78ad2204c7791917674e3",
+ "validation_parity_tree": "1018184edb56360bb48c2b06daf283ae5a7c5b65",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-22T09:36:55+00:00"
+}

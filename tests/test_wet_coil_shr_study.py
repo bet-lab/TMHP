@@ -50,7 +50,24 @@ def _round_trip(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.read_csv(io.StringIO(frame.to_csv(index=False)), float_precision="round_trip")
 
 
-def _mismatches(fresh: pd.DataFrame, old: pd.DataFrame) -> list[str]:
+#: Evaporating temperatures of a rerun row [K]: a Celsius value has no relative scale (the rows that
+#: differed sit at -2 to -6 degC), so they are compared in kelvin.
+RERUN_T_EVAP_ABS_K = 1e-4
+#: Columns of the net-matched passes of a rerun row: the request of those passes is a root found to
+#: ``NET_MATCH_TOL`` (1e-4), and where it stops within that depends on the platform's last digits.
+RERUN_NET_REL = 1e-5
+
+
+def _mismatches(fresh: pd.DataFrame, old: pd.DataFrame, *, rerun: bool = False) -> list[str]:
+    """Cells of ``fresh`` that differ from ``old``: ``rel=1e-6`` for numbers, everything else exactly.
+
+    ``rerun``: the rows were solved again, on a platform that need not be the one the files were
+    written on (macOS). Two kinds of column are then held to the tolerance they have, the rest as
+    always. Measured on GitHub's Linux runners against the committed files, coldest row of the two
+    held units: evaporating temperatures 5e-6 to 2.5e-5 K off (``T_evap_C_dry_net``,
+    ``T_evap_C_wet``, ``T_evap_C_wet_net``), ``fan_W_wet_net`` 2.8e-6 off; every other cell of the
+    six rows, and all of the Daikin sample, within ``1e-6``.
+    """
     fresh, old = _round_trip(fresh), _round_trip(old)
     assert list(fresh.columns) == list(old.columns) and len(fresh) == len(old), f"shape changed. {HINT}."
     out = []
@@ -60,12 +77,12 @@ def _mismatches(fresh: pd.DataFrame, old: pd.DataFrame) -> list[str]:
             if pd.isna(new) and pd.isna(was):
                 continue
             numbers = all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in (new, was))
-            # The committed files were written on macOS. On Linux the coldest row of the two held
-            # units reruns 1e-6 to 6e-6 off in its evaporating temperature and fan power (5e-6 to
-            # 2.5e-5 K, 6e-6 W), mostly in the net-matched passes, whose request is itself a root
-            # found to ``NET_MATCH_TOL`` (1e-4). That tolerance is what a rerun is held to; a change
-            # of the model moves these columns by far more.
-            same = new == pytest.approx(was, rel=study.NET_MATCH_TOL, abs=1e-9) if numbers else new == was
+            rel, abs_ = 1e-6, 1e-9
+            if rerun and column.startswith("T_evap_C_"):
+                abs_ = RERUN_T_EVAP_ABS_K
+            elif rerun and column.endswith("_net"):
+                rel = RERUN_NET_REL
+            same = new == pytest.approx(was, rel=rel, abs=abs_) if numbers else new == was
             if not same:
                 out.append(f"row {i} {column}: committed {was!r}, now {new!r}")
     return out
@@ -157,7 +174,7 @@ def _sample_mismatches(sample: dict[str, tuple[int, ...]], frame: pd.DataFrame) 
     for slug, ids in sample.items():
         fresh = study.run_unit(slug, point_ids=ids)
         old = frame[(frame.slug == slug) & frame.point_id.isin(ids)].reset_index(drop=True)
-        mismatches += [f"{slug} {m}" for m in _mismatches(fresh, old)]
+        mismatches += [f"{slug} {m}" for m in _mismatches(fresh, old, rerun=True)]
         shipped = pd.read_csv(REPO_ROOT / "validation" / "results" / f"{slug}.csv").set_index("point_id")
         for row in fresh.itertuples():
             assert row.cop_dry == pytest.approx(shipped.at[row.point_id, "cop_pred"], rel=1e-6), (slug, row.point_id)

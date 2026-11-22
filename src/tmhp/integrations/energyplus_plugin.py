@@ -94,6 +94,7 @@ import contextlib
 import itertools
 import math
 import os
+import uuid
 from typing import Any
 
 try:
@@ -250,9 +251,10 @@ def _issue_warning(api: Any, state: Any, msg: str) -> None:
 _RH_OUTCOME_RANK = {"weather": 0, "clipped_to_100": 1, "default": 2}
 
 
-# Numbers the plant surrogates of this process, so the final summaries of
-# several runs in one process (EnergyPlus Python API) or appended to one
-# TMHP_PLUGIN_LOG file can be told apart.
+# Numbers the plant surrogates of this process. With a random run id it lets
+# the final summaries of several runs in one process (EnergyPlus Python API),
+# or of separate runs appended to one TMHP_PLUGIN_LOG file, be told apart;
+# process ids alone repeat across runs.
 _SURROGATE_RUNS = itertools.count(1)
 
 
@@ -367,7 +369,7 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         self._rh_timestep_key: tuple[int, int, int, int, int] | None = None
         self._rh_timestep_outcome = ""
         # Hold only the counters, not the plugin and its solve cache.
-        self._run_id = f"pid {os.getpid()} run {next(_SURROGATE_RUNS)}"
+        self._run_id = f"run {uuid.uuid4().hex[:12]} (pid {os.getpid()} #{next(_SURROGATE_RUNS)})"
         atexit.register(_log_humidity_summary, self._run_id, self._rh_timesteps)
         # Convergence tally over dispatched calls (cold-climate high-lift hours
         # may trip the pressure-ratio guard); dumped periodically to the log.

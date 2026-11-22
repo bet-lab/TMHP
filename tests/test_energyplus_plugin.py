@@ -326,11 +326,11 @@ def test_surrogate_tallies_outdoor_humidity_timesteps(monkeypatch, capsys):
 
 
 def test_surrogate_final_humidity_summaries_name_their_run(capsys):
-    """Two runs in one process (EnergyPlus Python API) log summaries that can be told apart."""
+    """Runs in one process, or appended to one log file, log summaries that can be told apart."""
     first = _real_surrogate(40.0, 2.0, 15000.0)
     second = _real_surrogate(40.0, 2.0, 15000.0)
     assert first._run_id != second._run_id
-    assert re.fullmatch(r"pid \d+ run \d+", first._run_id)
+    assert re.fullmatch(r"run [0-9a-f]{12} \(pid \d+ #\d+\)", first._run_id)
 
     first._log_humidity_summary()
     second._log_humidity_summary()

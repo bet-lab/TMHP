@@ -252,9 +252,9 @@ variables:
        ``[outdoor RH final]`` line when the plugin's Python interpreter shuts
        down: at the end of the run for the EnergyPlus command line, at the
        exit of the host program for a run started through the EnergyPlus
-       Python API. The line names its run (``pid <process> run <n>``), so
-       several runs in one process or appended to one log file can be told
-       apart. A zone timestep in which any call fell back to the default
+       Python API. The line names its run with a random id
+       (``run <12 hex digits> (pid <process> #<n>)``), so several runs in one
+       process or appended to one log file can be told apart. A zone timestep in which any call fell back to the default
        counts as ``default``.
 
 .. _ep-metered-power:

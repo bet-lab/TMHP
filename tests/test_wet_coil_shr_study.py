@@ -60,7 +60,12 @@ def _mismatches(fresh: pd.DataFrame, old: pd.DataFrame) -> list[str]:
             if pd.isna(new) and pd.isna(was):
                 continue
             numbers = all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in (new, was))
-            same = new == pytest.approx(was, rel=1e-6, abs=1e-9) if numbers else new == was
+            # The committed files were written on macOS. On Linux the coldest row of the two held
+            # units reruns 1e-6 to 6e-6 off in its evaporating temperature and fan power (5e-6 to
+            # 2.5e-5 K, 6e-6 W), mostly in the net-matched passes, whose request is itself a root
+            # found to ``NET_MATCH_TOL`` (1e-4). That tolerance is what a rerun is held to; a change
+            # of the model moves these columns by far more.
+            same = new == pytest.approx(was, rel=study.NET_MATCH_TOL, abs=1e-9) if numbers else new == was
             if not same:
                 out.append(f"row {i} {column}: committed {was!r}, now {new!r}")
     return out

@@ -79,17 +79,22 @@ short of it, or met only as an on/off mean, is not scored):
                          passed, as a user would. The model then also
                          re-solves its reference state -- the nameplate duty
                          on a *dry* coil of that conductance -- and its rated
-                         speed with it. The efficiency map takes the speed in
-                         rev/s, not relative to the rated one, so the
-                         operating points are those of ``wet_ua_shr``
-                         (``cop_max_abs_difference_rerated`` of the
-                         headline).
+                         speed with it. How far its rows are from those of
+                         ``wet_ua_shr`` is in the headline
+                         (``cop_``, ``T_evap_K_`` and
+                         ``pr_max_abs_difference_rerated``).
 ``wet_ua_shr_x70`` / ``_x140`` / ``_x200``
                          ``wet_ua_shr`` with the conductance scaled: how far
                          a smaller or a larger coil moves the COP bias of a
                          unit and its sensible heat ratio, and where the bias
                          of a unit crosses zero if it does
                          (``UA_scale_for_zero_cop_bias``).
+``wet_ua_limit`` / ``dry_ua_limit``
+                         the wet and the dry coil with a hundred times the
+                         shipped conductance (:data:`LIMIT_SCALE`): a contact
+                         factor of 1, the limit a growing indoor conductance
+                         tends to. The bias there is what no larger indoor
+                         conductance removes on these rows.
 ``wet_rule_<rule>``      the conductance a candidate rule gives the unit when
                          fitted **on the other four units** (step 5).
 
@@ -117,8 +122,9 @@ The indoor coil is the condenser in heating, and the heating grids print no
 ratio, so the conductance cannot be solved there. The heating rows are run
 with the shipped conductance (``heat``; gated on the committed results like
 ``dry``), with the conductance of step 1 (``heat_ua_shr``), with the shipped
-one halved and doubled (``heat_ua_x50``, ``heat_ua_x200``) and with each
-rule's (``heat_rule_<rule>``), the compressor as shipped
+one halved, doubled and times a hundred (``heat_ua_x50``, ``heat_ua_x200``,
+``heat_ua_limit``) and with each rule's (``heat_rule_<rule>``), the
+compressor as shipped
 (``heating_passes.csv``, ``heating_by_unit.csv``).
 
 5. Candidate rules
@@ -223,8 +229,12 @@ SHR_ROUNDING = 0.005
 T_RATING_INDOOR_C = 27.0
 #: Scales of the unit's conductance of step 1 in the ``wet_ua_shr_x..`` passes.
 UA_SCALES: dict[str, float] = {"wet_ua_shr_x70": 0.70, "wet_ua_shr_x140": 1.40, "wet_ua_shr_x200": 2.00}
+#: Scale of the shipped conductance in the ``..._ua_limit`` passes: a coil whose contact factor is 1 to
+#: every printed digit (``1 - exp(-UA / C)`` with ``UA / C`` above 100 on these units), so that the pass is
+#: the most any indoor conductance can do.
+LIMIT_SCALE = 100.0
 #: Scales of the shipped conductance in the heating passes.
-HEATING_SCALES: dict[str, float] = {"heat_ua_x50": 0.5, "heat_ua_x200": 2.0}
+HEATING_SCALES: dict[str, float] = {"heat_ua_x50": 0.5, "heat_ua_x200": 2.0, "heat_ua_limit": LIMIT_SCALE}
 #: Candidate rules for the indoor conductance (module docstring, step 5).
 RULES = ("nameplate", "airflow", "airflow_power", "constant", "conductance")
 #: Passes whose rows carry the compressor's state, not the COP and the coil alone.
@@ -637,6 +647,8 @@ def cooling_conductances(slug: str, units: pd.DataFrame, rules: pd.DataFrame) ->
     if slug in UNITS:
         passes["wet_ua_shr_rerated"] = (True, own, False)
         passes.update({name: (True, own * scale, True) for name, scale in UA_SCALES.items()})
+        passes["wet_ua_limit"] = (True, shipped * LIMIT_SCALE, True)
+        passes["dry_ua_limit"] = (False, shipped * LIMIT_SCALE, True)
     of_unit = rules[rules.slug == slug].set_index("rule")
     passes.update({_pass_name(rule): (True, float(of_unit.UA_rule_W_K[rule]), True) for rule in RULES})
     return passes
@@ -1158,7 +1170,7 @@ def bias_by_unit(points: pd.DataFrame) -> pd.DataFrame:
                     f"T_evap_C_{name}": _mean(good[f"T_evap_C_{name}"]),
                 }
             )
-            if name != "dry":
+            if not name.startswith("dry"):
                 error = good[f"shr_net_{name}"] - good.shr_catalog
                 row.update({f"shr_error_{name}": _mean(error), f"shr_abs_error_{name}": _mean(error.abs())})
             if name in DETAILED:
@@ -1269,9 +1281,10 @@ def speed_over_rating_row(points: pd.DataFrame, name: str) -> pd.Series:
 
     The rating row is the unit's row at 35 degC outdoors whose indoor dry
     bulb is nearest 27 degC (ISO 5151 T1; 26.7 degC in the Fujitsu tables).
-    The Daikin capacity tables are printed "at nominal operating frequency":
-    the machine runs every row at one compressor frequency, so a model that
-    followed the table's capacity at a fixed speed would have 1 in every row.
+    The catalogue files give the Daikin capacity tables as "at nominal
+    operating frequency". Read as one compressor frequency for every row, a
+    model that followed the table's capacity at a fixed speed would have 1 in
+    every row; the catalogues print no frequency to check that reading with.
     NaN for a unit whose rating row is not in ``points`` or was not scored.
     """
     ratio = pd.Series(math.nan, index=points.index)
@@ -1527,7 +1540,7 @@ def headline(units: pd.DataFrame, points: pd.DataFrame, heating: pd.DataFrame | 
                 f"cop_bias_pct_spread_of_units_{name}": _unit_spread(points, name),
             }
         )
-        if name != "dry":
+        if not name.startswith("dry"):
             error = good[f"shr_net_{name}"] - good.shr_catalog
             out.update({f"shr_error_{name}": _mean(error), f"shr_abs_error_{name}": _mean(error.abs())})
     if "usable_wet_ua_shr" in points.columns and "usable_wet" in points.columns:
@@ -1552,10 +1565,16 @@ def headline(units: pd.DataFrame, points: pd.DataFrame, heating: pd.DataFrame | 
                 )
                 * 100.0,
                 "T_evap_change_UA_of_shr_vs_shipped_K_mean": _mean(both.T_evap_C_wet_ua_shr - both.T_evap_C_wet),
-                # The same conductance with the reference state re-solved (``UA_iu_rated`` alone).
-                "cop_max_abs_difference_rerated": float((good[f"cop_{name}"] - good[f"cop_{name}_rerated"]).abs().max())
-                if f"cop_{name}_rerated" in good.columns
-                else math.nan,
+                # The same conductance with the reference state re-solved (``UA_iu_rated`` alone): how far the
+                # rows' COP, evaporating temperature and pressure ratio are from those of the pinned pass.
+                **{
+                    f"{key}_max_abs_difference_rerated": float(
+                        (good[f"{column}_{name}"] - good[f"{column}_{name}_rerated"]).abs().max()
+                    )
+                    if f"{column}_{name}_rerated" in good.columns
+                    else math.nan
+                    for key, column in (("cop", "cop"), ("T_evap_K", "T_evap_C"), ("pr", "pr"))
+                },
                 # Where the rows are against the data of the efficiency map.
                 "rows_on_floor": int(on_floor.sum()),
                 "rows_outside_map": int(outside.sum()),
@@ -1806,6 +1825,7 @@ def run(argv: list[str] | None = None) -> None:
         "shr_rounding": SHR_ROUNDING,
         "ua_scales": UA_SCALES,
         "heating_scales": HEATING_SCALES,
+        "limit_scale": LIMIT_SCALE,
         "pressure_ratio_edges": list(PR_EDGES),
         "relative_speed_edges": list(RELATIVE_SPEED_EDGES),
         "rating_row_speed_edges": list(RATING_ROW_SPEED_EDGES),

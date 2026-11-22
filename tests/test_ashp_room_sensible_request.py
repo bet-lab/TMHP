@@ -621,6 +621,34 @@ def test_a_dynamic_row_is_the_steady_row_of_its_step(hp: AirSourceHeatPump, run:
             assert _same_value(row[key], value) or (pd.isna(row[key]) and pd.isna(value)), (n, key)
 
 
+@pytest.mark.earlier_defaults  # the dry discharge floor exists on the earlier default machine: tests/conftest.py
+def test_a_request_under_the_dry_discharge_floor_is_met_by_cycling_alone_and_in_a_run() -> None:
+    """Where the envelope refuses small duties (R407C, -25 degC) the request is met by cycling at the floor.
+
+    The dry model searches that floor once per condition in a run and from
+    each request otherwise, to 0.5 % (``_FLOOR_REL_TOL``): on either basis a
+    run's row can differ from the steady row by that search's tolerance.
+    """
+    arctic = AirSourceHeatPump(ref="R407C", defrost=None)
+    coil = _solve(arctic, -200.0, -25.0, 21.0)
+    assert coil["capacity_clamped"] == "min"
+    assert coil["cmp_rpm [rpm]"] / 60.0 > arctic.rps_min + 1.0  # not the speed floor: the envelope's
+
+    loads = [-200.0, -300.0, -400.0]
+    steady = [_solve(arctic, load, -25.0, 21.0, request_basis="room_sensible") for load in loads]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", OperatingLimitWarning)
+        frame = arctic.analyze_dynamic(3 * 3600, 3600, loads, [-25.0] * 3, [21.0] * 3, request_basis="room_sensible")
+    for n, load in enumerate(loads):
+        for row in (steady[n], frame.iloc[n]):
+            assert row["capacity_clamped"] == "min"
+            assert row["Q_unmet [W]"] == 0.0
+            assert row["Q_room_sensible [W]"] == pytest.approx(abs(load), rel=WET_TOL)
+            assert row["Q_ref_iu [W]"] < abs(load)
+        assert frame["E_tot [W]"].iloc[n] == pytest.approx(steady[n]["E_tot [W]"], rel=5e-3)
+        assert frame["Q_min [W]"].iloc[n] == pytest.approx(steady[n]["Q_min [W]"], rel=5e-3)
+
+
 def test_a_steady_row_does_not_depend_on_what_was_solved_before() -> None:
     conditions = [
         (4000.0, 35.0, 27.0, {"RH_room": 0.5}),

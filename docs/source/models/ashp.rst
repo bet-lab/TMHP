@@ -1166,8 +1166,11 @@ the most a request may take. Over the same 2 646 requests the run took 3.0
 times the wall time of those requests on the coil basis: 2.9 times on the
 dry-coil and heating rows, 5.0 times on the wet ones (their trials are at
 larger duties than the request), 1.8 times at the ceiling. A dynamic run
-solves each step alone, in either basis, so a row does not depend on the
-steps before it.
+solves each step as ``analyze_steady`` does, in either basis, and a row does
+not depend on the steps before it — with the exception the coil basis has: a
+dry request the compressor envelope refuses from below is cycled at a
+smallest continuous duty that a run searches once per condition, to 0.5 %
+(`Wet indoor coil (cooling)`_, *the two ends of the operating range*).
 
 **What it does not do.**
 

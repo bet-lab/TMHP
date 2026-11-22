@@ -3254,16 +3254,24 @@ class AirSourceHeatPump(ReferenceStateMixin):
             plus latent, and ``SHR_iu [-]`` is the sensible share of it there
             (1 for a dry coil and in heating, NaN when the unit cannot run).
 
-            ``Q_room_sensible_max [W]`` is the same ceiling as the room's
-            net sensible heat: ``Q_room_sensible [W]`` of the state the unit
+            ``Q_room_sensible_at_Q_max [W]`` is the room's net sensible heat
+            at that ceiling: ``Q_room_sensible [W]`` of the state the unit
             runs at there -- the coil's sensible heat less the indoor fan's
             heat in cooling, plus it in heating, under frost the mean over
             frosting and defrost -- and 0.0 when the unit cannot run. It is
-            the ceiling of a request made with
-            ``request_basis="room_sensible"`` (:meth:`analyze_steady`): the
-            net sensible heat at the largest coil duty, which is the
-            largest net sensible heat wherever that heat rises with the
-            coil duty.
+            what a request made with ``request_basis="room_sensible"``
+            gets when the search arrives at the ceiling
+            (:meth:`analyze_steady`). It is the net sensible heat at the
+            largest coil duty, not a maximum over the coil duties: the two
+            are the same wherever the net sensible heat rises with the coil
+            duty up to the ceiling, which it did at every one of 444
+            conditions of default units of 2.5 to 10 kW (dry and wet
+            cooling, heating). A unit with a fan held at one flow can take
+            more sensible heat at a smaller coil duty (4 kW unit, outdoor
+            fan held, 15 degC outdoor, saturated 35 degC room: 2,705 W at
+            the 13.7 kW ceiling, 2,773 W at 13.0 kW; one of 312 conditions
+            of six fan-constrained units), so it is not to be read as the
+            largest sensible load such a unit can meet.
 
         Notes
         -----
@@ -3335,7 +3343,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "Q_max_frost_free [W]": 0.0,
             "defrost_fraction [-]": 0.0,
             "SHR_iu [-]": float("nan"),
-            "Q_room_sensible_max [W]": 0.0,
+            "Q_room_sensible_at_Q_max [W]": 0.0,
         }
 
         sign = 1.0 if mode == "cooling" else -1.0
@@ -3401,7 +3409,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "SHR_iu [-]": float(lo_perf.get("SHR_iu [-]", float("nan"))),
             # The same ceiling as the room's net sensible heat: the coil's
             # sensible heat there with the indoor fan's heat counted.
-            "Q_room_sensible_max [W]": float(lo_perf.get("Q_room_sensible [W]", float("nan"))),
+            "Q_room_sensible_at_Q_max [W]": float(lo_perf.get("Q_room_sensible [W]", float("nan"))),
         }
         frost = self._frost_state(sign, T0, RH_out, full_load=True)
         if frost.active:
@@ -3411,7 +3419,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ceiling["E_tot [W]"] = float(mean["E_tot [W]"])
             ceiling["cop_sys [-]"] = float(mean["cop_sys [-]"])
             ceiling["defrost_fraction [-]"] = frost.defrost_fraction
-            ceiling["Q_room_sensible_max [W]"] = float(mean["Q_room_sensible [W]"])
+            ceiling["Q_room_sensible_at_Q_max [W]"] = float(mean["Q_room_sensible [W]"])
         return ceiling
 
     def _least_power_at_ceiling(self, result: dict, Q_r_iu: float, T0: float, T_a_room: float) -> dict:
@@ -4094,7 +4102,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
           (``capacity_clamped == "max"``) with less net sensible heat than
           the request. Above the ceiling of the condition that is the
           ceiling's row, the largest coil duty the unit delivers
-          (:meth:`max_capacity`, ``Q_room_sensible_max [W]``); the rest is
+          (:meth:`max_capacity`, ``Q_room_sensible_at_Q_max [W]``); the rest is
           ``Q_unmet [W]``;
         - an off row (``failure_reason`` other than ``"none"``): the model
           answers the coil duty tried with the unit off. Nothing is

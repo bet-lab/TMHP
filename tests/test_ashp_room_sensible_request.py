@@ -17,7 +17,7 @@ request:
   condenses water, a fan held at one flow);
 - above what the unit delivers flat out the row is the ceiling's and the rest
   is unmet, in the basis; ``max_capacity`` reports that ceiling as
-  ``Q_room_sensible_max [W]``;
+  ``Q_room_sensible_at_Q_max [W]``;
 - a row does not depend on what was solved before it.
 """
 
@@ -320,8 +320,8 @@ def test_above_the_ceiling_the_row_is_the_ceilings_and_the_rest_is_unmet(hp: Air
     assert row["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-9)
 
     # ``max_capacity`` reports the same ceiling in the basis, and keeps its keys.
-    assert set(ceiling) == CEILING_KEYS | {"Q_room_sensible_max [W]"}
-    assert ceiling["Q_room_sensible_max [W]"] == pytest.approx(row["Q_room_sensible [W]"], rel=1e-9)
+    assert set(ceiling) == CEILING_KEYS | {"Q_room_sensible_at_Q_max [W]"}
+    assert ceiling["Q_room_sensible_at_Q_max [W]"] == pytest.approx(row["Q_room_sensible [W]"], rel=1e-9)
 
 
 @pytest.mark.parametrize("case", ["cooling, dry coil", "cooling, wet coil (RH 0.5)", "heating, frost"])
@@ -329,7 +329,7 @@ def test_requests_around_the_ceiling_in_the_basis(hp: AirSourceHeatPump, case: s
     request, T0, T_a_room, extra, ceiling_extra = CEILING_CASES[case]
     sign = math.copysign(1.0, request)
     top = hp.max_capacity(T0, T_a_room, mode="cooling" if sign > 0 else "heating", **ceiling_extra)[
-        "Q_room_sensible_max [W]"
+        "Q_room_sensible_at_Q_max [W]"
     ]
     assert top > 0.0
 
@@ -355,12 +355,12 @@ def test_max_capacity_keeps_its_keys_where_the_unit_cannot_run() -> None:
         dV_ou_fan_a_max=base.dV_ou_fan_a_max,
     )
     ceiling = held.max_capacity(25.0, 15.0, mode="cooling", RH_room=1.0)
-    assert set(ceiling) == CEILING_KEYS | {"Q_room_sensible_max [W]"}
+    assert set(ceiling) == CEILING_KEYS | {"Q_room_sensible_at_Q_max [W]"}
     if ceiling["binding"] == "infeasible":
         assert ceiling["Q_max [W]"] == 0.0
-        assert ceiling["Q_room_sensible_max [W]"] == 0.0
+        assert ceiling["Q_room_sensible_at_Q_max [W]"] == 0.0
     else:
-        assert 0.0 < ceiling["Q_room_sensible_max [W]"] <= ceiling["Q_max [W]"]
+        assert 0.0 < ceiling["Q_room_sensible_at_Q_max [W]"] <= ceiling["Q_max [W]"]
 
 
 def test_a_unit_that_does_not_cycle_delivers_more_than_a_small_request() -> None:
@@ -457,6 +457,33 @@ def test_a_request_no_duty_has_is_answered_from_below_with_the_rest_unmet(monkey
         over = [r["Q_room_sensible [W]"] for r in recorded.rows if r["Q_room_sensible [W]"] > 2000.0]
         assert sensible == max(under)
         assert over and min(over) - max(under) > WET_TOL * 2000.0
+
+
+def test_the_ceilings_net_sensible_heat_is_that_of_the_largest_coil_duty_not_a_maximum() -> None:
+    """``Q_room_sensible_at_Q_max [W]`` names a row, the ceiling's; a held fan can take more sensible heat under it."""
+    held = _fans_held(4000.0, indoor=False, outdoor=True)
+    conditions = dict(T0=15.0, T_a_room=35.0, RH_room=1.0)
+    ceiling = held.max_capacity(15.0, 35.0, mode="cooling", RH_room=1.0)
+    at_ceiling = ceiling["Q_room_sensible_at_Q_max [W]"]
+    # The key is the net sensible heat of the row a request above the ceiling gets.
+    flat_out = _solve(held, 50.0 * held.hp_capacity, **conditions)
+    assert flat_out["capacity_clamped"] == "max"
+    assert flat_out["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-9)
+    assert at_ceiling == pytest.approx(flat_out["Q_room_sensible [W]"], rel=1e-5)
+
+    # A request a little above it: met at a smaller coil duty where one has it
+    # (measured: 2,739 W at 12.8 kW, under the 13.7 kW ceiling's 2,705 W),
+    # and the ceiling's row with the rest unmet otherwise.
+    request = 1.0125 * at_ceiling
+    row = _solve(held, request, request_basis="room_sensible", **conditions)
+    if row["Q_unmet [W]"] == 0.0:
+        assert row["Q_room_sensible [W]"] == pytest.approx(request, rel=WET_TOL)
+        assert row["Q_room_sensible [W]"] > at_ceiling
+        assert row["Q_ref_iu [W]"] < ceiling["Q_max [W]"]
+    else:
+        assert row["capacity_clamped"] == "max"
+        assert row["Q_room_sensible [W]"] == pytest.approx(at_ceiling, rel=1e-5)
+        assert row["Q_unmet [W]"] == pytest.approx(request - row["Q_room_sensible [W]"], rel=1e-12)
 
 
 # ---------------------------------------------------------------------------

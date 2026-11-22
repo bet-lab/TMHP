@@ -1128,9 +1128,10 @@ mean over frosting and defrost, and that mean equals the request (3 kW at
 delivers (``capacity_clamped == "max"``) — and ``Q_unmet [W]`` is what the
 room is short of: 5.5 kW of sensible cooling in the room above returns
 4 951 W with 549 W unmet, at a coil heat of 8 035 W.
-:meth:`~tmhp.AirSourceHeatPump.max_capacity` reports that ceiling next to
-``Q_max [W]``, as ``Q_room_sensible_max [W]``. It is the net sensible heat at
-the largest coil duty. On the default units that is also the largest net
+:meth:`~tmhp.AirSourceHeatPump.max_capacity` reports the net sensible heat
+of that row next to ``Q_max [W]``, as ``Q_room_sensible_at_Q_max [W]``. It is
+the net sensible heat at the largest coil duty, not a maximum searched over
+the coil duties. On the default units that is also the largest net
 sensible heat the unit has: over 444 conditions of three default units
 (2.5 to 10 kW; cooling at 20–46 °C outdoor with the room at 22–30 °C, dry
 and at 30–100 % humidity; heating at −15 to 7 °C), 39 coil duties each, no
@@ -1192,6 +1193,8 @@ smallest continuous duty that a run searches once per condition, to 0.5 %
   2 705 W at the 13.7 kW ceiling, 2 773 W at 13.0 kW; one of 312
   conditions): a request above the ceiling's is then met where the search
   finds a duty that has it, and otherwise answered with the ceiling's row.
+  ``Q_room_sensible_at_Q_max [W]`` is the ceiling row's figure there too:
+  do not size such a unit's largest sensible load by it.
 - *Without the cycling model* (``Cd_cycling=None``) a request below the
   smallest continuous duty is over-delivered, as on the coil basis, with
   nothing unmet.

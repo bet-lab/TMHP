@@ -88,10 +88,10 @@
       pyH: { x: colHost, y: rows.py, w: hostW, h: Hb, role: "host", lines: [{ t: "Python study" }, { t: "you own the loop", k: "sub" }] },
       pyS: { x: colSeam, y: rows.py, w: seamW, h: Hb, role: "seam", lines: [{ t: "analyze_steady()", k: "mono" }, { t: "analyze_dynamic()", k: "mono" }] },
       epH: { x: colHost, y: rows.ep, w: hostW, h: Hb, role: "host", lines: [{ t: "EnergyPlus" }, { t: "owns loop·tank·meters", k: "sub" }] },
-      epV: { x: colVar, y: rows.ep, w: varW, h: Hb, role: "vars", lines: [{ t: "T_in, mdot, cp", k: "mono" }, { t: "load, T0", k: "mono" }] },
+      epV: { x: colVar, y: rows.ep, w: varW, h: Hb, role: "vars", lines: [{ t: "T_in, mdot, cp", k: "mono" }, { t: "load, T0, RH_out", k: "mono" }] },
       epS: { x: colSeam, y: rows.ep, w: seamW, h: Hb, role: "seam", lines: [{ t: "analyze_steady()", k: "mono" }, { t: "steady surrogate", k: "note" }] },
       fmH: { x: colHost, y: rows.fm, w: hostW, h: Hb, role: "host", lines: [{ t: "FMI master" }, { t: "FMPy·OMS·Dymola", k: "sub" }] },
-      fmV: { x: colVar, y: rows.fm, w: varW, h: Hb, role: "vars", lines: [{ t: "T0, dhw_draw", k: "mono" }, { t: "T_sup_w", k: "mono" }] },
+      fmV: { x: colVar, y: rows.fm, w: varW, h: Hb, role: "vars", lines: [{ t: "T0, dhw_draw", k: "mono" }, { t: "T_sup_w, RH_out", k: "mono" }] },
       fmS: { x: colSeam, y: rows.fm, w: seamW, h: Hb, role: "seam", lines: [{ t: "step()", k: "mono" }, { t: "FMU owns state", k: "note" }] }
     };
     var P = A(core, "l");
@@ -202,7 +202,7 @@
         { x: 740, y: 20, w: 240, h: 53, role: "core", lines: [{ t: "TMHP core · step()" }] }
       ],
       steps: [
-        { kind: "msg", from: 0, to: 1, t: "setReal(T0, dhw_draw, T_sup_w)", phase: "SET INPUTS" },
+        { kind: "msg", from: 0, to: 1, t: "setReal(T0, dhw_draw, T_sup_w, RH_out)", phase: "SET INPUTS" },
         { kind: "msg", from: 0, to: 1, t: "do_step(t, dt)", phase: "ADVANCE ONE dt" },
         { kind: "msg", from: 1, to: 2, t: "step(state, inputs, dt)", dash: true, phase: "ADVANCE ONE dt" },
         { kind: "msg", from: 2, to: 1, t: "(new_state, res)", phase: "ADVANCE ONE dt" },
@@ -223,8 +223,8 @@
         { x: 739, y: 20, w: 252, h: 53, role: "core", lines: [{ t: "TMHP core" }, { t: "analyze_steady()", k: "note" }] }
       ],
       steps: [
-        { kind: "msg", from: 0, to: 1, t: "T_in, mdot, cp, load, T0", phase: "READ LOOP STATE" },
-        { kind: "msg", from: 1, to: 2, t: "analyze_steady(T_tank_w, T0, Q_ref_tank)", dash: true, phase: "STEADY SOLVE" },
+        { kind: "msg", from: 0, to: 1, t: "T_in, mdot, cp, load, T0, RH_out (%)", phase: "READ INPUTS" },
+        { kind: "msg", from: 1, to: 2, t: "analyze_steady(T_in, T0, Q_target, …, RH_out=rh)", dash: true, phase: "STEADY SOLVE" },
         { kind: "msg", from: 2, to: 1, t: "res {E_cmp, Q_ref_tank, converged, failure_reason}", phase: "STEADY SOLVE" },
         { kind: "self", at: 1, t: "memoize on rounded inputs;", t2: "T_out = T_in + Q_ref_tank/(mdot·cp)", phase: "STEADY SOLVE" },
         { kind: "msg", from: 1, to: 0, t: "actuators: T_out, mdot", phase: "ACTUATE + METER" },
@@ -254,7 +254,7 @@
     var lb = lc + colW / 2, rb = rc + colW / 2, cbY = card.y + card.h, midY = (cbY + kernel.y) / 2;
     var conn = edge("M" + lb + " " + cbY + " L" + lb + " " + kernel.y, { dash: true }) + edge("M" + rb + " " + cbY + " L" + rb + " " + kernel.y, { dash: true })
       + '<text class="elab" x="' + lb + '" y="' + (midY + 3) + '" text-anchor="middle">wraps</text><text class="elab" x="' + rb + '" y="' + (midY + 3) + '" text-anchor="middle">wraps</text>';
-    var kbox = box({ x: kernel.x, y: kernel.y, w: kernel.w, h: kernel.h, role: "core", lines: [{ t: "Current FMU kernel - AirSourceHeatPumpBoiler.step()" }, { t: "same 4 params · 3 inputs · 8 outputs · identical input mapping", k: "sub" }] });
+    var kbox = box({ x: kernel.x, y: kernel.y, w: kernel.w, h: kernel.h, role: "core", lines: [{ t: "Current FMU kernel - AirSourceHeatPumpBoiler.step()" }, { t: "same 7 params · 4 inputs · 8 outputs · identical input mapping", k: "sub" }] });
     el.innerHTML = svg(W, H, "FMI 2.0 vs 3.0 adapters", "Two FMI adapters wrapping one TMHP step kernel.", conn + L + R + '<g class="pulse">' + kbox + "</g>")
       + '<p class="tid-cap">Pick FMI 2.0 for reach, FMI 3.0 for the modern major version. Both adapters wrap the same current ASHPB reference boundary.</p>';
   }

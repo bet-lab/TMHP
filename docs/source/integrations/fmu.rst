@@ -49,9 +49,8 @@ ships two adapters over the same ASHPB reference ``step()`` seam:
   expose clocks, Scheduled Execution, or arrays because the current TMHP
   boundary is a scalar one-step heat-pump component.
 
-Both adapters wrap the identical ``step()`` kernel and expose the same scalar
-boundary — four parameters, three inputs, and eight outputs. Only the
-FMI-version mechanics differ, as the diagram makes concrete:
+Both adapters wrap the same ``step()`` kernel and expose the same scalar
+equipment parameters, inputs, and outputs across FMI versions.
 
 .. raw:: html
 
@@ -280,6 +279,12 @@ initial dependency set.
      - ``T0``
      - Outdoor air temperature in degrees Celsius.
    * - Input
+     - ``RH_out``
+     - Outdoor relative humidity for the frost correction, as a fraction
+       from 0 to 1. The start value ``-1`` uses the model default (84% for the
+       standard frost correction). Leave the input at its start value when
+       no weather humidity is available.
+   * - Input
      - ``dhw_draw``
      - Service-water draw-off in ``m3/s``.
    * - Input
@@ -318,9 +323,10 @@ Invalid importer inputs
 =======================
 
 Before advancing the internal state, the slave rejects non-finite time
-or input values, non-positive communication step sizes, and negative
-``dhw_draw``. In that case ``do_step`` returns ``False`` and the
-diagnostic outputs are set to:
+or input values, non-positive communication step sizes, negative
+``dhw_draw``, and ``RH_out`` values outside the documented range or
+start value. FMI 2.0 returns ``False`` and FMI 3.0 returns discard with
+early return. Both set the diagnostic outputs to:
 
 .. code-block:: text
 

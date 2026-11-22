@@ -1015,7 +1015,8 @@ unit, and leaves every operating point where it was, because the efficiency
 map takes the speed in rev/s.
 
 **Where the rest lies.** With the solved conductance, 13 of the 180 rows lie
-outside the data of the efficiency map (:doc:`defaults`): below its lowest
+outside the data of the efficiency map
+(:doc:`/developer/reference-operating-limits`): below its lowest
 pressure ratio at their evaporating temperature, 9 of them on the cycle's
 pressure-ratio floor of 1.5; none is outside its speed range of 30 to
 110 rev/s. Their bias is −3.1 % against −6.5 % for the rows inside, and they

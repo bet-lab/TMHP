@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP’s current FMU adapter wraps AirSourceHeatPumpBoiler as an FMI Co-Simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB reference dynamic state and advanc..." />
 
-    <meta property="article:modified_time" content="2026-11-12T21:34:29+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T00:29:36+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -236,9 +236,8 @@ ships two adapters over the same ASHPB reference <code class="docutils literal n
 expose clocks, Scheduled Execution, or arrays because the current TMHP
 boundary is a scalar one-step heat-pump component.</p></li>
 </ul>
-<p>Both adapters wrap the identical <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel and expose the same scalar
-boundary — four parameters, three inputs, and eight outputs. Only the
-FMI-version mechanics differ, as the diagram makes concrete:</p>
+<p>Both adapters wrap the same <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel and expose the same scalar
+equipment parameters, inputs, and outputs across FMI versions.</p>
 <div class="tmhp-diagram" data-diagram="fmi-compare"></div><p>The practical benefit is tool reach. The FMI project maintains a tools
 catalog across importers, exporters, platforms, and FMI versions (<a class="reference external" href="https://fmi-standard.org/tools/">FMI
 tools</a>). A 2025 FMI project note
@@ -456,46 +455,53 @@ initial dependency set.</p>
 <td><p>Outdoor air temperature in degrees Celsius.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Input</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RH_out</span></code></p></td>
+<td><p>Outdoor relative humidity for the frost correction, as a fraction
+from 0 to 1. The start value <code class="docutils literal notranslate"><span class="pre">-1</span></code> uses the model default (84% for the
+standard frost correction). Leave the input at its start value when
+no weather humidity is available.</p></td>
+</tr>
+<tr class="row-even"><td><p>Input</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">dhw_draw</span></code></p></td>
 <td><p>Service-water draw-off in <code class="docutils literal notranslate"><span class="pre">m3/s</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p>Input</p></td>
+<tr class="row-odd"><td><p>Input</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">T_sup_w</span></code></p></td>
 <td><p>Mains make-up water temperature in degrees Celsius.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Output</p></td>
+<tr class="row-even"><td><p>Output</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">E_cmp</span></code></p></td>
 <td><p>Compressor electric power in watts, averaged over the
 communication step.</p></td>
 </tr>
-<tr class="row-even"><td><p>Output</p></td>
+<tr class="row-odd"><td><p>Output</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">E_tot</span></code></p></td>
 <td><p>Total system electric power in watts, averaged over the
 communication step.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Output</p></td>
+<tr class="row-even"><td><p>Output</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code></p></td>
 <td><p>Refrigerant-to-tank heat transfer in watts, averaged over the
 communication step.</p></td>
 </tr>
-<tr class="row-even"><td><p>Output</p></td>
+<tr class="row-odd"><td><p>Output</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">cop_sys</span></code></p></td>
 <td><p>System COP including auxiliary loads, of the cycle while it ran
 (equal to <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">/</span> <span class="pre">E_tot</span></code>).</p></td>
 </tr>
-<tr class="row-odd"><td><p>Output</p></td>
+<tr class="row-even"><td><p>Output</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code></p></td>
 <td><p>Tank-water temperature at the end of the step in degrees Celsius.</p></td>
 </tr>
-<tr class="row-even"><td><p>Output</p></td>
+<tr class="row-odd"><td><p>Output</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">hp_is_on</span></code></p></td>
 <td><p>Whether the compressor ran at any time during the step.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Output</p></td>
+<tr class="row-even"><td><p>Output</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">converged</span></code></p></td>
 <td><p>Whether the TMHP cycle solve accepted the step result.</p></td>
 </tr>
-<tr class="row-even"><td><p>Output</p></td>
+<tr class="row-odd"><td><p>Output</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code></p></td>
 <td><p>Step-level diagnostic reason, or <code class="docutils literal notranslate"><span class="pre">none</span></code>.</p></td>
 </tr>
@@ -506,9 +512,10 @@ communication step.</p></td>
 <section id="invalid-importer-inputs">
 <h2>Invalid importer inputs<a class="headerlink" href="#invalid-importer-inputs" title="Link to this heading">¶</a></h2>
 <p>Before advancing the internal state, the slave rejects non-finite time
-or input values, non-positive communication step sizes, and negative
-<code class="docutils literal notranslate"><span class="pre">dhw_draw</span></code>. In that case <code class="docutils literal notranslate"><span class="pre">do_step</span></code> returns <code class="docutils literal notranslate"><span class="pre">False</span></code> and the
-diagnostic outputs are set to:</p>
+or input values, non-positive communication step sizes, negative
+<code class="docutils literal notranslate"><span class="pre">dhw_draw</span></code>, and <code class="docutils literal notranslate"><span class="pre">RH_out</span></code> values outside the documented range or
+start value. FMI 2.0 returns <code class="docutils literal notranslate"><span class="pre">False</span></code> and FMI 3.0 returns discard with
+early return. Both set the diagnostic outputs to:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span><span data-line="1">hp_is_on = false
 </span><span data-line="2">converged = false
 </span><span data-line="3">failure_reason = &quot;invalid_input&quot;
@@ -537,7 +544,7 @@ same schedule, especially <code class="docutils literal notranslate"><span class
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 12, 2026
+  Last updated Nov 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -599,5 +606,5 @@ same schedule, especially <code class="docutils literal notranslate"><span class
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=4f6155f3"></script></body>
 </html>

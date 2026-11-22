@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP’s current EnergyPlus adapter exposes AirSourceHeatPumpBoiler as a PlantComponent:UserDefined surrogate. EnergyPlus still owns the plant loop, timestep, load dispatch, and storage-tank objects;..." />
 
-    <meta property="article:modified_time" content="2026-11-13T14:57:16+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T00:29:36+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -294,8 +294,9 @@ answers with a single steady cycle solve. (A one-shot sizing call runs once
 before the simulation to size the plant connection.) Walk through one call
 step by step:</p>
 <div class="tmhp-diagram" data-diagram="ep-seq"></div><p>The plugin memoizes the solve on rounded inputs, because the plant solver
-re-calls it with identical inputs many times per timestep, and it converts the
-heat put into the loop into the outlet-temperature actuator with
+re-calls it with identical inputs many times per timestep. Humidity is rounded
+to the nearest 0.01 percentage point for both the cache key and the model input.
+The plugin converts the heat put into the loop into the outlet-temperature actuator with
 <code class="docutils literal notranslate"><span class="pre">T_out</span> <span class="pre">=</span> <span class="pre">T_in</span> <span class="pre">+</span> <span class="pre">q_loop</span> <span class="pre">/</span> <span class="pre">(mdot</span> <span class="pre">*</span> <span class="pre">cp)</span></code> (see
 <a class="reference internal" href="#ep-metered-power"><span class="std std-ref">Metered electricity and delivered heat</span></a> for how <code class="docutils literal notranslate"><span class="pre">q_loop</span></code> and the metered electricity follow
 from the solved cycle).</p>
@@ -334,13 +335,23 @@ reads loop boundary values, solves TMHP, and writes actuators.</p></td>
 </tbody>
 </table>
 </div>
+<p>Declare the two weather variables as <code class="docutils literal notranslate"><span class="pre">Output:Variable</span></code> objects so the
+EnergyPlus CLI exposes their handles to the plugin. The plugin requests both
+variables on its first pass and sends weather-file humidity to the frost
+correction automatically.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span><span data-line="1">Output:Variable, Environment, Site Outdoor Air Drybulb Temperature, Hourly;
+</span><span data-line="2">Output:Variable, Environment, Site Outdoor Air Relative Humidity, Hourly;
+</span></pre></div>
+</div>
 </section>
 <section id="input-output-boundary">
 <h2>Input / output boundary<a class="headerlink" href="#input-output-boundary" title="Link to this heading">¶</a></h2>
 <p>The plugin reads only finite EnergyPlus boundary values before calling
-TMHP. Invalid inputs are reported through <code class="docutils literal notranslate"><span class="pre">issue_severe()</span></code>, the plant
+TMHP. Invalid required inputs are reported through <code class="docutils literal notranslate"><span class="pre">issue_severe()</span></code>, the plant
 component is driven to a safe off state, and the callback returns a
-non-zero status instead of computing with bad values.</p>
+non-zero status. A missing humidity handle, a read flagged by EnergyPlus, or an
+invalid humidity value triggers one warning per plugin instance. The solve then
+uses the model’s default humidity (84% for the standard frost correction).</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -376,23 +387,28 @@ temperature.</p></td>
 <td><p>Outdoor drybulb temperature</p></td>
 <td><p>Source-side air temperature <code class="docutils literal notranslate"><span class="pre">T0</span></code> for the ASHPB cycle solve.</p></td>
 </tr>
-<tr class="row-odd"><td><p>TMHP -&gt; EnergyPlus</p></td>
+<tr class="row-odd"><td><p>EnergyPlus -&gt; TMHP</p></td>
+<td><p>Outdoor relative humidity</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Site</span> <span class="pre">Outdoor</span> <span class="pre">Air</span> <span class="pre">Relative</span> <span class="pre">Humidity</span></code> in percent, converted to the
+fraction <code class="docutils literal notranslate"><span class="pre">RH_out</span></code> for the frost correction.</p></td>
+</tr>
+<tr class="row-even"><td><p>TMHP -&gt; EnergyPlus</p></td>
 <td><p>Outlet temperature actuator</p></td>
 <td><p>Inlet temperature plus the heat put into the loop (<code class="docutils literal notranslate"><span class="pre">q_loop</span></code>, never
 more than the load request) divided by <code class="docutils literal notranslate"><span class="pre">m_dot</span> <span class="pre">*</span> <span class="pre">cp</span></code>, at most
 <code class="docutils literal notranslate"><span class="pre">TOUT_MAX</span></code> (95 °C).</p></td>
 </tr>
-<tr class="row-even"><td><p>TMHP -&gt; EnergyPlus</p></td>
+<tr class="row-odd"><td><p>TMHP -&gt; EnergyPlus</p></td>
 <td><p>Mass-flow actuator</p></td>
 <td><p>Requests design flow when load is present and EnergyPlus has not
 yet provided loop flow.</p></td>
 </tr>
-<tr class="row-odd"><td><p>TMHP -&gt; EnergyPlus</p></td>
+<tr class="row-even"><td><p>TMHP -&gt; EnergyPlus</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code></p></td>
 <td><p>Timestep electricity of the whole system (compressor <strong>and</strong> outdoor
 fan, <code class="docutils literal notranslate"><span class="pre">E_tot</span></code>) in joules. The name is historical.</p></td>
 </tr>
-<tr class="row-even"><td><p>TMHP -&gt; EnergyPlus</p></td>
+<tr class="row-odd"><td><p>TMHP -&gt; EnergyPlus</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code></p></td>
 <td><p>Optional instantaneous system electricity (<code class="docutils literal notranslate"><span class="pre">E_tot</span></code>) in watts.</p></td>
 </tr>
@@ -438,7 +454,9 @@ joules. Default <code class="docutils literal notranslate"><span class="pre">tmh
 in watts. Default <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_PLUGIN_LOG</span></code></p></td>
-<td><p>Optional path for per-call and convergence-tally logging.</p></td>
+<td><p>Optional path for per-call and convergence-tally logging. Each logged
+solve reports the humidity used by the model, or <code class="docutils literal notranslate"><span class="pre">default</span></code> when the
+plugin falls back to the model’s default.</p></td>
 </tr>
 </tbody>
 </table>
@@ -484,7 +502,9 @@ The plugin therefore asks TMHP for a steady component response:</p>
 </span><span data-line="2">    <span class="n">T_tank_w</span><span class="o">=</span><span class="n">t_in</span><span class="p">,</span>
 </span><span data-line="3">    <span class="n">T0</span><span class="o">=</span><span class="n">t0</span><span class="p">,</span>
 </span><span data-line="4">    <span class="n">Q_ref_tank</span><span class="o">=</span><span class="n">q_target</span><span class="p">,</span>
-</span><span data-line="5"><span class="p">)</span>
+</span><span data-line="5">    <span class="n">m_dot_w</span><span class="o">=</span><span class="n">m_dot</span><span class="p">,</span>
+</span><span data-line="6">    <span class="n">RH_out</span><span class="o">=</span><span class="n">rh_out</span><span class="p">,</span>
+</span><span data-line="7"><span class="p">)</span>
 </span></pre></div>
 </div>
 <p>The FMU adapter uses <code class="xref py py-meth docutils literal notranslate"><span class="pre">step()</span></code> instead
@@ -499,7 +519,7 @@ prevents EnergyPlus tank state and FMU tank state from being mixed.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 13, 2026
+  Last updated Nov 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -561,5 +581,5 @@ prevents EnergyPlus tank state and FMU tank state from being mixed.</p>
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=4f6155f3"></script></body>
 </html>

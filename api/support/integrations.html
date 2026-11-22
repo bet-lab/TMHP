@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-11-21T23:41:58+00:00" />
+    <meta property="article:modified_time" content="2026-11-22T00:29:36+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -519,7 +519,8 @@ summed joules). <code class="docutils literal notranslate"><span class="pre">tmh
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpPlantSurrogate.on_user_defined_component_model">
 <span class="sig-name descname"><span class="pre">on_user_defined_component_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantSurrogate.on_user_defined_component_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpPlantSurrogate.on_user_defined_component_model" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Solve a dispatched heating load, actuate the plant, and log the model result.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>state</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
 </dd>
@@ -728,10 +729,11 @@ multi-rate models; TMHP’s current ASHPB FMU boundary is scalar Co-Simulation.<
 <p>EnergyPlus Python Plugin adapter for the tmhp ASHPB.</p>
 <p>Surrogates <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> inside EnergyPlus as a
 <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> device. Each plant-solver call hands the plugin
-the loop inlet temperature, mass flow, specific heat, and load request (plus the
-site outdoor drybulb); the plugin solves the refrigerant cycle with the public
-<code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code> seam and writes back the outlet-temperature and
-mass-flow actuators, routing the system’s electricity to a metered output.</p>
+the loop inlet temperature, mass flow, specific heat, and load request, plus the
+site outdoor drybulb temperature and relative humidity. The plugin solves the
+refrigerant cycle with the public <code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code> seam and writes back the
+outlet-temperature and mass-flow actuators, routing the system’s electricity
+to a metered output.</p>
 <section id="metered-electricity-and-delivered-heat-what-crosses-the-energyplus-boundary">
 <h3>Metered electricity and delivered heat (what crosses the EnergyPlus boundary)<a class="headerlink" href="#metered-electricity-and-delivered-heat-what-crosses-the-energyplus-boundary" title="Link to this heading">¶</a></h3>
 <p>The metered power is the <strong>system total</strong> <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> of the solved cycle —
@@ -897,7 +899,8 @@ summed joules). <code class="docutils literal notranslate"><span class="pre">tmh
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate.on_user_defined_component_model">
 <span class="sig-name descname"><span class="pre">on_user_defined_component_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantSurrogate.on_user_defined_component_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate.on_user_defined_component_model" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Solve a dispatched heating load, actuate the plant, and log the model result.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>state</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
 </dd>
@@ -1131,7 +1134,7 @@ groundwater flow (they set the thermal front velocity).</p></li>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 21, 2026
+  Last updated Nov 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -1193,5 +1196,5 @@ groundwater flow (they set the thermal front velocity).</p></li>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="../../_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="../../_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="../../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+      <script defer="defer" src="../../_static/js/widgets/integration-diagrams.js?v=4f6155f3"></script></body>
 </html>

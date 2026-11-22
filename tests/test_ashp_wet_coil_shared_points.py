@@ -328,6 +328,18 @@ def test_dry_ceiling_of_a_held_indoor_fan_is_unchanged(large_indoor_held, monkey
     assert searched == []
 
 
+def test_searches_the_two_tests_above_watch_are_the_ones_a_wet_ceiling_on_the_floor_makes(
+    large_indoor_held, monkeypatch
+):
+    # A watched name the model does not have is passed over (`_noting_calls`), so that the tests
+    # read on a tree without it; this is the check that the names are the model's: the wet ceiling
+    # of -10 degC, on the pressure-ratio floor, asks for the flat-out state and searches it.
+    searched = _noting_calls(monkeypatch, large_indoor_held, "_searched_point", "_flat_out_point_on_the_floor")
+    ceiling = large_indoor_held.max_capacity(-10.0, 35.0, mode="cooling", RH_room=1.0)
+    assert ceiling["binding"] == "compressor"
+    assert searched[0] == "_flat_out_point_on_the_floor" and "_searched_point" in searched
+
+
 # ---------------------------------------------------------------------------
 # 4. A dynamic row is that of its step solved alone
 # ---------------------------------------------------------------------------

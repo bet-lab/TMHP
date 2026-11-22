@@ -41,13 +41,13 @@ from pythonfmu import (
     Real,
     String,
 )
+from pythonfmu.enums import Fmi2Status
 
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.dynamic_context import DynamicState
 from tmhp.integrations import _fmi_common
 
 _finite = _fmi_common.finite
-_is_finite = _fmi_common.is_finite
 _failure_reason = _fmi_common.failure_reason
 _DESCRIPTIONS = _fmi_common.VARIABLE_DESCRIPTIONS
 
@@ -241,20 +241,17 @@ class TmhpAshpbSlave(Fmi2Slave):
     def do_step(self, current_time: float, step_size: float) -> bool:
         if self._hp is None or self._state is None:
             raise RuntimeError("FMU slave used before exit_initialization_mode()")
-        if not (
-            _is_finite(current_time)
-            and _is_finite(step_size)
-            and float(step_size) > 0.0
-            and _is_finite(self.T0)
-            and _fmi_common.valid_outdoor_humidity(self.RH_out)
-            and _is_finite(self.dhw_draw)
-            and float(self.dhw_draw) >= 0.0
-            and _is_finite(self.T_sup_w)
-            and _is_finite(self.T_sur)
-        ):
-            self.hp_is_on = False
-            self.converged = False
-            self.failure_reason = "invalid_input"
+        # A refused step changes nothing an importer can observe, and the log
+        # names the rejected value. PythonFMU maps ``False`` to fmi2Discard
+        # (and an exception to fmi2Fatal, never fmi2Error), so illegal step
+        # sizes are discarded too. Its bridge then reports fmi2Terminated, and
+        # without FMU-state restore an FMI 2.0 importer ends the run there.
+        # See tmhp.integrations.fmu3 for the FMI 3.0 contract.
+        problem = _fmi_common.invalid_step_arguments(current_time, step_size) or _fmi_common.invalid_step_inputs(
+            T0=self.T0, RH_out=self.RH_out, dhw_draw=self.dhw_draw, T_sup_w=self.T_sup_w, T_sur=self.T_sur
+        )
+        if problem is not None:
+            self.log(_fmi_common.rejected_step_message(current_time, problem), status=Fmi2Status.discard)
             return False
 
         inputs = {

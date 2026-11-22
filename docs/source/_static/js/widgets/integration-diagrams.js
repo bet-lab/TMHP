@@ -250,7 +250,7 @@
       return cardEl + titleBg + titleEl + bl;
     }
     var L = adapterCard(lc, "FMI 2.0 adapter · pythonfmu", [{ t: "type: Real" }, { t: "do_step → bool" }, { t: "units patched in XML" }, { t: "InitialUnknowns patch" }, { t: "broadest importer reach", k: "note" }]);
-    var R = adapterCard(rc, "FMI 3.0 adapter · pythonfmu3", [{ t: "type: Float64" }, { t: "do_step → Fmi3StepResult" }, { t: "(ok · discard + earlyReturn)" }, { t: "inline unit= · explicit time" }, { t: "modern major version", k: "note" }]);
+    var R = adapterCard(rc, "FMI 3.0 adapter · pythonfmu3", [{ t: "type: Float64" }, { t: "do_step → Fmi3StepResult" }, { t: "(ok · discard · error)" }, { t: "inline unit= · explicit time" }, { t: "modern major version", k: "note" }]);
     var lb = lc + colW / 2, rb = rc + colW / 2, cbY = card.y + card.h, midY = (cbY + kernel.y) / 2;
     var conn = edge("M" + lb + " " + cbY + " L" + lb + " " + kernel.y, { dash: true }) + edge("M" + rb + " " + cbY + " L" + rb + " " + kernel.y, { dash: true })
       + '<text class="elab" x="' + lb + '" y="' + (midY + 3) + '" text-anchor="middle">wraps</text><text class="elab" x="' + rb + '" y="' + (midY + 3) + '" text-anchor="middle">wraps</text>';

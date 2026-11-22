@@ -91,6 +91,7 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import itertools
 import math
 import os
 from typing import Any
@@ -249,10 +250,16 @@ def _issue_warning(api: Any, state: Any, msg: str) -> None:
 _RH_OUTCOME_RANK = {"weather": 0, "clipped_to_100": 1, "default": 2}
 
 
-def _log_humidity_summary(counts: dict[str, int]) -> None:
+# Numbers the plant surrogates of this process, so the final summaries of
+# several runs in one process (EnergyPlus Python API) or appended to one
+# TMHP_PLUGIN_LOG file can be told apart.
+_SURROGATE_RUNS = itertools.count(1)
+
+
+def _log_humidity_summary(run_id: str, counts: dict[str, int]) -> None:
     """Log the final outdoor-humidity counts of a run."""
     text = " ".join(f"{name}={count}" for name, count in counts.items())
-    _log(f"[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: {text}")
+    _log(f"[outdoor RH final] {run_id}: zone timesteps with a heating dispatch, warmup days excluded: {text}")
 
 
 def _set_global_if_valid(ex: Any, state: Any, handle: int, value: float) -> None:
@@ -360,7 +367,8 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         self._rh_timestep_key: tuple[int, int, int, int, int] | None = None
         self._rh_timestep_outcome = ""
         # Hold only the counters, not the plugin and its solve cache.
-        atexit.register(_log_humidity_summary, self._rh_timesteps)
+        self._run_id = f"pid {os.getpid()} run {next(_SURROGATE_RUNS)}"
+        atexit.register(_log_humidity_summary, self._run_id, self._rh_timesteps)
         # Convergence tally over dispatched calls (cold-climate high-lift hours
         # may trip the pressure-ratio guard); dumped periodically to the log.
         self._ndispatch = 0
@@ -454,7 +462,7 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
 
     def _log_humidity_summary(self) -> None:
         """Log the outdoor-humidity counts of the run so far."""
-        _log_humidity_summary(self._rh_timesteps)
+        _log_humidity_summary(self._run_id, self._rh_timesteps)
 
     def _warn_guard_trip(self, state: Any, reason: str, t_in: float, t0: float, q_target: float) -> None:
         """Issue a bounded number of warnings for a thermodynamic guard."""

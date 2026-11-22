@@ -11,7 +11,7 @@ def test_smoke_accepts_model_humidity_from_the_saturated_design_day(tmp_path):
         "[TmhpSurrogate handles] rh_out=10\n"
         "[call    3] T0=  7.00C RH_out=100.00% Qreq=  8000.0W -> converged=True\n"
         "[call    4] T0=  7.00C RH_out=99.99% Qreq=  8000.0W -> converged=True\n"
-        "[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: weather=20 clipped_to_100=4 default=0\n"
+        "[outdoor RH final] pid 4242 run 1: zone timesteps with a heating dispatch, warmup days excluded: weather=20 clipped_to_100=4 default=0\n"
     )
 
     run_smoke.check_humidity_log(log)
@@ -36,7 +36,7 @@ def test_smoke_rejects_missing_or_incorrect_model_humidity(tmp_path, entry):
     log.write_text(
         "[TmhpSurrogate handles] rh_out=10\n"
         + entry
-        + "[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: weather=20 clipped_to_100=4 default=0\n"
+        + "[outdoor RH final] pid 4242 run 1: zone timesteps with a heating dispatch, warmup days excluded: weather=20 clipped_to_100=4 default=0\n"
     )
 
     with pytest.raises(ValueError, match="humidity"):
@@ -47,13 +47,13 @@ def test_smoke_rejects_missing_or_incorrect_model_humidity(tmp_path, entry):
     "summary",
     [
         "",
-        "[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: "
+        "[outdoor RH final] pid 4242 run 1: zone timesteps with a heating dispatch, warmup days excluded: "
         "weather=20 clipped_to_100=4 default=1\n",
-        "[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: "
+        "[outdoor RH final] pid 4242 run 1: zone timesteps with a heating dispatch, warmup days excluded: "
         "weather=0 clipped_to_100=0 default=0\n",
-        "[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: "
+        "[outdoor RH final] pid 4242 run 1: zone timesteps with a heating dispatch, warmup days excluded: "
         "weather=20 clipped_to_100=4 default=1\n"
-        "[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: "
+        "[outdoor RH final] pid 4242 run 1: zone timesteps with a heating dispatch, warmup days excluded: "
         "weather=20 clipped_to_100=4 default=0\n",
     ],
     ids=["missing", "default-used", "nothing-counted", "two-summaries"],

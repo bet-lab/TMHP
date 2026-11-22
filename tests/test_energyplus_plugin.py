@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import atexit
 import random
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -319,9 +320,26 @@ def test_surrogate_tallies_outdoor_humidity_timesteps(monkeypatch, capsys):
         "(heating-dispatch zone timesteps, warmup excluded)"
     )
     assert out[-1] == (
-        "[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: "
+        f"[outdoor RH final] {plant._run_id}: zone timesteps with a heating dispatch, warmup days excluded: "
         "weather=2 clipped_to_100=2 default=4"
     )
+
+
+def test_surrogate_final_humidity_summaries_name_their_run(capsys):
+    """Two runs in one process (EnergyPlus Python API) log summaries that can be told apart."""
+    first = _real_surrogate(40.0, 2.0, 15000.0)
+    second = _real_surrogate(40.0, 2.0, 15000.0)
+    assert first._run_id != second._run_id
+    assert re.fullmatch(r"pid \d+ run \d+", first._run_id)
+
+    first._log_humidity_summary()
+    second._log_humidity_summary()
+
+    out = [line for line in capsys.readouterr().out.splitlines() if line.startswith("[outdoor RH final]")]
+    assert [line.split(":")[0] for line in out] == [
+        f"[outdoor RH final] {first._run_id}",
+        f"[outdoor RH final] {second._run_id}",
+    ]
 
 
 def test_surrogate_uses_default_on_failed_humidity_read_and_recovers(capsys):

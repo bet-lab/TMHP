@@ -51,16 +51,20 @@ FAMILIES = {
 
 
 def test_the_quoted_envelope_stops_are_the_models():
+    """Each stop is tied to its refrigerant's limit in the page's own sentence, so swapped values fail."""
     text = _text()
-    for name, factory in FAMILIES.items():
-        model = _quiet(factory)
-        stop = condensing_tank_cutout(model)
-        assert f"{stop:.2f} °C" in text, f"{name}: envelope stop {stop:.2f} °C is not on the page"
-    approach = {name: _quiet(f) for name, f in FAMILIES.items()}
-    for name, model in approach.items():
+    models = {name: _quiet(f) for name, f in FAMILIES.items()}
+    for name, model in models.items():
         k = float(model.hp_capacity) / float(model.K_tank_hx)
         assert f"{k:.2f} K" in text, f"{name}: heat-exchanger approach {k:.2f} K is not on the page"
-        assert f"{float(model.T_cond_max):g} °C" in text, name
+    r290, r32 = models["GSHPB"], models["ASHPB R32"]
+    assert models["WSHPB"].ref == r290.ref == "R290" and r32.ref == "R32"
+    stop290, stop32 = condensing_tank_cutout(r290), condensing_tank_cutout(r32)
+    assert condensing_tank_cutout(models["WSHPB"]) == pytest.approx(stop290)
+    assert f"{stop290:.2f} °C for the default R290 boilers (T_cond_max {float(r290.T_cond_max):g} °C)" in text
+    assert f"{stop32:.2f} °C for an R32 ASHPB ({float(r32.T_cond_max):g} °C)" in text
+    # the run sentence pairs them again
+    assert f"the default R290 machine at {stop290:.2f} °C, an R32 ASHPB at {stop32:.2f} °C" in text
 
 
 @pytest.mark.parametrize("name", list(FAMILIES))
@@ -91,6 +95,8 @@ def test_the_figure_caption_band_is_the_capped_band_of_the_r32_machine():
     model = _quiet(_r32_ashpb)
     lower, upper = model.T_tank_w_setpoints_requested
     text = _text()
-    assert f"{lower:g}–{upper:g} °C" in text
-    assert f"{model.T_tank_w_lower_bound:.0f}–{model.T_tank_w_upper_bound:.0f} °C" in text
-    assert f"caps the thermostat band at {model.T_tank_w_upper_bound:.0f} °C" in text
+    capped = f"{model.T_tank_w_lower_bound:.0f}–{model.T_tank_w_upper_bound:.0f} °C"
+    assert (
+        f"caps the thermostat band at {model.T_tank_w_upper_bound:.0f} °C ({capped} instead of the default {lower:g}–{upper:g} °C)"
+        in text
+    )

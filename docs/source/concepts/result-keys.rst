@@ -137,6 +137,9 @@ What was asked for, what was delivered, and how a request outside the modulation
     * - ``request_basis``
       - ASHP
       - What ``Q_request [W]`` and ``Q_unmet [W]`` are: ``"coil"`` (default), refrigerant-side heat of the indoor coil, or ``"room_sensible"``, the net sensible heat of the room air, as the ``request_basis`` argument of ``analyze_steady`` / ``analyze_dynamic`` asked. Every other key means the same on either basis: ``Q_ref_iu [W]``, ``Q_max [W]`` and ``Q_min [W]`` are coil heat. On every row, off ones included.
+    * - ``request_solves [-]``
+      - ASHP
+      - Only on a row asked with ``request_basis="room_sensible"`` (a run on that basis has the column, a coil-basis row or run does not): the number of coil-basis solves the search of the request took, an integer -- what the row cost, in solves of the default basis. 0 for a zero request, which is not searched; otherwise 1 to 12, the search's budget. A row short of its request away from the ceiling (``Q_unmet [W]`` above zero, ``capacity_clamped`` not ``"max"``) that took all twelve is one no duty tried had the request for (:doc:`/models/ashp`, *A request on the room's sensible load*).
     * - ``Q_max [W]``
       - all
       - On a ``"max"`` row, the duty delivered (the ceiling); in a boiler's dynamic step the running machine's, not the step average (``Q_ref_tank [W]`` is ``Q_max [W]`` times ``runtime_fraction [-]``). NaN on every other row.

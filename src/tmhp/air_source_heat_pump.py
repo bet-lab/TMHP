@@ -531,6 +531,9 @@ REQUEST_BASIS_COIL = "coil"
 REQUEST_BASIS_ROOM_SENSIBLE = "room_sensible"
 #: Result key naming the basis of ``Q_request [W]`` and ``Q_unmet [W]``.
 REQUEST_BASIS_KEY = "request_basis"
+#: Result key of a row asked on the room's net sensible heat, and of no other:
+#: the coil-basis solves the search of the request took.
+REQUEST_SOLVES_KEY = "request_solves [-]"
 
 
 def _check_request_basis(value: Any) -> str:
@@ -588,7 +591,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
     whose ``Q_room_sensible [W]`` equals it: more than the request in cooling
     (the indoor fan's heat, and the latent heat of a wet coil), less in
     heating. ``Q_request [W]`` and ``Q_unmet [W]`` are then on that basis, and
-    every row names its basis (``request_basis``).
+    every row names its basis (``request_basis``). Such a row also says how
+    many coil-basis solves its search took (``request_solves [-]``).
     """
 
     #: Heat and flow rates averaged with the capacity ratio while cycling.
@@ -4049,6 +4053,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
             side: ``Q_room_sensible [W]`` plus ``Q_iu_latent [W]`` over
             ``E_tot [W]``.
 
+            A row asked with ``"room_sensible"`` has one key more, after the
+            others: ``request_solves [-]`` (int), the number of coil-basis
+            solves the search of the request took -- what the row cost, in
+            solves of ``request_basis="coil"``. It is 0 for a zero request,
+            which is not searched, and never above
+            :attr:`_ROOM_SENSIBLE_MAX_SOLVES`; a row short of its request
+            that took them all is one the search did not finish (*Notes*). A
+            coil-basis row does not have the key.
+
         Warns
         -----
         OperatingLimitWarning
@@ -4065,10 +4078,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         (``request_basis="room_sensible"``) is answered with the row of a
         coil duty -- the row ``request_basis="coil"`` returns for that duty,
         key for key, with ``Q_request [W]``, ``Q_unmet [W]`` and
-        ``request_basis`` written over. The duty is searched: the request
-        itself first, then that duty scaled by the request over the net
-        sensible heat it gave, then by the secant through the last two
-        duties. ``Q_room_sensible [W]`` is read from the row as it is
+        ``request_basis`` written over, and ``request_solves [-]`` added.
+        The duty is searched: the request itself first, then that duty
+        scaled by the request over the net sensible heat it gave, then by
+        the secant through the last two duties. ``Q_room_sensible [W]`` is
+        read from the row as it is
         reported, so a request the unit meets by cycling, and a heating
         request with frost on the outdoor coil, are matched in their means.
         While the compressor is off the indoor fan is off with it: a cycling
@@ -4132,9 +4146,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # point has no use for it, whatever it is given.
         RH_room = _check_room_humidity(RH_room) if RH_room is not None and Q_r_iu > 0 else None
 
+        solves = 0
         if request_basis == REQUEST_BASIS_ROOM_SENSIBLE and Q_r_iu != 0:
             # The coil duty whose row has the requested net sensible heat.
-            result = self._solve_room_sensible(
+            result, solves = self._solve_room_sensible(
                 Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose, RH_out=RH_out, RH_room=RH_room
             )
         else:
@@ -4146,6 +4161,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 )
         if result:
             result[REQUEST_BASIS_KEY] = request_basis
+            if request_basis == REQUEST_BASIS_ROOM_SENSIBLE:
+                # What the row cost: the last key, on rows of this basis only.
+                result[REQUEST_SOLVES_KEY] = solves
 
         if return_dict:
             return result
@@ -4209,10 +4227,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
         verbose: bool,
         RH_out: float | None,
         RH_room: float | None,
-    ) -> dict:
+    ) -> tuple[dict, int]:
         """:meth:`analyze_steady` for a request on the room's net sensible heat (checked arguments, not zero).
 
-        The row returned is the row of a coil duty, solved the ordinary way
+        Returns the row and the number of coil-basis solves it took
+        (``request_solves [-]``). The row is the row of a coil duty, solved
+        the ordinary way
         (``request_basis="coil"``), in which ``Q_request [W]`` and
         ``Q_unmet [W]`` are then written on the basis of the request. The
         duty is found by an outer search on it, every trial a coil-basis
@@ -4369,7 +4389,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # envelope's check of this call (:func:`~tmhp.compressor_envelope.steady_envelope`)
         # has nothing left to solve again.
         self._condensing_rejected = False
-        return result
+        return result, len(trials)
 
     def _solve_steady(
         self, Q_r_iu: float, T0: float, T_a_room: float, *, postprocess: bool, verbose: bool, RH_out: float | None
@@ -4608,6 +4628,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ``T_a_room_schedule`` and ``RH_room_schedule``
             (``request_basis`` of :meth:`analyze_steady`, which solves each
             step). Any other value raises ``ValueError``.
+            A run on ``"room_sensible"`` has one column more,
+            ``request_solves [-]``: the coil-basis solves of each step.
 
         Returns
         -------

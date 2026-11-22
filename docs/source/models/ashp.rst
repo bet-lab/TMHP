@@ -1104,13 +1104,14 @@ air-loop model has already worked out.
 the row ``request_basis="coil"`` gives for it, key for key. Only
 ``Q_request [W]`` and ``Q_unmet [W]`` are on the requested basis, and
 ``request_basis`` says which it is; ``Q_ref_iu [W]``, ``Q_max [W]`` and
-``Q_min [W]`` stay coil heat. In cooling the coil carries more than the
-request: the fan's heat (4 023 W for 4 kW with a dry coil at 35/27 °C) and,
-below the room's dew point, the latent heat that comes with the sensible
-cooling. In heating it carries less: the fan's heat is part of what the room
-receives (3 977 W for 4 kW at 7/20 °C). The latent heat is not a request: a
-zone's moisture balance takes ``m_dot_iu_condensate [kg/s]`` (or
-``Q_iu_latent [W]``) from the row.
+``Q_min [W]`` stay coil heat. One key is added after them,
+``request_solves [-]``: the number of coil-basis solves the search took. In
+cooling the coil carries more than the request: the fan's heat (4 023 W for
+4 kW with a dry coil at 35/27 °C) and, below the room's dew point, the latent
+heat that comes with the sensible cooling. In heating it carries less: the
+fan's heat is part of what the room receives (3 977 W for 4 kW at 7/20 °C).
+The latent heat is not a request: a zone's moisture balance takes
+``m_dot_iu_condensate [kg/s]`` (or ``Q_iu_latent [W]``) from the row.
 
 **Cycling and frost are matched in the mean.** ``Q_room_sensible [W]`` is read
 as the row reports it. Below the smallest continuous duty the row is the mean
@@ -1160,10 +1161,11 @@ nameplate) every request under the ceiling was met: 1 093 of the 1 102
 dry-coil and heating rows to 1e-6 (the other nine to 9e-6), all 848 wet rows
 to 1e-4 (half of them to 8e-6); the other 696 are rows at the ceiling.
 
-**What it costs.** Every trial is a coil-basis solve. A dry-coil or heating
-request takes three (the request, a first guess from it, one secant step), a
-wet one four on average, a request above the ceiling one or two; twelve is
-the most a request may take. Over the same 2 646 requests the run took 3.0
+**What it costs.** Every trial is a coil-basis solve, and the row says how
+many it took (``request_solves [-]``; a run on this basis has the column). A
+dry-coil or heating request takes three (the request, a first guess from it,
+one secant step), a wet one four on average, a request above the ceiling one
+or two; twelve is the most a request may take. Over the same 2 646 requests the run took 3.0
 times the wall time of those requests on the coil basis: 2.9 times on the
 dry-coil and heating rows, 5.0 times on the wet ones (their trials are at
 larger duties than the request), 1.8 times at the ceiling. A dynamic run

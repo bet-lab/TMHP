@@ -4378,6 +4378,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # The trials in the order solved: (coil duty the row sits at, its net
         # sensible heat, the row).
         trials: list[tuple[float, float, dict]] = []
+        met = False  # whether the last trial has the requested net sensible heat
 
         def tolerance(row: dict) -> float:
             """Largest difference from the request at which ``row``, the last trial, is met."""
@@ -4387,6 +4388,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         def solve(duty: float) -> bool:
             """Solve the coil-basis row of ``duty``; whether the search ends on it."""
+            nonlocal met
             row = self.analyze_steady(
                 Q_r_iu=sign * duty,
                 T0=T0,
@@ -4410,7 +4412,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 and float(row.get("Q_unmet [W]", 0.0)) > 0.0
             )
             trials.append((abs(float(row["Q_ref_iu [W]"])) if short else duty, sensible, row))
-            nonlocal met
             met = running and abs(sensible - request) <= tolerance(row)
             return met or not running or (short and sensible < request)
 
@@ -4478,7 +4479,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return step
 
         ended = False
-        met = False  # whether the last trial has the requested net sensible heat
         duty: float | None = request
         # What the wet coil's searches find of the condition serves every trial.
         with self._sharing_wet_points():

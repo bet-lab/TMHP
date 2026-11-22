@@ -1045,10 +1045,160 @@ effect is in the mean.
 :meth:`~tmhp.AirSourceHeatPump.max_capacity` reports the same mean
 ceiling, with the frost-free one as ``Q_max_frost_free [W]``.
 
+A request on the room's sensible load
+=====================================
+
+A request (``Q_r_iu``) is the heat of the indoor coil. A building simulation
+hands over something else: the zone's **sensible** load, the heat its air
+node has to lose or gain. The two differ by the indoor fan's heat in both
+modes and, with a wet coil, by the latent heat. Asked for 4 kW as coil heat,
+the default unit takes 3 218 W of sensible heat out of a 27 °C / 50 % room —
+782 W short of a zone that wanted 4 kW. ``request_basis="room_sensible"``
+asks for the room's net sensible heat instead:
+
+.. code-block:: python
+
+   from tmhp import AirSourceHeatPump
+
+   ashp = AirSourceHeatPump()
+   zone = dict(T0=35.0, T_a_room=27.0, RH_room=0.5)
+
+   coil = ashp.analyze_steady(Q_r_iu=4000, **zone)   # request_basis="coil", the default
+   room = ashp.analyze_steady(Q_r_iu=4000, **zone, request_basis="room_sensible")
+
+   coil["Q_room_sensible [W]"]   # 3218
+   room["Q_room_sensible [W]"]   # 4000
+   room["Q_ref_iu [W]"]          # 5937: the coil heat that takes
+   room["SHR_iu [-]"]            # 0.68 (0.81 at a coil heat of 4000 W)
+   room["Q_iu_latent [W]"]       # 1914
+   room["E_tot [W]"]             # 1647 (909 W for a coil heat of 4000 W)
+   room["Q_request [W]"]         # 4000, on the basis the row names:
+   room["request_basis"]         # "room_sensible"
+   room["Q_unmet [W]"]           # 0.0
+
+Use it wherever the load comes from a zone heat balance: with the zone's air
+temperature as ``T_a_room``, its relative humidity as ``RH_room`` and the
+sensible load as ``Q_r_iu`` (cooling positive, heating negative), the row
+delivers that load to the air node. ``analyze_dynamic`` takes the same
+argument for a whole run — a year of hourly zone loads from EnergyPlus, say:
+
+.. code-block:: python
+
+   df = ashp.analyze_dynamic(
+       simulation_period_sec=8760 * 3600,
+       dt_s=3600,
+       Q_r_iu_schedule=zone_sensible_load,          # [W], cooling > 0, heating < 0
+       T0_schedule=outdoor_air_temperature,         # [°C]
+       T_a_room_schedule=zone_air_temperature,      # [°C]
+       RH_out_schedule=outdoor_relative_humidity,   # 0-1, for the frost model
+       RH_room_schedule=zone_relative_humidity,     # 0-1, for the wet coil
+       request_basis="room_sensible",
+   )
+
+Keep the default, ``"coil"``, where the number is the coil's heat: a
+catalogue's capacity before the fan's heat, a rating point, a coil load an
+air-loop model has already worked out.
+
+**What the model does.** It finds the coil duty at which the row's
+``Q_room_sensible [W]`` equals the request and returns the row of that duty —
+the row ``request_basis="coil"`` gives for it, key for key. Only
+``Q_request [W]`` and ``Q_unmet [W]`` are on the requested basis, and
+``request_basis`` says which it is; ``Q_ref_iu [W]``, ``Q_max [W]`` and
+``Q_min [W]`` stay coil heat. In cooling the coil carries more than the
+request: the fan's heat (4 023 W for 4 kW with a dry coil at 35/27 °C) and,
+below the room's dew point, the latent heat that comes with the sensible
+cooling. In heating it carries less: the fan's heat is part of what the room
+receives (3 977 W for 4 kW at 7/20 °C). The latent heat is not a request: a
+zone's moisture balance takes ``m_dot_iu_condensate [kg/s]`` (or
+``Q_iu_latent [W]``) from the row.
+
+**Cycling and frost are matched in the mean.** ``Q_room_sensible [W]`` is read
+as the row reports it. Below the smallest continuous duty the row is the mean
+over the cycling period, and the mean net sensible heat equals the request
+(300 W at 30/26 °C: a coil heat of 303.2 W in the mean, the unit running
+22 % of the time). The indoor fan is off whenever the compressor is: the
+cycling mean carries the fan's power and its heat times the capacity ratio,
+like the coil heat, and nothing for a fan that keeps circulating air between
+the compressor's runs. A zone model with a continuously running fan has to
+add that fan's heat to the load itself. In heating with frost the row is the
+mean over frosting and defrost, and that mean equals the request (3 kW at
+0 °C and 85 %: a coil heat of 2 982 W in the mean).
+
+**At the ceiling** the row is the ceiling's — the largest coil duty the unit
+delivers (``capacity_clamped == "max"``) — and ``Q_unmet [W]`` is what the
+room is short of: 5.5 kW of sensible cooling in the room above returns
+4 951 W with 549 W unmet, at a coil heat of 8 035 W.
+:meth:`~tmhp.AirSourceHeatPump.max_capacity` reports that ceiling next to
+``Q_max [W]``, as ``Q_room_sensible_max [W]``. It is the net sensible heat at
+the largest coil duty. On the default units that is also the largest net
+sensible heat the unit has: over 444 conditions of three default units
+(2.5 to 10 kW; cooling at 20–46 °C outdoor with the room at 22–30 °C, dry
+and at 30–100 % humidity; heating at −15 to 7 °C), 39 coil duties each, no
+duty under the ceiling moved more sensible heat than the ceiling's row.
+Under the ceiling the net sensible heat does not rise with the coil duty
+everywhere. Where condensation sets in, the next larger duty can take less
+sensible heat (2.5 kW unit, 46 °C outdoor, room 27 °C at 65 %: 1 079 W at a
+coil heat of 1 094 W, 1 059 W at 1 216 W; the one such condition of the
+444), and where a wet coil cycles on the pressure-ratio floor the running
+state changes with the request (the same unit, 20 °C outdoor, room 30 °C at
+50 %: 119.8 W at a coil heat of 135.5 W, 118.3 W at 158.2 W, rising again
+above 160 W). A request in such a stretch is met at one of the duties that
+have it; where the trials all fall short the search goes on towards larger
+duties.
+
+**How close.** ``Q_room_sensible [W]`` equals the request to 1e-6 of it where
+the first three solves reach that, which they do on a row whose coil is dry
+(no ``RH_room``, a coil above the room's dew point, heating) of a unit whose
+fans modulate. Otherwise the match is to 1e-4: the operating point of a wet
+coil is the optimiser's, located to 0.001 K of approach and 0.1 W of input,
+and the sensible share of neighbouring wet duties scatters by up to that
+much; a fan held at one flow scatters a dry row by about 1e-5. A row inside
+the tolerance is met, with ``Q_unmet [W]`` zero. On 2 646 requests of the
+three default units (the conditions above, from 5 % to 250 % of the
+nameplate) every request under the ceiling was met: 1 093 of the 1 102
+dry-coil and heating rows to 1e-6 (the other nine to 9e-6), all 848 wet rows
+to 1e-4 (half of them to 8e-6); the other 696 are rows at the ceiling.
+
+**What it costs.** Every trial is a coil-basis solve. A dry-coil or heating
+request takes three (the request, a first guess from it, one secant step), a
+wet one four on average, a request above the ceiling one or two; twelve is
+the most a request may take. Over the same 2 646 requests the run took 3.0
+times the wall time of those requests on the coil basis: 2.9 times on the
+dry-coil and heating rows, 5.0 times on the wet ones (their trials are at
+larger duties than the request), 1.8 times at the ceiling. A dynamic run
+solves each step alone, in either basis, so a row does not depend on the
+steps before it.
+
+**What it does not do.**
+
+- *A request the model answers with the unit off stays off.* Where the coil
+  duty the search tries has no operating point (``failure_reason`` other than
+  ``"none"``), the row is that off row with the whole request unmet; and a
+  coil duty delivered short under the ceiling is reported as it is. A unit
+  with a fan held at one flow has such duties (*A fan held at one flow, and
+  what the searches can miss*, above); the search does not look around them.
+- *A fan held at one flow can leave a request without a duty.* With the
+  outdoor fan held, the operating point of neighbouring coil duties can pass
+  from one indoor airflow to another, and the net sensible heat with it
+  (4 kW unit, 35 °C outdoor, room 35 °C at 60 %: 1 665 W at a coil heat of
+  3 571 W, 2 490 W at 3 586 W). A request between the two is answered with
+  the lower row and the difference as ``Q_unmet [W]`` (7 of 2 268 requests
+  of six fan-constrained 4 kW units, six of them with the outdoor fan held).
+  On such a unit the ceiling's row need not have the largest net sensible
+  heat either (outdoor fan held, 15 °C outdoor, saturated 35 °C room:
+  2 705 W at the 13.7 kW ceiling, 2 773 W at 13.0 kW; one of 312
+  conditions): a request above the ceiling's is then met where the search
+  finds a duty that has it, and otherwise answered with the ceiling's row.
+- *Without the cycling model* (``Cd_cycling=None``) a request below the
+  smallest continuous duty is over-delivered, as on the coil basis, with
+  nothing unmet.
+
 COP boundary
 ============
 
-``Q_r_iu`` is the coil requirement before fan heat, not net room delivery.
+With the default ``request_basis``, ``Q_r_iu`` is the coil requirement before
+fan heat, not net room delivery (`A request on the room's sensible load`_
+asks for the latter).
 It retains its sign convention and governs compressor speed, rated capacity,
 part-load ratio and the operating-point search. ``cop_ref [-]`` remains
 ``Q_ref_iu [W] / E_cmp [W]``. ``Q_request [W]`` and ``Q_unmet [W]`` are on the

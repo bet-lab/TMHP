@@ -405,6 +405,91 @@ def test_a_request_the_unit_is_off_for_is_the_off_row_with_all_of_it_unmet() -> 
     assert room["request_solves [-]"] == 1
 
 
+def test_a_request_is_met_where_the_first_trial_heats_the_room() -> None:
+    """An indoor fan whose heat exceeds the coil's sensible heat at the request: the search goes up, not home.
+
+    Indoor fan held at its largest flow with a rated efficiency of 0.01
+    (1,388 W of fan heat at full load), 35 degC outdoor, room 27 degC at
+    90 %. The coil-basis row of the request heats the room (measured: -87 W
+    of net sensible heat at 300 W, -434 W at 1,500 W); a larger coil duty
+    cools it. Before the fix the search ended on that first row and reported
+    all of the request and more unmet. Without the cycling model the first
+    two trials (300 W and 600 W) sit on the smallest duty and give the same
+    net sensible heat, under the request: the search goes on up from there.
+    """
+    base = AirSourceHeatPump(hp_capacity=4000.0)
+    weak_fan = AirSourceHeatPump(
+        hp_capacity=4000.0,
+        eta_iu_fan_rated=0.01,
+        dV_iu_fan_a_min=base.dV_iu_fan_a_max,
+        dV_iu_fan_a_max=base.dV_iu_fan_a_max,
+    )
+    no_cycling = AirSourceHeatPump(
+        hp_capacity=4000.0,
+        eta_iu_fan_rated=0.01,
+        Cd_cycling=None,
+        dV_iu_fan_a_min=base.dV_iu_fan_a_max,
+        dV_iu_fan_a_max=base.dV_iu_fan_a_max,
+    )
+    conditions = dict(T0=35.0, T_a_room=27.0, RH_room=0.9)
+    # 30 W: the duty that meets it is some 150 times the request.
+    cases = ((weak_fan, 30.0), (weak_fan, 300.0), (weak_fan, 1500.0), (no_cycling, 30.0), (no_cycling, 300.0))
+    for unit, request in cases:
+        first = _solve(unit, request, **conditions)
+        assert first["hp_is_on"] is True
+        assert first["Q_room_sensible [W]"] < 0.0
+
+        room = _solve(unit, request, request_basis="room_sensible", **conditions)
+        assert room["hp_is_on"] is True
+        assert room["Q_unmet [W]"] == 0.0
+        assert room["Q_room_sensible [W]"] == pytest.approx(request, rel=_tolerance(room))
+        assert room["Q_ref_iu [W]"] > request
+        assert room[SOLVES_KEY] <= MAX_SOLVES
+        # The row is the coil-basis row of the duty it reports.
+        again = _solve(unit, room["Q_ref_iu [W]"], **conditions)
+        assert again["Q_room_sensible [W]"] == pytest.approx(room["Q_room_sensible [W]"], rel=WET_TOL)
+
+
+def test_a_unit_without_cycling_meets_a_request_above_its_smallest_duty_in_a_wet_room() -> None:
+    """Default fans, no cycling model: two trials on the smallest duty under the request do not end the search.
+
+    4 kW unit, 35/27 degC, room at 90 %: the first two trials of a 1,000 W
+    request sit on the smallest duty and deliver the same 722.5 W of net
+    sensible heat. The search used to end there with 277 W unmet.
+    """
+    steady = AirSourceHeatPump(hp_capacity=4000.0, Cd_cycling=None)
+    room = _solve(steady, 1000.0, 35.0, 27.0, RH_room=0.9, request_basis="room_sensible")
+    assert room["Q_unmet [W]"] == 0.0
+    assert room["Q_room_sensible [W]"] == pytest.approx(1000.0, rel=WET_TOL)
+    assert room[SOLVES_KEY] <= MAX_SOLVES
+
+
+def test_a_search_ending_at_the_ceiling_keeps_a_better_earlier_trial() -> None:
+    """Net sensible heat that falls with the coil duty up to the ceiling: the answer is the best trial, not the last.
+
+    Indoor fan held at its largest flow with a rated efficiency of 0.003, the
+    other conditions as above. The cycling row of a 300 W request heats the
+    room by 581 W (fan heat scaled with the runtime); every larger duty runs
+    the fan full and heats it more, down to -1,406 W at the ceiling, where
+    the search ends. The row reported is the first.
+    """
+    base = AirSourceHeatPump(hp_capacity=4000.0)
+    hopeless = AirSourceHeatPump(
+        hp_capacity=4000.0,
+        eta_iu_fan_rated=0.003,
+        dV_iu_fan_a_min=base.dV_iu_fan_a_max,
+        dV_iu_fan_a_max=base.dV_iu_fan_a_max,
+    )
+    conditions = dict(T0=35.0, T_a_room=27.0, RH_room=0.9)
+    first = _solve(hopeless, 300.0, **conditions)
+    room = _solve(hopeless, 300.0, request_basis="room_sensible", **conditions)
+    assert room[SOLVES_KEY] > 1
+    assert room["Q_room_sensible [W]"] == pytest.approx(first["Q_room_sensible [W]"], rel=1e-9)
+    assert room["Q_unmet [W]"] == pytest.approx(300.0 - first["Q_room_sensible [W]"], rel=1e-9)
+    ceiling = hopeless.max_capacity(mode="cooling", **conditions)
+    assert ceiling["Q_room_sensible_at_Q_max [W]"] < room["Q_room_sensible [W]"]
+
+
 def test_a_request_is_met_where_the_net_sensible_heat_is_not_monotone_in_the_coil_duty() -> None:
     """A wet coil cycling on the pressure-ratio floor: more coil heat can mean less sensible heat."""
     small = AirSourceHeatPump(hp_capacity=2500.0)

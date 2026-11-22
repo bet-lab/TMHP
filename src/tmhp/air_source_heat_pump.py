@@ -4121,13 +4121,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
           the request. Above the ceiling of the condition that is the
           ceiling's row, the largest coil duty the unit delivers
           (:meth:`max_capacity`, ``Q_room_sensible_at_Q_max [W]``); the rest is
-          ``Q_unmet [W]``;
+          ``Q_unmet [W]``. Where an earlier trial delivered more net
+          sensible heat (an indoor fan whose heat grows faster than the
+          coil's sensible heat), that trial is the answer;
         - an off row (``failure_reason`` other than ``"none"``): the model
-          answers the coil duty tried with the unit off. Nothing is
-          delivered and the whole request is unmet. A unit with a fan held
-          at one flow can have such duties below its ceiling, and duties
-          delivered short (see :meth:`max_capacity`); the first one tried is
-          reported, and the duties around it are not searched;
+          answers the coil duty tried with the unit off. A unit with a fan
+          held at one flow can have such duties below its ceiling, and
+          duties delivered short (see :meth:`max_capacity`); the duties
+          around the first one tried are not searched. The answer is the
+          trial that comes closest to the request from below, the off row
+          (nothing delivered) among them. Where the off row is the first
+          trial it is the answer, with the whole request unmet; after a
+          trial that delivered some net sensible heat, that trial is;
         - a row that delivers more than the request where no duty tried
           delivers less (a unit without the cycling model, below its
           smallest continuous duty), with nothing unmet, as on the coil
@@ -4274,7 +4279,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
         2. that duty times the request over the net sensible heat it gave
            -- exact for a cycling row, whose heats all scale with the
            capacity ratio, and the fan heat (dry coil) or the sensible heat
-           ratio (wet coil) of the first solve otherwise;
+           ratio (wet coil) of the first solve otherwise. Where the first
+           solve gives zero or negative net sensible heat -- in cooling, an
+           indoor fan whose heat is at least the coil's sensible heat, which
+           only a fan far less efficient than the default reaches -- there
+           is nothing to scale by, and twice the request is taken, the
+           largest step step 3 takes upwards;
         3. the secant through the last two trials. Where trials lie on both
            sides of the request and the secant leaves the interval between
            the closest of them (the bracket), its middle is taken. Where
@@ -4337,12 +4347,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
           of the condition gives the ceiling's row, so this is where a
           request above the largest net sensible heat ends;
         - the unit is off (``failure_reason`` set): the coil duty has no
-          operating point and no smaller one is run in its place. The row
-          is reported as it is; duties around it are not tried.
+          operating point and no smaller one is run in its place. Duties
+          around it are not tried.
 
-        Where the trials stop moving (two with the same net sensible heat:
-        a unit without the cycling model below its smallest duty) or
-        :attr:`_ROOM_SENSIBLE_MAX_SOLVES` are used up, no duty tried has the
+        Where the trials stop moving (two with the same net sensible heat
+        over the request: a unit without the cycling model below its
+        smallest duty; under the request the duty is taken
+        :attr:`_ROOM_SENSIBLE_GROWTH` times higher, twice where no trial has
+        yet given positive net sensible heat, as every step up then is), where
+        :attr:`_ROOM_SENSIBLE_MAX_SOLVES` are used up, or where the search
+        ends on one of the two trials above, no duty tried has the
         requested net sensible heat. The answer is then the trial that comes
         closest to the request from below, so that what is missing shows as
         ``Q_unmet [W]``; where every trial delivers more than the request,
@@ -4396,7 +4410,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 and float(row.get("Q_unmet [W]", 0.0)) > 0.0
             )
             trials.append((abs(float(row["Q_ref_iu [W]"])) if short else duty, sensible, row))
-            return not running or abs(sensible - request) <= tolerance(row) or (short and sensible < request)
+            nonlocal met
+            met = running and abs(sensible - request) <= tolerance(row)
+            return met or not running or (short and sensible < request)
 
         def step_from_the_sides(under: float, over: float) -> float:
             """A duty inside the bracket ``(under, over)``, from the trials of each side of the request (step 4)."""
@@ -4419,14 +4435,25 @@ class AirSourceHeatPump(ReferenceStateMixin):
             """The coil duty to try after the trials made; ``None`` where they give none."""
             duty, sensible, _ = trials[-1]
             if len(trials) == 1:
-                return request * duty / sensible if sensible > 0.0 else None
+                # No net sensible heat to scale by (the fan's heat at least
+                # the coil's sensible heat): the duty is above, by the
+                # largest step that step 3 takes upwards.
+                return request * duty / sensible if sensible > 0.0 else 2.0 * duty
             before, sensible_before, _ = trials[-2]
-            if sensible == sensible_before or duty == before:
+            if duty == before:
                 return None
+            # Where no trial has cooled the room yet (the fan's heat at least
+            # the coil's sensible heat in every one), the slope says nothing
+            # of how far the duty is: the largest step upwards.
+            grow = 2.0 if max(t[1] for t in trials) <= 0.0 else self._ROOM_SENSIBLE_GROWTH
+            if sensible == sensible_before:
+                # Flat: a unit without the cycling model below its smallest
+                # duty. Over the request that row is the answer; under it
+                # (the fan's heat outweighs the coil's) the duty is above.
+                return None if sensible > request else grow * max(duty, before)
             step = duty + (request - sensible) * (duty - before) / (sensible - sensible_before)
             under = max((t[0] for t in trials if t[1] < request), default=math.nan)
             over = min((t[0] for t in trials if t[1] > request), default=math.nan)
-            grow = self._ROOM_SENSIBLE_GROWTH
             if under < over:
                 # Trials on both sides: the duty lies between the closest two.
                 if len(trials) >= self._ROOM_SENSIBLE_SECANT_SOLVES:
@@ -4437,7 +4464,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             elif math.isnan(over):
                 # Every trial gives too little: the duty is above them all,
                 # whatever the last two say of the slope.
-                if not under < step <= 2.0 * under:
+                if grow == 2.0 or not under < step <= 2.0 * under:
                     step = grow * under
             elif math.isnan(under):
                 # Every trial gives too much: below them all.
@@ -4451,6 +4478,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return step
 
         ended = False
+        met = False  # whether the last trial has the requested net sensible heat
         duty: float | None = request
         # What the wet coil's searches find of the condition serves every trial.
         with self._sharing_wet_points():
@@ -4462,11 +4490,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 duty = next_duty()
                 if duty is None:
                     break
-        if ended:
+        if met:
             _, sensible, result = trials[-1]
         else:
-            # No trial has the requested net sensible heat: the closest from
-            # below, else the least of those above.
+            # No trial has the requested net sensible heat (or the last is
+            # the unit off or at its ceiling, which an earlier trial may beat
+            # where the net sensible heat falls with the duty): the closest
+            # from below, else the least of those above.
             below = [t for t in trials if t[1] < request]
             _, sensible, result = max(below, key=lambda t: t[1]) if below else min(trials, key=lambda t: t[1])
 

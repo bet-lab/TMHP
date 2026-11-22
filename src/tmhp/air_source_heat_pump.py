@@ -4081,8 +4081,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
         ``request_basis`` written over, and ``request_solves [-]`` added.
         The duty is searched: the request itself first, then that duty
         scaled by the request over the net sensible heat it gave, then by
-        the secant through the last two duties. ``Q_room_sensible [W]`` is
-        read from the row as it is
+        the secant through the last two duties; a search that five solves
+        have not ended, with trials on both sides of the request, takes its
+        steps from the trials of each side, which is what closes on a duty
+        just beyond a kink of the net sensible heat
+        (:meth:`_solve_room_sensible`). ``Q_room_sensible [W]`` is read
+        from the row as it is
         reported, so a request the unit meets by cycling, and a heating
         request with frost on the outdoor coil, are matched in their means.
         While the compressor is off the indoor fan is off with it: a cycling
@@ -4207,14 +4211,39 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: 158.2 W). A search step, not a physical constant: the trials that
     #: follow close on the duty whatever it is.
     _ROOM_SENSIBLE_GROWTH = 1.5
+    #: Solves up to which a search with trials on both sides of the request
+    #: takes the secant through its last two trials; from the next one on it
+    #: takes its step from the trials of each side
+    #: (:meth:`_solve_room_sensible`). A step of the search, not a physical
+    #: constant. Where the net sensible heat is smooth along the coil duty
+    #: that secant is the quickest of the steps tried and arrives within five
+    #: solves: 1,936 of the 1,950 requests met on the grid of
+    #: :attr:`_ROOM_SENSIBLE_MAX_SOLVES`, and 1,482 of 1,490 on six units
+    #: with a fan held at one flow; steps from the sides from the first
+    #: bracket on took 3.45 solves a request on that grid instead of 2.91.
+    #: A search
+    #: still open then is at a kink or a step of the net sensible heat, where
+    #: the last two trials lie on either side of it and their secant closes
+    #: on the request only linearly. The default 2.5 kW unit at 20 degC
+    #: outdoor with the room at 29.9 degC and 50 % cycles with a running
+    #: state that changes with the request below a coil duty of 205.2 W and
+    #: does not above it: 0.22 W of net sensible heat per W of coil heat
+    #: below, 0.61 W above. The request for 125.25 W, whose duty is 0.2 W
+    #: above the kink, was 0.05 W short after twelve such secants and is met
+    #: in eight solves by the steps from the sides.
+    _ROOM_SENSIBLE_SECANT_SOLVES = 5
     #: Coil-basis solves one request on the room's net sensible heat may
     #: take. A budget of the search, not a physical constant: on 2,646
     #: requests of three default units (2.5 to 10 kW, dry and wet, cooling
     #: and heating) a request that was met took 2.8 solves on a dry row and
     #: 4.1 on a wet one on average, at most four on a dry row and at most
-    #: seven on 846 of the 848 wet ones; the other two took nine and twelve
-    #: (the cycling unit of :attr:`_ROOM_SENSIBLE_GROWTH`, which eight
-    #: solves left 1.1 % short).
+    #: seven on 846 of the 848 wet ones; the other two took eight (one of
+    #: them the cycling unit of :attr:`_ROOM_SENSIBLE_GROWTH`, where the
+    #: search first has to pass a stretch along which the net sensible heat
+    #: falls). Among 528 requests around the kink of
+    #: :attr:`_ROOM_SENSIBLE_SECANT_SOLVES` the most was ten. A search
+    #: that uses the budget up without a match has tried no duty with the
+    #: requested net sensible heat (:meth:`_solve_room_sensible`).
     _ROOM_SENSIBLE_MAX_SOLVES = 12
 
     def _solve_room_sensible(
@@ -4248,13 +4277,52 @@ class AirSourceHeatPump(ReferenceStateMixin):
            ratio (wet coil) of the first solve otherwise;
         3. the secant through the last two trials. Where trials lie on both
            sides of the request and the secant leaves the interval between
-           the closest of them, its middle is taken. Where every trial so
-           far gives too little, the duty is above them all: the secant is
-           kept if it points there, by no more than a factor two, and
-           :attr:`_ROOM_SENSIBLE_GROWTH` times the largest duty tried is
-           taken otherwise (the net sensible heat is not monotone in the
-           coil duty everywhere); likewise downwards where every trial
-           gives too much.
+           the closest of them (the bracket), its middle is taken. Where
+           every trial so far gives too little, the duty is above them all:
+           the secant is kept if it points there, by no more than a factor
+           two, and :attr:`_ROOM_SENSIBLE_GROWTH` times the largest duty
+           tried is taken otherwise (the net sensible heat is not monotone
+           in the coil duty everywhere); likewise downwards where every
+           trial gives too much;
+        4. from the solve after :attr:`_ROOM_SENSIBLE_SECANT_SOLVES` on, in
+           a bracket: a step from the trials of each side of the request.
+           The line through the two trials closest to the bracket under the
+           request, and the line through the two closest over it, each
+           name a duty; of those inside the bracket the one nearer to where
+           the chord between the bracket's ends meets the request is taken,
+           and the bracket's middle where neither is inside.
+
+        Step 4 is for a net sensible heat with a kink or a step along the
+        coil duty, which is where a search is still open by then. The net
+        sensible heat is smooth in stretches: a kink is where condensation
+        sets in or where the running state of a cycling unit stops changing
+        with the request, a step where the operating point of a unit with a
+        fan held at one flow passes from one airflow to another. Just past
+        a kink the secant through the last two trials, which lie on either
+        side of it, closes on the request only linearly. Two trials on the
+        request's own side of the kink lie on its stretch, and the line
+        through them names the duty as closely as that stretch is straight
+        -- exactly on a cycling row, whose heats all scale with the capacity
+        ratio. Where the net sensible heat bends one way between the trials
+        the lines of both sides err to the same side of the duty and the
+        chord to the other, so the line nearer the chord is the closer of
+        the two. A line that leaves the bracket says the request is not
+        reached along its stretch -- a step, or a kink beyond the other end
+        -- and the middle halves the bracket, which is what closes on a
+        step.
+
+        The bracketing methods of the textbooks were measured beside it,
+        each from the first bracket on, and not taken. For the request of
+        :attr:`_ROOM_SENSIBLE_SECANT_SOLVES`, 0.2 W above a kink: false
+        position with the Illinois correction twelve solves (the whole
+        budget), Brent's method ten, the steps above eight; over the 528
+        requests around it at most twelve, eleven and ten. Neither is as
+        quick as the secant where the row is smooth: 2.918 and 2.908 solves
+        a request on the grid of :attr:`_ROOM_SENSIBLE_MAX_SOLVES` against
+        2.906, and 2.575 and 2.547 against 2.546 on six units with a fan
+        held (the search as it is: 2.905 and 2.546). Both interpolate
+        between the bracket's ends, which lie on either side of a kink
+        until the bracket has closed past it.
 
         The search ends on a trial whose net sensible heat is within the
         tolerance of the request: :attr:`_ROOM_SENSIBLE_RTOL` for the first
@@ -4330,6 +4398,23 @@ class AirSourceHeatPump(ReferenceStateMixin):
             trials.append((abs(float(row["Q_ref_iu [W]"])) if short else duty, sensible, row))
             return not running or abs(sensible - request) <= tolerance(row) or (short and sensible < request)
 
+        def step_from_the_sides(under: float, over: float) -> float:
+            """A duty inside the bracket ``(under, over)``, from the trials of each side of the request (step 4)."""
+            # By duty: the bracket's end last of those under the request, first of those over it.
+            lower = sorted(t[:2] for t in trials if t[1] < request)[-2:]
+            upper = sorted(t[:2] for t in trials if t[1] > request)[:2]
+            chord = under + (request - lower[-1][1]) * (over - under) / (upper[0][1] - lower[-1][1])
+            steps = []
+            for side in (lower[::-1], upper):
+                if len(side) < 2:
+                    continue
+                (near, sensible_near), (far, sensible_far) = side
+                if sensible_near != sensible_far:
+                    step = near + (request - sensible_near) * (near - far) / (sensible_near - sensible_far)
+                    if under < step < over:
+                        steps.append(step)
+            return min(steps, key=lambda step: abs(step - chord)) if steps else 0.5 * (under + over)
+
         def next_duty() -> float | None:
             """The coil duty to try after the trials made; ``None`` where they give none."""
             duty, sensible, _ = trials[-1]
@@ -4344,7 +4429,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
             grow = self._ROOM_SENSIBLE_GROWTH
             if under < over:
                 # Trials on both sides: the duty lies between the closest two.
-                if not under < step < over:
+                if len(trials) >= self._ROOM_SENSIBLE_SECANT_SOLVES:
+                    # Not found where a smooth row is: a kink or a step.
+                    step = step_from_the_sides(under, over)
+                elif not under < step < over:
                     step = 0.5 * (under + over)
             elif math.isnan(over):
                 # Every trial gives too little: the duty is above them all,

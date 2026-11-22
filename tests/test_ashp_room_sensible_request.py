@@ -421,6 +421,35 @@ def test_a_request_is_met_where_the_net_sensible_heat_is_not_monotone_in_the_coi
     assert row[SOLVES_KEY] <= MAX_SOLVES
 
 
+#: (request [W], T0, T_a_room, RH_room) of the 2.5 kW unit: wet cycling loads a
+#: little above a kink of the net sensible heat along the coil duty, which the
+#: search left 0.05 W short of after twelve solves before it took its steps
+#: from the two sides of the request (three of the eight an independent review
+#: of #219 found among 528 requests around this one).
+KINK_CASES = [(125.25, 20.0, 29.9, 0.5), (125.5, 20.0, 30.1, 0.495), (125.25, 20.2, 29.9, 0.5)]
+
+
+@pytest.mark.parametrize("case", KINK_CASES, ids=[f"{q} W, {T0}/{Ta} degC, RH {RH}" for q, T0, Ta, RH in KINK_CASES])
+def test_a_wet_cycling_load_just_above_a_kink_is_met(case: tuple[float, float, float, float]) -> None:
+    """The running state of the cycling unit stops changing with the request there, and the slope triples."""
+    request, T0, T_a_room, RH_room = case
+    small = AirSourceHeatPump(hp_capacity=2500.0)
+    conditions = dict(T0=T0, T_a_room=T_a_room, RH_room=RH_room)
+    row = _solve(small, request, request_basis="room_sensible", **conditions)
+    assert row["capacity_clamped"] == "min"
+    assert row["Q_iu_latent [W]"] > 0.0
+    assert row["Q_unmet [W]"] == 0.0
+    assert row["Q_room_sensible [W]"] == pytest.approx(request, rel=WET_TOL)
+    assert row[SOLVES_KEY] <= MAX_SOLVES
+
+    # The kink the duty lies just above: net sensible heat per coil heat, under and over it.
+    duty = row["Q_ref_iu [W]"]
+    sensible = [_solve(small, f * duty, **conditions)["Q_room_sensible [W]"] for f in (0.96, 0.98, 1.02, 1.04)]
+    under = (sensible[1] - sensible[0]) / (0.02 * duty)
+    over = (sensible[3] - sensible[2]) / (0.02 * duty)
+    assert 0.0 < under < 0.5 * over
+
+
 def _fans_held(capacity: float, *, indoor: bool, outdoor: bool) -> AirSourceHeatPump:
     base = AirSourceHeatPump(hp_capacity=capacity)
     limits: dict[str, float] = {}

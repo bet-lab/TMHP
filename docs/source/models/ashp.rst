@@ -1146,7 +1146,15 @@ state changes with the request (the same unit, 20 °C outdoor, room 30 °C at
 50 %: 119.8 W at a coil heat of 135.5 W, 118.3 W at 158.2 W, rising again
 above 160 W). A request in such a stretch is met at one of the duties that
 have it; where the trials all fall short the search goes on towards larger
-duties.
+duties. Where such a stretch ends the net sensible heat has a kink along the
+coil duty: in that room at 29.9 °C the running state of the cycling unit
+changes with the request below a coil heat of 205.2 W and not above it, and
+the room loses 0.22 W of sensible heat per W of coil heat below, 0.61 W
+above. A search that five solves have not ended takes its steps from the
+trials on each side of the request — the line through the two nearest
+trials of a side, which lies along the stretch the request is on — and that
+closes on a duty just beyond a kink: the request for 125.25 W there, 0.2 W
+of coil heat above the kink, is met in eight solves.
 
 **How close.** ``Q_room_sensible [W]`` equals the request to 1e-6 of it where
 the first three solves reach that, which they do on a row whose coil is dry
@@ -1165,7 +1173,8 @@ to 1e-4 (half of them to 8e-6); the other 696 are rows at the ceiling.
 many it took (``request_solves [-]``; a run on this basis has the column). A
 dry-coil or heating request takes three (the request, a first guess from it,
 one secant step), a wet one four on average, a request above the ceiling one
-or two; twelve is the most a request may take. Over the same 2 646 requests the run took 3.0
+or two; twelve is the most a request may take, and eight the most one of
+these requests took (ten among 528 requests around the kink above). Over the same 2 646 requests the run took 3.0
 times the wall time of those requests on the coil basis: 2.9 times on the
 dry-coil and heating rows, 5.0 times on the wet ones (their trials are at
 larger duties than the request), 1.8 times at the ceiling. A dynamic run
@@ -1197,6 +1206,15 @@ smallest continuous duty that a run searches once per condition, to 0.5 %
   finds a duty that has it, and otherwise answered with the ceiling's row.
   ``Q_room_sensible_at_Q_max [W]`` is the ceiling row's figure there too:
   do not size such a unit's largest sensible load by it.
+- *A step of the wet operating point can leave a request without a duty.*
+  The operating point of a wet duty is the optimiser's, and between two
+  neighbouring duties the net sensible heat can step by more than the
+  tolerance (2 kW unit, 20 °C outdoor, room 32 °C at 80 %: 286.949 W at a
+  coil heat of 848.7111 W, 287.056 W at 848.7114 W). A request inside the
+  step is answered with the lower row and the difference — 0.05 W of 287 W
+  there — as ``Q_unmet [W]``, with ``request_solves [-]`` at twelve (3 of
+  251 requests from 100 to 350 W at that condition; none of the 2 646
+  above).
 - *Without the cycling model* (``Cd_cycling=None``) a request below the
   smallest continuous duty is over-delivered, as on the coil basis, with
   nothing unmet.

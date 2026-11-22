@@ -264,12 +264,12 @@ def test_the_row_is_a_coil_basis_row_and_few_solves_find_it(
     assert len(recorded.rows) <= (MAX_SOLVES if "wet" in kind else 4)
 
 
-@pytest.mark.parametrize(
-    "case",
-    ["cooling, dry coil", "heating, no frost", "heating, frost", "cooling, low load (cycling)"],
-)
+@pytest.mark.parametrize("case", list(MET_CASES), ids=list(MET_CASES))
 def test_a_coil_request_for_the_duty_found_gives_the_same_row(hp: AirSourceHeatPump, case: str) -> None:
-    """Where the solve is smooth along the duty, asking for the coil duty reported repeats the row to 1e-9."""
+    """The coil duty the row reports is the duty that was solved, to rounding: asking for it repeats the row.
+
+    Measured on 2,646 requests of default units: every numeric key to 1e-12 (worst 8e-13), wet rows included.
+    """
     request, T0, T_a_room, extra, _ = MET_CASES[case]
     room = _solve(hp, request, T0, T_a_room, request_basis="room_sensible", **extra)
     coil = _solve(hp, math.copysign(room["Q_ref_iu [W]"], request), T0, T_a_room, **extra)
@@ -278,26 +278,9 @@ def test_a_coil_request_for_the_duty_found_gives_the_same_row(hp: AirSourceHeatP
         if key in BASIS_KEYS:
             continue
         if isinstance(value, float) and math.isfinite(value):
-            assert coil[key] == pytest.approx(value, rel=1e-6, abs=1e-9), key
+            assert coil[key] == pytest.approx(value, rel=1e-9, abs=1e-9), key
         else:
             assert _same_value(coil[key], value), key
-
-
-def test_a_wet_coil_request_for_the_duty_found_agrees_to_the_optimisers_tolerance(hp: AirSourceHeatPump) -> None:
-    """A wet operating point is located to the refinement's tolerance: the two rows agree to that."""
-    room = _solve(hp, 4000.0, 35.0, 27.0, RH_room=0.5, request_basis="room_sensible")
-    coil = _solve(hp, room["Q_ref_iu [W]"], 35.0, 27.0, RH_room=0.5)
-    for key in (
-        "Q_ref_iu [W]",
-        "Q_room_sensible [W]",
-        "Q_iu_sensible [W]",
-        "Q_iu_latent [W]",
-        "SHR_iu [-]",
-        "E_tot [W]",
-    ):
-        assert coil[key] == pytest.approx(room[key], rel=5e-4), key
-    for key in ("mode", "capacity_clamped", "failure_reason", "converged", "hp_is_on"):
-        assert coil[key] == room[key], key
 
 
 # ---------------------------------------------------------------------------

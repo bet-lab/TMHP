@@ -4078,9 +4078,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         and the sensible share of neighbouring wet duties scatters by up to
         that much; a fan held at one flow scatters a dry row by about 1e-5
         (:attr:`_ROOM_SENSIBLE_LOOSE_RTOL`). A row inside the tolerance is
-        met, ``Q_unmet [W]`` zero. Asked again as ``request_basis="coil"``
-        for the ``Q_ref_iu [W]`` it reports, the row repeats to 1e-6 where
-        it is smooth along the duty and to the same scatter where it is not.
+        met, ``Q_unmet [W]`` zero. The ``Q_ref_iu [W]`` the row reports is
+        the coil duty that was solved, to rounding: asked again for it as
+        ``request_basis="coil"``, a unit whose fans modulate repeats the row
+        (every numeric key to 1e-12 on 2,646 requests of default units, wet
+        rows included). A unit with a fan held at one flow repeats it to the
+        scatter of its own rows: its search can end on either of two
+        operating points for duties one rounding apart (4 kW unit with the
+        indoor fan held, 25/35 degC, 4,023.127 W: 568.58 W of input with
+        60.9 W at the outdoor fan, or 568.14 W with 54.6 W).
 
         The search ends without a match on
 

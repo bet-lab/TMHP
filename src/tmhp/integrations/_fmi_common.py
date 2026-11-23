@@ -87,6 +87,41 @@ def valid_outdoor_humidity(value: Any) -> bool:
     return rh == RH_OUT_USE_MODEL_DEFAULT or 0.0 <= rh <= 1.0
 
 
+def invalid_step_arguments(current_time: Any, step_size: Any) -> str | None:
+    """Describe an illegal ``doStep`` argument, or return ``None`` if both are legal.
+
+    FMI requires a positive communication step size; a non-finite communication
+    point is equally unusable. FMI 3.0.2 sec. 2.2.4 makes ``fmi3Error`` the
+    answer to illegal arguments.
+    """
+    if not is_finite(current_time):
+        return f"currentCommunicationPoint must be finite but was {current_time!r}"
+    if not is_finite(step_size) or float(step_size) <= 0.0:
+        return f"communicationStepSize must be finite and positive but was {step_size!r}"
+    return None
+
+
+def invalid_step_inputs(*, T0: Any, RH_out: Any, dhw_draw: Any, T_sup_w: Any, T_sur: Any) -> str | None:
+    """Describe the input or parameter values a step cannot use, or return ``None``."""
+    problems = [
+        f"{name} must be finite but was {value!r}"
+        for name, value in (("T0", T0), ("T_sup_w", T_sup_w), ("T_sur", T_sur))
+        if not is_finite(value)
+    ]
+    if not is_finite(dhw_draw) or float(dhw_draw) < 0.0:
+        problems.append(f"dhw_draw must be finite and non-negative but was {dhw_draw!r}")
+    if not valid_outdoor_humidity(RH_out):
+        problems.append(
+            f"RH_out must be a fraction from 0 to 1, or the start value {RH_OUT_USE_MODEL_DEFAULT:g}, but was {RH_out!r}"
+        )
+    return "; ".join(problems) or None
+
+
+def rejected_step_message(current_time: Any, problem: str) -> str:
+    """Log text for a refused ``doStep``: what was wrong and that nothing changed."""
+    return f"doStep at t = {current_time!r} s rejected: {problem}. The FMU state and outputs are unchanged."
+
+
 def failure_reason(value: object) -> str:
     """Normalize diagnostic reason values at FMI string boundaries."""
     if value is None:

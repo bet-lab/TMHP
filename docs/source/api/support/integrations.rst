@@ -28,11 +28,14 @@ FMI 2.0 uses PythonFMU; FMI 3.0 uses PythonFMU3. The generated FMUs are
 tool-coupling artifacts: Python, TMHP, CoolProp, NumPy, and SciPy must be
 available in the importing environment. The FMU model descriptions are validated
 with FMPy in tests. The XML declares units for power, temperature, DHW draw, and
-COP so importers can perform basic unit checks. The slaves reject invalid
-importer inputs (non-finite time/input values, non-positive communication step
-sizes, or negative DHW draw) before advancing the internal ``step()`` state and
-expose ``failure_reason="invalid_input"``. The FMI 3.0 slave reports that case
-as a discarded step with early return.
+COP so importers can perform basic unit checks. The slaves refuse a step with
+unusable input values (non-finite values, negative DHW draw, outdoor humidity
+outside 0 to 1 other than the start value -1) with a discard, and an illegal
+step argument (non-finite time, step size not finite and positive) with
+``fmi3Error`` under FMI 3.0 and a discard under FMI 2.0. A refused step leaves
+the model state and every output unchanged and, with debug logging on,
+logs the reason; see
+:ref:`fmu-invalid-inputs`.
 
 EnergyPlus coupling uses the Python Plugin DataExchange API. The adapter first
 resolves and validates all handles, then reads only finite boundary values

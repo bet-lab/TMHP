@@ -35,7 +35,6 @@ from tmhp.dynamic_context import DynamicState
 from tmhp.integrations import _fmi_common
 
 _finite = _fmi_common.finite
-_is_finite = _fmi_common.is_finite
 _failure_reason = _fmi_common.failure_reason
 _DESCRIPTIONS = _fmi_common.VARIABLE_DESCRIPTIONS
 
@@ -197,6 +196,10 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
         self._hp: AirSourceHeatPumpBoiler | None = None
         self._state: DynamicState | None = None
         self._n = 0
+        # Set by an fmi3Error: FMI 3.0.2 sec. 2.3.1 puts the instance in
+        # Terminated, where a further doStep is not allowed until a reset.
+        # PythonFMU3's fmi3Reset builds a new slave, which clears it here.
+        self._terminated = False
 
     def to_xml(self, model_options: dict[str, str] | None = None) -> Element:
         """Build a static FMI 3.0 model description for PythonFMU3."""
@@ -226,21 +229,24 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
         """Advance the FMU by one FMI 3.0 communication step."""
         if self._hp is None or self._state is None:
             raise RuntimeError("FMU slave used before exit_initialization_mode()")
-        if not (
-            _is_finite(current_time)
-            and _is_finite(step_size)
-            and float(step_size) > 0.0
-            and _is_finite(self.T0)
-            and _fmi_common.valid_outdoor_humidity(self.RH_out)
-            and _is_finite(self.dhw_draw)
-            and float(self.dhw_draw) >= 0.0
-            and _is_finite(self.T_sup_w)
-            and _is_finite(self.T_sur)
-        ):
-            self.hp_is_on = False
-            self.converged = False
-            self.failure_reason = "invalid_input"
-            return Fmi3StepResult(status=Fmi3Status.discard, earlyReturn=True)
+        # A refused step changes nothing an importer can observe. FMI 3.0.2
+        # sec. 2.2.4 answers illegal arguments with fmi3Error; an unusable input
+        # value is discarded, which promises "the same state as before the call"
+        # so the importer may repeat the step with a corrected value
+        # (sec. 2.2.7.3, 4.2.1; earlyReturn must not signal an error). The
+        # Modelica Association Reference FMUs log an error and discard the same way.
+        if self._terminated:
+            return self._reject_step(
+                current_time, "the instance is terminated after an fmi3Error; reset it first", Fmi3Status.error
+            )
+        problem = _fmi_common.invalid_step_arguments(current_time, step_size)
+        if problem is not None:
+            return self._reject_step(current_time, problem, Fmi3Status.error)
+        problem = _fmi_common.invalid_step_inputs(
+            T0=self.T0, RH_out=self.RH_out, dhw_draw=self.dhw_draw, T_sup_w=self.T_sup_w, T_sur=self.T_sur
+        )
+        if problem is not None:
+            return self._reject_step(current_time, problem, Fmi3Status.discard)
 
         inputs = {
             "n": self._n,
@@ -269,3 +275,13 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
 
         self._n += 1
         return Fmi3StepResult(status=Fmi3Status.ok)
+
+    def _reject_step(self, current_time: float, problem: str, status: Fmi3Status) -> Fmi3StepResult:
+        """Log why the step was refused and return ``status`` without touching any variable."""
+        # Logged with the returned status (FMI 3.0.2 sec. 2.3.1) as a debug
+        # message: PythonFMU3 forwards those only while debug logging is on,
+        # and its plain Log() calls the logMessage callback without a NULL check.
+        self.log(_fmi_common.rejected_step_message(current_time, problem), status=status, debug=True)
+        if status == Fmi3Status.error:
+            self._terminated = True
+        return Fmi3StepResult(status=status)

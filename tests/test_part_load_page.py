@@ -163,7 +163,11 @@ def test_sweep_columns_are_the_two_axes(sweep: pd.DataFrame) -> None:
         # Above the floor the machine delivers what is asked, so the two maximum-based columns agree there.
         above = rows[~rows.at_floor & (rows.capacity_clamped != "max")]
         assert above.q_delivered_W.to_numpy() == pytest.approx(above.q_request_W.to_numpy(), rel=1e-6)
-        assert (rows.q_request_W.max() <= rows.q_max_W.iloc[0] * (1 + 1e-9)) and rows.plr.max() > 1.0
+        # The top row is the over-request answered at the top speed; every other request is at most the maximum.
+        top = rows.iloc[0]
+        assert top.q_request_W > top.q_max_W and top.capacity_clamped == "max"
+        assert top.q_delivered_W == pytest.approx(top.q_max_W, rel=1e-9)
+        assert rows.iloc[1:].q_request_W.max() <= 0.99 * rows.q_max_W.iloc[0] and rows.plr.max() > 1.0
         # Below it the delivery is the floor's, above every such request.
         assert (rows[rows.at_floor].q_delivered_W >= rows[rows.at_floor].q_request_W * (1 - 1e-9)).all()
 

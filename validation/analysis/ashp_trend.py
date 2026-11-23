@@ -115,6 +115,12 @@ SWEEP_FRACTIONS = tuple(round(1.0 - 0.04 * i, 2) for i in range(23))  # 1.00 .. 
 #: speed (``capacity_clamped == "max"``). The nameplate rows are what the sweep
 #: held before; the verdict (:func:`score`) reads the trajectory only.
 SWEEP_STEP = 0.04
+#: No request lies within this share of the maximum, on either side: the last
+#: request above the nameplate exceeds the maximum by at least this much, and
+#: grid requests closer to it than this are skipped (:func:`_on_the_ceiling`). A
+#: request within a few parts in 1e5 of the ceiling sits on the capacity limit,
+#: and whether it comes back clamped differs between platforms.
+CEILING_MARGIN = 0.01
 
 #: Model settings, chosen for the question rather than left to the defaults.
 #: Both curves are the *running* machine: the declared COP of a part-load
@@ -174,7 +180,10 @@ def _run(
 
 
 def _above_nameplate(q_max_w: float, capacity_w: float) -> list[float]:
-    """Request fractions of the nameplate above 1: the grid steps up to the first one at or above the maximum."""
+    """Request fractions of the nameplate above 1: the grid steps up to the first one clearly above the maximum.
+
+    "Clearly" is :data:`CEILING_MARGIN`: that request is answered at the ceiling on every platform.
+    """
     if not (math.isfinite(q_max_w) and q_max_w > 0.0 and capacity_w > 0.0):
         raise ValueError(f"no capacity ceiling to sweep up to: Q_max {q_max_w!r} W, nameplate {capacity_w!r} W")
     fractions = []
@@ -182,9 +191,14 @@ def _above_nameplate(q_max_w: float, capacity_w: float) -> list[float]:
     while True:
         fraction = round(1.0 + SWEEP_STEP * k, 2)
         fractions.append(fraction)
-        if fraction * capacity_w >= q_max_w:
+        if fraction * capacity_w >= q_max_w * (1.0 + CEILING_MARGIN):
             return fractions
         k += 1
+
+
+def _on_the_ceiling(request_w: float, q_max_w: float) -> bool:
+    """Whether a request lies within :data:`CEILING_MARGIN` of the maximum, where its clamp is platform-dependent."""
+    return abs(request_w / q_max_w - 1.0) < CEILING_MARGIN
 
 
 def sweep() -> pd.DataFrame:
@@ -207,6 +221,8 @@ def sweep() -> pd.DataFrame:
                         f"(binding {ceiling.get('binding')!r}, Q_max {q_max!r} W)"
                     )
                 for fraction in (*_above_nameplate(q_max, capacity_w)[::-1], *SWEEP_FRACTIONS):
+                    if _on_the_ceiling(capacity_w * fraction, q_max):
+                        continue
                     point = _run(model, duty, capacity_w * fraction, t_outdoor, sweep_columns=True)
                     if point is None:
                         continue

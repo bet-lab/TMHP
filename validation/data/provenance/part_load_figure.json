@@ -30,7 +30,6 @@
    30.0
   ],
   "load_fractions_of_max": [
-   1.0,
    0.98,
    0.96,
    0.94,
@@ -114,7 +113,7 @@
   "validation/data/part_load_figure/trajectory.csv"
  ],
  "coefficient_version": "ossorio-r290-te-2026-11-21",
- "git_head": "9733be8842fc99ef19b174febe936eae257d1126",
+ "git_head": "9f2f3391a15777861f0a9823f69ee2f5cd1a93e2",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -124,10 +123,10 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "9f390d086c20d6064629b47bd1ea2ab2fc7f3615",
+ "src_tmhp_tree": "16a4a987a6b1e31f05973a514fd7bb819ae49e83",
  "validation_parity_tree": "1018184edb56360bb48c2b06daf283ae5a7c5b65",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "run_at": "2026-11-22T08:25:00+00:00"
+ "run_at": "2026-11-23T12:31:21+00:00"
 }

@@ -117,10 +117,15 @@ SWEEP_CONDITIONS = (
 #: ``entering_water.csv`` and quoted by the page; not drawn.
 ENTERING_WATER_CONDITION = (7.0, 30.0)
 #: Requested heat as a share of the maximum capacity at the same temperatures,
-#: top speed (1.00) down to below the speed floor (0.08; the floor is 13-15 % of
-#: the maximum at these conditions) in steps of 2 %. The nameplate duty is added
-#: as one more request per condition (:func:`sweep_fixed_temperatures`).
-LOAD_FRACTIONS_OF_MAX = tuple(round(1.0 - 0.02 * i, 2) for i in range(47))
+#: from just under the top speed (0.98) down to below the speed floor (0.08; the
+#: floor is 15-17 % of the maximum at these conditions) in steps of 2 %. The top
+#: of each curve is not a request *at* the maximum: a request equal to it sits on
+#: the capacity limit, and whether the solver reports it clamped or not differs
+#: between platforms in the last bits. It is the over-request :data:`MAX_PROBE_W`
+#: instead, which the model answers at the top speed (``capacity_clamped ==
+#: "max"``) on every platform. The nameplate duty is added as one more request
+#: per condition (:func:`sweep_fixed_temperatures`).
+LOAD_FRACTIONS_OF_MAX = tuple(round(1.0 - 0.02 * i, 2) for i in range(1, 47))
 
 #: EN 14825 average climate, low-temperature application: outdoor air, leaving
 #: water and part load of the design heating demand at each test point.
@@ -204,12 +209,14 @@ def sweep_fixed_temperatures(
     """Panel (a): every requested point, including any that did not converge (``cop`` NaN).
 
     ``fractions`` are shares of the maximum capacity at the condition
-    (:func:`maximum_capacity`); the nameplate duty is added as one more request
-    per condition (``is_nameplate``). ``plr`` stays the request over the
-    nameplate, so it runs above 1 here; ``plr_max`` is the request over the
-    maximum and ``delivered_fraction_of_max`` the heat actually delivered over
-    it -- the two differ only below the speed floor, where the machine delivers
-    more than it is asked.
+    (:func:`maximum_capacity`); the first row of each condition is the
+    over-request :data:`MAX_PROBE_W`, answered at the top speed, and the
+    nameplate duty is added as one more request per condition
+    (``is_nameplate``). ``plr`` stays the request over the nameplate, so it runs
+    above 1 here; ``plr_max`` is the request over the maximum and
+    ``delivered_fraction_of_max`` the heat actually delivered over it -- the two
+    differ at the top row, where the machine delivers less than it is asked, and
+    below the speed floor, where it delivers more.
     """
     model = _model()
     conditions = conditions or tuple((t, lwt) for t, lwt, _ in SWEEP_CONDITIONS)
@@ -217,6 +224,7 @@ def sweep_fixed_temperatures(
     rows = []
     for t_outdoor, lwt in conditions:
         q_max = maximum_capacity(model, t_outdoor, lwt)
+        rows.append(_sweep_row(model, t_outdoor, lwt, MAX_PROBE_W, q_max, nameplate=False))  # the top speed
         for fraction in fractions:
             rows.append(_sweep_row(model, t_outdoor, lwt, q_max * float(fraction), q_max, nameplate=False))
         rows.append(_sweep_row(model, t_outdoor, lwt, NOMINAL_W, q_max, nameplate=True))
@@ -249,7 +257,11 @@ def sweep_entering_water(fractions: tuple[float, ...] | None = None) -> list[dic
         raise RuntimeError(f"entering water {t_entering} °C: a {MAX_PROBE_W:.0f} W request did not reach the top speed")
     q_max = float(top["Q_max [W]"])
     rows = []
-    requests = [(q_max * float(f), False) for f in (fractions or LOAD_FRACTIONS_OF_MAX)] + [(NOMINAL_W, True)]
+    requests = (
+        [(MAX_PROBE_W, False)]  # the top speed, as in sweep_fixed_temperatures
+        + [(q_max * float(f), False) for f in (fractions or LOAD_FRACTIONS_OF_MAX)]
+        + [(NOMINAL_W, True)]
+    )
     for q_request, nameplate in requests:
         result = solve(q_request)
         failure = result.get("failure_reason", "none")

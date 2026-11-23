@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP decides a lot on your behalf. Hand it a capacity and a refrigerant and it produces heat-exchanger conductances, a compressor displacement, a rated air flow and the efficiency model of a compre..." />
 
-    <meta property="article:modified_time" content="2026-11-21T12:15:44+00:00" />
+    <meta property="article:modified_time" content="2026-11-23T14:52:29+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -311,8 +311,9 @@ row’s own rating point, then evaluated at that rating point
 <tr class="row-even"><td><p>Compressor efficiencies (volumetric, isentropic, electro-mechanical)</p></td>
 <td><p>Three maps of one compressor, version <code class="docutils literal notranslate"><span class="pre">ossorio-r290-te-2026-11-21</span></code>:
 <span class="math notranslate nohighlight">\(\eta_v\)</span>, <span class="math notranslate nohighlight">\(\eta_{ov}\)</span> and <span class="math notranslate nohighlight">\(f_{loss}\)</span>, polynomials
-in <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">PR</span></code>, <code class="docutils literal notranslate"><span class="pre">N</span> <span class="pre">/</span> <span class="pre">70</span></code> and (for <span class="math notranslate nohighlight">\(\eta_v\)</span> and
-<span class="math notranslate nohighlight">\(\eta_{ov}\)</span>) <code class="docutils literal notranslate"><span class="pre">T_e</span> <span class="pre">/</span> <span class="pre">10</span></code>. <code class="docutils literal notranslate"><span class="pre">eta_cmp_vol</span></code> is <span class="math notranslate nohighlight">\(\eta_v\)</span>,
+in <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">PR</span></code>, the speed <code class="docutils literal notranslate"><span class="pre">N</span></code> in rev/s and (for <span class="math notranslate nohighlight">\(\eta_v\)</span> and
+<span class="math notranslate nohighlight">\(\eta_{ov}\)</span>) the evaporating temperature <code class="docutils literal notranslate"><span class="pre">T_e</span></code> in °C, both
+as they are. <code class="docutils literal notranslate"><span class="pre">eta_cmp_vol</span></code> is <span class="math notranslate nohighlight">\(\eta_v\)</span>,
 <code class="docutils literal notranslate"><span class="pre">eta_cmp</span></code> is <span class="math notranslate nohighlight">\(1 - f_{loss}\)</span> and <code class="docutils literal notranslate"><span class="pre">eta_cmp_isen</span></code> is
 <span class="math notranslate nohighlight">\(\eta_{ov} / (1 - f_{loss})\)</span>. The same maps for every
 refrigerant and every compressor; the electrical input is the
@@ -1240,18 +1241,17 @@ speed and is used as given.</p>
 </section>
 <section id="the-maps">
 <h3>The maps<a class="headerlink" href="#the-maps" title="Link to this heading">¶</a></h3>
-<p>With <span class="math notranslate nohighlight">\(l = \ln PR\)</span>, <span class="math notranslate nohighlight">\(n = N / 70\)</span> (<span class="math notranslate nohighlight">\(N\)</span> in rev/s) and
-<span class="math notranslate nohighlight">\(t = T_e / 10\)</span> (<span class="math notranslate nohighlight">\(T_e\)</span> the evaporating saturation temperature
-in °C):</p>
+<p>With <span class="math notranslate nohighlight">\(l = \ln PR\)</span>, the speed <span class="math notranslate nohighlight">\(N\)</span> in rev/s and the evaporating
+saturation temperature <span class="math notranslate nohighlight">\(T_e\)</span> in °C, both as they are (no reference
+speed, no scale):</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[\eta_v,\ \eta_{ov} = c \cdot [1,\ l,\ l^2,\ l^3,\ n,\ n^2,\ l\,n,\ t]
+\[\eta_v,\ \eta_{ov} = c \cdot [1,\ l,\ l^2,\ l^3,\ N,\ N^2,\ l\,N,\ T_e]
 \qquad
-f_{loss} = c \cdot [1,\ l,\ l^2,\ l^3,\ n,\ n^2,\ l\,n]\]</div>
+f_{loss} = c \cdot [1,\ l,\ l^2,\ l^3,\ N,\ N^2,\ l\,N]\]</div>
 </div>
 <p>Each map is fitted to the 134 points by least squares. The speed is absolute:
-<span class="math notranslate nohighlight">\(n = 1\)</span> is 70 rev/s whatever the rated speed of the machine, and no
-quantity is read relative to the rated speed. The coefficients are in the
+no quantity is read relative to the rated speed of the machine. The coefficients are in the
 archive’s <code class="docutils literal notranslate"><span class="pre">coefficients.json</span></code>, and the constants of the library module are
 emitted from it.</p>
 <div class="table-wrapper colwidths-given docutils container" id="id8">
@@ -1639,7 +1639,7 @@ the shipped defaults.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 21, 2026
+  Last updated Nov 23, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

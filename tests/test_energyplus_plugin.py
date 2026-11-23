@@ -13,6 +13,7 @@ dependency-light; the plugin-class structure is checked only when
 from __future__ import annotations
 
 import atexit
+import os
 import random
 import re
 from types import SimpleNamespace
@@ -355,7 +356,11 @@ def test_surrogate_registers_one_final_humidity_summary_for_its_own_process(monk
 
     plant._rh_timesteps["weather"] = 3
     hook(*args)
-    hook(*args[:2], args[2] + 1)  # a forked child inherits the hook and stays silent
+    # A child forked after the plugin was built inherits the hook and its
+    # arguments; only os.getpid() changes there, and the child stays silent.
+    parent = os.getpid()
+    monkeypatch.setattr(energyplus_plugin.os, "getpid", lambda: parent + 1)
+    hook(*args)
 
     out = [line for line in capsys.readouterr().out.splitlines() if line.startswith("[outdoor RH final]")]
     assert out == [

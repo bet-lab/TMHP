@@ -355,11 +355,14 @@ def test_surrogate_registers_one_final_humidity_summary_for_its_own_process(monk
     assert args[0] == plant._run_id and args[1] is plant._rh_timesteps
 
     plant._rh_timesteps["weather"] = 3
-    hook(*args)
     # A child forked after the plugin was built inherits the hook and its
-    # arguments; only os.getpid() changes there, and the child stays silent.
+    # arguments; only os.getpid() changes there. It runs first here so it
+    # cannot lean on anything the parent's hook leaves behind.
     parent = os.getpid()
-    monkeypatch.setattr(energyplus_plugin.os, "getpid", lambda: parent + 1)
+    with monkeypatch.context() as child:
+        child.setattr(energyplus_plugin.os, "getpid", lambda: parent + 1)
+        hook(*args)
+    assert "[outdoor RH final]" not in capsys.readouterr().out
     hook(*args)
 
     out = [line for line in capsys.readouterr().out.splitlines() if line.startswith("[outdoor RH final]")]

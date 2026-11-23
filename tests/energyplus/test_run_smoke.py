@@ -55,8 +55,10 @@ def test_smoke_rejects_missing_or_incorrect_model_humidity(tmp_path, entry):
         "weather=20 clipped_to_100=4 default=1\n"
         "[outdoor RH final] run 3f9a1c2b7d4e (pid 4242 #1): zone timesteps with a heating dispatch, warmup days excluded: "
         "weather=20 clipped_to_100=4 default=0\n",
+        "[outdoor RH final] zone timesteps with a heating dispatch, warmup days excluded: "
+        "weather=20 clipped_to_100=4 default=0\n",
     ],
-    ids=["missing", "default-used", "nothing-counted", "two-summaries"],
+    ids=["missing", "default-used", "nothing-counted", "two-summaries", "no-run-id"],
 )
 def test_smoke_rejects_missing_or_wrong_humidity_summary(tmp_path, summary):
     """The run must end with humidity counts that never fell back to the default."""

@@ -69,7 +69,10 @@ def check_humidity_log(log: Path) -> None:
     # The plugin logs its humidity counts when EnergyPlus shuts the plugin
     # interpreter down; the saturated design day never falls back to the default.
     final = [line for line in lines if line.startswith("[outdoor RH final]")]
-    counts = re.search(r"weather=(\d+) clipped_to_100=(\d+) default=(\d+)$", final[0]) if len(final) == 1 else None
+    summary = (
+        r"\[outdoor RH final\] run [0-9a-f]{12} \(pid \d+ #\d+\): .* weather=(\d+) clipped_to_100=(\d+) default=(\d+)"
+    )
+    counts = re.fullmatch(summary, final[0]) if len(final) == 1 else None
     if counts is None or int(counts[3]) != 0 or int(counts[1]) + int(counts[2]) == 0:
         raise ValueError(f"Expected a final outdoor humidity summary with no default timesteps: {final}")
     print(f"Model humidity verified on {len(calls)} logged dispatch calls; {final[0]}")

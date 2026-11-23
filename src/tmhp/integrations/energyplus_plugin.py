@@ -264,6 +264,16 @@ def _log_humidity_summary(run_id: str, counts: dict[str, int]) -> None:
     _log(f"[outdoor RH final] {run_id}: zone timesteps with a heating dispatch, warmup days excluded: {text}")
 
 
+def _log_final_humidity_summary(run_id: str, counts: dict[str, int], pid: int) -> None:
+    """Shutdown hook: log the final counts in the process that ran the plugin.
+
+    A child forked after the plugin was built inherits this hook and the run
+    id; it stays silent so the run is summarized once.
+    """
+    if os.getpid() == pid:
+        _log_humidity_summary(run_id, counts)
+
+
 def _set_global_if_valid(ex: Any, state: Any, handle: int, value: float) -> None:
     """Write an EnergyPlus plugin global only when it was declared in the IDF."""
     if handle != -1:
@@ -370,7 +380,7 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         self._rh_timestep_outcome = ""
         # Hold only the counters, not the plugin and its solve cache.
         self._run_id = f"run {uuid.uuid4().hex[:12]} (pid {os.getpid()} #{next(_SURROGATE_RUNS)})"
-        atexit.register(_log_humidity_summary, self._run_id, self._rh_timesteps)
+        atexit.register(_log_final_humidity_summary, self._run_id, self._rh_timesteps, os.getpid())
         # Convergence tally over dispatched calls (cold-climate high-lift hours
         # may trip the pressure-ratio guard); dumped periodically to the log.
         self._ndispatch = 0

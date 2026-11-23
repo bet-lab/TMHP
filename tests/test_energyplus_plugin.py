@@ -342,6 +342,28 @@ def test_surrogate_final_humidity_summaries_name_their_run(capsys):
     ]
 
 
+def test_surrogate_registers_one_final_humidity_summary_for_its_own_process(monkeypatch, capsys):
+    """The shutdown hook logs the counts once, in the process that built the plugin."""
+    from tmhp.integrations import energyplus_plugin
+
+    hooks = []
+    monkeypatch.setattr(energyplus_plugin.atexit, "register", lambda fn, *args: hooks.append((fn, args)))
+    plant = _real_surrogate(40.0, 2.0, 15000.0)
+    assert len(hooks) == 1
+    hook, args = hooks[0]
+    assert args[0] == plant._run_id and args[1] is plant._rh_timesteps
+
+    plant._rh_timesteps["weather"] = 3
+    hook(*args)
+    hook(*args[:2], args[2] + 1)  # a forked child inherits the hook and stays silent
+
+    out = [line for line in capsys.readouterr().out.splitlines() if line.startswith("[outdoor RH final]")]
+    assert out == [
+        f"[outdoor RH final] {plant._run_id}: zone timesteps with a heating dispatch, warmup days excluded: "
+        "weather=3 clipped_to_100=0 default=0"
+    ]
+
+
 def test_surrogate_uses_default_on_failed_humidity_read_and_recovers(capsys):
     """Meter the default on repeated API errors, then accept an unflagged zero."""
     plant = _real_surrogate(40.0, 2.0, 15000.0)
@@ -792,9 +814,9 @@ def _real_surrogate(t_in, t0, load, mdot=3.0):
     plant._tally_every = 10_000
     plant.h = _surrogate_handles()
     plant.api = _FakeApi({1: t_in, 2: mdot, 3: CP_WATER, 4: load, 7: t0})
-    from tmhp.integrations.energyplus_plugin import _log_humidity_summary
+    from tmhp.integrations.energyplus_plugin import _log_final_humidity_summary
 
-    atexit.unregister(_log_humidity_summary)
+    atexit.unregister(_log_final_humidity_summary)
     return plant
 
 

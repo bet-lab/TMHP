@@ -12,7 +12,7 @@ they are not on this path (2026-11-21, user question).
 Full width (1044 u), one source and labelled edges, rows chosen so that no edge crosses another (merges are dots):
   rows 0-2  per-point efficiencies f_loss, eta_ov, eta_v (fit targets) -> fitted maps
   row 3     CoolProp states rho_1, h_1, h_2s, h_2 (from T_e, T_c, T_suc, T_dis), merged into rows 0-2
-  rows 4-6  the axes: PR -> ln PR, N -> N/70, T_e -> T_e/10
+  rows 4-6  the axes: PR -> ln PR; N [rev/s] and T_e [C] as they are, no scale (#247)
 The map rows run f_loss, eta_ov, eta_v so that the T_e term (accent) reaches eta_v and eta_ov and stops short of
 f_loss. How the cycle uses the three maps is MP2 (the column "read by the cycle" was taken out, user 2026-11-21).
 Independent review 2026-11-21: v1 wired eta_ov to eta_cmp, fed t to f_loss and left the pressures out of CoolProp.
@@ -129,10 +129,10 @@ with c.group("axes"):
     arrow([(X1 + W1, AX_C[0]), (X2, AX_C[0])])
     box(X_AX, AX_C[0], AX_W, "ln PR")
     arrow([(X2 + W2, AX_C[0]), (X_AX, AX_C[0])])
-    box(X_AX, AX_C[1], AX_W, "N / 70")
+    box(X_AX, AX_C[1], AX_W, "N [rev/s]")
     edge_label(AX_C[1], "N")
     arrow([(X1 + W1, AX_C[1]), (X_AX, AX_C[1])])
-    box(X_AX, AX_C[2], AX_W, "T_e / 10", accent=True)
+    box(X_AX, AX_C[2], AX_W, "T_e [°C]", accent=True)
     edge_label(AX_C[2], "T_e", accent=True)
     arrow([(X1 + W1, AX_C[2]), (X_AX, AX_C[2])], accent=True)
 
@@ -142,8 +142,8 @@ MAPS = [
     ("η_{ov}(PR, N, T_e)", "CV RMSE 0.022", True),
     ("η_v(PR, N, T_e)", "CV RMSE 0.008", True),
 ]
-X_AXN = X4 - 22  # bus of ln PR and N/70: every map
-X_AXT = X4 - 12  # bus of T_e/10: the two maps that carry it
+X_AXN = X4 - 22  # bus of ln PR and N: every map
+X_AXT = X4 - 12  # bus of T_e: the two maps that carry it
 with c.group("maps"):
     for k, (label, sub, with_t) in enumerate(MAPS):
         c.node(X4, ROW_Y[k], W4, RH, label, sub, role="neutral")

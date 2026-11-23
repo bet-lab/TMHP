@@ -33,8 +33,6 @@ def block_data() -> dict[str, Any]:
     return dict(
         COEFFICIENT_VERSION=archive["version"],
         MAP_COEFFICIENTS={q: tuple(m["coefficients"]) for q, m in archive["maps"].items()},
-        MAP_N_REF_RPS=float(archive["n_ref_rps"]),
-        MAP_TE_SCALE_K=float(archive["te_scale_K"]),
         MAP_DOMAIN=dict(
             hull_PR_Te=tuple(tuple(v) for v in archive["domain"]["hull_PR_Te"]),
             N_rps=tuple(archive["domain"]["N_rps"]),
@@ -50,8 +48,6 @@ def render() -> str:
         f"# validation/coefficients/{VERSION}/coefficients.json.",
         f"COEFFICIENT_VERSION = {data['COEFFICIENT_VERSION']!r}",
         f"MAP_COEFFICIENTS: dict[str, tuple[float, ...]] = {pprint.pformat(data['MAP_COEFFICIENTS'], width=100)}",
-        f"MAP_N_REF_RPS = {data['MAP_N_REF_RPS']!r}",
-        f"MAP_TE_SCALE_K = {data['MAP_TE_SCALE_K']!r}",
         f"MAP_DOMAIN: dict[str, Any] = {pprint.pformat(data['MAP_DOMAIN'], width=100)}",
         END,
     ]

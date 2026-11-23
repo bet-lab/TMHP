@@ -41,9 +41,10 @@ def test_the_generated_block_is_the_archive():
     data = block_data()
     assert data["COEFFICIENT_VERSION"] == ce.COEFFICIENT_VERSION
     assert data["MAP_COEFFICIENTS"] == ce.MAP_COEFFICIENTS
-    assert data["MAP_N_REF_RPS"] == ce.MAP_N_REF_RPS
-    assert data["MAP_TE_SCALE_K"] == ce.MAP_TE_SCALE_K
     assert data["MAP_DOMAIN"] == ce.MAP_DOMAIN
+    # N [rev/s] and T_e [C] enter as they are: no reference speed, no temperature scale (#247).
+    assert set(data) == {"COEFFICIENT_VERSION", "MAP_COEFFICIENTS", "MAP_DOMAIN"}
+    assert not hasattr(ce, "MAP_N_REF_RPS") and not hasattr(ce, "MAP_TE_SCALE_K")
 
 
 def test_the_archive_refits_from_the_measured_points():

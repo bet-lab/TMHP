@@ -12,10 +12,10 @@ Efficiencies from a measured point (CoolProp HEOS, Propane), power = compressor 
     eta_ov = m_dot (h_2s - h_1) / W_total
     f_loss = 1 - m_dot (h_2 - h_1) / W_total       h_2 from the measured discharge temperature
 
-Maps (l = ln PR, n = N/70 with N in rev/s, t = T_e/10 with T_e the evaporating saturation temperature in C)::
+Maps (l = ln PR, N the speed in rev/s, T_e the evaporating saturation temperature in C, both as they are)::
 
-    eta_v, eta_ov = c . [1, l, l^2, l^3, n, n^2, l n, t]
-    f_loss        = c . [1, l, l^2, l^3, n, n^2, l n]
+    eta_v, eta_ov = c . [1, l, l^2, l^3, N, N^2, l N, T_e]
+    f_loss        = c . [1, l, l^2, l^3, N, N^2, l N]
 
 ``f_loss`` has no T_e term: adding one does not lower its error (0.0137 -> 0.0136).
 
@@ -39,14 +39,12 @@ ARCHIVE = REPO_ROOT / "validation" / "coefficients" / VERSION
 DATA = ARCHIVE / "ossorio_thesis_r290_134.csv"
 FLUID = "Propane"
 DISPLACEMENT_M3 = 46e-6
-N_REF_RPS = 70.0
-TE_SCALE_K = 10.0
 FOLDS = 10
 SEED = 0
 
 #: quantity -> whether the map has the evaporating-temperature term
 TE_TERM = {"eta_v": True, "eta_ov": True, "f_loss": False}
-TERMS = ["1", "ln PR", "(ln PR)^2", "(ln PR)^3", "n", "n^2", "n ln PR"]
+TERMS = ["1", "ln PR", "(ln PR)^2", "(ln PR)^3", "N", "N^2", "N ln PR"]
 
 
 def derive(frame: pd.DataFrame) -> pd.DataFrame:
@@ -84,10 +82,10 @@ def derive(frame: pd.DataFrame) -> pd.DataFrame:
 def basis(pressure_ratio, rps, t_evap_c=None) -> np.ndarray:
     """Design matrix of the maps (``t_evap_c=None``: no evaporating-temperature term)."""
     log_pr = np.log(np.asarray(pressure_ratio, dtype=float))
-    n = np.asarray(rps, dtype=float) / N_REF_RPS
+    n = np.asarray(rps, dtype=float)
     columns = [np.ones_like(log_pr), log_pr, log_pr**2, log_pr**3, n, n**2, log_pr * n]
     if t_evap_c is not None:
-        columns.append(np.asarray(t_evap_c, dtype=float) / TE_SCALE_K)
+        columns.append(np.asarray(t_evap_c, dtype=float))
     return np.column_stack(columns)
 
 
@@ -113,7 +111,7 @@ def fit(points: pd.DataFrame) -> dict:
             c_k = np.linalg.lstsq(a[train], y[train], rcond=None)[0]
             cv[~train] = a[~train] @ c_k
         out[quantity] = dict(
-            terms=TERMS + (["T_e/10"] if TE_TERM[quantity] else []),
+            terms=TERMS + (["T_e"] if TE_TERM[quantity] else []),
             coefficients=[float(v) for v in coefficients],
             rmse=_rmse(a @ coefficients - y),
             cv_rmse=_rmse(cv - y),
@@ -141,11 +139,9 @@ def main() -> None:
         compressor="46 cm3/rev R290 scroll, superheat about 10 K, 30-110 rev/s",
         power_basis="compressor + inverter input (no separate inverter model, #217)",
         form=(
-            "eta = c . [1, l, l^2, l^3, n, n^2, l n (, t)], l = ln PR, n = N/70 (N in rev/s), "
-            "t = T_e/10 (T_e evaporating saturation temperature in C); eta_v and eta_ov have t, f_loss not"
+            "eta = c . [1, l, l^2, l^3, N, N^2, l N (, T_e)], l = ln PR, N the speed in rev/s, "
+            "T_e the evaporating saturation temperature in C; eta_v and eta_ov have T_e, f_loss not"
         ),
-        n_ref_rps=N_REF_RPS,
-        te_scale_K=TE_SCALE_K,
         points=len(points),
         cv=dict(folds=FOLDS, seed=SEED),
         maps=maps,

@@ -24,12 +24,12 @@ inverter (#217, #218)::
     eta_ov = m_dot (h_2s - h_1) / W
     f_loss = 1 - m_dot (h_2 - h_1) / W
 
-Each is a polynomial in ``l = ln PR``, ``n = N/70`` (N in rev/s) and, for
-``eta_v`` and ``eta_ov``, ``t = T_e/10`` with ``T_e`` the evaporating
-saturation temperature in degrees C::
+Each is a polynomial in ``l = ln PR``, the speed ``N`` in rev/s and, for
+``eta_v`` and ``eta_ov``, the evaporating saturation temperature ``T_e`` in
+degrees C, both as they are::
 
-    eta_v, eta_ov = c . [1, l, l^2, l^3, n, n^2, l n, t]
-    f_loss        = c . [1, l, l^2, l^3, n, n^2, l n]
+    eta_v, eta_ov = c . [1, l, l^2, l^3, N, N^2, l N, T_e]
+    f_loss        = c . [1, l, l^2, l^3, N, N^2, l N]
 
 The package's quantities follow as ::
 
@@ -92,37 +92,35 @@ from typing import Any, TypeVar, cast
 COEFFICIENT_VERSION = "ossorio-r290-te-2026-11-21"
 MAP_COEFFICIENTS: dict[str, tuple[float, ...]] = {
     "eta_ov": (
-        0.08905261072465571,
-        0.9019553289840403,
-        -0.5552874938098706,
-        0.09515212021536734,
-        0.16549070069084285,
-        -0.12964715931254125,
-        0.07056921229372137,
-        0.02869564011673592,
+        0.08905261072268404,
+        0.901955328983883,
+        -0.5552874938098128,
+        0.09515212021536011,
+        0.0023641528670562267,
+        -2.645860394145938e-05,
+        0.0010081316041961295,
+        0.002869564011673403,
     ),
     "eta_v": (
-        0.9265573041933589,
-        -0.04584660981380326,
-        0.009912987211872077,
-        -0.006917609173381446,
-        0.12513403117704344,
-        -0.06054046284791077,
-        0.021027419506493727,
-        0.013171342755074474,
+        0.9265573041934589,
+        -0.045846609813794695,
+        0.009912987211867213,
+        -0.006917609173383119,
+        0.0017876290168127274,
+        -1.2355196499572174e-05,
+        0.0003003917072358015,
+        0.0013171342755072463,
     ),
     "f_loss": (
-        0.10476791730311057,
-        0.08909291250321598,
-        -0.02262142273171193,
-        0.008620732026797001,
-        -0.07061710713805798,
-        0.05123637120862445,
-        -0.05547620163107184,
+        0.10476791730299863,
+        0.08909291250321652,
+        -0.02262142273171179,
+        0.008620732026796633,
+        -0.0010088158162575992,
+        1.0456402287473132e-05,
+        -0.0007925171661581371,
     ),
 }
-MAP_N_REF_RPS = 70.0
-MAP_TE_SCALE_K = 10.0
 MAP_DOMAIN: dict[str, Any] = {
     "N_rps": (30.0, 110.0),
     "hull_PR_Te": (
@@ -225,8 +223,7 @@ def _terms(pressure_ratio: float, rps: float) -> tuple[float, ...]:
     if not (math.isfinite(pressure_ratio) and pressure_ratio > 0.0 and math.isfinite(rps)):
         raise InvalidCompressorEfficiency(f"no map value at PR={pressure_ratio!r}, rps={rps!r}")
     log_pr = math.log(pressure_ratio)
-    n = rps / MAP_N_REF_RPS
-    return (1.0, log_pr, log_pr * log_pr, log_pr**3, n, n * n, log_pr * n)
+    return (1.0, log_pr, log_pr * log_pr, log_pr**3, rps, rps * rps, log_pr * rps)
 
 
 def _dot(coefficients: tuple[float, ...], terms: tuple[float, ...]) -> float:
@@ -235,12 +232,12 @@ def _dot(coefficients: tuple[float, ...], terms: tuple[float, ...]) -> float:
 
 def map_eta_v(pressure_ratio: float, rps: float, T_evap_C: float) -> float:
     """Volumetric efficiency of the default map (T_e evaporating saturation temperature [C])."""
-    return _dot(MAP_COEFFICIENTS["eta_v"], (*_terms(pressure_ratio, rps), T_evap_C / MAP_TE_SCALE_K))
+    return _dot(MAP_COEFFICIENTS["eta_v"], (*_terms(pressure_ratio, rps), T_evap_C))
 
 
 def map_eta_ov(pressure_ratio: float, rps: float, T_evap_C: float) -> float:
     """Overall efficiency ``m_dot (h_2s - h_1) / W`` of the default map, W the compressor + inverter input."""
-    return _dot(MAP_COEFFICIENTS["eta_ov"], (*_terms(pressure_ratio, rps), T_evap_C / MAP_TE_SCALE_K))
+    return _dot(MAP_COEFFICIENTS["eta_ov"], (*_terms(pressure_ratio, rps), T_evap_C))
 
 
 def map_f_loss(pressure_ratio: float, rps: float) -> float:

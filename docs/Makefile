@@ -21,6 +21,7 @@ GLOSSARY_DATA_JSON = $(DATA_DIR)/glossary.json
 VALIDATION_DATA_JSON = $(DATA_DIR)/validation-points.json
 VALIDATION_SUMMARY_JSON = $(DATA_DIR)/validation-summary.json
 TIMESERIES_DATA_JSON = $(DATA_DIR)/timeseries-24h.json
+COMPRESSOR_MAP_DATA_JSON = $(DATA_DIR)/compressor-maps.json
 CYCLE_DATA_JSON = $(WIDGET_DIR)/cycle_data.json
 CYCLE_DATA_STAMP = $(WIDGET_DIR)/cycle_data.$(DOCS_DATA_PROFILE).stamp
 DATA_TARGETS = \
@@ -28,7 +29,8 @@ DATA_TARGETS = \
 	$(CYCLE_DATA_JSON) \
 	$(VALIDATION_DATA_JSON) \
 	$(VALIDATION_SUMMARY_JSON) \
-	$(TIMESERIES_DATA_JSON)
+	$(TIMESERIES_DATA_JSON) \
+	$(COMPRESSOR_MAP_DATA_JSON)
 DATA_SCRIPT_SOURCES = $(wildcard $(REPOROOT)/scripts/data/*.py)
 TMHP_SOURCES = $(wildcard $(REPOROOT)/src/tmhp/*.py $(REPOROOT)/src/tmhp/data/*.json)
 CYCLE_SOURCES = $(REPOROOT)/scripts/data/gen_refrigerant_data.py $(REPOROOT)/src/tmhp/calc_util.py \
@@ -42,11 +44,14 @@ BUILD_INPUTS = $(REPOROOT)/uv.lock $(REPOROOT)/pyproject.toml
 VALIDATION_SOURCES = $(REPOROOT)/validation/catalogs $(REPOROOT)/validation/results \
                      $(wildcard $(REPOROOT)/validation/parity/*.py $(REPOROOT)/validation/catalogs/*.yaml \
                                 $(REPOROOT)/validation/results/*.csv)
+# The compressor-map widget data reads the map coefficients from src/tmhp (TMHP_SOURCES) and the measured
+# points of the coefficient version the library names.
+COMPRESSOR_MAP_SOURCES = $(wildcard $(REPOROOT)/validation/coefficients/*/points.csv)
 
 # Git checkout times cannot establish whether tracked JSON matches its inputs.
-# CI regenerates these three inexpensive datasets even on a cycle-grid cache hit.
+# CI regenerates these inexpensive datasets even on a cycle-grid cache hit.
 ifeq ($(DOCS_FRESH_DATA),1)
-.PHONY: $(GLOSSARY_DATA_JSON) $(VALIDATION_DATA_JSON) $(TIMESERIES_DATA_JSON)
+.PHONY: $(GLOSSARY_DATA_JSON) $(VALIDATION_DATA_JSON) $(TIMESERIES_DATA_JSON) $(COMPRESSOR_MAP_DATA_JSON)
 endif
 # The validation generator writes both outputs in one invocation.
 ifeq ($(wildcard $(VALIDATION_SUMMARY_JSON)),)
@@ -62,7 +67,7 @@ data: $(DATA_TARGETS)
 
 # Prevent the generic Sphinx builder pattern below from treating Python source
 # prerequisites as make targets when those files are older than this Makefile.
-$(DATA_SCRIPT_SOURCES) $(TMHP_SOURCES) $(VALIDATION_SOURCES) $(BUILD_INPUTS):
+$(DATA_SCRIPT_SOURCES) $(TMHP_SOURCES) $(VALIDATION_SOURCES) $(COMPRESSOR_MAP_SOURCES) $(BUILD_INPUTS):
 	@:
 
 $(GLOSSARY_DATA_JSON): $(REPOROOT)/scripts/data/gen_glossary.py $(REPOROOT)/scripts/data/_common.py
@@ -82,6 +87,9 @@ $(VALIDATION_DATA_JSON): $(REPOROOT)/scripts/data/gen_validation_data.py $(REPOR
 
 $(TIMESERIES_DATA_JSON): $(REPOROOT)/scripts/data/gen_timeseries_data.py $(REPOROOT)/scripts/data/_common.py $(TMHP_SOURCES) $(BUILD_INPUTS)
 	cd "$(REPOROOT)" && $(PYTHON) -m scripts.data.gen_timeseries_data
+
+$(COMPRESSOR_MAP_DATA_JSON): $(REPOROOT)/scripts/data/gen_compressor_map_data.py $(REPOROOT)/scripts/data/_common.py $(TMHP_SOURCES) $(COMPRESSOR_MAP_SOURCES) $(BUILD_INPUTS)
+	cd "$(REPOROOT)" && $(PYTHON) -m scripts.data.gen_compressor_map_data
 
 html: data
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

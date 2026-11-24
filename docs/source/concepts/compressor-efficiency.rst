@@ -57,7 +57,8 @@ and the maps are converted into them as
     \qquad
     \eta_\mathrm{cmp,isen} = \frac{\eta_{ov}}{1 - f_{loss}}
 
-so :math:`\eta_\mathrm{cmp,isen}\,\eta_\mathrm{cmp} = \eta_{ov}`. That product
+so :math:`\eta_\mathrm{cmp,isen}\,\eta_\mathrm{cmp} = \eta_{ov}`. The explorer
+below writes :math:`\eta_\mathrm{cmp,isen}` as :math:`\eta_{is}`. That product
 is why the two forms of :math:`E_\mathrm{cmp}` above are equal: the electrical
 input depends on :math:`\eta_{ov}` alone, and :math:`f_{loss}` only decides how
 the loss is split between the gas (a hotter discharge, a larger condenser
@@ -75,8 +76,12 @@ inverter together, and the library has no separate drive model
     The speed :math:`N` is changed until the duty meets the request;
     :math:`T_\mathrm{evap}` and the condensing temperature come from the
     heat-exchanger closure, which is not drawn. The figure writes the
-    pressure ratio as PR, :math:`T_\mathrm{evap}` as :math:`T_e`, and the
-    inlet, discharge and isentropic-discharge states as 1, 2 and 2s.
+    pressure ratio as PR, :math:`T_\mathrm{evap}` as :math:`T_e`,
+    :math:`\eta_\mathrm{cmp,isen}` as :math:`\eta_\mathrm{isen}`, the
+    compressor inlet, discharge and isentropic-discharge states as 1, 2 and
+    2s, and the expansion-valve inlet as 3; :math:`T_c` and :math:`p_c` are
+    the condensing temperature and pressure, and :math:`E_\mathrm{aux}` the
+    fan and pump power.
 
 Where the default maps come from
 ================================
@@ -157,8 +162,8 @@ The evaporating temperature is in :math:`\eta_v` and :math:`\eta_{ov}` because
 the measurements depend on it. At one pressure ratio and speed, the measured
 :math:`\eta_{ov}` and :math:`\eta_v` differ with :math:`T_\mathrm{evap}`, and a
 map without the term leaves a residual that follows :math:`T_\mathrm{evap}`.
-Adding the term lowers the cross-validated RMSE from 0.034 to 0.022 for
-:math:`\eta_{ov}` and from 0.015 to 0.008 for :math:`\eta_v`. The effect is
+Adding the term lowers the 10-fold cross-validated RMSE from 0.0345 to 0.0221
+for :math:`\eta_{ov}` and from 0.0148 to 0.0081 for :math:`\eta_v`. The effect is
 not small: at :math:`r_p` = 3 and 70 rev/s the adopted map's :math:`\eta_{ov}`
 rises from 0.62 to 0.69 between :math:`T_\mathrm{evap}` = −10 and 15 °C. The
 correlation of Ossorio et al. (2024), evaluated at the same condition from its
@@ -178,8 +183,10 @@ Interactive map explorer
 
 Move the evaporating-temperature slider and watch :math:`\eta_v` and
 :math:`\eta_{ov}` shift while :math:`f_{loss}` stays put, then compare the
-maps with the 134 measured points drawn at their measured coordinates; the
-region outside the measured data is marked. The numbers shown are the raw map
+maps with the measured points whose evaporating temperature lies within
+±2.5 K of the slider, drawn at their measured coordinates (the tooltip gives
+each point's residual against the map at its own temperature); the region
+outside the measured data is marked. The numbers shown are the raw map
 values, before the range rule of the cycle (`Limits`_) is applied.
 
 .. raw:: html
@@ -208,10 +215,11 @@ map, which passes one at a low pressure ratio and a warm evaporator: 1.015 at
 every default machine gets them, whatever its refrigerant, compressor type and
 capacity. The refrigerant enters through the fluid properties, not through the
 efficiencies. Applied without calibration, the defaults run low against the
-manufacturer catalogues of the validation set (rated to EN 14511, whose test
-conditions are in EN 14511-2, CEN, 2022a, or to AHRI 210/240): a COP bias of
+manufacturer catalogues of the validation set's headline groups (rated to
+EN 14511, whose test conditions are in EN 14511-2, CEN, 2022a): a COP bias of
 −5.9 % for the ten air-to-water units and −12.1 % for the five air-to-air
-units (:doc:`/validation/index`). How much of that bias comes from the
+units (:doc:`/validation/index`). Two held-out air-to-air units rated to
+AHRI 210/240 are not in these figures; they run high (+13.4 %). How much of that bias comes from the
 compressor was not separated. The part-load shape is checked separately
 against EN 14825 declarations (CEN, 2022b; :doc:`/validation/part-load`).
 Neither standard is a source of the compressor data.

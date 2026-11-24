@@ -869,8 +869,9 @@ The default compressor efficiencies are three maps of one compressor, version
 ``ossorio-r290-te-2026-11-21`` (:mod:`tmhp.compressor_efficiency`): a
 46 cm³/rev R290 scroll, measured at 134 operating points. The same maps serve
 every refrigerant and every compressor; the library has no compressor type to
-choose (#217). A particular machine is followed by calibrating the maps to its
-data (#90), not by a form of its own. How the cycle uses the maps, where
+choose (#217). A particular machine is to be followed by calibrating the maps to its
+data, not by a form of its own; that calibration is planned (#189) and not
+in the library. How the cycle uses the maps, where
 they come from, their form and their limits are explained, with an
 interactive explorer, on :doc:`/concepts/compressor-efficiency`. This section
 keeps the validation record: the fit, the data, the choice of axes and where
@@ -968,12 +969,10 @@ Why the evaporating temperature
 Without the :math:`T_e` term the residual of :math:`\eta_{ov}` and
 :math:`\eta_v` follows the evaporating temperature
 (``figures/te_residuals.png`` of the archive). With the term the
-cross-validated RMSE falls from 0.034 to 0.022 for :math:`\eta_{ov}` and from
-0.015 to 0.008 for :math:`\eta_v`; :math:`f_{loss}` does not need it. The
-evidence, with the 2024 correlation, is on
-:doc:`/concepts/compressor-efficiency`. In the 2024 correlation the specific
-consumption carries :math:`(P_c + 6.70)/(P_e + 0.51)`, which is not the
-pressure ratio.
+10-fold cross-validated RMSE falls from 0.0345 to 0.0221 for
+:math:`\eta_{ov}` and from 0.0148 to 0.0081 for :math:`\eta_v`;
+:math:`f_{loss}` does not need it. The evidence, with the 2024 correlation, is
+on :doc:`/concepts/compressor-efficiency`.
 
 The comparison that chose the axes
 ----------------------------------

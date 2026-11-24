@@ -148,8 +148,10 @@ def _close(got, want) -> bool:
     return math.isfinite(got) and abs(got - want) <= 1e-12 + 1e-9 * abs(want)
 
 
-def test_js_evaluator_reproduces_the_check_points(data):
+def test_js_evaluator_reproduces_the_check_points(data, tmp_path):
     assert MODEL_JS.exists(), f"{MODEL_JS} is missing: the widget cannot evaluate the maps"
+    model_mjs = tmp_path / "compressor-map-model.mjs"
+    shutil.copyfile(MODEL_JS, model_mjs)
     node = shutil.which("node")
     if node is None:
         message = "node not found (needed to evaluate compressor-map-model.js)"
@@ -158,7 +160,9 @@ def test_js_evaluator_reproduces_the_check_points(data):
         pytest.skip(message)
 
     run = subprocess.run(
-        [node, "--input-type=module", "-e", _NODE_RUNNER, str(MODEL_JS), str(DATA_JSON)],
+        # A copy with the .mjs extension imports as an ES module on every node that has ES modules,
+        # without relying on module-syntax detection for a .js file (on by default only from 22.12).
+        [node, "--input-type=module", "-e", _NODE_RUNNER, str(model_mjs), str(DATA_JSON)],
         capture_output=True,
         text=True,
         timeout=60,

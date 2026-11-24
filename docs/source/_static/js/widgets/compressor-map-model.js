@@ -6,10 +6,9 @@
  * The rules follow `docs/notes/compressor-map-widget-contract.md`; the
  * Python library (`tmhp.compressor_efficiency`) is the reference:
  *
- *   l = ln(r_p); t7 = [1, l, l^2, l^3, N, N^2, l*N]
- *   eta_v  = c_v  . [...t7, T_evap]
- *   eta_ov = c_ov . [...t7, T_evap]
- *   f_loss = c_f  . t7
+ *   each map = its coefficients . its terms, the term names read from
+ *   `data.terms` (today: l = ln r_p, [1, l, l^2, l^3, N, N^2, l*N] and, for
+ *   eta_v and eta_ov, T_evap)
  *   eta_is = eta_ov / (1 - f_loss)    (null when 1 - f_loss <= 0)
  *
  * Values are returned raw: the cycle's rule (values above 1 set to 1,
@@ -67,11 +66,27 @@ function finite(x) {
     return typeof x === "number" && Number.isFinite(x);
 }
 
-/** The seven (r_p, N) terms, or null when the map has no value there. */
-function terms7(PR, N) {
+/**
+ * Value of one term name of `data.terms` at (r_p, N, T_evap): "1", "l" (ln r_p),
+ * "PR" (r_p), "N", "T_evap", a power "x^k" of one of them, or a product "a*b".
+ * Reading the names (not a fixed list) lets a new map form in the JSON work
+ * without a code change; an unknown name throws, so a mismatch is loud.
+ */
+function termValue(name, vars) {
+    if (name === "1") return 1.0;
+    if (name.includes("*")) return name.split("*").reduce((acc, part) => acc * termValue(part.trim(), vars), 1.0);
+    const m = /^([A-Za-z_]+)(?:\^(\d+))?$/.exec(name);
+    if (!m || !(m[1] in vars)) throw new Error(`unknown map term ${JSON.stringify(name)}`);
+    const v = vars[m[1]];
+    return m[2] === undefined ? v : v ** Number(m[2]);
+}
+
+/** The term vector of one map, or null when the map has no value there. */
+function termVector(names, PR, N, T) {
     if (!(finite(PR) && PR > 0 && finite(N))) return null;
-    const l = Math.log(PR);
-    return [1.0, l, l * l, l ** 3, N, N * N, l * N];
+    if (names.some((n) => n.includes("T_evap")) && !finite(T)) return null;
+    const vars = { l: Math.log(PR), PR, N, T_evap: T };
+    return names.map((n) => termValue(n, vars));
 }
 
 /**
@@ -108,18 +123,16 @@ export function inDomain(data, PR, N_rps, T_evap_C) {
  */
 export function evaluate(data, PR, N_rps, T_evap_C) {
     const c = data.coefficients;
-    const t = terms7(PR, N_rps);
     const in_domain = inDomain(data, PR, N_rps, T_evap_C);
-    if (t === null) {
-        return { eta_v: null, eta_ov: null, f_loss: null, eta_is: null, in_domain };
-    }
-    const f_loss = dot(c.f_loss, t);
-    let eta_v = null;
-    let eta_ov = null;
-    if (finite(T_evap_C)) {
-        const t8 = [...t, T_evap_C];
-        eta_v = dot(c.eta_v, t8);
-        eta_ov = dot(c.eta_ov, t8);
+    const value = (q) => {
+        const t = termVector(data.terms[q], PR, N_rps, T_evap_C);
+        return t === null ? null : dot(c[q], t);
+    };
+    const f_loss = value("f_loss");
+    const eta_v = value("eta_v");
+    const eta_ov = value("eta_ov");
+    if (f_loss === null) {
+        return { eta_v, eta_ov, f_loss: null, eta_is: null, in_domain };
     }
     const denom = 1 - f_loss;
     const eta_is = eta_ov !== null && denom > 0 ? eta_ov / denom : null;

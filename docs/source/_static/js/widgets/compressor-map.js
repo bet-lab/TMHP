@@ -12,7 +12,7 @@
  *
  * Usage: `mount(rootElement, data)`.
  */
-import { evaluate, rpRangeAt, hullExtent } from "./compressor-map-model.js";
+import { evaluate, inDomain, rpRangeAt, hullExtent } from "./compressor-map-model.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -467,7 +467,9 @@ export function mount(root, data) {
         const pl = el("svg:text", {
             x: flip ? px - 9 : px + 9, y: py - 13, "text-anchor": flip ? "end" : "start", class: "cmw-halo",
         }, pg);
-        svgRich(pl, `η_{ov} peak ${fmt(peakVal)}`);
+        const peakIn = inDomain(data, peak.PR, peak.N_rps, T);
+        if (!peakIn) pg.setAttribute("opacity", "0.45");
+        svgRich(pl, `η_{ov} peak ${fmt(peakVal)}${peakIn ? "" : " (outside the data here)"}`);
 
         // hover
         const onMove = (ev) => {
@@ -533,6 +535,7 @@ export function mount(root, data) {
             const s = el("span", { class: "cmw-leg-item" }, heatLegend);
             s.innerHTML = swatch + `<span>${html}</span>`;
         };
+        legItem("Colours stop at the colour-bar ends: values beyond them, outside the data, show the end colour", "");
         legItem("Contours at the colour-bar ticks", '<svg width="18" height="10" aria-hidden="true"><line x1="0" y1="5" x2="18" y2="5" class="cmw-sw-contour"/></svg>');
         legItem(
             rr

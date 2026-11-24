@@ -132,8 +132,10 @@ def find_peak_eta_ov() -> dict[str, float]:
     # Keep the optimum only when it is not worse than the grid start (it is a refinement of it).
     if not DOMAIN.contains(pr, n, 0.0) or map_eta_ov(pr, n, 0.0) < values[i, j]:
         pr, n = float(pr_grid[i]), float(n_grid[j])
-    # Round off optimiser noise (1e-9 relative changes eta_ov by < 1e-15 at a stationary point).
-    return {"PR": round(pr, 6), "N_rps": round(n, 6)}
+    # The map is very flat along N near its peak (Hessian eigenvalue ~ -5e-5): optimiser starts that
+    # differ in the grid change N in the fourth decimal. Round to what the optimum determines
+    # (r_p to 1e-4, N to 0.01 rev/s) so the tracked JSON does not depend on the optimiser's path.
+    return {"PR": round(pr, 4), "N_rps": round(n, 2)}
 
 
 def read_measured_points() -> list[dict[str, Any]]:

@@ -1,0 +1,1593 @@
+{
+  "displacement": {
+    "groups": {
+      "rotary_single_fixed_50Hz": {
+        "before": {
+          "n": 98,
+          "families": [
+            "Highly:D",
+            "Highly:G",
+            "Highly:H",
+            "Highly:L",
+            "Highly:TH",
+            "LG:GAB",
+            "LG:GJS",
+            "LG:GKN",
+            "LG:GVH",
+            "LG:GVS",
+            "Panasonic:K",
+            "Panasonic:P",
+            "Panasonic:R",
+            "Panasonic:S",
+            "Panasonic:V"
+          ],
+          "manufacturers": [
+            "Highly",
+            "LG",
+            "Panasonic"
+          ],
+          "selected_law": {
+            "kind": "physical_normalized",
+            "formula": "V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)",
+            "eta_vol_rps_per_f": 0.8547779182124379,
+            "frequency_Hz": 50,
+            "eta_vol_rps": 42.73889591062189
+          },
+          "capacity_range_W": [
+            960.0,
+            8300.0
+          ]
+        },
+        "after": {
+          "n": 130,
+          "families": [
+            "GMCC-SF",
+            "GMCC-SG",
+            "GMCC-SK",
+            "GMCC-SM",
+            "GMCC-SN",
+            "GMCC-SQ",
+            "Highly:D",
+            "Highly:G",
+            "Highly:H",
+            "Highly:L",
+            "Highly:TH",
+            "LG:GJS",
+            "LG:GKN",
+            "LG:GVH",
+            "LG:GVS",
+            "Panasonic:K",
+            "Panasonic:P",
+            "Panasonic:R",
+            "Panasonic:S",
+            "Panasonic:V"
+          ],
+          "manufacturers": [
+            "GMCC",
+            "Highly",
+            "LG",
+            "Panasonic"
+          ],
+          "selected_law": {
+            "kind": "physical_normalized",
+            "formula": "V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)",
+            "eta_vol_rps_per_f": 0.852405996170107,
+            "frequency_Hz": 50,
+            "eta_vol_rps": 42.62029980850535
+          },
+          "capacity_range_W": [
+            632.0,
+            8495.0
+          ]
+        },
+        "common_family_holdout": {
+          "before": {
+            "n": 97,
+            "valid": true,
+            "MAE": 0.43206765179178747,
+            "RMSE": 0.5743448724701781,
+            "MAPE_pct": 2.2235286706542965,
+            "bias_pct": -0.5101104799477086
+          },
+          "after": {
+            "n": 97,
+            "valid": true,
+            "MAE": 0.4455871901845775,
+            "RMSE": 0.6017073167514164,
+            "MAPE_pct": 2.1977621979490403,
+            "bias_pct": -0.20986762364521935
+          }
+        },
+        "common_manufacturer_holdout": {
+          "before": {
+            "n": 97,
+            "valid": true,
+            "MAE": 0.4582480923518084,
+            "RMSE": 0.589645660994389,
+            "MAPE_pct": 2.5558343645683426,
+            "bias_pct": -1.1319198001420478
+          },
+          "after": {
+            "n": 97,
+            "valid": true,
+            "MAE": 0.42007680494477195,
+            "RMSE": 0.550937346587276,
+            "MAPE_pct": 2.225804005655812,
+            "bias_pct": -0.6817296989234816
+          }
+        },
+        "new_rows_manufacturer_holdout": {
+          "before": {
+            "n": 33,
+            "valid": true,
+            "MAE": 0.5590367666590785,
+            "RMSE": 0.7256971943068011,
+            "MAPE_pct": 2.7468029973246577,
+            "bias_pct": 2.01808479006174
+          },
+          "after": {
+            "n": 33,
+            "valid": true,
+            "MAE": 0.7842931013267123,
+            "RMSE": 0.9594741551429178,
+            "MAPE_pct": 3.760395243999415,
+            "bias_pct": 3.2555844197314334
+          }
+        },
+        "all_rows_family_holdout": {
+          "before": {
+            "n": 98,
+            "valid": true,
+            "MAE": 0.4369641911501107,
+            "RMSE": 0.578784799818025,
+            "MAPE_pct": 2.4031307536306423,
+            "bias_pct": -0.3026141199244029
+          },
+          "after": {
+            "n": 130,
+            "valid": true,
+            "MAE": 0.4950998034427898,
+            "RMSE": 0.6626118089007754,
+            "MAPE_pct": 2.4308793715664865,
+            "bias_pct": 0.4590272566318878
+          }
+        },
+        "all_rows_manufacturer_holdout": {
+          "before": {
+            "n": 98,
+            "valid": true,
+            "MAE": 0.4633415531884134,
+            "RMSE": 0.5945482180118421,
+            "MAPE_pct": 2.742134025963406,
+            "bias_pct": -0.9079899942091234
+          },
+          "after": {
+            "n": 130,
+            "valid": true,
+            "MAE": 0.5125317109494183,
+            "RMSE": 0.6783582653484189,
+            "MAPE_pct": 2.615354089235342,
+            "bias_pct": 0.3177423465812274
+          }
+        },
+        "added_only_law": {
+          "kind": "physical_normalized",
+          "formula": "V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)",
+          "eta_vol_rps_per_f": 0.8593990803639638,
+          "frequency_Hz": 50,
+          "eta_vol_rps": 42.969954018198194
+        }
+      },
+      "rotary_twin_inverter_60rps": {
+        "before": {
+          "n": 41,
+          "families": [
+            "LG:DAT",
+            "LG:DJT",
+            "LG:DKT",
+            "LG:DPT",
+            "LG:DST",
+            "LG:GAT",
+            "LG:GJT",
+            "LG:GKT",
+            "LG:GPT",
+            "LG:GST",
+            "SCI:SNB",
+            "SCI:SVB",
+            "SCI:TNB",
+            "SCI:TVB"
+          ],
+          "manufacturers": [
+            "LG",
+            "Mitsubishi Electric SCI"
+          ],
+          "selected_law": {
+            "kind": "physical_normalized",
+            "formula": "V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)",
+            "eta_vol_rps_per_f": 0.8870095871327589,
+            "frequency_Hz": 60,
+            "eta_vol_rps": 53.22057522796553
+          },
+          "capacity_range_W": [
+            2890.0,
+            14877.0
+          ]
+        },
+        "after": {
+          "n": 54,
+          "families": [
+            "GMCC-TF",
+            "GMCC-TK",
+            "GMCC-TM",
+            "GMCC-TN",
+            "GMCC-TQ",
+            "LG:DAT",
+            "LG:DJT",
+            "LG:DKT",
+            "LG:DPT",
+            "LG:DST",
+            "LG:GAT",
+            "LG:GJT",
+            "LG:GKT",
+            "LG:GPT",
+            "LG:GST",
+            "SCI:SNB",
+            "SCI:SVB",
+            "SCI:TNB",
+            "SCI:TVB"
+          ],
+          "manufacturers": [
+            "GMCC",
+            "LG",
+            "Mitsubishi Electric SCI"
+          ],
+          "selected_law": {
+            "kind": "physical_normalized",
+            "formula": "V_cmp_ref = Q_nom / (rho_1 * dh * eta_vol * rps)",
+            "eta_vol_rps_per_f": 0.8922359782849774,
+            "frequency_Hz": 60,
+            "eta_vol_rps": 53.53415869709864
+          },
+          "capacity_range_W": [
+            1605.0,
+            18750.0
+          ]
+        },
+        "common_family_holdout": {
+          "before": {
+            "n": 41,
+            "valid": true,
+            "MAE": 0.5885734599566094,
+            "RMSE": 0.7919775636750013,
+            "MAPE_pct": 2.677793909322166,
+            "bias_pct": -0.12863052699818406
+          },
+          "after": {
+            "n": 41,
+            "valid": true,
+            "MAE": 0.5826683304494578,
+            "RMSE": 0.7659482040216399,
+            "MAPE_pct": 2.741501297766474,
+            "bias_pct": -0.7441294873761517
+          }
+        },
+        "common_manufacturer_holdout": {
+          "before": {
+            "n": 41,
+            "valid": true,
+            "MAE": 0.5447944294295245,
+            "RMSE": 0.7397436766366121,
+            "MAPE_pct": 2.550811371517637,
+            "bias_pct": -0.3817479684954761
+          },
+          "after": {
+            "n": 41,
+            "valid": true,
+            "MAE": 0.590300430063844,
+            "RMSE": 0.7574038520794636,
+            "MAPE_pct": 2.833890740247774,
+            "bias_pct": -1.2839712179681186
+          }
+        },
+        "new_rows_manufacturer_holdout": {
+          "before": {
+            "n": 13,
+            "valid": true,
+            "MAE": 1.2791965337933395,
+            "RMSE": 1.977338983238143,
+            "MAPE_pct": 3.528903163271,
+            "bias_pct": 2.8008240333948553
+          },
+          "after": {
+            "n": 13,
+            "valid": true,
+            "MAE": 1.2791965337933395,
+            "RMSE": 1.977338983238143,
+            "MAPE_pct": 3.528903163271,
+            "bias_pct": 2.8008240333948553
+          }
+        },
+        "all_rows_family_holdout": {
+          "before": {
+            "n": 41,
+            "valid": true,
+            "MAE": 0.5885734599566094,
+            "RMSE": 0.7919775636750012,
+            "MAPE_pct": 2.6777939093221654,
+            "bias_pct": -0.12863052699818397
+          },
+          "after": {
+            "n": 54,
+            "valid": true,
+            "MAE": 0.7348226085944765,
+            "RMSE": 1.1470549800031575,
+            "MAPE_pct": 2.886819034638654,
+            "bias_pct": -0.0054794705824431356
+          }
+        },
+        "all_rows_manufacturer_holdout": {
+          "before": {
+            "n": 41,
+            "valid": true,
+            "MAE": 0.5447944294295245,
+            "RMSE": 0.7397436766366122,
+            "MAPE_pct": 2.550811371517637,
+            "bias_pct": -0.38174796849547626
+          },
+          "after": {
+            "n": 54,
+            "valid": true,
+            "MAE": 0.7561457883690929,
+            "RMSE": 1.1733805807340938,
+            "MAPE_pct": 3.001208545790402,
+            "bias_pct": -0.30059458338073614
+          }
+        }
+      }
+    },
+    "baseline_exclusions_from_refit": [
+      {
+        "record_id": "lg:ASHRAE50:GAB046PA",
+        "eta_vol_rps_per_f": 1.011958390737294
+      }
+    ],
+    "excluded": []
+  },
+  "airflow": {
+    "groups": {
+      "airflow|cooling|indoor|floor_standing": {
+        "before": {
+          "n": 26,
+          "families": [
+            "Daikin:FVA-A + RZAG-NV1",
+            "Daikin:FVXM-B + RXM-A9/A8",
+            "Daikin:FVXTM-B + RXTM-A",
+            "Fujitsu:Floor (Compact & Comfort) AGYG-LVCA",
+            "Mitsubishi Electric:MFZ-KT (M series)",
+            "Mitsubishi Electric:MFZ-KW (M series)",
+            "Mitsubishi Electric:PSA-M (Mr. Slim) floor-standing"
+          ],
+          "manufacturers": [
+            "Daikin",
+            "Fujitsu",
+            "Mitsubishi Electric"
+          ],
+          "selected_law": {
+            "kind": "proportional",
+            "a": 0.04250598241909443
+          },
+          "capacity_range_W": [
+            2400.0,
+            13600.0
+          ]
+        },
+        "after": {
+          "n": 29,
+          "families": [
+            "Daikin:FVA-A + RZAG-NV1",
+            "Daikin:FVXM-B + RXM-A9/A8",
+            "Daikin:FVXTM-B + RXTM-A",
+            "Fujitsu:Floor (Compact & Comfort) AGYG-LVCA",
+            "Gree:All Match Floor Standing + Livo R32",
+            "Gree:All Match Mini Console + Vireo R32",
+            "Mitsubishi Electric:MFZ-KT (M series)",
+            "Mitsubishi Electric:MFZ-KW (M series)",
+            "Mitsubishi Electric:PSA-M (Mr. Slim) floor-standing"
+          ],
+          "manufacturers": [
+            "Daikin",
+            "Fujitsu",
+            "Gree",
+            "Mitsubishi Electric"
+          ],
+          "selected_law": {
+            "kind": "power",
+            "a": 0.05999871302264554,
+            "b": 0.8667974058455353
+          },
+          "capacity_range_W": [
+            2400.0,
+            13600.0
+          ]
+        },
+        "common_family_holdout": {
+          "before": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.03659989122514713,
+            "RMSE": 0.04893051973120702,
+            "MAPE_pct": 12.797696581080947,
+            "bias_pct": -2.7305061110327764
+          },
+          "after": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.03909288709142658,
+            "RMSE": 0.04669731527229789,
+            "MAPE_pct": 14.434507577376138,
+            "bias_pct": 7.2251485761700245
+          }
+        },
+        "common_manufacturer_holdout": {
+          "before": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.03510869409249424,
+            "RMSE": 0.047548299875616234,
+            "MAPE_pct": 12.116079063998294,
+            "bias_pct": -4.813836032606676
+          },
+          "after": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.04317088868611753,
+            "RMSE": 0.04987937692009917,
+            "MAPE_pct": 15.616798862378822,
+            "bias_pct": 9.72583613202811
+          }
+        },
+        "new_rows_manufacturer_holdout": {
+          "before": {
+            "n": 3,
+            "valid": true,
+            "MAE": 0.08308916139497907,
+            "RMSE": 0.08787646240444393,
+            "MAPE_pct": 29.40182882539294,
+            "bias_pct": -29.40182882539294
+          },
+          "after": {
+            "n": 3,
+            "valid": true,
+            "MAE": 0.08308916139497907,
+            "RMSE": 0.08787646240444393,
+            "MAPE_pct": 29.40182882539294,
+            "bias_pct": -29.40182882539294
+          }
+        },
+        "all_rows_family_holdout": {
+          "before": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.03659989122514713,
+            "RMSE": 0.04893051973120702,
+            "MAPE_pct": 12.797696581080947,
+            "bias_pct": -2.7305061110327764
+          },
+          "after": {
+            "n": 29,
+            "valid": true,
+            "MAE": 0.042487733775791306,
+            "RMSE": 0.05166730776304723,
+            "MAPE_pct": 15.304287157455242,
+            "bias_pct": 4.114714911241319
+          }
+        },
+        "all_rows_manufacturer_holdout": {
+          "before": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.03510869409249424,
+            "RMSE": 0.047548299875616234,
+            "MAPE_pct": 12.116079063998294,
+            "bias_pct": -4.813836032606676
+          },
+          "after": {
+            "n": 29,
+            "valid": true,
+            "MAE": 0.04730036517324112,
+            "RMSE": 0.05504029126844083,
+            "MAPE_pct": 17.042836444759587,
+            "bias_pct": 5.67814665367421
+          }
+        }
+      },
+      "airflow|cooling|indoor|wall_mounted": {
+        "before": {
+          "n": 130,
+          "families": [
+            "Daikin:ATXP-N9 + ARXP-N9",
+            "Daikin:FAA-B + RZAG-NV1",
+            "Daikin:FTXA-D + RXA-A8/B8",
+            "Daikin:FTXF-F + RXF-F/D9",
+            "Daikin:FTXJ-A + RXJ-A",
+            "Daikin:FTXM-A + RXM-A",
+            "Daikin:FTXM-A_RXM-A",
+            "Daikin:FTXP-N + RXP-N",
+            "Daikin:FTXTA-D + RXTA-C",
+            "Daikin:FTXTJ-A + RXTJ-A",
+            "Daikin:FTXTM-A + RXTM-A",
+            "Daikin:FTXTP-A + RXTP-A",
+            "Daikin:FTXZ-N + RXZ-N",
+            "Fujitsu:KGTA_KGCA",
+            "Fujitsu:KLCA_KLTA",
+            "Fujitsu:KMTA",
+            "Fujitsu:KXCA",
+            "Fujitsu:LFCA_LFCC",
+            "Fujitsu:LMCE",
+            "Fujitsu:LTCA_LTC",
+            "Fujitsu:LUCA_LUC",
+            "LG:R32 Single Zone Art Cool Premier wall-mounted",
+            "LG:R32 Single Zone Extended Piping wall-mounted",
+            "LG:R32 Single Zone Mega wall-mounted",
+            "LG:R32 Single Zone Standard Efficiency wall-mounted",
+            "Mitsubishi Electric:MSY-TP (M series)",
+            "Mitsubishi Electric:MSZ-AP (M series)",
+            "Mitsubishi Electric:MSZ-AY (M series)",
+            "Mitsubishi Electric:MSZ-BT (M series)",
+            "Mitsubishi Electric:MSZ-DW (M series)",
+            "Mitsubishi Electric:MSZ-EF (M series)",
+            "Mitsubishi Electric:MSZ-FT (M series)",
+            "Mitsubishi Electric:MSZ-HR (M series)",
+            "Mitsubishi Electric:MSZ-LN (M series)",
+            "Mitsubishi Electric:MSZ-RW (M series)",
+            "Mitsubishi Electric:PKA-M (Mr. Slim) wall-mounted",
+            "Panasonic:PACi NX Elite wall-mounted PK4 (single phase)",
+            "Panasonic:PACi NX Standard wall-mounted PK4 (single phase)"
+          ],
+          "manufacturers": [
+            "Daikin",
+            "Fujitsu",
+            "LG",
+            "Mitsubishi Electric",
+            "Panasonic"
+          ],
+          "selected_law": {
+            "kind": "linear",
+            "a": 0.03204107373864972,
+            "b": 0.10350835349541901
+          },
+          "capacity_range_W": [
+            1500.0,
+            9671.345309999999
+          ]
+        },
+        "after": {
+          "n": 134,
+          "families": [
+            "Daikin:ATXP-N9 + ARXP-N9",
+            "Daikin:FAA-B + RZAG-NV1",
+            "Daikin:FTXA-D + RXA-A8/B8",
+            "Daikin:FTXF-F + RXF-F/D9",
+            "Daikin:FTXJ-A + RXJ-A",
+            "Daikin:FTXM-A + RXM-A",
+            "Daikin:FTXM-A_RXM-A",
+            "Daikin:FTXP-N + RXP-N",
+            "Daikin:FTXTA-D + RXTA-C",
+            "Daikin:FTXTJ-A + RXTJ-A",
+            "Daikin:FTXTM-A + RXTM-A",
+            "Daikin:FTXTP-A + RXTP-A",
+            "Daikin:FTXZ-N + RXZ-N",
+            "Fujitsu:KGTA_KGCA",
+            "Fujitsu:KLCA_KLTA",
+            "Fujitsu:KMTA",
+            "Fujitsu:KXCA",
+            "Fujitsu:LFCA_LFCC",
+            "Fujitsu:LMCE",
+            "Fujitsu:LTCA_LTC",
+            "Fujitsu:LUCA_LUC",
+            "Gree:Vireo GEN3 R410A AO/AH",
+            "LG:R32 Single Zone Art Cool Premier wall-mounted",
+            "LG:R32 Single Zone Extended Piping wall-mounted",
+            "LG:R32 Single Zone Mega wall-mounted",
+            "LG:R32 Single Zone Standard Efficiency wall-mounted",
+            "Mitsubishi Electric:MSY-TP (M series)",
+            "Mitsubishi Electric:MSZ-AP (M series)",
+            "Mitsubishi Electric:MSZ-AY (M series)",
+            "Mitsubishi Electric:MSZ-BT (M series)",
+            "Mitsubishi Electric:MSZ-DW (M series)",
+            "Mitsubishi Electric:MSZ-EF (M series)",
+            "Mitsubishi Electric:MSZ-FT (M series)",
+            "Mitsubishi Electric:MSZ-HR (M series)",
+            "Mitsubishi Electric:MSZ-LN (M series)",
+            "Mitsubishi Electric:MSZ-RW (M series)",
+            "Mitsubishi Electric:PKA-M (Mr. Slim) wall-mounted",
+            "Panasonic:PACi NX Elite wall-mounted PK4 (single phase)",
+            "Panasonic:PACi NX Standard wall-mounted PK4 (single phase)"
+          ],
+          "manufacturers": [
+            "Daikin",
+            "Fujitsu",
+            "Gree",
+            "LG",
+            "Mitsubishi Electric",
+            "Panasonic"
+          ],
+          "selected_law": {
+            "kind": "linear",
+            "a": 0.03245519337514308,
+            "b": 0.1019876356079938
+          },
+          "capacity_range_W": [
+            1500.0,
+            9671.345309999999
+          ]
+        },
+        "common_family_holdout": {
+          "before": {
+            "n": 130,
+            "valid": true,
+            "MAE": 0.030634684348388626,
+            "RMSE": 0.040506294403945084,
+            "MAPE_pct": 12.901282363517646,
+            "bias_pct": 3.4465564763778462
+          },
+          "after": {
+            "n": 130,
+            "valid": true,
+            "MAE": 0.030702981371452692,
+            "RMSE": 0.040419158896713665,
+            "MAPE_pct": 12.935237933071425,
+            "bias_pct": 3.4987144576718414
+          }
+        },
+        "common_manufacturer_holdout": {
+          "before": {
+            "n": 130,
+            "valid": true,
+            "MAE": 0.033116385158818124,
+            "RMSE": 0.04383772280321339,
+            "MAPE_pct": 13.863088592011383,
+            "bias_pct": 4.1978456009304495
+          },
+          "after": {
+            "n": 130,
+            "valid": true,
+            "MAE": 0.03313347656356043,
+            "RMSE": 0.04368624833742196,
+            "MAPE_pct": 13.872838865305576,
+            "bias_pct": 4.204645656780539
+          }
+        },
+        "new_rows_manufacturer_holdout": {
+          "before": {
+            "n": 4,
+            "valid": true,
+            "MAE": 0.03692372402673891,
+            "RMSE": 0.04423034438566895,
+            "MAPE_pct": 13.690910826555797,
+            "bias_pct": 0.28133778980372753
+          },
+          "after": {
+            "n": 4,
+            "valid": true,
+            "MAE": 0.03692372402673891,
+            "RMSE": 0.04423034438566895,
+            "MAPE_pct": 13.690910826555797,
+            "bias_pct": 0.28133778980372753
+          }
+        },
+        "all_rows_family_holdout": {
+          "before": {
+            "n": 130,
+            "valid": true,
+            "MAE": 0.030634684348388622,
+            "RMSE": 0.040506294403945084,
+            "MAPE_pct": 12.901282363517646,
+            "bias_pct": 3.4465564763778462
+          },
+          "after": {
+            "n": 134,
+            "valid": true,
+            "MAE": 0.030888675182058255,
+            "RMSE": 0.04053811420364973,
+            "MAPE_pct": 12.957795332876929,
+            "bias_pct": 3.402673363108614
+          }
+        },
+        "all_rows_manufacturer_holdout": {
+          "before": {
+            "n": 130,
+            "valid": true,
+            "MAE": 0.033116385158818124,
+            "RMSE": 0.04383772280321339,
+            "MAPE_pct": 13.863088592011383,
+            "bias_pct": 4.1978456009304495
+          },
+          "after": {
+            "n": 134,
+            "valid": true,
+            "MAE": 0.033246618278879196,
+            "RMSE": 0.04370258809677518,
+            "MAPE_pct": 13.867408177581703,
+            "bias_pct": 4.087531989109588
+          }
+        }
+      },
+      "airflow|cooling|indoor|water_to_air": {
+        "before": {
+          "n": 52,
+          "families": [
+            "ClimateMaster:Tranquility 20 TS",
+            "ClimateMaster:Tranquility 30 Digital TE",
+            "Daikin Applied:Enfinity Horizontal CCH/CCW",
+            "Enertech:VS/VT",
+            "Enertech:YT",
+            "WaterFurnace:5 Series 500A11",
+            "WaterFurnace:7 Series 700A11"
+          ],
+          "manufacturers": [
+            "ClimateMaster",
+            "Daikin Applied",
+            "Enertech Global",
+            "WaterFurnace"
+          ],
+          "selected_law": {
+            "kind": "linear",
+            "a": 0.049109066490394496,
+            "b": 0.13045183734755236
+          },
+          "capacity_range_W": [
+            4689.137119999999,
+            21628.644966
+          ]
+        },
+        "after": {
+          "n": 57,
+          "families": [
+            "ClimateMaster:Tranquility 20 TS",
+            "ClimateMaster:Tranquility 30 Digital TE",
+            "ClimateMaster:Tranquility 30 TT",
+            "Daikin Applied:Enfinity Horizontal CCH/CCW",
+            "Enertech:VS/VT",
+            "Enertech:YT",
+            "WaterFurnace:5 Series 500A11",
+            "WaterFurnace:7 Series 700A11"
+          ],
+          "manufacturers": [
+            "ClimateMaster",
+            "Daikin Applied",
+            "Enertech Global",
+            "WaterFurnace"
+          ],
+          "selected_law": {
+            "kind": "power",
+            "a": 0.0815328348271997,
+            "b": 0.8719451197191682
+          },
+          "capacity_range_W": [
+            4689.137119999999,
+            21628.644966
+          ]
+        },
+        "common_family_holdout": {
+          "before": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.062440208749537554,
+            "RMSE": 0.0753329349843951,
+            "MAPE_pct": 9.591309644382788,
+            "bias_pct": 3.374453395794526
+          },
+          "after": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.06028676642592178,
+            "RMSE": 0.07320487547845146,
+            "MAPE_pct": 9.271383913718905,
+            "bias_pct": 1.8075881494363157
+          }
+        },
+        "common_manufacturer_holdout": {
+          "before": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.06309851178575923,
+            "RMSE": 0.07495020548378452,
+            "MAPE_pct": 9.697554519752142,
+            "bias_pct": 2.80261000617703
+          },
+          "after": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.06046970958398034,
+            "RMSE": 0.07289145909711744,
+            "MAPE_pct": 9.334850335309481,
+            "bias_pct": 1.7782305227235058
+          }
+        },
+        "new_rows_manufacturer_holdout": {
+          "before": {
+            "n": 5,
+            "valid": true,
+            "MAE": 0.07985352218574913,
+            "RMSE": 0.09127022455934701,
+            "MAPE_pct": 9.75268522906297,
+            "bias_pct": 9.75268522906297
+          },
+          "after": {
+            "n": 5,
+            "valid": true,
+            "MAE": 0.07985352218574913,
+            "RMSE": 0.09127022455934701,
+            "MAPE_pct": 9.75268522906297,
+            "bias_pct": 9.75268522906297
+          }
+        },
+        "all_rows_family_holdout": {
+          "before": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.062440208749537554,
+            "RMSE": 0.0753329349843951,
+            "MAPE_pct": 9.591309644382786,
+            "bias_pct": 3.374453395794526
+          },
+          "after": {
+            "n": 57,
+            "valid": true,
+            "MAE": 0.06191584152213206,
+            "RMSE": 0.07449275254738957,
+            "MAPE_pct": 9.337603507286424,
+            "bias_pct": 2.52852666969529
+          }
+        },
+        "all_rows_manufacturer_holdout": {
+          "before": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.06309851178575923,
+            "RMSE": 0.07495020548378452,
+            "MAPE_pct": 9.69755451975214,
+            "bias_pct": 2.80261000617703
+          },
+          "after": {
+            "n": 57,
+            "valid": true,
+            "MAE": 0.06217004402273199,
+            "RMSE": 0.07468481603584057,
+            "MAPE_pct": 9.37150251897207,
+            "bias_pct": 2.4777440934550374
+          }
+        }
+      },
+      "airflow|heating|indoor|floor_standing": {
+        "before": {
+          "n": 26,
+          "families": [
+            "Daikin:FVA-A + RZAG-NV1",
+            "Daikin:FVXM-B + RXM-A9/A8",
+            "Daikin:FVXTM-B + RXTM-A",
+            "Fujitsu:Floor (Compact & Comfort) AGYG-LVCA",
+            "Mitsubishi Electric:MFZ-KT (M series)",
+            "Mitsubishi Electric:MFZ-KW (M series)",
+            "Mitsubishi Electric:PSA-M (Mr. Slim) floor-standing"
+          ],
+          "manufacturers": [
+            "Daikin",
+            "Fujitsu",
+            "Mitsubishi Electric"
+          ],
+          "selected_law": {
+            "kind": "linear",
+            "a": 0.03302115963628598,
+            "b": 0.04015705134678007
+          },
+          "capacity_range_W": [
+            3200.0,
+            16000.0
+          ]
+        },
+        "after": {
+          "n": 29,
+          "families": [
+            "Daikin:FVA-A + RZAG-NV1",
+            "Daikin:FVXM-B + RXM-A9/A8",
+            "Daikin:FVXTM-B + RXTM-A",
+            "Fujitsu:Floor (Compact & Comfort) AGYG-LVCA",
+            "Gree:All Match Floor Standing + Livo R32",
+            "Gree:All Match Mini Console + Vireo R32",
+            "Mitsubishi Electric:MFZ-KT (M series)",
+            "Mitsubishi Electric:MFZ-KW (M series)",
+            "Mitsubishi Electric:PSA-M (Mr. Slim) floor-standing"
+          ],
+          "manufacturers": [
+            "Daikin",
+            "Fujitsu",
+            "Gree",
+            "Mitsubishi Electric"
+          ],
+          "selected_law": {
+            "kind": "power",
+            "a": 0.05498072251496496,
+            "b": 0.8663367306531958
+          },
+          "capacity_range_W": [
+            3077.246235,
+            16000.0
+          ]
+        },
+        "common_family_holdout": {
+          "before": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.03485963776418523,
+            "RMSE": 0.048109648729562006,
+            "MAPE_pct": 10.938090573020515,
+            "bias_pct": 2.645933727268729
+          },
+          "after": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.04131856968881627,
+            "RMSE": 0.05055633418875495,
+            "MAPE_pct": 14.275819756581193,
+            "bias_pct": 9.815219929548324
+          }
+        },
+        "common_manufacturer_holdout": {
+          "before": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.03520170815947153,
+            "RMSE": 0.04846434239403852,
+            "MAPE_pct": 11.501442873657663,
+            "bias_pct": -3.3339636783722084
+          },
+          "after": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.04515572062838495,
+            "RMSE": 0.05565298730598868,
+            "MAPE_pct": 15.230235919081114,
+            "bias_pct": 11.85754849988198
+          }
+        },
+        "new_rows_manufacturer_holdout": {
+          "before": {
+            "n": 3,
+            "valid": true,
+            "MAE": 0.08780927401117655,
+            "RMSE": 0.10645620289925786,
+            "MAPE_pct": 26.111056086650446,
+            "bias_pct": -26.111056086650446
+          },
+          "after": {
+            "n": 3,
+            "valid": true,
+            "MAE": 0.08780927401117655,
+            "RMSE": 0.10645620289925786,
+            "MAPE_pct": 26.111056086650446,
+            "bias_pct": -26.111056086650446
+          }
+        },
+        "all_rows_family_holdout": {
+          "before": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.034859637764185235,
+            "RMSE": 0.048109648729562006,
+            "MAPE_pct": 10.938090573020515,
+            "bias_pct": 2.6459337272687296
+          },
+          "after": {
+            "n": 29,
+            "valid": true,
+            "MAE": 0.04641360744056695,
+            "RMSE": 0.05896919063497228,
+            "MAPE_pct": 15.668904643407503,
+            "bias_pct": 5.929958523467231
+          }
+        },
+        "all_rows_manufacturer_holdout": {
+          "before": {
+            "n": 26,
+            "valid": true,
+            "MAE": 0.03520170815947154,
+            "RMSE": 0.04846434239403852,
+            "MAPE_pct": 11.501442873657663,
+            "bias_pct": -3.3339636783722084
+          },
+          "after": {
+            "n": 29,
+            "valid": true,
+            "MAE": 0.04956815718522546,
+            "RMSE": 0.06284282509323746,
+            "MAPE_pct": 16.35583800538139,
+            "bias_pct": 7.9297618185165595
+          }
+        }
+      },
+      "airflow|heating|indoor|wall_mounted": {
+        "before": {
+          "n": 131,
+          "families": [
+            "Daikin:ATXP-N9 + ARXP-N9",
+            "Daikin:FAA-B + RZAG-NV1",
+            "Daikin:FTXA-D + RXA-A8/B8",
+            "Daikin:FTXF-F + RXF-F/D9",
+            "Daikin:FTXJ-A + RXJ-A",
+            "Daikin:FTXM-A + RXM-A",
+            "Daikin:FTXM-A_RXM-A",
+            "Daikin:FTXP-N + RXP-N",
+            "Daikin:FTXTA-D + RXTA-C",
+            "Daikin:FTXTJ-A + RXTJ-A",
+            "Daikin:FTXTM-A + RXTM-A",
+            "Daikin:FTXTP-A + RXTP-A",
+            "Daikin:FTXZ-N + RXZ-N",
+            "Fujitsu:KGTA_KGCA",
+            "Fujitsu:KLCA_KLTA",
+            "Fujitsu:KMTA",
+            "Fujitsu:KXCA",
+            "Fujitsu:LFCA_LFCC",
+            "Fujitsu:LMCE",
+            "Fujitsu:LTCA_LTC",
+            "Fujitsu:LUCA_LUC",
+            "LG:R32 Single Zone Art Cool Premier wall-mounted",
+            "LG:R32 Single Zone Extended Piping wall-mounted",
+            "LG:R32 Single Zone Mega wall-mounted",
+            "LG:R32 Single Zone Standard Efficiency wall-mounted",
+            "Mitsubishi Electric:MSZ-AP (M series)",
+            "Mitsubishi Electric:MSZ-AY (M series)",
+            "Mitsubishi Electric:MSZ-BT (M series)",
+            "Mitsubishi Electric:MSZ-DW (M series)",
+            "Mitsubishi Electric:MSZ-EF (M series)",
+            "Mitsubishi Electric:MSZ-FT (M series)",
+            "Mitsubishi Electric:MSZ-HR (M series)",
+            "Mitsubishi Electric:MSZ-LN (M series)",
+            "Mitsubishi Electric:MSZ-RW (M series)",
+            "Mitsubishi Electric:PKA-M (Mr. Slim) wall-mounted",
+            "Panasonic:PACi NX Elite wall-mounted PK4 (single phase)",
+            "Panasonic:PACi NX Standard wall-mounted PK4 (single phase)"
+          ],
+          "manufacturers": [
+            "Daikin",
+            "Fujitsu",
+            "LG",
+            "Mitsubishi Electric",
+            "Panasonic"
+          ],
+          "selected_law": {
+            "kind": "linear",
+            "a": 0.031187542939473758,
+            "b": 0.0949850203569232
+          },
+          "capacity_range_W": [
+            2000.0,
+            11200.0
+          ]
+        },
+        "after": {
+          "n": 135,
+          "families": [
+            "Daikin:ATXP-N9 + ARXP-N9",
+            "Daikin:FAA-B + RZAG-NV1",
+            "Daikin:FTXA-D + RXA-A8/B8",
+            "Daikin:FTXF-F + RXF-F/D9",
+            "Daikin:FTXJ-A + RXJ-A",
+            "Daikin:FTXM-A + RXM-A",
+            "Daikin:FTXM-A_RXM-A",
+            "Daikin:FTXP-N + RXP-N",
+            "Daikin:FTXTA-D + RXTA-C",
+            "Daikin:FTXTJ-A + RXTJ-A",
+            "Daikin:FTXTM-A + RXTM-A",
+            "Daikin:FTXTP-A + RXTP-A",
+            "Daikin:FTXZ-N + RXZ-N",
+            "Fujitsu:KGTA_KGCA",
+            "Fujitsu:KLCA_KLTA",
+            "Fujitsu:KMTA",
+            "Fujitsu:KXCA",
+            "Fujitsu:LFCA_LFCC",
+            "Fujitsu:LMCE",
+            "Fujitsu:LTCA_LTC",
+            "Fujitsu:LUCA_LUC",
+            "Gree:Vireo GEN3 R410A AO/AH",
+            "LG:R32 Single Zone Art Cool Premier wall-mounted",
+            "LG:R32 Single Zone Extended Piping wall-mounted",
+            "LG:R32 Single Zone Mega wall-mounted",
+            "LG:R32 Single Zone Standard Efficiency wall-mounted",
+            "Mitsubishi Electric:MSZ-AP (M series)",
+            "Mitsubishi Electric:MSZ-AY (M series)",
+            "Mitsubishi Electric:MSZ-BT (M series)",
+            "Mitsubishi Electric:MSZ-DW (M series)",
+            "Mitsubishi Electric:MSZ-EF (M series)",
+            "Mitsubishi Electric:MSZ-FT (M series)",
+            "Mitsubishi Electric:MSZ-HR (M series)",
+            "Mitsubishi Electric:MSZ-LN (M series)",
+            "Mitsubishi Electric:MSZ-RW (M series)",
+            "Mitsubishi Electric:PKA-M (Mr. Slim) wall-mounted",
+            "Panasonic:PACi NX Elite wall-mounted PK4 (single phase)",
+            "Panasonic:PACi NX Standard wall-mounted PK4 (single phase)"
+          ],
+          "manufacturers": [
+            "Daikin",
+            "Fujitsu",
+            "Gree",
+            "LG",
+            "Mitsubishi Electric",
+            "Panasonic"
+          ],
+          "selected_law": {
+            "kind": "linear",
+            "a": 0.03153562686139596,
+            "b": 0.09367972311409829
+          },
+          "capacity_range_W": [
+            2000.0,
+            11200.0
+          ]
+        },
+        "common_family_holdout": {
+          "before": {
+            "n": 131,
+            "valid": true,
+            "MAE": 0.03175766729384918,
+            "RMSE": 0.04506949650302232,
+            "MAPE_pct": 12.389414689710938,
+            "bias_pct": 3.259257534780523
+          },
+          "after": {
+            "n": 131,
+            "valid": true,
+            "MAE": 0.03191853084299672,
+            "RMSE": 0.044984677997270656,
+            "MAPE_pct": 12.464511216982906,
+            "bias_pct": 3.3870641762974696
+          }
+        },
+        "common_manufacturer_holdout": {
+          "before": {
+            "n": 131,
+            "valid": true,
+            "MAE": 0.03520114215693948,
+            "RMSE": 0.049392650479136414,
+            "MAPE_pct": 13.630680907352888,
+            "bias_pct": 3.980315591867714
+          },
+          "after": {
+            "n": 131,
+            "valid": true,
+            "MAE": 0.0353629154356071,
+            "RMSE": 0.04928807756833052,
+            "MAPE_pct": 13.710058156010746,
+            "bias_pct": 4.090652583506362
+          }
+        },
+        "new_rows_manufacturer_holdout": {
+          "before": {
+            "n": 4,
+            "valid": true,
+            "MAE": 0.035135105885456944,
+            "RMSE": 0.04218816778558129,
+            "MAPE_pct": 12.464828624351485,
+            "bias_pct": -2.317483566658573
+          },
+          "after": {
+            "n": 4,
+            "valid": true,
+            "MAE": 0.035135105885456944,
+            "RMSE": 0.04218816778558129,
+            "MAPE_pct": 12.464828624351485,
+            "bias_pct": -2.317483566658573
+          }
+        },
+        "all_rows_family_holdout": {
+          "before": {
+            "n": 131,
+            "valid": true,
+            "MAE": 0.03175766729384917,
+            "RMSE": 0.04506949650302232,
+            "MAPE_pct": 12.389414689710938,
+            "bias_pct": 3.259257534780522
+          },
+          "after": {
+            "n": 135,
+            "valid": true,
+            "MAE": 0.03201383677018073,
+            "RMSE": 0.044904322182984506,
+            "MAPE_pct": 12.46452062164568,
+            "bias_pct": 3.2180405394691407
+          }
+        },
+        "all_rows_manufacturer_holdout": {
+          "before": {
+            "n": 131,
+            "valid": true,
+            "MAE": 0.03520114215693949,
+            "RMSE": 0.049392650479136414,
+            "MAPE_pct": 13.630680907352888,
+            "bias_pct": 3.980315591867714
+          },
+          "after": {
+            "n": 135,
+            "valid": true,
+            "MAE": 0.03535616552301006,
+            "RMSE": 0.04909247338739478,
+            "MAPE_pct": 13.673162466183811,
+            "bias_pct": 3.900781882760734
+          }
+        }
+      },
+      "airflow|heating|indoor|water_to_air": {
+        "before": {
+          "n": 52,
+          "families": [
+            "ClimateMaster:Tranquility 20 TS",
+            "ClimateMaster:Tranquility 30 Digital TE",
+            "Daikin Applied:Enfinity Horizontal CCH/CCW",
+            "Enertech:VS/VT",
+            "Enertech:YT",
+            "WaterFurnace:5 Series 500A11",
+            "WaterFurnace:7 Series 700A11"
+          ],
+          "manufacturers": [
+            "ClimateMaster",
+            "Daikin Applied",
+            "Enertech Global",
+            "WaterFurnace"
+          ],
+          "selected_law": {
+            "kind": "power",
+            "a": 0.11584561389687512,
+            "b": 0.823991127374524
+          },
+          "capacity_range_W": [
+            3370.317305,
+            16939.507846
+          ]
+        },
+        "after": {
+          "n": 57,
+          "families": [
+            "ClimateMaster:Tranquility 20 TS",
+            "ClimateMaster:Tranquility 30 Digital TE",
+            "ClimateMaster:Tranquility 30 TT",
+            "Daikin Applied:Enfinity Horizontal CCH/CCW",
+            "Enertech:VS/VT",
+            "Enertech:YT",
+            "WaterFurnace:5 Series 500A11",
+            "WaterFurnace:7 Series 700A11"
+          ],
+          "manufacturers": [
+            "ClimateMaster",
+            "Daikin Applied",
+            "Enertech Global",
+            "WaterFurnace"
+          ],
+          "selected_law": {
+            "kind": "power",
+            "a": 0.11776459214648137,
+            "b": 0.8168647655975878
+          },
+          "capacity_range_W": [
+            3370.317305,
+            16939.507846
+          ]
+        },
+        "common_family_holdout": {
+          "before": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.05809139589932911,
+            "RMSE": 0.07138615748690551,
+            "MAPE_pct": 8.247025937869811,
+            "bias_pct": 0.8444103307551533
+          },
+          "after": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.057384488917583194,
+            "RMSE": 0.07050607059645037,
+            "MAPE_pct": 8.188052236417718,
+            "bias_pct": 0.9369484155749641
+          }
+        },
+        "common_manufacturer_holdout": {
+          "before": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.057915994515939886,
+            "RMSE": 0.07202422633889384,
+            "MAPE_pct": 8.092412596230258,
+            "bias_pct": 0.6909515416517135
+          },
+          "after": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.05746029664540438,
+            "RMSE": 0.0712539396147047,
+            "MAPE_pct": 8.093106205413147,
+            "bias_pct": 0.6949969373272659
+          }
+        },
+        "new_rows_manufacturer_holdout": {
+          "before": {
+            "n": 5,
+            "valid": true,
+            "MAE": 0.04920880070573251,
+            "RMSE": 0.05635837191323589,
+            "MAPE_pct": 5.703894085220704,
+            "bias_pct": -2.0703819423575665
+          },
+          "after": {
+            "n": 5,
+            "valid": true,
+            "MAE": 0.04920880070573251,
+            "RMSE": 0.05635837191323589,
+            "MAPE_pct": 5.703894085220704,
+            "bias_pct": -2.0703819423575665
+          }
+        },
+        "all_rows_family_holdout": {
+          "before": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.058091395899329094,
+            "RMSE": 0.07138615748690551,
+            "MAPE_pct": 8.247025937869811,
+            "bias_pct": 0.8444103307551536
+          },
+          "after": {
+            "n": 57,
+            "valid": true,
+            "MAE": 0.05646225522429662,
+            "RMSE": 0.06936832921179766,
+            "MAPE_pct": 7.939349687101428,
+            "bias_pct": 0.8378904668398355
+          }
+        },
+        "all_rows_manufacturer_holdout": {
+          "before": {
+            "n": 52,
+            "valid": true,
+            "MAE": 0.0579159945159399,
+            "RMSE": 0.07202422633889384,
+            "MAPE_pct": 8.09241259623026,
+            "bias_pct": 0.6909515416517134
+          },
+          "after": {
+            "n": 57,
+            "valid": true,
+            "MAE": 0.05673648121209982,
+            "RMSE": 0.0700741178757384,
+            "MAPE_pct": 7.883526194869953,
+            "bias_pct": 0.45241984261807
+          }
+        }
+      },
+      "airflow|heating|outdoor|air_to_water": {
+        "before": {
+          "n": 59,
+          "families": [
+            "daikin:EBLA-D",
+            "lg:ThermaV-R32-Mono",
+            "mitsubishi:PUZ-HWM",
+            "mitsubishi:PUZ-SHWM",
+            "mitsubishi:PUZ-SWM",
+            "mitsubishi:PUZ-WM",
+            "mitsubishi:PUZ-WZ",
+            "mitsubishi:SUZ-SHWM",
+            "mitsubishi:SUZ-SWM",
+            "samsung:EHS-Mono-R290",
+            "samsung:EHS-Split-R32",
+            "toshiba:Estia-R32",
+            "vaillant:aroTHERM-plus"
+          ],
+          "manufacturers": [
+            "Daikin",
+            "LG",
+            "Mitsubishi Electric",
+            "Samsung",
+            "Toshiba",
+            "Vaillant"
+          ],
+          "selected_law": {
+            "kind": "linear",
+            "a": 0.08638075140619003,
+            "b": 0.22081297146503018
+          },
+          "capacity_range_W": [
+            3000.0,
+            16000.0
+          ]
+        },
+        "after": {
+          "n": 64,
+          "families": [
+            "bosch:Compress-5800i-AW-R290",
+            "daikin:EBLA-D",
+            "lg:ThermaV-R32-Mono",
+            "mitsubishi:PUZ-HWM",
+            "mitsubishi:PUZ-SHWM",
+            "mitsubishi:PUZ-SWM",
+            "mitsubishi:PUZ-WM",
+            "mitsubishi:PUZ-WZ",
+            "mitsubishi:SUZ-SHWM",
+            "mitsubishi:SUZ-SWM",
+            "samsung:EHS-Mono-R290",
+            "samsung:EHS-Split-R32",
+            "toshiba:Estia-R32",
+            "vaillant:aroTHERM-plus"
+          ],
+          "manufacturers": [
+            "Bosch",
+            "Daikin",
+            "LG",
+            "Mitsubishi Electric",
+            "Samsung",
+            "Toshiba",
+            "Vaillant"
+          ],
+          "selected_law": {
+            "kind": "linear",
+            "a": 0.08711028512467443,
+            "b": 0.18346167848241152
+          },
+          "capacity_range_W": [
+            3000.0,
+            16000.0
+          ]
+        },
+        "common_family_holdout": {
+          "before": {
+            "n": 59,
+            "valid": true,
+            "MAE": 0.19932988128131854,
+            "RMSE": 0.26267417267376725,
+            "MAPE_pct": 20.21378555209907,
+            "bias_pct": 5.924289277583643
+          },
+          "after": {
+            "n": 59,
+            "valid": true,
+            "MAE": 0.218637325830974,
+            "RMSE": 0.27247361896644845,
+            "MAPE_pct": 22.434803675810606,
+            "bias_pct": -1.8305010556370374
+          }
+        },
+        "common_manufacturer_holdout": {
+          "before": {
+            "n": 59,
+            "valid": true,
+            "MAE": 0.21480580625686413,
+            "RMSE": 0.27715747508661115,
+            "MAPE_pct": 22.70691880981879,
+            "bias_pct": 9.717071343586902
+          },
+          "after": {
+            "n": 59,
+            "valid": true,
+            "MAE": 0.21817372046260233,
+            "RMSE": 0.2739825214873474,
+            "MAPE_pct": 22.53313297701421,
+            "bias_pct": -1.9741461903067665
+          }
+        },
+        "new_rows_manufacturer_holdout": {
+          "before": {
+            "n": 5,
+            "valid": true,
+            "MAE": 0.4325846833659036,
+            "RMSE": 0.4656175764858949,
+            "MAPE_pct": 97.36137265884996,
+            "bias_pct": 97.36137265884996
+          },
+          "after": {
+            "n": 5,
+            "valid": true,
+            "MAE": 0.4325846833659036,
+            "RMSE": 0.4656175764858949,
+            "MAPE_pct": 97.36137265884996,
+            "bias_pct": 97.36137265884996
+          }
+        },
+        "all_rows_family_holdout": {
+          "before": {
+            "n": 59,
+            "valid": true,
+            "MAE": 0.19932988128131848,
+            "RMSE": 0.26267417267376725,
+            "MAPE_pct": 20.21378555209907,
+            "bias_pct": 5.924289277583645
+          },
+          "after": {
+            "n": 64,
+            "valid": true,
+            "MAE": 0.23535196313839035,
+            "RMSE": 0.2921972029562911,
+            "MAPE_pct": 28.28844187761056,
+            "bias_pct": 5.9188640783072595
+          }
+        },
+        "all_rows_manufacturer_holdout": {
+          "before": {
+            "n": 59,
+            "valid": true,
+            "MAE": 0.21480580625686416,
+            "RMSE": 0.2771574750866111,
+            "MAPE_pct": 22.706918809818795,
+            "bias_pct": 9.717071343586905
+          },
+          "after": {
+            "n": 64,
+            "valid": true,
+            "MAE": 0.23492457693942276,
+            "RMSE": 0.29349503670250526,
+            "MAPE_pct": 28.379089202157626,
+            "bias_pct": 5.786441219783603
+          }
+        },
+        "panasonic_external_holdout": {
+          "before": {
+            "n": 9,
+            "valid": true,
+            "MAE": 0.19400442517599087,
+            "RMSE": 0.23227717905716738,
+            "MAPE_pct": 14.140625584089447,
+            "bias_pct": -7.998071999784137
+          },
+          "after": {
+            "n": 9,
+            "valid": true,
+            "MAE": 0.21267285841931552,
+            "RMSE": 0.24871886576876986,
+            "MAPE_pct": 15.50803276216911,
+            "bias_pct": -10.066899017063394
+          }
+        },
+        "explicit_max_sensitivity": {
+          "before": {
+            "n": 9,
+            "families": 2,
+            "manufacturers": [
+              "Daikin",
+              "Vaillant"
+            ],
+            "selected_law": {
+              "kind": "power",
+              "a": 0.23940968125155965,
+              "b": 0.6337826650617631
+            },
+            "nested_family_MAPE_pct": 32.830778776105284,
+            "all_rows_over_explicit_max": {
+              "6.00 kW": 0.9917021156752643,
+              "8.50 kW": 1.0276246304653773,
+              "11.50 kW": 1.0786824577940028
+            }
+          },
+          "after": {
+            "n": 14,
+            "families": 3,
+            "manufacturers": [
+              "Bosch",
+              "Daikin",
+              "Vaillant"
+            ],
+            "selected_law": {
+              "kind": "proportional",
+              "a": 0.09004083093803779
+            },
+            "nested_family_MAPE_pct": 51.664807374559395,
+            "all_rows_over_explicit_max": {
+              "6.00 kW": 1.3070429305499962,
+              "8.00 kW": 1.2221454843159179,
+              "11.50 kW": 1.1446304247108898
+            }
+          }
+        }
+      }
+    },
+    "baseline_exclusions_from_refit": [],
+    "excluded": []
+  }
+}

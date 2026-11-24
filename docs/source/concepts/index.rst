@@ -46,6 +46,13 @@ interpret the diagnostic fields each call returns.
         Every key a result carries: meaning, unit, sign, and which
         family returns it.
 
+    .. grid-item-card:: Compressor efficiency maps
+        :link: compressor-efficiency
+        :link-type: doc
+
+        What the cycle takes from the compressor, where the default
+        maps come from, an interactive map explorer, and the limits.
+
     .. grid-item-card:: Scope and limits
         :link: scope-and-limits
         :link-type: doc
@@ -62,4 +69,5 @@ interpret the diagnostic fields each call returns.
     failure-reason-semantics
     refrigerant-and-coolprop
     result-keys
+    compressor-efficiency
     scope-and-limits

@@ -39,7 +39,7 @@ written by Python `repr` round-trip (full precision). No NaN: a value that does 
     "N_rps": [30.0, 110.0],
     "hull_PR_Te": [[PR, T_evap], ...]            // tmhp.compressor_efficiency.DOMAIN.hull_PR_Te.vertices (CCW, as the library holds them)
   },
-  "peak_eta_ov": { "PR": float, "N_rps": float },  // argmax of eta_ov over (PR, N) inside the data domain, found numerically;
+  "peak_eta_ov": { "PR": float, "N_rps": float },  // argmax of eta_ov over (PR, N) inside the data domain at T_evap = 0, found numerically;
                                                    // the T_evap term is additive, so the location does not depend on T_evap
   "measured_points": [                           // validation/coefficients/<version>/points.csv, all 134 rows, in file order
     { "id": "thesis-r290-001", "T_evap_C": -30.22, "T_cond_C": 39.98, "N_rps": 30.0, "PR": 8.2267,

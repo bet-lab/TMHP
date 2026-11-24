@@ -149,8 +149,7 @@ def _close(got, want) -> bool:
 
 
 def test_js_evaluator_reproduces_the_check_points(data):
-    if not MODEL_JS.exists():
-        pytest.skip("compressor-map-model.js not present")
+    assert MODEL_JS.exists(), f"{MODEL_JS} is missing: the widget cannot evaluate the maps"
     node = shutil.which("node")
     if node is None:
         message = "node not found (needed to evaluate compressor-map-model.js)"

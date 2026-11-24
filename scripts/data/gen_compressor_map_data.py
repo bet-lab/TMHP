@@ -102,11 +102,11 @@ def build_check_points() -> list[dict[str, Any]]:
 
 
 def find_peak_eta_ov() -> dict[str, float]:
-    """argmax of eta_ov over (PR, N) inside the data domain.
+    """argmax of eta_ov over (PR, N) inside the data domain at T_evap = 0 degC.
 
-    The domain's PR extent is the projection of the (PR, T_evap) hull on PR, times the speed range.
-    ``T_evap`` enters eta_ov additively, so the location does not depend on it (T_evap = 0 is used).
-    A fine grid picks the start, a bounded optimiser refines it.
+    ``T_evap`` enters eta_ov additively, so the location does not depend on it; the domain does, and
+    T_evap = 0 is the slice used. A fine grid over the bounding box, masked to the domain, picks the
+    start; a bounded optimiser refines it, and the refinement is kept only if it stays inside.
     """
     prs = [pr for pr, _ in DOMAIN.hull_PR_Te.vertices]
     n_lo, n_hi = DOMAIN.rps_range
@@ -114,7 +114,11 @@ def find_peak_eta_ov() -> dict[str, float]:
 
     pr_grid = np.linspace(*bounds[0], 801)
     n_grid = np.linspace(*bounds[1], 801)
-    values = np.array([[map_eta_ov(pr, n, 0.0) for n in n_grid] for pr in pr_grid])
+    # Only points inside the data domain at T_evap = 0 count: the bounding box of the hull is wider
+    # than the hull, and a future map could peak in the corner the hull leaves out.
+    values = np.array(
+        [[map_eta_ov(pr, n, 0.0) if DOMAIN.contains(pr, n, 0.0) else -np.inf for n in n_grid] for pr in pr_grid]
+    )
     i, j = np.unravel_index(int(np.argmax(values)), values.shape)
 
     result = minimize(
@@ -126,7 +130,7 @@ def find_peak_eta_ov() -> dict[str, float]:
     )
     pr, n = float(result.x[0]), float(result.x[1])
     # Keep the optimum only when it is not worse than the grid start (it is a refinement of it).
-    if map_eta_ov(pr, n, 0.0) < values[i, j]:
+    if not DOMAIN.contains(pr, n, 0.0) or map_eta_ov(pr, n, 0.0) < values[i, j]:
         pr, n = float(pr_grid[i]), float(n_grid[j])
     # Round off optimiser noise (1e-9 relative changes eta_ov by < 1e-15 at a stationary point).
     return {"PR": round(pr, 6), "N_rps": round(n, 6)}

@@ -92,8 +92,9 @@ Summary
     * - Compressor efficiencies (volumetric, isentropic, electro-mechanical)
       - Three maps of one compressor, version ``ossorio-r290-te-2026-11-21``:
         :math:`\eta_v`, :math:`\eta_{ov}` and :math:`f_{loss}`, polynomials
-        in ``ln PR``, ``N / 70`` and (for :math:`\eta_v` and
-        :math:`\eta_{ov}`) ``T_e / 10``. ``eta_cmp_vol`` is :math:`\eta_v`,
+        in ``ln PR``, the speed ``N`` in rev/s and (for :math:`\eta_v` and
+        :math:`\eta_{ov}`) the evaporating temperature ``T_e`` in °C, both
+        as they are. ``eta_cmp_vol`` is :math:`\eta_v`,
         ``eta_cmp`` is :math:`1 - f_{loss}` and ``eta_cmp_isen`` is
         :math:`\eta_{ov} / (1 - f_{loss})`. The same maps for every
         refrigerant and every compressor; the electrical input is the
@@ -918,19 +919,18 @@ speed and is used as given.
 The maps
 --------
 
-With :math:`l = \ln PR`, :math:`n = N / 70` (:math:`N` in rev/s) and
-:math:`t = T_e / 10` (:math:`T_e` the evaporating saturation temperature
-in °C):
+With :math:`l = \ln PR`, the speed :math:`N` in rev/s and the evaporating
+saturation temperature :math:`T_e` in °C, both as they are (no reference
+speed, no scale):
 
 .. math::
 
-    \eta_v,\ \eta_{ov} = c \cdot [1,\ l,\ l^2,\ l^3,\ n,\ n^2,\ l\,n,\ t]
+    \eta_v,\ \eta_{ov} = c \cdot [1,\ l,\ l^2,\ l^3,\ N,\ N^2,\ l\,N,\ T_e]
     \qquad
-    f_{loss} = c \cdot [1,\ l,\ l^2,\ l^3,\ n,\ n^2,\ l\,n]
+    f_{loss} = c \cdot [1,\ l,\ l^2,\ l^3,\ N,\ N^2,\ l\,N]
 
 Each map is fitted to the 134 points by least squares. The speed is absolute:
-:math:`n = 1` is 70 rev/s whatever the rated speed of the machine, and no
-quantity is read relative to the rated speed. The coefficients are in the
+no quantity is read relative to the rated speed of the machine. The coefficients are in the
 archive's ``coefficients.json``, and the constants of the library module are
 emitted from it.
 

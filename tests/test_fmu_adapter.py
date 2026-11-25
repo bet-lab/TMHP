@@ -23,6 +23,8 @@ import pytest
 
 pytest.importorskip("pythonfmu")
 
+from pythonfmu.enums import Fmi2Status
+
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.equipment_presets import resolve_preset
 from tmhp.integrations._fmi_common import VARIABLE_DESCRIPTIONS
@@ -213,29 +215,60 @@ def test_fmu_slave_validated_preset_reproduces_standalone_step_kernel():
             assert getattr(slave, output) == pytest.approx(expected_value, rel=1e-12, abs=1e-9)
 
 
+_OBSERVABLE = (*_OUTPUTS, "hp_is_on", "converged", "failure_reason")
+_INVALID_INPUTS = [
+    ("T0", float("nan")),
+    ("dhw_draw", -1.0e-5),
+    ("T_sup_w", float("inf")),
+    ("T_sur", float("-inf")),
+    ("RH_out", float("nan")),
+    ("RH_out", -0.1),
+    ("RH_out", 1.5),
+    ("RH_out", 35.0),
+]
+
+
+def _observable(slave: TmhpAshpbSlave) -> dict[str, object]:
+    """Every output value an FMI 2.0 importer can read back after a step."""
+    return {name: getattr(slave, name) for name in _OBSERVABLE}
+
+
+def _running_slave() -> TmhpAshpbSlave:
+    """A slave after one accepted 60 s step with the compressor running."""
+    slave = _make_slave(tank_temperature=40.0)
+    slave.T0 = 2.0
+    assert slave.do_step(0.0, 60.0) is True
+    assert slave.hp_is_on is True
+    assert slave.E_tot > 0.0
+    slave.log_queue.clear()
+    return slave
+
+
 @pytest.mark.parametrize(
     ("field", "value", "step_size"),
-    [
-        ("T0", float("nan"), DT),
-        ("dhw_draw", -1.0e-5, DT),
-        ("T_sup_w", float("inf"), DT),
-        ("T_sur", float("-inf"), DT),
-        ("T0", 7.0, 0.0),
-        ("RH_out", float("nan"), DT),
-        ("RH_out", -0.1, DT),
-        ("RH_out", 35.0, DT),
-    ],
+    [*((field, value, 60.0) for field, value in _INVALID_INPUTS), ("T0", 2.0, 0.0), ("T0", 2.0, float("nan"))],
 )
-def test_fmu_slave_rejects_invalid_importer_inputs(field, value, step_size):
-    """Invalid importer inputs fail the FMI step before the model advances."""
-    slave = _make_slave()
+def test_fmu_slave_discards_rejected_step_without_observable_change(field, value, step_size):
+    """A rejected step returns ``False`` (``fmi2Discard``) and leaves the FMU as it was.
+
+    PythonFMU maps ``False`` to ``fmi2Discard`` and an exception to
+    ``fmi2Fatal``; it has no ``fmi2Error`` path, so illegal step sizes are
+    discarded as well. The state, the step counter and every output stay put,
+    and the log names the rejected value.
+    """
+    slave = _running_slave()
+    before = _observable(slave)
+    state, n = slave._state, slave._n
     setattr(slave, field, value)
 
-    assert slave.do_step(0.0, step_size) is False
-    assert slave.converged is False
-    assert slave.failure_reason == "invalid_input"
-    assert slave.hp_is_on is False
-    assert slave._n == 0
+    assert slave.do_step(60.0, step_size) is False
+
+    assert _observable(slave) == before
+    assert slave._state is state
+    assert slave._n == n
+    assert len(slave.log_queue) == 1
+    assert slave.log_queue[0].status == Fmi2Status.discard
+    assert (field if step_size == 60.0 else "communicationStepSize") in slave.log_queue[0].msg
 
 
 @pytest.mark.parametrize("rh_out", [None, 0.0, 0.35, 1.0])
@@ -405,3 +438,63 @@ def test_fmu_simulates_like_analyze_dynamic(fmu_file):
             atol=1e-9,
             err_msg=out_name,
         )
+
+
+def test_fmu_importer_receives_discard_for_a_rejected_step(fmu_file, capfd, tmp_path):
+    """The built FMI 2.0 FMU discards a rejected step and keeps its outputs.
+
+    Drives the archive through FMPy's C binding with FMPy's default logger, so
+    the status code, the status queries, the outputs and the log line are the
+    ones a real importer receives. Skipped where fmpy cannot run the archive
+    (macOS); Linux and Windows must run it.
+    """
+    import fmpy
+    from fmpy import read_model_description
+    from fmpy.fmi1 import FMICallException
+    from fmpy.fmi2 import FMU2Slave, fmi2Discard, fmi2LastSuccessfulTime, fmi2Terminated
+
+    obstacle = simulation_obstacle(fmu_file)
+    if obstacle is not None:
+        pytest.skip(obstacle)
+
+    md = read_model_description(str(fmu_file))
+    vr = {variable.name: variable.valueReference for variable in md.modelVariables}
+    fmu = FMU2Slave(
+        guid=md.guid,
+        unzipDirectory=fmpy.extract(str(fmu_file), unzipdir=tmp_path / "fmu2"),
+        modelIdentifier=md.coSimulation.modelIdentifier,
+        instanceName="tmhp_fmi2_rejected_step",
+    )
+    fmu.instantiate(loggingOn=True)  # PythonFMU forwards log messages only with loggingOn
+    try:
+        fmu.setReal([vr["T_tank_w_init"]], [40.0])
+        fmu.setupExperiment(startTime=0.0)
+        fmu.enterInitializationMode()
+        fmu.setReal([vr["T0"]], [2.0])
+        fmu.exitInitializationMode()
+        fmu.doStep(currentCommunicationPoint=0.0, communicationStepSize=60.0)
+
+        def read() -> tuple[list[float], list[bool], bytes]:
+            return (
+                fmu.getReal([vr[name] for name in _OUTPUTS]),
+                fmu.getBoolean([vr["hp_is_on"], vr["converged"]]),
+                fmu.getString([vr["failure_reason"]])[0],
+            )
+
+        before = read()
+        assert before[1] == [True, True]
+        capfd.readouterr()
+
+        fmu.setReal([vr["RH_out"]], [1.5])
+        with pytest.raises(FMICallException) as rejected:
+            fmu.doStep(currentCommunicationPoint=60.0, communicationStepSize=60.0)
+        assert rejected.value.status == fmi2Discard
+        assert read() == before
+        # PythonFMU reports the discarded step as the end of the run.
+        assert fmu.getBooleanStatus(fmi2Terminated) is True
+        assert fmu.getRealStatus(fmi2LastSuccessfulTime) == 60.0
+        log = [line for line in capfd.readouterr().out.splitlines() if "rejected" in line]
+        assert len(log) == 1
+        assert "RH_out" in log[0]
+    finally:
+        fmu.freeInstance()

@@ -11,7 +11,7 @@ import pytest
 
 pytest.importorskip("pythonfmu3")
 
-from pythonfmu3 import Fmi3Status
+from pythonfmu3 import Fmi3Status, Fmi3StepResult
 
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.equipment_presets import resolve_preset
@@ -207,36 +207,108 @@ def test_fmu3_slave_validated_preset_reproduces_standalone_step_kernel() -> None
             assert getattr(slave, output) == pytest.approx(expected_value, rel=1e-12, abs=1e-9)
 
 
-@pytest.mark.parametrize(
-    ("field", "value", "step_size"),
-    [
-        ("T0", float("nan"), DT),
-        ("dhw_draw", -1.0e-5, DT),
-        ("T_sup_w", float("inf"), DT),
-        ("T_sur", float("-inf"), DT),
-        ("T0", 7.0, 0.0),
-        ("RH_out", float("nan"), DT),
-        ("RH_out", -0.1, DT),
-        ("RH_out", 35.0, DT),
-    ],
-)
-def test_fmu3_slave_rejects_invalid_importer_inputs(
-    field: str,
-    value: float,
-    step_size: float,
-) -> None:
-    """Invalid importer inputs discard the FMI 3.0 step before state advance."""
-    slave = _make_slave()
+_OBSERVABLE = (*_OUTPUTS, "hp_is_on", "converged", "failure_reason", "time")
+_INVALID_INPUTS = [
+    ("T0", float("nan")),
+    ("dhw_draw", -1.0e-5),
+    ("T_sup_w", float("inf")),
+    ("T_sur", float("-inf")),
+    ("RH_out", float("nan")),
+    ("RH_out", -0.1),
+    ("RH_out", 1.5),
+    ("RH_out", 35.0),
+]
+
+
+def _observable(slave: TmhpAshpbFmi3Slave) -> dict[str, object]:
+    """Every value an FMI 3.0 importer can read back after a step."""
+    return {name: getattr(slave, name) for name in _OBSERVABLE}
+
+
+def _running_slave() -> TmhpAshpbFmi3Slave:
+    """A slave after one accepted 60 s step with the compressor running."""
+    slave = _make_slave(tank_temperature=40.0)
+    slave.T0 = 2.0
+    assert slave.do_step(0.0, 60.0) == Fmi3StepResult(status=Fmi3Status.ok)
+    assert slave.hp_is_on is True
+    assert slave.E_tot > 0.0
+    slave.log_queue.clear()
+    return slave
+
+
+@pytest.mark.parametrize(("field", "value"), _INVALID_INPUTS)
+def test_fmu3_slave_discards_invalid_input_without_observable_change(field: str, value: float) -> None:
+    """An invalid input is discarded and leaves the FMU as it was (FMI 3.0.2 sec. 2.2.4, 4.2.1).
+
+    ``fmi3Discard`` promises "the FMU is in the same state as before the call",
+    and ``earlyReturn`` must not signal an error, so neither the carried state,
+    the step counter, the time, nor any output may change.
+    """
+    slave = _running_slave()
+    before = _observable(slave)
+    state, n = slave._state, slave._n
     setattr(slave, field, value)
 
-    result = slave.do_step(0.0, step_size)
+    result = slave.do_step(60.0, 60.0)
 
-    assert result.status == Fmi3Status.discard
-    assert result.earlyReturn is True
-    assert slave.converged is False
-    assert slave.failure_reason == "invalid_input"
-    assert slave.hp_is_on is False
-    assert slave._n == 0
+    assert result == Fmi3StepResult(status=Fmi3Status.discard)
+    assert _observable(slave) == before
+    assert slave._state is state
+    assert slave._n == n
+    messages = [message.msg for message in slave.log_queue]
+    assert len(messages) == 1
+    assert field in messages[0]
+    assert slave.log_queue[0].status == Fmi3Status.discard
+    assert slave.log_queue[0].debug is True  # forwarded only while debug logging is on
+
+
+def test_fmu3_slave_retries_a_discarded_step_with_corrected_input() -> None:
+    """After a discard the importer can repeat the step with a valid input."""
+    slave = _running_slave()
+    reference = _running_slave()
+    slave.RH_out = 1.5
+    assert slave.do_step(60.0, 60.0).status == Fmi3Status.discard
+
+    slave.RH_out = reference.RH_out = 0.9
+    assert slave.do_step(60.0, 60.0) == Fmi3StepResult(status=Fmi3Status.ok)
+    assert reference.do_step(60.0, 60.0) == Fmi3StepResult(status=Fmi3Status.ok)
+
+    assert _observable(slave) == _observable(reference)
+    assert slave._n == reference._n == 2
+
+
+@pytest.mark.parametrize(
+    ("current_time", "step_size"),
+    [
+        (60.0, 0.0),
+        (60.0, -60.0),
+        (60.0, float("inf")),
+        (60.0, float("nan")),
+        (float("nan"), 60.0),
+    ],
+)
+def test_fmu3_slave_answers_illegal_step_arguments_with_error(current_time: float, step_size: float) -> None:
+    """Illegal ``fmi3DoStep`` arguments return ``fmi3Error`` (FMI 3.0.2 sec. 2.2.4)."""
+    slave = _running_slave()
+    before = _observable(slave)
+    state = slave._state
+
+    result = slave.do_step(current_time, step_size)
+
+    assert result == Fmi3StepResult(status=Fmi3Status.error)
+    assert _observable(slave) == before
+    assert slave._state is state
+    assert slave._n == 1
+    assert len(slave.log_queue) == 1
+    assert slave.log_queue[0].status == Fmi3Status.error
+
+    # After fmi3Error the instance is terminated: a further step is refused too,
+    # also after another exit_initialization_mode(); only a reset (a new slave) clears it.
+    assert slave.do_step(60.0, 60.0) == Fmi3StepResult(status=Fmi3Status.error)
+    assert _observable(slave) == before
+    assert slave._n == 1
+    slave.exit_initialization_mode()
+    assert slave.do_step(0.0, 60.0) == Fmi3StepResult(status=Fmi3Status.error)
 
 
 @pytest.mark.parametrize("rh_out", [None, 0.0, 0.35, 1.0])
@@ -403,3 +475,98 @@ def test_fmu3_simulates_like_analyze_dynamic(fmu3_file) -> None:
             atol=1e-9,
             err_msg=out_name,
         )
+
+
+def test_fmu3_importer_receives_discard_then_error_for_rejected_steps(fmu3_file, tmp_path) -> None:
+    """The built FMI 3.0 FMU answers a rejected step as the adapter contract says.
+
+    Drives the archive through FMPy's C binding, so the status code, the
+    outputs and the log message are the ones a real importer receives.
+    PythonFMU3 does not write the ``earlyReturn`` out-argument, so the test
+    does not read it. Skipped where fmpy cannot run the archive (macOS);
+    Linux and Windows must run it.
+    """
+    from ctypes import byref
+
+    import fmpy
+    from fmpy import read_model_description
+    from fmpy.fmi3 import FMU3Slave, fmi3Boolean, fmi3Float64, fmi3LogMessageCallback
+
+    obstacle = simulation_obstacle(fmu3_file)
+    if obstacle is not None:
+        pytest.skip(obstacle)
+
+    md = read_model_description(str(fmu3_file))
+    vr = {variable.name: variable.valueReference for variable in md.modelVariables}
+    unzip = fmpy.extract(str(fmu3_file), unzipdir=tmp_path / "fmu3")
+
+    def run(logging_on: bool) -> list[tuple[int, str]]:
+        logged: list[tuple[int, str]] = []
+
+        def log_message(_env, status, _category, message):
+            logged.append((int(status), message.decode("utf-8")))
+
+        fmu = FMU3Slave(
+            guid=md.guid,
+            unzipDirectory=unzip,
+            modelIdentifier=md.coSimulation.modelIdentifier,
+            instanceName=f"tmhp_fmi3_rejected_step_{logging_on}",
+        )
+        fmu.instantiate(loggingOn=logging_on, logMessage=fmi3LogMessageCallback(log_message))
+        try:
+            fmu.setFloat64([vr["T_tank_w_init"]], [40.0])
+            fmu.enterInitializationMode(startTime=0.0)
+            fmu.setFloat64([vr["T0"]], [2.0])
+            fmu.exitInitializationMode()
+            fmu.doStep(currentCommunicationPoint=0.0, communicationStepSize=60.0)
+
+            def read() -> tuple[list[float], list[bool], str]:
+                return (
+                    fmu.getFloat64([vr[name] for name in (*_OUTPUTS, "time")]),
+                    fmu.getBoolean([vr["hp_is_on"], vr["converged"]]),
+                    fmu.getString([vr["failure_reason"]])[0],
+                )
+
+            def raw_step(current_time: float, step_size: float) -> int:
+                event, terminate, early, last = fmi3Boolean(), fmi3Boolean(), fmi3Boolean(), fmi3Float64(-1.0)
+                status = fmu.dll.fmi3DoStep(
+                    fmu.component,
+                    fmi3Float64(current_time),
+                    fmi3Float64(step_size),
+                    fmi3Boolean(True),
+                    byref(event),
+                    byref(terminate),
+                    byref(early),
+                    byref(last),
+                )
+                return int(status)  # lastSuccessfulTime is undefined after a refusal
+
+            before = read()
+            assert before[0][-1] == 60.0
+            assert before[1] == [True, True]
+
+            fmu.setFloat64([vr["RH_out"]], [1.5])
+            assert raw_step(60.0, 60.0) == 2  # fmi3Discard
+            assert read() == before
+
+            fmu.setFloat64([vr["RH_out"]], [0.9])
+            assert raw_step(60.0, 60.0) == 0  # the corrected step is accepted
+            retried = read()
+            assert retried[0][-1] == 120.0
+            assert retried[1][1] is True
+            assert retried[2] == "none"
+
+            assert raw_step(120.0, 0.0) == 3  # fmi3Error for an illegal step size
+            assert read() == retried
+            assert raw_step(120.0, 60.0) == 3  # terminated after the error
+            assert read() == retried
+        finally:
+            fmu.freeInstance()
+        return logged
+
+    logged = run(logging_on=True)
+    assert [status for status, _ in logged] == [2, 3, 3]  # the returned statuses
+    assert "RH_out" in logged[0][1]
+    assert "communicationStepSize" in logged[1][1]
+    assert "terminated" in logged[2][1]
+    assert run(logging_on=False) == []

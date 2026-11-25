@@ -33,11 +33,17 @@ The library has no separate drive model (#217).
 
 ## Maps
 
-With `l = ln PR`, `n = N/70` (N in rev/s) and `t = T_e/10` (T_e the evaporating saturation
-temperature in degrees C):
+With `l = ln PR`, the speed `N` in rev/s and the evaporating saturation temperature `T_e` in
+degrees C, both as they are:
 
-    eta_v, eta_ov = c . [1, l, l^2, l^3, n, n^2, l n, t]
-    f_loss        = c . [1, l, l^2, l^3, n, n^2, l n]
+    eta_v, eta_ov = c . [1, l, l^2, l^3, N, N^2, l N, T_e]
+    f_loss        = c . [1, l, l^2, l^3, N, N^2, l N]
+
+Until 2026-11-23 the coefficients were written for `n = N/70` and `t = T_e/10`. Nothing recorded
+why, and a scale changes only the coefficients, not the fitted function (#247). They are now
+written for `N` and `T_e` themselves. The maps are the same: at the 134 points and on a grid of
+72 000 points (PR 1.05-16, N 5-150 rev/s, T_e -45 to 35 degrees C) the two sets of coefficients
+differ by at most 3e-12 in any efficiency, and the scores below are unchanged.
 
 The library evaluates `eta_cmp_vol = eta_v`, `eta_cmp = 1 - f_loss` and
 `eta_cmp_isen = eta_ov / (1 - f_loss)`.
@@ -98,7 +104,7 @@ preset, 17 cm wide, as PNG and PDF in `figures/`. The figures carry no titles; t
 
 | file | caption |
 |---|---|
-| `map_pipeline` | How the 134 measured test points become the maps. The input is the test table (thesis Appendix 1), not a performance-curve equation. Upper three rows: measured flow, power and speed, with the CoolProp states from the measured T_e, T_c, suction and discharge temperatures, give three efficiencies per point (the fit targets). Lower rows: measured T_e, T_c and N give the pressure ratio and the terms ln PR, N/70 and T_e/10 (the axes). Least squares joins them into the three maps. Accent: the evaporating temperature, the axis #218 added; it reaches η_ov and η_v, not f_loss. |
+| `map_pipeline` | How the 134 measured test points become the maps. The input is the test table (thesis Appendix 1), not a performance-curve equation. Upper three rows: measured flow, power and speed, with the CoolProp states from the measured T_e, T_c, suction and discharge temperatures, give three efficiencies per point (the fit targets). Lower rows: measured T_e, T_c and N give the pressure ratio and the terms ln PR, N (rev/s) and T_e (°C), the last two as they are (the axes). Least squares joins them into the three maps. Accent: the evaporating temperature, the axis #218 added; it reaches η_ov and η_v, not f_loss. |
 | `cycle_use` | How the cycle uses the three maps at the operating point the solver tries. The maps are evaluated at its PR, N and T_e (f_loss at PR and N). η_v sets the mass flow ṁ = ρ_1 V N η_v. η_ov with f_loss sets the discharge enthalpy through η_isen = η_ov/(1 − f_loss). η_cmp = 1 − f_loss, the loss that never reaches the gas, sets the electrical input E_cmp = ṁ(h_2 − h_1)/η_cmp. The balance gives the duty Q, E_cmp, the discharge temperature and COP = Q/(E_cmp + E_aux), with E_aux the fans and pumps. Accent: the speed N is changed until Q meets the request. T_e and T_c come from the heat-exchanger closure, which is not drawn. Because η_isen η_cmp = η_ov, E_cmp = ṁ(h_2s − h_1)/η_ov: the electrical input depends on η_ov alone, and f_loss only splits the loss between the gas (discharge temperature, condenser duty) and the outside. |
 | `map_heatmaps` | a–i: the maps at T_e = −20 / 0 / 20 °C (columns) for η_v, η_ov and f_loss (rows), with the measured points at that T_e on the same colour scale. A marker that matches its background is a point the map reproduces. Pale: outside the data (speeds below 30 or above 110 rev/s, pressure ratios outside the (PR, T_e) hull at that T_e). f_loss has no T_e term. |
 | `map_slices` | a–i: the maps at 30 / 70 / 110 rev/s (columns) against the measured points coloured by T_e; solid at T_e = −20 / 0 / 20 °C inside the data, dotted outside it; dashed, the PR–N quadratic of 2026-11-01 they replace. |

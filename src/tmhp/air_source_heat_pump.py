@@ -52,6 +52,7 @@ from .compressor_envelope import (
     resolve_x_suction_min,
     steady_envelope,
 )
+from .compressor_plots import CompressorMapPlotMixin
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
     CAPACITY_CLAMPED_MIN,
@@ -523,7 +524,7 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
         raise ValueError(f"{error} at step {step}") from None
 
 
-class AirSourceHeatPump(ReferenceStateMixin):
+class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
     """Air source heat pump with indoor-unit air heat exchange.
 
     The refrigerant cycle is resolved via CoolProp with

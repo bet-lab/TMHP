@@ -99,6 +99,7 @@ from .compressor_envelope import (
     steady_envelope,
     steady_smallest_duty,
 )
+from .compressor_plots import CompressorMapPlotMixin
 from .compressor_speed import solve_compressor_speed
 from .constants import c_w, rho_w
 from .cycling import (
@@ -331,7 +332,7 @@ class _OutdoorSearch:
         return OUTDOOR_COIL_NO_BAND
 
 
-class AirSourceHeatPumpBoiler(ReferenceStateMixin):
+class AirSourceHeatPumpBoiler(ReferenceStateMixin, CompressorMapPlotMixin):
     """Air source heat pump boiler with outdoor-air evaporator.
 
     The refrigerant cycle is resolved via CoolProp with

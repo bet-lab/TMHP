@@ -62,8 +62,8 @@ Lower-level building blocks used by the system models.
         :link: support/visualization
         :link-type: doc
 
-        Plotting facade and Mollier (T-h / P-h / T-s)
-        diagrams.
+        Plotting facade, Mollier (T-h / P-h / T-s)
+        diagrams and the compressor-map figures.
 
     .. grid-item-card:: Utilities & constants
         :link: support/utilities

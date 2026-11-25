@@ -40,6 +40,7 @@ from tmhp.compressor_envelope import (
     condensing_stretch,
     condensing_tank_cutout,
     condensing_tank_reach,
+    smallest_duty_on_condensing_limit,
 )
 from tmhp.dynamic_context import (
     DUTY_MATCH_RTOL,
@@ -1176,6 +1177,18 @@ def charge(request):
         model = _model(family, condensing_limit_control="reduce_duty", **({"dt_s": dt} if family == "GSHPB" else {}))
         runs[dt] = (model, _run(family, model, dt))
     return family, runs
+
+
+def test_the_documented_start_and_end_of_the_stretch():
+    """docs/source/models/ashpb.rst (#227): the R32 15 kW unit starts reducing at 57.99 degC and stops
+    where the duty at its speed floor condenses on the limit: 63.63 / 62.66 / 61.30 degC at -7 / 15 / 35 degC."""
+    model = _quiet(tmhp.AirSourceHeatPumpBoiler, **ISSUE, condensing_limit_control="reduce_duty")
+    T_reach, k_hx = condensing_tank_reach(model), model.K_tank_hx
+    assert condensing_tank_cutout(model) == pytest.approx(57.99, abs=0.005)
+    assert k_hx == pytest.approx(2140.0, rel=0.005)
+    for T0, T_stop in ((-7.0, 63.63), (15.0, 62.66), (35.0, 61.30)):
+        q_min = _quiet(smallest_duty_on_condensing_limit, model, model._frost_free_steady_floor(T0))
+        assert T_reach - q_min / k_hx == pytest.approx(T_stop, abs=0.01), T0
 
 
 def test_the_issue_band_is_kept_with_reduced_duty_charging():

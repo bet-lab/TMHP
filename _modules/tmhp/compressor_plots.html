@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>tmhp.compressor_plots - TMHP</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/TMHP/_modules/tmhp/compressor_plots.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=4ea1e3a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/integration-diagrams.css?v=b297bf1e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>TMHP</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Start</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../integrations/index.html">Integrations</a></li><li class="link"><a href="../../api/index.html">API</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/minimal-input.html">Minimal input</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/result-keys.html">Result keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/scope-and-limits.html">Scope and limits</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-response.html">Ground response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-flow.html">Coupled ground-loop flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/reference-state.html">Compressor reference state</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/fmu.html">FMI FMU export</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/TMHP">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">tmhp.compressor_plots</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <h1>Source code for tmhp.compressor_plots</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Fixed-form figures of the compressor efficiency maps and of a calibration&#39;s performance (#256).</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="sd">Three figures, always drawn the same way so that results recorded in</span>
+</span><span data-line="4"><span class="sd">different issues can be compared at a glance:</span>
+</span><span data-line="5">
+</span><span data-line="6"><span class="sd">:func:`plot_compressor_map`</span>
+</span><span data-line="7"><span class="sd">    One efficiency over (pressure ratio, speed) at a few fixed evaporating</span>
+</span><span data-line="8"><span class="sd">    temperatures: row 1 *before*, row 2 *after*, one column per ``T_evap``.</span>
+</span><span data-line="9"><span class="sd">    Axis ranges and colour levels are fixed per quantity. Every heat-pump</span>
+</span><span data-line="10"><span class="sd">    model also has it as a method (:class:`CompressorMapPlotMixin`), with its</span>
+</span><span data-line="11"><span class="sd">    own efficiencies as *after* and the default maps as *before*.</span>
+</span><span data-line="12"><span class="sd">:func:`plot_calibration_stages`</span>
+</span><span data-line="13"><span class="sd">    COP error after each calibration stage: RMSE of ``ln(COP_model /</span>
+</span><span data-line="14"><span class="sd">    COP_catalogue)`` on the left, MAPE on the right; a line for the fit to all</span>
+</span><span data-line="15"><span class="sd">    points and markers for the cross-validated value (filled = adopted).</span>
+</span><span data-line="16"><span class="sd">:func:`plot_cop_parity`</span>
+</span><span data-line="17"><span class="sd">    Model against catalogue COP, *before* on the left and *after* on the right,</span>
+</span><span data-line="18"><span class="sd">    on the same axes, with the error scores in the panel titles.</span>
+</span><span data-line="19">
+</span><span data-line="20"><span class="sd">Each function returns a :class:`matplotlib.figure.Figure` and sets no global</span>
+</span><span data-line="21"><span class="sd">style; apply one (for instance ``dartwork_mpl.style.use(&quot;report&quot;)``) before</span>
+</span><span data-line="22"><span class="sd">calling. Colours: grey = before (default maps), violet = after (calibrated),</span>
+</span><span data-line="23"><span class="sd">orange = the data range of the default maps, blue = efficiency magnitude.</span>
+</span><span data-line="24"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="25">
+</span><span data-line="26"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="27">
+</span><span data-line="28"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="29"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+</span><span data-line="30"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+</span><span data-line="31"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">cast</span>
+</span><span data-line="32">
+</span><span data-line="33"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="34">
+</span><span data-line="35"><span class="kn">from</span><span class="w"> </span><span class="nn">.compressor_efficiency</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="36">    <span class="n">DOMAIN</span><span class="p">,</span>
+</span><span data-line="37">    <span class="n">QUANTITIES</span><span class="p">,</span>
+</span><span data-line="38">    <span class="n">InvalidCompressorEfficiency</span><span class="p">,</span>
+</span><span data-line="39">    <span class="n">SuctionState</span><span class="p">,</span>
+</span><span data-line="40">    <span class="n">_eval_eff</span><span class="p">,</span>
+</span><span data-line="41">    <span class="n">default_efficiencies</span><span class="p">,</span>
+</span><span data-line="42"><span class="p">)</span>
+</span><span data-line="43">
+</span><span data-line="44"><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+</span><span data-line="45">    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="46">    <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.axes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Axes</span>
+</span><span data-line="47">    <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.figure</span><span class="w"> </span><span class="kn">import</span> <span class="n">Figure</span>
+</span><span data-line="48">
+</span><span data-line="49"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="50">    <span class="s2">&quot;DEFAULT_T_EVAP_C&quot;</span><span class="p">,</span>
+</span><span data-line="51">    <span class="s2">&quot;MAP_QUANTITIES&quot;</span><span class="p">,</span>
+</span><span data-line="52">    <span class="s2">&quot;CompressorMapPlotMixin&quot;</span><span class="p">,</span>
+</span><span data-line="53">    <span class="s2">&quot;CopErrors&quot;</span><span class="p">,</span>
+</span><span data-line="54">    <span class="s2">&quot;OperatingPoints&quot;</span><span class="p">,</span>
+</span><span data-line="55">    <span class="s2">&quot;StageScore&quot;</span><span class="p">,</span>
+</span><span data-line="56">    <span class="s2">&quot;cop_errors&quot;</span><span class="p">,</span>
+</span><span data-line="57">    <span class="s2">&quot;efficiency_grid&quot;</span><span class="p">,</span>
+</span><span data-line="58">    <span class="s2">&quot;plot_calibration_stages&quot;</span><span class="p">,</span>
+</span><span data-line="59">    <span class="s2">&quot;plot_compressor_map&quot;</span><span class="p">,</span>
+</span><span data-line="60">    <span class="s2">&quot;plot_cop_parity&quot;</span><span class="p">,</span>
+</span><span data-line="61"><span class="p">]</span>
+</span><span data-line="62">
+</span><span data-line="63"><span class="c1">#: Evaporating temperatures [°C] of the map columns: cold heating, mild heating, cooling.</span>
+</span><span data-line="64"><span class="n">DEFAULT_T_EVAP_C</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+</span><span data-line="65"><span class="c1">#: Default axis ranges of the map panels: pressure ratio (log axis) and speed [rev/s].</span>
+</span><span data-line="66"><span class="n">DEFAULT_PR_RANGE</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.4</span><span class="p">,</span> <span class="mf">13.0</span><span class="p">)</span>
+</span><span data-line="67"><span class="n">DEFAULT_RPS_RANGE</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">120.0</span><span class="p">)</span>
+</span><span data-line="68">
+</span><span data-line="69"><span class="n">GREY</span> <span class="o">=</span> <span class="s2">&quot;#8a8f98&quot;</span>
+</span><span data-line="70"><span class="n">VIOLET</span> <span class="o">=</span> <span class="s2">&quot;#7c3aed&quot;</span>
+</span><span data-line="71"><span class="n">ORANGE</span> <span class="o">=</span> <span class="s2">&quot;#f97316&quot;</span>
+</span><span data-line="72">
+</span><span data-line="73">
+</span><span data-line="74"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="75"><span class="k">class</span><span class="w"> </span><span class="nc">_MapQuantity</span><span class="p">:</span>
+</span><span data-line="76"><span class="w">    </span><span class="sd">&quot;&quot;&quot;How one plotted efficiency is named and coloured (fixed levels keep figures comparable).&quot;&quot;&quot;</span>
+</span><span data-line="77">
+</span><span data-line="78">    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="79">    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="80">    <span class="n">levels</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+</span><span data-line="81">
+</span><span data-line="82">
+</span><span data-line="83"><span class="k">def</span><span class="w"> </span><span class="nf">_levels</span><span class="p">(</span><span class="n">lo</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">hi</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+</span><span data-line="84"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Evenly spaced contour levels from ``lo`` to ``hi`` inclusive.&quot;&quot;&quot;</span>
+</span><span data-line="85">    <span class="n">n</span> <span class="o">=</span> <span class="nb">round</span><span class="p">((</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">/</span> <span class="n">step</span><span class="p">)</span>
+</span><span data-line="86">    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">lo</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">step</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+</span><span data-line="87">
+</span><span data-line="88">
+</span><span data-line="89"><span class="c1">#: Quantities :func:`plot_compressor_map` can draw. ``eta_ov`` is the product</span>
+</span><span data-line="90"><span class="c1">#: ``eta_cmp_isen * eta_cmp`` (the overall efficiency the calibration scales);</span>
+</span><span data-line="91"><span class="c1">#: the others are the package&#39;s three efficiencies as the cycle evaluates them.</span>
+</span><span data-line="92"><span class="n">MAP_QUANTITIES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_MapQuantity</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="93">    <span class="s2">&quot;eta_ov&quot;</span><span class="p">:</span> <span class="n">_MapQuantity</span><span class="p">(</span><span class="s2">&quot;Overall efficiency&quot;</span><span class="p">,</span> <span class="s2">&quot;η_ov&quot;</span><span class="p">,</span> <span class="n">_levels</span><span class="p">(</span><span class="mf">0.30</span><span class="p">,</span> <span class="mf">0.85</span><span class="p">,</span> <span class="mf">0.025</span><span class="p">)),</span>
+</span><span data-line="94">    <span class="s2">&quot;eta_cmp_isen&quot;</span><span class="p">:</span> <span class="n">_MapQuantity</span><span class="p">(</span><span class="s2">&quot;Isentropic efficiency&quot;</span><span class="p">,</span> <span class="s2">&quot;η_is&quot;</span><span class="p">,</span> <span class="n">_levels</span><span class="p">(</span><span class="mf">0.40</span><span class="p">,</span> <span class="mf">1.00</span><span class="p">,</span> <span class="mf">0.025</span><span class="p">)),</span>
+</span><span data-line="95">    <span class="s2">&quot;eta_cmp_vol&quot;</span><span class="p">:</span> <span class="n">_MapQuantity</span><span class="p">(</span><span class="s2">&quot;Volumetric efficiency&quot;</span><span class="p">,</span> <span class="s2">&quot;η_v&quot;</span><span class="p">,</span> <span class="n">_levels</span><span class="p">(</span><span class="mf">0.70</span><span class="p">,</span> <span class="mf">1.00</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">)),</span>
+</span><span data-line="96">    <span class="s2">&quot;eta_cmp&quot;</span><span class="p">:</span> <span class="n">_MapQuantity</span><span class="p">(</span><span class="s2">&quot;Electromechanical efficiency&quot;</span><span class="p">,</span> <span class="s2">&quot;η_em&quot;</span><span class="p">,</span> <span class="n">_levels</span><span class="p">(</span><span class="mf">0.70</span><span class="p">,</span> <span class="mf">1.00</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">)),</span>
+</span><span data-line="97"><span class="p">}</span>
+</span><span data-line="98">
+</span><span data-line="99">
+</span><span data-line="100"><span class="k">class</span><span class="w"> </span><span class="nc">_HasEfficiencies</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+</span><span data-line="101">    <span class="n">eta_cmp_isen</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span>
+</span><span data-line="102">    <span class="n">eta_cmp_vol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span>
+</span><span data-line="103">    <span class="n">eta_cmp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span>
+</span><span data-line="104">
+</span><span data-line="105">
+</span><span data-line="106"><span class="n">EfficiencySource</span> <span class="o">=</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">]</span> <span class="o">|</span> <span class="n">_HasEfficiencies</span>
+</span><span data-line="107">
+</span><span data-line="108">
+</span><span data-line="109"><span class="k">def</span><span class="w"> </span><span class="nf">_efficiency_set</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">EfficiencySource</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">]:</span>
+</span><span data-line="110"><span class="w">    </span><span class="sd">&quot;&quot;&quot;The three efficiencies of ``source``: a mapping keyed by :data:`QUANTITIES`, or a model with those attributes.</span>
+</span><span data-line="111">
+</span><span data-line="112"><span class="sd">    ``None`` gives the default maps. Raises ``TypeError`` for anything that has</span>
+</span><span data-line="113"><span class="sd">    not all three.</span>
+</span><span data-line="114"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="115">    <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="116">        <span class="k">return</span> <span class="n">default_efficiencies</span><span class="p">()</span>
+</span><span data-line="117">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+</span><span data-line="118">        <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">QUANTITIES</span> <span class="k">if</span> <span class="n">q</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">source</span><span class="p">]</span>
+</span><span data-line="119">        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+</span><span data-line="120">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;efficiency mapping lacks </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">; it needs the keys </span><span class="si">{</span><span class="n">QUANTITIES</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="121">        <span class="k">return</span> <span class="p">{</span><span class="n">q</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">QUANTITIES</span><span class="p">}</span>
+</span><span data-line="122">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="123">        <span class="k">return</span> <span class="p">{</span><span class="n">q</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">QUANTITIES</span><span class="p">}</span>
+</span><span data-line="124">    <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="125">        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source</span><span class="si">!r}</span><span class="s2"> is neither a mapping of </span><span class="si">{</span><span class="n">QUANTITIES</span><span class="si">}</span><span class="s2"> nor a model with those attributes&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+</span><span data-line="126">
+</span><span data-line="127">
+</span><span data-line="128"><span class="k">def</span><span class="w"> </span><span class="nf">_efficiency_value</span><span class="p">(</span>
+</span><span data-line="129">    <span class="n">eff</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">],</span> <span class="n">quantity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rps</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">SuctionState</span>
+</span><span data-line="130"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="131"><span class="w">    </span><span class="sd">&quot;&quot;&quot;``quantity`` at one point as the cycle evaluates it (above one set to one); NaN where it is infeasible.&quot;&quot;&quot;</span>
+</span><span data-line="132">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="133">        <span class="k">if</span> <span class="n">quantity</span> <span class="o">==</span> <span class="s2">&quot;eta_ov&quot;</span><span class="p">:</span>
+</span><span data-line="134">            <span class="k">return</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eff</span><span class="p">[</span><span class="s2">&quot;eta_cmp_isen&quot;</span><span class="p">],</span> <span class="n">pr</span><span class="p">,</span> <span class="n">rps</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span> <span class="o">*</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eff</span><span class="p">[</span><span class="s2">&quot;eta_cmp&quot;</span><span class="p">],</span> <span class="n">pr</span><span class="p">,</span> <span class="n">rps</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+</span><span data-line="135">        <span class="k">return</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eff</span><span class="p">[</span><span class="n">quantity</span><span class="p">],</span> <span class="n">pr</span><span class="p">,</span> <span class="n">rps</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+</span><span data-line="136">    <span class="k">except</span> <span class="n">InvalidCompressorEfficiency</span><span class="p">:</span>
+</span><span data-line="137">        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="138">
+</span><span data-line="139">
+<div class="viewcode-block" id="efficiency_grid">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.efficiency_grid">[docs]</a>
+</span><span data-line="140"><span class="k">def</span><span class="w"> </span><span class="nf">efficiency_grid</span><span class="p">(</span>
+</span><span data-line="141">    <span class="n">efficiencies</span><span class="p">:</span> <span class="n">EfficiencySource</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="142">    <span class="n">quantity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="143">    <span class="n">pressure_ratio</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span data-line="144">    <span class="n">rps</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span data-line="145">    <span class="n">T_evap_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="146"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span data-line="147"><span class="w">    </span><span class="sd">&quot;&quot;&quot;``quantity`` on the grid ``rps`` x ``pressure_ratio`` at one evaporating temperature.</span>
+</span><span data-line="148">
+</span><span data-line="149"><span class="sd">    Returns an array of shape ``(len(rps), len(pressure_ratio))``. Each value is</span>
+</span><span data-line="150"><span class="sd">    what the cycle would use (:func:`tmhp.compressor_efficiency._eval_eff`: a</span>
+</span><span data-line="151"><span class="sd">    value above one is set to one); an infeasible point (nonpositive or</span>
+</span><span data-line="152"><span class="sd">    nonfinite efficiency) is NaN. ``efficiencies`` is as for</span>
+</span><span data-line="153"><span class="sd">    :func:`plot_compressor_map`. Raises ``ValueError`` for an unknown quantity.</span>
+</span><span data-line="154"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="155">    <span class="k">if</span> <span class="n">quantity</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MAP_QUANTITIES</span><span class="p">:</span>
+</span><span data-line="156">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;quantity must be one of </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">MAP_QUANTITIES</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">quantity</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="157">    <span class="n">eff</span> <span class="o">=</span> <span class="n">_efficiency_set</span><span class="p">(</span><span class="n">efficiencies</span><span class="p">)</span>
+</span><span data-line="158">    <span class="n">state</span> <span class="o">=</span> <span class="n">SuctionState</span><span class="p">(</span><span class="n">T_evap_C</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">)</span>
+</span><span data-line="159">    <span class="n">prs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pressure_ratio</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="160">    <span class="n">ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rps</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="161">    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">ns</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">prs</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+</span><span data-line="162">    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ns</span><span class="p">):</span>
+</span><span data-line="163">        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">prs</span><span class="p">):</span>
+</span><span data-line="164">            <span class="n">out</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">_efficiency_value</span><span class="p">(</span><span class="n">eff</span><span class="p">,</span> <span class="n">quantity</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">pr</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">state</span><span class="p">)</span>
+</span><span data-line="165">    <span class="k">return</span> <span class="n">out</span></div>
+
+</span><span data-line="166">
+</span><span data-line="167">
+<div class="viewcode-block" id="OperatingPoints">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.OperatingPoints">[docs]</a>
+</span><span data-line="168"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="169"><span class="k">class</span><span class="w"> </span><span class="nc">OperatingPoints</span><span class="p">:</span>
+</span><span data-line="170"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compressor operating points to overlay on the map: pressure ratio, speed [rev/s], T_evap [°C].</span>
+</span><span data-line="171">
+</span><span data-line="172"><span class="sd">    Equal-length 1-D arrays; points with a non-finite value are dropped.</span>
+</span><span data-line="173"><span class="sd">    Build one from model results with :meth:`from_results`.</span>
+</span><span data-line="174"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="175">
+</span><span data-line="176">    <span class="n">pressure_ratio</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</span><span data-line="177">    <span class="n">rps</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</span><span data-line="178">    <span class="n">T_evap_C</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</span><span data-line="179">
+</span><span data-line="180">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="181">        <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pressure_ratio</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_evap_C</span><span class="p">)]</span>
+</span><span data-line="182">        <span class="k">if</span> <span class="nb">len</span><span class="p">({</span><span class="n">a</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">})</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="183">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;pressure_ratio, rps and T_evap_C must have the same length&quot;</span><span class="p">)</span>
+</span><span data-line="184">        <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="185">        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">((</span><span class="s2">&quot;pressure_ratio&quot;</span><span class="p">,</span> <span class="s2">&quot;rps&quot;</span><span class="p">,</span> <span class="s2">&quot;T_evap_C&quot;</span><span class="p">),</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+</span><span data-line="186">            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="n">keep</span><span class="p">])</span>
+</span><span data-line="187">
+<div class="viewcode-block" id="OperatingPoints.from_results">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.OperatingPoints.from_results">[docs]</a>
+</span><span data-line="188">    <span class="nd">@classmethod</span>
+</span><span data-line="189">    <span class="k">def</span><span class="w"> </span><span class="nf">from_results</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">results</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">OperatingPoints</span><span class="p">:</span>
+</span><span data-line="190"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Points from model result rows (a DataFrame or a mapping of columns).</span>
+</span><span data-line="191">
+</span><span data-line="192"><span class="sd">        Uses ``pr_cmp [-]`` when present, else ``P_ref_cmp_out [Pa] /</span>
+</span><span data-line="193"><span class="sd">        P_ref_cmp_in [Pa]``; ``cmp_rpm [rpm]`` / 60; ``T_ref_evap_sat [°C]``.</span>
+</span><span data-line="194"><span class="sd">        Raises ``KeyError`` naming a missing column.</span>
+</span><span data-line="195"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="196">        <span class="k">if</span> <span class="s2">&quot;pr_cmp [-]&quot;</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+</span><span data-line="197">            <span class="n">pr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;pr_cmp [-]&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="198">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="199">            <span class="n">pr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;P_ref_cmp_out [Pa]&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+</span><span data-line="200">                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;P_ref_cmp_in [Pa]&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span>
+</span><span data-line="201">            <span class="p">)</span>
+</span><span data-line="202">        <span class="n">rps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;cmp_rpm [rpm]&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="mf">60.0</span>
+</span><span data-line="203">        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">pr</span><span class="p">,</span> <span class="n">rps</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;T_ref_evap_sat [°C]&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span></div>
+</div>
+
+</span><span data-line="204">
+</span><span data-line="205">
+</span><span data-line="206"><span class="k">def</span><span class="w"> </span><span class="nf">_plt</span><span class="p">():</span>
+</span><span data-line="207">    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span data-line="208">
+</span><span data-line="209">    <span class="k">return</span> <span class="n">plt</span>
+</span><span data-line="210">
+</span><span data-line="211">
+</span><span data-line="212"><span class="k">def</span><span class="w"> </span><span class="nf">_peak</span><span class="p">(</span><span class="n">prs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ns</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="213"><span class="w">    </span><span class="sd">&quot;&quot;&quot;(value, pressure ratio, speed) of the largest finite grid value, or None if the grid has none.&quot;&quot;&quot;</span>
+</span><span data-line="214">    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+</span><span data-line="215">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="216">    <span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanargmax</span><span class="p">(</span><span class="n">Z</span><span class="p">),</span> <span class="n">Z</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span><span data-line="217">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">Z</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">prs</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">ns</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+</span><span data-line="218">
+</span><span data-line="219">
+<div class="viewcode-block" id="plot_compressor_map">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.plot_compressor_map">[docs]</a>
+</span><span data-line="220"><span class="k">def</span><span class="w"> </span><span class="nf">plot_compressor_map</span><span class="p">(</span>
+</span><span data-line="221">    <span class="n">before</span><span class="p">:</span> <span class="n">EfficiencySource</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="222">    <span class="n">after</span><span class="p">:</span> <span class="n">EfficiencySource</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="223">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="224">    <span class="n">T_evap_C</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_T_EVAP_C</span><span class="p">,</span>
+</span><span data-line="225">    <span class="n">quantity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;eta_ov&quot;</span><span class="p">,</span>
+</span><span data-line="226">    <span class="n">points</span><span class="p">:</span> <span class="n">OperatingPoints</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="227">    <span class="n">labels</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Default maps&quot;</span><span class="p">,</span> <span class="s2">&quot;Calibrated&quot;</span><span class="p">),</span>
+</span><span data-line="228">    <span class="n">pr_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_PR_RANGE</span><span class="p">,</span>
+</span><span data-line="229">    <span class="n">rps_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_RPS_RANGE</span><span class="p">,</span>
+</span><span data-line="230">    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="231">    <span class="n">resolution</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mi">120</span><span class="p">),</span>
+</span><span data-line="232"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Figure</span><span class="p">:</span>
+</span><span data-line="233"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Efficiency map before (row 1) and after (row 2), one column per evaporating temperature.</span>
+</span><span data-line="234">
+</span><span data-line="235"><span class="sd">    ``before`` and ``after`` are each a mapping of the three efficiencies</span>
+</span><span data-line="236"><span class="sd">    (``eta_cmp_isen``, ``eta_cmp_vol``, ``eta_cmp``), a heat-pump model (its</span>
+</span><span data-line="237"><span class="sd">    attributes of those names), or ``None`` for the default maps. ``quantity``</span>
+</span><span data-line="238"><span class="sd">    is a key of :data:`MAP_QUANTITIES`; its colour levels are fixed, values</span>
+</span><span data-line="239"><span class="sd">    beyond them take the end colours. Axes: pressure ratio ``r_p`` (log,</span>
+</span><span data-line="240"><span class="sd">    ``pr_range``) and speed ``N`` [rev/s] (``rps_range``), shared by all panels.</span>
+</span><span data-line="241">
+</span><span data-line="242"><span class="sd">    Drawn on every panel: the efficiency (filled contours, labelled lines),</span>
+</span><span data-line="243"><span class="sd">    the data range of the default maps at that ``T_evap`` (orange), and the</span>
+</span><span data-line="244"><span class="sd">    grid peak (diamond; value and place in the panel title). ``points``</span>
+</span><span data-line="245"><span class="sd">    (an :class:`OperatingPoints` or model result rows) are drawn on the column</span>
+</span><span data-line="246"><span class="sd">    whose ``T_evap`` is nearest to each point&#39;s. ``resolution`` is the grid</span>
+</span><span data-line="247"><span class="sd">    size (pressure ratio, speed).</span>
+</span><span data-line="248">
+</span><span data-line="249"><span class="sd">    Returns the figure (2 x ``len(T_evap_C)`` map axes and one colour bar).</span>
+</span><span data-line="250"><span class="sd">    Raises ``ValueError`` for an unknown quantity or no temperatures, and</span>
+</span><span data-line="251"><span class="sd">    ``TypeError`` for an efficiency source without the three efficiencies.</span>
+</span><span data-line="252"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="253">    <span class="k">if</span> <span class="n">quantity</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MAP_QUANTITIES</span><span class="p">:</span>
+</span><span data-line="254">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;quantity must be one of </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">MAP_QUANTITIES</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">quantity</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="255">    <span class="n">temps</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">T_evap_C</span><span class="p">]</span>
+</span><span data-line="256">    <span class="k">if</span> <span class="ow">not</span> <span class="n">temps</span><span class="p">:</span>
+</span><span data-line="257">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;T_evap_C needs at least one temperature&quot;</span><span class="p">)</span>
+</span><span data-line="258">    <span class="n">spec</span> <span class="o">=</span> <span class="n">MAP_QUANTITIES</span><span class="p">[</span><span class="n">quantity</span><span class="p">]</span>
+</span><span data-line="259">    <span class="n">rows</span> <span class="o">=</span> <span class="p">(</span><span class="n">_efficiency_set</span><span class="p">(</span><span class="n">before</span><span class="p">),</span> <span class="n">_efficiency_set</span><span class="p">(</span><span class="n">after</span><span class="p">))</span>
+</span><span data-line="260">    <span class="n">pts</span> <span class="o">=</span> <span class="n">points</span> <span class="k">if</span> <span class="n">points</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">OperatingPoints</span><span class="p">)</span> <span class="k">else</span> <span class="n">OperatingPoints</span><span class="o">.</span><span class="n">from_results</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+</span><span data-line="261">    <span class="n">prs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pr_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pr_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+</span><span data-line="262">    <span class="n">ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">rps_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rps_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="263">    <span class="n">column_of_point</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="264">        <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">T_evap_C</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">temps</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">pts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+</span><span data-line="265">    <span class="p">)</span>
+</span><span data-line="266">
+</span><span data-line="267">    <span class="n">plt</span> <span class="o">=</span> <span class="n">_plt</span><span class="p">()</span>
+</span><span data-line="268">    <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">Line2D</span>
+</span><span data-line="269">
+</span><span data-line="270">    <span class="n">ncol</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">temps</span><span class="p">)</span>
+</span><span data-line="271">    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+</span><span data-line="272">        <span class="mi">2</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">2.9</span> <span class="o">*</span> <span class="n">ncol</span> <span class="o">+</span> <span class="mf">1.3</span><span class="p">,</span> <span class="mf">5.9</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="s2">&quot;constrained&quot;</span>
+</span><span data-line="273">    <span class="p">)</span>
+</span><span data-line="274">    <span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span>
+</span><span data-line="275">    <span class="n">filled</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="276">    <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">eff</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+</span><span data-line="277">        <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">T_e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">temps</span><span class="p">):</span>
+</span><span data-line="278">            <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span>
+</span><span data-line="279">            <span class="n">Z</span> <span class="o">=</span> <span class="n">efficiency_grid</span><span class="p">(</span><span class="n">eff</span><span class="p">,</span> <span class="n">quantity</span><span class="p">,</span> <span class="n">prs</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">T_e</span><span class="p">)</span>
+</span><span data-line="280">            <span class="n">filled</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">prs</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;Blues&quot;</span><span class="p">,</span> <span class="n">extend</span><span class="o">=</span><span class="s2">&quot;both&quot;</span><span class="p">)</span>
+</span><span data-line="281">            <span class="n">lines</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">prs</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">[::</span><span class="mi">2</span><span class="p">],</span> <span class="n">colors</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span data-line="282">            <span class="n">ax</span><span class="o">.</span><span class="n">clabel</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.2f</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="283">            <span class="n">inside</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">DOMAIN</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">pr</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">T_e</span><span class="p">)</span> <span class="k">for</span> <span class="n">pr</span> <span class="ow">in</span> <span class="n">prs</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ns</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="284">            <span class="k">if</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">inside</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+</span><span data-line="285">                <span class="n">ax</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">prs</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">inside</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">],</span> <span class="n">colors</span><span class="o">=</span><span class="n">ORANGE</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.1</span><span class="p">)</span>
+</span><span data-line="286">            <span class="n">peak</span> <span class="o">=</span> <span class="n">_peak</span><span class="p">(</span><span class="n">prs</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">Z</span><span class="p">)</span>
+</span><span data-line="287">            <span class="n">head</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;T_evap </span><span class="si">{</span><span class="n">T_e</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> °C&quot;</span>
+</span><span data-line="288">            <span class="k">if</span> <span class="n">peak</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="289">                <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+</span><span data-line="290">                    <span class="p">[</span><span class="n">peak</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+</span><span data-line="291">                    <span class="p">[</span><span class="n">peak</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span>
+</span><span data-line="292">                    <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span>
+</span><span data-line="293">                    <span class="n">s</span><span class="o">=</span><span class="mi">26</span><span class="p">,</span>
+</span><span data-line="294">                    <span class="n">color</span><span class="o">=</span><span class="n">GREY</span> <span class="k">if</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">VIOLET</span><span class="p">,</span>
+</span><span data-line="295">                    <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
+</span><span data-line="296">                    <span class="n">lw</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+</span><span data-line="297">                    <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span data-line="298">                <span class="p">)</span>
+</span><span data-line="299">                <span class="n">head</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; · peak </span><span class="si">{</span><span class="n">peak</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> (r_p </span><span class="si">{</span><span class="n">peak</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, N </span><span class="si">{</span><span class="n">peak</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">)&quot;</span>
+</span><span data-line="300">            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mf">7.5</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+</span><span data-line="301">            <span class="k">if</span> <span class="n">pts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">column_of_point</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="302">                <span class="n">sel</span> <span class="o">=</span> <span class="n">column_of_point</span> <span class="o">==</span> <span class="n">c</span>
+</span><span data-line="303">                <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+</span><span data-line="304">                    <span class="n">pts</span><span class="o">.</span><span class="n">pressure_ratio</span><span class="p">[</span><span class="n">sel</span><span class="p">],</span>
+</span><span data-line="305">                    <span class="n">pts</span><span class="o">.</span><span class="n">rps</span><span class="p">[</span><span class="n">sel</span><span class="p">],</span>
+</span><span data-line="306">                    <span class="n">s</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+</span><span data-line="307">                    <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+</span><span data-line="308">                    <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
+</span><span data-line="309">                    <span class="n">lw</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+</span><span data-line="310">                    <span class="n">zorder</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+</span><span data-line="311">                    <span class="n">gid</span><span class="o">=</span><span class="s2">&quot;operating-points&quot;</span><span class="p">,</span>
+</span><span data-line="312">                <span class="p">)</span>
+</span><span data-line="313">            <span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+</span><span data-line="314">            <span class="n">ticks</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span> <span class="k">if</span> <span class="n">pr_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">pr_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+</span><span data-line="315">            <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">ticks</span><span class="p">,</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ticks</span><span class="p">])</span>
+</span><span data-line="316">            <span class="n">ax</span><span class="o">.</span><span class="n">minorticks_off</span><span class="p">()</span>
+</span><span data-line="317">            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">*</span><span class="n">pr_range</span><span class="p">)</span>
+</span><span data-line="318">            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">*</span><span class="n">rps_range</span><span class="p">)</span>
+</span><span data-line="319">        <span class="n">axes</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">labels</span><span class="p">[</span><span class="n">r</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">Speed (N) [rev/s]&quot;</span><span class="p">)</span>
+</span><span data-line="320">    <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+</span><span data-line="321">        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Pressure ratio (r_p)&quot;</span><span class="p">)</span>
+</span><span data-line="322">    <span class="n">bar</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">symbol</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+</span><span data-line="323">    <span class="n">bar</span><span class="o">.</span><span class="n">set_ticks</span><span class="p">(</span><span class="n">levels</span><span class="p">[::</span><span class="mi">2</span><span class="p">])</span>
+</span><span data-line="324">    <span class="n">handles</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="325">        <span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">ORANGE</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Data range of the default maps&quot;</span><span class="p">),</span>
+</span><span data-line="326">        <span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">GREY</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Peak, </span><span class="si">{</span><span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+</span><span data-line="327">        <span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">VIOLET</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Peak, </span><span class="si">{</span><span class="n">labels</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+</span><span data-line="328">    <span class="p">]</span>
+</span><span data-line="329">    <span class="k">if</span> <span class="n">pts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="330">        <span class="n">handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="331">            <span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">mfc</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">mec</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Operating points (nearest T_evap)&quot;</span><span class="p">)</span>
+</span><span data-line="332">        <span class="p">)</span>
+</span><span data-line="333">    <span class="n">fig</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">handles</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;outside lower center&quot;</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">handles</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="334">    <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="n">title</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">symbol</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> (top) vs </span><span class="si">{</span><span class="n">labels</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> (bottom)&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+</span><span data-line="335">    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="s2">&quot;Figure&quot;</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+
+</span><span data-line="336">
+</span><span data-line="337">
+<div class="viewcode-block" id="CopErrors">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.CopErrors">[docs]</a>
+</span><span data-line="338"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="339"><span class="k">class</span><span class="w"> </span><span class="nc">CopErrors</span><span class="p">:</span>
+</span><span data-line="340"><span class="w">    </span><span class="sd">&quot;&quot;&quot;COP error scores of a model against reference (catalogue) values, as fractions.</span>
+</span><span data-line="341">
+</span><span data-line="342"><span class="sd">    ``rmse``: root mean square of ``ln(COP_model / COP_ref)``; ``mape``: mean of</span>
+</span><span data-line="343"><span class="sd">    ``|COP_model / COP_ref - 1|``; ``bias``: mean of ``COP_model / COP_ref - 1``.</span>
+</span><span data-line="344"><span class="sd">    All over the ``n`` points with a finite, positive model value; ``n_failed``</span>
+</span><span data-line="345"><span class="sd">    points had none (the model did not solve them). NaN scores when ``n`` is 0.</span>
+</span><span data-line="346"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="347">
+</span><span data-line="348">    <span class="n">n</span><span class="p">:</span> <span class="nb">int</span>
+</span><span data-line="349">    <span class="n">n_failed</span><span class="p">:</span> <span class="nb">int</span>
+</span><span data-line="350">    <span class="n">rmse</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="351">    <span class="n">mape</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="352">    <span class="n">bias</span><span class="p">:</span> <span class="nb">float</span></div>
+
+</span><span data-line="353">
+</span><span data-line="354">
+</span><span data-line="355"><span class="k">def</span><span class="w"> </span><span class="nf">_solved</span><span class="p">(</span><span class="n">cop_model</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span data-line="356"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Mask of the model COPs that count as solved: finite and positive (else the point is unsolved).&quot;&quot;&quot;</span>
+</span><span data-line="357">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">cop_model</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">cop_model</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+</span><span data-line="358">
+</span><span data-line="359">
+<div class="viewcode-block" id="cop_errors">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.cop_errors">[docs]</a>
+</span><span data-line="360"><span class="k">def</span><span class="w"> </span><span class="nf">cop_errors</span><span class="p">(</span><span class="n">cop_reference</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">cop_model</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CopErrors</span><span class="p">:</span>
+</span><span data-line="361"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Score ``cop_model`` against ``cop_reference`` (equal-length arrays; see :class:`CopErrors`).</span>
+</span><span data-line="362">
+</span><span data-line="363"><span class="sd">    Raises ``ValueError`` for unequal lengths or a non-positive or non-finite reference value.</span>
+</span><span data-line="364"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="365">    <span class="n">ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cop_reference</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+</span><span data-line="366">    <span class="n">mod</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cop_model</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+</span><span data-line="367">    <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">mod</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+</span><span data-line="368">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> reference values but </span><span class="si">{</span><span class="n">mod</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> model values&quot;</span><span class="p">)</span>
+</span><span data-line="369">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ref</span><span class="p">))</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">ref</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)):</span>
+</span><span data-line="370">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;reference COP values must be finite and positive&quot;</span><span class="p">)</span>
+</span><span data-line="371">    <span class="n">ok</span> <span class="o">=</span> <span class="n">_solved</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+</span><span data-line="372">    <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ok</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+</span><span data-line="373">    <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="374">        <span class="k">return</span> <span class="n">CopErrors</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+</span><span data-line="375">    <span class="n">ratio</span> <span class="o">=</span> <span class="n">mod</span><span class="p">[</span><span class="n">ok</span><span class="p">]</span> <span class="o">/</span> <span class="n">ref</span><span class="p">[</span><span class="n">ok</span><span class="p">]</span>
+</span><span data-line="376">    <span class="k">return</span> <span class="n">CopErrors</span><span class="p">(</span>
+</span><span data-line="377">        <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
+</span><span data-line="378">        <span class="n">n_failed</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="n">n</span><span class="p">),</span>
+</span><span data-line="379">        <span class="n">rmse</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ratio</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))),</span>
+</span><span data-line="380">        <span class="n">mape</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ratio</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">))),</span>
+</span><span data-line="381">        <span class="n">bias</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ratio</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)),</span>
+</span><span data-line="382">    <span class="p">)</span></div>
+
+</span><span data-line="383">
+</span><span data-line="384">
+<div class="viewcode-block" id="StageScore">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.StageScore">[docs]</a>
+</span><span data-line="385"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="386"><span class="k">class</span><span class="w"> </span><span class="nc">StageScore</span><span class="p">:</span>
+</span><span data-line="387"><span class="w">    </span><span class="sd">&quot;&quot;&quot;COP errors after one calibration stage, as fractions (0.05 = 5 %).</span>
+</span><span data-line="388">
+</span><span data-line="389"><span class="sd">    ``rmse_fit`` / ``mape_fit``: with the parameters fitted to all points.</span>
+</span><span data-line="390"><span class="sd">    ``rmse_cv`` / ``mape_cv``: from the held-out predictions of a k-fold cross</span>
+</span><span data-line="391"><span class="sd">    validation, or None when the stage was not cross-validated. ``adopted``:</span>
+</span><span data-line="392"><span class="sd">    whether the stage was kept. The first stage is normally the uncalibrated</span>
+</span><span data-line="393"><span class="sd">    model (&quot;Default&quot;).</span>
+</span><span data-line="394"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="395">
+</span><span data-line="396">    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="397">    <span class="n">rmse_fit</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="398">    <span class="n">mape_fit</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="399">    <span class="n">rmse_cv</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="400">    <span class="n">mape_cv</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="401">    <span class="n">adopted</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="402">
+</span><span data-line="403">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="404">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">:</span>
+</span><span data-line="405">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;a stage needs a label&quot;</span><span class="p">)</span>
+</span><span data-line="406">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;rmse_fit&quot;</span><span class="p">,</span> <span class="s2">&quot;mape_fit&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse_cv&quot;</span><span class="p">,</span> <span class="s2">&quot;mape_cv&quot;</span><span class="p">):</span>
+</span><span data-line="407">            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+</span><span data-line="408">            <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+</span><span data-line="409">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be finite and non-negative, got </span><span class="si">{</span><span class="n">v</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</span><span data-line="410">
+</span><span data-line="411">
+</span><span data-line="412"><span class="k">def</span><span class="w"> </span><span class="nf">_stage_panel</span><span class="p">(</span><span class="n">ax</span><span class="p">:</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">stages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">StageScore</span><span class="p">],</span> <span class="n">fit</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cv</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ylabel</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="413"><span class="w">    </span><span class="sd">&quot;&quot;&quot;One metric across the stages: fit line, CV markers (filled = adopted; grey for the first stage).&quot;&quot;&quot;</span>
+</span><span data-line="414">    <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">stages</span><span class="p">))</span>
+</span><span data-line="415">    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">fit</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">VIOLET</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.55</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</span><span data-line="416">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">stages</span><span class="p">):</span>
+</span><span data-line="417">        <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">cv</span><span class="p">)</span>
+</span><span data-line="418">        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="419">            <span class="k">continue</span>
+</span><span data-line="420">        <span class="n">colour</span> <span class="o">=</span> <span class="n">GREY</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">VIOLET</span>
+</span><span data-line="421">        <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">adopted</span><span class="p">:</span>
+</span><span data-line="422">            <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">([</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">v</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colour</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</span><span data-line="423">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="424">            <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">([</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">v</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="n">colour</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</span><span data-line="425">    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">label</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">],</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+</span><span data-line="426">    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">bottom</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="427">    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">)</span>
+</span><span data-line="428">    <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span data-line="429">
+</span><span data-line="430">
+<div class="viewcode-block" id="plot_calibration_stages">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.plot_calibration_stages">[docs]</a>
+</span><span data-line="431"><span class="k">def</span><span class="w"> </span><span class="nf">plot_calibration_stages</span><span class="p">(</span><span class="n">stages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">StageScore</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Figure</span><span class="p">:</span>
+</span><span data-line="432"><span class="w">    </span><span class="sd">&quot;&quot;&quot;COP RMSE (left) and MAPE (right) [%] after each calibration stage, in the given order.</span>
+</span><span data-line="433">
+</span><span data-line="434"><span class="sd">    Line: the fit to all points. Markers: the cross-validated value, filled</span>
+</span><span data-line="435"><span class="sd">    for an adopted stage and open for a rejected one (none where the stage</span>
+</span><span data-line="436"><span class="sd">    was not cross-validated). The first stage&#39;s markers are grey (the</span>
+</span><span data-line="437"><span class="sd">    uncalibrated model), the rest violet. Raises ``ValueError`` for no stages.</span>
+</span><span data-line="438"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="439">    <span class="k">if</span> <span class="ow">not</span> <span class="n">stages</span><span class="p">:</span>
+</span><span data-line="440">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;no stages to plot&quot;</span><span class="p">)</span>
+</span><span data-line="441">    <span class="n">plt</span> <span class="o">=</span> <span class="n">_plt</span><span class="p">()</span>
+</span><span data-line="442">    <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">Line2D</span>
+</span><span data-line="443">
+</span><span data-line="444">    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.6</span><span class="p">,</span> <span class="mf">3.6</span><span class="p">),</span> <span class="n">layout</span><span class="o">=</span><span class="s2">&quot;constrained&quot;</span><span class="p">)</span>
+</span><span data-line="445">    <span class="n">_stage_panel</span><span class="p">(</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">stages</span><span class="p">,</span> <span class="s2">&quot;rmse_fit&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse_cv&quot;</span><span class="p">,</span> <span class="s2">&quot;COP RMSE, ln(model/catalogue) [%]&quot;</span><span class="p">)</span>
+</span><span data-line="446">    <span class="n">_stage_panel</span><span class="p">(</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">stages</span><span class="p">,</span> <span class="s2">&quot;mape_fit&quot;</span><span class="p">,</span> <span class="s2">&quot;mape_cv&quot;</span><span class="p">,</span> <span class="s2">&quot;COP MAPE [%]&quot;</span><span class="p">)</span>
+</span><span data-line="447">    <span class="n">handles</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="448">        <span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">VIOLET</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.55</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Fit to all points&quot;</span><span class="p">),</span>
+</span><span data-line="449">        <span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">VIOLET</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Cross-validated, adopted&quot;</span><span class="p">),</span>
+</span><span data-line="450">        <span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">mfc</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">mec</span><span class="o">=</span><span class="n">VIOLET</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Cross-validated, rejected&quot;</span><span class="p">),</span>
+</span><span data-line="451">    <span class="p">]</span>
+</span><span data-line="452">    <span class="n">fig</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">handles</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;outside lower center&quot;</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mf">7.5</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="453">    <span class="k">if</span> <span class="n">title</span><span class="p">:</span>
+</span><span data-line="454">        <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+</span><span data-line="455">    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="s2">&quot;Figure&quot;</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+
+</span><span data-line="456">
+</span><span data-line="457">
+<div class="viewcode-block" id="plot_cop_parity">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.plot_cop_parity">[docs]</a>
+</span><span data-line="458"><span class="k">def</span><span class="w"> </span><span class="nf">plot_cop_parity</span><span class="p">(</span>
+</span><span data-line="459">    <span class="n">cop_catalogue</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span data-line="460">    <span class="n">cop_before</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span data-line="461">    <span class="n">cop_after</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span data-line="462">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="463">    <span class="n">mode</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="464">    <span class="n">labels</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Default maps&quot;</span><span class="p">,</span> <span class="s2">&quot;Calibrated&quot;</span><span class="p">),</span>
+</span><span data-line="465">    <span class="n">band</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.10</span><span class="p">,</span>
+</span><span data-line="466">    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="467"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Figure</span><span class="p">:</span>
+</span><span data-line="468"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Model against catalogue COP: before (left, grey) and after (right, violet) on the same square axes.</span>
+</span><span data-line="469">
+</span><span data-line="470"><span class="sd">    Equal-length arrays; a non-finite or non-positive model value is a point</span>
+</span><span data-line="471"><span class="sd">    the model did not solve, left out of the plot, the axis range and the</span>
+</span><span data-line="472"><span class="sd">    scores alike and counted in the title. Each</span>
+</span><span data-line="473"><span class="sd">    panel title gives MAPE, bias and RMSE (:func:`cop_errors`). Lines: y = x and</span>
+</span><span data-line="474"><span class="sd">    ``±band`` (dashed). ``mode`` per point: ``&quot;heating&quot;`` circles, ``&quot;cooling&quot;``</span>
+</span><span data-line="475"><span class="sd">    squares, anything else triangles. Raises ``ValueError`` as :func:`cop_errors`</span>
+</span><span data-line="476"><span class="sd">    or when ``mode`` has another length.</span>
+</span><span data-line="477"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="478">    <span class="n">ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cop_catalogue</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+</span><span data-line="479">    <span class="n">preds</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cop_before</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cop_after</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()]</span>
+</span><span data-line="480">    <span class="n">scores</span> <span class="o">=</span> <span class="p">[</span><span class="n">cop_errors</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preds</span><span class="p">]</span>
+</span><span data-line="481">    <span class="n">modes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="s2">&quot;&quot;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">ref</span><span class="p">]</span> <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">mode</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+</span><span data-line="482">    <span class="k">if</span> <span class="n">modes</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+</span><span data-line="483">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">modes</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> modes for </span><span class="si">{</span><span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> points&quot;</span><span class="p">)</span>
+</span><span data-line="484">    <span class="n">finite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">ref</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="n">_solved</span><span class="p">(</span><span class="n">p</span><span class="p">)]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preds</span><span class="p">])</span>
+</span><span data-line="485">    <span class="n">lo</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">finite</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">)</span>
+</span><span data-line="486">    <span class="n">hi</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">finite</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">*</span> <span class="mf">1.1</span>
+</span><span data-line="487">
+</span><span data-line="488">    <span class="n">plt</span> <span class="o">=</span> <span class="n">_plt</span><span class="p">()</span>
+</span><span data-line="489">    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">4.7</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="s2">&quot;constrained&quot;</span><span class="p">)</span>
+</span><span data-line="490">    <span class="n">markers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;heating&quot;</span><span class="p">:</span> <span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="s2">&quot;cooling&quot;</span><span class="p">:</span> <span class="s2">&quot;s&quot;</span><span class="p">}</span>
+</span><span data-line="491">    <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">colour</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="p">(</span><span class="n">GREY</span><span class="p">,</span> <span class="n">VIOLET</span><span class="p">),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+</span><span data-line="492">        <span class="n">ok</span> <span class="o">=</span> <span class="n">_solved</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span>
+</span><span data-line="493">        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">modes</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
+</span><span data-line="494">            <span class="n">sel</span> <span class="o">=</span> <span class="n">ok</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">modes</span> <span class="o">==</span> <span class="n">m</span><span class="p">)</span>
+</span><span data-line="495">            <span class="k">if</span> <span class="n">sel</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+</span><span data-line="496">                <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+</span><span data-line="497">                    <span class="n">ref</span><span class="p">[</span><span class="n">sel</span><span class="p">],</span>
+</span><span data-line="498">                    <span class="n">pred</span><span class="p">[</span><span class="n">sel</span><span class="p">],</span>
+</span><span data-line="499">                    <span class="n">s</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+</span><span data-line="500">                    <span class="n">marker</span><span class="o">=</span><span class="n">markers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;^&quot;</span><span class="p">),</span>
+</span><span data-line="501">                    <span class="n">color</span><span class="o">=</span><span class="n">colour</span><span class="p">,</span>
+</span><span data-line="502">                    <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+</span><span data-line="503">                    <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span data-line="504">                    <span class="n">label</span><span class="o">=</span><span class="n">m</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="505">                <span class="p">)</span>
+</span><span data-line="506">        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">],</span> <span class="p">[</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#444444&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+</span><span data-line="507">        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">band</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">band</span><span class="p">):</span>
+</span><span data-line="508">            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">],</span> <span class="p">[</span><span class="n">lo</span> <span class="o">*</span> <span class="n">f</span><span class="p">,</span> <span class="n">hi</span> <span class="o">*</span> <span class="n">f</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#999999&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
+</span><span data-line="509">        <span class="n">head</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: MAPE </span><span class="si">{</span><span class="n">score</span><span class="o">.</span><span class="n">mape</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> %, bias </span><span class="si">{</span><span class="n">score</span><span class="o">.</span><span class="n">bias</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">:</span><span class="s2">+.1f</span><span class="si">}</span><span class="s2"> %, RMSE </span><span class="si">{</span><span class="n">score</span><span class="o">.</span><span class="n">rmse</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> %&quot;</span>
+</span><span data-line="510">        <span class="k">if</span> <span class="n">score</span><span class="o">.</span><span class="n">n_failed</span><span class="p">:</span>
+</span><span data-line="511">            <span class="n">head</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">score</span><span class="o">.</span><span class="n">n_failed</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> points not solved&quot;</span>
+</span><span data-line="512">        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+</span><span data-line="513">        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span>
+</span><span data-line="514">        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span>
+</span><span data-line="515">        <span class="n">ax</span><span class="o">.</span><span class="n">set_box_aspect</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="516">        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Catalogue COP&quot;</span><span class="p">)</span>
+</span><span data-line="517">        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">lw</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>
+</span><span data-line="518">    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Model COP&quot;</span><span class="p">)</span>
+</span><span data-line="519">    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">modes</span><span class="p">):</span>
+</span><span data-line="520">        <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;lower right&quot;</span><span class="p">,</span> <span class="n">markerscale</span><span class="o">=</span><span class="mf">1.6</span><span class="p">)</span>
+</span><span data-line="521">    <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="n">title</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;COP parity, </span><span class="si">{</span><span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> points; dashed ±</span><span class="si">{</span><span class="n">band</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> %&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+</span><span data-line="522">    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="s2">&quot;Figure&quot;</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+
+</span><span data-line="523">
+</span><span data-line="524">
+<div class="viewcode-block" id="CompressorMapPlotMixin">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.CompressorMapPlotMixin">[docs]</a>
+</span><span data-line="525"><span class="k">class</span><span class="w"> </span><span class="nc">CompressorMapPlotMixin</span><span class="p">:</span>
+</span><span data-line="526"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Gives a heat-pump model :meth:`plot_compressor_map` over its own compressor efficiencies.&quot;&quot;&quot;</span>
+</span><span data-line="527">
+</span><span data-line="528">    <span class="n">eta_cmp_isen</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span>
+</span><span data-line="529">    <span class="n">eta_cmp_vol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span>
+</span><span data-line="530">    <span class="n">eta_cmp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span>
+</span><span data-line="531">
+<div class="viewcode-block" id="CompressorMapPlotMixin.plot_compressor_map">
+<a class="viewcode-back" href="../../api/support/visualization.html#tmhp.compressor_plots.CompressorMapPlotMixin.plot_compressor_map">[docs]</a>
+</span><span data-line="532">    <span class="k">def</span><span class="w"> </span><span class="nf">plot_compressor_map</span><span class="p">(</span>
+</span><span data-line="533">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="534">        <span class="n">before</span><span class="p">:</span> <span class="n">EfficiencySource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="535">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="536">        <span class="n">labels</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Default maps&quot;</span><span class="p">,</span> <span class="s2">&quot;This model&quot;</span><span class="p">),</span>
+</span><span data-line="537">        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="538">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Figure</span><span class="p">:</span>
+</span><span data-line="539"><span class="w">        </span><span class="sd">&quot;&quot;&quot;This model&#39;s compressor map (row 2) against ``before`` (row 1; default maps when None).</span>
+</span><span data-line="540">
+</span><span data-line="541"><span class="sd">        ``before`` is a mapping of the three efficiencies or another model.</span>
+</span><span data-line="542"><span class="sd">        Other keywords go to :func:`plot_compressor_map` (``T_evap_C``,</span>
+</span><span data-line="543"><span class="sd">        ``quantity``, ``points``, ``pr_range``, ``rps_range``, ``title``,</span>
+</span><span data-line="544"><span class="sd">        ``resolution``). Returns the figure.</span>
+</span><span data-line="545"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="546">        <span class="k">return</span> <span class="n">plot_compressor_map</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</div>
+
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+      <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../../_static/js/core/global.js?v=4865e9a9"></script>
+      <script defer="defer" src="../../_static/js/widgets/integration-diagrams.js?v=a010399f"></script></body>
+</html>

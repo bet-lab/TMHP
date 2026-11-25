@@ -28,12 +28,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/TMHP/api/support/visualization.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Plotting facade and Mollier-style refrigerant diagrams (T-h, P-h, T-s). Plotting facade: Visualization and summary output functions (Facade for backward compatibility). Mollier diagrams: Mollier di..." />
+<meta property="og:description" content="Plotting facade, Mollier-style refrigerant diagrams (T-h, P-h, T-s) and the fixed compressor-map and calibration figures. Plotting facade: Visualization and summary output functions (Facade for bac..." />
 <meta property="og:image" content="https://bet-lab.github.io/TMHP/_static/source_sink_matrix.svg" />
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
-<meta name="description" content="Plotting facade and Mollier-style refrigerant diagrams (T-h, P-h, T-s). Plotting facade: Visualization and summary output functions (Facade for backward compatibility). Mollier diagrams: Mollier di..." />
+<meta name="description" content="Plotting facade, Mollier-style refrigerant diagrams (T-h, P-h, T-s) and the fixed compressor-map and calibration figures. Plotting facade: Visualization and summary output functions (Facade for bac..." />
 
-    <meta property="article:modified_time" content="2026-11-16T08:27:53+00:00" />
+    <meta property="article:modified_time" content="2026-11-25T10:27:09+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -162,6 +162,50 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.mollier_diagram.plot_ts_diagram"><code class="docutils literal notranslate"><span class="pre">plot_ts_diagram()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#compressor-maps-and-calibration-figures">Compressor maps and calibration figures</a><ul>
+<li><a class="reference internal" href="#tmhp.compressor_plots.DEFAULT_T_EVAP_C"><code class="docutils literal notranslate"><span class="pre">DEFAULT_T_EVAP_C</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.MAP_QUANTITIES"><code class="docutils literal notranslate"><span class="pre">MAP_QUANTITIES</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CompressorMapPlotMixin"><code class="docutils literal notranslate"><span class="pre">CompressorMapPlotMixin</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CompressorMapPlotMixin.eta_cmp_isen"><code class="docutils literal notranslate">eta_cmp_isen</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CompressorMapPlotMixin.eta_cmp_vol"><code class="docutils literal notranslate">eta_cmp_vol</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CompressorMapPlotMixin.eta_cmp"><code class="docutils literal notranslate">eta_cmp</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CompressorMapPlotMixin.plot_compressor_map"><code class="docutils literal notranslate">plot_compressor_map()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CopErrors"><code class="docutils literal notranslate"><span class="pre">CopErrors</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CopErrors.n"><code class="docutils literal notranslate">n</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CopErrors.n_failed"><code class="docutils literal notranslate">n_failed</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CopErrors.rmse"><code class="docutils literal notranslate">rmse</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CopErrors.mape"><code class="docutils literal notranslate">mape</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CopErrors.bias"><code class="docutils literal notranslate">bias</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.CopErrors.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints"><code class="docutils literal notranslate"><span class="pre">OperatingPoints</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints.pressure_ratio"><code class="docutils literal notranslate">pressure_ratio</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints.rps"><code class="docutils literal notranslate">rps</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints.T_evap_C"><code class="docutils literal notranslate">T_evap_C</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints.from_results"><code class="docutils literal notranslate">from_results()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.StageScore"><code class="docutils literal notranslate"><span class="pre">StageScore</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.compressor_plots.StageScore.label"><code class="docutils literal notranslate">label</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.StageScore.rmse_fit"><code class="docutils literal notranslate">rmse_fit</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.StageScore.mape_fit"><code class="docutils literal notranslate">mape_fit</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.StageScore.rmse_cv"><code class="docutils literal notranslate">rmse_cv</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.StageScore.mape_cv"><code class="docutils literal notranslate">mape_cv</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.StageScore.adopted"><code class="docutils literal notranslate">adopted</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.StageScore.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.cop_errors"><code class="docutils literal notranslate"><span class="pre">cop_errors()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.efficiency_grid"><code class="docutils literal notranslate"><span class="pre">efficiency_grid()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.plot_calibration_stages"><code class="docutils literal notranslate"><span class="pre">plot_calibration_stages()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.plot_compressor_map"><code class="docutils literal notranslate"><span class="pre">plot_compressor_map()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_plots.plot_cop_parity"><code class="docutils literal notranslate"><span class="pre">plot_cop_parity()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -202,7 +246,8 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="visualization">
 <h1>Visualization<a class="headerlink" href="#visualization" title="Link to this heading">¶</a></h1>
-<p>Plotting facade and Mollier-style refrigerant diagrams (T-h, P-h, T-s).</p>
+<p>Plotting facade, Mollier-style refrigerant diagrams (T-h, P-h, T-s) and the
+fixed compressor-map and calibration figures.</p>
 <section id="module-tmhp.visualization">
 <span id="plotting-facade"></span><h2>Plotting facade<a class="headerlink" href="#module-tmhp.visualization" title="Link to this heading">¶</a></h2>
 <p>Visualization and summary output functions (Facade for backward compatibility).</p>
@@ -383,10 +428,450 @@ was called but did not run, or ran below the request.</p>
 </dd></dl>
 
 </section>
+<section id="compressor-maps-and-calibration-figures">
+<h2>Compressor maps and calibration figures<a class="headerlink" href="#compressor-maps-and-calibration-figures" title="Link to this heading">¶</a></h2>
+<p>Three figures, always drawn the same way, for recording a compressor map
+change or a catalogue calibration (#256):</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#tmhp.compressor_plots.plot_compressor_map" title="tmhp.compressor_plots.plot_compressor_map"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_compressor_map()</span></code></a> – one efficiency over
+pressure ratio and speed at fixed evaporating temperatures (−15, 0 and
+10 °C by default); row 1 <em>before</em>, row 2 <em>after</em>. Every heat-pump model
+has it as a method, <code class="docutils literal notranslate"><span class="pre">model.plot_compressor_map()</span></code>, with the model’s
+efficiencies as <em>after</em> and the default maps as <em>before</em>.</p></li>
+<li><p><a class="reference internal" href="#tmhp.compressor_plots.plot_calibration_stages" title="tmhp.compressor_plots.plot_calibration_stages"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_calibration_stages()</span></code></a> – COP RMSE and MAPE
+after each calibration stage, fitted and cross-validated.</p></li>
+<li><p><a class="reference internal" href="#tmhp.compressor_plots.plot_cop_parity" title="tmhp.compressor_plots.plot_cop_parity"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_cop_parity()</span></code></a> – model against catalogue
+COP, before and after, with the error scores.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">dartwork_mpl</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dm</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">dm</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">hp_capacity</span><span class="o">=</span><span class="mf">9000.0</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R290&quot;</span><span class="p">,</span> <span class="n">eta_cmp_isen</span><span class="o">=</span><span class="n">my_isen</span><span class="p">)</span>
+</span><span data-line="6"><span class="n">fig</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">plot_compressor_map</span><span class="p">()</span>  <span class="c1"># default maps (top) vs this model (bottom)</span>
+</span></pre></div>
+</div>
+<p id="module-tmhp.compressor_plots">Fixed-form figures of the compressor efficiency maps and of a calibration’s performance (#256).</p>
+<p>Three figures, always drawn the same way so that results recorded in
+different issues can be compared at a glance:</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#tmhp.compressor_plots.plot_compressor_map" title="tmhp.compressor_plots.plot_compressor_map"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_compressor_map()</span></code></a></dt><dd><p>One efficiency over (pressure ratio, speed) at a few fixed evaporating
+temperatures: row 1 <em>before</em>, row 2 <em>after</em>, one column per <code class="docutils literal notranslate"><span class="pre">T_evap</span></code>.
+Axis ranges and colour levels are fixed per quantity. Every heat-pump
+model also has it as a method (<a class="reference internal" href="#tmhp.compressor_plots.CompressorMapPlotMixin" title="tmhp.compressor_plots.CompressorMapPlotMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompressorMapPlotMixin</span></code></a>), with its
+own efficiencies as <em>after</em> and the default maps as <em>before</em>.</p>
+</dd>
+<dt><a class="reference internal" href="#tmhp.compressor_plots.plot_calibration_stages" title="tmhp.compressor_plots.plot_calibration_stages"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_calibration_stages()</span></code></a></dt><dd><p>COP error after each calibration stage: RMSE of <code class="docutils literal notranslate"><span class="pre">ln(COP_model</span> <span class="pre">/</span>
+<span class="pre">COP_catalogue)</span></code> on the left, MAPE on the right; a line for the fit to all
+points and markers for the cross-validated value (filled = adopted).</p>
+</dd>
+<dt><a class="reference internal" href="#tmhp.compressor_plots.plot_cop_parity" title="tmhp.compressor_plots.plot_cop_parity"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_cop_parity()</span></code></a></dt><dd><p>Model against catalogue COP, <em>before</em> on the left and <em>after</em> on the right,
+on the same axes, with the error scores in the panel titles.</p>
+</dd>
+</dl>
+<p>Each function returns a <code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.figure.Figure</span></code> and sets no global
+style; apply one (for instance <code class="docutils literal notranslate"><span class="pre">dartwork_mpl.style.use(&quot;report&quot;)</span></code>) before
+calling. Colours: grey = before (default maps), violet = after (calibrated),
+orange = the data range of the default maps, blue = efficiency magnitude.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.DEFAULT_T_EVAP_C">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">DEFAULT_T_EVAP_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(-15.0,</span> <span class="pre">0.0,</span> <span class="pre">10.0)</span></span><a class="headerlink" href="#tmhp.compressor_plots.DEFAULT_T_EVAP_C" title="Link to this definition">¶</a></dt>
+<dd><p>cold heating, mild heating, cooling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Evaporating temperatures [°C] of the map columns</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.MAP_QUANTITIES">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">MAP_QUANTITIES</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_MapQuantity</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'eta_cmp':</span> <span class="pre">_MapQuantity(label='Electromechanical</span> <span class="pre">efficiency',</span> <span class="pre">symbol='η_em',</span> <span class="pre">levels=(0.7,</span> <span class="pre">0.72,</span> <span class="pre">0.74,</span> <span class="pre">0.76,</span> <span class="pre">0.78,</span> <span class="pre">0.8,</span> <span class="pre">0.82,</span> <span class="pre">0.84,</span> <span class="pre">0.86,</span> <span class="pre">0.88,</span> <span class="pre">0.9,</span> <span class="pre">0.92,</span> <span class="pre">0.94,</span> <span class="pre">0.96,</span> <span class="pre">0.98,</span> <span class="pre">1.0)),</span> <span class="pre">'eta_cmp_isen':</span> <span class="pre">_MapQuantity(label='Isentropic</span> <span class="pre">efficiency',</span> <span class="pre">symbol='η_is',</span> <span class="pre">levels=(0.4,</span> <span class="pre">0.425,</span> <span class="pre">0.45,</span> <span class="pre">0.475,</span> <span class="pre">0.5,</span> <span class="pre">0.525,</span> <span class="pre">0.55,</span> <span class="pre">0.575,</span> <span class="pre">0.6,</span> <span class="pre">0.625,</span> <span class="pre">0.65,</span> <span class="pre">0.675,</span> <span class="pre">0.7,</span> <span class="pre">0.725,</span> <span class="pre">0.75,</span> <span class="pre">0.775,</span> <span class="pre">0.8,</span> <span class="pre">0.825,</span> <span class="pre">0.85,</span> <span class="pre">0.875,</span> <span class="pre">0.9,</span> <span class="pre">0.925,</span> <span class="pre">0.95,</span> <span class="pre">0.975,</span> <span class="pre">1.0)),</span> <span class="pre">'eta_cmp_vol':</span> <span class="pre">_MapQuantity(label='Volumetric</span> <span class="pre">efficiency',</span> <span class="pre">symbol='η_v',</span> <span class="pre">levels=(0.7,</span> <span class="pre">0.72,</span> <span class="pre">0.74,</span> <span class="pre">0.76,</span> <span class="pre">0.78,</span> <span class="pre">0.8,</span> <span class="pre">0.82,</span> <span class="pre">0.84,</span> <span class="pre">0.86,</span> <span class="pre">0.88,</span> <span class="pre">0.9,</span> <span class="pre">0.92,</span> <span class="pre">0.94,</span> <span class="pre">0.96,</span> <span class="pre">0.98,</span> <span class="pre">1.0)),</span> <span class="pre">'eta_ov':</span> <span class="pre">_MapQuantity(label='Overall</span> <span class="pre">efficiency',</span> <span class="pre">symbol='η_ov',</span> <span class="pre">levels=(0.3,</span> <span class="pre">0.325,</span> <span class="pre">0.35,</span> <span class="pre">0.375,</span> <span class="pre">0.4,</span> <span class="pre">0.425,</span> <span class="pre">0.45,</span> <span class="pre">0.475,</span> <span class="pre">0.5,</span> <span class="pre">0.525,</span> <span class="pre">0.55,</span> <span class="pre">0.575,</span> <span class="pre">0.6,</span> <span class="pre">0.625,</span> <span class="pre">0.65,</span> <span class="pre">0.675,</span> <span class="pre">0.7,</span> <span class="pre">0.725,</span> <span class="pre">0.75,</span> <span class="pre">0.775,</span> <span class="pre">0.8,</span> <span class="pre">0.825,</span> <span class="pre">0.85))}</span></span><a class="headerlink" href="#tmhp.compressor_plots.MAP_QUANTITIES" title="Link to this definition">¶</a></dt>
+<dd><p>Quantities <a class="reference internal" href="#tmhp.compressor_plots.plot_compressor_map" title="tmhp.compressor_plots.plot_compressor_map"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_compressor_map()</span></code></a> can draw. <code class="docutils literal notranslate"><span class="pre">eta_ov</span></code> is the product
+<code class="docutils literal notranslate"><span class="pre">eta_cmp_isen</span> <span class="pre">*</span> <span class="pre">eta_cmp</span></code> (the overall efficiency the calibration scales);
+the others are the package’s three efficiencies as the cycle evaluates them.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CompressorMapPlotMixin">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">CompressorMapPlotMixin</span></span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#CompressorMapPlotMixin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.CompressorMapPlotMixin" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Gives a heat-pump model <a class="reference internal" href="#tmhp.compressor_plots.plot_compressor_map" title="tmhp.compressor_plots.plot_compressor_map"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plot_compressor_map()</span></code></a> over its own compressor efficiencies.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CompressorMapPlotMixin.eta_cmp_isen">
+<span class="sig-name descname"><span class="pre">eta_cmp_isen</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span><a class="headerlink" href="#tmhp.compressor_plots.CompressorMapPlotMixin.eta_cmp_isen" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CompressorMapPlotMixin.eta_cmp_vol">
+<span class="sig-name descname"><span class="pre">eta_cmp_vol</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span><a class="headerlink" href="#tmhp.compressor_plots.CompressorMapPlotMixin.eta_cmp_vol" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CompressorMapPlotMixin.eta_cmp">
+<span class="sig-name descname"><span class="pre">eta_cmp</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span><a class="headerlink" href="#tmhp.compressor_plots.CompressorMapPlotMixin.eta_cmp" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CompressorMapPlotMixin.plot_compressor_map">
+<span class="sig-name descname"><span class="pre">plot_compressor_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">before</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('Default</span> <span class="pre">maps',</span> <span class="pre">'This</span> <span class="pre">model')</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#CompressorMapPlotMixin.plot_compressor_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.CompressorMapPlotMixin.plot_compressor_map" title="Link to this definition">¶</a></dt>
+<dd><p>This model’s compressor map (row 2) against <code class="docutils literal notranslate"><span class="pre">before</span></code> (row 1; default maps when None).</p>
+<p><code class="docutils literal notranslate"><span class="pre">before</span></code> is a mapping of the three efficiencies or another model.
+Other keywords go to <a class="reference internal" href="#tmhp.compressor_plots.plot_compressor_map" title="tmhp.compressor_plots.plot_compressor_map"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_compressor_map()</span></code></a> (<code class="docutils literal notranslate"><span class="pre">T_evap_C</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quantity</span></code>, <code class="docutils literal notranslate"><span class="pre">points</span></code>, <code class="docutils literal notranslate"><span class="pre">pr_range</span></code>, <code class="docutils literal notranslate"><span class="pre">rps_range</span></code>, <code class="docutils literal notranslate"><span class="pre">title</span></code>,
+<code class="docutils literal notranslate"><span class="pre">resolution</span></code>). Returns the figure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>before</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">_HasEfficiencies</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>labels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CopErrors">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">CopErrors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_failed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#CopErrors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.CopErrors" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>COP error scores of a model against reference (catalogue) values, as fractions.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rmse</span></code>: root mean square of <code class="docutils literal notranslate"><span class="pre">ln(COP_model</span> <span class="pre">/</span> <span class="pre">COP_ref)</span></code>; <code class="docutils literal notranslate"><span class="pre">mape</span></code>: mean of
+<code class="docutils literal notranslate"><span class="pre">|COP_model</span> <span class="pre">/</span> <span class="pre">COP_ref</span> <span class="pre">-</span> <span class="pre">1|</span></code>; <code class="docutils literal notranslate"><span class="pre">bias</span></code>: mean of <code class="docutils literal notranslate"><span class="pre">COP_model</span> <span class="pre">/</span> <span class="pre">COP_ref</span> <span class="pre">-</span> <span class="pre">1</span></code>.
+All over the <code class="docutils literal notranslate"><span class="pre">n</span></code> points with a finite, positive model value; <code class="docutils literal notranslate"><span class="pre">n_failed</span></code>
+points had none (the model did not solve them). NaN scores when <code class="docutils literal notranslate"><span class="pre">n</span></code> is 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>n_failed</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>rmse</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>mape</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>bias</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CopErrors.n">
+<span class="sig-name descname"><span class="pre">n</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#tmhp.compressor_plots.CopErrors.n" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CopErrors.n_failed">
+<span class="sig-name descname"><span class="pre">n_failed</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#tmhp.compressor_plots.CopErrors.n_failed" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CopErrors.rmse">
+<span class="sig-name descname"><span class="pre">rmse</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.compressor_plots.CopErrors.rmse" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CopErrors.mape">
+<span class="sig-name descname"><span class="pre">mape</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.compressor_plots.CopErrors.mape" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CopErrors.bias">
+<span class="sig-name descname"><span class="pre">bias</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.compressor_plots.CopErrors.bias" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.CopErrors.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_failed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.compressor_plots.CopErrors.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>n_failed</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>rmse</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>mape</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>bias</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.OperatingPoints">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">OperatingPoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pressure_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_evap_C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#OperatingPoints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.OperatingPoints" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Compressor operating points to overlay on the map: pressure ratio, speed [rev/s], T_evap [°C].</p>
+<p>Equal-length 1-D arrays; points with a non-finite value are dropped.
+Build one from model results with <a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints.from_results" title="tmhp.compressor_plots.OperatingPoints.from_results"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_results()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pressure_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>rps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>T_evap_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.OperatingPoints.pressure_ratio">
+<span class="sig-name descname"><span class="pre">pressure_ratio</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#tmhp.compressor_plots.OperatingPoints.pressure_ratio" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.OperatingPoints.rps">
+<span class="sig-name descname"><span class="pre">rps</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#tmhp.compressor_plots.OperatingPoints.rps" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.OperatingPoints.T_evap_C">
+<span class="sig-name descname"><span class="pre">T_evap_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#tmhp.compressor_plots.OperatingPoints.T_evap_C" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.OperatingPoints.from_results">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#OperatingPoints.from_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.OperatingPoints.from_results" title="Link to this definition">¶</a></dt>
+<dd><p>Points from model result rows (a DataFrame or a mapping of columns).</p>
+<p>Uses <code class="docutils literal notranslate"><span class="pre">pr_cmp</span> <span class="pre">[-]</span></code> when present, else <code class="docutils literal notranslate"><span class="pre">P_ref_cmp_out</span> <span class="pre">[Pa]</span> <span class="pre">/</span>
+<span class="pre">P_ref_cmp_in</span> <span class="pre">[Pa]</span></code>; <code class="docutils literal notranslate"><span class="pre">cmp_rpm</span> <span class="pre">[rpm]</span></code> / 60; <code class="docutils literal notranslate"><span class="pre">T_ref_evap_sat</span> <span class="pre">[°C]</span></code>.
+Raises <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> naming a missing column.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>results</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints" title="tmhp.compressor_plots.OperatingPoints"><code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingPoints</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.OperatingPoints.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pressure_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_evap_C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.compressor_plots.OperatingPoints.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pressure_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>rps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>T_evap_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.StageScore">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">StageScore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmse_fit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mape_fit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmse_cv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mape_cv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adopted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#StageScore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.StageScore" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>COP errors after one calibration stage, as fractions (0.05 = 5 %).</p>
+<p><code class="docutils literal notranslate"><span class="pre">rmse_fit</span></code> / <code class="docutils literal notranslate"><span class="pre">mape_fit</span></code>: with the parameters fitted to all points.
+<code class="docutils literal notranslate"><span class="pre">rmse_cv</span></code> / <code class="docutils literal notranslate"><span class="pre">mape_cv</span></code>: from the held-out predictions of a k-fold cross
+validation, or None when the stage was not cross-validated. <code class="docutils literal notranslate"><span class="pre">adopted</span></code>:
+whether the stage was kept. The first stage is normally the uncalibrated
+model (“Default”).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>rmse_fit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>mape_fit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rmse_cv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>mape_cv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>adopted</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.StageScore.label">
+<span class="sig-name descname"><span class="pre">label</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#tmhp.compressor_plots.StageScore.label" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.StageScore.rmse_fit">
+<span class="sig-name descname"><span class="pre">rmse_fit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.compressor_plots.StageScore.rmse_fit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.StageScore.mape_fit">
+<span class="sig-name descname"><span class="pre">mape_fit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.compressor_plots.StageScore.mape_fit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.StageScore.rmse_cv">
+<span class="sig-name descname"><span class="pre">rmse_cv</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.compressor_plots.StageScore.rmse_cv" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.StageScore.mape_cv">
+<span class="sig-name descname"><span class="pre">mape_cv</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.compressor_plots.StageScore.mape_cv" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.StageScore.adopted">
+<span class="sig-name descname"><span class="pre">adopted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#tmhp.compressor_plots.StageScore.adopted" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.StageScore.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmse_fit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mape_fit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmse_cv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mape_cv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adopted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.compressor_plots.StageScore.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>rmse_fit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>mape_fit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rmse_cv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>mape_cv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>adopted</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.cop_errors">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">cop_errors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cop_reference</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cop_model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#cop_errors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.cop_errors" title="Link to this definition">¶</a></dt>
+<dd><p>Score <code class="docutils literal notranslate"><span class="pre">cop_model</span></code> against <code class="docutils literal notranslate"><span class="pre">cop_reference</span></code> (equal-length arrays; see <a class="reference internal" href="#tmhp.compressor_plots.CopErrors" title="tmhp.compressor_plots.CopErrors"><code class="xref py py-class docutils literal notranslate"><span class="pre">CopErrors</span></code></a>).</p>
+<p>Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for unequal lengths or a non-positive or non-finite reference value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cop_reference</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>cop_model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.compressor_plots.CopErrors" title="tmhp.compressor_plots.CopErrors"><code class="xref py py-class docutils literal notranslate"><span class="pre">CopErrors</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.efficiency_grid">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">efficiency_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">efficiencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_evap_C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#efficiency_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.efficiency_grid" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">quantity</span></code> on the grid <code class="docutils literal notranslate"><span class="pre">rps</span></code> x <code class="docutils literal notranslate"><span class="pre">pressure_ratio</span></code> at one evaporating temperature.</p>
+<p>Returns an array of shape <code class="docutils literal notranslate"><span class="pre">(len(rps),</span> <span class="pre">len(pressure_ratio))</span></code>. Each value is
+what the cycle would use (<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_efficiency._eval_eff()</span></code>: a
+value above one is set to one); an infeasible point (nonpositive or
+nonfinite efficiency) is NaN. <code class="docutils literal notranslate"><span class="pre">efficiencies</span></code> is as for
+<a class="reference internal" href="#tmhp.compressor_plots.plot_compressor_map" title="tmhp.compressor_plots.plot_compressor_map"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_compressor_map()</span></code></a>. Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for an unknown quantity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>efficiencies</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">_HasEfficiencies</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>quantity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>pressure_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>rps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>T_evap_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.plot_calibration_stages">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">plot_calibration_stages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stages</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#plot_calibration_stages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.plot_calibration_stages" title="Link to this definition">¶</a></dt>
+<dd><p>COP RMSE (left) and MAPE (right) [%] after each calibration stage, in the given order.</p>
+<p>Line: the fit to all points. Markers: the cross-validated value, filled
+for an adopted stage and open for a rejected one (none where the stage
+was not cross-validated). The first stage’s markers are grey (the
+uncalibrated model), the rest violet. Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for no stages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stages</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference internal" href="#tmhp.compressor_plots.StageScore" title="tmhp.compressor_plots.StageScore"><code class="xref py py-class docutils literal notranslate"><span class="pre">StageScore</span></code></a>]</span>)</p></li>
+<li><p><strong>title</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.plot_compressor_map">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">plot_compressor_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">before</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">after</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_evap_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(-15.0,</span> <span class="pre">0.0,</span> <span class="pre">10.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eta_ov'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('Default</span> <span class="pre">maps',</span> <span class="pre">'Calibrated')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pr_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1.4,</span> <span class="pre">13.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(15.0,</span> <span class="pre">120.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(140,</span> <span class="pre">120)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#plot_compressor_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.plot_compressor_map" title="Link to this definition">¶</a></dt>
+<dd><p>Efficiency map before (row 1) and after (row 2), one column per evaporating temperature.</p>
+<p><code class="docutils literal notranslate"><span class="pre">before</span></code> and <code class="docutils literal notranslate"><span class="pre">after</span></code> are each a mapping of the three efficiencies
+(<code class="docutils literal notranslate"><span class="pre">eta_cmp_isen</span></code>, <code class="docutils literal notranslate"><span class="pre">eta_cmp_vol</span></code>, <code class="docutils literal notranslate"><span class="pre">eta_cmp</span></code>), a heat-pump model (its
+attributes of those names), or <code class="docutils literal notranslate"><span class="pre">None</span></code> for the default maps. <code class="docutils literal notranslate"><span class="pre">quantity</span></code>
+is a key of <a class="reference internal" href="#tmhp.compressor_plots.MAP_QUANTITIES" title="tmhp.compressor_plots.MAP_QUANTITIES"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAP_QUANTITIES</span></code></a>; its colour levels are fixed, values
+beyond them take the end colours. Axes: pressure ratio <code class="docutils literal notranslate"><span class="pre">r_p</span></code> (log,
+<code class="docutils literal notranslate"><span class="pre">pr_range</span></code>) and speed <code class="docutils literal notranslate"><span class="pre">N</span></code> [rev/s] (<code class="docutils literal notranslate"><span class="pre">rps_range</span></code>), shared by all panels.</p>
+<p>Drawn on every panel: the efficiency (filled contours, labelled lines),
+the data range of the default maps at that <code class="docutils literal notranslate"><span class="pre">T_evap</span></code> (orange), and the
+grid peak (diamond; value and place in the panel title). <code class="docutils literal notranslate"><span class="pre">points</span></code>
+(an <a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints" title="tmhp.compressor_plots.OperatingPoints"><code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingPoints</span></code></a> or model result rows) are drawn on the column
+whose <code class="docutils literal notranslate"><span class="pre">T_evap</span></code> is nearest to each point’s. <code class="docutils literal notranslate"><span class="pre">resolution</span></code> is the grid
+size (pressure ratio, speed).</p>
+<p>Returns the figure (2 x <code class="docutils literal notranslate"><span class="pre">len(T_evap_C)</span></code> map axes and one colour bar).
+Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for an unknown quantity or no temperatures, and
+<code class="docutils literal notranslate"><span class="pre">TypeError</span></code> for an efficiency source without the three efficiencies.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>before</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">_HasEfficiencies</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>after</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">_HasEfficiencies</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>T_evap_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>quantity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>points</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.compressor_plots.OperatingPoints" title="tmhp.compressor_plots.OperatingPoints"><code class="xref py py-class docutils literal notranslate"><span class="pre">OperatingPoints</span></code></a> | <code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>labels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>pr_range</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>rps_range</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>title</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>resolution</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_plots.plot_cop_parity">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_plots.</span></span><span class="sig-name descname"><span class="pre">plot_cop_parity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cop_catalogue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cop_before</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cop_after</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('Default</span> <span class="pre">maps',</span> <span class="pre">'Calibrated')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">band</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_plots.html#plot_cop_parity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_plots.plot_cop_parity" title="Link to this definition">¶</a></dt>
+<dd><p>Model against catalogue COP: before (left, grey) and after (right, violet) on the same square axes.</p>
+<p>Equal-length arrays; a non-finite or non-positive model value is a point
+the model did not solve, left out of the plot, the axis range and the
+scores alike and counted in the title. Each
+panel title gives MAPE, bias and RMSE (<a class="reference internal" href="#tmhp.compressor_plots.cop_errors" title="tmhp.compressor_plots.cop_errors"><code class="xref py py-func docutils literal notranslate"><span class="pre">cop_errors()</span></code></a>). Lines: y = x and
+<code class="docutils literal notranslate"><span class="pre">±band</span></code> (dashed). <code class="docutils literal notranslate"><span class="pre">mode</span></code> per point: <code class="docutils literal notranslate"><span class="pre">&quot;heating&quot;</span></code> circles, <code class="docutils literal notranslate"><span class="pre">&quot;cooling&quot;</span></code>
+squares, anything else triangles. Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> as <a class="reference internal" href="#tmhp.compressor_plots.cop_errors" title="tmhp.compressor_plots.cop_errors"><code class="xref py py-func docutils literal notranslate"><span class="pre">cop_errors()</span></code></a>
+or when <code class="docutils literal notranslate"><span class="pre">mode</span></code> has another length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cop_catalogue</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>cop_before</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>cop_after</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>mode</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>labels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>band</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>title</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Figure</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 16, 2026
+  Last updated Nov 25, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

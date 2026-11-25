@@ -341,8 +341,8 @@ class CopErrors:
 
     ``rmse``: root mean square of ``ln(COP_model / COP_ref)``; ``mape``: mean of
     ``|COP_model / COP_ref - 1|``; ``bias``: mean of ``COP_model / COP_ref - 1``.
-    All over the ``n`` points with a finite model value; ``n_failed`` points
-    had none (the model did not solve them). NaN scores when ``n`` is 0.
+    All over the ``n`` points with a finite, positive model value; ``n_failed``
+    points had none (the model did not solve them). NaN scores when ``n`` is 0.
     """
 
     n: int
@@ -350,6 +350,11 @@ class CopErrors:
     rmse: float
     mape: float
     bias: float
+
+
+def _solved(cop_model: np.ndarray) -> np.ndarray:
+    """Mask of the model COPs that count as solved: finite and positive (else the point is unsolved)."""
+    return np.asarray(np.isfinite(cop_model) & (cop_model > 0.0), dtype=bool)
 
 
 def cop_errors(cop_reference: Sequence[float] | np.ndarray, cop_model: Sequence[float] | np.ndarray) -> CopErrors:
@@ -363,7 +368,7 @@ def cop_errors(cop_reference: Sequence[float] | np.ndarray, cop_model: Sequence[
         raise ValueError(f"{ref.size} reference values but {mod.size} model values")
     if not (np.all(np.isfinite(ref)) and np.all(ref > 0.0)):
         raise ValueError("reference COP values must be finite and positive")
-    ok = np.isfinite(mod) & (mod > 0.0)
+    ok = _solved(mod)
     n = int(ok.sum())
     if n == 0:
         return CopErrors(0, int(ref.size), math.nan, math.nan, math.nan)
@@ -462,8 +467,9 @@ def plot_cop_parity(
 ) -> Figure:
     """Model against catalogue COP: before (left, grey) and after (right, violet) on the same square axes.
 
-    Equal-length arrays; a non-finite model value is a point the model did not
-    solve, left out of the plot and the scores and counted in the title. Each
+    Equal-length arrays; a non-finite or non-positive model value is a point
+    the model did not solve, left out of the plot, the axis range and the
+    scores alike and counted in the title. Each
     panel title gives MAPE, bias and RMSE (:func:`cop_errors`). Lines: y = x and
     ``±band`` (dashed). ``mode`` per point: ``"heating"`` circles, ``"cooling"``
     squares, anything else triangles. Raises ``ValueError`` as :func:`cop_errors`
@@ -475,7 +481,7 @@ def plot_cop_parity(
     modes = np.asarray(["" for _ in ref] if mode is None else mode, dtype=object).ravel()
     if modes.size != ref.size:
         raise ValueError(f"{modes.size} modes for {ref.size} points")
-    finite = np.concatenate([ref] + [p[np.isfinite(p)] for p in preds])
+    finite = np.concatenate([ref] + [p[_solved(p)] for p in preds])
     lo = max(0.0, float(finite.min()) * 0.9)
     hi = float(finite.max()) * 1.1
 
@@ -483,7 +489,7 @@ def plot_cop_parity(
     fig, axes = plt.subplots(1, 2, figsize=(8.0, 4.7), sharex=True, sharey=True, layout="constrained")
     markers = {"heating": "o", "cooling": "s"}
     for ax, pred, score, label, colour in zip(axes, preds, scores, labels, (GREY, VIOLET), strict=True):
-        ok = np.isfinite(pred)
+        ok = _solved(pred)
         for m in dict.fromkeys(modes.tolist()):
             sel = ok & (modes == m)
             if sel.any():

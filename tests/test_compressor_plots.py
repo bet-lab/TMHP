@@ -203,3 +203,14 @@ def test_model_method_draws_its_own_maps_against_the_defaults_or_another_model()
     top_flat, bottom_flat = (ax.get_title(loc="left") for ax in _map_axes(fig))
     assert top_flat == top
     assert "peak 0.630" in bottom_flat
+
+
+def test_parity_draws_only_the_points_it_scores():
+    """A zero or negative model COP is unsolved: not drawn and not in the axis range, as it is not in the scores."""
+    ref = np.array([3.0, 4.0, 5.0])
+    fig = plot_cop_parity(ref, ref, [0.0, 4.0, -1.0])
+    left, right = fig.axes
+    drawn = [len(c.get_offsets()) for c in right.collections]
+    assert sum(drawn) == 1
+    assert "2 of 3 points not solved" in right.get_title(loc="left")
+    assert right.get_ylim()[0] > 2.0

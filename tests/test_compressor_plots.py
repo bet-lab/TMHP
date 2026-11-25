@@ -1,9 +1,11 @@
 """The fixed compressor figures (#256, #258): map values, before/after rows, error scores, style and the model method.
 
 The figures are checked through what a reader sees in them -- panel titles
-(peak value and place, error scores), row titles, tick labels, the points
-drawn on each panel -- through :func:`efficiency_grid`, whose values the map
-panels contour, and through dartwork-mpl's own figure check.
+(peak value and place, error scores), row titles, tick labels, axis names,
+colour bars, the points drawn on each panel -- through :func:`efficiency_grid`,
+whose values the map panels contour, and through dartwork-mpl's own figure
+check. The figma-plot drawing rules the figures follow (explicit axis specs,
+decimals, units, colour bars) are checked the same way.
 """
 
 import math
@@ -24,6 +26,7 @@ from tmhp.compressor_plots import (
     FIGURE_STYLE,
     OperatingPoints,
     StageScore,
+    _axis_spec,
     cop_errors,
     efficiency_grid,
     plot_calibration_stages,
@@ -43,8 +46,29 @@ def _close_figures():
 
 
 def _map_axes(fig):
-    """The map panels of a map figure in row-major order (the colour bar left out)."""
+    """The map panels of a map figure in row-major order (the colour bars left out)."""
     return [ax for ax in fig.axes if not hasattr(ax, "_colorbar")]
+
+
+def _bar_axes(fig):
+    """The colour-bar axes of a figure, top row first."""
+    return [ax for ax in fig.axes if hasattr(ax, "_colorbar")]
+
+
+def _shown(labels):
+    """Texts of the visible, non-empty tick labels."""
+    return [t.get_text() for t in labels if t.get_visible() and t.get_text()]
+
+
+def _spec_of(axis):
+    """(min, max, interval) a linear axis shows: its limits and the spacing of its ticks, which must be even."""
+    lo, hi = sorted(axis.axes.get_xlim() if axis.axis_name == "x" else axis.axes.get_ylim())
+    ticks = np.asarray(axis.get_ticklocs(), dtype=float)
+    steps = np.diff(ticks)
+    np.testing.assert_allclose(steps, steps[0], rtol=1e-9)
+    # both ends are ticks
+    assert ticks[0] == pytest.approx(lo) and ticks[-1] == pytest.approx(hi)
+    return (lo, hi, float(steps[0]))
 
 
 def _titles(ax):
@@ -112,7 +136,11 @@ def test_identical_maps_give_identical_rows_and_a_changed_map_its_own_peak():
     assert len(axes) == 6
     titles = [_titles(ax) for ax in axes]
     assert titles[:3] == titles[3:]
-    assert [left for left, _ in titles[:3]] == ["T_evap -15 °C", "T_evap 0 °C", "T_evap 10 °C"]
+    assert [left for left, _ in titles[:3]] == [
+        "Evaporating\n\N{MINUS SIGN}15 °C",
+        "Evaporating\n0 °C",
+        "Evaporating\n10 °C",
+    ]
 
     changed = plot_compressor_map(None, FLAT, T_evap_C=temps, resolution=(30, 25))
     bottom = [_titles(ax)[1] for ax in _map_axes(changed)[3:]]
@@ -282,3 +310,103 @@ def test_figures_pass_the_dartwork_mpl_figure_check():
     for name, fig in _three_figures().items():
         warnings = [w for w in dm.validate_figure(fig, quiet=True) if w.severity.name == "WARNING"]
         assert warnings == [], name
+
+
+def test_map_colour_bars_have_no_triangles_and_show_only_their_two_end_values():
+    """One upright bar per row, right of the row's last panel, its top level with the panel's; no triangular ends;
+    the two end levels as its only tick labels, without tick lines, and the quantity named above it."""
+    fig = _three_figures()["map"]
+    fig.canvas.draw()
+    bars, panels = _bar_axes(fig), _map_axes(fig)
+    assert len(bars) == 2
+    for bar_ax, last in zip(bars, (panels[2], panels[5]), strict=True):
+        bar = bar_ax._colorbar
+        assert bar.extend == "neither"
+        assert bar.orientation == "vertical"
+        assert bar_ax.get_ylim() == pytest.approx((0.30, 0.85))
+        assert _shown(bar_ax.get_yticklabels()) == ["0.30", "0.85"]
+        assert all(
+            t.tick1line.get_markersize() == 0 and t.tick2line.get_markersize() == 0
+            for t in bar_ax.yaxis.get_major_ticks()
+        )
+        box, panel = bar_ax.get_window_extent(), last.get_window_extent()
+        assert box.x0 > panel.x1
+        assert (box.y0, box.y1) == pytest.approx((panel.y0, panel.y1), abs=0.5)
+        assert [t.get_text() for t in bar_ax.texts] == ["Overall\nefficiency"]
+        assert bar_ax.texts[0].get_window_extent().y0 > box.y1
+
+
+def test_map_fills_values_beyond_the_levels_in_the_end_colours():
+    """A map above the top level fills its panels with the top band, one below the bottom level with the bottom band:
+    no blank panels where the efficiency lies beyond the fixed levels."""
+    high = {"eta_cmp_isen": 1.0, "eta_cmp_vol": 0.9, "eta_cmp": 0.95}  # eta_ov 0.95 > 0.85
+    low = {"eta_cmp_isen": 0.4, "eta_cmp_vol": 0.9, "eta_cmp": 0.5}  # eta_ov 0.20 < 0.30
+    fig = plot_compressor_map(high, low, resolution=(20, 15))
+    for i, ax in enumerate(_map_axes(fig)):
+        (filled,) = [c for c in ax.collections if getattr(c, "filled", False)]
+        drawn = [len(p.vertices) > 0 for p in filled.get_paths()]
+        expected = [False] * (len(drawn) - 1) + [True] if i < 3 else [True] + [False] * (len(drawn) - 1)
+        assert drawn == expected, i
+
+
+def test_linear_axes_have_an_explicit_spec_with_ticks_at_both_ends():
+    """Speed axis 15 to 120 every 15; error axes from 0 to a round value above the largest error; parity axes over
+    the drawn values rounded outward; the log pressure-ratio axis is exempt."""
+    figs = _three_figures()
+    for ax in _map_axes(figs["map"]):
+        assert ax.get_xscale() == "log"
+        assert _spec_of(ax.yaxis) == pytest.approx((15.0, 120.0, 15.0))
+    rmse_ax, mape_ax = figs["stages"].axes
+    assert _spec_of(rmse_ax.yaxis) == pytest.approx((0.0, 16.0, 2.0))  # largest RMSE 15.1 %
+    assert _spec_of(mape_ax.yaxis) == pytest.approx((0.0, 14.0, 2.0))  # largest MAPE 13.1 %
+    for ax in figs["parity"].axes:
+        # drawn COPs 1.7 to 6.12, with 10 % room: 1.53 to 6.73
+        assert _spec_of(ax.xaxis) == pytest.approx((1.0, 7.0, 1.0))
+        assert _spec_of(ax.yaxis) == pytest.approx((1.0, 7.0, 1.0))
+
+
+def test_axis_spec_is_whole_intervals_round_and_holds_the_range():
+    """Every spec covers its range with 3 to 8 whole intervals of a 1, 2 or 5 mantissa, min and max on the interval."""
+    assert _axis_spec(15.0, 120.0, steps=(1.0, 1.5, 2.0, 2.5, 3.0, 5.0)) == pytest.approx((15.0, 120.0, 15.0))
+    assert _axis_spec(2.07, 8.5) == pytest.approx((2.0, 9.0, 1.0))
+    rng = np.random.default_rng(1)
+    for _ in range(300):
+        lo = float(rng.uniform(-50.0, 50.0))
+        hi = lo + float(10.0 ** rng.uniform(-3.0, 3.0))
+        a, b, step = _axis_spec(lo, hi)
+        n = (b - a) / step
+        assert a <= lo and b >= hi
+        assert n == pytest.approx(round(n), abs=1e-6) and 3 <= round(n) <= 8
+        mantissa = step / 10.0 ** math.floor(math.log10(step) + 1e-9)
+        assert round(mantissa, 6) in (1.0, 2.0, 5.0)
+        assert a / step == pytest.approx(round(a / step), abs=1e-6)
+
+
+def test_tick_labels_carry_only_the_decimals_their_interval_needs():
+    """Whole intervals: no decimal point; 0.55 from 0.30: two places; contour labels every 0.1: one place."""
+    figs = _three_figures()
+    figs["map"].canvas.draw()
+    panel = _map_axes(figs["map"])[0]
+    assert _shown(panel.get_yticklabels()) == ["15", "30", "45", "60", "75", "90", "105", "120"]
+    assert _shown(_bar_axes(figs["map"])[0].get_yticklabels()) == ["0.30", "0.85"]
+    defaults = plot_compressor_map(None, None, T_evap_C=(0.0,), resolution=(40, 30))
+    defaults.canvas.draw()
+    line_labels = [t.get_text() for t in _map_axes(defaults)[0].texts]
+    assert line_labels and all(len(t.split(".")[1]) == 1 for t in line_labels)
+    figs["stages"].canvas.draw()
+    assert _shown(figs["stages"].axes[0].get_yticklabels()) == ["0", "2", "4", "6", "8", "10", "12", "14", "16"]
+    figs["parity"].canvas.draw()
+    assert _shown(figs["parity"].axes[1].get_xticklabels()) == ["1", "2", "3", "4", "5", "6", "7"]
+
+
+def test_axis_names_write_percent_in_parentheses_units_in_brackets_and_titles_in_words():
+    """(%) for percent, [rev/s] for speed; panel titles name the evaporating temperature in words, not T_evap."""
+    figs = _three_figures()
+    rmse_ax, mape_ax = figs["stages"].axes
+    assert rmse_ax.get_ylabel() == "COP RMSE, ln(model/catalogue) (%)"
+    assert mape_ax.get_ylabel() == "COP MAPE (%)"
+    for ax in _map_axes(figs["map"]):
+        assert ax.get_ylabel() in ("Speed (N) [rev/s]", "")
+        assert ax.get_title(loc="left").startswith("Evaporating\n")
+    texts = [t.get_text() for fig in figs.values() for t in fig.findobj(matplotlib.text.Text)]
+    assert not [t for t in texts if "[%]" in t or "T_evap" in t]

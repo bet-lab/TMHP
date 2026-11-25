@@ -24,6 +24,15 @@ global ``rcParams`` are left as they were (#258). Every panel carries its own
 tick labels. Colours: grey = before (default maps), violet = after
 (calibrated), orange = the data range of the default maps, blue = efficiency
 magnitude.
+
+Axes follow the figure drawing rules of the ``figma-plot`` skill that do not
+depend on the style (#258): every linear axis, the colour bars included, has
+an explicit ``(min, max, interval)`` with ticks at both ends (the log
+pressure-ratio axis is exempt); tick labels carry only the decimals the
+interval needs; percent is written ``(%)`` and physical units ``[unit]``;
+titles name quantities in words; a colour bar stands upright to the right of
+its panel, placed from the panel's final position, and shows its two end
+values only, with no triangular ends.
 """
 
 from __future__ import annotations
@@ -32,6 +41,7 @@ import functools
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar, cast
 
 import numpy as np
@@ -48,7 +58,10 @@ from .compressor_efficiency import (
 if TYPE_CHECKING:
     import pandas as pd
     from matplotlib.axes import Axes
+    from matplotlib.cm import ScalarMappable
     from matplotlib.figure import Figure
+    from matplotlib.text import Text
+    from matplotlib.ticker import Formatter
 
 __all__ = [
     "DEFAULT_T_EVAP_C",
@@ -85,6 +98,27 @@ ORANGE = "tw.orange500"
 INK = "oc.gray8"
 FAINT = "oc.gray5"
 
+#: Margin [pt] between the figure edge and its content (1.5 mm).
+_MARGIN_PT = 1.5 / 25.4 * 72.0
+
+#: An axis specification ``(min, max, interval)``: limits, and ticks from min to max every interval.
+AxisSpec = tuple[float, float, float]
+#: Interval mantissas an axis may use (x 10^k); speed axes may also use 1.5, 2.5 and 3 to keep a given range.
+_STEPS = (1.0, 2.0, 5.0)
+_FINE_STEPS = (1.0, 1.5, 2.0, 2.5, 3.0, 5.0)
+#: Colour-bar styles of the figma-plot skill: (height / panel height, width / panel width, anchored edge).
+_COLOURBAR_STYLES: dict[str, tuple[float, float, str]] = {
+    "full-height-top": (1.0, 0.03, "top"),
+    "half-height-bottom": (0.5, 0.015, "bottom"),
+}
+#: The style the map uses (``half-height-bottom`` is 0.6 mm wide on a 17 cm, three-column map: too thin).
+_COLOURBAR_STYLE = "full-height-top"
+#: Gap between a panel and its colour bar, and between the bar and its end values and label [pt].
+_COLOURBAR_GAP_PT = 6.0
+_COLOURBAR_PAD_PT = 3.0
+#: Height of the colour-bar label's foot above the bar [pt].
+_COLOURBAR_LABEL_RISE_PT = 10.0
+
 
 @dataclass(frozen=True)
 class _MapQuantity:
@@ -93,6 +127,8 @@ class _MapQuantity:
     label: str
     symbol: str
     levels: tuple[float, ...]
+    #: ``label`` in short lines, for the head of the narrow colour bar.
+    bar_label: str
 
 
 def _levels(lo: float, hi: float, step: float) -> tuple[float, ...]:
@@ -101,14 +137,86 @@ def _levels(lo: float, hi: float, step: float) -> tuple[float, ...]:
     return tuple(round(lo + i * step, 6) for i in range(n + 1))
 
 
+def _axis_spec(lo: float, hi: float, *, steps: Sequence[float] = _STEPS, max_intervals: int = 8) -> AxisSpec:
+    """The tightest ``(min, max, interval)`` holding ``[lo, hi]``, with 3 to ``max_intervals`` intervals.
+
+    The interval is a mantissa of ``steps`` times a power of ten; min and max
+    are multiples of it (``lo`` and ``hi`` rounded outward). Of equally tight
+    specifications the one with the larger interval wins. ``hi <= lo`` widens
+    the range to ``[lo, lo + 1]``.
+    """
+    if not (math.isfinite(lo) and math.isfinite(hi)):
+        raise ValueError(f"an axis range needs finite ends, got ({lo}, {hi})")
+    if hi <= lo:
+        hi = lo + 1.0
+    k0 = math.floor(math.log10(hi - lo))
+    best: tuple[tuple[float, float], AxisSpec] | None = None
+    for k in range(k0 - 2, k0 + 2):
+        for m in steps:
+            step = m * 10.0**k
+            start = math.floor(lo / step + 1e-9) * step
+            stop = math.ceil(hi / step - 1e-9) * step
+            n = round((stop - start) / step)
+            if 3 <= n <= max_intervals:
+                key = (round(stop - start, 9), -step)
+                if best is None or key < best[0]:
+                    best = (key, (round(start, 9), round(stop, 9), round(step, 9)))
+    if best is None:  # pragma: no cover - some mantissa always gives 3 to 8 intervals
+        raise ValueError(f"no axis specification for ({lo}, {hi})")
+    return best[1]
+
+
+def _spec_ticks(spec: AxisSpec) -> list[float]:
+    """The ticks of ``spec``: min, min + interval, ..., max (both ends included)."""
+    lo, hi, step = spec
+    n = round((hi - lo) / step)
+    if not (lo < hi and step > 0 and math.isclose(n * step, hi - lo, rel_tol=1e-9)):
+        raise ValueError(f"axis spec {spec} is not (min < max, interval > 0, (max - min) / interval an integer)")
+    return [round(lo + i * step, 9) for i in range(n + 1)]
+
+
+def _decimals(*values: float) -> int:
+    """Decimal places needed to write every value exactly (0 for integers)."""
+    return max(0, *(-int(Decimal(repr(round(v, 9))).normalize().as_tuple().exponent) for v in values))
+
+
+def _tick_formatter(interval: float, start: float) -> Formatter:
+    """Tick labels with only the decimals the interval needs: 15, 30 or 0.5, 1.0, 1.5 (never 15.0)."""
+    from matplotlib.ticker import FuncFormatter
+
+    places = _decimals(interval, start)
+
+    def label(value: float, _pos: int | None = None) -> str:
+        text = f"{value:.{places}f}"
+        if float(text) == 0.0:
+            text = f"{0.0:.{places}f}"
+        return text.replace("-", "\N{MINUS SIGN}")
+
+    return FuncFormatter(label)
+
+
+def _apply_spec(ax: Axes, which: str, spec: AxisSpec) -> None:
+    """Set the limits and ticks of the linear ``which`` (``"x"`` or ``"y"``) axis of ``ax`` to ``spec``.
+
+    The ticks are labelled with only the decimals the interval needs.
+    """
+    ticks = _spec_ticks(spec)
+    axis = ax.xaxis if which == "x" else ax.yaxis
+    ax.set(**{f"{which}lim": (spec[0], spec[1])})
+    axis.set_ticks(ticks)
+    axis.set_major_formatter(_tick_formatter(spec[2], spec[0]))
+
+
 #: Quantities :func:`plot_compressor_map` can draw. ``eta_ov`` is the product
 #: ``eta_cmp_isen * eta_cmp`` (the overall efficiency the calibration scales);
 #: the others are the package's three efficiencies as the cycle evaluates them.
 MAP_QUANTITIES: dict[str, _MapQuantity] = {
-    "eta_ov": _MapQuantity("Overall efficiency", "η_ov", _levels(0.30, 0.85, 0.025)),
-    "eta_cmp_isen": _MapQuantity("Isentropic efficiency", "η_is", _levels(0.40, 1.00, 0.025)),
-    "eta_cmp_vol": _MapQuantity("Volumetric efficiency", "η_v", _levels(0.70, 1.00, 0.02)),
-    "eta_cmp": _MapQuantity("Electromechanical efficiency", "η_em", _levels(0.70, 1.00, 0.02)),
+    "eta_ov": _MapQuantity("Overall efficiency", "η_ov", _levels(0.30, 0.85, 0.025), "Overall\nefficiency"),
+    "eta_cmp_isen": _MapQuantity("Isentropic efficiency", "η_is", _levels(0.40, 1.00, 0.025), "Isentropic\nefficiency"),
+    "eta_cmp_vol": _MapQuantity("Volumetric efficiency", "η_v", _levels(0.70, 1.00, 0.02), "Volumetric\nefficiency"),
+    "eta_cmp": _MapQuantity(
+        "Electromechanical efficiency", "η_em", _levels(0.70, 1.00, 0.02), "Electro-\nmechanical\nefficiency"
+    ),
 }
 
 
@@ -267,11 +375,78 @@ def _pin_tick_style(fig: Figure) -> None:
                 )
 
 
-def _finish(fig: Figure) -> None:
-    """Pin the tick style, then fit the layout (dartwork-mpl ``simple_layout``) with a small margin."""
+def _finish(fig: Figure, *, right_pt: float = 0.0) -> None:
+    """Pin the tick style, then fit the layout (dartwork-mpl ``simple_layout``) with a small margin.
+
+    ``right_pt`` more is kept free at the right edge (room for colour bars placed after the layout).
+    """
     dm = _dm()
     _pin_tick_style(fig)
-    dm.simple_layout(fig, margin=dm.mm(1.5))
+    dm.simple_layout(fig, margin=dm.pt(_MARGIN_PT), mr=dm.pt(_MARGIN_PT + right_pt))
+
+
+def _text_width_pt(fig: Figure, text: str, fontsize: float) -> float:
+    """Width [pt] ``text`` takes when drawn at ``fontsize`` in ``fig``."""
+    t = fig.text(0.0, 0.0, text, fontsize=fontsize)
+    width = t.get_window_extent().width * 72.0 / fig.dpi
+    t.remove()
+    return float(width)
+
+
+def _colourbar_room_pt(fig: Figure, panel_width_pt: float, spec: AxisSpec, label: str) -> float:
+    """Room [pt] right of a panel that a :func:`_add_colourbar` bar, its end values and its label take."""
+    fontsize = _plt().rcParams["ytick.labelsize"]
+    _, width_ratio, _ = _COLOURBAR_STYLES[_COLOURBAR_STYLE]
+    fmt = _tick_formatter(spec[2], spec[0])
+    values = max(_text_width_pt(fig, fmt(v), fontsize) for v in spec[:2])
+    bar = width_ratio * panel_width_pt
+    slack = 1.0
+    return _COLOURBAR_GAP_PT + bar + _COLOURBAR_PAD_PT + max(values, _text_width_pt(fig, label, fontsize)) + slack
+
+
+def _add_colourbar(fig: Figure, ax: Axes, mappable: ScalarMappable, spec: AxisSpec, label: str) -> Axes:
+    """An upright colour bar right of ``ax`` in the :data:`_COLOURBAR_STYLE` style; returns its axes.
+
+    Placed from the final position of ``ax`` (call it after the layout). It
+    shows the two end values of ``spec`` = ``(min, max, max - min)``, which must
+    be the colour range of ``mappable``, with no tick lines and ``label`` above
+    the bar, over the end values. The bar has no triangular ends.
+    """
+    plt = _plt()
+    lo, hi, step = spec
+    vmin, vmax = cast("tuple[float, float]", (mappable.norm.vmin, mappable.norm.vmax))
+    if not (math.isclose(step, hi - lo) and np.allclose([vmin, vmax], [lo, hi])):
+        raise ValueError(f"colour bar spec {spec} is not (min, max, max - min) of the colour range")
+    height_ratio, width_ratio, anchor = _COLOURBAR_STYLES[_COLOURBAR_STYLE]
+    fig.canvas.draw()
+    box = ax.get_window_extent()
+    height, width = box.height * height_ratio, box.width * width_ratio
+    y0 = box.y1 - height if anchor == "top" else box.y0
+    x0 = box.x1 + _COLOURBAR_GAP_PT * fig.dpi / 72.0
+    (fx0, fy0), (fx1, fy1) = fig.transFigure.inverted().transform([(x0, y0), (x0 + width, y0 + height)])
+    cax = fig.add_axes((fx0, fy0, fx1 - fx0, fy1 - fy0))
+    bar = fig.colorbar(mappable, cax=cax, orientation="vertical", extend="neither")
+    bar.set_ticks(_spec_ticks(spec))
+    cax.yaxis.set_major_formatter(_tick_formatter(step, lo))
+    cax.set_ylim(lo, hi)
+    cax.minorticks_off()
+    rc = plt.rcParams
+    colour = rc["ytick.labelcolor"] if rc["ytick.labelcolor"] != "inherit" else rc["ytick.color"]
+    cax.tick_params(
+        axis="y", which="both", length=0, pad=_COLOURBAR_PAD_PT, labelsize=rc["ytick.labelsize"], labelcolor=colour
+    )
+    cax.annotate(
+        label,
+        (1.0, 1.0),
+        xycoords="axes fraction",
+        xytext=(_COLOURBAR_PAD_PT, _COLOURBAR_LABEL_RISE_PT),
+        textcoords="offset points",
+        ha="left",
+        va="bottom",
+        fontsize=rc["ytick.labelsize"],
+        color=colour,
+    )
+    return cast("Axes", cax)
 
 
 def _in_figure_style(draw: Callable[_P, _R]) -> Callable[_P, _R]:
@@ -314,21 +489,24 @@ def plot_compressor_map(
     attributes of those names), or ``None`` for the default maps. ``quantity``
     is a key of :data:`MAP_QUANTITIES`; its colour levels are fixed, values
     beyond them take the end colours. Axes: pressure ratio ``r_p`` (log,
-    ``pr_range``) and speed ``N`` [rev/s] (``rps_range``), the same on every
-    panel.
+    ``pr_range``) and speed ``N`` [rev/s] (``rps_range``, with ticks at a
+    round interval; a range that no such interval divides is widened to one,
+    the default 15 to 120 has ticks every 15), the same on every panel.
 
     Each row is a block of its own, headed by its label (``labels``) and set
     apart from the other row; no axis is shared, so every panel has its own
     tick labels. Drawn on every panel: the efficiency (filled contours,
     labelled lines), the data range of the default maps at that ``T_evap``
     (orange), and the grid peak (diamond). The panel's left title is its
-    ``T_evap``, the right title the peak value and place. ``points`` (an
+    evaporating temperature, the right title the peak value and place. Each
+    row has its own colour bar right of its last panel, the same levels in
+    both rows, showing the two end values. ``points`` (an
     :class:`OperatingPoints` or model result rows) are drawn on the column
     whose ``T_evap`` is nearest to each point's. ``resolution`` is the grid
     size (pressure ratio, speed).
 
-    Returns the figure: 2 x ``len(T_evap_C)`` map axes and one colour bar for
-    both rows. Raises ``ValueError`` for an unknown quantity or no
+    Returns the figure: 2 x ``len(T_evap_C)`` map axes and a colour bar for
+    each row. Raises ``ValueError`` for an unknown quantity or no
     temperatures, and ``TypeError`` for an efficiency source without the three
     efficiencies.
     """
@@ -340,38 +518,49 @@ def plot_compressor_map(
     spec = MAP_QUANTITIES[quantity]
     rows = (_efficiency_set(before), _efficiency_set(after))
     pts = points if points is None or isinstance(points, OperatingPoints) else OperatingPoints.from_results(points)
+    speed_spec = _axis_spec(*rps_range, steps=_FINE_STEPS)
     prs = np.exp(np.linspace(math.log(pr_range[0]), math.log(pr_range[1]), resolution[0]))
-    ns = np.linspace(rps_range[0], rps_range[1], resolution[1])
+    ns = np.linspace(speed_spec[0], speed_spec[1], resolution[1])
     column_of_point = (
         np.argmin(np.abs(pts.T_evap_C[:, None] - np.asarray(temps)[None, :]), axis=1) if pts is not None else None
     )
     ticks = [t for t in (2, 3, 4, 6, 8, 12) if pr_range[0] <= t <= pr_range[1]]
     levels = np.asarray(spec.levels)
+    bar_spec = (float(levels[0]), float(levels[-1]), round(float(levels[-1] - levels[0]), 9))
+    line_label = _tick_formatter(float(levels[4] - levels[0]), float(levels[0]))
 
     plt, dm = _plt(), _dm()
-    from matplotlib.transforms import Bbox
 
     ncol = len(temps)
     fig = plt.figure(figsize=dm.figsize(_WIDTH, dm.cm(2 * _MAP_ROW_HEIGHT_CM + 1.6)))
-    maps_box, bar_box = fig.subfigures(1, 2, width_ratios=[ncol, 0.32], wspace=0.0)
-    row_boxes = maps_box.subfigures(2, 1, hspace=0.0)
-    filled = None
+    row_boxes = fig.subfigures(2, 1, hspace=0.0)
+    last_panels: list[tuple[Axes, ScalarMappable]] = []
+    line_labels: list[tuple[Axes, Text]] = []
     for r, (eff, row_box) in enumerate(zip(rows, row_boxes, strict=True)):
         row_box.suptitle(labels[r], x=0.0, ha="left", fontweight=dm.fw(2))
         row_axes = row_box.subplots(1, ncol, squeeze=False, gridspec_kw={"wspace": 0.3})[0]
         colour = GREY if r == 0 else VIOLET
         for c, (ax, T_e) in enumerate(zip(row_axes, temps, strict=True)):
+            # scale and limits first: the contour labels are placed in the panel as it will be shown
+            ax.set_xscale("log")
+            ax.set_xticks(ticks, [f"{t:g}" for t in ticks])
+            ax.minorticks_off()
+            ax.set_xlim(*pr_range)
+            _apply_spec(ax, "y", speed_spec)
             Z = efficiency_grid(eff, quantity, prs, ns, T_e)
-            filled = ax.contourf(prs, ns, Z, levels=levels, cmap="Blues", extend="both")
+            # values beyond the fixed levels are filled in the end colours, not left blank
+            filled = ax.contourf(prs, ns, np.clip(Z, levels[0], levels[-1]), levels=levels, cmap="Blues")
             lines = ax.contour(prs, ns, Z, levels=levels[::2], colors="white", linewidths=0.5)
-            for text in ax.clabel(lines, levels=levels[::4], fontsize=dm.fs(-1.5), fmt="%.2f"):
+            for text in ax.clabel(lines, levels=levels[::4], fontsize=dm.fs(-1.5), fmt=line_label):
                 fill = filled.cmap(filled.norm(float(text.get_text())))
                 text.set_color(dm.readable_text_color(fill))
+                line_labels.append((ax, text))
             inside = np.array([[DOMAIN.contains(pr, n, T_e) for pr in prs] for n in ns], dtype=float)
             if 0.0 < inside.mean() < 1.0:
                 ax.contour(prs, ns, inside, levels=[0.5], colors=ORANGE, linewidths=1.1)
                 ax.plot([], [], color=ORANGE, lw=1.1, label="Data range of the default maps")
-            ax.set_title(f"T_evap {T_e:g} °C", loc="left")
+            # two lines, so the name in words leaves room for the peak on the right
+            ax.set_title(f"Evaporating\n{_tick_formatter(1.0, T_e)(T_e)} °C", loc="left")
             peak = _peak(prs, ns, Z)
             if peak is not None:
                 ax.scatter(
@@ -394,7 +583,7 @@ def plot_compressor_map(
             if pts is not None and column_of_point is not None:
                 sel = column_of_point == c
                 # labelled on the last row so the legend lists it after both peaks
-                point_label = "Operating points (nearest T_evap)" if r == len(rows) - 1 else None
+                point_label = "Operating points (nearest evaporating temperature)" if r == len(rows) - 1 else None
                 ax.scatter(
                     pts.pressure_ratio[sel],
                     pts.rps[sel],
@@ -406,24 +595,22 @@ def plot_compressor_map(
                     gid="operating-points",
                     label=point_label,
                 )
-            ax.set_xscale("log")
-            ax.set_xticks(ticks, [f"{t:g}" for t in ticks])
-            ax.minorticks_off()
-            ax.set_xlim(*pr_range)
-            ax.set_ylim(*rps_range)
             ax.set_xlabel("Pressure ratio (r_p)")
         row_axes[0].set_ylabel("Speed (N) [rev/s]")
-    cax = bar_box.add_subplot()
-    bar = fig.colorbar(filled, cax=cax, label=f"{spec.label} ({spec.symbol})")
-    bar.set_ticks(levels[::2])
+        last_panels.append((row_axes[-1], filled))
     fig.suptitle(title or f"{spec.label} ({spec.symbol}): {labels[0]} (top) vs {labels[1]} (bottom)")
     dm.figure_legend(fig, loc="below", frameon=False, markerscale=1.4)
-    _finish(fig)
-    # the colour bar spans the map panels of both rows, not the row titles and the legend
-    panels = Bbox.union([ax.get_window_extent() for ax in fig.axes if ax is not cax])
-    y0, y1 = bar_box.transSubfigure.inverted().transform([(0.0, panels.y0), (0.0, panels.y1)])[:, 1]
-    x0, _, width, _ = cax.get_position().bounds
-    cax.set_position((x0, y0, width, y1 - y0))
+    panel_width_pt = fig.get_figwidth() * 72.0 / ncol
+    _finish(fig, right_pt=_colourbar_room_pt(fig, panel_width_pt, bar_spec, spec.bar_label))
+    # a contour label that the panel edge would cut is left out rather than shown in part
+    fig.canvas.draw()
+    for ax, text in line_labels:
+        panel, box = ax.get_window_extent(), text.get_window_extent()
+        if not (panel.contains(box.x0, box.y0) and panel.contains(box.x1, box.y1)):
+            text.remove()
+    # one bar per row, each from its last panel's final place, so each row reads on its own
+    for ax, filled in last_panels:
+        _add_colourbar(fig, ax, filled, bar_spec, spec.bar_label)
     return cast("Figure", fig)
 
 
@@ -524,7 +711,9 @@ def _stage_panel(ax: Axes, stages: Sequence[StageScore], fit: str, cv: str, ylab
         else:
             ax.scatter([i], [v * 100.0], s=30, facecolor="white", edgecolor=colour, lw=1.0, zorder=3, label=label)
     ax.set_xticks(xs, [s.label for s in stages])
-    ax.set_ylim(bottom=0.0)
+    values = [100.0 * v for s in stages for v in (getattr(s, fit), getattr(s, cv)) if v is not None]
+    # from zero to just above the largest value, so no marker sits on the frame
+    _apply_spec(ax, "y", _axis_spec(0.0, 1.05 * max(values)))
     ax.set_ylabel(ylabel)
     # every stage keeps its name; the names turn only where they would collide
     _dm().avoid_tick_overlap(ax, "x", max_visible=len(stages))
@@ -532,19 +721,21 @@ def _stage_panel(ax: Axes, stages: Sequence[StageScore], fit: str, cv: str, ylab
 
 @_in_figure_style
 def plot_calibration_stages(stages: Sequence[StageScore], *, title: str | None = None) -> Figure:
-    """COP RMSE (left) and MAPE (right) [%] after each calibration stage, in the given order.
+    """COP RMSE (left) and MAPE (right) (%) after each calibration stage, in the given order.
 
     Line: the fit to all points. Markers: the cross-validated value, filled
     for an adopted stage and open for a rejected one (none where the stage
     was not cross-validated). The first stage's markers are grey (the
-    uncalibrated model), the rest violet. Raises ``ValueError`` for no stages.
+    uncalibrated model), the rest violet. Each error axis runs from 0 to a
+    round value just above the largest error, with ticks at a round interval.
+    Raises ``ValueError`` for no stages.
     """
     if not stages:
         raise ValueError("no stages to plot")
     plt, dm = _plt(), _dm()
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize(_WIDTH, _STAGES_HEIGHT), gridspec_kw={"wspace": 0.3})
-    _stage_panel(axes[0], stages, "rmse_fit", "rmse_cv", "COP RMSE, ln(model/catalogue) [%]")
-    _stage_panel(axes[1], stages, "mape_fit", "mape_cv", "COP MAPE [%]")
+    _stage_panel(axes[0], stages, "rmse_fit", "rmse_cv", "COP RMSE, ln(model/catalogue) (%)")
+    _stage_panel(axes[1], stages, "mape_fit", "mape_cv", "COP MAPE (%)")
     if title:
         fig.suptitle(title)
     dm.figure_legend(fig, loc="below", frameon=False, markerscale=1.4)
@@ -569,7 +760,9 @@ def plot_cop_parity(
     the model did not solve, left out of the plot, the axis range and the
     scores alike and counted in the title. Each panel's left title is its
     label, the right title its MAPE, bias and RMSE (:func:`cop_errors`). The
-    panels share no axis: each has its own tick labels. Lines: y = x and
+    panels share no axis: each has its own tick labels. Both axes of both
+    panels run over the drawn values rounded outward to a round interval
+    (the same ``(min, max, interval)`` everywhere). Lines: y = x and
     ``±band`` (dashed). ``mode`` per point: ``"heating"`` circles, ``"cooling"``
     squares, anything else triangles. Raises ``ValueError`` as :func:`cop_errors`
     or when ``mode`` has another length.
@@ -581,8 +774,7 @@ def plot_cop_parity(
     if modes.size != ref.size:
         raise ValueError(f"{modes.size} modes for {ref.size} points")
     finite = np.concatenate([ref] + [p[_solved(p)] for p in preds])
-    lo = max(0.0, float(finite.min()) * 0.9)
-    hi = float(finite.max()) * 1.1
+    lo, hi, _ = cop_spec = _axis_spec(max(0.0, float(finite.min()) * 0.9), float(finite.max()) * 1.1)
 
     plt, dm = _plt(), _dm()
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize(_WIDTH, _PARITY_HEIGHT), gridspec_kw={"wspace": 0.3})
@@ -610,8 +802,8 @@ def plot_cop_parity(
             scores_text += f"\n{score.n_failed} of {ref.size} points not solved"
         ax.set_title(label, loc="left")
         ax.set_title(scores_text, loc="right", fontsize=dm.fs(-1), fontweight=dm.fw(0))
-        ax.set_xlim(lo, hi)
-        ax.set_ylim(lo, hi)
+        _apply_spec(ax, "x", cop_spec)
+        _apply_spec(ax, "y", cop_spec)
         ax.set_box_aspect(1.0)
         ax.set_xlabel("Catalogue COP")
         ax.set_ylabel("Model COP")

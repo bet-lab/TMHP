@@ -28,7 +28,14 @@ Three figures, always drawn the same way, for recording a compressor map
 change or a catalogue calibration (#256). Each is drawn in the dartwork-mpl
 ``scientific`` preset at the width of two journal columns (17 cm), whatever
 style the caller has set, and leaves the caller's ``rcParams`` as they were;
-every panel has its own tick labels (#258).
+every panel has its own tick labels (#258). They also follow the
+style-independent figure rules of the ``figma-plot`` skill: every linear axis
+has an explicit ``(min, max, interval)`` with ticks at both ends (the log
+pressure-ratio axis is exempt), tick labels carry only the decimals the
+interval needs, percent is written ``(%)`` and units ``[unit]``, panel titles
+name quantities in words, and each map row has its own upright colour bar
+right of its last panel that shows its two end values, with no triangular
+ends (values beyond the fixed levels take the end colours).
 
 * :func:`~tmhp.compressor_plots.plot_compressor_map` -- one efficiency over
   pressure ratio and speed at fixed evaporating temperatures (−15, 0 and

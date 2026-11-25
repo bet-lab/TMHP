@@ -83,6 +83,7 @@ from .compressor_envelope import (
     steady_envelope,
     steady_smallest_duty,
 )
+from .compressor_plots import CompressorMapPlotMixin
 from .compressor_speed import solve_compressor_speed
 from .constants import c_w, rho_w
 from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
@@ -154,7 +155,7 @@ _OFF_STATE_NAN_KEYS: tuple[str, ...] = (
 )
 
 
-class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
+class WaterSourceHeatPumpBoiler(ReferenceStateMixin, CompressorMapPlotMixin):
     """Water source heat pump boiler with surface-water source and lumped-tank model.
 
     The refrigerant cycle is resolved via CoolProp with user-specified

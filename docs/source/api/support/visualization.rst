@@ -25,7 +25,10 @@ Compressor maps and calibration figures
 =======================================
 
 Three figures, always drawn the same way, for recording a compressor map
-change or a catalogue calibration (#256):
+change or a catalogue calibration (#256). Each is drawn in the dartwork-mpl
+``scientific`` preset at the width of two journal columns (17 cm), whatever
+style the caller has set, and leaves the caller's ``rcParams`` as they were;
+every panel has its own tick labels (#258).
 
 * :func:`~tmhp.compressor_plots.plot_compressor_map` -- one efficiency over
   pressure ratio and speed at fixed evaporating temperatures (−15, 0 and
@@ -39,10 +42,8 @@ change or a catalogue calibration (#256):
 
 .. code-block:: python
 
-    import dartwork_mpl as dm
     from tmhp import AirSourceHeatPumpBoiler
 
-    dm.style.use("report")
     model = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R290", eta_cmp_isen=my_isen)
     fig = model.plot_compressor_map()  # default maps (top) vs this model (bottom)
 

@@ -17,18 +17,22 @@ different issues can be compared at a glance:
     Model against catalogue COP, *before* on the left and *after* on the right,
     on the same axes, with the error scores in the panel titles.
 
-Each function returns a :class:`matplotlib.figure.Figure` and sets no global
-style; apply one (for instance ``dartwork_mpl.style.use("report")``) before
-calling. Colours: grey = before (default maps), violet = after (calibrated),
-orange = the data range of the default maps, blue = efficiency magnitude.
+Each function returns a :class:`matplotlib.figure.Figure` drawn in the
+dartwork-mpl ``scientific`` preset (:data:`FIGURE_STYLE`) at the width of two
+journal columns (17 cm), whatever style the caller has set; the caller's
+global ``rcParams`` are left as they were (#258). Every panel carries its own
+tick labels. Colours: grey = before (default maps), violet = after
+(calibrated), orange = the data range of the default maps, blue = efficiency
+magnitude.
 """
 
 from __future__ import annotations
 
+import functools
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar, cast
 
 import numpy as np
 
@@ -48,6 +52,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "DEFAULT_T_EVAP_C",
+    "FIGURE_STYLE",
     "MAP_QUANTITIES",
     "CompressorMapPlotMixin",
     "CopErrors",
@@ -66,9 +71,19 @@ DEFAULT_T_EVAP_C: tuple[float, ...] = (-15.0, 0.0, 10.0)
 DEFAULT_PR_RANGE: tuple[float, float] = (1.4, 13.0)
 DEFAULT_RPS_RANGE: tuple[float, float] = (15.0, 120.0)
 
-GREY = "#8a8f98"
-VIOLET = "#7c3aed"
-ORANGE = "#f97316"
+#: The dartwork-mpl preset every figure of this module is drawn in.
+FIGURE_STYLE = "scientific"
+#: Figure widths and heights (dartwork-mpl lengths): two journal columns wide.
+_WIDTH = "17cm"
+_MAP_ROW_HEIGHT_CM = 6.0
+_STAGES_HEIGHT = "7.5cm"
+_PARITY_HEIGHT = "9cm"
+
+GREY = "oc.gray6"
+VIOLET = "tw.violet600"
+ORANGE = "tw.orange500"
+INK = "oc.gray8"
+FAINT = "oc.gray5"
 
 
 @dataclass(frozen=True)
@@ -203,10 +218,71 @@ class OperatingPoints:
         return cls(pr, rps, np.asarray(results["T_ref_evap_sat [°C]"], dtype=float))
 
 
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+
 def _plt():
     import matplotlib.pyplot as plt
 
     return plt
+
+
+def _dm():
+    import dartwork_mpl
+
+    return dartwork_mpl
+
+
+def _pin_tick_style(fig: Figure) -> None:
+    """Write the active preset's tick settings onto every axis of ``fig``.
+
+    Matplotlib reads some tick settings from the global ``rcParams`` when the
+    figure is drawn, not when it is built: ticks it adds at draw time, and the
+    tick-label size that sets how many ticks fit. Pinning them makes a figure
+    built inside :data:`FIGURE_STYLE` draw the same when it is saved or shown
+    after the style is gone.
+    """
+    plt = _plt()
+    rc = plt.rcParams
+    for ax in fig.axes:
+        for axis in ("x", "y"):
+            colour = rc[f"{axis}tick.color"]
+            label_colour = rc[f"{axis}tick.labelcolor"]
+            for which in ("major", "minor"):
+                ax.tick_params(
+                    axis=axis,
+                    which=which,
+                    direction=rc[f"{axis}tick.direction"],
+                    length=rc[f"{axis}tick.{which}.size"],
+                    width=rc[f"{axis}tick.{which}.width"],
+                    pad=rc[f"{axis}tick.{which}.pad"],
+                    labelsize=rc[f"{axis}tick.labelsize"],
+                    color=colour,
+                    labelcolor=colour if label_colour == "inherit" else label_colour,
+                    grid_color=rc["grid.color"],
+                    grid_linewidth=rc["grid.linewidth"],
+                    grid_linestyle=rc["grid.linestyle"],
+                    grid_alpha=rc["grid.alpha"],
+                )
+
+
+def _finish(fig: Figure) -> None:
+    """Pin the tick style, then fit the layout (dartwork-mpl ``simple_layout``) with a small margin."""
+    dm = _dm()
+    _pin_tick_style(fig)
+    dm.simple_layout(fig, margin=dm.mm(1.5))
+
+
+def _in_figure_style(draw: Callable[_P, _R]) -> Callable[_P, _R]:
+    """Run ``draw`` inside the :data:`FIGURE_STYLE` preset; the caller's rcParams come back afterwards."""
+
+    @functools.wraps(draw)
+    def styled(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        with _dm().style.context(FIGURE_STYLE):
+            return draw(*args, **kwargs)
+
+    return styled
 
 
 def _peak(prs: np.ndarray, ns: np.ndarray, Z: np.ndarray) -> tuple[float, float, float] | None:
@@ -217,6 +293,7 @@ def _peak(prs: np.ndarray, ns: np.ndarray, Z: np.ndarray) -> tuple[float, float,
     return float(Z[j, i]), float(prs[i]), float(ns[j])
 
 
+@_in_figure_style
 def plot_compressor_map(
     before: EfficiencySource | None,
     after: EfficiencySource | None,
@@ -237,18 +314,23 @@ def plot_compressor_map(
     attributes of those names), or ``None`` for the default maps. ``quantity``
     is a key of :data:`MAP_QUANTITIES`; its colour levels are fixed, values
     beyond them take the end colours. Axes: pressure ratio ``r_p`` (log,
-    ``pr_range``) and speed ``N`` [rev/s] (``rps_range``), shared by all panels.
+    ``pr_range``) and speed ``N`` [rev/s] (``rps_range``), the same on every
+    panel.
 
-    Drawn on every panel: the efficiency (filled contours, labelled lines),
-    the data range of the default maps at that ``T_evap`` (orange), and the
-    grid peak (diamond; value and place in the panel title). ``points``
-    (an :class:`OperatingPoints` or model result rows) are drawn on the column
+    Each row is a block of its own, headed by its label (``labels``) and set
+    apart from the other row; no axis is shared, so every panel has its own
+    tick labels. Drawn on every panel: the efficiency (filled contours,
+    labelled lines), the data range of the default maps at that ``T_evap``
+    (orange), and the grid peak (diamond). The panel's left title is its
+    ``T_evap``, the right title the peak value and place. ``points`` (an
+    :class:`OperatingPoints` or model result rows) are drawn on the column
     whose ``T_evap`` is nearest to each point's. ``resolution`` is the grid
     size (pressure ratio, speed).
 
-    Returns the figure (2 x ``len(T_evap_C)`` map axes and one colour bar).
-    Raises ``ValueError`` for an unknown quantity or no temperatures, and
-    ``TypeError`` for an efficiency source without the three efficiencies.
+    Returns the figure: 2 x ``len(T_evap_C)`` map axes and one colour bar for
+    both rows. Raises ``ValueError`` for an unknown quantity or no
+    temperatures, and ``TypeError`` for an efficiency source without the three
+    efficiencies.
     """
     if quantity not in MAP_QUANTITIES:
         raise ValueError(f"quantity must be one of {tuple(MAP_QUANTITIES)}, got {quantity!r}")
@@ -263,75 +345,85 @@ def plot_compressor_map(
     column_of_point = (
         np.argmin(np.abs(pts.T_evap_C[:, None] - np.asarray(temps)[None, :]), axis=1) if pts is not None else None
     )
+    ticks = [t for t in (2, 3, 4, 6, 8, 12) if pr_range[0] <= t <= pr_range[1]]
+    levels = np.asarray(spec.levels)
 
-    plt = _plt()
-    from matplotlib.lines import Line2D
+    plt, dm = _plt(), _dm()
+    from matplotlib.transforms import Bbox
 
     ncol = len(temps)
-    fig, axes = plt.subplots(
-        2, ncol, figsize=(2.9 * ncol + 1.3, 5.9), sharex=True, sharey=True, squeeze=False, layout="constrained"
-    )
-    levels = np.asarray(spec.levels)
+    fig = plt.figure(figsize=dm.figsize(_WIDTH, dm.cm(2 * _MAP_ROW_HEIGHT_CM + 1.6)))
+    maps_box, bar_box = fig.subfigures(1, 2, width_ratios=[ncol, 0.32], wspace=0.0)
+    row_boxes = maps_box.subfigures(2, 1, hspace=0.0)
     filled = None
-    for r, eff in enumerate(rows):
-        for c, T_e in enumerate(temps):
-            ax = axes[r, c]
+    for r, (eff, row_box) in enumerate(zip(rows, row_boxes, strict=True)):
+        row_box.suptitle(labels[r], x=0.0, ha="left", fontweight=dm.fw(2))
+        row_axes = row_box.subplots(1, ncol, squeeze=False, gridspec_kw={"wspace": 0.3})[0]
+        colour = GREY if r == 0 else VIOLET
+        for c, (ax, T_e) in enumerate(zip(row_axes, temps, strict=True)):
             Z = efficiency_grid(eff, quantity, prs, ns, T_e)
             filled = ax.contourf(prs, ns, Z, levels=levels, cmap="Blues", extend="both")
             lines = ax.contour(prs, ns, Z, levels=levels[::2], colors="white", linewidths=0.5)
-            ax.clabel(lines, fontsize=6, fmt="%.2f")
+            for text in ax.clabel(lines, levels=levels[::4], fontsize=dm.fs(-1.5), fmt="%.2f"):
+                fill = filled.cmap(filled.norm(float(text.get_text())))
+                text.set_color(dm.readable_text_color(fill))
             inside = np.array([[DOMAIN.contains(pr, n, T_e) for pr in prs] for n in ns], dtype=float)
             if 0.0 < inside.mean() < 1.0:
                 ax.contour(prs, ns, inside, levels=[0.5], colors=ORANGE, linewidths=1.1)
+                ax.plot([], [], color=ORANGE, lw=1.1, label="Data range of the default maps")
+            ax.set_title(f"T_evap {T_e:g} °C", loc="left")
             peak = _peak(prs, ns, Z)
-            head = f"T_evap {T_e:g} °C"
             if peak is not None:
                 ax.scatter(
                     [peak[1]],
                     [peak[2]],
                     marker="D",
-                    s=26,
-                    color=GREY if r == 0 else VIOLET,
+                    s=22,
+                    color=colour,
                     edgecolor="white",
                     lw=0.6,
                     zorder=5,
+                    label=f"Peak, {labels[r]}",
                 )
-                head += f" · peak {peak[0]:.3f} (r_p {peak[1]:.2f}, N {peak[2]:.0f})"
-            ax.set_title(head, fontsize=7.5, loc="left")
+                ax.set_title(
+                    f"peak {peak[0]:.3f}\nr_p {peak[1]:.2f}, N {peak[2]:.0f}",
+                    loc="right",
+                    fontsize=dm.fs(-1),
+                    fontweight=dm.fw(0),
+                )
             if pts is not None and column_of_point is not None:
                 sel = column_of_point == c
+                # labelled on the last row so the legend lists it after both peaks
+                point_label = "Operating points (nearest T_evap)" if r == len(rows) - 1 else None
                 ax.scatter(
                     pts.pressure_ratio[sel],
                     pts.rps[sel],
-                    s=11,
+                    s=9,
                     facecolor="none",
                     edgecolor="black",
                     lw=0.6,
                     zorder=4,
                     gid="operating-points",
+                    label=point_label,
                 )
             ax.set_xscale("log")
-            ticks = [t for t in (1.5, 2, 3, 4, 6, 8, 12) if pr_range[0] <= t <= pr_range[1]]
             ax.set_xticks(ticks, [f"{t:g}" for t in ticks])
             ax.minorticks_off()
             ax.set_xlim(*pr_range)
             ax.set_ylim(*rps_range)
-        axes[r, 0].set_ylabel(f"{labels[r]}\nSpeed (N) [rev/s]")
-    for ax in axes[-1]:
-        ax.set_xlabel("Pressure ratio (r_p)")
-    bar = fig.colorbar(filled, ax=axes, label=f"{spec.label} ({spec.symbol})", fraction=0.04, pad=0.02)
+            ax.set_xlabel("Pressure ratio (r_p)")
+        row_axes[0].set_ylabel("Speed (N) [rev/s]")
+    cax = bar_box.add_subplot()
+    bar = fig.colorbar(filled, cax=cax, label=f"{spec.label} ({spec.symbol})")
     bar.set_ticks(levels[::2])
-    handles = [
-        Line2D([], [], color=ORANGE, lw=1.1, label="Data range of the default maps"),
-        Line2D([], [], color=GREY, marker="D", ms=6, ls="", label=f"Peak, {labels[0]}"),
-        Line2D([], [], color=VIOLET, marker="D", ms=6, ls="", label=f"Peak, {labels[1]}"),
-    ]
-    if pts is not None:
-        handles.append(
-            Line2D([], [], mfc="none", mec="black", marker="o", ms=5, ls="", label="Operating points (nearest T_evap)")
-        )
-    fig.legend(handles=handles, loc="outside lower center", ncol=len(handles), fontsize=7, frameon=False)
-    fig.suptitle(title or f"{spec.label} ({spec.symbol}): {labels[0]} (top) vs {labels[1]} (bottom)", fontsize=9)
+    fig.suptitle(title or f"{spec.label} ({spec.symbol}): {labels[0]} (top) vs {labels[1]} (bottom)")
+    dm.figure_legend(fig, loc="below", frameon=False, markerscale=1.4)
+    _finish(fig)
+    # the colour bar spans the map panels of both rows, not the row titles and the legend
+    panels = Bbox.union([ax.get_window_extent() for ax in fig.axes if ax is not cax])
+    y0, y1 = bar_box.transSubfigure.inverted().transform([(0.0, panels.y0), (0.0, panels.y1)])[:, 1]
+    x0, _, width, _ = cax.get_position().bounds
+    cax.set_position((x0, y0, width, y1 - y0))
     return cast("Figure", fig)
 
 
@@ -412,22 +504,33 @@ class StageScore:
 def _stage_panel(ax: Axes, stages: Sequence[StageScore], fit: str, cv: str, ylabel: str) -> None:
     """One metric across the stages: fit line, CV markers (filled = adopted; grey for the first stage)."""
     xs = np.arange(len(stages))
-    ax.plot(xs, [getattr(s, fit) * 100.0 for s in stages], color=VIOLET, lw=1.2, alpha=0.55, marker=".", ms=4)
+    ax.plot(
+        xs,
+        [getattr(s, fit) * 100.0 for s in stages],
+        color=VIOLET,
+        alpha=0.55,
+        marker=".",
+        ms=4,
+        label="Fit to all points",
+    )
     for i, s in enumerate(stages):
         v = getattr(s, cv)
         if v is None:
             continue
         colour = GREY if i == 0 else VIOLET
+        label = None if i == 0 else ("Cross-validated, adopted" if s.adopted else "Cross-validated, rejected")
         if s.adopted:
-            ax.scatter([i], [v * 100.0], s=40, color=colour, zorder=3)
+            ax.scatter([i], [v * 100.0], s=30, color=colour, zorder=3, label=label)
         else:
-            ax.scatter([i], [v * 100.0], s=40, facecolor="white", edgecolor=colour, lw=1.0, zorder=3)
-    ax.set_xticks(xs, [s.label for s in stages], rotation=45, ha="right")
+            ax.scatter([i], [v * 100.0], s=30, facecolor="white", edgecolor=colour, lw=1.0, zorder=3, label=label)
+    ax.set_xticks(xs, [s.label for s in stages])
     ax.set_ylim(bottom=0.0)
     ax.set_ylabel(ylabel)
-    ax.grid(axis="y", lw=0.4, alpha=0.5)
+    # every stage keeps its name; the names turn only where they would collide
+    _dm().avoid_tick_overlap(ax, "x", max_visible=len(stages))
 
 
+@_in_figure_style
 def plot_calibration_stages(stages: Sequence[StageScore], *, title: str | None = None) -> Figure:
     """COP RMSE (left) and MAPE (right) [%] after each calibration stage, in the given order.
 
@@ -438,23 +541,18 @@ def plot_calibration_stages(stages: Sequence[StageScore], *, title: str | None =
     """
     if not stages:
         raise ValueError("no stages to plot")
-    plt = _plt()
-    from matplotlib.lines import Line2D
-
-    fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.6), layout="constrained")
+    plt, dm = _plt(), _dm()
+    fig, axes = plt.subplots(1, 2, figsize=dm.figsize(_WIDTH, _STAGES_HEIGHT), gridspec_kw={"wspace": 0.3})
     _stage_panel(axes[0], stages, "rmse_fit", "rmse_cv", "COP RMSE, ln(model/catalogue) [%]")
     _stage_panel(axes[1], stages, "mape_fit", "mape_cv", "COP MAPE [%]")
-    handles = [
-        Line2D([], [], color=VIOLET, alpha=0.55, marker=".", ms=6, label="Fit to all points"),
-        Line2D([], [], color=VIOLET, marker="o", ms=7, ls="", label="Cross-validated, adopted"),
-        Line2D([], [], mfc="white", mec=VIOLET, marker="o", ms=7, ls="", label="Cross-validated, rejected"),
-    ]
-    fig.legend(handles=handles, loc="outside lower center", ncol=3, fontsize=7.5, frameon=False)
     if title:
-        fig.suptitle(title, fontsize=9)
+        fig.suptitle(title)
+    dm.figure_legend(fig, loc="below", frameon=False, markerscale=1.4)
+    _finish(fig)
     return cast("Figure", fig)
 
 
+@_in_figure_style
 def plot_cop_parity(
     cop_catalogue: Sequence[float] | np.ndarray,
     cop_before: Sequence[float] | np.ndarray,
@@ -465,12 +563,13 @@ def plot_cop_parity(
     band: float = 0.10,
     title: str | None = None,
 ) -> Figure:
-    """Model against catalogue COP: before (left, grey) and after (right, violet) on the same square axes.
+    """Model against catalogue COP: before (left, grey) and after (right, violet) on square axes of the same range.
 
     Equal-length arrays; a non-finite or non-positive model value is a point
     the model did not solve, left out of the plot, the axis range and the
-    scores alike and counted in the title. Each
-    panel title gives MAPE, bias and RMSE (:func:`cop_errors`). Lines: y = x and
+    scores alike and counted in the title. Each panel's left title is its
+    label, the right title its MAPE, bias and RMSE (:func:`cop_errors`). The
+    panels share no axis: each has its own tick labels. Lines: y = x and
     ``±band`` (dashed). ``mode`` per point: ``"heating"`` circles, ``"cooling"``
     squares, anything else triangles. Raises ``ValueError`` as :func:`cop_errors`
     or when ``mode`` has another length.
@@ -485,8 +584,8 @@ def plot_cop_parity(
     lo = max(0.0, float(finite.min()) * 0.9)
     hi = float(finite.max()) * 1.1
 
-    plt = _plt()
-    fig, axes = plt.subplots(1, 2, figsize=(8.0, 4.7), sharex=True, sharey=True, layout="constrained")
+    plt, dm = _plt(), _dm()
+    fig, axes = plt.subplots(1, 2, figsize=dm.figsize(_WIDTH, _PARITY_HEIGHT), gridspec_kw={"wspace": 0.3})
     markers = {"heating": "o", "cooling": "s"}
     for ax, pred, score, label, colour in zip(axes, preds, scores, labels, (GREY, VIOLET), strict=True):
         ok = _solved(pred)
@@ -496,29 +595,30 @@ def plot_cop_parity(
                 ax.scatter(
                     ref[sel],
                     pred[sel],
-                    s=14,
+                    s=12,
                     marker=markers.get(m, "^"),
                     color=colour,
                     alpha=0.7,
                     lw=0,
                     label=m or None,
                 )
-        ax.plot([lo, hi], [lo, hi], color="#444444", lw=0.7)
+        ax.plot([lo, hi], [lo, hi], color=INK, lw=0.7)
         for f in (1.0 - band, 1.0 + band):
-            ax.plot([lo, hi], [lo * f, hi * f], color="#999999", lw=0.6, ls="--")
-        head = f"{label}: MAPE {score.mape * 100:.1f} %, bias {score.bias * 100:+.1f} %, RMSE {score.rmse * 100:.1f} %"
+            ax.plot([lo, hi], [lo * f, hi * f], color=FAINT, lw=0.6, ls="--")
+        scores_text = f"MAPE {score.mape * 100:.1f} %, bias {score.bias * 100:+.1f} %, RMSE {score.rmse * 100:.1f} %"
         if score.n_failed:
-            head += f"\n{score.n_failed} of {ref.size} points not solved"
-        ax.set_title(head, fontsize=8, loc="left")
+            scores_text += f"\n{score.n_failed} of {ref.size} points not solved"
+        ax.set_title(label, loc="left")
+        ax.set_title(scores_text, loc="right", fontsize=dm.fs(-1), fontweight=dm.fw(0))
         ax.set_xlim(lo, hi)
         ax.set_ylim(lo, hi)
         ax.set_box_aspect(1.0)
         ax.set_xlabel("Catalogue COP")
-        ax.grid(lw=0.3, alpha=0.4)
-    axes[0].set_ylabel("Model COP")
-    if any(modes):
-        axes[1].legend(fontsize=7, frameon=False, loc="lower right", markerscale=1.6)
-    fig.suptitle(title or f"COP parity, {ref.size} points; dashed ±{band * 100:g} %", fontsize=9)
+        ax.set_ylabel("Model COP")
+        if any(modes):
+            ax.legend(loc="lower right", frameon=False, markerscale=1.6)
+    fig.suptitle(title or f"COP parity, {ref.size} points; dashed ±{band * 100:g} %")
+    _finish(fig)
     return cast("Figure", fig)
 
 

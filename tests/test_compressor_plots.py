@@ -1,8 +1,9 @@
-"""The fixed compressor figures (#256): map values, before/after rows, error scores and the model method.
+"""The fixed compressor figures (#256, #258): map values, before/after rows, error scores, style and the model method.
 
 The figures are checked through what a reader sees in them -- panel titles
-(peak value and place, error scores), the points drawn on each panel -- and
-through :func:`efficiency_grid`, whose values the map panels contour.
+(peak value and place, error scores), row titles, tick labels, the points
+drawn on each panel -- through :func:`efficiency_grid`, whose values the map
+panels contour, and through dartwork-mpl's own figure check.
 """
 
 import math
@@ -11,6 +12,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 
+import dartwork_mpl as dm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -19,6 +21,7 @@ import pytest
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.compressor_efficiency import default_efficiencies, map_eta_ov, map_eta_v
 from tmhp.compressor_plots import (
+    FIGURE_STYLE,
     OperatingPoints,
     StageScore,
     cop_errors,
@@ -41,7 +44,32 @@ def _close_figures():
 
 def _map_axes(fig):
     """The map panels of a map figure in row-major order (the colour bar left out)."""
-    return [ax for ax in fig.axes if ax.get_label() != "<colorbar>"]
+    return [ax for ax in fig.axes if not hasattr(ax, "_colorbar")]
+
+
+def _titles(ax):
+    """(left, right) title of a panel: its name and its numbers."""
+    return ax.get_title(loc="left"), ax.get_title(loc="right")
+
+
+def _stage_list():
+    return [
+        StageScore("Default", 0.151, 0.131, 0.149, 0.130, adopted=True),
+        StageScore("κ_ov", 0.055, 0.035, 0.057, 0.037, adopted=True),
+        StageScore("+λ_f", 0.055, 0.035, 0.059, 0.038, adopted=False),
+        StageScore("+ΔN", 0.053, 0.036),
+    ]
+
+
+def _three_figures():
+    """One of each figure, small enough to draw quickly."""
+    ref = np.array([2.0, 3.0, 4.0, 5.0, 6.0])
+    points = OperatingPoints(np.array([2.0, 3.0, 4.0]), np.array([40.0, 60.0, 80.0]), np.array([-10.0, 0.0, 8.0]))
+    return {
+        "map": plot_compressor_map(None, FLAT, points=points, resolution=(40, 30)),
+        "stages": plot_calibration_stages(_stage_list(), title="Unit: COP error by stage"),
+        "parity": plot_cop_parity(ref, ref * 0.85, ref * 1.02, mode=["heating", "cooling"] * 2 + ["heating"]),
+    }
 
 
 def test_grid_of_default_maps_equals_the_map_functions():
@@ -82,14 +110,14 @@ def test_identical_maps_give_identical_rows_and_a_changed_map_its_own_peak():
     same = plot_compressor_map(None, default_efficiencies(), T_evap_C=temps, resolution=(30, 25))
     axes = _map_axes(same)
     assert len(axes) == 6
-    titles = [ax.get_title(loc="left") for ax in axes]
+    titles = [_titles(ax) for ax in axes]
     assert titles[:3] == titles[3:]
-    assert [t.split(" · ")[0] for t in titles[:3]] == ["T_evap -15 °C", "T_evap 0 °C", "T_evap 10 °C"]
+    assert [left for left, _ in titles[:3]] == ["T_evap -15 °C", "T_evap 0 °C", "T_evap 10 °C"]
 
     changed = plot_compressor_map(None, FLAT, T_evap_C=temps, resolution=(30, 25))
-    bottom = [ax.get_title(loc="left") for ax in _map_axes(changed)[3:]]
-    assert all("peak 0.630" in t for t in bottom)
-    assert [ax.get_title(loc="left") for ax in _map_axes(changed)[:3]] == titles[:3]
+    bottom = [_titles(ax)[1] for ax in _map_axes(changed)[3:]]
+    assert all(t.startswith("peak 0.630") for t in bottom)
+    assert [_titles(ax) for ax in _map_axes(changed)[:3]] == titles[:3]
 
 
 def test_points_go_to_the_column_of_the_nearest_evaporating_temperature():
@@ -151,23 +179,19 @@ def test_parity_titles_carry_the_before_and_after_scores():
     """Left panel scores the before values, right the after values, with the unsolved count when there is one."""
     ref = np.array([2.0, 4.0, 3.0])
     fig = plot_cop_parity(ref, ref * 0.8, [2.2, 3.6, math.nan], mode=["heating", "cooling", "heating"])
-    left, right = (ax.get_title(loc="left") for ax in fig.axes)
-    assert left.startswith("Default maps: MAPE 20.0 %, bias -20.0 %")
-    assert right.startswith("Calibrated: MAPE 10.0 %, bias +0.0 %")
-    assert "1 of 3 points not solved" in right
+    left, right = (_titles(ax) for ax in fig.axes)
+    assert left[0] == "Default maps"
+    assert left[1].startswith("MAPE 20.0 %, bias -20.0 %")
+    assert right[0] == "Calibrated"
+    assert right[1].startswith("MAPE 10.0 %, bias +0.0 %")
+    assert "1 of 3 points not solved" in right[1]
     with pytest.raises(ValueError, match="modes"):
         plot_cop_parity(ref, ref, ref, mode=["heating"])
 
 
 def test_stage_figure_draws_fit_lines_in_percent_and_cv_markers_by_adoption():
     """Left panel RMSE, right MAPE, both in %: the line is the fit; CV markers are filled when adopted, open when not."""
-    stages = [
-        StageScore("Default", 0.151, 0.131, 0.149, 0.130, adopted=True),
-        StageScore("κ_ov", 0.055, 0.035, 0.057, 0.037, adopted=True),
-        StageScore("+λ_f", 0.055, 0.035, 0.059, 0.038, adopted=False),
-        StageScore("+ΔN", 0.053, 0.036),
-    ]
-    fig = plot_calibration_stages(stages)
+    fig = plot_calibration_stages(_stage_list())
     rmse_ax, mape_ax = fig.axes
     np.testing.assert_allclose(rmse_ax.lines[0].get_ydata(), [15.1, 5.5, 5.5, 5.3])
     np.testing.assert_allclose(mape_ax.lines[0].get_ydata(), [13.1, 3.5, 3.5, 3.6])
@@ -194,15 +218,14 @@ def test_model_method_draws_its_own_maps_against_the_defaults_or_another_model()
     flat_model = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R290", **FLAT)
 
     fig = default_model.plot_compressor_map(T_evap_C=(0.0,), resolution=(20, 20))
-    top, bottom = (ax.get_title(loc="left") for ax in _map_axes(fig))
+    top, bottom = (_titles(ax) for ax in _map_axes(fig))
     assert top == bottom
-    assert fig.axes[0].get_ylabel().startswith("Default maps")
-    assert fig.axes[1].get_ylabel().startswith("This model")
+    assert [ax.get_figure(root=False).get_suptitle() for ax in _map_axes(fig)] == ["Default maps", "This model"]
 
     fig = flat_model.plot_compressor_map(before=default_model, T_evap_C=(0.0,), resolution=(20, 20))
-    top_flat, bottom_flat = (ax.get_title(loc="left") for ax in _map_axes(fig))
+    top_flat, bottom_flat = (_titles(ax) for ax in _map_axes(fig))
     assert top_flat == top
-    assert "peak 0.630" in bottom_flat
+    assert bottom_flat[1].startswith("peak 0.630")
 
 
 def test_parity_draws_only_the_points_it_scores():
@@ -212,5 +235,50 @@ def test_parity_draws_only_the_points_it_scores():
     left, right = fig.axes
     drawn = [len(c.get_offsets()) for c in right.collections]
     assert sum(drawn) == 1
-    assert "2 of 3 points not solved" in right.get_title(loc="left")
+    assert "2 of 3 points not solved" in right.get_title(loc="right")
     assert right.get_ylim()[0] > 2.0
+
+
+def test_figures_are_drawn_in_the_scientific_preset_and_leave_the_callers_style_alone():
+    """Whatever the caller set, the figures use the preset's sizes; the caller's rcParams are as before the call."""
+    with dm.style.context(FIGURE_STYLE):
+        expected = {k: plt.rcParams[k] for k in ("xtick.labelsize", "axes.labelsize", "xtick.major.pad")}
+    with plt.rc_context({"font.size": 13.0, "xtick.labelsize": 13.0, "ytick.labelsize": 13.0, "xtick.major.pad": 6.0}):
+        before = dict(plt.rcParams)
+        figs = _three_figures()
+        assert dict(plt.rcParams) == before
+        for name, fig in figs.items():
+            # drawn here, outside the preset, as a caller's savefig would draw it
+            fig.canvas.draw()
+            for ax in fig.axes:
+                for tick in ax.xaxis.get_major_ticks():
+                    assert tick.label1.get_fontsize() == expected["xtick.labelsize"], name
+                    assert tick.get_pad() == expected["xtick.major.pad"], name
+                if ax.get_xlabel():
+                    assert ax.xaxis.label.get_fontsize() == expected["axes.labelsize"], name
+
+
+def test_map_rows_stand_apart_and_every_panel_has_its_own_tick_labels():
+    """Map rows are separate blocks under their own titles; no panel shares an axis or lacks tick labels."""
+    figs = _three_figures()
+    rows = [ax.get_figure(root=False) for ax in _map_axes(figs["map"])]
+    assert [r.get_suptitle() for r in dict.fromkeys(rows)] == ["Default maps", "Calibrated"]
+    top, bottom = _map_axes(figs["map"])[:3], _map_axes(figs["map"])[3:]
+    gap = min(ax.get_window_extent().y0 for ax in top) - max(ax.get_window_extent().y1 for ax in bottom)
+    # the gap holds the top row's x tick labels and axis name and the bottom row's titles
+    assert gap > 3 * top[0].xaxis.label.get_fontsize()
+    for name in ("map", "parity"):
+        fig = figs[name]
+        fig.canvas.draw()
+        for ax in _map_axes(fig):
+            assert ax.get_shared_x_axes().get_siblings(ax) == [ax], name
+            assert ax.get_shared_y_axes().get_siblings(ax) == [ax], name
+            for labels in (ax.get_xticklabels(), ax.get_yticklabels()):
+                assert [t for t in labels if t.get_visible() and t.get_text()], name
+
+
+def test_figures_pass_the_dartwork_mpl_figure_check():
+    """dartwork-mpl finds nothing to warn about: no overflow, clipping, overlap or unreadable text."""
+    for name, fig in _three_figures().items():
+        warnings = [w for w in dm.validate_figure(fig, quiet=True) if w.severity.name == "WARNING"]
+        assert warnings == [], name

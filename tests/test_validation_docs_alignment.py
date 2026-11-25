@@ -638,7 +638,7 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
     import json
 
     from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
-    from tmhp.compressor_efficiency import COEFFICIENT_VERSION, DOMAIN, MAP_DOMAIN, MAP_N_REF_RPS, MAP_TE_SCALE_K
+    from tmhp.compressor_efficiency import COEFFICIENT_VERSION, DOMAIN, MAP_DOMAIN
     from tmhp.default_inputs import DEFAULT_DISPLACEMENT_BASIS, _artifact
 
     table = _summary_table(_read("docs/source/validation/defaults.rst"))
@@ -666,7 +666,7 @@ def test_defaults_summary_states_the_shipped_rules() -> None:
     )
     archive = json.loads((DEFAULTS_ARCHIVE / "coefficients.json").read_text())
     assert f"``{COEFFICIENT_VERSION}``" in efficiency
-    assert f"``N / {MAP_N_REF_RPS:g}``" in efficiency and f"``T_e / {MAP_TE_SCALE_K:g}``" in efficiency
+    assert "the speed ``N`` in rev/s" in efficiency and "temperature ``T_e`` in °C, both as they are" in efficiency
     assert "The same maps for every refrigerant and every compressor" in efficiency
     assert "the electrical input is the inverter input" in efficiency
     # The data and the scores are the archive's.
@@ -988,25 +988,25 @@ def test_defaults_compressor_maps_quote_the_archive_and_the_library() -> None:
     """The forms, the fit table and the definitions of the three quantities, as the archive and the library hold them."""
     import json
 
-    from tmhp.compressor_efficiency import MAP_N_REF_RPS, MAP_TE_SCALE_K, MapEfficiency, SuctionState
+    from tmhp.compressor_efficiency import MapEfficiency, SuctionState
 
     archive = json.loads((DEFAULTS_ARCHIVE / "coefficients.json").read_text())
     maps = _defaults_section("The maps")
     flat = re.sub(r"\s+", " ", maps)
-    assert f":math:`n = N / {MAP_N_REF_RPS:g}`" in flat and f":math:`t = T_e / {MAP_TE_SCALE_K:g}`" in flat
-    assert f"{MAP_N_REF_RPS:g} rev/s whatever the rated speed of the machine" in flat
+    assert "the speed :math:`N` in rev/s and the evaporating saturation temperature :math:`T_e` in °C" in flat
+    assert "no reference speed, no scale" in flat and "relative to the rated speed of the machine" in flat
     # Seven terms for f_loss, the same seven and T_e for eta_v and eta_ov.
-    assert len(archive["maps"]["f_loss"]["terms"]) == 7 and archive["maps"]["eta_v"]["terms"][-1] == "T_e/10"
+    assert len(archive["maps"]["f_loss"]["terms"]) == 7 and archive["maps"]["eta_v"]["terms"][-1] == "T_e"
     assert (
         archive["maps"]["eta_v"]["terms"]
         == archive["maps"]["eta_ov"]["terms"]
         == [
             *archive["maps"]["f_loss"]["terms"],
-            "T_e/10",
+            "T_e",
         ]
     )
-    assert r"f_{loss} = c \cdot [1,\ l,\ l^2,\ l^3,\ n,\ n^2,\ l\,n]" in flat
-    assert r"\eta_v,\ \eta_{ov} = c \cdot [1,\ l,\ l^2,\ l^3,\ n,\ n^2,\ l\,n,\ t]" in flat
+    assert r"f_{loss} = c \cdot [1,\ l,\ l^2,\ l^3,\ N,\ N^2,\ l\,N]" in flat
+    assert r"\eta_v,\ \eta_{ov} = c \cdot [1,\ l,\ l^2,\ l^3,\ N,\ N^2,\ l\,N,\ T_e]" in flat
     assert f"fitted to the {archive['points']} points by least squares" in flat
     start = maps.index(".. list-table:: Fit of the maps")
     table = maps[start:]

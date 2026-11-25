@@ -52,6 +52,7 @@ from .compressor_envelope import (
     resolve_x_suction_min,
     steady_envelope,
 )
+from .compressor_plots import CompressorMapPlotMixin
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
     CAPACITY_CLAMPED_MIN,
@@ -543,7 +544,7 @@ def _check_request_basis(value: Any) -> str:
     raise ValueError(f"request_basis must be {REQUEST_BASIS_COIL!r} or {REQUEST_BASIS_ROOM_SENSIBLE!r}, got {value!r}")
 
 
-class AirSourceHeatPump(ReferenceStateMixin):
+class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
     """Air source heat pump with indoor-unit air heat exchange.
 
     The refrigerant cycle is resolved via CoolProp with

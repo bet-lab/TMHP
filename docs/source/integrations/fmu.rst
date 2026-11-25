@@ -161,8 +161,8 @@ message at a time:
 
 The headline difference between the two adapters lives in that ``do_step``
 return: the FMI 2.0 slave returns a bare ``bool``, while the FMI 3.0 slave
-returns an ``Fmi3StepResult`` and can signal an invalid input as a discarded
-step with early return. Either way, ``step()`` is the only TMHP call per
+returns an ``Fmi3StepResult``, which can also carry ``fmi3Error`` (see
+:ref:`fmu-invalid-inputs`). Either way, ``step()`` is the only TMHP call per
 communication step, which is what keeps the FMU output aligned with a native
 ``analyze_dynamic()`` run.
 
@@ -182,8 +182,9 @@ Both adapters intentionally target Co-Simulation only:
 - FMI outputs are sanitized so NaN or infinity does not cross the
   importer boundary.
 
-The FMI 3.0 adapter returns ``Fmi3StepResult`` and can signal invalid
-input as a discarded step with early return. It otherwise exposes the
+The FMI 3.0 adapter returns ``Fmi3StepResult``; how both adapters answer a
+step they cannot take is described in :ref:`fmu-invalid-inputs`. It otherwise
+exposes the
 same scalar boundary as the FMI 2.0 adapter so regression tests can
 compare both FMUs against the same native ``analyze_dynamic()`` schedule.
 
@@ -319,22 +320,64 @@ initial dependency set.
      - ``failure_reason``
      - Step-level diagnostic reason, or ``none``.
 
+.. _fmu-invalid-inputs:
+
 Invalid importer inputs
 =======================
 
-Before advancing the internal state, the slave rejects non-finite time
-or input values, non-positive communication step sizes, negative
-``dhw_draw``, and ``RH_out`` values outside the documented range or
-start value. FMI 2.0 returns ``False`` and FMI 3.0 returns discard with
-early return. Both set the diagnostic outputs to:
+Before advancing the internal state, the slave checks the step it is asked
+to take. A step it refuses changes nothing the importer can observe: the
+carried model state, the step counter, the time and every output keep the
+values of the last accepted step. The reason (which value, and what it was)
+goes to the importer's log callback with the returned status (discard or
+error). The PythonFMU and PythonFMU3 bridges forward it only while debug
+logging is on: ``loggingOn`` at instantiation, or a later
+``fmi2SetDebugLogging`` / ``fmi3SetDebugLogging`` call (FMPy:
+``simulate_fmu(..., debug_logging=True)``).
 
-.. code-block:: text
+.. list-table::
+   :header-rows: 1
+   :widths: 40 30 30
 
-   hp_is_on = false
-   converged = false
-   failure_reason = "invalid_input"
+   * - Refused step
+     - FMI 3.0 status
+     - FMI 2.0 status
+   * - Unusable input or parameter value: non-finite ``T0``, ``T_sup_w`` or
+       ``T_sur``, negative or non-finite ``dhw_draw``, or ``RH_out`` outside
+       0 to 1 that is not the start value ``-1``
+     - ``fmi3Discard``
+     - ``fmi2Discard``
+   * - Illegal ``doStep`` argument: a non-finite communication point, or a
+       communication step size that is not finite and positive
+     - ``fmi3Error``
+     - ``fmi2Discard``
 
-The state is not advanced for that rejected step.
+Under FMI 3.0, ``fmi3Discard`` keeps "the same state as before the call"
+(FMI 3.0.2, section 2.2.4). An importer may correct an input and repeat the
+step from the same communication point, and the result is the one an
+uninterrupted run with the corrected input gives. ``T_sur`` is a fixed
+parameter and cannot be corrected that way. An importer that does not try
+another approach must end the run, as the standard requires. ``fmi3Error``
+answers illegal arguments (section 2.2.4) and ends the run: the instance is
+then terminated (section 2.3.1) and answers any further step with
+``fmi3Error`` until it is reset. The adapter never uses ``earlyReturn`` to
+signal a refused step (section 4.2.1).
+
+Under FMI 2.0 a discarded step ends the run: PythonFMU reports
+``fmi2Terminated`` with ``fmi2LastSuccessfulTime`` at the communication point
+of the refused step, and it offers no FMU-state restore to repeat the step
+from. FMPy's ``simulate_fmu`` then returns the result up to that point
+without raising; the log line gives the reason. PythonFMU has no
+``fmi2Error`` path (it maps ``False`` to ``fmi2Discard`` and a Python
+exception to ``fmi2Fatal``), so an illegal step size is discarded as well.
+
+PythonFMU3 does not write the ``earlyReturn`` and ``eventHandlingNeeded``
+arguments of ``fmi3DoStep``. After a refused step it sets
+``lastSuccessfulTime`` to the communication point the step started from; FMI
+leaves that value undefined after a discard or an error, so an importer
+should rely on the returned status instead.
+FMPy's ``simulate_fmu`` raises ``FMICallException`` for an FMI 3.0 discard or
+error.
 
 Relationship to native Python simulation
 ========================================

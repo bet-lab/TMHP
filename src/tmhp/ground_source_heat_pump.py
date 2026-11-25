@@ -67,6 +67,7 @@ from .compressor_envelope import (
     resolve_x_suction_min,
     steady_envelope,
 )
+from .compressor_plots import CompressorMapPlotMixin
 from .compressor_speed import CAPACITY_CLAMPED_MAX, solve_compressor_speed
 from .cycling import (
     CAPACITY_RATIO_KEY,
@@ -351,7 +352,7 @@ class _IndoorSearch:
         return min(self.rows.values(), key=lambda item: item[0])
 
 
-class GroundSourceHeatPump(ReferenceStateMixin):
+class GroundSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
     """Ground source heat pump with BHE and indoor-unit air heat exchange.
 
     The refrigerant cycle is resolved via CoolProp. The operating point

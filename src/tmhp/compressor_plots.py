@@ -27,8 +27,7 @@ magnitude.
 
 Axes follow the figure drawing rules of the ``figma-plot`` skill that do not
 depend on the style (#258): every linear axis, the colour bars included, has
-an explicit ``(min, max, interval)`` with ticks at both ends (the log
-pressure-ratio axis is exempt); tick labels carry only the decimals the
+an explicit ``(min, max, interval)`` with ticks at both ends; tick labels carry only the decimals the
 interval needs; percent is written ``(%)`` and physical units ``[unit]``;
 titles name quantities in words; a colour bar stands upright to the right of
 its panel, placed from the panel's final position, and shows its two end
@@ -80,8 +79,8 @@ __all__ = [
 
 #: Evaporating temperatures [°C] of the map columns: cold heating, mild heating, cooling.
 DEFAULT_T_EVAP_C: tuple[float, ...] = (-15.0, 0.0, 10.0)
-#: Default axis ranges of the map panels: pressure ratio (log axis) and speed [rev/s].
-DEFAULT_PR_RANGE: tuple[float, float] = (1.4, 13.0)
+#: Default axis ranges of the map panels: pressure ratio (linear, a tick at every whole number) and speed [rev/s].
+DEFAULT_PR_RANGE: tuple[float, float] = (1.0, 12.0)
 DEFAULT_RPS_RANGE: tuple[float, float] = (15.0, 120.0)
 
 #: The dartwork-mpl preset every figure of this module is drawn in.
@@ -91,6 +90,15 @@ _WIDTH = "17cm"
 _MAP_ROW_HEIGHT_CM = 6.0
 _STAGES_HEIGHT = "7.5cm"
 _PARITY_HEIGHT = "9cm"
+
+#: Marker areas [pt^2] of the map's peak diamonds and operating points.
+_PEAK_SIZE = 22.0
+_POINT_SIZE = 4.5
+#: Every how many pressure-ratio ticks carries a number (a tick at every whole number either way).
+_PR_LABEL_EVERY = 1
+#: Symbols as mathtext, so the subscript renders.
+_R_P = r"$r_\mathrm{p}$"
+_N = r"$N$"
 
 GREY = "oc.gray6"
 VIOLET = "tw.violet600"
@@ -383,6 +391,32 @@ def _finish(fig: Figure, *, right_pt: float = 0.0) -> None:
     dm = _dm()
     _pin_tick_style(fig)
     dm.simple_layout(fig, margin=dm.pt(_MARGIN_PT), mr=dm.pt(_MARGIN_PT + right_pt))
+    if _separate_corner_ticks(fig):
+        dm.simple_layout(fig, margin=dm.pt(_MARGIN_PT), mr=dm.pt(_MARGIN_PT + right_pt))
+
+
+def _separate_corner_ticks(fig: Figure, max_extra_pt: float = 8.0) -> bool:
+    """Push y tick labels outward where they touch the x tick labels at a panel's lower-left corner.
+
+    The figma-plot rule for the origin labels (``separate_origin_ticks``): the
+    axes box stays, only the y label pad grows, 1 pt at a time. Returns whether
+    any pad changed.
+    """
+    changed = False
+    for ax in fig.axes:
+        # the pad _pin_tick_style wrote (the matplotlib stubs type Tick.get_pad as returning None)
+        pad = float(ax.yaxis.get_tick_params(which="major").get("pad", _plt().rcParams["ytick.major.pad"]))
+        limit = pad + max_extra_pt
+        while pad < limit:
+            fig.canvas.draw()
+            xs = [t.get_window_extent() for t in ax.get_xticklabels() if t.get_visible() and t.get_text()]
+            ys = [t.get_window_extent() for t in ax.get_yticklabels() if t.get_visible() and t.get_text()]
+            if not any(x.overlaps(y) for x in xs for y in ys):
+                break
+            pad += 1.0
+            ax.tick_params(axis="y", which="major", pad=pad)
+            changed = True
+    return changed
 
 
 def _text_width_pt(fig: Figure, text: str, fontsize: float) -> float:
@@ -468,6 +502,46 @@ def _peak(prs: np.ndarray, ns: np.ndarray, Z: np.ndarray) -> tuple[float, float,
     return float(Z[j, i]), float(prs[i]), float(ns[j])
 
 
+def _label_every(axis: Any, every: int, spec: AxisSpec) -> None:
+    """Keep a tick at every interval of ``spec`` but write a number only on every ``every``-th, from the minimum."""
+    from matplotlib.ticker import FuncFormatter
+
+    base = _tick_formatter(spec[2], spec[0])
+
+    def label(value: float, pos: int | None = None) -> str:
+        k = round((value - spec[0]) / spec[2])
+        return base(value, pos) if k % every == 0 else ""
+
+    axis.set_major_formatter(FuncFormatter(label))
+
+
+def _map_legend(fig: Figure, *, has_range: bool, has_points: bool) -> None:
+    """One legend under the map: what the orange outline, the diamond and the dots are, at their drawn sizes.
+
+    The entries are stand-ins drawn on the first panel, not the plotted
+    artists: the peak diamond takes each row's colour, and the row headings
+    already say which row is which, so the legend shows one neutral diamond.
+    """
+    dm = _dm()
+    ax = fig.axes[0]
+    if has_range:
+        ax.plot([], [], color=ORANGE, lw=1.1, label="Data range of the default maps")
+    ax.plot([], [], ls="", marker="D", ms=math.sqrt(_PEAK_SIZE), mfc="white", mec=INK, mew=0.6, label="Peak efficiency")
+    if has_points:
+        ax.plot(
+            [],
+            [],
+            ls="",
+            marker="o",
+            ms=math.sqrt(_POINT_SIZE),
+            mfc="black",
+            mec="white",
+            mew=0.3,
+            label="Operating points (nearest column)",
+        )
+    dm.figure_legend(fig, loc="below", frameon=False, markerscale=1.0)
+
+
 @_in_figure_style
 def plot_compressor_map(
     before: EfficiencySource | None,
@@ -488,8 +562,8 @@ def plot_compressor_map(
     (``eta_cmp_isen``, ``eta_cmp_vol``, ``eta_cmp``), a heat-pump model (its
     attributes of those names), or ``None`` for the default maps. ``quantity``
     is a key of :data:`MAP_QUANTITIES`; its colour levels are fixed, values
-    beyond them take the end colours. Axes: pressure ratio ``r_p`` (log,
-    ``pr_range``) and speed ``N`` [rev/s] (``rps_range``, with ticks at a
+    beyond them take the end colours. Axes: pressure ratio ``r_p`` (linear,
+    ``pr_range`` rounded out to whole numbers, a tick at each) and speed ``N`` [rev/s] (``rps_range``, with ticks at a
     round interval; a range that no such interval divides is widened to one,
     the default 15 to 120 has ticks every 15), the same on every panel.
 
@@ -497,8 +571,11 @@ def plot_compressor_map(
     apart from the other row; no axis is shared, so every panel has its own
     tick labels. Drawn on every panel: the efficiency (filled contours,
     labelled lines), the data range of the default maps at that ``T_evap``
-    (orange), and the grid peak (diamond). The panel's left title is its
-    evaporating temperature, the right title the peak value and place. Each
+    (orange), the grid peak (diamond, in the row's colour), and ``points`` as
+    small black dots with a thin white rim. The panel's left title is its
+    evaporating temperature, the right title the peak value and place. One
+    legend under the figure names the outline, the peak and the points at
+    their drawn sizes; the figure has no title unless ``title`` is given. Each
     row has its own colour bar right of its last panel, the same levels in
     both rows, showing the two end values. ``points`` (an
     :class:`OperatingPoints` or model result rows) are drawn on the column
@@ -519,12 +596,13 @@ def plot_compressor_map(
     rows = (_efficiency_set(before), _efficiency_set(after))
     pts = points if points is None or isinstance(points, OperatingPoints) else OperatingPoints.from_results(points)
     speed_spec = _axis_spec(*rps_range, steps=_FINE_STEPS)
-    prs = np.exp(np.linspace(math.log(pr_range[0]), math.log(pr_range[1]), resolution[0]))
+    # a linear pressure-ratio axis with a tick at every whole number
+    pr_spec = (float(math.floor(pr_range[0])), float(math.ceil(pr_range[1])), 1.0)
+    prs = np.linspace(pr_spec[0], pr_spec[1], resolution[0])
     ns = np.linspace(speed_spec[0], speed_spec[1], resolution[1])
     column_of_point = (
         np.argmin(np.abs(pts.T_evap_C[:, None] - np.asarray(temps)[None, :]), axis=1) if pts is not None else None
     )
-    ticks = [t for t in (2, 3, 4, 6, 8, 12) if pr_range[0] <= t <= pr_range[1]]
     levels = np.asarray(spec.levels)
     bar_spec = (float(levels[0]), float(levels[-1]), round(float(levels[-1] - levels[0]), 9))
     line_label = _tick_formatter(float(levels[4] - levels[0]), float(levels[0]))
@@ -536,16 +614,17 @@ def plot_compressor_map(
     row_boxes = fig.subfigures(2, 1, hspace=0.0)
     last_panels: list[tuple[Axes, ScalarMappable]] = []
     line_labels: list[tuple[Axes, Text]] = []
+    has_range = False
     for r, (eff, row_box) in enumerate(zip(rows, row_boxes, strict=True)):
-        row_box.suptitle(labels[r], x=0.0, ha="left", fontweight=dm.fw(2))
+        # the row heading outranks the panel titles: larger and bolder
+        row_box.suptitle(labels[r], x=0.0, ha="left", fontsize=dm.fs(2), fontweight=dm.fw(3))
         row_axes = row_box.subplots(1, ncol, squeeze=False, gridspec_kw={"wspace": 0.3})[0]
         colour = GREY if r == 0 else VIOLET
         for c, (ax, T_e) in enumerate(zip(row_axes, temps, strict=True)):
             # scale and limits first: the contour labels are placed in the panel as it will be shown
-            ax.set_xscale("log")
-            ax.set_xticks(ticks, [f"{t:g}" for t in ticks])
-            ax.minorticks_off()
-            ax.set_xlim(*pr_range)
+            _apply_spec(ax, "x", pr_spec)
+            if _PR_LABEL_EVERY > 1:
+                _label_every(ax.xaxis, _PR_LABEL_EVERY, pr_spec)
             _apply_spec(ax, "y", speed_spec)
             Z = efficiency_grid(eff, quantity, prs, ns, T_e)
             # values beyond the fixed levels are filled in the end colours, not left blank
@@ -558,56 +637,61 @@ def plot_compressor_map(
             inside = np.array([[DOMAIN.contains(pr, n, T_e) for pr in prs] for n in ns], dtype=float)
             if 0.0 < inside.mean() < 1.0:
                 ax.contour(prs, ns, inside, levels=[0.5], colors=ORANGE, linewidths=1.1)
-                ax.plot([], [], color=ORANGE, lw=1.1, label="Data range of the default maps")
-            # two lines, so the name in words leaves room for the peak on the right
-            ax.set_title(f"Evaporating\n{_tick_formatter(1.0, T_e)(T_e)} °C", loc="left")
+                has_range = True
+            ax.set_title(
+                f"Evaporating {_tick_formatter(1.0, T_e)(T_e)} °C", loc="left", fontsize=dm.fs(0), fontweight=dm.fw(2)
+            )
             peak = _peak(prs, ns, Z)
             if peak is not None:
                 ax.scatter(
                     [peak[1]],
                     [peak[2]],
                     marker="D",
-                    s=22,
+                    s=_PEAK_SIZE,
                     color=colour,
                     edgecolor="white",
                     lw=0.6,
                     zorder=5,
-                    label=f"Peak, {labels[r]}",
+                    gid="peak",
                 )
                 ax.set_title(
-                    f"peak {peak[0]:.3f}\nr_p {peak[1]:.2f}, N {peak[2]:.0f}",
+                    f"peak {peak[0]:.3f}\n{_R_P} {peak[1]:.2f}, {_N} {peak[2]:.0f}",
                     loc="right",
                     fontsize=dm.fs(-1),
                     fontweight=dm.fw(0),
                 )
             if pts is not None and column_of_point is not None:
                 sel = column_of_point == c
-                # labelled on the last row so the legend lists it after both peaks
-                point_label = "Operating points (nearest evaporating temperature)" if r == len(rows) - 1 else None
+                # solid black with a hairline white rim: overlapping points stay apart
                 ax.scatter(
                     pts.pressure_ratio[sel],
                     pts.rps[sel],
-                    s=9,
-                    facecolor="none",
-                    edgecolor="black",
-                    lw=0.6,
+                    s=_POINT_SIZE,
+                    facecolor="black",
+                    edgecolor="white",
+                    lw=0.3,
                     zorder=4,
                     gid="operating-points",
-                    label=point_label,
                 )
-            ax.set_xlabel("Pressure ratio (r_p)")
-        row_axes[0].set_ylabel("Speed (N) [rev/s]")
+            ax.set_xlabel(f"Pressure ratio ({_R_P})")
+        row_axes[0].set_ylabel(f"Speed ({_N}) [rev/s]")
         last_panels.append((row_axes[-1], filled))
-    fig.suptitle(title or f"{spec.label} ({spec.symbol}): {labels[0]} (top) vs {labels[1]} (bottom)")
-    dm.figure_legend(fig, loc="below", frameon=False, markerscale=1.4)
+    if title:
+        fig.suptitle(title)
+    _map_legend(fig, has_range=has_range, has_points=pts is not None)
     panel_width_pt = fig.get_figwidth() * 72.0 / ncol
     _finish(fig, right_pt=_colourbar_room_pt(fig, panel_width_pt, bar_spec, spec.bar_label))
-    # a contour label that the panel edge would cut is left out rather than shown in part
+    # a contour label that the panel edge would cut, or that would cover one already kept
+    # (where the lines crowd at low pressure ratio), is left out rather than shown in part
     fig.canvas.draw()
+    kept: dict[int, list[Any]] = {}
     for ax, text in line_labels:
         panel, box = ax.get_window_extent(), text.get_window_extent()
-        if not (panel.contains(box.x0, box.y0) and panel.contains(box.x1, box.y1)):
+        inside = panel.contains(box.x0, box.y0) and panel.contains(box.x1, box.y1)
+        if not inside or any(box.overlaps(k) for k in kept.get(id(ax), [])):
             text.remove()
+        else:
+            kept.setdefault(id(ax), []).append(box)
     # one bar per row, each from its last panel's final place, so each row reads on its own
     for ax, filled in last_panels:
         _add_colourbar(fig, ax, filled, bar_spec, spec.bar_label)
@@ -738,7 +822,7 @@ def plot_calibration_stages(stages: Sequence[StageScore], *, title: str | None =
     _stage_panel(axes[1], stages, "mape_fit", "mape_cv", "COP MAPE (%)")
     if title:
         fig.suptitle(title)
-    dm.figure_legend(fig, loc="below", frameon=False, markerscale=1.4)
+    dm.figure_legend(fig, loc="below", frameon=False, markerscale=1.0)
     _finish(fig)
     return cast("Figure", fig)
 
@@ -808,8 +892,9 @@ def plot_cop_parity(
         ax.set_xlabel("Catalogue COP")
         ax.set_ylabel("Model COP")
         if any(modes):
-            ax.legend(loc="lower right", frameon=False, markerscale=1.6)
-    fig.suptitle(title or f"COP parity, {ref.size} points; dashed ±{band * 100:g} %")
+            ax.legend(loc="lower right", frameon=False, markerscale=1.0)
+    if title:
+        fig.suptitle(title)
     _finish(fig)
     return cast("Figure", fig)
 

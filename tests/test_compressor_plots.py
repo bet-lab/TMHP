@@ -137,9 +137,9 @@ def test_identical_maps_give_identical_rows_and_a_changed_map_its_own_peak():
     titles = [_titles(ax) for ax in axes]
     assert titles[:3] == titles[3:]
     assert [left for left, _ in titles[:3]] == [
-        "Evaporating\n\N{MINUS SIGN}15 °C",
-        "Evaporating\n0 °C",
-        "Evaporating\n10 °C",
+        "Evaporating \N{MINUS SIGN}15 °C",
+        "Evaporating 0 °C",
+        "Evaporating 10 °C",
     ]
 
     changed = plot_compressor_map(None, FLAT, T_evap_C=temps, resolution=(30, 25))
@@ -351,10 +351,11 @@ def test_map_fills_values_beyond_the_levels_in_the_end_colours():
 
 def test_linear_axes_have_an_explicit_spec_with_ticks_at_both_ends():
     """Speed axis 15 to 120 every 15; error axes from 0 to a round value above the largest error; parity axes over
-    the drawn values rounded outward; the log pressure-ratio axis is exempt."""
+    the drawn values rounded outward; pressure ratio 1 to 12, a tick at every whole number."""
     figs = _three_figures()
     for ax in _map_axes(figs["map"]):
-        assert ax.get_xscale() == "log"
+        assert ax.get_xscale() == "linear"
+        assert _spec_of(ax.xaxis) == pytest.approx((1.0, 12.0, 1.0))
         assert _spec_of(ax.yaxis) == pytest.approx((15.0, 120.0, 15.0))
     rmse_ax, mape_ax = figs["stages"].axes
     assert _spec_of(rmse_ax.yaxis) == pytest.approx((0.0, 16.0, 2.0))  # largest RMSE 15.1 %
@@ -406,7 +407,48 @@ def test_axis_names_write_percent_in_parentheses_units_in_brackets_and_titles_in
     assert rmse_ax.get_ylabel() == "COP RMSE, ln(model/catalogue) (%)"
     assert mape_ax.get_ylabel() == "COP MAPE (%)"
     for ax in _map_axes(figs["map"]):
-        assert ax.get_ylabel() in ("Speed (N) [rev/s]", "")
-        assert ax.get_title(loc="left").startswith("Evaporating\n")
+        assert ax.get_ylabel() in ("Speed ($N$) [rev/s]", "")
+        assert ax.get_xlabel() == r"Pressure ratio ($r_\mathrm{p}$)"
+        assert ax.get_title(loc="left").startswith("Evaporating ")
     texts = [t.get_text() for fig in figs.values() for t in fig.findobj(matplotlib.text.Text)]
     assert not [t for t in texts if "[%]" in t or "T_evap" in t]
+
+
+def test_operating_points_are_small_solid_black_dots_with_a_hairline_white_rim():
+    """Points: half the former area (4.5 pt^2), filled black, a 0.3 pt white edge so overlapping dots stay apart."""
+    for ax in _map_axes(_three_figures()["map"]):
+        for c in (c for c in ax.collections if c.get_gid() == "operating-points"):
+            assert list(c.get_sizes()) == [4.5]
+            assert tuple(c.get_facecolor()[0]) == (0.0, 0.0, 0.0, 1.0)
+            assert tuple(c.get_edgecolor()[0]) == (1.0, 1.0, 1.0, 1.0)
+            assert list(c.get_linewidths()) == [0.3]
+
+
+def test_legend_markers_are_drawn_at_the_size_of_the_markers_they_name():
+    """No marker scaling: each legend marker has the size of the plotted marker of the same shape."""
+    fig = _three_figures()["map"]
+    drawn = {}
+    for ax in _map_axes(fig):
+        for c in ax.collections:
+            if c.get_gid() in ("peak", "operating-points"):
+                drawn["D" if c.get_gid() == "peak" else "o"] = math.sqrt(c.get_sizes()[0])
+    (legend,) = fig.legends
+    assert legend.markerscale == 1.0
+    sizes = {h.get_marker(): h.get_markersize() for h in legend.legend_handles if h.get_marker() not in (None, "None")}
+    assert sizes == pytest.approx(drawn)
+
+
+def test_row_headings_outrank_panel_titles_and_no_figure_has_a_title_by_default():
+    """The row heading is larger than the panel titles; none of the three figures has a figure title unless asked."""
+    figs = _three_figures()
+    for ax in _map_axes(figs["map"]):
+        heading = ax.get_figure(root=False)._suptitle
+        panel_title = ax._left_title
+        assert heading.get_fontsize() > panel_title.get_fontsize()
+    figs_no_title = {
+        "map": plot_compressor_map(None, None, resolution=(20, 20)),
+        "stages": plot_calibration_stages(_stage_list()),
+        "parity": plot_cop_parity([2.0, 3.0], [2.1, 2.9], [2.0, 3.1]),
+    }
+    for name, fig in figs_no_title.items():
+        assert fig._suptitle is None, name

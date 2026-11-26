@@ -56,7 +56,8 @@ def check_results(database: Path) -> None:
 
 def check_humidity_log(log: Path) -> None:
     """Require the model to report the saturated design-day humidity on each logged call."""
-    calls = [line for line in log.read_text(encoding="utf-8").splitlines() if line.startswith("[call ")]
+    lines = log.read_text(encoding="utf-8").splitlines()
+    calls = [line for line in lines if line.startswith("[call ")]
     if not calls:
         raise ValueError(f"No dispatched calls to check for model humidity in {log}")
     for call in calls:
@@ -65,7 +66,16 @@ def check_humidity_log(log: Path) -> None:
         # Allow one percentage point for psychrometric approximations.
         if humidity is None or not 99.0 <= float(humidity[1]) <= 100.0:
             raise ValueError(f"Expected 99–100% model humidity on the saturated design day: {call}")
-    print(f"Model humidity verified on {len(calls)} logged dispatch calls")
+    # The plugin logs its humidity counts when EnergyPlus shuts the plugin
+    # interpreter down; the saturated design day never falls back to the default.
+    final = [line for line in lines if line.startswith("[outdoor RH final]")]
+    summary = (
+        r"\[outdoor RH final\] run [0-9a-f]{12} \(pid \d+ #\d+\): .* weather=(\d+) clipped_to_100=(\d+) default=(\d+)"
+    )
+    counts = re.fullmatch(summary, final[0]) if len(final) == 1 else None
+    if counts is None or int(counts[3]) != 0 or int(counts[1]) + int(counts[2]) == 0:
+        raise ValueError(f"Expected a final outdoor humidity summary with no default timesteps: {final}")
+    print(f"Model humidity verified on {len(calls)} logged dispatch calls; {final[0]}")
 
 
 def run(energyplus: Path, output: Path) -> None:

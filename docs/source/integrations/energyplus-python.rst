@@ -157,9 +157,16 @@ Input / output boundary
 The plugin reads only finite EnergyPlus boundary values before calling
 TMHP. Invalid required inputs are reported through ``issue_severe()``, the plant
 component is driven to a safe off state, and the callback returns a
-non-zero status. A missing humidity handle, a read flagged by EnergyPlus, or an
-invalid humidity value triggers one warning per plugin instance. The solve then
-uses the model's default humidity (84% for the standard frost correction).
+non-zero status. The EPW format accepts relative humidity up to 110%, and
+EnergyPlus passes such readings on unclipped; the plugin uses a reading from
+100 to 110% as 100% (saturated air). A missing humidity handle, a read flagged
+by EnergyPlus, or any other humidity value (negative, above 110%, not finite)
+triggers one warning per plugin instance. The solve then uses the model's
+default humidity (84% for the standard frost correction). The
+``TMHP_PLUGIN_LOG`` file counts the zone timesteps with a heating dispatch
+(warmup days excluded) solved with the weather humidity, with a reading used
+as 100%, and with the default, so a run shows how much of it fell back to
+84%.
 
 .. list-table::
    :header-rows: 1
@@ -187,7 +194,8 @@ uses the model's default humidity (84% for the standard frost correction).
    * - EnergyPlus -> TMHP
      - Outdoor relative humidity
      - ``Site Outdoor Air Relative Humidity`` in percent, converted to the
-       fraction ``RH_out`` for the frost correction.
+       fraction ``RH_out`` for the frost correction; 100 to 110% is used as
+       100%.
    * - TMHP -> EnergyPlus
      - Outlet temperature actuator
      - Inlet temperature plus the heat put into the loop (``q_loop``, never
@@ -235,7 +243,19 @@ variables:
    * - ``TMHP_PLUGIN_LOG``
      - Optional path for per-call and convergence-tally logging. Each logged
        solve reports the humidity used by the model, or ``default`` when the
-       plugin falls back to the model's default.
+       plugin falls back to the model's default. The tally line written every
+       5,000 dispatched calls adds ``outdoor_RH_timesteps``: the zone
+       timesteps with a heating dispatch (warmup days excluded) solved with
+       the weather humidity (``weather``), with a reading above 100% used as
+       100% (``clipped_to_100``), and with the model default (``default``).
+       The same counts for the whole run are written once more as an
+       ``[outdoor RH final]`` line when the plugin's Python interpreter shuts
+       down: at the end of the run for the EnergyPlus command line, at the
+       exit of the host program for a run started through the EnergyPlus
+       Python API. The line names its run with a random id
+       (``run <12 hex digits> (pid <process> #<n>)``), so several runs in one
+       process or appended to one log file can be told apart. A zone timestep in which any call fell back to the default
+       counts as ``default``.
 
 .. _ep-metered-power:
 

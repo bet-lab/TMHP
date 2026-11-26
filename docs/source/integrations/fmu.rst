@@ -282,7 +282,8 @@ initial dependency set.
    * - Input
      - ``RH_out``
      - Outdoor relative humidity for the frost correction, as a fraction
-       from 0 to 1. The start value ``-1`` uses the model default (84% for the
+       from 0 to 1; a value above 1 up to 1.1 (the EPW limit of 110%) is used
+       as 1. The start value ``-1`` uses the model default (84% for the
        standard frost correction). Leave the input at its start value when
        no weather humidity is available.
    * - Input
@@ -344,7 +345,7 @@ logging is on: ``loggingOn`` at instantiation, or a later
      - FMI 2.0 status
    * - Unusable input or parameter value: non-finite ``T0``, ``T_sup_w`` or
        ``T_sur``, negative or non-finite ``dhw_draw``, or ``RH_out`` outside
-       0 to 1 that is not the start value ``-1``
+       0 to 1.1 that is not the start value ``-1``
      - ``fmi3Discard``
      - ``fmi2Discard``
    * - Illegal ``doStep`` argument: a non-finite communication point, or a

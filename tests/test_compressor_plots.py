@@ -31,6 +31,7 @@ from tmhp.compressor_plots import (
     OperatingPoints,
     StageScore,
     _axis_spec,
+    _spec_ticks,
     cop_errors,
     efficiency_grid,
     plot_calibration_stages,
@@ -389,6 +390,17 @@ def test_axis_spec_is_whole_intervals_round_and_holds_the_range():
         mantissa = step / 10.0 ** math.floor(math.log10(step) + 1e-9)
         assert round(mantissa, 6) in (1.0, 2.0, 5.0)
         assert a / step == pytest.approx(round(a / step), abs=1e-6)
+
+
+def test_axis_spec_keeps_a_nonzero_interval_for_tiny_ranges():
+    """Rounding is relative to the interval, so a range far below 1e-9 still gets ticks (PR #260 review)."""
+    lo, hi, step = _axis_spec(0.0, 1.05e-10)
+    assert step > 0.0 and hi >= 1.05e-10 and lo == 0.0
+    assert len(_spec_ticks((lo, hi, step))) >= 4
+    fig = plot_calibration_stages([StageScore("Default", 1e-12, 1e-12), StageScore("Fit", 1e-12, 1e-12)])
+    fig.canvas.draw()
+    shown = _shown(fig.axes[0].get_yticklabels())
+    assert len(shown) == len(set(shown)) >= 4
 
 
 def test_tick_labels_carry_only_the_decimals_their_interval_needs():

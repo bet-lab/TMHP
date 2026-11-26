@@ -149,6 +149,11 @@ def _levels(lo: float, hi: float, step: float) -> tuple[float, ...]:
     return tuple(round(lo + i * step, 6) for i in range(n + 1))
 
 
+def _on_step(value: float, step: float) -> float:
+    """``value`` rounded to nine digits below ``step``'s leading digit: clears float noise at any scale."""
+    return round(value, 9 - math.floor(math.log10(step)))
+
+
 def _axis_spec(lo: float, hi: float, *, steps: Sequence[float] = _STEPS, max_intervals: int = 8) -> AxisSpec:
     """The tightest ``(min, max, interval)`` holding ``[lo, hi]``, with 3 to ``max_intervals`` intervals.
 
@@ -170,9 +175,9 @@ def _axis_spec(lo: float, hi: float, *, steps: Sequence[float] = _STEPS, max_int
             stop = math.ceil(hi / step - 1e-9) * step
             n = round((stop - start) / step)
             if 3 <= n <= max_intervals:
-                key = (round(stop - start, 9), -step)
+                key = (_on_step(stop - start, step), -step)
                 if best is None or key < best[0]:
-                    best = (key, (round(start, 9), round(stop, 9), round(step, 9)))
+                    best = (key, (_on_step(start, step), _on_step(stop, step), _on_step(step, step)))
     if best is None:  # pragma: no cover - some mantissa always gives 3 to 8 intervals
         raise ValueError(f"no axis specification for ({lo}, {hi})")
     return best[1]
@@ -184,12 +189,12 @@ def _spec_ticks(spec: AxisSpec) -> list[float]:
     n = round((hi - lo) / step)
     if not (lo < hi and step > 0 and math.isclose(n * step, hi - lo, rel_tol=1e-9)):
         raise ValueError(f"axis spec {spec} is not (min < max, interval > 0, (max - min) / interval an integer)")
-    return [round(lo + i * step, 9) for i in range(n + 1)]
+    return [_on_step(lo + i * step, step) for i in range(n + 1)]
 
 
 def _decimals(*values: float) -> int:
     """Decimal places needed to write every value exactly (0 for integers)."""
-    return max(0, *(-int(Decimal(repr(round(v, 9))).normalize().as_tuple().exponent) for v in values))
+    return max(0, *(-int(Decimal(f"{v:.9g}").normalize().as_tuple().exponent) for v in values))
 
 
 def _tick_formatter(interval: float, start: float) -> Formatter:

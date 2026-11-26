@@ -69,6 +69,7 @@ from .cycling import (
 )
 from .default_inputs import kept_hx_UA
 from .defrost import (
+    LOAD_RATIO_ATOL,
     NO_FROST,
     DefrostModel,
     FrostState,
@@ -1804,20 +1805,70 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
     # Frost on the outdoor coil and its defrost
     # =============================================================
 
-    def _frost_state(self, Q_r_iu: float, T0: float, RH_out: float | None, *, full_load: bool = False) -> FrostState:
+    def _frost_state(self, Q_r_iu: float, T0: float, RH_out: float | None) -> FrostState:
         """Frost correction for this request (:data:`~tmhp.defrost.NO_FROST` outside heating).
 
         With a load-weighted frost model the coil is estimated at the load
-        ratio of the request (:meth:`~tmhp.defrost.DefrostModel.frost_state_at_duty`);
-        ``full_load`` asks for the rated-load state instead (the capacity
-        ceiling, where ``Q_r_iu`` only carries the mode). Without load
-        weighting both are ``frost_state(T0, RH_out)``.
+        ratio of the request (:meth:`~tmhp.defrost.DefrostModel.frost_state_at_duty`).
+        Without load weighting it is ``frost_state(T0, RH_out)``.
         """
         if self.defrost is None or not Q_r_iu < 0:
             return NO_FROST
-        if full_load:
-            return self.defrost.frost_state(T0, RH_out)
         return self.defrost.frost_state_at_duty(T0, RH_out, abs(Q_r_iu), self.hp_capacity)
+
+    def _frost_state_at_load(self, duty: float, T0: float, RH_out: float | None) -> FrostState:
+        """Frost correction of the unit running the frost-free heating ``duty`` [W].
+
+        The coil is loaded by what the machine absorbs: with a load-weighted
+        frost model the state is that of the load ratio of ``duty``
+        (:meth:`~tmhp.defrost.DefrostModel.load_ratio`), the rated-load state
+        where the unit delivers what the coil-temperature correlation's unit
+        does or more. Without load weighting it is ``frost_state(T0, RH_out)``.
+        """
+        if self.defrost is None:
+            return NO_FROST
+        ratio = self.defrost.load_ratio(duty, self.hp_capacity, T0)
+        return self.defrost.frost_state(T0, RH_out, load_ratio=ratio)
+
+    def _frost_state_at_ceiling(self, result: dict, frost: FrostState, request: float, T0: float) -> FrostState:
+        """Frost state of a request whose frost-free solve was held at a capacity ceiling.
+
+        ``frost`` is the state of the request: its load ratio is that of the
+        duty the request needs. A row with ``capacity_clamped == "max"`` runs
+        at another duty -- the compressor at its speed ceiling, or the
+        largest duty an envelope limit or a coil admits -- and the coil is loaded by
+        that duty, whatever was asked: the state is that of the ceiling duty
+        (``frost_state`` at its load ratio), so that the frost of a row above
+        the ceiling does not depend on the request.
+
+        The same state (the same object) is returned where nothing changes: a
+        frost model without load weighting, a row that is not held at a
+        ceiling, and a ceiling at the load the state was taken at
+        (:data:`~tmhp.defrost.LOAD_RATIO_ATOL`). It is also kept where the
+        ceiling's state would deliver the request or more. That cannot
+        happen while the mean a duty delivers rises with the duty, as it
+        does with the default frost model: the request's state was found
+        because a larger duty than the ceiling's is needed. It can where the
+        fixed losses come in over a small range of load (a frost-point band
+        of zero, or none, in air that barely frosts the rated-load coil):
+        the mean then falls again past that range, and a row must not
+        report more than was asked. Such a request keeps its own state.
+        """
+        model = self.defrost
+        running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+        if model is None or not model.load_weighted or not running or not frost.active:
+            return frost
+        if result.get("capacity_clamped") != CAPACITY_CLAMPED_MAX:
+            return frost
+        q_ceiling = abs(float(result.get("Q_ref_iu [W]", math.nan)))
+        if not (math.isfinite(q_ceiling) and q_ceiling > 0.0):
+            return frost
+        ratio = model.load_ratio(q_ceiling, self.hp_capacity, T0)
+        if abs(ratio - frost.load_ratio) <= LOAD_RATIO_ATOL:
+            return frost
+        at_ceiling = model.frost_state(T0, frost.RH_out, load_ratio=ratio)
+        delivered = at_ceiling.capacity_multiplier * q_ceiling - model.defrost_load(at_ceiling, T0, self.hp_capacity)
+        return at_ceiling if delivered < abs(request) else frost
 
     def _frost_state_of_running(self, result: dict, frost: FrostState, T0: float) -> FrostState:
         """Frost state of the machine a frost-free row runs, given the state of its request.
@@ -1896,9 +1947,13 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
         ``(|Q_r_iu| + Q_defrost) / capacity multiplier``, with everything that
         applies to a frost-free solve (speed limits, cycling, the capacity
         ceiling), and the row is then averaged (:func:`~tmhp.defrost.apply_defrost`).
+        The frost is that of the duty the machine runs: on its speed floor
+        and at a capacity ceiling that is not the duty the request needs
+        (:meth:`_frost_state_of_running`, :meth:`_frost_state_at_ceiling`).
         """
         model = self.defrost
         assert model is not None
+        request = abs(float(Q_r_iu))
         q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
         gross = model.gross_duty(frost, Q_r_iu, q_defrost)
 
@@ -1923,7 +1978,11 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
             q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
             gross = model.gross_duty(frost, Q_r_iu, q_defrost)
             result = frost_free(gross)
-        request = abs(float(Q_r_iu))
+        # At a capacity ceiling it runs at less than that duty: the frost is
+        # that of the ceiling duty, whatever was asked, and the row -- the
+        # ceiling's operating point -- stands (`_frost_state_at_ceiling`).
+        frost = self._frost_state_at_ceiling(result, frost, request, T0)
+        q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
         running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
 
         # Below the minimum continuous capacity the unit cycles, and it
@@ -1966,12 +2025,16 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
                 running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
 
         delivered = 0.0
-        if running:
+        if running and frost.active:
             delivered = self._average_over_frost(result, frost, T0, runtime_share)
             if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX and "Q_max [W]" in result:
                 result["Q_max [W]"] = delivered
         else:
+            # Not running, or held at a ceiling duty that leaves the coil
+            # without frost: the frost-free row, as a request below it gets.
             self._write_frost_free(result, frost)
+            if running:
+                delivered = abs(float(result["Q_ref_iu [W]"]))
         # The request and its shortfall are the caller's, not the frost-free solve's.
         if "Q_request [W]" in result:
             result["Q_request [W]"] = float(Q_r_iu)
@@ -2409,8 +2472,14 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
             operating point.
 
             In heating with a frosting outdoor coil the ceiling, the input and
-            the COP are the mean over frosting and defrost -- what
-            :meth:`analyze_steady` delivers there -- and
+            the COP are the mean over frosting and defrost -- the heat is
+            what :meth:`analyze_steady` delivers there (where a coil sets
+            the ceiling it goes on to pick the point of least input at that
+            duty, a little below the input reported here), with the frost of
+            the coil at the ceiling duty: a ceiling below what the
+            coil-temperature correlation's unit delivers at ``T0`` (an
+            envelope limit, a small speed range) is a part-loaded coil, with
+            less frost than the rated-load correction or none -- and
             ``Q_max_frost_free [W]`` is the frost-free ceiling they come from
             (``defrost_fraction [-]`` > 0). Otherwise the two are equal.
         """
@@ -2465,7 +2534,10 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
             "Q_max_frost_free [W]": lo_q,
             "defrost_fraction [-]": 0.0,
         }
-        frost = self._frost_state(sign, T0, RH_out, full_load=True)
+        # The frost of the ceiling duty: the coil is loaded by what the unit
+        # absorbs flat out, the rated-load state where that is what the
+        # coil-temperature correlation's unit delivers or more.
+        frost = self._frost_state_at_load(lo_q, T0, RH_out) if mode == "heating" else NO_FROST
         if frost.active:
             # The ceiling analyze_steady delivers: the mean over frosting and defrost.
             mean = dict(lo_perf)

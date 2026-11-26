@@ -1,14 +1,14 @@
 {
  "coefficient_version": "ossorio-r290-te-2026-11-21",
- "src_tmhp_tree": "d9c690af2519556f8d18725bad00ad6648c57135",
+ "src_tmhp_tree": "c4d64a94ca4e458ee81a4b6288014e191e5b5bbf",
  "validation_parity_tree": "1018184edb56360bb48c2b06daf283ae5a7c5b65",
  "dirty_digest": null,
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "git_head": "3bb6d39ec6e6db572dc2426aefce9f95c7ba4dcc",
+ "git_head": "94262b1becd8c0b1ece16d6cc0800c3710bef756",
  "git_heads": [
-  "3bb6d39ec6e6db572dc2426aefce9f95c7ba4dcc"
+  "94262b1becd8c0b1ece16d6cc0800c3710bef756"
  ],
  "dirty": false,
  "dirty_scope": [
@@ -18,8 +18,8 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "run_started": "2026-11-21T11:13:57+00:00",
- "run_finished": "2026-11-21T11:14:09+00:00",
+ "run_started": "2026-11-22T09:14:11+00:00",
+ "run_finished": "2026-11-22T09:14:23+00:00",
  "provenance": "provenance/<slug>.json, one per unit",
  "space_conditioning_cop_basis": "final_indoor_air_sensible",
  "units": 17,
@@ -193,13 +193,13 @@
   },
   "samsung_ehs_mono_ht_r32_14kw": {
    "points_capacity_short": 5,
-   "capacity_ratio_mean": 0.9389986942916888,
-   "capacity_ratio_min": 0.7223869238883414,
+   "capacity_ratio_mean": 0.9390763388197544,
+   "capacity_ratio_min": 0.7235515918093254,
    "capacity_binding_counts": {
     "condensing_temperature": 5
    },
    "points_capacity_ceiling": 7,
-   "capacity_ceiling_headroom_mean": 1.0243874338910202,
+   "capacity_ceiling_headroom_mean": 1.024553815016564,
    "points_capacity_lower_bound": 7,
    "points_capacity_no_estimate": 1
   }
@@ -218,14 +218,14 @@
    },
    "ASHPB": {
     "points_capacity_short": 8,
-    "capacity_ratio_mean": 0.992993932065445,
-    "capacity_ratio_min": 0.7223869238883414,
+    "capacity_ratio_mean": 0.9930015442740788,
+    "capacity_ratio_min": 0.7235515918093254,
     "capacity_binding_counts": {
      "compressor": 3,
      "condensing_temperature": 5
     },
     "points_capacity_ceiling": 65,
-    "capacity_ceiling_headroom_mean": 1.2370105182882603,
+    "capacity_ceiling_headroom_mean": 1.2370284362556265,
     "points_capacity_lower_bound": 87,
     "points_capacity_no_estimate": 1
    }

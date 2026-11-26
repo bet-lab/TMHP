@@ -493,8 +493,20 @@ The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP
 At 4 kW the same unit hardly frosts (``r`` 0.3: 3.42 at 2 °C against 3.46
 frost-free). Frost also lowers what the unit can deliver: at A2 against a
 35 °C tank the default unit reaches its speed ceiling at a frost-free 24.2 kW,
-a mean of 19.0 kW -- what a 20 kW request receives. In a dynamic run the thermostat asks
-for ``hp_capacity``, so every running step is at ``r = 1``.
+a mean of 19.0 kW -- what a 20 kW request receives. The frost of a request the
+unit cannot meet is that of the duty it runs at its ceiling, not of the
+request (the ceiling the envelope search reports varies by a few per cent
+with the request, where the search starts; the correction is that of the
+duty each row reports). In a dynamic
+run the thermostat asks for ``hp_capacity``, so a running step is at
+``r = 1`` -- unless the envelope holds its cycle below the capacity of the
+correlation's unit (a hot tank in very cold air: at −20 °C the pressure-ratio
+ceiling leaves about 6.3 kW frost-free against a 65 °C tank, where that unit
+delivers 7.6 kW), where ``r`` is that of the duty it runs. The stretch a ``condensing_limit_control="reduce_duty"`` step charges on
+the condensing limit keeps ``r = 1`` all along (the duty of that stretch is a
+straight line in the tank temperature only with one frost state): exact where
+the stretch begins, and it can overstate the frost once the duty falls below
+the capacity of the correlation's unit.
 
 .. note::
 

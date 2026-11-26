@@ -478,7 +478,9 @@ be met by the mean, so the cycle is solved frost-free at
 
 - ``Q_ref_iu [W]`` is the mean delivered heat — the request, unless the larger
   frost-free duty runs into the capacity ceiling, in which case the shortfall
-  is in ``Q_unmet [W]``. Frost lowers the ceiling by the capacity multiplier.
+  is in ``Q_unmet [W]``. The ceiling under frost is the frost-free ceiling
+  times the capacity multiplier of the duty the unit runs there
+  (:ref:`part load <ashp-frost-load>`), less ``Q_defrost``.
 - ``defrost_fraction [-]`` is ``t_frac``; ``frost_capacity_factor [-]`` and
   ``frost_power_factor [-]`` are the two multipliers.
 - ``E_cmp [W]`` is the frost-free compressor power times ``power multiplier +
@@ -584,7 +586,12 @@ difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
 
 ``DefrostModel(load_weighted=False)`` is the rated-load correction at every load. A unit that
 cycles below its minimum capacity is loaded by what the running machine
-delivers. What the load term assumes: the air flow over the coil does not
+delivers, and so is one held at its capacity ceiling: the frost of a request
+the unit cannot meet is that of the ceiling duty, whatever was asked, so
+requests above what the ceiling delivers get the same row. (Without the
+frost-point band, or with one of zero, a request just under that keeps its
+own state: there the mean a duty delivers can fall with the duty, and a row
+does not report more than was asked.) What the load term assumes: the air flow over the coil does not
 follow the load — a unit that slows its outdoor fan with the compressor has a
 colder coil than this, so the part-load frost here is a lower bound.
 
@@ -697,7 +704,8 @@ step is reached only with a higher ``T_out_max`` or a given coil temperature.
 What it leaves out: the room is not cooled in time during a defrost — its
 effect is in the mean.
 :meth:`~tmhp.AirSourceHeatPump.max_capacity` reports the same mean
-ceiling, with the frost-free one as ``Q_max_frost_free [W]``.
+ceiling, with the frost-free one as ``Q_max_frost_free [W]``: what the unit
+delivers flat out.
 
 COP boundary
 ============

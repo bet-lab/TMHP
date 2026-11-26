@@ -95,7 +95,7 @@ _PARITY_HEIGHT = "9cm"
 _PEAK_SIZE = 22.0
 _POINT_SIZE = 4.5
 #: Every how many pressure-ratio ticks carries a number (a tick at every whole number either way).
-_PR_LABEL_EVERY = 1
+_PR_LABEL_EVERY = 2
 #: Symbols with a rendered subscript. ``\mathregular`` draws them in the text's own font and
 #: weight: plain mathtext would take its fonts from the rcParams at draw time, after the
 #: preset is gone (DejaVu Sans, heavier than the preset's light Roboto).

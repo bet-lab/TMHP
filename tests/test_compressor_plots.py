@@ -397,6 +397,10 @@ def test_tick_labels_carry_only_the_decimals_their_interval_needs():
     figs["map"].canvas.draw()
     panel = _map_axes(figs["map"])[0]
     assert _shown(panel.get_yticklabels()) == ["15", "30", "45", "60", "75", "90", "105", "120"]
+    # pressure ratio: a tick at every whole number, a number on every second one, upright
+    assert len(panel.get_xticks()) == 12
+    assert _shown(panel.get_xticklabels()) == ["1", "3", "5", "7", "9", "11"]
+    assert {t.get_rotation() for t in panel.get_xticklabels()} == {0.0}
     assert _shown(_bar_axes(figs["map"])[0].get_yticklabels()) == ["30", "85"]
     defaults = plot_compressor_map(None, None, T_evap_C=(0.0,), resolution=(40, 30))
     defaults.canvas.draw()

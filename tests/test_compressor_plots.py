@@ -19,11 +19,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
+from matplotlib.markers import MarkerStyle
 
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.compressor_efficiency import default_efficiencies, map_eta_ov, map_eta_v
 from tmhp.compressor_plots import (
+    COOLING,
     FIGURE_STYLE,
+    GREY,
+    HEATING,
     OperatingPoints,
     StageScore,
     _axis_spec,
@@ -424,6 +428,22 @@ def test_operating_points_are_small_solid_black_dots_with_a_hairline_white_rim()
         for c in (c for c in ax.collections if c.get_gid() == "operating-points"):
             assert list(c.get_sizes()) == [4.5]
             assert tuple(c.get_facecolor()[0]) == (0.0, 0.0, 0.0, 1.0)
+            assert tuple(c.get_edgecolor()[0]) == (1.0, 1.0, 1.0, 1.0)
+            assert list(c.get_linewidths()) == [0.3]
+
+
+def test_parity_points_are_opaque_circles_red_for_heating_blue_for_cooling_with_a_white_rim():
+    """Mode is told by colour, not shape: every point a circle, no transparency, heating red, cooling blue,
+    anything else grey, each with a 0.3 pt white edge so overlapping points stay apart."""
+    fig = plot_cop_parity([2.0, 3.0, 4.0], [2.1, 2.9, 4.2], [2.0, 3.1, 3.9], mode=["heating", "cooling", "defrost"])
+    expected = {"heating": HEATING, "cooling": COOLING, "defrost": GREY}
+    for ax in fig.axes:
+        by_label = {c.get_label(): c for c in ax.collections}
+        assert set(by_label) == set(expected)
+        for label, c in by_label.items():
+            assert c.get_paths()[0].vertices.shape == MarkerStyle("o").get_path().vertices.shape
+            assert c.get_alpha() is None
+            assert tuple(c.get_facecolor()[0]) == pytest.approx(matplotlib.colors.to_rgba(expected[label]))
             assert tuple(c.get_edgecolor()[0]) == (1.0, 1.0, 1.0, 1.0)
             assert list(c.get_linewidths()) == [0.3]
 

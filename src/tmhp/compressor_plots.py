@@ -107,6 +107,10 @@ VIOLET = "tw.violet600"
 ORANGE = "tw.orange500"
 INK = "oc.gray8"
 FAINT = "oc.gray5"
+HEATING = "tw.red500"
+COOLING = "tw.blue600"
+_PARITY_POINT_SIZE = 12.0
+_RIM_WIDTH = 0.3
 
 #: Margin [pt] between the figure edge and its content (1.5 mm).
 _MARGIN_PT = 1.5 / 25.4 * 72.0
@@ -541,7 +545,7 @@ def _map_legend(fig: Figure, *, has_range: bool, has_points: bool) -> None:
             ms=math.sqrt(_POINT_SIZE),
             mfc="black",
             mec="white",
-            mew=0.3,
+            mew=_RIM_WIDTH,
             label="Operating points (nearest column)",
         )
     dm.figure_legend(fig, loc="below", frameon=False, markerscale=1.0)
@@ -674,7 +678,7 @@ def plot_compressor_map(
                     s=_POINT_SIZE,
                     facecolor="black",
                     edgecolor="white",
-                    lw=0.3,
+                    lw=_RIM_WIDTH,
                     zorder=4,
                     gid="operating-points",
                 )
@@ -843,7 +847,7 @@ def plot_cop_parity(
     band: float = 0.10,
     title: str | None = None,
 ) -> Figure:
-    """Model against catalogue COP: before (left, grey) and after (right, violet) on square axes of the same range.
+    """Model against catalogue COP: before (left) and after (right) on square axes of the same range.
 
     Equal-length arrays; a non-finite or non-positive model value is a point
     the model did not solve, left out of the plot, the axis range and the
@@ -852,8 +856,9 @@ def plot_cop_parity(
     panels share no axis: each has its own tick labels. Both axes of both
     panels run over the drawn values rounded outward to a round interval
     (the same ``(min, max, interval)`` everywhere). Lines: y = x and
-    ``±band`` (dashed). ``mode`` per point: ``"heating"`` circles, ``"cooling"``
-    squares, anything else triangles. Raises ``ValueError`` as :func:`cop_errors`
+    ``±band`` (dashed). Every point is an opaque circle with a hairline white rim,
+    so overlapping points stay apart; ``mode`` per point sets its colour:
+    ``"heating"`` red, ``"cooling"`` blue, anything else grey. Raises ``ValueError`` as :func:`cop_errors`
     or when ``mode`` has another length.
     """
     ref = np.asarray(cop_catalogue, dtype=float).ravel()
@@ -867,8 +872,8 @@ def plot_cop_parity(
 
     plt, dm = _plt(), _dm()
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize(_WIDTH, _PARITY_HEIGHT), gridspec_kw={"wspace": 0.3})
-    markers = {"heating": "o", "cooling": "s"}
-    for ax, pred, score, label, colour in zip(axes, preds, scores, labels, (GREY, VIOLET), strict=True):
+    colours = {"heating": HEATING, "cooling": COOLING}
+    for ax, pred, score, label in zip(axes, preds, scores, labels, strict=True):
         ok = _solved(pred)
         for m in dict.fromkeys(modes.tolist()):
             sel = ok & (modes == m)
@@ -876,12 +881,13 @@ def plot_cop_parity(
                 ax.scatter(
                     ref[sel],
                     pred[sel],
-                    s=12,
-                    marker=markers.get(m, "^"),
-                    color=colour,
-                    alpha=0.7,
-                    lw=0,
+                    s=_PARITY_POINT_SIZE,
+                    marker="o",
+                    facecolor=colours.get(m, GREY),
+                    edgecolor="white",
+                    linewidths=_RIM_WIDTH,
                     label=m or None,
+                    zorder=3,
                 )
         ax.plot([lo, hi], [lo, hi], color=INK, lw=0.7)
         for f in (1.0 - band, 1.0 + band):

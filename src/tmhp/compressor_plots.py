@@ -96,9 +96,11 @@ _PEAK_SIZE = 22.0
 _POINT_SIZE = 4.5
 #: Every how many pressure-ratio ticks carries a number (a tick at every whole number either way).
 _PR_LABEL_EVERY = 1
-#: Symbols as mathtext, so the subscript renders.
-_R_P = r"$r_\mathrm{p}$"
-_N = r"$N$"
+#: Symbols with a rendered subscript. ``\mathregular`` draws them in the text's own font and
+#: weight: plain mathtext would take its fonts from the rcParams at draw time, after the
+#: preset is gone (DejaVu Sans, heavier than the preset's light Roboto).
+_R_P = r"$\mathregular{r_p}$"
+_N = "N"
 
 GREY = "oc.gray6"
 VIOLET = "tw.violet600"
@@ -124,8 +126,6 @@ _COLOURBAR_STYLE = "full-height-top"
 #: Gap between a panel and its colour bar, and between the bar and its end values and label [pt].
 _COLOURBAR_GAP_PT = 6.0
 _COLOURBAR_PAD_PT = 3.0
-#: Height of the colour-bar label's foot above the bar [pt].
-_COLOURBAR_LABEL_RISE_PT = 10.0
 
 
 @dataclass(frozen=True)
@@ -135,7 +135,7 @@ class _MapQuantity:
     label: str
     symbol: str
     levels: tuple[float, ...]
-    #: ``label`` in short lines, for the head of the narrow colour bar.
+    #: The colour-bar label: one line, the values in percent.
     bar_label: str
 
 
@@ -203,6 +203,14 @@ def _tick_formatter(interval: float, start: float) -> Formatter:
     return FuncFormatter(label)
 
 
+def _percent_formatter(interval: float, start: float) -> Formatter:
+    """Labels of fractions written in percent, with only the decimals the interval needs (0.3 -> 30)."""
+    from matplotlib.ticker import FuncFormatter
+
+    base = _tick_formatter(round(interval * 100.0, 9), round(start * 100.0, 9))
+    return FuncFormatter(lambda value, pos=None: base(round(value * 100.0, 9), pos))
+
+
 def _apply_spec(ax: Axes, which: str, spec: AxisSpec) -> None:
     """Set the limits and ticks of the linear ``which`` (``"x"`` or ``"y"``) axis of ``ax`` to ``spec``.
 
@@ -219,11 +227,13 @@ def _apply_spec(ax: Axes, which: str, spec: AxisSpec) -> None:
 #: ``eta_cmp_isen * eta_cmp`` (the overall efficiency the calibration scales);
 #: the others are the package's three efficiencies as the cycle evaluates them.
 MAP_QUANTITIES: dict[str, _MapQuantity] = {
-    "eta_ov": _MapQuantity("Overall efficiency", "η_ov", _levels(0.30, 0.85, 0.025), "Overall\nefficiency"),
-    "eta_cmp_isen": _MapQuantity("Isentropic efficiency", "η_is", _levels(0.40, 1.00, 0.025), "Isentropic\nefficiency"),
-    "eta_cmp_vol": _MapQuantity("Volumetric efficiency", "η_v", _levels(0.70, 1.00, 0.02), "Volumetric\nefficiency"),
+    "eta_ov": _MapQuantity("Overall efficiency", "η_ov", _levels(0.30, 0.85, 0.025), "Overall efficiency (%)"),
+    "eta_cmp_isen": _MapQuantity(
+        "Isentropic efficiency", "η_is", _levels(0.40, 1.00, 0.025), "Isentropic efficiency (%)"
+    ),
+    "eta_cmp_vol": _MapQuantity("Volumetric efficiency", "η_v", _levels(0.70, 1.00, 0.02), "Volumetric efficiency (%)"),
     "eta_cmp": _MapQuantity(
-        "Electromechanical efficiency", "η_em", _levels(0.70, 1.00, 0.02), "Electro-\nmechanical\nefficiency"
+        "Electromechanical efficiency", "η_em", _levels(0.70, 1.00, 0.02), "Electromechanical efficiency (%)"
     ),
 }
 
@@ -427,15 +437,17 @@ def _text_width_pt(fig: Figure, text: str, fontsize: float) -> float:
     return float(width)
 
 
-def _colourbar_room_pt(fig: Figure, panel_width_pt: float, spec: AxisSpec, label: str) -> float:
-    """Room [pt] right of a panel that a :func:`_add_colourbar` bar, its end values and its label take."""
-    fontsize = _plt().rcParams["ytick.labelsize"]
+def _colourbar_room_pt(fig: Figure, panel_width_pt: float, spec: AxisSpec) -> float:
+    """Room [pt] right of a panel that a :func:`_add_colourbar` bar, its end values and its upright label take."""
+    fontsize = float(_plt().rcParams["ytick.labelsize"])
     _, width_ratio, _ = _COLOURBAR_STYLES[_COLOURBAR_STYLE]
-    fmt = _tick_formatter(spec[2], spec[0])
+    fmt = _percent_formatter(spec[2], spec[0])
     values = max(_text_width_pt(fig, fmt(v), fontsize) for v in spec[:2])
     bar = width_ratio * panel_width_pt
     slack = 1.0
-    return _COLOURBAR_GAP_PT + bar + _COLOURBAR_PAD_PT + max(values, _text_width_pt(fig, label, fontsize)) + slack
+    # the label stands upright beside the end values: one line height wide
+    label_height = 1.2 * fontsize
+    return _COLOURBAR_GAP_PT + bar + _COLOURBAR_PAD_PT + values + _COLOURBAR_PAD_PT + label_height + slack
 
 
 def _add_colourbar(fig: Figure, ax: Axes, mappable: ScalarMappable, spec: AxisSpec, label: str) -> Axes:
@@ -443,8 +455,9 @@ def _add_colourbar(fig: Figure, ax: Axes, mappable: ScalarMappable, spec: AxisSp
 
     Placed from the final position of ``ax`` (call it after the layout). It
     shows the two end values of ``spec`` = ``(min, max, max - min)``, which must
-    be the colour range of ``mappable``, with no tick lines and ``label`` above
-    the bar, over the end values. The bar has no triangular ends.
+    be the colour range of ``mappable``, in percent, with no tick lines, and
+    ``label`` as one upright line centred on the bar, right of the end values.
+    The bar has no triangular ends.
     """
     plt = _plt()
     lo, hi, step = spec
@@ -461,7 +474,7 @@ def _add_colourbar(fig: Figure, ax: Axes, mappable: ScalarMappable, spec: AxisSp
     cax = fig.add_axes((fx0, fy0, fx1 - fx0, fy1 - fy0))
     bar = fig.colorbar(mappable, cax=cax, orientation="vertical", extend="neither")
     bar.set_ticks(_spec_ticks(spec))
-    cax.yaxis.set_major_formatter(_tick_formatter(step, lo))
+    cax.yaxis.set_major_formatter(_percent_formatter(step, lo))
     cax.set_ylim(lo, hi)
     cax.minorticks_off()
     rc = plt.rcParams
@@ -469,17 +482,9 @@ def _add_colourbar(fig: Figure, ax: Axes, mappable: ScalarMappable, spec: AxisSp
     cax.tick_params(
         axis="y", which="both", length=0, pad=_COLOURBAR_PAD_PT, labelsize=rc["ytick.labelsize"], labelcolor=colour
     )
-    cax.annotate(
-        label,
-        (1.0, 1.0),
-        xycoords="axes fraction",
-        xytext=(_COLOURBAR_PAD_PT, _COLOURBAR_LABEL_RISE_PT),
-        textcoords="offset points",
-        ha="left",
-        va="bottom",
-        fontsize=rc["ytick.labelsize"],
-        color=colour,
-    )
+    # one line, turned upright and centred on the bar, right of the end values
+    cax.set_ylabel(label, rotation=90, fontsize=rc["ytick.labelsize"], color=colour, labelpad=_COLOURBAR_PAD_PT)
+    cax.yaxis.set_label_position("right")
     return cast("Axes", cax)
 
 
@@ -605,7 +610,7 @@ def plot_compressor_map(
     )
     levels = np.asarray(spec.levels)
     bar_spec = (float(levels[0]), float(levels[-1]), round(float(levels[-1] - levels[0]), 9))
-    line_label = _tick_formatter(float(levels[4] - levels[0]), float(levels[0]))
+    line_label = _percent_formatter(float(levels[4] - levels[0]), float(levels[0]))
 
     plt, dm = _plt(), _dm()
 
@@ -631,7 +636,7 @@ def plot_compressor_map(
             filled = ax.contourf(prs, ns, np.clip(Z, levels[0], levels[-1]), levels=levels, cmap="Blues")
             lines = ax.contour(prs, ns, Z, levels=levels[::2], colors="white", linewidths=0.5)
             for text in ax.clabel(lines, levels=levels[::4], fontsize=dm.fs(-1.5), fmt=line_label):
-                fill = filled.cmap(filled.norm(float(text.get_text())))
+                fill = filled.cmap(filled.norm(float(text.get_text()) / 100.0))
                 text.set_color(dm.readable_text_color(fill))
                 line_labels.append((ax, text))
             inside = np.array([[DOMAIN.contains(pr, n, T_e) for pr in prs] for n in ns], dtype=float)
@@ -655,7 +660,7 @@ def plot_compressor_map(
                     gid="peak",
                 )
                 ax.set_title(
-                    f"peak {peak[0]:.3f}\n{_R_P} {peak[1]:.2f}, {_N} {peak[2]:.0f}",
+                    f"peak {peak[0] * 100.0:.1f} %\n{_R_P} {peak[1]:.2f}, {_N} {peak[2]:.0f}",
                     loc="right",
                     fontsize=dm.fs(-1),
                     fontweight=dm.fw(0),
@@ -680,7 +685,7 @@ def plot_compressor_map(
         fig.suptitle(title)
     _map_legend(fig, has_range=has_range, has_points=pts is not None)
     panel_width_pt = fig.get_figwidth() * 72.0 / ncol
-    _finish(fig, right_pt=_colourbar_room_pt(fig, panel_width_pt, bar_spec, spec.bar_label))
+    _finish(fig, right_pt=_colourbar_room_pt(fig, panel_width_pt, bar_spec))
     # a contour label that the panel edge would cut, or that would cover one already kept
     # (where the lines crowd at low pressure ratio), is left out rather than shown in part
     fig.canvas.draw()

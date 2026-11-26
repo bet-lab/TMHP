@@ -144,7 +144,7 @@ def test_identical_maps_give_identical_rows_and_a_changed_map_its_own_peak():
 
     changed = plot_compressor_map(None, FLAT, T_evap_C=temps, resolution=(30, 25))
     bottom = [_titles(ax)[1] for ax in _map_axes(changed)[3:]]
-    assert all(t.startswith("peak 0.630") for t in bottom)
+    assert all(t.startswith("peak 63.0 %") for t in bottom)
     assert [_titles(ax) for ax in _map_axes(changed)[:3]] == titles[:3]
 
 
@@ -253,7 +253,7 @@ def test_model_method_draws_its_own_maps_against_the_defaults_or_another_model()
     fig = flat_model.plot_compressor_map(before=default_model, T_evap_C=(0.0,), resolution=(20, 20))
     top_flat, bottom_flat = (_titles(ax) for ax in _map_axes(fig))
     assert top_flat == top
-    assert bottom_flat[1].startswith("peak 0.630")
+    assert bottom_flat[1].startswith("peak 63.0 %")
 
 
 def test_parity_draws_only_the_points_it_scores():
@@ -324,7 +324,7 @@ def test_map_colour_bars_have_no_triangles_and_show_only_their_two_end_values():
         assert bar.extend == "neither"
         assert bar.orientation == "vertical"
         assert bar_ax.get_ylim() == pytest.approx((0.30, 0.85))
-        assert _shown(bar_ax.get_yticklabels()) == ["0.30", "0.85"]
+        assert _shown(bar_ax.get_yticklabels()) == ["30", "85"]
         assert all(
             t.tick1line.get_markersize() == 0 and t.tick2line.get_markersize() == 0
             for t in bar_ax.yaxis.get_major_ticks()
@@ -332,8 +332,12 @@ def test_map_colour_bars_have_no_triangles_and_show_only_their_two_end_values():
         box, panel = bar_ax.get_window_extent(), last.get_window_extent()
         assert box.x0 > panel.x1
         assert (box.y0, box.y1) == pytest.approx((panel.y0, panel.y1), abs=0.5)
-        assert [t.get_text() for t in bar_ax.texts] == ["Overall\nefficiency"]
-        assert bar_ax.texts[0].get_window_extent().y0 > box.y1
+        # the label: one upright line right of the end values, centred on the bar
+        label = bar_ax.yaxis.label
+        assert label.get_text() == "Overall efficiency (%)"
+        lbox = label.get_window_extent()
+        assert lbox.x0 > max(t.get_window_extent().x1 for t in bar_ax.get_yticklabels() if t.get_text())
+        assert (lbox.y0 + lbox.y1) / 2 == pytest.approx((box.y0 + box.y1) / 2, abs=1.0)
 
 
 def test_map_fills_values_beyond_the_levels_in_the_end_colours():
@@ -384,16 +388,16 @@ def test_axis_spec_is_whole_intervals_round_and_holds_the_range():
 
 
 def test_tick_labels_carry_only_the_decimals_their_interval_needs():
-    """Whole intervals: no decimal point; 0.55 from 0.30: two places; contour labels every 0.1: one place."""
+    """Whole intervals: no decimal point; efficiencies in percent (30, 85; contour labels every 10): no decimals."""
     figs = _three_figures()
     figs["map"].canvas.draw()
     panel = _map_axes(figs["map"])[0]
     assert _shown(panel.get_yticklabels()) == ["15", "30", "45", "60", "75", "90", "105", "120"]
-    assert _shown(_bar_axes(figs["map"])[0].get_yticklabels()) == ["0.30", "0.85"]
+    assert _shown(_bar_axes(figs["map"])[0].get_yticklabels()) == ["30", "85"]
     defaults = plot_compressor_map(None, None, T_evap_C=(0.0,), resolution=(40, 30))
     defaults.canvas.draw()
     line_labels = [t.get_text() for t in _map_axes(defaults)[0].texts]
-    assert line_labels and all(len(t.split(".")[1]) == 1 for t in line_labels)
+    assert line_labels and all(t.isdigit() and int(t) % 10 == 0 for t in line_labels)
     figs["stages"].canvas.draw()
     assert _shown(figs["stages"].axes[0].get_yticklabels()) == ["0", "2", "4", "6", "8", "10", "12", "14", "16"]
     figs["parity"].canvas.draw()
@@ -407,8 +411,8 @@ def test_axis_names_write_percent_in_parentheses_units_in_brackets_and_titles_in
     assert rmse_ax.get_ylabel() == "COP RMSE, ln(model/catalogue) (%)"
     assert mape_ax.get_ylabel() == "COP MAPE (%)"
     for ax in _map_axes(figs["map"]):
-        assert ax.get_ylabel() in ("Speed ($N$) [rev/s]", "")
-        assert ax.get_xlabel() == r"Pressure ratio ($r_\mathrm{p}$)"
+        assert ax.get_ylabel() in ("Speed (N) [rev/s]", "")
+        assert ax.get_xlabel() == r"Pressure ratio ($\mathregular{r_p}$)"
         assert ax.get_title(loc="left").startswith("Evaporating ")
     texts = [t.get_text() for fig in figs.values() for t in fig.findobj(matplotlib.text.Text)]
     assert not [t for t in texts if "[%]" in t or "T_evap" in t]
@@ -452,3 +456,21 @@ def test_row_headings_outrank_panel_titles_and_no_figure_has_a_title_by_default(
     }
     for name, fig in figs_no_title.items():
         assert fig._suptitle is None, name
+
+
+def test_symbols_and_colour_bar_label_are_drawn_in_the_figures_own_font():
+    """r_p is drawn in the font and weight of the text around it, also when saved after the preset is gone;
+    the colour-bar label is one upright line in percent."""
+    from matplotlib import font_manager
+    from matplotlib.mathtext import MathTextParser
+
+    fig = _three_figures()["map"]
+    parser = MathTextParser("path")
+    for text in (_map_axes(fig)[0]._right_title, _map_axes(fig)[0].xaxis.label):
+        prop = text.get_fontproperties()
+        *_, glyphs, _rects = parser.parse(text.get_text().splitlines()[-1], dpi=72, prop=prop)
+        assert {str(g[0].fname) for g in glyphs} == {str(font_manager.findfont(prop))}
+    bars = [ax for ax in fig.axes if hasattr(ax, "_colorbar")]
+    for cax in bars:
+        assert cax.get_ylabel() == "Overall efficiency (%)"
+        assert cax.yaxis.label.get_rotation() == 90.0

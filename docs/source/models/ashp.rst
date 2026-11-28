@@ -161,7 +161,13 @@ the outlet temperature and the fan heat, so within a row
 holds on each coil (``Q_ref_ou``, ``E_ou_fan`` on the outdoor side;
 ``Q_ref_iu``, ``E_iu_fan`` on the indoor side; the refrigerant heat is negative
 where the coil is the evaporator). ``Q_a_iu_in`` / ``Q_a_iu_out`` and the air
-exergy flows use the same mass flow. A row averaged over on/off cycling or
+exergy flows use the same mass flow. On a wet indoor coil
+(:ref:`ashp-wet-coil`) the left-hand side is the sensible part only: the
+air's temperature change carries the coil's sensible heat and the fan power,
+``-Q_room_sensible [W]``, and the refrigerant takes up the latent heat
+``Q_iu_latent [W]`` besides (default 4 kW unit, 35/27 °C, 50 % room humidity:
+−3 217.9 W on the air, of which 23.1 W of fan heat, and 759.0 W latent for
+the 4 000 W the refrigerant takes up). A row averaged over on/off cycling or
 frost keeps the identity on the indoor side; on the outdoor side the fan power
 is averaged with the runtime fraction and the airflow with the capacity ratio,
 so the two sides differ by that share of the fan power.
@@ -258,6 +264,371 @@ A unit that slows its fan for comfort is described with ``dV_iu_fan_a_max``.
    November 2026 the default was 1 to 20 K, which capped the
    default 4 kW unit near 125 % of its nameplate and cut the rated capacity of
    units above 8 kW.
+
+.. _ashp-wet-coil:
+
+Wet indoor coil (cooling)
+=========================
+
+Without a room humidity the indoor coil is dry: all of the coil heat is
+sensible and the model removes no moisture. Give the room's relative humidity
+and a cooling coil that runs below the room air's dew point also condenses
+water:
+
+.. code-block:: python
+
+   from tmhp import AirSourceHeatPump
+
+   ashp = AirSourceHeatPump()
+   row = ashp.analyze_steady(Q_r_iu=4000, T0=35.0, T_a_room=27.0, RH_room=0.5)
+
+   row["Q_ref_iu [W]"]                # 4000: what the refrigerant takes up
+   row["Q_iu_sensible [W]"]           # 3241
+   row["Q_iu_latent [W]"]             # 759
+   row["SHR_iu [-]"]                  # 0.81
+   row["m_dot_iu_condensate [kg/s]"]  # 3.08e-4 (1.1 kg/h)
+   row["Q_room_sensible [W]"]         # 3218: sensible, less the indoor fan's 23 W
+   row["w_iu_a_out [kg/kg]"]          # 0.01007 (room air: 0.01120)
+
+``RH_room`` is a fraction (0–1) at ``T_a_room`` and one standard atmosphere;
+:meth:`~tmhp.AirSourceHeatPump.max_capacity` takes the same argument and
+``analyze_dynamic`` a ``RH_room_schedule``. Heating does not read it (the
+indoor coil is the condenser there), nor does an off point, and ``None`` — the
+default — is the dry coil, with every result as before. A schedule holds one
+entry per step (a list, an array or a Series). Only the cooling steps are
+read, each as ``RH_room`` is: a cooling step whose entry is not a number in
+0–1 stops the run with a ``ValueError`` that names the step, and what a
+heating or an off step holds — a missing value, say — is not looked at.
+
+The coil is the apparatus-dew-point / bypass-factor coil, the family
+EnergyPlus uses for DX cooling coils, written so that it reduces to the dry
+coil. It is also the classic wet-coil analysis — the heat driven by the
+difference between the air's enthalpy and that of saturated air at the
+surface, with the coil-side resistance entering through the slope of the
+saturated-air enthalpy (Threlkeld, 1970; Braun, Klein & Mitchell, 1989) —
+with the refrigerant-side resistance set to zero, so that the surface is at
+the evaporating temperature.
+
+With room air at :math:`T_{in}`, :math:`w_{in}`, the evaporating
+temperature :math:`T_e`, the air heat capacity rate :math:`C` and the
+effectiveness :math:`\varepsilon = 1 - e^{-UA/C}` of the dry coil,
+
+.. math::
+
+   Q_s = C\,\varepsilon\,(T_{in} - T_e), \qquad
+   Q_l = C\,\varepsilon\,\frac{h_{fg}}{c_a}\,\max\bigl(0,\; w_{in} - w_{sat}(T_e)\bigr),
+
+and the refrigerant takes up :math:`Q_s + Q_l` (``Q_ref_iu [W]``). The air
+leaves the coil at :math:`T_{in} - \varepsilon\,(T_{in} - T_e)` and
+:math:`w_{in} - \varepsilon\,\max(0,\, w_{in} - w_{sat}(T_e))`: on the straight
+line from the room state to saturated air at the coil, a fraction
+:math:`\varepsilon` of the way. A wet coil is therefore the dry coil with its
+driving temperature difference enlarged by
+:math:`(h_{fg}/c_a)\,\max(0,\, w_{in} - w_{sat}(T_e))`
+(:func:`tmhp.heat_exchanger.wet_coil_latent_difference`); where the coil is at
+or above the room's dew point that term is zero and the coil equation is the
+dry coil's. The airflow that carries the duty, the two approach temperatures
+and the capacity ceiling are solved as before, with that driving difference.
+
+That statement is about the coil equation, not about every result. The
+searches around it treat a request the fans' smallest airflows refuse
+differently once a room humidity is given (*the two ends of the operating
+range*, below), also where no water condenses: the default 4 kW unit refuses
+``analyze_steady(1150, 0, 27)`` (0 W, ``"cycle_invalid"``) and delivers it
+with ``RH_room=0.02`` (1 150 W, by cycling at 1 153 W) — with no latent heat
+either way, the coil at −1.4 °C being far above that room's dew point of
+−24 °C. Room air with no water vapour at all (``RH_room=0``) is solved as the
+dry coil is.
+
+What the model assumes:
+
+- **The surface is at the refrigerant saturation temperature.** The dry coil
+  already works that way through its overall ``UA``; the wet coil keeps it, so
+  condensation starts where the evaporating temperature — not a warmer fin
+  surface — reaches the dew point. ``UA`` is therefore the coil's effective
+  air-side conductance: the refrigerant-side, tube and fin resistance that
+  would put the surface above :math:`T_e` is not modelled (co-author decision
+  on #262). A catalogue cannot pin that resistance: the published sensible
+  heat ratio fixes the air side only, and what the resistance does — a lower
+  evaporating temperature — shows only in the COP, where it cannot be told
+  apart from the compressor's efficiency. Leaving it out runs the evaporating
+  temperature slightly high and the COP slightly high by a nearly constant
+  factor, which a compressor calibration to the same catalogue (#189) takes
+  up in its efficiency multiplier. On the 180 Daikin cooling rows, a
+  refrigerant side of a fifth of the coil's resistance at the default ``UA``
+  lowers the evaporating temperature by 0.3–0.9 K (0.5 K on average) and the
+  COP by 0.7–3.2 % (1.6 % at the median); one factor per unit leaves 0.2 % on
+  average (1.3 % at most). With the ``UA`` solved instead from each row's
+  published ratio the same resistance lowers the COP by 1.5–12.9 % (5.3 % at
+  the median) and one factor per unit leaves 0.8 % (3.3 % at most): the
+  larger the resistance, the more that take-up is an approximation. (The
+  factor here is one on the COP; the calibration's multiplier acts on the
+  compressor alone.)
+- **The same ``UA`` wet and dry.** No wet-surface enhancement and no change of
+  fin efficiency; ``UA_iu_rated`` and its airflow law are those of the dry
+  coil. The default (0.16 W/K per W of nameplate) is a provisional rule that
+  was not derived for a wet coil.
+- **Lewis number 1.** Heat and water vapour are transferred with the same
+  effectiveness, which is what puts the leaving air on the straight line.
+- **Leaving air no wetter than saturated.** The saturation curve is convex,
+  so for a room close to saturation, or a coil far below the dew point, the
+  straight line passes above it. The leaving air is then put on the curve at
+  the same enthalpy — as the DX cooling coil of EnergyPlus corrects a
+  supersaturated outlet (``CalcDoe2DXCoil``; the coil is the
+  apparatus-dew-point / bypass-factor coil of its Engineering Reference): the
+  total heat and the airflow are unchanged, the supply
+  air is warmer and drier than on the line and more of the heat is latent
+  (:func:`tmhp.heat_exchanger.saturated_leaving_state`). The default unit at
+  35/27 °C reaches it at its capacity ceiling from 80 % room humidity, and at
+  the nameplate duty only above 95 %.
+- **Condensate leaves at the coil temperature**, and :math:`h_{fg}` is the
+  latent heat of water at :math:`T_e` (CoolProp, IAPWS-95: 2 477 kJ/kg at
+  10 °C; the triple-point value below 0.01 °C). The sensible cooling of the
+  vapour that condenses is left out (about 1 % of the latent heat).
+- **Dry-air heat capacity and density** for :math:`C`, as everywhere in the
+  air-side models (`Air density`_); :math:`w_{in}` and :math:`w_{sat}` are
+  CoolProp humid-air values at 101 325 Pa.
+- **No frost on the indoor coil.** A coil below 0 °C keeps condensing, with
+  :math:`w_{sat}` over ice.
+
+.. list-table:: Default 4 kW unit, 35 °C outdoor, 27 °C room, 4 kW coil heat
+    :header-rows: 1
+    :widths: 12 12 12 14 12 12 12 14
+
+    * - ``RH_room``
+      - Dew point [°C]
+      - :math:`T_e` [°C]
+      - Sensible / latent [W]
+      - ``SHR_iu``
+      - Condensate [kg/h]
+      - ``E_tot`` [W]
+      - ``cop_sys``
+    * - none, 0.3
+      - – / 8.0
+      - 10.8
+      - 4000 / 0
+      - 1.00
+      - 0
+      - 997
+      - 3.99
+    * - 0.4
+      - 12.3
+      - 11.7
+      - 3790 / 210
+      - 0.95
+      - 0.31
+      - 972
+      - 4.09
+    * - 0.5
+      - 15.7
+      - 13.9
+      - 3241 / 759
+      - 0.81
+      - 1.11
+      - 909
+      - 4.37
+    * - 0.6
+      - 18.6
+      - 16.0
+      - 2730 / 1270
+      - 0.68
+      - 1.86
+      - 854
+      - 4.66
+    * - 0.7
+      - 21.1
+      - 17.9
+      - 2253 / 1747
+      - 0.56
+      - 2.56
+      - 805
+      - 4.94
+    * - 0.8
+      - 23.3
+      - 19.7
+      - 1807 / 2193
+      - 0.45
+      - 3.22
+      - 760
+      - 5.23
+
+At a fixed total duty a wetter room needs a smaller temperature difference at
+the coil, so the evaporating temperature rises — while less of the duty is
+sensible cooling. In this example the electrical input falls with it (997 W
+dry, 909 W at 50 %), as it does on 179 of the 180 Daikin catalogue rows
+(:doc:`/validation/index`, *Cooling and latent load*). That is what these
+conditions give, not a rule. Where the pressure ratio is on its floor a warmer
+evaporator lifts the condensing temperature with it, and the input can rise:
+a 2.5 kW unit delivering 2 kW at 15 °C outdoor and 35 °C room draws 249.0 W
+dry and 251.1 W at 90 % room humidity. The request stays what it was:
+``Q_r_iu`` is the coil's total heat, so a zone model that needs a given
+*sensible* cooling has to ask for more than that when the coil is wet (there
+is no request-on-room-load option), and takes ``Q_room_sensible [W]`` off its
+air node and ``m_dot_iu_condensate [kg/s]`` off its moisture balance.
+
+**The two ends of the operating range** move with the humidity, because the
+coil carries more at a given evaporating temperature:
+
+- *The ceiling.* ``max_capacity(..., RH_room=...)`` is the ceiling of the wet
+  coil, and a request above it runs there (``capacity_clamped == "max"``,
+  ``Q_unmet [W]``). An indoor coil that sets the ceiling of the dry model sets
+  a higher one wet: with ``UA_iu_rated=150`` the default unit delivers
+  3 465 W dry at 35/27 °C, 5 835 W at 50 % room humidity (the coil at its
+  largest airflow and widest approach in both) and 7 131 W at 80 %, where the
+  compressor's speed binds instead. The ceiling is found by the same search
+  as the dry one, on the duty; where the least-lift point of a duty names no
+  limit of the machine the search starts it again from other approaches and
+  looks above it before it settles, so that a point it merely failed to find
+  is not reported as the ceiling. A fan held at one flow, or with a narrow
+  range, cannot leave its largest airflow the way the least-lift point
+  assumes; where that point is refused by the fans' smallest airflows the
+  duty is solved by the ordinary search before it counts as refused (default
+  unit with its outdoor fan held at its largest flow, 15 °C outdoor and a
+  saturated 35 °C room: 13.68 kW, the outdoor coil at its widest approach).
+  Where the search finds no duty at all, the duty the low-load search of the
+  same condition ends on (next item) runs, and the ceiling is searched
+  upwards from it. And where a unit with a fan held at one flow runs flat out
+  on the pressure-ratio floor, the ceiling is what the ordinary search
+  delivers there, 1 to 1.5 % above the least-lift point: the outdoor approach
+  asked for no longer moves the condensing temperature but still sets the
+  subcooling (10 kW unit with its indoor fan held, −10 °C outdoor and a
+  saturated 35 °C room: 35.43 kW against 34.99 kW).
+
+  A request equal to the ceiling is delivered the ceiling: ``Q_ref_iu [W]`` is
+  the ``Q_max [W]`` that ``max_capacity`` reported with the same ``RH_room``
+  (to rounding) and ``Q_unmet [W] == 0``. How the row is labelled depends on
+  which search answered it. Where the search of the request itself delivers
+  that duty the row is an ordinary one (``capacity_clamped`` is ``None``; 33
+  of the 180 conditions below). Where it does not, the row is the ceiling's
+  own state, re-solved, with ``capacity_clamped == "max"`` and
+  ``capacity_binding`` naming the limit (default 10 kW unit at 46 °C outdoor
+  and a 27 °C room at 30 %: 13 771.58 W, on the condensing-temperature
+  limit). That second answer is also given to a request that is under the
+  ceiling by no more than 0.1 % and that the search of the request does not
+  deliver. That search starts from the request's own least-lift point,
+  solved to a looser tolerance than the ceiling's, and close under the
+  ceiling it reads the request as beyond the limit, or as short of it flat
+  out, where the ceiling search has verified an operating point. On default
+  units of 2 to 10 kW (180 conditions: 20 to 46 °C outdoor, 20 to 32 °C room,
+  30 to 80 %) the requests it does not deliver reach from 0.0007 % to
+  0.006 % of the ceiling under it, at 147 of the conditions; every request
+  0.01 % under is delivered as asked. The 0.1 % is the width the ceiling
+  itself is searched to (``rel_tol`` of ``max_capacity``): the search does
+  not tell duties that close apart, so the unit is run at the one it
+  verified. Such a row delivers more than was asked, by at most that 0.1 %
+  (0.006 % in those conditions). A request the search delivers is not
+  touched, whatever its distance from the ceiling.
+- *The smallest continuous duty in mild weather.* At a low outdoor temperature
+  the cycle sits on the pressure-ratio floor (1.5), which holds the condensing
+  temperature well above the outdoor air, and each coil has to carry its duty
+  at no less than its fan's smallest airflow. The evaporating temperature that
+  would make room for the outdoor coil makes a wet indoor coil carry more
+  than a small duty, so below some duty no pair of approaches runs
+  continuously: 1.54 kW for the default unit at 10 °C outdoor, 27 °C room and
+  80 % (the dry coil runs down to its minimum speed there, 1.15 kW). A
+  smaller request is met by cycling at that duty, exactly as below the minimum
+  speed (``capacity_clamped == "min"``, ``Q_min [W]``; 1 200 W: runtime
+  fraction 0.823). Fans with a high smallest flow put that duty above twice
+  the nameplate: with both at 65 % of the largest flow it is 8.44 kW at 15 °C
+  outdoor and a saturated 35 °C room, and a 4 kW request cycles there
+  (runtime fraction 0.546). The search for that duty is a bisection by which
+  side refuses the trial, to 0.5 %; where it closes with nothing running it
+  goes on to 0.1 %, because the duties that run can be a window narrower than
+  the first width (next paragraph). Where it still finds no duty, the state
+  the unit runs flat out at — the one the ceiling search starts with — is
+  tried before the request is given up (2.5 kW unit with both fans held at
+  their largest flow, 8 °C outdoor, 35 °C room at 90 %: a 2.5 kW request is
+  met by cycling at the 9.61 kW the unit runs flat out at, runtime fraction
+  0.319). Where that state lies under the request the unit runs there, as for
+  any request above the ceiling. Where no duty is found to run — fans with
+  almost no flow range, in cold weather — the unit is off with
+  ``failure_reason == "hx_not_converged"``: a coil cannot carry so little
+  inside its fan's flow range.
+
+**A fan held at one flow, and what the searches can miss.** A coil whose fan
+runs at one flow (``dV_*_fan_a_min`` equal to ``dV_*_fan_a_max``) carries a
+duty at one approach temperature only. On the pressure-ratio floor the
+condensing temperature is held above the outdoor air whatever approach is
+asked for, so with both fans held the two coils balance in a narrow window of
+duties, or at none: the 4 kW unit at 8 °C outdoor and a saturated 35 °C room
+runs continuously between 14.31 and 14.35 kW only (2.5 kW unit, same
+conditions: at no duty — the outdoor coil at its one flow carries at least
+1.9 % more than the cycle rejects, up to the compressor's largest speed). The
+three searches —
+the operating point of a request, the smallest continuous duty, the ceiling —
+sample the duty: a ladder of duties and a bisection between two that differ,
+to 0.1 % for the ceiling and to 0.5 % for the smallest continuous duty (0.1 %
+where nothing ran at 0.5 %). They use each other's verified points as
+candidates — the ceiling search starts from the duty the low-load search
+ends on where it found none itself, and a low-load request takes the
+flat-out state of the ceiling — but a window narrower than the spacing of
+the samples can be missed by all of them. The caller then sees ``Q_max [W] == 0`` with
+``binding == "infeasible"`` from ``max_capacity`` and an off row with
+``failure_reason == "hx_not_converged"`` from ``analyze_steady``, although a
+duty inside the window would run. A held fan can also leave a request under
+the ceiling short instead of off: the row then has
+``capacity_clamped == "max"`` and an unmet duty although ``max_capacity``
+reports more. On a grid of 2.5, 4 and 10 kW units with the outdoor fan held
+at its largest flow (162 wet conditions) no request does so at 25 or 35 °C
+outdoor; at 0, 8 and 15 °C outdoor, and at 46 °C with the room at 90 %
+relative humidity or more, requests up to 20 % under the ceiling are run
+up to 28 % short (4 kW unit, 46 °C outdoor, saturated 27 °C room: ceiling
+7,325 W, a request 0.2 % under it runs at 5,270 W). Requests within 0.1 % of
+the ceiling run at it. Two ways out: leave the fan a flow range
+(the default smallest flow is 15 % of the largest; a held fan is an input,
+not a default), or request a duty inside the window. With fans that modulate
+the duties that run are a wide band and the samples fall inside it.
+
+A result does not depend on what was solved before it. Inside one
+``analyze_dynamic`` run the searches of a wet cooling condition are
+remembered — the ordinary search of a duty, the ceiling — but only as what
+solving them again would give, so a step's row is the row of that step solved
+alone, in any order of the steps. (The dry model reuses the smallest
+continuous duty of a condition for the smaller requests of the same run, as
+before; that duty is found by bisection to 0.5 %, and a row can differ by that
+much from the same request solved alone.)
+
+  This is the wet coil's behaviour only. Without ``RH_room`` the model is
+  left as it was, result for result: a request the fans' smallest airflows
+  refuse on the pressure-ratio floor is answered there with the unit off and
+  ``failure_reason == "cycle_invalid"`` (default unit, 27 °C room, 0 °C
+  outdoor: 1 200 W, 30 % of the nameplate, runs and 1 150 W is refused),
+  where the 1 150 W request with a room humidity of 20 % cycles at 1.24 kW.
+  A dry request equal to the dry ceiling is likewise answered as before: by
+  the dry searches, which run the unit up to 0.012 % under it at 42 of 60
+  conditions of the default units (none is answered with the unit off).
+
+What it leaves out, beyond the assumptions above:
+
+- **The catalogue comparison is not settled by it.** With the default coil
+  the model's sensible heat ratio is above the published one on average and
+  moves less with the size of the unit. The wet coil brings the cooling COP
+  of the Daikin rows closer to the catalogue on average — the dry coil runs
+  them low — but not evenly: above the catalogue on the rows with the most
+  latent load, still well below it on those with the least
+  (:doc:`/validation/index`, *Cooling and latent load*). The shipped
+  validation results are those of the dry coil.
+- **Re-evaporation while cycling.** Below the minimum speed the row is the
+  mean over an on/off period with the latent heat scaled like every other
+  rate; the water that evaporates off a wet coil while the compressor is off
+  (the latent degradation of EnergyPlus) is not modelled.
+- **Exergy.** ``X_a_iu_*`` are the thermal exergy of a dry air stream, with
+  or without a wet coil. A moist-air exergy balance — a reference humidity
+  for the dead state, the chemical exergy of the water vapour, the
+  condensate — is not modelled. On a row whose coil removes water the
+  refrigerant side of the indoor coil carries the latent heat and the air
+  side only the temperature change, so their difference is not the coil's
+  destruction (a 2.5 kW unit at 2 kW, 15 °C outdoor, 35 °C room and 90 %:
+  −2.6 W). ``Xc_iu_hx [W]``, ``X_eff_iu_hx [-]`` and ``X_eff_sys [-]`` are
+  therefore NaN on those rows; rows that remove no water keep their values.
+  (``X_eff_sys [-]`` is the thermal exergy the room air gains over the
+  electrical input, and is negative on the dry coil too wherever the outdoor
+  air, the dead state, is colder than the room: cooling a room towards the
+  dead state lowers its air's exergy.)
+- **Rating and defaults.** The reference state, the default inputs and
+  :meth:`~tmhp.AirSourceHeatPump.operating_range` are those of the dry coil.
+- Heating humidification and condensate on the outdoor coil above the frost
+  range are not modelled.
 
 Part load: cycling and unmet load
 =================================
@@ -705,10 +1076,15 @@ COP boundary
 ``Q_r_iu`` is the coil requirement before fan heat, not net room delivery.
 It retains its sign convention and governs compressor speed, rated capacity,
 part-load ratio and the operating-point search. ``cop_ref [-]`` remains
-``Q_ref_iu [W] / E_cmp [W]``.
+``Q_ref_iu [W] / E_cmp [W]``. ``Q_request [W]`` and ``Q_unmet [W]`` are on the
+same basis: refrigerant-side coil heat. What the room receives is reported
+under its own names — ``Q_room_sensible [W]``, the coil's sensible heat with
+the indoor fan's heat counted (3 977 W of a 4 000 W dry-coil request at
+35/27 °C), and, with a wet coil, ``Q_iu_latent [W]``.
 
 The space-conditioning system metric is
-``abs(Q_a_iu_out [W] - Q_a_iu_in [W]) / E_tot [W]``. Both air energy
+``abs(Q_a_iu_out [W] - Q_a_iu_in [W]) / E_tot [W]`` — with a wet coil that
+sensible difference plus ``Q_iu_latent [W]``, over ``E_tot [W]``. Both air energy
 flows use the actual indoor airflow and the same outdoor reference temperature.
 The final outlet already includes indoor fan heat: net cooling equals coil
 duty minus indoor fan power, while net heating equals coil duty plus that
@@ -720,13 +1096,26 @@ Opposite-direction transfer or zero airflow during active operation gives
 NaN system COP; off operation has zero air energy flows and NaN COP.
 This reporting diagnostic does not alter the coil-load solver.
 
-This dry-coil model reports sensible cooling, not total latent-plus-sensible
-cooling or a certified rating. Catalogue comparisons must use the catalogue's
+Without ``RH_room`` the coil is dry and the model reports sensible cooling,
+not total latent-plus-sensible cooling or a certified rating. With it
+(`Wet indoor coil (cooling)`_) the numerator of ``cop_sys [-]`` is what the
+room air gives up in total: ``Q_room_sensible [W] + Q_iu_latent [W]``, that
+is, the coil's sensible and latent heat less the indoor fan's heat.
+Catalogue comparisons must use the catalogue's
 own capacity and electrical-input boundary. Earlier results through commit
 ``c5d673e`` used ``Q_ref_iu / E_tot`` and must be labelled as coil-duty COP.
 For a seasonal performance factor, sum actual mode-specific air delivery
 times timestep duration and divide by summed system electricity times duration;
 an arithmetic mean of hourly COP is a different statistic.
+
+References
+==========
+
+Braun, J. E., Klein, S. A., & Mitchell, J. W. (1989). Effectiveness models
+for cooling towers and cooling coils. *ASHRAE Transactions*, 95(2), 164-174.
+
+Threlkeld, J. L. (1970). *Thermal Environmental Engineering* (2nd ed.).
+Prentice-Hall.
 
 API reference
 =============

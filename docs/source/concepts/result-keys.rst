@@ -101,7 +101,7 @@ are an operating point, a reduced one, a time average, or placeholders.
       - The pressure ratio was raised to the floor ``PR_cycle_min`` and the cycle solved there.
     * - ``indoor_heat_direction_valid``
       - ASHP, GSHP
-      - The indoor air receives heat in heating and gives it up in cooling. ``False`` makes ``cop_sys [-]`` NaN.
+      - The indoor air receives heat in heating and gives it up in cooling (with a wet coil: sensible plus latent, net of the fan heat). ``False`` makes ``cop_sys [-]`` NaN.
     * - ``ou_fan_flow_min_limit``
       - ASHP, ASHPB
       - The outdoor fan runs at its smallest airflow (ASHPB: ``dV_fan_a_min``).
@@ -130,10 +130,10 @@ What was asked for, what was delivered, and how a request outside the modulation
       - Meaning
     * - ``Q_request [W]``
       - all
-      - The duty asked for, with the sign it was given (``Q_r_iu``: negative heating, positive cooling; boilers: positive), on every row. A boiler's ``analyze_steady``: the ``Q_ref_tank`` argument. A boiler's dynamic step: ``hp_capacity`` when the thermostat called the compressor during the step (whether it ran or failed), 0 when it did not; the duty asked for over the whole step is ``Q_request [W]`` times ``runtime_fraction [-]``. On a ``"max"`` row compare it with the heat delivered (``Q_ref_iu [W]``, ``Q_ref_tank [W]``) for the shortfall.
+      - The duty asked for, with the sign it was given (``Q_r_iu``: negative heating, positive cooling; boilers: positive), on every row. For ASHP and GSHP it is refrigerant-side coil heat, the basis of ``Q_ref_iu [W]``: in cooling the coil's total heat (sensible plus latent with a wet coil), before the indoor fan's heat -- not the net heat the room receives (ASHP: ``Q_room_sensible [W]``). A boiler's ``analyze_steady``: the ``Q_ref_tank`` argument. A boiler's dynamic step: ``hp_capacity`` when the thermostat called the compressor during the step (whether it ran or failed), 0 when it did not; the duty asked for over the whole step is ``Q_request [W]`` times ``runtime_fraction [-]``. On a ``"max"`` row compare it with the heat delivered (``Q_ref_iu [W]``, ``Q_ref_tank [W]``) for the shortfall.
     * - ``Q_unmet [W]``
       - ASHP, GSHP
-      - Part of the request not delivered, ≥ 0. Sum it times the time step for a schedule's unmet energy.
+      - Part of the request not delivered, ≥ 0, on the basis of ``Q_request [W]`` (refrigerant-side coil heat, ``Q_request`` less ``Q_ref_iu``). Sum it times the time step for a schedule's unmet energy.
     * - ``Q_max [W]``
       - all
       - On a ``"max"`` row, the duty delivered (the ceiling); in a boiler's dynamic step the running machine's, not the step average (``Q_ref_tank [W]`` is ``Q_max [W]`` times ``runtime_fraction [-]``). NaN on every other row.
@@ -188,7 +188,7 @@ temperature of the row and can be negative; only their differences are heat rate
       - Meaning
     * - ``Q_ref_iu [W]``
       - ASHP, GSHP
-      - Indoor-coil duty: heat delivered in heating, heat removed in cooling (sensible, before indoor-fan heat).
+      - Indoor-coil duty on the refrigerant side, before indoor-fan heat: heat delivered in heating, heat removed in cooling. All sensible for a dry coil; with ``RH_room`` given (ASHP) the sum of ``Q_iu_sensible [W]`` and ``Q_iu_latent [W]``.
     * - ``Q_ref_ou [W]``
       - ASHP, ASHPB
       - Outdoor-coil duty: heat absorbed from outdoor air in heating (and by the boiler), rejected to it in cooling.
@@ -212,7 +212,16 @@ temperature of the row and can be negative; only their differences are heat rate
       - Enthalpy flow of the air entering the indoor unit, from ``T0``.
     * - ``Q_a_iu_out [W]``
       - ASHP, GSHP
-      - Enthalpy flow of the air leaving the indoor unit (after the fan), from ``T0``. ``Q_a_iu_out − Q_a_iu_in`` is the heat the room receives (negative in cooling).
+      - Enthalpy flow of the dry air leaving the indoor unit (after the fan), from ``T0``. ``Q_a_iu_out − Q_a_iu_in`` is the sensible heat the room receives (negative in cooling): the coil's sensible heat with the indoor fan's heat counted, ``∓Q_room_sensible``. With a wet coil the latent heat ``Q_iu_latent`` is not in it.
+    * - ``Q_iu_sensible [W]``
+      - ASHP
+      - Sensible heat across the indoor coil, air side, before the indoor fan: air heat capacity rate times ``|T_iu_a_in − T_iu_a_mid|``, ≥ 0. All of the coil heat for a dry coil and in heating.
+    * - ``Q_iu_latent [W]``
+      - ASHP
+      - Latent heat the indoor coil takes from the room air in cooling: ``m_dot_iu_condensate [kg/s]`` times the latent heat of water at the evaporating temperature. 0 unless ``RH_room`` is given and the coil is below the room air's dew point. ``Q_iu_sensible + Q_iu_latent`` equals ``Q_ref_iu [W]`` within the coil solver's tolerance (1e-5 of the duty).
+    * - ``Q_room_sensible [W]``
+      - ASHP
+      - Net sensible heat the room air gives up in cooling (``Q_iu_sensible − E_iu_fan``) or receives in heating (``Q_iu_sensible + E_iu_fan``): the coil's sensible heat with the indoor fan's heat counted, the magnitude of ``Q_a_iu_out − Q_a_iu_in``. Negative in cooling where the fan heat exceeds the coil's sensible cooling. This, not ``Q_ref_iu [W]``, is the sensible load a zone model takes off its air node; the moisture it loses is ``m_dot_iu_condensate [kg/s]``.
     * - ``Q_tank_loss [W]``
       - ASHPB, GSHPB, WSHPB
       - Heat lost through the tank wall to its surroundings (``T_sur``); 0 in ``analyze_steady``.
@@ -276,7 +285,7 @@ All ``E_*`` are electrical input, ≥ 0, and 0 on an off row. COPs are NaN on an
       - Refrigerant-side COP: the delivered duty (``Q_ref_iu`` or ``Q_ref_tank``) over ``E_cmp``.
     * - ``cop_sys [-]``
       - all
-      - System COP. Boilers: ``Q_ref_tank / E_tot``. ASHP, GSHP: heat the room air receives or gives up, ``|Q_a_iu_out − Q_a_iu_in|``, over ``E_tot`` (indoor-fan heat counted once, on the air).
+      - System COP. Boilers: ``Q_ref_tank / E_tot``. ASHP, GSHP: heat the room air receives or gives up, ``|Q_a_iu_out − Q_a_iu_in|``, over ``E_tot`` (indoor-fan heat counted once, on the air). ASHP with a wet coil: ``Q_room_sensible + Q_iu_latent`` over ``E_tot``.
 
 Frost and defrost (ASHP, ASHPB)
 ===============================
@@ -379,6 +388,21 @@ Air side
     * - ``T_a_room [°C]``
       - ASHP, GSHP
       - Room air temperature given for the row.
+    * - ``RH_room [-]``
+      - ASHP
+      - Room relative humidity the wet indoor coil was solved with (fraction): the ``RH_room`` given for a cooling row. NaN where none applies (not given, heating, a row not asked to cool).
+    * - ``w_iu_a_in [kg/kg]``
+      - ASHP
+      - Humidity ratio of the air entering the indoor coil [kg water per kg dry air]: room air at ``T_a_room`` and ``RH_room``, one standard atmosphere. NaN without ``RH_room [-]``.
+    * - ``w_iu_a_out [kg/kg]``
+      - ASHP
+      - Humidity ratio of the air leaving the indoor coil, and the unit (the fan does not change it): the supply air's. Equal to ``w_iu_a_in`` where the coil is dry or the unit off; NaN without ``RH_room [-]``.
+    * - ``SHR_iu [-]``
+      - ASHP
+      - Sensible heat ratio of the indoor coil, ``Q_iu_sensible / (Q_iu_sensible + Q_iu_latent)``: 1 for a dry coil and in heating, below 1 where the coil condenses water, NaN on an off row. The coil's own ratio (gross); a catalogue's is usually net of the fan heat.
+    * - ``m_dot_iu_condensate [kg/s]``
+      - ASHP
+      - Water the indoor coil condenses out of the room air: the air's dry mass flow times ``w_iu_a_in − w_iu_a_out`` (a mean on a cycling row). 0 for a dry coil.
     * - ``T_ou_a_in [°C]``
       - ASHP, ASHPB
       - Air entering the outdoor coil (equals ``T0``).
@@ -726,13 +750,13 @@ without a running cycle carry NaN or 0.
       - Meaning
     * - ``X_a_iu_in [W]``
       - ASHP, GSHP (d)
-      - Flow exergy of the air entering the indoor coil.
+      - Flow exergy of the air entering the indoor coil: the thermal exergy of a dry air stream (heat capacity rate times ``(T − T0) − T0 ln(T / T0)``), also with a wet ASHP coil. A moist-air exergy (reference humidity, water vapour, condensate) is not modelled.
     * - ``X_a_iu_mid [W]``
       - ASHP, GSHP (d)
-      - Flow exergy of the air leaving the indoor coil, before the fan.
+      - Flow exergy of the air leaving the indoor coil, before the fan (thermal part, as ``X_a_iu_in``).
     * - ``X_a_iu_out [W]``
       - ASHP, GSHP (d)
-      - Flow exergy of the supply air.
+      - Flow exergy of the supply air (thermal part, as ``X_a_iu_in``).
     * - ``X_a_ou_in [W]``
       - ASHP, ASHPB (d)
       - Flow exergy of the air entering the outdoor coil.
@@ -780,7 +804,7 @@ without a running cycle carry NaN or 0.
       - Exergy efficiency of the indoor fan.
     * - ``X_eff_iu_hx [-]``
       - ASHP, GSHP (d)
-      - Exergy efficiency of the indoor coil.
+      - Exergy efficiency of the indoor coil. NaN on an ASHP row whose coil removes water (``Q_iu_latent [W]`` > 0): see ``Xc_iu_hx [W]``.
     * - ``X_eff_mix [-]``
       - ASHPB (d)
       - Exergy efficiency of the mixing valve.
@@ -801,7 +825,7 @@ without a running cycle carry NaN or 0.
       - Exergy efficiency of the tank heat exchanger (condenser).
     * - ``X_eff_sys [-]``
       - ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)
-      - Exergy efficiency of the whole system.
+      - Exergy efficiency of the whole system. ASHP: the thermal exergy the room air gains over the electrical input; NaN on a row whose coil removes water (the dehumidification is not in the air's thermal exergy), and negative in cooling where the outdoor air, the dead state, is colder than the room.
     * - ``X_eff_tank [-]``
       - ASHPB (d)
       - Exergy efficiency of the tank.
@@ -930,7 +954,7 @@ without a running cycle carry NaN or 0.
       - Exergy consumed (destroyed) in the indoor fan.
     * - ``Xc_iu_hx [W]``
       - ASHP, GSHP (d)
-      - Exergy consumed (destroyed) in the indoor coil.
+      - Exergy consumed (destroyed) in the indoor coil. NaN on an ASHP row whose coil removes water (``Q_iu_latent [W]`` > 0): the refrigerant side carries the latent heat and the air side only the thermal exergy of dry air, so ``X_in_iu_hx − X_out_iu_hx`` is not the coil's destruction there.
     * - ``Xc_mix [W]``
       - ASHPB (d), GSHPB (d), WSHPB (d)
       - Exergy consumed (destroyed) in the mixing valve.

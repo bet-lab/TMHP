@@ -1,0 +1,435 @@
+"""Limits of the wet indoor coil of ``AirSourceHeatPump`` (#205, review of the first round).
+
+What the capacity ceiling, the smallest continuous duty, a dynamic run and the
+exergy columns do when the room humidity is given:
+
+- the ceiling of a weak indoor coil is found, not raised on: the wet coil's
+  approach is solved inside the range the search admits, and a room with no
+  water vapour is the dry coil as it is;
+- the ceiling search does not take a duty whose point it failed to find for
+  the ceiling: the region above it that runs is delivered, by
+  ``max_capacity`` and by an overloaded ``analyze_steady``;
+- a request below the smallest duty the fans' minimum flows leave on the
+  pressure-ratio floor is met by cycling at that duty, as one below the
+  minimum compressor speed is;
+- a humidity schedule is read on cooling rows only;
+- a row whose coil removes water has no indoor-coil exergy destruction and no
+  efficiency that presupposes a complete exergy balance.
+"""
+
+from __future__ import annotations
+
+import math
+import warnings
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from tmhp import AirSourceHeatPump
+
+
+def _quiet(function, *args, **kwargs):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return function(*args, **kwargs)
+
+
+@pytest.fixture(scope="module")
+def hp():
+    return _quiet(AirSourceHeatPump)
+
+
+# ---------------------------------------------------------------------------
+# 1. Ceiling of a weak indoor coil
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def weak():
+    return _quiet(AirSourceHeatPump, UA_iu_rated=150.0)
+
+
+def test_weak_coil_without_water_vapour_has_the_dry_ceiling(weak):
+    dry = weak.max_capacity(35.0, 27.0, mode="cooling")
+    assert dry["Q_max [W]"] == pytest.approx(3464.751330243249, rel=1e-12) and dry["binding"] == "cycle"
+    none = weak.max_capacity(35.0, 27.0, mode="cooling", RH_room=0.0)
+    for key in ("Q_max [W]", "dT_ref_evap [K]", "dT_ref_cond [K]", "E_tot [W]", "cop_sys [-]", "binding"):
+        assert none[key] == dry[key], key
+    assert none["SHR_iu [-]"] == 1.0
+    row = weak.analyze_steady(20000.0, 35.0, 27.0, RH_room=0.0, verbose=False)
+    reference = weak.analyze_steady(20000.0, 35.0, 27.0, verbose=False)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] == "max"
+    for key in ("Q_ref_iu [W]", "Q_unmet [W]", "E_tot [W]", "T_ref_evap_sat [°C]", "capacity_binding"):
+        assert row[key] == reference[key], key
+    assert row["Q_iu_latent [W]"] == 0.0
+
+
+@pytest.mark.parametrize("humidity", [0.3, 0.5, 0.8, 1.0])
+def test_weak_coil_ceiling_is_found_at_any_humidity(weak, humidity):
+    ceiling = weak.max_capacity(35.0, 27.0, mode="cooling", RH_room=humidity)
+    # The latent heat lets the weak coil carry more, up to what the compressor delivers flat out.
+    assert ceiling["binding"] == ("cycle" if humidity < 0.6 else "compressor")
+    assert ceiling["Q_max [W]"] >= 3464.75
+    if ceiling["binding"] == "cycle":
+        # The widest approach the search admits: the indoor coil sets the ceiling.
+        assert ceiling["dT_ref_evap [K]"] == pytest.approx(weak.dT_approach_bounds[1], rel=1e-6)
+    row = weak.analyze_steady(20000.0, 35.0, 27.0, RH_room=humidity, verbose=False)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] == "max"
+    assert row["Q_ref_iu [W]"] == pytest.approx(ceiling["Q_max [W]"], rel=1e-9)
+    assert row["Q_unmet [W]"] == pytest.approx(20000.0 - ceiling["Q_max [W]"], rel=1e-9)
+
+
+def test_weak_coil_ceiling_at_high_humidity_is_the_reviewed_figure(weak):
+    # What the compressor delivers flat out: 7 322.25 W on the efficiency models before #223.
+    ceiling = weak.max_capacity(35.0, 27.0, mode="cooling", RH_room=0.8)
+    assert ceiling["Q_max [W]"] == pytest.approx(7131.47, abs=0.05)
+    assert 0.0 < ceiling["SHR_iu [-]"] < 1.0
+
+
+def test_wet_coil_approach_stays_inside_the_admitted_range(weak):
+    lo, hi = weak.dT_approach_bounds
+    with weak._solving_with_room_humidity(0.8, 27.0, cooling=True):
+        # A duty four times the capacity: the scaled approach (122 K) is far outside any air state.
+        assert weak._wet_coil_approach(hi, 4.0, 1.0, 27.0) == hi
+        assert weak._wet_coil_approach(10.0, 1e-3, 1.0, 27.0) == lo
+        inside = weak._wet_coil_approach(10.0, 1.2, 1.0, 27.0)
+        assert lo < inside < hi
+        assert weak._wet_coil_drive(inside, 27.0) == pytest.approx(1.2 * weak._wet_coil_drive(10.0, 27.0), rel=1e-12)
+    with weak._solving_with_room_humidity(0.0, 27.0, cooling=True):
+        assert weak._wet_coil_approach(hi, 4.0, 1.0, 27.0) == 4.0 * hi  # the dry expression, cut by the caller
+
+
+# ---------------------------------------------------------------------------
+# 2. The ceiling search and the region above a duty it could not solve
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def large():
+    return _quiet(AirSourceHeatPump, hp_capacity=10000.0)
+
+
+SATURATED_ROOM = dict(T0=20.0, T_a_room=35.0, RH_room=1.0)
+
+
+@pytest.fixture(scope="module")
+def large_ceiling(large):
+    return large.max_capacity(20.0, 35.0, mode="cooling", RH_room=1.0)
+
+
+def test_ceiling_is_above_every_duty_that_runs(large, large_ceiling):
+    # 22.6 kW was reported with binding "cycle_invalid": the least-lift point of one
+    # duty in the middle of the ladder was not found, and was taken for the ceiling
+    # (29.69 kW then, on the efficiency models before #223).
+    assert large_ceiling["binding"] == "cycle"
+    assert large_ceiling["Q_max [W]"] == pytest.approx(28826.05, rel=2e-3)
+    for duty in (22741.05, 26000.0, 0.999 * large_ceiling["Q_max [W]"]):
+        row = large.analyze_steady(duty, **SATURATED_ROOM, verbose=False)
+        assert row["failure_reason"] == "none" and row["capacity_clamped"] is None, duty
+        assert row["Q_ref_iu [W]"] == pytest.approx(duty, rel=1e-9) and row["Q_unmet [W]"] == 0.0
+
+
+def test_request_above_the_ceiling_runs_at_it(large, large_ceiling):
+    row = large.analyze_steady(30000.0, **SATURATED_ROOM, verbose=False)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] == "max"
+    assert row["capacity_binding"] == "cycle"
+    assert row["Q_ref_iu [W]"] == pytest.approx(large_ceiling["Q_max [W]"], rel=1e-9)
+    assert row["Q_unmet [W]"] == pytest.approx(30000.0 - row["Q_ref_iu [W]"], rel=1e-9)
+    assert row["Q_iu_sensible [W]"] + row["Q_iu_latent [W]"] == pytest.approx(row["Q_ref_iu [W]"], rel=2e-5)
+
+
+def test_least_lift_point_on_the_pressure_ratio_floor_is_found(large):
+    # The outdoor coil at its largest airflow is 3.9 % short of this duty at the condensing
+    # temperature the pressure-ratio floor holds (41.4 degC, 21.4 K above the outdoor air),
+    # whatever smaller approach is asked for: the approach that closes the coil is 22.4 K.
+    with large._solving_with_room_humidity(1.0, 35.0, cooling=True):
+        x, state, reason = large._largest_airflow_point(22741.05, 20.0, 35.0)
+    assert reason is None and state is not None and x is not None
+    assert state["Q_ref_iu [W]"] == pytest.approx(22741.05, rel=1e-9)
+    assert x[1] == pytest.approx(22.4, abs=0.1)
+    assert state["pr_cmp [-]"] > large.PR_cycle_min
+
+
+def _fake_trial(limit: float, lost: tuple[float, float], found_from_a_start: bool = False):
+    """A least-lift solve for the search: runs below ``limit``, a coil beyond it, and not found inside ``lost``.
+
+    Inside ``lost`` the point exists but the solve does not find it ("cycle_invalid", no approaches) --
+    from any start, or only without one when ``found_from_a_start``.
+    """
+    calls: list[tuple[float, object]] = []
+
+    def trial(q, start=None):
+        calls.append((q, start))
+        if q > limit:
+            return (15.0, 30.0), None, "air_side"
+        if lost[0] <= q <= lost[1] and not (found_from_a_start and start is not None):
+            return None, None, "cycle_invalid"
+        return (q / 2000.0, q / 1000.0), {"Q_ref_iu [W]": q}, None
+
+    return trial, calls
+
+
+def test_wet_ceiling_search_looks_above_a_duty_it_could_not_solve(large):
+    # The ladder's rung at 45 % falls in the band that is not found; the bisection closes under it.
+    trial, _ = _fake_trial(limit=29_700.0, lost=(22_000.0, 23_500.0))
+    x, state, reason = large._largest_deliverable_wet_duty(trial, 50_000.0, 1e-3)
+    assert reason == "air_side" and x is not None
+    assert state["Q_ref_iu [W]"] == pytest.approx(29_700.0, rel=1.5e-3) and state["Q_ref_iu [W]"] <= 29_700.0
+
+
+def test_wet_ceiling_search_retries_a_lost_duty_from_other_starts(large):
+    trial, calls = _fake_trial(limit=29_700.0, lost=(22_000.0, 23_500.0), found_from_a_start=True)
+    x, state, reason = large._largest_deliverable_wet_duty(trial, 50_000.0, 1e-3)
+    assert reason == "air_side"
+    assert state["Q_ref_iu [W]"] == pytest.approx(29_700.0, rel=1.5e-3)
+    # The rung at 45 % (22.5 kW) ran once it was started from the approaches of the refused rung above.
+    assert (22_500.0, (15.0, 30.0)) in calls
+
+
+def test_wet_ceiling_search_reports_what_it_cannot_explain(large):
+    # Nothing is found from 22 kW up to the top: no limit is named, and none is made up.
+    trial, _ = _fake_trial(limit=60_000.0, lost=(22_000.0, 60_000.0))
+    x, state, reason = large._largest_deliverable_wet_duty(trial, 50_000.0, 1e-3)
+    assert reason == "cycle_invalid"
+    assert state["Q_ref_iu [W]"] == pytest.approx(22_000.0, rel=1.5e-3) and state["Q_ref_iu [W]"] < 22_000.0
+    assert large._binding_of(reason) == "cycle_invalid"
+
+
+def test_wet_ceiling_search_takes_the_top_when_it_runs(large):
+    trial, calls = _fake_trial(limit=60_000.0, lost=(0.0, -1.0))
+    x, state, reason = large._largest_deliverable_wet_duty(trial, 50_000.0, 1e-3)
+    assert reason is None and state["Q_ref_iu [W]"] == 50_000.0 and len(calls) == 1
+
+
+# ---------------------------------------------------------------------------
+# 4. Below the smallest duty the fans' minimum flows leave on the pressure-ratio floor
+# ---------------------------------------------------------------------------
+
+#: Outdoor 10 degC: the default unit runs 1.2 kW continuously with the dry coil, and with the wet
+#: coil the fans' smallest airflows refuse it. (At 15 degC outdoor, where this was first written,
+#: the compressor's minimum speed is the lower end of both coils on the efficiency map of #223:
+#: 1.32 kW dry, 1.51 kW at 80 %.)
+MILD = dict(T0=10.0, T_a_room=27.0)
+
+
+def test_request_below_the_smallest_continuous_wet_duty_is_met_by_cycling(hp):
+    dry = hp.analyze_steady(1200.0, **MILD, verbose=False)
+    assert dry["failure_reason"] == "none" and dry["capacity_clamped"] is None
+    assert dry["pr_cmp [-]"] == pytest.approx(hp.PR_cycle_min, rel=1e-9)
+
+    # The ordinary search has no point for the wet request, and names the fans' smallest airflows.
+    with hp._solving_with_room_humidity(0.8, MILD["T_a_room"], cooling=True):
+        refused = hp._optimize_operation(Q_r_iu=1200.0, **MILD)
+    assert refused.least_lift_reason == hp._MIN_AIRFLOW
+
+    row = hp.analyze_steady(1200.0, **MILD, RH_room=0.8, verbose=False)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
+    assert row["Q_ref_iu [W]"] == pytest.approx(1200.0, rel=1e-9) and row["Q_unmet [W]"] == 0.0
+    # The smallest duty that runs continuously: both fans near their smallest flows, the ratio on its floor.
+    assert row["Q_min [W]"] == pytest.approx(1543.75, rel=5e-3)
+    assert row["pr_cmp [-]"] == pytest.approx(hp.PR_cycle_min, rel=1e-9)
+    ratio = 1200.0 / row["Q_min [W]"]
+    assert row["capacity_ratio [-]"] == pytest.approx(ratio, rel=1e-9)
+    assert row["runtime_fraction [-]"] == pytest.approx(ratio / hp.cycling.part_load_factor(ratio), rel=1e-9)
+    assert row["runtime_fraction [-]"] == pytest.approx(0.8232, abs=5e-3)
+    assert row["Q_iu_latent [W]"] > 0.0
+    assert row["Q_iu_sensible [W]"] + row["Q_iu_latent [W]"] == pytest.approx(1200.0, rel=2e-5)
+
+
+def test_the_smallest_continuous_wet_duty_itself_runs_continuously(hp):
+    floor = hp.analyze_steady(1200.0, **MILD, RH_room=0.8, verbose=False)["Q_min [W]"]
+    above = hp.analyze_steady(1.01 * floor, **MILD, RH_room=0.8, verbose=False)
+    assert above["failure_reason"] == "none" and above["capacity_clamped"] is None
+    assert above["Q_ref_iu [W]"] == pytest.approx(1.01 * floor, rel=1e-9)
+    assert above["runtime_fraction [-]"] == 1.0
+
+
+@pytest.mark.parametrize("load", [200.0, 600.0, 1200.0])
+def test_small_wet_requests_are_delivered_in_mild_weather(hp, load):
+    row = hp.analyze_steady(load, **MILD, RH_room=0.9, verbose=False)
+    assert row["failure_reason"] == "none", row["failure_reason"]
+    assert row["Q_ref_iu [W]"] == pytest.approx(load, rel=1e-9) and row["Q_unmet [W]"] == 0.0
+
+
+def test_without_cycling_the_unit_runs_at_its_smallest_continuous_wet_duty():
+    steady = _quiet(AirSourceHeatPump, Cd_cycling=None)
+    row = steady.analyze_steady(1200.0, **MILD, RH_room=0.8, verbose=False)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
+    assert row["Q_ref_iu [W]"] == pytest.approx(1543.75, rel=5e-3) and row["Q_unmet [W]"] == 0.0
+
+
+@pytest.fixture(scope="module")
+def stiff():
+    # Both fans held within a few percent of their largest flow.
+    return _quiet(
+        AirSourceHeatPump,
+        dV_ou_fan_a_min=0.55,
+        dV_ou_fan_a_max=0.6,
+        dV_ou_fan_a_rated=0.6,
+        dV_iu_fan_a_min=0.19,
+        dV_iu_fan_a_max=0.2,
+        dV_iu_fan_a_rated=0.2,
+    )
+
+
+def test_fans_that_leave_no_continuous_duty_are_named_as_a_coil_limit(stiff):
+    # In cold weather the coils carry more than any duty the compressor reaches, at every
+    # approach: no larger duty runs either, and the ceiling is 0 W. The row says a coil cannot
+    # carry the duty inside its flow range -- not that the cycle or the search failed.
+    assert stiff.max_capacity(-5.0, 27.0, mode="cooling", RH_room=0.9)["Q_max [W]"] == 0.0
+    for load in (200.0, 12000.0):
+        row = stiff.analyze_steady(load, -5.0, 27.0, RH_room=0.9, verbose=False)
+        assert row["failure_reason"] == "hx_not_converged", load
+        assert row["Q_ref_iu [W]"] == 0.0 and row["Q_unmet [W]"] == load and row["runtime_fraction [-]"] == 0.0
+    # The dry coil does not run there either.
+    assert stiff.analyze_steady(200.0, -5.0, 27.0, verbose=False)["failure_reason"] != "none"
+
+
+def test_stiff_fans_cycle_at_a_smallest_continuous_duty_above_twice_the_nameplate(stiff):
+    # At 5 degC this unit was answered as off with "hx_not_converged" -- "no larger duty runs
+    # either" -- while it ran 10 kW on request: the search for the smallest continuous duty
+    # ended at twice the nameplate (8 kW), under the 9.34 kW at which the coils first balance
+    # (9.53 kW on the efficiency models before #223).
+    running = stiff.analyze_steady(10000.0, 5.0, 27.0, RH_room=0.9, verbose=False)
+    assert running["failure_reason"] == "none" and running["capacity_clamped"] is None
+    row = stiff.analyze_steady(200.0, 5.0, 27.0, RH_room=0.9, verbose=False)
+    assert row["failure_reason"] == "none" and row["capacity_clamped"] == "min"
+    assert row["Q_ref_iu [W]"] == pytest.approx(200.0, rel=1e-9) and row["Q_unmet [W]"] == 0.0
+    assert row["Q_min [W]"] == pytest.approx(9343.75, rel=5e-3)
+    ceiling = stiff.max_capacity(5.0, 27.0, mode="cooling", RH_room=0.9)
+    assert ceiling["binding"] == "compressor" and ceiling["Q_max [W]"] > row["Q_min [W]"]
+
+
+# ---------------------------------------------------------------------------
+# 7. A humidity schedule is read on cooling rows only
+# ---------------------------------------------------------------------------
+
+
+def test_humidity_schedule_is_not_read_on_heating_and_off_rows(hp):
+    nan = float("nan")
+    loads, outdoor, room = [0.0, -2000.0, 2000.0], [35.0, 7.0, 35.0], [27.0, 20.0, 27.0]
+    frame = _quiet(hp.analyze_dynamic, 3 * 3600, 3600, loads, outdoor, room, RH_room_schedule=[nan, nan, 0.6])
+    reference = _quiet(hp.analyze_dynamic, 3 * 3600, 3600, loads, outdoor, room)
+    assert list(frame["failure_reason"]) == ["none", "none", "none"]
+    for key in ("Q_ref_iu [W]", "E_tot [W]", "cop_sys [-]"):
+        for n in (0, 1):
+            got, want = frame[key].iloc[n], reference[key].iloc[n]
+            assert (math.isnan(got) and math.isnan(want)) or got == want, (key, n)
+    assert frame["RH_room [-]"].iloc[:2].isna().all() and frame["RH_room [-]"].iloc[2] == 0.6
+    assert frame["Q_iu_latent [W]"].iloc[2] > 0.0
+    # Values no humidity can take are not read there either.
+    _quiet(hp.analyze_dynamic, 2 * 3600, 3600, loads[:2], outdoor[:2], room[:2], RH_room_schedule=[-1.0, 50.0])
+
+
+@pytest.mark.parametrize("value", [float("nan"), None, -0.1, 1.5, True, "0.5"])
+def test_humidity_schedule_is_checked_on_cooling_rows(hp, value):
+    """A cooling step is read as ``RH_room`` is: a real number in 0-1, not a boolean, not text."""
+    with pytest.raises(ValueError, match="Room relative humidity must be a fraction.* at step 1"):
+        _quiet(
+            hp.analyze_dynamic, 2 * 3600, 3600, [0.0, 2000.0], [35.0, 35.0], [27.0, 27.0], RH_room_schedule=[0.5, value]
+        )
+
+
+@pytest.mark.parametrize("unread", [float("nan"), None, "no reading", pd.NA, True, 7.0])
+def test_what_a_heating_or_an_off_step_holds_is_not_converted(hp, unread):
+    """Only the cooling step is read: the others may hold a missing value or anything else a table has."""
+    loads, outdoor, room = [0.0, -2000.0, 2000.0], [35.0, 7.0, 35.0], [27.0, 20.0, 27.0]
+    frame = _quiet(hp.analyze_dynamic, 3 * 3600, 3600, loads, outdoor, room, RH_room_schedule=[unread, unread, 0.8])
+    assert list(frame["failure_reason"]) == ["none", "none", "none"]
+    assert frame["RH_room [-]"].iloc[:2].isna().all() and frame["RH_room [-]"].iloc[2] == 0.8
+    assert frame["Q_iu_latent [W]"].iloc[2] > 0.0
+
+
+def test_humidity_schedule_holds_one_entry_per_step(hp):
+    """A list, a tuple, an array or a Series of the run's length; anything else is refused before the run."""
+    args = (2 * 3600, 3600, [2000.0, 2000.0], [35.0, 35.0], [27.0, 27.0])
+    schedules = (
+        [0.7, 0.8],
+        (0.7, 0.8),
+        np.array([0.7, 0.8]),
+        np.array([0.7, 0.8], dtype=np.float32),
+        pd.Series([0.7, 0.8], index=[7, 9]),
+    )
+    for schedule in schedules:
+        frame = _quiet(hp.analyze_dynamic, *args, RH_room_schedule=schedule)
+        assert frame["RH_room [-]"].to_numpy() == pytest.approx([0.7, 0.8], rel=1e-6)
+        assert (frame["Q_iu_latent [W]"] > 0.0).all()
+    for wrong in ([0.7], [0.7, 0.8, 0.9], [[0.7, 0.8]], [[0.7], [0.8]], 0.7, "ab"):
+        with pytest.raises(
+            ValueError, match=r"RH_room_schedule (length \(\d+\) != tN \(2\)|must hold one entry per step)"
+        ):
+            _quiet(hp.analyze_dynamic, *args, RH_room_schedule=wrong)
+
+
+@pytest.mark.parametrize("value", [float("nan"), True, "0.5", 1.5, -0.1])
+def test_a_steady_cooling_point_needs_a_fraction_for_its_humidity(hp, value):
+    with pytest.raises(ValueError, match="Room relative humidity must be a fraction"):
+        hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=value, verbose=False)
+    # Heating and off points do not read it.
+    for load in (-2000.0, 0.0):
+        hp.analyze_steady(load, 7.0, 20.0, RH_room=value, verbose=False)
+
+
+@pytest.mark.parametrize("value", [0, 1, 0.5, np.float32(0.5), np.float64(0.5), np.int64(1)])
+def test_a_number_of_any_real_type_is_a_humidity(hp, value):
+    row = hp.analyze_steady(2000.0, 35.0, 27.0, RH_room=value, verbose=False)
+    assert row["failure_reason"] == "none" and row["RH_room [-]"] == pytest.approx(float(value), rel=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# 3. Exergy columns of a row whose coil removes water
+# ---------------------------------------------------------------------------
+
+INCOMPLETE = ("Xc_iu_hx [W]", "X_eff_iu_hx [-]", "X_eff_sys [-]")
+
+
+def test_dehumidifying_row_has_no_indoor_coil_exergy_balance():
+    small = _quiet(AirSourceHeatPump, hp_capacity=2500.0)
+    row = small.analyze_steady(2000.0, 15.0, 35.0, RH_room=0.9, verbose=False)
+    assert row["Q_iu_latent [W]"] > 0.0
+    for key in INCOMPLETE:
+        assert math.isnan(row[key]), key
+    # The thermal exergy of the dry air stream and the refrigerant states are reported as before.
+    for key in ("X_a_iu_in [W]", "X_a_iu_mid [W]", "X_a_iu_out [W]", "X_in_iu_hx [W]", "X_out_iu_hx [W]"):
+        assert math.isfinite(row[key]), key
+    for key in ("Xc_cmp [W]", "Xc_exp [W]", "Xc_ou_hx [W]", "Xc_iu_fan [W]", "X_eff_cmp [-]", "X_eff_ou_hx [-]"):
+        assert math.isfinite(row[key]), key
+    # The frame form gives the same row.
+    frame_row = small.postprocess_exergy(
+        small.analyze_steady(2000.0, 15.0, 35.0, RH_room=0.9, verbose=False, postprocess=False, return_dict=False)
+    ).iloc[0]
+    for key, value in row.items():
+        other = frame_row[key]
+        both_nan = isinstance(value, float) and math.isnan(value) and isinstance(other, float) and math.isnan(other)
+        assert both_nan or value == other, key
+
+
+def test_rows_that_remove_no_water_keep_their_exergy_columns(hp):
+    dry = hp.analyze_steady(4000.0, 35.0, 27.0, verbose=False)
+    # 20 % at 27 degC: dew point 1.9 degC, below the evaporating temperature.
+    above_dew_point = hp.analyze_steady(4000.0, 35.0, 27.0, RH_room=0.2, verbose=False)
+    assert above_dew_point["Q_iu_latent [W]"] == 0.0
+    for key in INCOMPLETE:
+        assert math.isfinite(dry[key]) and above_dew_point[key] == dry[key], key
+    assert dry["Xc_iu_hx [W]"] == pytest.approx(dry["X_in_iu_hx [W]"] - dry["X_out_iu_hx [W]"], rel=1e-12)
+    heating = hp.analyze_steady(-3000.0, 7.0, 20.0, RH_room=0.9, verbose=False)
+    for key in INCOMPLETE:
+        assert math.isfinite(heating[key]), key
+
+
+def test_dynamic_frame_blanks_the_balance_on_dehumidifying_rows_only(hp):
+    frame = _quiet(
+        hp.analyze_dynamic,
+        3 * 3600,
+        3600,
+        [4000.0, 4000.0, -3000.0],
+        [35.0, 35.0, 7.0],
+        [27.0, 27.0, 20.0],
+        RH_room_schedule=[0.2, 0.6, 0.6],
+    )
+    wet_rows = frame["Q_iu_latent [W]"] > 0.0
+    assert list(wet_rows) == [False, True, False]
+    for key in INCOMPLETE:
+        assert frame[key].isna().tolist() == [False, True, False], key
+    assert np.isfinite(frame["X_a_iu_out [W]"]).all()

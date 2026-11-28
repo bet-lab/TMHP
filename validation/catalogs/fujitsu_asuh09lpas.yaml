@@ -10,9 +10,14 @@
 #
 # Heating points are taken at *maximum* capacity, as the manual states, so the
 # compressor sits near the top of its speed range throughout that half of the
-# grid. Cooling rows carry their sensible heat ratio; TMHP's indoor coil is a
-# dry sensible exchanger, so rows below SHR 0.95 ask it to carry a latent duty
-# it does not compute.
+# grid. Cooling rows carry their indoor wet bulb and their sensible heat ratio
+# in `note`, as the Daikin files do. The table prints the indoor condition as
+# six dry bulb / wet bulb pairs (64/54, 70/60, 75/63, 80/67, 85/71, 90/73 degF;
+# 17.8/12.2, 21.1/15.6, 23.9/17.2, 26.7/19.4, 29.4/21.7, 32.2/22.8 degC in the
+# SI block), one wet bulb per dry bulb, and the ratio is SHC / TC of the cell,
+# rounded to two decimals here. Without a room humidity TMHP's indoor coil is
+# a dry sensible exchanger, so rows below SHR 0.95 ask it to carry a latent
+# duty it does not compute; the parity harness runs them that way.
 #
 # No compressor displacement is published, so this unit exercises the derived
 # displacement rule rather than a specification input.
@@ -44,78 +49,78 @@ published_inputs:
   compressor_type: rotary
   injection: none
 points:
-  - {id: 1, t_source_C: -10.0, t_sink_C: 17.8, q_kW: 2.51, power_kW: 0.31, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 2, t_source_C: -10.0, t_sink_C: 21.1, q_kW: 2.74, power_kW: 0.31, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 3, t_source_C: -10.0, t_sink_C: 23.9, q_kW: 3.01, power_kW: 0.32, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 4, t_source_C: -10.0, t_sink_C: 26.7, q_kW: 3.10, power_kW: 0.32, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 5, t_source_C: -10.0, t_sink_C: 29.4, q_kW: 3.30, power_kW: 0.32, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 6, t_source_C: -10.0, t_sink_C: 32.2, q_kW: 3.52, power_kW: 0.33, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 7, t_source_C: -5.0, t_sink_C: 17.8, q_kW: 2.39, power_kW: 0.28, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 8, t_source_C: -5.0, t_sink_C: 21.1, q_kW: 2.62, power_kW: 0.29, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 9, t_source_C: -5.0, t_sink_C: 23.9, q_kW: 2.87, power_kW: 0.29, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 10, t_source_C: -5.0, t_sink_C: 26.7, q_kW: 2.95, power_kW: 0.30, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 11, t_source_C: -5.0, t_sink_C: 29.4, q_kW: 3.15, power_kW: 0.30, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 12, t_source_C: -5.0, t_sink_C: 32.2, q_kW: 3.36, power_kW: 0.30, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 13, t_source_C: 0.0, t_sink_C: 17.8, q_kW: 2.27, power_kW: 0.26, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 14, t_source_C: 0.0, t_sink_C: 21.1, q_kW: 2.49, power_kW: 0.26, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 15, t_source_C: 0.0, t_sink_C: 23.9, q_kW: 2.73, power_kW: 0.27, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 16, t_source_C: 0.0, t_sink_C: 26.7, q_kW: 2.81, power_kW: 0.27, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 17, t_source_C: 0.0, t_sink_C: 29.4, q_kW: 3.00, power_kW: 0.27, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 18, t_source_C: 0.0, t_sink_C: 32.2, q_kW: 3.19, power_kW: 0.28, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 19, t_source_C: 5.0, t_sink_C: 17.8, q_kW: 2.16, power_kW: 0.26, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 20, t_source_C: 5.0, t_sink_C: 21.1, q_kW: 2.36, power_kW: 0.26, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 21, t_source_C: 5.0, t_sink_C: 23.9, q_kW: 2.59, power_kW: 0.27, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 22, t_source_C: 5.0, t_sink_C: 26.7, q_kW: 2.67, power_kW: 0.27, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 23, t_source_C: 5.0, t_sink_C: 29.4, q_kW: 2.84, power_kW: 0.27, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 24, t_source_C: 5.0, t_sink_C: 32.2, q_kW: 3.03, power_kW: 0.28, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 25, t_source_C: 10.0, t_sink_C: 17.8, q_kW: 2.04, power_kW: 0.24, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 26, t_source_C: 10.0, t_sink_C: 21.1, q_kW: 2.23, power_kW: 0.24, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 27, t_source_C: 10.0, t_sink_C: 23.9, q_kW: 2.45, power_kW: 0.25, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 28, t_source_C: 10.0, t_sink_C: 26.7, q_kW: 2.52, power_kW: 0.25, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 29, t_source_C: 10.0, t_sink_C: 29.4, q_kW: 2.69, power_kW: 0.25, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 30, t_source_C: 10.0, t_sink_C: 32.2, q_kW: 2.87, power_kW: 0.26, mode: cooling, note: "SHR 0.67, wet coil"}
-  - {id: 31, t_source_C: 15.0, t_sink_C: 17.8, q_kW: 1.93, power_kW: 0.24, mode: cooling, note: "SHR 0.70, wet coil"}
-  - {id: 32, t_source_C: 15.0, t_sink_C: 21.1, q_kW: 2.11, power_kW: 0.24, mode: cooling, note: "SHR 0.71, wet coil"}
-  - {id: 33, t_source_C: 15.0, t_sink_C: 23.9, q_kW: 2.31, power_kW: 0.25, mode: cooling, note: "SHR 0.71, wet coil"}
-  - {id: 34, t_source_C: 15.0, t_sink_C: 26.7, q_kW: 2.38, power_kW: 0.25, mode: cooling, note: "SHR 0.71, wet coil"}
-  - {id: 35, t_source_C: 15.0, t_sink_C: 29.4, q_kW: 2.54, power_kW: 0.25, mode: cooling, note: "SHR 0.70, wet coil"}
-  - {id: 36, t_source_C: 15.0, t_sink_C: 32.2, q_kW: 2.70, power_kW: 0.26, mode: cooling, note: "SHR 0.71, wet coil"}
-  - {id: 37, t_source_C: 19.4, t_sink_C: 17.8, q_kW: 2.57, power_kW: 0.56, mode: cooling, note: "SHR 0.58, wet coil"}
-  - {id: 38, t_source_C: 19.4, t_sink_C: 21.1, q_kW: 2.81, power_kW: 0.56, mode: cooling, note: "SHR 0.58, wet coil"}
-  - {id: 39, t_source_C: 19.4, t_sink_C: 23.9, q_kW: 3.08, power_kW: 0.57, mode: cooling, note: "SHR 0.58, wet coil"}
-  - {id: 40, t_source_C: 19.4, t_sink_C: 26.7, q_kW: 3.17, power_kW: 0.58, mode: cooling, note: "SHR 0.58, wet coil"}
-  - {id: 41, t_source_C: 19.4, t_sink_C: 29.4, q_kW: 3.38, power_kW: 0.59, mode: cooling, note: "SHR 0.58, wet coil"}
-  - {id: 42, t_source_C: 19.4, t_sink_C: 32.2, q_kW: 3.60, power_kW: 0.59, mode: cooling, note: "SHR 0.58, wet coil"}
-  - {id: 43, t_source_C: 25.0, t_sink_C: 17.8, q_kW: 2.42, power_kW: 0.60, mode: cooling, note: "SHR 0.60, wet coil"}
-  - {id: 44, t_source_C: 25.0, t_sink_C: 21.1, q_kW: 2.65, power_kW: 0.61, mode: cooling, note: "SHR 0.60, wet coil"}
-  - {id: 45, t_source_C: 25.0, t_sink_C: 23.9, q_kW: 2.90, power_kW: 0.62, mode: cooling, note: "SHR 0.60, wet coil"}
-  - {id: 46, t_source_C: 25.0, t_sink_C: 26.7, q_kW: 2.99, power_kW: 0.63, mode: cooling, note: "SHR 0.60, wet coil"}
-  - {id: 47, t_source_C: 25.0, t_sink_C: 29.4, q_kW: 3.19, power_kW: 0.63, mode: cooling, note: "SHR 0.60, wet coil"}
-  - {id: 48, t_source_C: 25.0, t_sink_C: 32.2, q_kW: 3.40, power_kW: 0.64, mode: cooling, note: "SHR 0.60, wet coil"}
-  - {id: 49, t_source_C: 30.6, t_sink_C: 17.8, q_kW: 2.28, power_kW: 0.65, mode: cooling, note: "SHR 0.63, wet coil"}
-  - {id: 50, t_source_C: 30.6, t_sink_C: 21.1, q_kW: 2.49, power_kW: 0.65, mode: cooling, note: "SHR 0.63, wet coil"}
-  - {id: 51, t_source_C: 30.6, t_sink_C: 23.9, q_kW: 2.73, power_kW: 0.67, mode: cooling, note: "SHR 0.63, wet coil"}
-  - {id: 52, t_source_C: 30.6, t_sink_C: 26.7, q_kW: 2.82, power_kW: 0.67, mode: cooling, note: "SHR 0.63, wet coil"}
-  - {id: 53, t_source_C: 30.6, t_sink_C: 29.4, q_kW: 3.00, power_kW: 0.68, mode: cooling, note: "SHR 0.63, wet coil"}
-  - {id: 54, t_source_C: 30.6, t_sink_C: 32.2, q_kW: 3.20, power_kW: 0.69, mode: cooling, note: "SHR 0.63, wet coil"}
-  - {id: 55, t_source_C: 35.0, t_sink_C: 17.8, q_kW: 2.13, power_kW: 0.69, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 56, t_source_C: 35.0, t_sink_C: 21.1, q_kW: 2.33, power_kW: 0.70, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 57, t_source_C: 35.0, t_sink_C: 23.9, q_kW: 2.56, power_kW: 0.71, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 58, t_source_C: 35.0, t_sink_C: 26.7, q_kW: 2.64, power_kW: 0.72, mode: cooling, note: "SHR 0.66, wet coil"}
-  - {id: 59, t_source_C: 35.0, t_sink_C: 29.4, q_kW: 2.81, power_kW: 0.73, mode: cooling, note: "SHR 0.65, wet coil"}
-  - {id: 60, t_source_C: 35.0, t_sink_C: 32.2, q_kW: 3.00, power_kW: 0.73, mode: cooling, note: "SHR 0.65, wet coil"}
-  - {id: 61, t_source_C: 40.0, t_sink_C: 17.8, q_kW: 1.77, power_kW: 0.77, mode: cooling, note: "SHR 0.73, wet coil"}
-  - {id: 62, t_source_C: 40.0, t_sink_C: 21.1, q_kW: 1.94, power_kW: 0.78, mode: cooling, note: "SHR 0.73, wet coil"}
-  - {id: 63, t_source_C: 40.0, t_sink_C: 23.9, q_kW: 2.12, power_kW: 0.79, mode: cooling, note: "SHR 0.74, wet coil"}
-  - {id: 64, t_source_C: 40.0, t_sink_C: 26.7, q_kW: 2.19, power_kW: 0.80, mode: cooling, note: "SHR 0.74, wet coil"}
-  - {id: 65, t_source_C: 40.0, t_sink_C: 29.4, q_kW: 2.33, power_kW: 0.81, mode: cooling, note: "SHR 0.73, wet coil"}
-  - {id: 66, t_source_C: 40.0, t_sink_C: 32.2, q_kW: 2.49, power_kW: 0.82, mode: cooling, note: "SHR 0.73, wet coil"}
-  - {id: 67, t_source_C: 46.1, t_sink_C: 17.8, q_kW: 1.62, power_kW: 0.76, mode: cooling, note: "SHR 0.73, wet coil"}
-  - {id: 68, t_source_C: 46.1, t_sink_C: 21.1, q_kW: 1.78, power_kW: 0.77, mode: cooling, note: "SHR 0.74, wet coil"}
-  - {id: 69, t_source_C: 46.1, t_sink_C: 23.9, q_kW: 1.95, power_kW: 0.78, mode: cooling, note: "SHR 0.73, wet coil"}
-  - {id: 70, t_source_C: 46.1, t_sink_C: 26.7, q_kW: 2.01, power_kW: 0.79, mode: cooling, note: "SHR 0.74, wet coil"}
-  - {id: 71, t_source_C: 46.1, t_sink_C: 29.4, q_kW: 2.14, power_kW: 0.80, mode: cooling, note: "SHR 0.73, wet coil"}
-  - {id: 72, t_source_C: 46.1, t_sink_C: 32.2, q_kW: 2.28, power_kW: 0.81, mode: cooling, note: "SHR 0.74, wet coil"}
+  - {id: 1, t_source_C: -10.0, t_sink_C: 17.8, q_kW: 2.51, power_kW: 0.31, mode: cooling, note: "WB 12.2 C, SHR 0.67, wet coil"}
+  - {id: 2, t_source_C: -10.0, t_sink_C: 21.1, q_kW: 2.74, power_kW: 0.31, mode: cooling, note: "WB 15.6 C, SHR 0.67, wet coil"}
+  - {id: 3, t_source_C: -10.0, t_sink_C: 23.9, q_kW: 3.01, power_kW: 0.32, mode: cooling, note: "WB 17.2 C, SHR 0.66, wet coil"}
+  - {id: 4, t_source_C: -10.0, t_sink_C: 26.7, q_kW: 3.10, power_kW: 0.32, mode: cooling, note: "WB 19.4 C, SHR 0.66, wet coil"}
+  - {id: 5, t_source_C: -10.0, t_sink_C: 29.4, q_kW: 3.30, power_kW: 0.32, mode: cooling, note: "WB 21.7 C, SHR 0.67, wet coil"}
+  - {id: 6, t_source_C: -10.0, t_sink_C: 32.2, q_kW: 3.52, power_kW: 0.33, mode: cooling, note: "WB 22.8 C, SHR 0.66, wet coil"}
+  - {id: 7, t_source_C: -5.0, t_sink_C: 17.8, q_kW: 2.39, power_kW: 0.28, mode: cooling, note: "WB 12.2 C, SHR 0.67, wet coil"}
+  - {id: 8, t_source_C: -5.0, t_sink_C: 21.1, q_kW: 2.62, power_kW: 0.29, mode: cooling, note: "WB 15.6 C, SHR 0.66, wet coil"}
+  - {id: 9, t_source_C: -5.0, t_sink_C: 23.9, q_kW: 2.87, power_kW: 0.29, mode: cooling, note: "WB 17.2 C, SHR 0.67, wet coil"}
+  - {id: 10, t_source_C: -5.0, t_sink_C: 26.7, q_kW: 2.95, power_kW: 0.30, mode: cooling, note: "WB 19.4 C, SHR 0.67, wet coil"}
+  - {id: 11, t_source_C: -5.0, t_sink_C: 29.4, q_kW: 3.15, power_kW: 0.30, mode: cooling, note: "WB 21.7 C, SHR 0.67, wet coil"}
+  - {id: 12, t_source_C: -5.0, t_sink_C: 32.2, q_kW: 3.36, power_kW: 0.30, mode: cooling, note: "WB 22.8 C, SHR 0.66, wet coil"}
+  - {id: 13, t_source_C: 0.0, t_sink_C: 17.8, q_kW: 2.27, power_kW: 0.26, mode: cooling, note: "WB 12.2 C, SHR 0.67, wet coil"}
+  - {id: 14, t_source_C: 0.0, t_sink_C: 21.1, q_kW: 2.49, power_kW: 0.26, mode: cooling, note: "WB 15.6 C, SHR 0.67, wet coil"}
+  - {id: 15, t_source_C: 0.0, t_sink_C: 23.9, q_kW: 2.73, power_kW: 0.27, mode: cooling, note: "WB 17.2 C, SHR 0.66, wet coil"}
+  - {id: 16, t_source_C: 0.0, t_sink_C: 26.7, q_kW: 2.81, power_kW: 0.27, mode: cooling, note: "WB 19.4 C, SHR 0.67, wet coil"}
+  - {id: 17, t_source_C: 0.0, t_sink_C: 29.4, q_kW: 3.00, power_kW: 0.27, mode: cooling, note: "WB 21.7 C, SHR 0.66, wet coil"}
+  - {id: 18, t_source_C: 0.0, t_sink_C: 32.2, q_kW: 3.19, power_kW: 0.28, mode: cooling, note: "WB 22.8 C, SHR 0.66, wet coil"}
+  - {id: 19, t_source_C: 5.0, t_sink_C: 17.8, q_kW: 2.16, power_kW: 0.26, mode: cooling, note: "WB 12.2 C, SHR 0.67, wet coil"}
+  - {id: 20, t_source_C: 5.0, t_sink_C: 21.1, q_kW: 2.36, power_kW: 0.26, mode: cooling, note: "WB 15.6 C, SHR 0.67, wet coil"}
+  - {id: 21, t_source_C: 5.0, t_sink_C: 23.9, q_kW: 2.59, power_kW: 0.27, mode: cooling, note: "WB 17.2 C, SHR 0.66, wet coil"}
+  - {id: 22, t_source_C: 5.0, t_sink_C: 26.7, q_kW: 2.67, power_kW: 0.27, mode: cooling, note: "WB 19.4 C, SHR 0.67, wet coil"}
+  - {id: 23, t_source_C: 5.0, t_sink_C: 29.4, q_kW: 2.84, power_kW: 0.27, mode: cooling, note: "WB 21.7 C, SHR 0.67, wet coil"}
+  - {id: 24, t_source_C: 5.0, t_sink_C: 32.2, q_kW: 3.03, power_kW: 0.28, mode: cooling, note: "WB 22.8 C, SHR 0.67, wet coil"}
+  - {id: 25, t_source_C: 10.0, t_sink_C: 17.8, q_kW: 2.04, power_kW: 0.24, mode: cooling, note: "WB 12.2 C, SHR 0.67, wet coil"}
+  - {id: 26, t_source_C: 10.0, t_sink_C: 21.1, q_kW: 2.23, power_kW: 0.24, mode: cooling, note: "WB 15.6 C, SHR 0.67, wet coil"}
+  - {id: 27, t_source_C: 10.0, t_sink_C: 23.9, q_kW: 2.45, power_kW: 0.25, mode: cooling, note: "WB 17.2 C, SHR 0.67, wet coil"}
+  - {id: 28, t_source_C: 10.0, t_sink_C: 26.7, q_kW: 2.52, power_kW: 0.25, mode: cooling, note: "WB 19.4 C, SHR 0.67, wet coil"}
+  - {id: 29, t_source_C: 10.0, t_sink_C: 29.4, q_kW: 2.69, power_kW: 0.25, mode: cooling, note: "WB 21.7 C, SHR 0.67, wet coil"}
+  - {id: 30, t_source_C: 10.0, t_sink_C: 32.2, q_kW: 2.87, power_kW: 0.26, mode: cooling, note: "WB 22.8 C, SHR 0.67, wet coil"}
+  - {id: 31, t_source_C: 15.0, t_sink_C: 17.8, q_kW: 1.93, power_kW: 0.24, mode: cooling, note: "WB 12.2 C, SHR 0.70, wet coil"}
+  - {id: 32, t_source_C: 15.0, t_sink_C: 21.1, q_kW: 2.11, power_kW: 0.24, mode: cooling, note: "WB 15.6 C, SHR 0.71, wet coil"}
+  - {id: 33, t_source_C: 15.0, t_sink_C: 23.9, q_kW: 2.31, power_kW: 0.25, mode: cooling, note: "WB 17.2 C, SHR 0.71, wet coil"}
+  - {id: 34, t_source_C: 15.0, t_sink_C: 26.7, q_kW: 2.38, power_kW: 0.25, mode: cooling, note: "WB 19.4 C, SHR 0.71, wet coil"}
+  - {id: 35, t_source_C: 15.0, t_sink_C: 29.4, q_kW: 2.54, power_kW: 0.25, mode: cooling, note: "WB 21.7 C, SHR 0.70, wet coil"}
+  - {id: 36, t_source_C: 15.0, t_sink_C: 32.2, q_kW: 2.70, power_kW: 0.26, mode: cooling, note: "WB 22.8 C, SHR 0.71, wet coil"}
+  - {id: 37, t_source_C: 19.4, t_sink_C: 17.8, q_kW: 2.57, power_kW: 0.56, mode: cooling, note: "WB 12.2 C, SHR 0.58, wet coil"}
+  - {id: 38, t_source_C: 19.4, t_sink_C: 21.1, q_kW: 2.81, power_kW: 0.56, mode: cooling, note: "WB 15.6 C, SHR 0.58, wet coil"}
+  - {id: 39, t_source_C: 19.4, t_sink_C: 23.9, q_kW: 3.08, power_kW: 0.57, mode: cooling, note: "WB 17.2 C, SHR 0.58, wet coil"}
+  - {id: 40, t_source_C: 19.4, t_sink_C: 26.7, q_kW: 3.17, power_kW: 0.58, mode: cooling, note: "WB 19.4 C, SHR 0.58, wet coil"}
+  - {id: 41, t_source_C: 19.4, t_sink_C: 29.4, q_kW: 3.38, power_kW: 0.59, mode: cooling, note: "WB 21.7 C, SHR 0.58, wet coil"}
+  - {id: 42, t_source_C: 19.4, t_sink_C: 32.2, q_kW: 3.60, power_kW: 0.59, mode: cooling, note: "WB 22.8 C, SHR 0.58, wet coil"}
+  - {id: 43, t_source_C: 25.0, t_sink_C: 17.8, q_kW: 2.42, power_kW: 0.60, mode: cooling, note: "WB 12.2 C, SHR 0.60, wet coil"}
+  - {id: 44, t_source_C: 25.0, t_sink_C: 21.1, q_kW: 2.65, power_kW: 0.61, mode: cooling, note: "WB 15.6 C, SHR 0.60, wet coil"}
+  - {id: 45, t_source_C: 25.0, t_sink_C: 23.9, q_kW: 2.90, power_kW: 0.62, mode: cooling, note: "WB 17.2 C, SHR 0.60, wet coil"}
+  - {id: 46, t_source_C: 25.0, t_sink_C: 26.7, q_kW: 2.99, power_kW: 0.63, mode: cooling, note: "WB 19.4 C, SHR 0.60, wet coil"}
+  - {id: 47, t_source_C: 25.0, t_sink_C: 29.4, q_kW: 3.19, power_kW: 0.63, mode: cooling, note: "WB 21.7 C, SHR 0.60, wet coil"}
+  - {id: 48, t_source_C: 25.0, t_sink_C: 32.2, q_kW: 3.40, power_kW: 0.64, mode: cooling, note: "WB 22.8 C, SHR 0.60, wet coil"}
+  - {id: 49, t_source_C: 30.6, t_sink_C: 17.8, q_kW: 2.28, power_kW: 0.65, mode: cooling, note: "WB 12.2 C, SHR 0.63, wet coil"}
+  - {id: 50, t_source_C: 30.6, t_sink_C: 21.1, q_kW: 2.49, power_kW: 0.65, mode: cooling, note: "WB 15.6 C, SHR 0.63, wet coil"}
+  - {id: 51, t_source_C: 30.6, t_sink_C: 23.9, q_kW: 2.73, power_kW: 0.67, mode: cooling, note: "WB 17.2 C, SHR 0.63, wet coil"}
+  - {id: 52, t_source_C: 30.6, t_sink_C: 26.7, q_kW: 2.82, power_kW: 0.67, mode: cooling, note: "WB 19.4 C, SHR 0.63, wet coil"}
+  - {id: 53, t_source_C: 30.6, t_sink_C: 29.4, q_kW: 3.00, power_kW: 0.68, mode: cooling, note: "WB 21.7 C, SHR 0.63, wet coil"}
+  - {id: 54, t_source_C: 30.6, t_sink_C: 32.2, q_kW: 3.20, power_kW: 0.69, mode: cooling, note: "WB 22.8 C, SHR 0.63, wet coil"}
+  - {id: 55, t_source_C: 35.0, t_sink_C: 17.8, q_kW: 2.13, power_kW: 0.69, mode: cooling, note: "WB 12.2 C, SHR 0.66, wet coil"}
+  - {id: 56, t_source_C: 35.0, t_sink_C: 21.1, q_kW: 2.33, power_kW: 0.70, mode: cooling, note: "WB 15.6 C, SHR 0.66, wet coil"}
+  - {id: 57, t_source_C: 35.0, t_sink_C: 23.9, q_kW: 2.56, power_kW: 0.71, mode: cooling, note: "WB 17.2 C, SHR 0.66, wet coil"}
+  - {id: 58, t_source_C: 35.0, t_sink_C: 26.7, q_kW: 2.64, power_kW: 0.72, mode: cooling, note: "WB 19.4 C, SHR 0.66, wet coil"}
+  - {id: 59, t_source_C: 35.0, t_sink_C: 29.4, q_kW: 2.81, power_kW: 0.73, mode: cooling, note: "WB 21.7 C, SHR 0.65, wet coil"}
+  - {id: 60, t_source_C: 35.0, t_sink_C: 32.2, q_kW: 3.00, power_kW: 0.73, mode: cooling, note: "WB 22.8 C, SHR 0.65, wet coil"}
+  - {id: 61, t_source_C: 40.0, t_sink_C: 17.8, q_kW: 1.77, power_kW: 0.77, mode: cooling, note: "WB 12.2 C, SHR 0.73, wet coil"}
+  - {id: 62, t_source_C: 40.0, t_sink_C: 21.1, q_kW: 1.94, power_kW: 0.78, mode: cooling, note: "WB 15.6 C, SHR 0.73, wet coil"}
+  - {id: 63, t_source_C: 40.0, t_sink_C: 23.9, q_kW: 2.12, power_kW: 0.79, mode: cooling, note: "WB 17.2 C, SHR 0.74, wet coil"}
+  - {id: 64, t_source_C: 40.0, t_sink_C: 26.7, q_kW: 2.19, power_kW: 0.80, mode: cooling, note: "WB 19.4 C, SHR 0.74, wet coil"}
+  - {id: 65, t_source_C: 40.0, t_sink_C: 29.4, q_kW: 2.33, power_kW: 0.81, mode: cooling, note: "WB 21.7 C, SHR 0.73, wet coil"}
+  - {id: 66, t_source_C: 40.0, t_sink_C: 32.2, q_kW: 2.49, power_kW: 0.82, mode: cooling, note: "WB 22.8 C, SHR 0.73, wet coil"}
+  - {id: 67, t_source_C: 46.1, t_sink_C: 17.8, q_kW: 1.62, power_kW: 0.76, mode: cooling, note: "WB 12.2 C, SHR 0.73, wet coil"}
+  - {id: 68, t_source_C: 46.1, t_sink_C: 21.1, q_kW: 1.78, power_kW: 0.77, mode: cooling, note: "WB 15.6 C, SHR 0.74, wet coil"}
+  - {id: 69, t_source_C: 46.1, t_sink_C: 23.9, q_kW: 1.95, power_kW: 0.78, mode: cooling, note: "WB 17.2 C, SHR 0.73, wet coil"}
+  - {id: 70, t_source_C: 46.1, t_sink_C: 26.7, q_kW: 2.01, power_kW: 0.79, mode: cooling, note: "WB 19.4 C, SHR 0.74, wet coil"}
+  - {id: 71, t_source_C: 46.1, t_sink_C: 29.4, q_kW: 2.14, power_kW: 0.80, mode: cooling, note: "WB 21.7 C, SHR 0.73, wet coil"}
+  - {id: 72, t_source_C: 46.1, t_sink_C: 32.2, q_kW: 2.28, power_kW: 0.81, mode: cooling, note: "WB 22.8 C, SHR 0.74, wet coil"}
   - {id: 73, t_source_C: -15.0, t_sink_C: 15.6, q_kW: 2.07, power_kW: 0.91, mode: heating, note: "maximum capacity"}
   - {id: 74, t_source_C: -15.0, t_sink_C: 18.3, q_kW: 2.02, power_kW: 0.93, mode: heating, note: "maximum capacity"}
   - {id: 75, t_source_C: -15.0, t_sink_C: 21.1, q_kW: 1.96, power_kW: 0.95, mode: heating, note: "maximum capacity"}

@@ -1,0 +1,182 @@
+{
+ "units": [
+  "daikin_rxm20a",
+  "daikin_rxm25a",
+  "daikin_rxm35a",
+  "daikin_rxm42a",
+  "daikin_rxm50a"
+ ],
+ "held_units": [
+  "fujitsu_asuh09lpas",
+  "fujitsu_asuh12lpas"
+ ],
+ "cooling_rows": {
+  "daikin_rxm20a": 36,
+  "daikin_rxm25a": 36,
+  "daikin_rxm35a": 36,
+  "daikin_rxm42a": 36,
+  "daikin_rxm50a": 36,
+  "fujitsu_asuh09lpas": 72,
+  "fujitsu_asuh12lpas": 72
+ },
+ "passes": {
+  "dry": {
+   "wet_coil": false,
+   "UA_iu_scale": 1.0
+  },
+  "wet": {
+   "wet_coil": true,
+   "UA_iu_scale": 1.0
+  },
+  "wet_ua50": {
+   "wet_coil": true,
+   "UA_iu_scale": 0.5
+  },
+  "wet_ua200": {
+   "wet_coil": true,
+   "UA_iu_scale": 2.0
+  }
+ },
+ "net_matched_passes": {
+  "dry_net": {
+   "coil_of": "dry",
+   "net_match_rel_tol": 0.0001
+  },
+  "wet_net": {
+   "coil_of": "wet",
+   "net_match_rel_tol": 0.0001
+  }
+ },
+ "shr_bands": [
+  [
+   "below 0.75",
+   0.0,
+   0.75
+  ],
+  [
+   "0.75 to 0.95",
+   0.75,
+   0.95
+  ],
+  [
+   "0.95 and above",
+   0.95,
+   2.0
+  ]
+ ],
+ "dry_pass_vs_committed_parity_max_rel_cop_difference": 0.0,
+ "headline": {
+  "cooling_rows": 180,
+  "rows_scored_dry": 180,
+  "rows_scored_wet": 180,
+  "rows_model_coil_dry_in_wet_pass": 1,
+  "rows_leaving_air_saturated": 0,
+  "shr_catalog_mean": 0.7892222222222223,
+  "shr_model_net_mean": 0.8141822146913295,
+  "shr_model_gross_mean": 0.8152066926859409,
+  "shr_error_mean": 0.024959992469107295,
+  "shr_abs_error_mean": 0.04708448531398215,
+  "shr_error_min": -0.14983566448696983,
+  "shr_error_max": 0.09690349485726701,
+  "shr_correlation": 0.9456757490178664,
+  "rows_published_ratio_one": 8,
+  "rows_published_ratio_at_least_095": 25,
+  "rows_published_ratio_at_least_095_with_latent_heat": 24,
+  "rows_published_ratio_below_coil_line_minimum": 0,
+  "rows_with_catalogue_adp": 172,
+  "model_coil_above_catalogue_adp_K_mean": 1.0499254681383923,
+  "model_coil_above_catalogue_adp_K_min": -2.040903971864001,
+  "model_coil_above_catalogue_adp_K_max": 3.6956920458045905,
+  "T_evap_rise_wet_minus_dry_K_mean": 3.143678404255089,
+  "power_change_wet_vs_dry_pct_mean": -9.44623609351141,
+  "rows_wet_draws_more_than_dry": 1,
+  "bias_shr_correlation_dry": -0.7275878800582165,
+  "bias_shr_correlation_wet": -0.9231845929027974,
+  "net_delivery_short_of_published_W_mean_wet": 20.380389250717084,
+  "net_delivery_short_of_published_pct_mean_wet": 0.6220099131450822,
+  "rows_net_delivery_short_by_more_than_1pct_wet": 1,
+  "cop_bias_pct_dry": -12.847139057323377,
+  "cop_MAPE_pct_dry": 12.847139057323377,
+  "scored_dry": 180,
+  "cop_bias_pct_wet": -3.1084884561994564,
+  "cop_MAPE_pct_wet": 9.58985727437578,
+  "scored_wet": 180,
+  "cop_bias_pct_wet_ua50": -9.428442801568513,
+  "cop_MAPE_pct_wet_ua50": 12.254414468982604,
+  "scored_wet_ua50": 180,
+  "cop_bias_pct_wet_ua200": -0.9703051288720032,
+  "cop_MAPE_pct_wet_ua200": 8.701976124690264,
+  "scored_wet_ua200": 180,
+  "cop_bias_pct_dry_net": -13.17620521148902,
+  "cop_MAPE_pct_dry_net": 13.17620521148902,
+  "scored_dry_net": 180,
+  "cop_bias_pct_wet_net": -3.291089122108878,
+  "cop_MAPE_pct_wet_net": 9.629276288256527,
+  "scored_wet_net": 180,
+  "request_above_published_W_mean_wet_net": 20.38217442021398,
+  "shr_model_net_mean_wet_net": 0.8115736558409423,
+  "shr_error_mean_wet_net": 0.022351433618720086,
+  "shr_abs_error_mean_wet_net": 0.047433982661362034,
+  "rows_with_catalogue_adp_fan": 172,
+  "model_coil_above_catalogue_adp_fan_K_mean_wet_net": 0.9731329426809043,
+  "catalogue_adp_fan_minus_adp_K_mean": 0.04017264375355338,
+  "cop_change_net_matched_vs_request_pct_mean_wet": -0.18901555773688047
+ },
+ "headline_held": {
+  "cooling_rows": 144,
+  "rows_scored_dry": 144,
+  "rows_scored_wet": 144,
+  "rows_model_coil_dry_in_wet_pass": 14,
+  "rows_leaving_air_saturated": 0,
+  "shr_catalog_mean": 0.6777083333333334,
+  "shr_model_net_mean": 0.7618746942442569,
+  "shr_model_gross_mean": 0.7624511989731731,
+  "shr_error_mean": 0.08416636091092372,
+  "shr_abs_error_mean": 0.1328989298040401,
+  "shr_error_min": -0.13226349330363418,
+  "shr_error_max": 0.3042028044513644,
+  "shr_correlation": 0.3125558068251026,
+  "rows_published_ratio_one": 0,
+  "rows_published_ratio_at_least_095": 0,
+  "rows_published_ratio_at_least_095_with_latent_heat": 0,
+  "rows_published_ratio_below_coil_line_minimum": 21,
+  "rows_with_catalogue_adp": 123,
+  "model_coil_above_catalogue_adp_K_mean": 0.42521206973699605,
+  "model_coil_above_catalogue_adp_K_min": -10.40600282654463,
+  "model_coil_above_catalogue_adp_K_max": 11.607668263371819,
+  "T_evap_rise_wet_minus_dry_K_mean": 1.7540946239487356,
+  "power_change_wet_vs_dry_pct_mean": -3.9775791725463767,
+  "rows_wet_draws_more_than_dry": 3,
+  "bias_shr_correlation_dry": 0.340589493673347,
+  "bias_shr_correlation_wet": 0.13957848384025365,
+  "net_delivery_short_of_published_W_mean_wet": 11.975617916432528,
+  "net_delivery_short_of_published_pct_mean_wet": 0.430832685548905,
+  "rows_net_delivery_short_by_more_than_1pct_wet": 8,
+  "cop_bias_pct_dry": 4.426559231077426,
+  "cop_MAPE_pct_dry": 16.213455955555375,
+  "scored_dry": 144,
+  "cop_bias_pct_wet": 9.19584409412699,
+  "cop_MAPE_pct_wet": 20.151372302292963,
+  "scored_wet": 144,
+  "cop_bias_pct_wet_ua50": 4.4571629963392025,
+  "cop_MAPE_pct_wet_ua50": 15.89346533476452,
+  "scored_wet_ua50": 144,
+  "cop_bias_pct_wet_ua200": 10.947127759371831,
+  "cop_MAPE_pct_wet_ua200": 21.79306151682645,
+  "scored_wet_ua200": 144,
+  "cop_bias_pct_dry_net": 4.195597427042253,
+  "cop_MAPE_pct_dry_net": 16.013701618915242,
+  "scored_dry_net": 144,
+  "cop_bias_pct_wet_net": 9.056614155275753,
+  "cop_MAPE_pct_wet_net": 20.01741538467003,
+  "scored_wet_net": 144,
+  "request_above_published_W_mean_wet_net": 11.983885543174928,
+  "shr_model_net_mean_wet_net": 0.7607125377270455,
+  "shr_error_mean_wet_net": 0.08300420439371216,
+  "shr_abs_error_mean_wet_net": 0.13171150621457403,
+  "rows_with_catalogue_adp_fan": 124,
+  "model_coil_above_catalogue_adp_fan_K_mean_wet_net": 0.39349132964595296,
+  "catalogue_adp_fan_minus_adp_K_mean": 0.10327544271842702,
+  "cop_change_net_matched_vs_request_pct_mean_wet": -0.11205189338238578
+ }
+}

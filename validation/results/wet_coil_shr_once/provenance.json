@@ -1,0 +1,76 @@
+{
+ "script": "validation/wet_coil_shr/simulate.py",
+ "command": "python -m validation.wet_coil_shr.simulate",
+ "question": "sensible heat ratio of the wet indoor coil against the catalogue's, and the COP bias dry against wet",
+ "model_settings": {
+  "model": "validation.parity.run._build_model(catalog, None, 'cooling'): the shipped parity construction",
+  "passes": {
+   "dry": {
+    "wet_coil": false,
+    "UA_iu_scale": 1.0
+   },
+   "wet": {
+    "wet_coil": true,
+    "UA_iu_scale": 1.0
+   },
+   "wet_ua50": {
+    "wet_coil": true,
+    "UA_iu_scale": 0.5
+   },
+   "wet_ua200": {
+    "wet_coil": true,
+    "UA_iu_scale": 2.0
+   }
+  },
+  "net_matched_passes": {
+   "dry_net": {
+    "coil_of": "dry",
+    "net_match_rel_tol": 0.0001
+   },
+   "wet_net": {
+    "coil_of": "wet",
+    "net_match_rel_tol": 0.0001
+   }
+  },
+  "RH_room": "from the row's indoor dry bulb and wet bulb, one standard atmosphere (wet passes); None (dry)",
+  "units": [
+   "daikin_rxm20a",
+   "daikin_rxm25a",
+   "daikin_rxm35a",
+   "daikin_rxm42a",
+   "daikin_rxm50a"
+  ],
+  "held_units": [
+   "fujitsu_asuh09lpas",
+   "fujitsu_asuh12lpas"
+  ]
+ },
+ "outputs": [
+  "validation/results/wet_coil_shr_once/run_manifest.json",
+  "validation/results/wet_coil_shr_once/shr_bands.csv",
+  "validation/results/wet_coil_shr_once/shr_bands_held.csv",
+  "validation/results/wet_coil_shr_once/shr_by_unit.csv",
+  "validation/results/wet_coil_shr_once/shr_by_unit_held.csv",
+  "validation/results/wet_coil_shr_once/wet_coil_shr_held.csv",
+  "validation/results/wet_coil_shr_once/wet_coil_shr_once.csv"
+ ],
+ "coefficient_version": "ossorio-r290-te-2026-11-21",
+ "git_head": "66cd8e973a4c6032fdab96e7efcf5d7636447cd0",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "d01c27cc9f510ec22521969dca2ad610f93f4b01",
+ "validation_parity_tree": "1018184edb56360bb48c2b06daf283ae5a7c5b65",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "run_at": "2026-11-22T00:49:07+00:00",
+ "study_script_blob": "4e3e022e40e124c47d3d82fb8f6f8a3c057f1943",
+ "study_script_uncommitted": false
+}

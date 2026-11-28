@@ -11,6 +11,13 @@ refrigerant-independent physics rather than of one fluid.
 The design and technical manual prints each grid twice, in imperial units and
 then in SI. The SI block is parsed: same numbers, no conversion to get wrong.
 
+The cooling grids head each indoor column with a dry bulb and, on the next
+line, its wet bulb (``°CDB 17.8 21.1 ...`` / ``°CWB 12.2 15.6 ...``): six
+pairs, one wet bulb per dry bulb. Both are read, and the wet bulb goes into
+the row's ``note`` with the sensible heat ratio (``"WB 19.4 C, SHR 0.66, wet
+coil"``), the form the Daikin catalogues use, so that a row can be run at the
+room humidity it was published at (``validation.wet_coil_shr``).
+
 One caveat carried forward
 --------------------------
 The heating grids are headed "values mentioned in the table are calculated
@@ -49,6 +56,7 @@ DRY_COIL_SHR = 0.95
 _MODEL = re.compile(r"Model:\s*(ASUH\d+LPAS)")
 _SI_FLOW = re.compile(r"AFR\s*m3/h\s*(\d+)")
 _TEMP_ROW = re.compile(r"^°CDB\s+((?:-?[\d.]+\s+)*-?[\d.]+)$")
+_WET_BULB_ROW = re.compile(r"^°CWB\s+((?:-?[\d.]+\s+)*-?[\d.]+)$")
 _NUM = r"-?\d+(?:\.\d+)?"
 
 
@@ -57,6 +65,7 @@ def parse() -> dict[str, dict]:
     unit = None
     mode = None
     indoor_db: list[float] = []
+    indoor_wb: list[float] = []
     flow_m3h: float | None = None
     si_block = False
 
@@ -94,6 +103,15 @@ def parse() -> dict[str, dict]:
             m = _TEMP_ROW.match(line)
             if m:
                 indoor_db = [float(v) for v in m.group(1).split()]
+                indoor_wb = []
+                continue
+            m = _WET_BULB_ROW.match(line)
+            if m and mode == "cooling" and indoor_db:
+                # The indoor wet bulbs, printed under the dry bulbs they belong to.
+                indoor_wb = [float(v) for v in m.group(1).split()]
+                assert len(indoor_wb) == len(indoor_db), (
+                    f"{unit}: {len(indoor_wb)} wet bulbs for {len(indoor_db)} dry bulbs"
+                )
                 continue
             if not indoor_db:
                 continue
@@ -106,11 +124,14 @@ def parse() -> dict[str, dict]:
                 if len(values) != 3 * len(indoor_db):
                     continue
                 t_out = float(m.group(1))
+                assert indoor_wb, f"{unit}: cooling rows before the indoor wet bulbs of their columns"
                 for i, t_in in enumerate(indoor_db):
                     tc, shc, ip = values[3 * i : 3 * i + 3]
                     if ip <= 0.0:
                         continue
-                    units[unit]["cooling"].append({"t_out": t_out, "t_in": t_in, "tc": tc, "shc": shc, "ip": ip})
+                    units[unit]["cooling"].append(
+                        {"t_out": t_out, "t_in": t_in, "t_in_wb": indoor_wb[i], "tc": tc, "shc": shc, "ip": ip}
+                    )
             else:
                 # Heating rows carry outdoor dry *and* wet bulb before the data.
                 m = re.match(rf"^({_NUM})\s+({_NUM})\s+((?:{_NUM}\s+)*{_NUM})$", line)
@@ -144,7 +165,7 @@ def write_catalogs(units: dict[str, dict]) -> list[str]:
                 f"  - {{id: {point_id}, t_source_C: {row['t_out']:.1f}, "
                 f"t_sink_C: {row['t_in']:.1f}, q_kW: {row['tc']:.2f}, "
                 f"power_kW: {row['ip']:.2f}, mode: cooling, "
-                f'note: "SHR {shr:.2f}{"" if shr >= DRY_COIL_SHR else ", wet coil"}"}}'
+                f'note: "WB {row["t_in_wb"]:.1f} C, SHR {shr:.2f}{"" if shr >= DRY_COIL_SHR else ", wet coil"}"}}'
             )
         for row in data["heating"]:
             point_id += 1
@@ -167,9 +188,14 @@ def write_catalogs(units: dict[str, dict]) -> list[str]:
 #
 # Heating points are taken at *maximum* capacity, as the manual states, so the
 # compressor sits near the top of its speed range throughout that half of the
-# grid. Cooling rows carry their sensible heat ratio; TMHP's indoor coil is a
-# dry sensible exchanger, so rows below SHR {DRY_COIL_SHR:.2f} ask it to carry a latent duty
-# it does not compute.
+# grid. Cooling rows carry their indoor wet bulb and their sensible heat ratio
+# in `note`, as the Daikin files do. The table prints the indoor condition as
+# six dry bulb / wet bulb pairs (64/54, 70/60, 75/63, 80/67, 85/71, 90/73 degF;
+# 17.8/12.2, 21.1/15.6, 23.9/17.2, 26.7/19.4, 29.4/21.7, 32.2/22.8 degC in the
+# SI block), one wet bulb per dry bulb, and the ratio is SHC / TC of the cell,
+# rounded to two decimals here. Without a room humidity TMHP's indoor coil is
+# a dry sensible exchanger, so rows below SHR {DRY_COIL_SHR:.2f} ask it to carry a latent
+# duty it does not compute; the parity harness runs them that way.
 #
 # No compressor displacement is published, so this unit exercises the derived
 # displacement rule rather than a specification input.
@@ -200,9 +226,10 @@ def main() -> None:
         print(f"  [skip] {exc}")
         return
     # Verbatim check against the printed SI table before trusting the rest.
-    anchor = {"t_out": -10.0, "t_in": 17.8, "tc": 2.51, "shc": 1.67, "ip": 0.31}
+    anchor = {"t_out": -10.0, "t_in": 17.8, "t_in_wb": 12.2, "tc": 2.51, "shc": 1.67, "ip": 0.31}
     assert anchor in units.get("ASUH09LPAS", {}).get("cooling", []), (
-        "Fujitsu anchor row not reproduced -- expected ASUH09LPAS cooling at -10 / 17.8 degC: 2.51 / 1.67 / 0.31 kW"
+        "Fujitsu anchor row not reproduced -- expected ASUH09LPAS cooling at -10 / 17.8 degC (wet bulb 12.2 degC): "
+        "2.51 / 1.67 / 0.31 kW"
     )
     for unit, data in units.items():
         print(f"  {unit:<16} cooling {len(data['cooling']):>4}  heating {len(data['heating']):>4}")

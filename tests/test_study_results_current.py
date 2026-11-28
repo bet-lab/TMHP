@@ -308,6 +308,8 @@ STUDY_RECORDS = {
     "validation/results/auxiliary_power_pto_proxy/": "validation/results/auxiliary_power_pto_proxy/provenance.json",
     "validation/results/fan_model_sensitivity_once/": "validation/results/fan_model_sensitivity_once/provenance.json",
     "validation/results/compressor_group_fitting_once/": "validation/results/compressor_group_fitting_once/provenance.json",
+    # Its sample rerun and its docs table are checked in tests/test_wet_coil_shr_study.py.
+    "validation/results/wet_coil_shr_once/": "validation/results/wet_coil_shr_once/provenance.json",
 }
 
 

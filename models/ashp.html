@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-11-28T12:05:53+00:00" />
+    <meta property="article:modified_time" content="2026-11-28T14:38:11+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -159,6 +159,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#wet-indoor-coil-cooling">Wet indoor coil (cooling)</a></li>
 <li><a class="reference internal" href="#part-load-cycling-and-unmet-load">Part load: cycling and unmet load</a></li>
 <li><a class="reference internal" href="#frost-and-defrost">Frost and defrost</a></li>
+<li><a class="reference internal" href="#a-request-on-the-room-s-sensible-load">A request on the room&#8217;s sensible load</a></li>
 <li><a class="reference internal" href="#cop-boundary">COP boundary</a></li>
 <li><a class="reference internal" href="#references">References</a></li>
 <li><a class="reference internal" href="#module-tmhp.air_source_heat_pump">API reference</a><ul>
@@ -168,6 +169,10 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.INDOOR_UNIT_TYPES"><code class="docutils literal notranslate"><span class="pre">INDOOR_UNIT_TYPES</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.INDOOR_UA_PER_CAPACITY"><code class="docutils literal notranslate"><span class="pre">INDOOR_UA_PER_CAPACITY</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.INDOOR_UA_KEPT_REASON"><code class="docutils literal notranslate"><span class="pre">INDOOR_UA_KEPT_REASON</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump.REQUEST_BASIS_TOTAL"><code class="docutils literal notranslate"><span class="pre">REQUEST_BASIS_TOTAL</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump.REQUEST_BASIS_SENSIBLE"><code class="docutils literal notranslate"><span class="pre">REQUEST_BASIS_SENSIBLE</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump.REQUEST_BASIS_KEY"><code class="docutils literal notranslate"><span class="pre">REQUEST_BASIS_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump.REQUEST_SOLVES_KEY"><code class="docutils literal notranslate"><span class="pre">REQUEST_SOLVES_KEY</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump"><code class="docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.ref"><code class="docutils literal notranslate">ref</span></code></a></li>
@@ -1383,9 +1388,176 @@ effect is in the mean.
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code> reports the same mean
 ceiling, with the frost-free one as <code class="docutils literal notranslate"><span class="pre">Q_max_frost_free</span> <span class="pre">[W]</span></code>.</p>
 </section>
+<section id="a-request-on-the-room-s-sensible-load">
+<h2>A request on the room’s sensible load<a class="headerlink" href="#a-request-on-the-room-s-sensible-load" title="Link to this heading">¶</a></h2>
+<p>A request (<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>) is the heat of the indoor coil. A building simulation
+hands over something else: the zone’s <strong>sensible</strong> load, the heat its air
+node has to lose or gain. The two differ by the indoor fan’s heat in both
+modes and, with a wet coil, by the latent heat. Asked for 4 kW as coil heat,
+the default unit takes 3 218 W of sensible heat out of a 27 °C / 50 % room —
+782 W short of a zone that wanted 4 kW. <code class="docutils literal notranslate"><span class="pre">request_basis=&quot;sensible&quot;</span></code>
+asks for the room’s net sensible heat instead:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPump</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">ashp</span> <span class="o">=</span> <span class="n">AirSourceHeatPump</span><span class="p">()</span>
+</span><span data-line="4"><span class="n">zone</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">T0</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span> <span class="n">T_a_room</span><span class="o">=</span><span class="mf">27.0</span><span class="p">,</span> <span class="n">RH_room</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span data-line="5">
+</span><span data-line="6"><span class="n">coil</span> <span class="o">=</span> <span class="n">ashp</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">Q_r_iu</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span> <span class="o">**</span><span class="n">zone</span><span class="p">)</span>   <span class="c1"># request_basis=&quot;total&quot;, the default</span>
+</span><span data-line="7"><span class="n">room</span> <span class="o">=</span> <span class="n">ashp</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">Q_r_iu</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span> <span class="o">**</span><span class="n">zone</span><span class="p">,</span> <span class="n">request_basis</span><span class="o">=</span><span class="s2">&quot;sensible&quot;</span><span class="p">)</span>
+</span><span data-line="8">
+</span><span data-line="9"><span class="n">coil</span><span class="p">[</span><span class="s2">&quot;Q_room_sensible [W]&quot;</span><span class="p">]</span>   <span class="c1"># 3218</span>
+</span><span data-line="10"><span class="n">room</span><span class="p">[</span><span class="s2">&quot;Q_room_sensible [W]&quot;</span><span class="p">]</span>   <span class="c1"># 4000</span>
+</span><span data-line="11"><span class="n">room</span><span class="p">[</span><span class="s2">&quot;Q_ref_iu [W]&quot;</span><span class="p">]</span>          <span class="c1"># 5937: the coil heat that takes</span>
+</span><span data-line="12"><span class="n">room</span><span class="p">[</span><span class="s2">&quot;SHR_iu [-]&quot;</span><span class="p">]</span>            <span class="c1"># 0.68 (0.81 at a coil heat of 4000 W)</span>
+</span><span data-line="13"><span class="n">room</span><span class="p">[</span><span class="s2">&quot;Q_iu_latent [W]&quot;</span><span class="p">]</span>       <span class="c1"># 1914</span>
+</span><span data-line="14"><span class="n">room</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span>             <span class="c1"># 1647 (909 W for a coil heat of 4000 W)</span>
+</span><span data-line="15"><span class="n">room</span><span class="p">[</span><span class="s2">&quot;Q_request [W]&quot;</span><span class="p">]</span>         <span class="c1"># 4000, on the basis the row names:</span>
+</span><span data-line="16"><span class="n">room</span><span class="p">[</span><span class="s2">&quot;request_basis&quot;</span><span class="p">]</span>         <span class="c1"># &quot;sensible&quot;</span>
+</span><span data-line="17"><span class="n">room</span><span class="p">[</span><span class="s2">&quot;Q_unmet [W]&quot;</span><span class="p">]</span>           <span class="c1"># 0.0</span>
+</span></pre></div>
+</div>
+<p>Use it wherever the load comes from a zone heat balance: with the zone’s air
+temperature as <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code>, its relative humidity as <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> and the
+sensible load as <code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code> (cooling positive, heating negative), the row
+delivers that load to the air node. <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> takes the same
+argument for a whole run — a year of hourly zone loads from EnergyPlus, say:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">df</span> <span class="o">=</span> <span class="n">ashp</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">simulation_period_sec</span><span class="o">=</span><span class="mi">8760</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">dt_s</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">Q_r_iu_schedule</span><span class="o">=</span><span class="n">zone_sensible_load</span><span class="p">,</span>          <span class="c1"># [W], cooling &gt; 0, heating &lt; 0</span>
+</span><span data-line="5">    <span class="n">T0_schedule</span><span class="o">=</span><span class="n">outdoor_air_temperature</span><span class="p">,</span>         <span class="c1"># [°C]</span>
+</span><span data-line="6">    <span class="n">T_a_room_schedule</span><span class="o">=</span><span class="n">zone_air_temperature</span><span class="p">,</span>      <span class="c1"># [°C]</span>
+</span><span data-line="7">    <span class="n">RH_out_schedule</span><span class="o">=</span><span class="n">outdoor_relative_humidity</span><span class="p">,</span>   <span class="c1"># 0-1, for the frost model</span>
+</span><span data-line="8">    <span class="n">RH_room_schedule</span><span class="o">=</span><span class="n">zone_relative_humidity</span><span class="p">,</span>     <span class="c1"># 0-1, for the wet coil</span>
+</span><span data-line="9">    <span class="n">request_basis</span><span class="o">=</span><span class="s2">&quot;sensible&quot;</span><span class="p">,</span>
+</span><span data-line="10"><span class="p">)</span>
+</span></pre></div>
+</div>
+<p>Keep the default, <code class="docutils literal notranslate"><span class="pre">&quot;total&quot;</span></code>, where the number is the coil’s heat: a
+catalogue’s capacity before the fan’s heat, a rating point, a coil load an
+air-loop model has already worked out.</p>
+<p><strong>What the model does.</strong> It finds the coil duty at which the row’s
+<code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> equals the request and returns the row of that duty —
+the row <code class="docutils literal notranslate"><span class="pre">request_basis=&quot;total&quot;</span></code> gives for it, key for key. Only
+<code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> are on the requested basis, and
+<code class="docutils literal notranslate"><span class="pre">request_basis</span></code> says which it is; <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> stay coil heat. One key is added after them,
+<code class="docutils literal notranslate"><span class="pre">request_solves</span> <span class="pre">[-]</span></code>: the number of total-basis solves the search took. In
+cooling the coil carries more than the request: the fan’s heat (4 023 W for
+4 kW with a dry coil at 35/27 °C) and, below the room’s dew point, the latent
+heat that comes with the sensible cooling. In heating it carries less: the
+fan’s heat is part of what the room receives (3 977 W for 4 kW at 7/20 °C).
+The latent heat is not a request: a zone’s moisture balance takes
+<code class="docutils literal notranslate"><span class="pre">m_dot_iu_condensate</span> <span class="pre">[kg/s]</span></code> (or <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code>) from the row.</p>
+<p><strong>Cycling and frost are matched in the mean.</strong> <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> is read
+as the row reports it. Below the smallest continuous duty the row is the mean
+over the cycling period, and the mean net sensible heat equals the request
+(300 W at 30/26 °C: a coil heat of 303.2 W in the mean, the unit running
+22 % of the time). The indoor fan is off whenever the compressor is: the
+cycling mean carries the fan’s power and its heat times the capacity ratio,
+like the coil heat, and nothing for a fan that keeps circulating air between
+the compressor’s runs. A zone model with a continuously running fan has to
+add that fan’s heat to the load itself. In heating with frost the row is the
+mean over frosting and defrost, and that mean equals the request (3 kW at
+0 °C and 85 %: a coil heat of 2 982 W in the mean).</p>
+<p><strong>At the ceiling</strong> the row is the ceiling’s — the largest coil duty the unit
+delivers (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>) — and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> is what the
+room is short of: 5.5 kW of sensible cooling in the room above returns
+4 951 W with 549 W unmet, at a coil heat of 8 035 W.
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code> reports the net sensible heat
+of that row next to <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>, as <code class="docutils literal notranslate"><span class="pre">Q_room_sensible_at_Q_max</span> <span class="pre">[W]</span></code>. It is
+the net sensible heat at the largest coil duty, not a maximum searched over
+the coil duties. On the default units that is also the largest net
+sensible heat the unit has: over 444 conditions of three default units
+(2.5 to 10 kW; cooling at 20–46 °C outdoor with the room at 22–30 °C, dry
+and at 30–100 % humidity; heating at −15 to 7 °C), 39 coil duties each, no
+duty under the ceiling moved more sensible heat than the ceiling’s row.
+Under the ceiling the net sensible heat does not rise with the coil duty
+everywhere. Where condensation sets in, the next larger duty can take less
+sensible heat (2.5 kW unit, 46 °C outdoor, room 27 °C at 65 %: 1 079 W at a
+coil heat of 1 094 W, 1 059 W at 1 216 W; the one such condition of the
+444), and where a wet coil cycles on the pressure-ratio floor the running
+state changes with the request (the same unit, 20 °C outdoor, room 30 °C at
+50 %: 119.8 W at a coil heat of 135.5 W, 118.3 W at 158.2 W, rising again
+above 160 W). A request in such a stretch is met at one of the duties that
+have it; where the trials all fall short the search goes on towards larger
+duties. Where such a stretch ends the net sensible heat has a kink along the
+coil duty: in that room at 29.9 °C the running state of the cycling unit
+changes with the request below a coil heat of 205.2 W and not above it, and
+the room loses 0.22 W of sensible heat per W of coil heat below, 0.61 W
+above. A search that five solves have not ended takes its steps from the
+trials on each side of the request — the line through the two nearest
+trials of a side, which lies along the stretch the request is on — and that
+closes on a duty just beyond a kink: the request for 125.25 W there, 0.2 W
+of coil heat above the kink, is met in eight solves.</p>
+<p><strong>How close.</strong> <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> equals the request to 1e-6 of it where
+the first three solves reach that, which they do on a row whose coil is dry
+(no <code class="docutils literal notranslate"><span class="pre">RH_room</span></code>, a coil above the room’s dew point, heating) of a unit whose
+fans modulate. Otherwise the match is to 1e-4: the operating point of a wet
+coil is the optimiser’s, located to 0.001 K of approach and 0.1 W of input,
+and the sensible share of neighbouring wet duties scatters by up to that
+much; a fan held at one flow scatters a dry row by about 1e-5. A row inside
+the tolerance is met, with <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> zero. On 2 646 requests of the
+three default units (the conditions above, from 5 % to 250 % of the
+nameplate) every request under the ceiling was met: 1 093 of the 1 102
+dry-coil and heating rows to 1e-6 (the other nine to 9e-6), all 848 wet rows
+to 1e-4 (half of them to 8e-6); the other 696 are rows at the ceiling.</p>
+<p><strong>What it costs.</strong> Every trial is a total-basis solve, and the row says how
+many it took (<code class="docutils literal notranslate"><span class="pre">request_solves</span> <span class="pre">[-]</span></code>; a run on this basis has the column). A
+dry-coil or heating request takes three (the request, a first guess from it,
+one secant step), a wet one four on average, a request above the ceiling one
+or two; twelve is the most a request may take, and eight the most one of
+these requests took (ten among 528 requests around the kink above). Over the
+same 2 646 requests the run took 3.0 times the wall time of those requests on
+the total basis: 2.9 times on the dry-coil and heating rows, 5.0 times on the
+wet ones (their trials are at larger duties than the request), 1.8 times at
+the ceiling. A dynamic run
+solves each step as <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> does, in either basis, and a row does
+not depend on the steps before it — with the exception the total basis has: a
+dry request the compressor envelope refuses from below is cycled at a
+smallest continuous duty that a run searches once per condition, to 0.5 %
+(<a class="reference internal" href="#wet-indoor-coil-cooling">Wet indoor coil (cooling)</a>, <em>the two ends of the operating range</em>).</p>
+<p><strong>What it does not do.</strong></p>
+<ul class="simple">
+<li><p><em>A request the model answers with the unit off stays off.</em> Where the coil
+duty the search tries has no operating point (<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> other than
+<code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>), the row is that off row with the whole request unmet; and a
+coil duty delivered short under the ceiling is reported as it is. A unit
+with a fan held at one flow has such duties (<em>A fan held at one flow, and
+what the searches can miss</em>, above); the search does not look around them.</p></li>
+<li><p><em>A fan held at one flow can leave a request without a duty.</em> With the
+outdoor fan held, the operating point of neighbouring coil duties can pass
+from one indoor airflow to another, and the net sensible heat with it
+(4 kW unit, 35 °C outdoor, room 35 °C at 60 %: 1 665 W at a coil heat of
+3 571 W, 2 490 W at 3 586 W). A request between the two is answered with
+the lower row and the difference as <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> (7 of 2 268 requests
+of six fan-constrained 4 kW units, six of them with the outdoor fan held).
+On such a unit the ceiling’s row need not have the largest net sensible
+heat either (outdoor fan held, 15 °C outdoor, saturated 35 °C room:
+2 705 W at the 13.7 kW ceiling, 2 773 W at 13.0 kW; one of 312
+conditions): a request above the ceiling’s is then met where the search
+finds a duty that has it, and otherwise answered with the ceiling’s row.
+<code class="docutils literal notranslate"><span class="pre">Q_room_sensible_at_Q_max</span> <span class="pre">[W]</span></code> is the ceiling row’s figure there too:
+do not size such a unit’s largest sensible load by it.</p></li>
+<li><p><em>A step of the wet operating point can leave a request without a duty.</em>
+The operating point of a wet duty is the optimiser’s, and between two
+neighbouring duties the net sensible heat can step by more than the
+tolerance (2 kW unit, 20 °C outdoor, room 32 °C at 80 %: 286.949 W at a
+coil heat of 848.7111 W, 287.056 W at 848.7114 W). A request inside the
+step is answered with the lower row and the difference — 0.05 W of 287 W
+there — as <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code>, with <code class="docutils literal notranslate"><span class="pre">request_solves</span> <span class="pre">[-]</span></code> at twelve (3 of
+251 requests from 100 to 350 W at that condition; none of the 2 646
+above).</p></li>
+<li><p><em>Without the cycling model</em> (<code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code>) a request below the
+smallest continuous duty is over-delivered, as on the total basis, with
+nothing unmet.</p></li>
+</ul>
+</section>
 <section id="cop-boundary">
 <h2>COP boundary<a class="headerlink" href="#cop-boundary" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code> is the coil requirement before fan heat, not net room delivery.
+<p>With the default <code class="docutils literal notranslate"><span class="pre">request_basis</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code> is the coil requirement before
+fan heat, not net room delivery (<a class="reference internal" href="#a-request-on-the-room-s-sensible-load">A request on the room’s sensible load</a>
+asks for the latter).
 It retains its sign convention and governs compressor speed, rated capacity,
 part-load ratio and the operating-point search. <code class="docutils literal notranslate"><span class="pre">cop_ref</span> <span class="pre">[-]</span></code> remains
 <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span> <span class="pre">/</span> <span class="pre">E_cmp</span> <span class="pre">[W]</span></code>. <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> are on the
@@ -1487,6 +1659,43 @@ Cassette and ducted units are not covered: give their <code class="docutils lite
 <code class="docutils literal notranslate"><span class="pre">default_input_estimates[&quot;UA_iu_rated&quot;]</span></code>; archive <code class="docutils literal notranslate"><span class="pre">validation/default_inputs/hx_approach</span></code>).</p>
 </dd></dl>
 
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump.REQUEST_BASIS_TOTAL">
+<span class="sig-prename descclassname"><span class="pre">tmhp.air_source_heat_pump.</span></span><span class="sig-name descname"><span class="pre">REQUEST_BASIS_TOTAL</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'total'</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump.REQUEST_BASIS_TOTAL" title="Link to this definition">¶</a></dt>
+<dd><p>the request is the refrigerant-side heat of the indoor
+coil (<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>; in cooling its total heat, before the fan’s heat).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">request_basis</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump.REQUEST_BASIS_SENSIBLE">
+<span class="sig-prename descclassname"><span class="pre">tmhp.air_source_heat_pump.</span></span><span class="sig-name descname"><span class="pre">REQUEST_BASIS_SENSIBLE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'sensible'</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump.REQUEST_BASIS_SENSIBLE" title="Link to this definition">¶</a></dt>
+<dd><p>the request is the net sensible heat the room air gives
+up or receives (<code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code>), a zone’s sensible load.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">request_basis</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump.REQUEST_BASIS_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.air_source_heat_pump.</span></span><span class="sig-name descname"><span class="pre">REQUEST_BASIS_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'request_basis'</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump.REQUEST_BASIS_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Result key naming the basis of <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code>.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump.REQUEST_SOLVES_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.air_source_heat_pump.</span></span><span class="sig-name descname"><span class="pre">REQUEST_SOLVES_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'request_solves</span> <span class="pre">[-]'</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump.REQUEST_SOLVES_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Result key of a row asked on the room’s net sensible heat, and of no other:
+the total-basis solves the search of the request took.</p>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump.AirSourceHeatPump">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.air_source_heat_pump.</span></span><span class="sig-name descname"><span class="pre">AirSourceHeatPump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'R32'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_cmp_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_vol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_ou_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_iu_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ou</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.65</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_iu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.65</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_fan_a_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dP_ou_fan_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross_ou</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ou_fan_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_iu_fan_a_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dP_iu_fan_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross_iu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_iu_fan_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">27.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_hx_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PR_cycle_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PR_cycle_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">11.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_approach_bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1.0,</span> <span class="pre">30.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs_ou</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs_iu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_disp_cmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_mech</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_cond_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_evap_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_cond</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_evap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_cond_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_evap_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_fan_a_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dP_ou_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ou_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_iu_fan_a_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dP_iu_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_iu_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot_ref_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rated_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_ou_evap_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_fan_a_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_fan_a_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_fan_a_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_iu_fan_a_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_iu_fan_a_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_iu_fan_a_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cd_cycling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defrost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_dis_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_suction_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_cond_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indoor_unit_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'wall_mounted'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump" title="Link to this definition">¶</a></dt>
@@ -1526,6 +1735,15 @@ condenses water: <code class="docutils literal notranslate"><span class="pre">Q_
 model of <code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.heat_exchanger.calc_HX_perf_for_target_heat()</span></code>. Above
 the dew point, in heating and without <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> the coil is the dry one.
 The rated state and the default inputs are those of the dry coil.</p>
+<p>A request is the heat of the indoor coil unless <code class="docutils literal notranslate"><span class="pre">request_basis</span></code> says
+otherwise. With <code class="docutils literal notranslate"><span class="pre">request_basis=&quot;sensible&quot;</span></code> (<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>,
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code>) it is the net sensible heat the room air gives up or
+receives – a zone’s sensible load – and the model finds the coil duty
+whose <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> equals it: more than the request in cooling
+(the indoor fan’s heat, and the latent heat of a wet coil), less in
+heating. <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> are then on that basis, and
+every row names its basis (<code class="docutils literal notranslate"><span class="pre">request_basis</span></code>). Such a row also says how
+many total-basis solves its search took (<code class="docutils literal notranslate"><span class="pre">request_solves</span> <span class="pre">[-]</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1920,6 +2138,24 @@ the COP are the mean over frosting and defrost – what
 <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> is: with <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> in cooling it is sensible
 plus latent, and <code class="docutils literal notranslate"><span class="pre">SHR_iu</span> <span class="pre">[-]</span></code> is the sensible share of it there
 (1 for a dry coil and in heating, NaN when the unit cannot run).</p>
+<p><code class="docutils literal notranslate"><span class="pre">Q_room_sensible_at_Q_max</span> <span class="pre">[W]</span></code> is the room’s net sensible heat
+at that ceiling: <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> of the state the unit
+runs at there – the coil’s sensible heat less the indoor fan’s
+heat in cooling, plus it in heating, under frost the mean over
+frosting and defrost – and 0.0 when the unit cannot run. It is
+what a request made with <code class="docutils literal notranslate"><span class="pre">request_basis=&quot;sensible&quot;</span></code>
+gets when the search arrives at the ceiling
+(<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a>). It is the net sensible heat at the
+largest coil duty, not a maximum over the coil duties: the two
+are the same wherever the net sensible heat rises with the coil
+duty up to the ceiling, which it did at every one of 444
+conditions of default units of 2.5 to 10 kW (dry and wet
+cooling, heating). A unit with a fan held at one flow can take
+more sensible heat at a smaller coil duty (4 kW unit, outdoor
+fan held, 15 degC outdoor, saturated 35 degC room: 2,705 W at
+the 13.7 kW ceiling, 2,773 W at 13.0 kW; one of 312 conditions
+of six fan-constrained units), so it is not to be read as the
+largest sensible load such a unit can meet.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1957,17 +2193,20 @@ inside the window.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady">
-<span class="sig-name descname"><span class="pre">analyze_steady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_r_iu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.analyze_steady"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">analyze_steady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_r_iu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'total'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.analyze_steady"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="Link to this definition">¶</a></dt>
 <dd><p>Run a steady-state performance snapshot.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Q_r_iu</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Indoor thermal load [W]. &gt;0 cooling, &lt;0 heating, 0 off. It is the
+<li><p><strong>Q_r_iu</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Indoor thermal load [W]. &gt;0 cooling, &lt;0 heating, 0 off. With the
+default <code class="docutils literal notranslate"><span class="pre">request_basis</span></code> it is the
 heat the refrigerant exchanges with the room air at the indoor
 coil (<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>): in cooling the coil’s total heat,
 sensible plus latent, before the indoor fan’s heat. What the room
 receives is reported as <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> and
-<code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> (below).</p></li>
+<code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> (below). With
+<code class="docutils literal notranslate"><span class="pre">request_basis=&quot;sensible&quot;</span></code> it is the net sensible heat
+the room air gives up (cooling) or receives (heating).</p></li>
 <li><p><strong>T0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead-state / outdoor-air temperature [°C].</p></li>
 <li><p><strong>T_a_room</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Room air temperature [°C]. Uses constructor default if None.</p></li>
 <li><p><strong>return_dict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True return dict; else single-row DataFrame.</p></li>
@@ -1986,6 +2225,17 @@ the request <code class="docutils literal notranslate"><span class="pre">Q_r_iu<
 on a heating request, where the indoor coil is the condenser, nor
 on an off one (<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span> <span class="pre">&lt;=</span> <span class="pre">0</span></code>): anything may be given there. On
 a cooling request a value that is not a number in 0-1 raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
+<li><p><strong>request_basis</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – What <code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code> is a request for. <code class="docutils literal notranslate"><span class="pre">&quot;total&quot;</span></code> (default): the
+refrigerant-side heat of the indoor coil, <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>.
+<code class="docutils literal notranslate"><span class="pre">&quot;sensible&quot;</span></code>: the net sensible heat of the room air,
+<code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> – the sensible load a zone of a building
+simulation hands over. The coil then has to carry more than the
+request in cooling (the indoor fan’s heat, and with <code class="docutils literal notranslate"><span class="pre">RH_room</span></code>
+the latent heat of the water it condenses) and less in heating
+(the fan’s heat is part of what the room receives), and the
+model finds the coil duty at which <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> of the
+row equals the request (see <em>Notes</em>). Any other value raises
 <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
 </ul>
 </dd>
@@ -2087,11 +2337,24 @@ such a request is answered as before, with the unit off and
 <code class="docutils literal notranslate"><span class="pre">X_eff_iu_hx</span> <span class="pre">[-]</span></code> and <code class="docutils literal notranslate"><span class="pre">X_eff_sys</span> <span class="pre">[-]</span></code> are NaN
 (<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.postprocess_exergy" title="tmhp.air_source_heat_pump.AirSourceHeatPump.postprocess_exergy"><code class="xref py py-meth docutils literal notranslate"><span class="pre">postprocess_exergy()</span></code></a>).</p>
 <p><code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> are on the basis of
-<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>: refrigerant-side coil heat, total (sensible plus
+<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>, which <code class="docutils literal notranslate"><span class="pre">request_basis</span></code> names on every row. With
+<code class="docutils literal notranslate"><span class="pre">&quot;total&quot;</span></code>: refrigerant-side coil heat, total (sensible plus
 latent) and before the fan heat – not the room-side
-<code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code>. <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> is on the room side:
-<code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> plus <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> over
+<code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code>. With <code class="docutils literal notranslate"><span class="pre">&quot;sensible&quot;</span></code>: that
+room-side heat, <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> being what
+<code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> is short of the request. Every other key
+means the same on either basis: <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>
+and <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> are coil heat. <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> is on the room
+side: <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> plus <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> over
 <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code>.</p>
+<p>A row asked with <code class="docutils literal notranslate"><span class="pre">&quot;sensible&quot;</span></code> has one key more, after the
+others: <code class="docutils literal notranslate"><span class="pre">request_solves</span> <span class="pre">[-]</span></code> (int), the number of total-basis
+solves the search of the request took – what the row cost, in
+solves of <code class="docutils literal notranslate"><span class="pre">request_basis=&quot;total&quot;</span></code>. It is 0 for a zero request,
+which is not searched, and never above
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">_ROOM_SENSIBLE_MAX_SOLVES</span></code>; a row short of its request
+that took them all is one the search did not finish (<em>Notes</em>). A
+total-basis row does not have the key.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -2106,11 +2369,82 @@ what removes it. Issued once per model and limit unless the
 <code class="docutils literal notranslate"><span class="pre">&quot;always&quot;</span></code> filter is set (<a class="reference internal" href="../api/support/simulation.html#module-tmhp.operating_limits" title="tmhp.operating_limits"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.operating_limits</span></code></a>).</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>A request on the room’s net sensible heat
+(<code class="docutils literal notranslate"><span class="pre">request_basis=&quot;sensible&quot;</span></code>) is answered with the row of a
+coil duty – the row <code class="docutils literal notranslate"><span class="pre">request_basis=&quot;total&quot;</span></code> returns for that duty,
+key for key, with <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">request_basis</span></code> written over, and <code class="docutils literal notranslate"><span class="pre">request_solves</span> <span class="pre">[-]</span></code> added.
+The duty is searched: the request itself first, then that duty
+scaled by the request over the net sensible heat it gave, then by
+the secant through the last two duties; a search that five solves
+have not ended, with trials on both sides of the request, takes its
+steps from the trials of each side, which is what closes on a duty
+just beyond a kink of the net sensible heat
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">_solve_room_sensible()</span></code>). <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> is read
+from the row as it is
+reported, so a request the unit meets by cycling, and a heating
+request with frost on the outdoor coil, are matched in their means.
+While the compressor is off the indoor fan is off with it: a cycling
+row carries the running coil heat, the fan’s power and so the net
+sensible heat all times <code class="docutils literal notranslate"><span class="pre">capacity_ratio</span> <span class="pre">[-]</span></code> (<a class="reference internal" href="../api/support/simulation.html#module-tmhp.cycling" title="tmhp.cycling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.cycling</span></code></a>),
+and nothing for a fan that circulates air between the compressor’s
+runs.</p>
+<p>The match is to 1e-6 of the request where the first three solves
+reach it, which they do on a row whose coil is dry (no <code class="docutils literal notranslate"><span class="pre">RH_room</span></code>,
+a coil above the room’s dew point, heating) of a unit whose fans
+modulate: such a row is smooth along the duty. Otherwise it is to
+1e-4. On a row that condenses water the operating point of a duty is
+the optimiser’s, located to 1e-3 K of approach and 0.1 W of input,
+and the sensible share of neighbouring wet duties scatters by up to
+that much; a fan held at one flow scatters a dry row by about 1e-5
+(<code class="xref py py-attr docutils literal notranslate"><span class="pre">_ROOM_SENSIBLE_LOOSE_RTOL</span></code>). A row inside the tolerance is
+met, <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> zero. The <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> the row reports is
+the coil duty that was solved, to rounding: asked again for it as
+<code class="docutils literal notranslate"><span class="pre">request_basis=&quot;total&quot;</span></code>, a unit whose fans modulate repeats the row
+(every numeric key to 1e-12 on 2,646 requests of default units, wet
+rows included). A unit with a fan held at one flow repeats it to the
+scatter of its own rows: its search can end on either of two
+operating points for duties one rounding apart (4 kW unit with the
+indoor fan held, 25/35 degC, 4,023.127 W: 568.58 W of input with
+60.9 W at the outdoor fan, or 568.14 W with 54.6 W).</p>
+<p>The search ends without a match on</p>
+<ul class="simple">
+<li><p>a row at a limit: the coil duty asked for is delivered short
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>) with less net sensible heat than
+the request. Above the ceiling of the condition that is the
+ceiling’s row, the largest coil duty the unit delivers
+(<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code></a>, <code class="docutils literal notranslate"><span class="pre">Q_room_sensible_at_Q_max</span> <span class="pre">[W]</span></code>); the rest is
+<code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code>. Where an earlier trial delivered more net
+sensible heat (an indoor fan whose heat grows faster than the
+coil’s sensible heat), that trial is the answer;</p></li>
+<li><p>an off row (<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> other than <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>): the model
+answers the coil duty tried with the unit off. A unit with a fan
+held at one flow can have such duties below its ceiling, and
+duties delivered short (see <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code></a>); the duties
+around the first one tried are not searched. The answer is the
+trial that comes closest to the request from below, the off row
+(nothing delivered) among them. Where the off row is the first
+trial it is the answer, with the whole request unmet; after a
+trial that delivered some net sensible heat, that trial is;</p></li>
+<li><p>a row that delivers more than the request where no duty tried
+delivers less (a unit without the cycling model, below its
+smallest continuous duty), with nothing unmet, as on the coil
+basis;</p></li>
+<li><p>after <code class="xref py py-attr docutils literal notranslate"><span class="pre">_ROOM_SENSIBLE_MAX_SOLVES</span></code> solves, the row that comes
+closest to the request from below, with what is missing in
+<code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code>. A unit with its outdoor fan held at one flow can
+pass from one indoor airflow to another between two neighbouring
+coil duties, and its net sensible heat with it (4 kW unit, 35 degC
+outdoor, room 35 degC at 60 %: 1,665 W at a coil duty of 3,571 W,
+2,490 W at 3,586 W); a request between the two is answered with
+the lower row.</p></li>
+</ul>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_dynamic">
-<span class="sig-name descname"><span class="pre">analyze_dynamic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulation_period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_iu_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_save_csv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_room_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.analyze_dynamic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_dynamic" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">analyze_dynamic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulation_period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_iu_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_save_csv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_room_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'total'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.analyze_dynamic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_dynamic" title="Link to this definition">¶</a></dt>
 <dd><p>Run a time-stepping dynamic simulation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2132,6 +2466,20 @@ each as <code class="docutils literal notranslate"><span class="pre">RH_room</sp
 whose entry is not a number in 0-1 raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming
 the step; what a heating or an off step holds (a missing value)
 is not looked at.</p></li>
+<li><p><strong>request_basis</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – What the entries of <code class="docutils literal notranslate"><span class="pre">Q_r_iu_schedule</span></code> are requests for, on
+every step: <code class="docutils literal notranslate"><span class="pre">&quot;total&quot;</span></code> (default), the refrigerant-side heat of
+the indoor coil, or <code class="docutils literal notranslate"><span class="pre">&quot;sensible&quot;</span></code>, the net sensible heat
+of the room air – the zone sensible loads of a building
+simulation, with its room temperatures and humidities as
+<code class="docutils literal notranslate"><span class="pre">T_a_room_schedule</span></code> and <code class="docutils literal notranslate"><span class="pre">RH_room_schedule</span></code>
+(<code class="docutils literal notranslate"><span class="pre">request_basis</span></code> of <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a>, which solves each
+step). Any other value raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. The argument is
+handed to <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a> only where it is not
+<code class="docutils literal notranslate"><span class="pre">&quot;total&quot;</span></code>: a subclass that overrides <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a>
+without it runs a total-basis schedule as before, and has to
+accept it to run another (Python’s <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> otherwise).
+A run on <code class="docutils literal notranslate"><span class="pre">&quot;sensible&quot;</span></code> has one column more,
+<code class="docutils literal notranslate"><span class="pre">request_solves</span> <span class="pre">[-]</span></code>: the total-basis solves of each step.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

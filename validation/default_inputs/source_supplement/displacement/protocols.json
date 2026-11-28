@@ -1,0 +1,37 @@
+{
+  "ASHRAE_50Hz_fixed_single": {
+    "description": "Fixed-speed single rotary at 50 Hz supply, same ASHRAE-type refrigerant-side rating point",
+    "test_condition_labels": [
+      "N-TEC",
+      "ASHRAE/T",
+      "ASHRAE",
+      "ASH"
+    ],
+    "T_evap_C": 7.2,
+    "T_cond_C": 54.4,
+    "T_suction_C": 35,
+    "T_liquid_C": 46.1,
+    "superheat_K": 27.8,
+    "subcooling_K": 8.3,
+    "frequency_Hz": 50,
+    "speed_basis": "fixed-speed supply frequency as printed",
+    "compressor_type": "rotary_single",
+    "basis": "rotary_single_fixed_50Hz"
+  },
+  "GMCC_SEER60_60rps_variable_twin": {
+    "description": "GMCC DC inverter twin rotary at the SEER60 stated inverter drive setting",
+    "test_condition_labels": [
+      "SEER60"
+    ],
+    "T_evap_C": 2.7,
+    "T_cond_C": 42.3,
+    "T_suction_C": 12.8,
+    "T_liquid_C": 34.3,
+    "superheat_K": 10.1,
+    "subcooling_K": 8,
+    "frequency_Hz": 60,
+    "speed_basis": "inverter drive at 60 rps per GMCC rating condition table; not measured shaft speed",
+    "compressor_type": "rotary_twin",
+    "basis": "rotary_twin_inverter_60rps"
+  }
+}

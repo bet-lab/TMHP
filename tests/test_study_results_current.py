@@ -136,8 +136,12 @@ def test_ashp_trend_sample_reproduces() -> None:
     mismatches = []
     sweep = pd.read_csv(DATA / "ashp_part_load_sweep.csv")
     model = AirSourceHeatPump(hp_capacity=capacity, ref=ref, **at.SWEEP_SETTINGS)
-    for fraction in (1.0, 0.4):
-        fresh = at._run(model, at.HEATING, capacity * fraction, 7.0)
+    # Rows from the speed floor (0.4 is above it, 0.12 below), the nameplate, and above it up to the top speed: the
+    # first request at or above the maximum capacity is the last row of the curve, answered at the top speed.
+    q_max = float(model.max_capacity(7.0, at.HEATING.t_room_C, mode="heating")["Q_max [W]"])
+    top = at._above_nameplate(q_max, capacity)[-1]
+    for fraction in (top, 1.0, 0.4, 0.12):
+        fresh = at._run(model, at.HEATING, capacity * fraction, 7.0, sweep_columns=True)
         row = sweep[
             (sweep.duty == "heating")
             & (sweep.capacity_kW == capacity / 1000.0)
@@ -151,6 +155,25 @@ def test_ashp_trend_sample_reproduces() -> None:
             for k, v in fresh.items()
             if not _same(v, row[k].iat[0])
         ]
+        # The axis columns: the maximum at the condition, the request over it, the delivery over it.
+        fresh_axis = {
+            "q_max_W": q_max,
+            "plr_max": capacity * fraction / q_max,
+            "delivered_fraction_of_max": fresh["q_delivered_W"] / q_max,
+        }
+        mismatches += [
+            f"sweep {fraction} {k}: committed {row[k].iat[0]!r}, now {v!r}"
+            for k, v in fresh_axis.items()
+            if not _same(v, row[k].iat[0])
+        ]
+    assert row.capacity_clamped.iat[0] == "min"
+    curve = sweep[
+        (sweep.duty == "heating")
+        & (sweep.capacity_kW == capacity / 1000.0)
+        & (sweep.refrigerant == ref)
+        & (sweep.t_outdoor_C == 7.0)
+    ]
+    assert (curve[curve.plr_nameplate == top].capacity_clamped == "max").all()
     points = pd.read_csv(DATA / "ashp_en14825_points.csv")
     oversizing = at.HEATING.oversizing[1]
     model = AirSourceHeatPump(hp_capacity=capacity, ref=ref, **at.TRAJECTORY_SETTINGS)
@@ -331,3 +354,19 @@ def test_every_study_has_a_provenance_record() -> None:
     assert folders <= covered, f"study folders without a provenance record: {sorted(folders - covered)}"
     figures = {p.stem for p in FIGURE_RECORDS.glob("*.json")}
     assert {"mollier_cycle_R32", "mollier_ts_R32", "refrigerant_compare_ph", "source_cop_timeseries"} <= figures
+
+
+def test_ashp_trend_sweep_stops_on_a_missing_ceiling(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An infeasible ceiling (``binding == "infeasible"``, ``Q_max`` 0) or a NaN one has no maximum to divide by:
+    the sweep raises instead of dividing by zero or stepping up forever."""
+    from validation.analysis import ashp_trend as at
+
+    from tmhp import AirSourceHeatPump
+
+    for bad in (0.0, float("nan"), float("inf"), -1.0):
+        with pytest.raises(ValueError):
+            at._above_nameplate(bad, 3500.0)
+    for ceiling in ({"Q_max [W]": 0.0, "binding": "infeasible"}, {"Q_max [W]": float("nan"), "binding": "cycle"}):
+        monkeypatch.setattr(AirSourceHeatPump, "max_capacity", lambda self, *a, _c=ceiling, **k: dict(_c))
+        with pytest.raises(RuntimeError, match="no capacity ceiling"):
+            at.sweep()

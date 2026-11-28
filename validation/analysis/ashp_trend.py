@@ -41,6 +41,7 @@ Run
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 from typing import NamedTuple
 
@@ -108,6 +109,18 @@ CONFIGURATIONS = (
 
 #: Part loads for the fixed-temperature sweep, nameplate as the denominator.
 SWEEP_FRACTIONS = tuple(round(1.0 - 0.04 * i, 2) for i in range(23))  # 1.00 .. 0.12
+#: The sweep goes on above the nameplate, in the same steps, up to the first
+#: request at or above the unit's maximum capacity at the condition
+#: (``AirSourceHeatPump.max_capacity``): that request is answered at the top
+#: speed (``capacity_clamped == "max"``). The nameplate rows are what the sweep
+#: held before; the verdict (:func:`score`) reads the trajectory only.
+SWEEP_STEP = 0.04
+#: No request lies within this share of the maximum, on either side: the last
+#: request above the nameplate exceeds the maximum by at least this much, and
+#: grid requests closer to it than this are skipped (:func:`_on_the_ceiling`). A
+#: request within a few parts in 1e5 of the ceiling sits on the capacity limit,
+#: and whether it comes back clamped differs between platforms.
+CEILING_MARGIN = 0.01
 
 #: Model settings, chosen for the question rather than left to the defaults.
 #: Both curves are the *running* machine: the declared COP of a part-load
@@ -124,8 +137,17 @@ SWEEP_SETTINGS: dict = {"Cd_cycling": None, "defrost": False}
 PROVENANCE = DATA / "provenance" / "ashp_trend.json"
 
 
-def _run(model: AirSourceHeatPump, duty: Duty, load_w: float, t_outdoor: float) -> dict | None:
-    """One steady-state point, or None when the model declined to converge."""
+def _run(
+    model: AirSourceHeatPump, duty: Duty, load_w: float, t_outdoor: float, *, sweep_columns: bool = False
+) -> dict | None:
+    """One steady-state point, or None when the model declined to converge.
+
+    ``sweep_columns`` adds the result's ``capacity_binding`` (what stops a
+    request at the ceiling: the compressor's top speed, or a coil at its largest
+    airflow, ``"cycle"``, before it) and ``efficiency_extrapolated`` (the point
+    lies outside the default compressor maps' data); the sweep records them so
+    the figure can draw that stretch apart, the trajectory does not need them.
+    """
     result = model.analyze_steady(
         Q_r_iu=duty.sign * load_w,
         T0=t_outdoor,
@@ -147,18 +169,61 @@ def _run(model: AirSourceHeatPump, duty: Duty, load_w: float, t_outdoor: float) 
         "q_delivered_W": abs(float(result.get("Q_ref_iu [W]", float("nan")))),
         "e_tot_W": float(result.get("E_tot [W]", float("nan"))),
         "capacity_clamped": result.get("capacity_clamped"),
-    }
+    } | (
+        {
+            "capacity_binding": result.get("capacity_binding"),
+            "efficiency_extrapolated": bool(result.get("efficiency_extrapolated", False)),
+        }
+        if sweep_columns
+        else {}
+    )
+
+
+def _above_nameplate(q_max_w: float, capacity_w: float) -> list[float]:
+    """Request fractions of the nameplate above 1: the grid steps up to the first one clearly above the maximum.
+
+    "Clearly" is :data:`CEILING_MARGIN`: that request is answered at the ceiling on every platform.
+    """
+    if not (math.isfinite(q_max_w) and q_max_w > 0.0 and capacity_w > 0.0):
+        raise ValueError(f"no capacity ceiling to sweep up to: Q_max {q_max_w!r} W, nameplate {capacity_w!r} W")
+    fractions = []
+    k = 1
+    while True:
+        fraction = round(1.0 + SWEEP_STEP * k, 2)
+        fractions.append(fraction)
+        if fraction * capacity_w >= q_max_w * (1.0 + CEILING_MARGIN):
+            return fractions
+        k += 1
+
+
+def _on_the_ceiling(request_w: float, q_max_w: float) -> bool:
+    """Whether a request lies within :data:`CEILING_MARGIN` of the maximum, where its clamp is platform-dependent."""
+    return abs(request_w / q_max_w - 1.0) < CEILING_MARGIN
 
 
 def sweep() -> pd.DataFrame:
-    """Fixed-temperature part-load sweep: both air temperatures held."""
+    """Fixed-temperature part-load sweep: both air temperatures held, from the speed floor to the capacity ceiling.
+
+    The ceiling is the top speed's unless another limit binds first (``capacity_binding``).
+    """
     rows = []
     for capacity_w, refrigerant in CONFIGURATIONS:
         for duty in DUTIES:
             model = AirSourceHeatPump(hp_capacity=capacity_w, ref=refrigerant, **SWEEP_SETTINGS)
             for t_outdoor in duty.sweep_outdoor_C:
-                for fraction in SWEEP_FRACTIONS:
-                    point = _run(model, duty, capacity_w * fraction, t_outdoor)
+                ceiling = model.max_capacity(t_outdoor, duty.t_room_C, mode=duty.name)
+                q_max = float(ceiling["Q_max [W]"])
+                if ceiling.get("binding") == "infeasible" or not (math.isfinite(q_max) and q_max > 0.0):
+                    # No duty has an operating point here, so there is no maximum to divide by: stop rather than
+                    # write a curve on an undefined axis.
+                    raise RuntimeError(
+                        f"{capacity_w / 1000:g} kW {refrigerant} {duty.name} at {t_outdoor} °C: no capacity ceiling "
+                        f"(binding {ceiling.get('binding')!r}, Q_max {q_max!r} W)"
+                    )
+                for fraction in (*_above_nameplate(q_max, capacity_w)[::-1], *SWEEP_FRACTIONS):
+                    if _on_the_ceiling(capacity_w * fraction, q_max):
+                        continue
+                    point = _run(model, duty, capacity_w * fraction, t_outdoor, sweep_columns=True)
                     if point is None:
                         continue
                     rows.append(
@@ -170,6 +235,9 @@ def sweep() -> pd.DataFrame:
                             "t_room_C": duty.t_room_C,
                             "plr_nameplate": fraction,
                             **point,
+                            "q_max_W": q_max,
+                            "plr_max": capacity_w * fraction / q_max,
+                            "delivered_fraction_of_max": point["q_delivered_W"] / q_max,
                         }
                     )
     return pd.DataFrame(rows)
@@ -301,8 +369,11 @@ def main() -> None:
         part = sweep_df[sweep_df.duty == duty.name]
         if part.empty:
             continue
-        clamped = part.capacity_clamped.notna().mean() * 100.0
-        print(f"    {duty.name:8s} {len(part):4d} points, {clamped:5.1f} % at a speed clamp")
+        floor = (part.capacity_clamped == "min").mean() * 100.0
+        top = (part.capacity_clamped == "max").mean() * 100.0
+        print(
+            f"    {duty.name:8s} {len(part):4d} points, {floor:5.1f} % at the speed floor, {top:4.1f} % at the capacity ceiling"
+        )
     print()
 
     if args.reuse and OUT_POINTS.exists():

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP aims at a useful accuracy from a nameplate ( Minimal input), not at reproducing one machine from its drawings. That bargain has a price: some things are outside the models and are refused, and..." />
 
-    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
+    <meta property="article:modified_time" content="2026-11-28T12:05:53+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -412,12 +412,29 @@ and fan power does not follow the density</p></td>
 the coil inlet; at 1 600 m the real density is 18 % lower
 (<a class="reference internal" href="../models/ashp.html#ashp-air-density"><span class="std std-ref">Air density</span></a>)</p></td>
 </tr>
-<tr class="row-odd"><td><p>Sensible cooling only</p></td>
-<td><p>The indoor coil is dry: no dehumidification, so the cooling duty is
-the sensible one</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> in cooling is below a catalogue’s <em>total</em> capacity at
-a low sensible heat ratio (<a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a>, <em>Cooling and
-latent load</em>)</p></td>
+<tr class="row-odd"><td><p>Dehumidification only on request (ASHP), never in GSHP</p></td>
+<td><p>Without a room humidity the indoor coil is dry: all of the cooling
+duty is sensible and no moisture is removed. With <code class="docutils literal notranslate"><span class="pre">RH_room</span></code>
+(<code class="docutils literal notranslate"><span class="pre">RH_room_schedule</span></code> in a dynamic run) the ASHP coil condenses water
+below the room’s dew point: an apparatus-dew-point / bypass-factor
+coil whose surface is at the evaporating temperature, with the dry
+coil’s <code class="docutils literal notranslate"><span class="pre">UA</span></code>, Lewis number 1 and condensate leaving at the coil
+temperature (<a class="reference internal" href="../models/ashp.html#ashp-wet-coil"><span class="std std-ref">Wet indoor coil (cooling)</span></a>). Not modelled: wet-surface
+enhancement, re-evaporation while the compressor cycles, frost on the
+indoor coil, a request stated as room load, heating humidification.
+The default indoor <code class="docutils literal notranslate"><span class="pre">UA</span></code> was not derived for a wet coil, and the
+model’s sensible heat ratio lies above the catalogues’
+(<a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a>, <em>Cooling and latent load</em>). The GSHP
+indoor coil is always dry</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">SHR_iu</span> <span class="pre">[-]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">m_dot_iu_condensate</span> <span class="pre">[kg/s]</span></code> on every ASHP row (latent 0, ratio 1
+for a dry coil); <code class="docutils literal notranslate"><span class="pre">RH_room</span> <span class="pre">[-]</span></code> is NaN where no humidity was used.
+A dry coil’s <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> is all sensible: at a low sensible heat
+ratio that is not a catalogue’s <em>total</em> capacity. The exergy columns
+of the indoor air are the thermal exergy of a dry air stream; no
+moist-air exergy balance is modelled, so on a row whose coil removes
+water <code class="docutils literal notranslate"><span class="pre">Xc_iu_hx</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">X_eff_iu_hx</span> <span class="pre">[-]</span></code> and <code class="docutils literal notranslate"><span class="pre">X_eff_sys</span> <span class="pre">[-]</span></code>
+are NaN</p></td>
 </tr>
 <tr class="row-even"><td><p>Fans at the flow of least power</p></td>
 <td><p>Each operating point is the one of least total electrical input the
@@ -671,7 +688,7 @@ what stops the rest (<a class="reference internal" href="failure-reason-semantic
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 22, 2026
+  Last updated Nov 28, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

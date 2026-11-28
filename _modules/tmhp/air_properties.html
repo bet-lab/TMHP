@@ -191,72 +191,75 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="17"><span class="sd">  larger; per cubic metre the two nearly cancel. At 20 degC and 50 % relative</span>
 </span><span data-line="18"><span class="sd">  humidity the sensible heat capacity of a cubic metre is 0.2 % above the</span>
 </span><span data-line="19"><span class="sd">  dry-air figure, at 35 degC and 40 % it is 0.3 % above. The coils of the</span>
-</span><span data-line="20"><span class="sd">  cycle models are dry (sensible heat only), so dry air is used.</span>
-</span><span data-line="21"><span class="sd">- **Specific heat.** ``constants.c_a`` (1005 J/(kg K)) is kept constant: the</span>
-</span><span data-line="22"><span class="sd">  specific heat of dry air changes by 0.1 % between -25 and 40 degC.</span>
-</span><span data-line="23"><span class="sd">- **Altitude.** The pressure argument defaults to one standard atmosphere.</span>
-</span><span data-line="24"><span class="sd">  The models use that default; at 1 600 m the density is 18 % lower.</span>
-</span><span data-line="25"><span class="sd">- **Fan power.** The fan curves stay functions of the volume flow at the rated</span>
-</span><span data-line="26"><span class="sd">  static pressure. By the fan laws the pressure rise, and so the power, is</span>
-</span><span data-line="27"><span class="sd">  proportional to the density at a fixed volume flow; the models do not apply</span>
-</span><span data-line="28"><span class="sd">  that (outdoor fan at -25 degC: +16 % of its power, 0.5 to 0.7 % of the total</span>
-</span><span data-line="29"><span class="sd">  electrical input).</span>
-</span><span data-line="30">
-</span><span data-line="31"><span class="sd">The volume flows of the air-source models (``dV_ou_a``, ``dV_iu_a``, the fan</span>
-</span><span data-line="32"><span class="sd">references and limits) are volumes at the coil inlet state, so the air mass</span>
-</span><span data-line="33"><span class="sd">flow of a coil is ``air_density(T_in) * dV`` and is the same before and after</span>
-</span><span data-line="34"><span class="sd">the coil and the fan.</span>
-</span><span data-line="35"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="36">
-</span><span data-line="37"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-</span><span data-line="38">
-</span><span data-line="39"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
-</span><span data-line="40">
-</span><span data-line="41"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">P0_PA</span><span class="p">,</span> <span class="n">R_a</span><span class="p">,</span> <span class="n">c_a</span>
-</span><span data-line="42">
-</span><span data-line="43"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="44">    <span class="s2">&quot;air_density&quot;</span><span class="p">,</span>
-</span><span data-line="45">    <span class="s2">&quot;air_heat_capacity_rate&quot;</span><span class="p">,</span>
-</span><span data-line="46"><span class="p">]</span>
-</span><span data-line="47">
-</span><span data-line="48"><span class="n">_KELVIN_OFFSET</span> <span class="o">=</span> <span class="mf">273.15</span>
-</span><span data-line="49">
+</span><span data-line="20"><span class="sd">  cycle models exchange sensible heat with a dry-air stream, so dry air is</span>
+</span><span data-line="21"><span class="sd">  used; the optional wet indoor coil of the air-to-air model adds its latent</span>
+</span><span data-line="22"><span class="sd">  heat on top of the same dry-air heat capacity rate</span>
+</span><span data-line="23"><span class="sd">  (:func:`tmhp.heat_exchanger.calc_HX_perf_for_target_heat`).</span>
+</span><span data-line="24"><span class="sd">- **Specific heat.** ``constants.c_a`` (1005 J/(kg K)) is kept constant: the</span>
+</span><span data-line="25"><span class="sd">  specific heat of dry air changes by 0.1 % between -25 and 40 degC.</span>
+</span><span data-line="26"><span class="sd">- **Altitude.** The pressure argument defaults to one standard atmosphere.</span>
+</span><span data-line="27"><span class="sd">  The models use that default; at 1 600 m the density is 18 % lower.</span>
+</span><span data-line="28"><span class="sd">- **Fan power.** The fan curves stay functions of the volume flow at the rated</span>
+</span><span data-line="29"><span class="sd">  static pressure. By the fan laws the pressure rise, and so the power, is</span>
+</span><span data-line="30"><span class="sd">  proportional to the density at a fixed volume flow; the models do not apply</span>
+</span><span data-line="31"><span class="sd">  that (outdoor fan at -25 degC: +16 % of its power, 0.5 to 0.7 % of the total</span>
+</span><span data-line="32"><span class="sd">  electrical input).</span>
+</span><span data-line="33">
+</span><span data-line="34"><span class="sd">The volume flows of the air-source models (``dV_ou_a``, ``dV_iu_a``, the fan</span>
+</span><span data-line="35"><span class="sd">references and limits) are volumes at the coil inlet state, so the air mass</span>
+</span><span data-line="36"><span class="sd">flow of a coil is ``air_density(T_in) * dV`` and is the same before and after</span>
+</span><span data-line="37"><span class="sd">the coil and the fan.</span>
+</span><span data-line="38"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="39">
+</span><span data-line="40"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="41">
+</span><span data-line="42"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span data-line="43">
+</span><span data-line="44"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">P0_PA</span><span class="p">,</span> <span class="n">R_a</span><span class="p">,</span> <span class="n">c_a</span>
+</span><span data-line="45">
+</span><span data-line="46"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="47">    <span class="s2">&quot;air_density&quot;</span><span class="p">,</span>
+</span><span data-line="48">    <span class="s2">&quot;air_heat_capacity_rate&quot;</span><span class="p">,</span>
+</span><span data-line="49"><span class="p">]</span>
 </span><span data-line="50">
+</span><span data-line="51"><span class="n">_KELVIN_OFFSET</span> <span class="o">=</span> <span class="mf">273.15</span>
+</span><span data-line="52">
+</span><span data-line="53">
 <div class="viewcode-block" id="air_density">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.air_properties.air_density">[docs]</a>
-</span><span data-line="51"><span class="k">def</span><span class="w"> </span><span class="nf">air_density</span><span class="p">(</span><span class="n">T_C</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">P</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P0_PA</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span data-line="52"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Density of dry air [kg/m3] at temperature ``T_C`` [degC] and pressure ``P`` [Pa].</span>
-</span><span data-line="53">
-</span><span data-line="54"><span class="sd">    Ideal gas, ``rho = P / (R_a (T_C + 273.15))``. ``T_C`` may be a scalar or</span>
-</span><span data-line="55"><span class="sd">    an array-like (NumPy array, pandas Series); the result has the same shape.</span>
-</span><span data-line="56"><span class="sd">    A scalar at or below absolute zero, or a non-positive pressure, raises</span>
-</span><span data-line="57"><span class="sd">    ``ValueError``.</span>
-</span><span data-line="58">
-</span><span data-line="59"><span class="sd">    Examples</span>
-</span><span data-line="60"><span class="sd">    --------</span>
-</span><span data-line="61"><span class="sd">    &gt;&gt;&gt; round(air_density(15.0), 4)</span>
-</span><span data-line="62"><span class="sd">    1.225</span>
-</span><span data-line="63"><span class="sd">    &gt;&gt;&gt; round(air_density(-25.0), 3), round(air_density(35.0), 3)</span>
-</span><span data-line="64"><span class="sd">    (1.422, 1.145)</span>
-</span><span data-line="65"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="66">    <span class="k">if</span> <span class="ow">not</span> <span class="n">P</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span data-line="67">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Air pressure must be positive&quot;</span><span class="p">)</span>
-</span><span data-line="68">    <span class="n">T_K</span> <span class="o">=</span> <span class="n">T_C</span> <span class="o">+</span> <span class="n">_KELVIN_OFFSET</span>
-</span><span data-line="69">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">T_K</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">T_K</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span data-line="70">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Air temperature must be above absolute zero&quot;</span><span class="p">)</span>
-</span><span data-line="71">    <span class="k">return</span> <span class="n">P</span> <span class="o">/</span> <span class="p">(</span><span class="n">R_a</span> <span class="o">*</span> <span class="n">T_K</span><span class="p">)</span></div>
+</span><span data-line="54"><span class="k">def</span><span class="w"> </span><span class="nf">air_density</span><span class="p">(</span><span class="n">T_C</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">P</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P0_PA</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="55"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Density of dry air [kg/m3] at temperature ``T_C`` [degC] and pressure ``P`` [Pa].</span>
+</span><span data-line="56">
+</span><span data-line="57"><span class="sd">    Ideal gas, ``rho = P / (R_a (T_C + 273.15))``. ``T_C`` may be a scalar or</span>
+</span><span data-line="58"><span class="sd">    an array-like (NumPy array, pandas Series); the result has the same shape.</span>
+</span><span data-line="59"><span class="sd">    A scalar at or below absolute zero, or a non-positive pressure, raises</span>
+</span><span data-line="60"><span class="sd">    ``ValueError``.</span>
+</span><span data-line="61">
+</span><span data-line="62"><span class="sd">    Examples</span>
+</span><span data-line="63"><span class="sd">    --------</span>
+</span><span data-line="64"><span class="sd">    &gt;&gt;&gt; round(air_density(15.0), 4)</span>
+</span><span data-line="65"><span class="sd">    1.225</span>
+</span><span data-line="66"><span class="sd">    &gt;&gt;&gt; round(air_density(-25.0), 3), round(air_density(35.0), 3)</span>
+</span><span data-line="67"><span class="sd">    (1.422, 1.145)</span>
+</span><span data-line="68"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="69">    <span class="k">if</span> <span class="ow">not</span> <span class="n">P</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="70">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Air pressure must be positive&quot;</span><span class="p">)</span>
+</span><span data-line="71">    <span class="n">T_K</span> <span class="o">=</span> <span class="n">T_C</span> <span class="o">+</span> <span class="n">_KELVIN_OFFSET</span>
+</span><span data-line="72">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">T_K</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">T_K</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="73">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Air temperature must be above absolute zero&quot;</span><span class="p">)</span>
+</span><span data-line="74">    <span class="k">return</span> <span class="n">P</span> <span class="o">/</span> <span class="p">(</span><span class="n">R_a</span> <span class="o">*</span> <span class="n">T_K</span><span class="p">)</span></div>
 
-</span><span data-line="72">
-</span><span data-line="73">
+</span><span data-line="75">
+</span><span data-line="76">
 <div class="viewcode-block" id="air_heat_capacity_rate">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.air_properties.air_heat_capacity_rate">[docs]</a>
-</span><span data-line="74"><span class="k">def</span><span class="w"> </span><span class="nf">air_heat_capacity_rate</span><span class="p">(</span><span class="n">dV</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">T_C</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">P</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P0_PA</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span data-line="75"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Heat capacity rate of an air stream [W/K]: ``c_a * air_density(T_C, P) * dV``.</span>
-</span><span data-line="76">
-</span><span data-line="77"><span class="sd">    ``dV`` [m3/s] is the volume flow at the state (``T_C`` [degC], ``P`` [Pa])</span>
-</span><span data-line="78"><span class="sd">    the density is taken at -- for a coil, its inlet air.</span>
-</span><span data-line="79"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="80">    <span class="k">return</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">air_density</span><span class="p">(</span><span class="n">T_C</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span> <span class="o">*</span> <span class="n">dV</span></div>
+</span><span data-line="77"><span class="k">def</span><span class="w"> </span><span class="nf">air_heat_capacity_rate</span><span class="p">(</span><span class="n">dV</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">T_C</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">P</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">P0_PA</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="78"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Heat capacity rate of an air stream [W/K]: ``c_a * air_density(T_C, P) * dV``.</span>
+</span><span data-line="79">
+</span><span data-line="80"><span class="sd">    ``dV`` [m3/s] is the volume flow at the state (``T_C`` [degC], ``P`` [Pa])</span>
+</span><span data-line="81"><span class="sd">    the density is taken at -- for a coil, its inlet air.</span>
+</span><span data-line="82"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="83">    <span class="k">return</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">air_density</span><span class="p">(</span><span class="n">T_C</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span> <span class="o">*</span> <span class="n">dV</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

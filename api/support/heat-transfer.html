@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-11-20T03:30:10+00:00" />
+    <meta property="article:modified_time" content="2026-11-28T12:05:53+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -786,7 +786,10 @@ At 15 degC and 101 325 Pa it gives 1.2250 kg/m3, the value of
 larger; per cubic metre the two nearly cancel. At 20 degC and 50 % relative
 humidity the sensible heat capacity of a cubic metre is 0.2 % above the
 dry-air figure, at 35 degC and 40 % it is 0.3 % above. The coils of the
-cycle models are dry (sensible heat only), so dry air is used.</p></li>
+cycle models exchange sensible heat with a dry-air stream, so dry air is
+used; the optional wet indoor coil of the air-to-air model adds its latent
+heat on top of the same dry-air heat capacity rate
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.heat_exchanger.calc_HX_perf_for_target_heat()</span></code>).</p></li>
 <li><p><strong>Specific heat.</strong> <code class="docutils literal notranslate"><span class="pre">constants.c_a</span></code> (1005 J/(kg K)) is kept constant: the
 specific heat of dry air changes by 0.1 % between -25 and 40 degC.</p></li>
 <li><p><strong>Altitude.</strong> The pressure argument defaults to one standard atmosphere.
@@ -4598,7 +4601,7 @@ parallel boreholes.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 20, 2026
+  Last updated Nov 28, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

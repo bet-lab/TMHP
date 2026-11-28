@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-11-26T22:50:24+00:00" />
+    <meta property="article:modified_time" content="2026-11-28T12:05:53+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -156,9 +156,11 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#air-density">Air density</a></li>
 <li><a class="reference internal" href="#sink-side-mechanics">Sink-side mechanics</a></li>
 <li><a class="reference internal" href="#indoor-airflow">Indoor airflow</a></li>
+<li><a class="reference internal" href="#wet-indoor-coil-cooling">Wet indoor coil (cooling)</a></li>
 <li><a class="reference internal" href="#part-load-cycling-and-unmet-load">Part load: cycling and unmet load</a></li>
 <li><a class="reference internal" href="#frost-and-defrost">Frost and defrost</a></li>
 <li><a class="reference internal" href="#cop-boundary">COP boundary</a></li>
+<li><a class="reference internal" href="#references">References</a></li>
 <li><a class="reference internal" href="#module-tmhp.air_source_heat_pump">API reference</a><ul>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.OBJ_CAPACITY_LIMITED"><code class="docutils literal notranslate"><span class="pre">OBJ_CAPACITY_LIMITED</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump.OBJ_INFEASIBLE"><code class="docutils literal notranslate"><span class="pre">OBJ_INFEASIBLE</span></code></a></li>
@@ -412,7 +414,13 @@ the outlet temperature and the fan heat, so within a row</p>
 <p>holds on each coil (<code class="docutils literal notranslate"><span class="pre">Q_ref_ou</span></code>, <code class="docutils literal notranslate"><span class="pre">E_ou_fan</span></code> on the outdoor side;
 <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span></code>, <code class="docutils literal notranslate"><span class="pre">E_iu_fan</span></code> on the indoor side; the refrigerant heat is negative
 where the coil is the evaporator). <code class="docutils literal notranslate"><span class="pre">Q_a_iu_in</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_a_iu_out</span></code> and the air
-exergy flows use the same mass flow. A row averaged over on/off cycling or
+exergy flows use the same mass flow. On a wet indoor coil
+(<a class="reference internal" href="#ashp-wet-coil"><span class="std std-ref">Wet indoor coil (cooling)</span></a>) the left-hand side is the sensible part only: the
+air’s temperature change carries the coil’s sensible heat and the fan power,
+<code class="docutils literal notranslate"><span class="pre">-Q_room_sensible</span> <span class="pre">[W]</span></code>, and the refrigerant takes up the latent heat
+<code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> besides (default 4 kW unit, 35/27 °C, 50 % room humidity:
+−3 217.9 W on the air, of which 23.1 W of fan heat, and 759.0 W latent for
+the 4 000 W the refrigerant takes up). A row averaged over on/off cycling or
 frost keeps the identity on the indoor side; on the outdoor side the fan power
 is averaged with the runtime fraction and the airflow with the capacity ratio,
 so the two sides differ by that share of the fan power.</p>
@@ -504,6 +512,381 @@ default 4 kW unit near 125 % of its nameplate and cut the rated capacity of
 units above 8 kW.</p>
 </div>
 </section>
+<section id="wet-indoor-coil-cooling">
+<span id="ashp-wet-coil"></span><h2>Wet indoor coil (cooling)<a class="headerlink" href="#wet-indoor-coil-cooling" title="Link to this heading">¶</a></h2>
+<p>Without a room humidity the indoor coil is dry: all of the coil heat is
+sensible and the model removes no moisture. Give the room’s relative humidity
+and a cooling coil that runs below the room air’s dew point also condenses
+water:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPump</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">ashp</span> <span class="o">=</span> <span class="n">AirSourceHeatPump</span><span class="p">()</span>
+</span><span data-line="4"><span class="n">row</span> <span class="o">=</span> <span class="n">ashp</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">Q_r_iu</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span> <span class="n">T_a_room</span><span class="o">=</span><span class="mf">27.0</span><span class="p">,</span> <span class="n">RH_room</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span data-line="5">
+</span><span data-line="6"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Q_ref_iu [W]&quot;</span><span class="p">]</span>                <span class="c1"># 4000: what the refrigerant takes up</span>
+</span><span data-line="7"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Q_iu_sensible [W]&quot;</span><span class="p">]</span>           <span class="c1"># 3241</span>
+</span><span data-line="8"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Q_iu_latent [W]&quot;</span><span class="p">]</span>             <span class="c1"># 759</span>
+</span><span data-line="9"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;SHR_iu [-]&quot;</span><span class="p">]</span>                  <span class="c1"># 0.81</span>
+</span><span data-line="10"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;m_dot_iu_condensate [kg/s]&quot;</span><span class="p">]</span>  <span class="c1"># 3.08e-4 (1.1 kg/h)</span>
+</span><span data-line="11"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Q_room_sensible [W]&quot;</span><span class="p">]</span>         <span class="c1"># 3218: sensible, less the indoor fan&#39;s 23 W</span>
+</span><span data-line="12"><span class="n">row</span><span class="p">[</span><span class="s2">&quot;w_iu_a_out [kg/kg]&quot;</span><span class="p">]</span>          <span class="c1"># 0.01007 (room air: 0.01120)</span>
+</span></pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">RH_room</span></code> is a fraction (0–1) at <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code> and one standard atmosphere;
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code> takes the same argument and
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> a <code class="docutils literal notranslate"><span class="pre">RH_room_schedule</span></code>. Heating does not read it (the
+indoor coil is the condenser there), nor does an off point, and <code class="docutils literal notranslate"><span class="pre">None</span></code> — the
+default — is the dry coil, with every result as before. A schedule holds one
+entry per step (a list, an array or a Series). Only the cooling steps are
+read, each as <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> is: a cooling step whose entry is not a number in
+0–1 stops the run with a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> that names the step, and what a
+heating or an off step holds — a missing value, say — is not looked at.</p>
+<p>The coil is the apparatus-dew-point / bypass-factor coil, the family
+EnergyPlus uses for DX cooling coils, written so that it reduces to the dry
+coil. It is also the classic wet-coil analysis — the heat driven by the
+difference between the air’s enthalpy and that of saturated air at the
+surface, with the coil-side resistance entering through the slope of the
+saturated-air enthalpy (Threlkeld, 1970; Braun, Klein &amp; Mitchell, 1989) —
+with the refrigerant-side resistance set to zero, so that the surface is at
+the evaporating temperature.</p>
+<p>With room air at <span class="math notranslate nohighlight">\(T_{in}\)</span>, <span class="math notranslate nohighlight">\(w_{in}\)</span>, the evaporating
+temperature <span class="math notranslate nohighlight">\(T_e\)</span>, the air heat capacity rate <span class="math notranslate nohighlight">\(C\)</span> and the
+effectiveness <span class="math notranslate nohighlight">\(\varepsilon = 1 - e^{-UA/C}\)</span> of the dry coil,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[Q_s = C\,\varepsilon\,(T_{in} - T_e), \qquad
+Q_l = C\,\varepsilon\,\frac{h_{fg}}{c_a}\,\max\bigl(0,\; w_{in} - w_{sat}(T_e)\bigr),\]</div>
+</div>
+<p>and the refrigerant takes up <span class="math notranslate nohighlight">\(Q_s + Q_l\)</span> (<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>). The air
+leaves the coil at <span class="math notranslate nohighlight">\(T_{in} - \varepsilon\,(T_{in} - T_e)\)</span> and
+<span class="math notranslate nohighlight">\(w_{in} - \varepsilon\,\max(0,\, w_{in} - w_{sat}(T_e))\)</span>: on the straight
+line from the room state to saturated air at the coil, a fraction
+<span class="math notranslate nohighlight">\(\varepsilon\)</span> of the way. A wet coil is therefore the dry coil with its
+driving temperature difference enlarged by
+<span class="math notranslate nohighlight">\((h_{fg}/c_a)\,\max(0,\, w_{in} - w_{sat}(T_e))\)</span>
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.heat_exchanger.wet_coil_latent_difference()</span></code>); where the coil is at
+or above the room’s dew point that term is zero and the coil equation is the
+dry coil’s. The airflow that carries the duty, the two approach temperatures
+and the capacity ceiling are solved as before, with that driving difference.</p>
+<p>That statement is about the coil equation, not about every result. The
+searches around it treat a request the fans’ smallest airflows refuse
+differently once a room humidity is given (<em>the two ends of the operating
+range</em>, below), also where no water condenses: the default 4 kW unit refuses
+<code class="docutils literal notranslate"><span class="pre">analyze_steady(1150,</span> <span class="pre">0,</span> <span class="pre">27)</span></code> (0 W, <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>) and delivers it
+with <code class="docutils literal notranslate"><span class="pre">RH_room=0.02</span></code> (1 150 W, by cycling at 1 153 W) — with no latent heat
+either way, the coil at −1.4 °C being far above that room’s dew point of
+−24 °C. Room air with no water vapour at all (<code class="docutils literal notranslate"><span class="pre">RH_room=0</span></code>) is solved as the
+dry coil is.</p>
+<p>What the model assumes:</p>
+<ul class="simple">
+<li><p><strong>The surface is at the refrigerant saturation temperature.</strong> The dry coil
+already works that way through its overall <code class="docutils literal notranslate"><span class="pre">UA</span></code>; the wet coil keeps it, so
+condensation starts where the evaporating temperature — not a warmer fin
+surface — reaches the dew point. <code class="docutils literal notranslate"><span class="pre">UA</span></code> is therefore the coil’s effective
+air-side conductance: the refrigerant-side, tube and fin resistance that
+would put the surface above <span class="math notranslate nohighlight">\(T_e\)</span> is not modelled (co-author decision
+on #262). A catalogue cannot pin that resistance: the published sensible
+heat ratio fixes the air side only, and what the resistance does — a lower
+evaporating temperature — shows only in the COP, where it cannot be told
+apart from the compressor’s efficiency. Leaving it out runs the evaporating
+temperature slightly high and the COP slightly high by a nearly constant
+factor, which a compressor calibration to the same catalogue (#189) takes
+up in its efficiency multiplier. On the 180 Daikin cooling rows, a
+refrigerant side of a fifth of the coil’s resistance at the default <code class="docutils literal notranslate"><span class="pre">UA</span></code>
+lowers the evaporating temperature by 0.3–0.9 K (0.5 K on average) and the
+COP by 0.7–3.2 % (1.6 % at the median); one factor per unit leaves 0.2 % on
+average (1.3 % at most). With the <code class="docutils literal notranslate"><span class="pre">UA</span></code> solved instead from each row’s
+published ratio the same resistance lowers the COP by 1.5–12.9 % (5.3 % at
+the median) and one factor per unit leaves 0.8 % (3.3 % at most): the
+larger the resistance, the more that take-up is an approximation. (The
+factor here is one on the COP; the calibration’s multiplier acts on the
+compressor alone.)</p></li>
+<li><p><strong>The same ``UA`` wet and dry.</strong> No wet-surface enhancement and no change of
+fin efficiency; <code class="docutils literal notranslate"><span class="pre">UA_iu_rated</span></code> and its airflow law are those of the dry
+coil. The default (0.16 W/K per W of nameplate) is a provisional rule that
+was not derived for a wet coil.</p></li>
+<li><p><strong>Lewis number 1.</strong> Heat and water vapour are transferred with the same
+effectiveness, which is what puts the leaving air on the straight line.</p></li>
+<li><p><strong>Leaving air no wetter than saturated.</strong> The saturation curve is convex,
+so for a room close to saturation, or a coil far below the dew point, the
+straight line passes above it. The leaving air is then put on the curve at
+the same enthalpy — as the DX cooling coil of EnergyPlus corrects a
+supersaturated outlet (<code class="docutils literal notranslate"><span class="pre">CalcDoe2DXCoil</span></code>; the coil is the
+apparatus-dew-point / bypass-factor coil of its Engineering Reference): the
+total heat and the airflow are unchanged, the supply
+air is warmer and drier than on the line and more of the heat is latent
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.heat_exchanger.saturated_leaving_state()</span></code>). The default unit at
+35/27 °C reaches it at its capacity ceiling from 80 % room humidity, and at
+the nameplate duty only above 95 %.</p></li>
+<li><p><strong>Condensate leaves at the coil temperature</strong>, and <span class="math notranslate nohighlight">\(h_{fg}\)</span> is the
+latent heat of water at <span class="math notranslate nohighlight">\(T_e\)</span> (CoolProp, IAPWS-95: 2 477 kJ/kg at
+10 °C; the triple-point value below 0.01 °C). The sensible cooling of the
+vapour that condenses is left out (about 1 % of the latent heat).</p></li>
+<li><p><strong>Dry-air heat capacity and density</strong> for <span class="math notranslate nohighlight">\(C\)</span>, as everywhere in the
+air-side models (<a class="reference internal" href="#air-density">Air density</a>); <span class="math notranslate nohighlight">\(w_{in}\)</span> and <span class="math notranslate nohighlight">\(w_{sat}\)</span> are
+CoolProp humid-air values at 101 325 Pa.</p></li>
+<li><p><strong>No frost on the indoor coil.</strong> A coil below 0 °C keeps condensing, with
+<span class="math notranslate nohighlight">\(w_{sat}\)</span> over ice.</p></li>
+</ul>
+<div class="table-wrapper colwidths-given docutils container" id="id2">
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Default 4 kW unit, 35 °C outdoor, 27 °C room, 4 kW coil heat</span><a class="headerlink" href="#id2" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 12.0%" />
+<col style="width: 12.0%" />
+<col style="width: 12.0%" />
+<col style="width: 14.0%" />
+<col style="width: 12.0%" />
+<col style="width: 12.0%" />
+<col style="width: 12.0%" />
+<col style="width: 14.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">RH_room</span></code></p></th>
+<th class="head"><p>Dew point [°C]</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(T_e\)</span> [°C]</p></th>
+<th class="head"><p>Sensible / latent [W]</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">SHR_iu</span></code></p></th>
+<th class="head"><p>Condensate [kg/h]</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">E_tot</span></code> [W]</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">cop_sys</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>none, 0.3</p></td>
+<td><p>– / 8.0</p></td>
+<td><p>10.8</p></td>
+<td><p>4000 / 0</p></td>
+<td><p>1.00</p></td>
+<td><p>0</p></td>
+<td><p>997</p></td>
+<td><p>3.99</p></td>
+</tr>
+<tr class="row-odd"><td><p>0.4</p></td>
+<td><p>12.3</p></td>
+<td><p>11.7</p></td>
+<td><p>3790 / 210</p></td>
+<td><p>0.95</p></td>
+<td><p>0.31</p></td>
+<td><p>972</p></td>
+<td><p>4.09</p></td>
+</tr>
+<tr class="row-even"><td><p>0.5</p></td>
+<td><p>15.7</p></td>
+<td><p>13.9</p></td>
+<td><p>3241 / 759</p></td>
+<td><p>0.81</p></td>
+<td><p>1.11</p></td>
+<td><p>909</p></td>
+<td><p>4.37</p></td>
+</tr>
+<tr class="row-odd"><td><p>0.6</p></td>
+<td><p>18.6</p></td>
+<td><p>16.0</p></td>
+<td><p>2730 / 1270</p></td>
+<td><p>0.68</p></td>
+<td><p>1.86</p></td>
+<td><p>854</p></td>
+<td><p>4.66</p></td>
+</tr>
+<tr class="row-even"><td><p>0.7</p></td>
+<td><p>21.1</p></td>
+<td><p>17.9</p></td>
+<td><p>2253 / 1747</p></td>
+<td><p>0.56</p></td>
+<td><p>2.56</p></td>
+<td><p>805</p></td>
+<td><p>4.94</p></td>
+</tr>
+<tr class="row-odd"><td><p>0.8</p></td>
+<td><p>23.3</p></td>
+<td><p>19.7</p></td>
+<td><p>1807 / 2193</p></td>
+<td><p>0.45</p></td>
+<td><p>3.22</p></td>
+<td><p>760</p></td>
+<td><p>5.23</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>At a fixed total duty a wetter room needs a smaller temperature difference at
+the coil, so the evaporating temperature rises — while less of the duty is
+sensible cooling. In this example the electrical input falls with it (997 W
+dry, 909 W at 50 %), as it does on 179 of the 180 Daikin catalogue rows
+(<a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a>, <em>Cooling and latent load</em>). That is what these
+conditions give, not a rule. Where the pressure ratio is on its floor a warmer
+evaporator lifts the condensing temperature with it, and the input can rise:
+a 2.5 kW unit delivering 2 kW at 15 °C outdoor and 35 °C room draws 249.0 W
+dry and 251.1 W at 90 % room humidity. The request stays what it was:
+<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code> is the coil’s total heat, so a zone model that needs a given
+<em>sensible</em> cooling has to ask for more than that when the coil is wet (there
+is no request-on-room-load option), and takes <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> off its
+air node and <code class="docutils literal notranslate"><span class="pre">m_dot_iu_condensate</span> <span class="pre">[kg/s]</span></code> off its moisture balance.</p>
+<p><strong>The two ends of the operating range</strong> move with the humidity, because the
+coil carries more at a given evaporating temperature:</p>
+<ul>
+<li><p><em>The ceiling.</em> <code class="docutils literal notranslate"><span class="pre">max_capacity(...,</span> <span class="pre">RH_room=...)</span></code> is the ceiling of the wet
+coil, and a request above it runs there (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code>). An indoor coil that sets the ceiling of the dry model sets
+a higher one wet: with <code class="docutils literal notranslate"><span class="pre">UA_iu_rated=150</span></code> the default unit delivers
+3 465 W dry at 35/27 °C, 5 835 W at 50 % room humidity (the coil at its
+largest airflow and widest approach in both) and 7 131 W at 80 %, where the
+compressor’s speed binds instead. The ceiling is found by the same search
+as the dry one, on the duty; where the least-lift point of a duty names no
+limit of the machine the search starts it again from other approaches and
+looks above it before it settles, so that a point it merely failed to find
+is not reported as the ceiling. A fan held at one flow, or with a narrow
+range, cannot leave its largest airflow the way the least-lift point
+assumes; where that point is refused by the fans’ smallest airflows the
+duty is solved by the ordinary search before it counts as refused (default
+unit with its outdoor fan held at its largest flow, 15 °C outdoor and a
+saturated 35 °C room: 13.68 kW, the outdoor coil at its widest approach).
+Where the search finds no duty at all, the duty the low-load search of the
+same condition ends on (next item) runs, and the ceiling is searched
+upwards from it. And where a unit with a fan held at one flow runs flat out
+on the pressure-ratio floor, the ceiling is what the ordinary search
+delivers there, 1 to 1.5 % above the least-lift point: the outdoor approach
+asked for no longer moves the condensing temperature but still sets the
+subcooling (10 kW unit with its indoor fan held, −10 °C outdoor and a
+saturated 35 °C room: 35.43 kW against 34.99 kW).</p>
+<p>A request equal to the ceiling is delivered the ceiling: <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> is
+the <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> that <code class="docutils literal notranslate"><span class="pre">max_capacity</span></code> reported with the same <code class="docutils literal notranslate"><span class="pre">RH_room</span></code>
+(to rounding) and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span> <span class="pre">==</span> <span class="pre">0</span></code>. How the row is labelled depends on
+which search answered it. Where the search of the request itself delivers
+that duty the row is an ordinary one (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>; 33
+of the 180 conditions below). Where it does not, the row is the ceiling’s
+own state, re-solved, with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span></code> naming the limit (default 10 kW unit at 46 °C outdoor
+and a 27 °C room at 30 %: 13 771.58 W, on the condensing-temperature
+limit). That second answer is also given to a request that is under the
+ceiling by no more than 0.1 % and that the search of the request does not
+deliver. That search starts from the request’s own least-lift point,
+solved to a looser tolerance than the ceiling’s, and close under the
+ceiling it reads the request as beyond the limit, or as short of it flat
+out, where the ceiling search has verified an operating point. On default
+units of 2 to 10 kW (180 conditions: 20 to 46 °C outdoor, 20 to 32 °C room,
+30 to 80 %) the requests it does not deliver reach from 0.0007 % to
+0.006 % of the ceiling under it, at 147 of the conditions; every request
+0.01 % under is delivered as asked. The 0.1 % is the width the ceiling
+itself is searched to (<code class="docutils literal notranslate"><span class="pre">rel_tol</span></code> of <code class="docutils literal notranslate"><span class="pre">max_capacity</span></code>): the search does
+not tell duties that close apart, so the unit is run at the one it
+verified. Such a row delivers more than was asked, by at most that 0.1 %
+(0.006 % in those conditions). A request the search delivers is not
+touched, whatever its distance from the ceiling.</p>
+</li>
+<li><p><em>The smallest continuous duty in mild weather.</em> At a low outdoor temperature
+the cycle sits on the pressure-ratio floor (1.5), which holds the condensing
+temperature well above the outdoor air, and each coil has to carry its duty
+at no less than its fan’s smallest airflow. The evaporating temperature that
+would make room for the outdoor coil makes a wet indoor coil carry more
+than a small duty, so below some duty no pair of approaches runs
+continuously: 1.54 kW for the default unit at 10 °C outdoor, 27 °C room and
+80 % (the dry coil runs down to its minimum speed there, 1.15 kW). A
+smaller request is met by cycling at that duty, exactly as below the minimum
+speed (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code>; 1 200 W: runtime
+fraction 0.823). Fans with a high smallest flow put that duty above twice
+the nameplate: with both at 65 % of the largest flow it is 8.44 kW at 15 °C
+outdoor and a saturated 35 °C room, and a 4 kW request cycles there
+(runtime fraction 0.546). The search for that duty is a bisection by which
+side refuses the trial, to 0.5 %; where it closes with nothing running it
+goes on to 0.1 %, because the duties that run can be a window narrower than
+the first width (next paragraph). Where it still finds no duty, the state
+the unit runs flat out at — the one the ceiling search starts with — is
+tried before the request is given up (2.5 kW unit with both fans held at
+their largest flow, 8 °C outdoor, 35 °C room at 90 %: a 2.5 kW request is
+met by cycling at the 9.61 kW the unit runs flat out at, runtime fraction
+0.319). Where that state lies under the request the unit runs there, as for
+any request above the ceiling. Where no duty is found to run — fans with
+almost no flow range, in cold weather — the unit is off with
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;hx_not_converged&quot;</span></code>: a coil cannot carry so little
+inside its fan’s flow range.</p></li>
+</ul>
+<p><strong>A fan held at one flow, and what the searches can miss.</strong> A coil whose fan
+runs at one flow (<code class="docutils literal notranslate"><span class="pre">dV_*_fan_a_min</span></code> equal to <code class="docutils literal notranslate"><span class="pre">dV_*_fan_a_max</span></code>) carries a
+duty at one approach temperature only. On the pressure-ratio floor the
+condensing temperature is held above the outdoor air whatever approach is
+asked for, so with both fans held the two coils balance in a narrow window of
+duties, or at none: the 4 kW unit at 8 °C outdoor and a saturated 35 °C room
+runs continuously between 14.31 and 14.35 kW only (2.5 kW unit, same
+conditions: at no duty — the outdoor coil at its one flow carries at least
+1.9 % more than the cycle rejects, up to the compressor’s largest speed). The
+three searches —
+the operating point of a request, the smallest continuous duty, the ceiling —
+sample the duty: a ladder of duties and a bisection between two that differ,
+to 0.1 % for the ceiling and to 0.5 % for the smallest continuous duty (0.1 %
+where nothing ran at 0.5 %). They use each other’s verified points as
+candidates — the ceiling search starts from the duty the low-load search
+ends on where it found none itself, and a low-load request takes the
+flat-out state of the ceiling — but a window narrower than the spacing of
+the samples can be missed by all of them. The caller then sees <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span> <span class="pre">==</span> <span class="pre">0</span></code> with
+<code class="docutils literal notranslate"><span class="pre">binding</span> <span class="pre">==</span> <span class="pre">&quot;infeasible&quot;</span></code> from <code class="docutils literal notranslate"><span class="pre">max_capacity</span></code> and an off row with
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;hx_not_converged&quot;</span></code> from <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>, although a
+duty inside the window would run. A held fan can also leave a request under
+the ceiling short instead of off: the row then has
+<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and an unmet duty although <code class="docutils literal notranslate"><span class="pre">max_capacity</span></code>
+reports more. On a grid of 2.5, 4 and 10 kW units with the outdoor fan held
+at its largest flow (162 wet conditions) no request does so at 25 or 35 °C
+outdoor; at 0, 8 and 15 °C outdoor, and at 46 °C with the room at 90 %
+relative humidity or more, requests up to 20 % under the ceiling are run
+up to 28 % short (4 kW unit, 46 °C outdoor, saturated 27 °C room: ceiling
+7,325 W, a request 0.2 % under it runs at 5,270 W). Requests within 0.1 % of
+the ceiling run at it. Two ways out: leave the fan a flow range
+(the default smallest flow is 15 % of the largest; a held fan is an input,
+not a default), or request a duty inside the window. With fans that modulate
+the duties that run are a wide band and the samples fall inside it.</p>
+<p>A result does not depend on what was solved before it. Inside one
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> run the searches of a wet cooling condition are
+remembered — the ordinary search of a duty, the ceiling — but only as what
+solving them again would give, so a step’s row is the row of that step solved
+alone, in any order of the steps. (The dry model reuses the smallest
+continuous duty of a condition for the smaller requests of the same run, as
+before; that duty is found by bisection to 0.5 %, and a row can differ by that
+much from the same request solved alone.)</p>
+<blockquote>
+<div><p>This is the wet coil’s behaviour only. Without <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> the model is
+left as it was, result for result: a request the fans’ smallest airflows
+refuse on the pressure-ratio floor is answered there with the unit off and
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;cycle_invalid&quot;</span></code> (default unit, 27 °C room, 0 °C
+outdoor: 1 200 W, 30 % of the nameplate, runs and 1 150 W is refused),
+where the 1 150 W request with a room humidity of 20 % cycles at 1.24 kW.
+A dry request equal to the dry ceiling is likewise answered as before: by
+the dry searches, which run the unit up to 0.012 % under it at 42 of 60
+conditions of the default units (none is answered with the unit off).</p>
+</div></blockquote>
+<p>What it leaves out, beyond the assumptions above:</p>
+<ul class="simple">
+<li><p><strong>The catalogue comparison is not settled by it.</strong> With the default coil
+the model’s sensible heat ratio is above the published one on average and
+moves less with the size of the unit. The wet coil brings the cooling COP
+of the Daikin rows closer to the catalogue on average — the dry coil runs
+them low — but not evenly: above the catalogue on the rows with the most
+latent load, still well below it on those with the least
+(<a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a>, <em>Cooling and latent load</em>). The shipped
+validation results are those of the dry coil.</p></li>
+<li><p><strong>Re-evaporation while cycling.</strong> Below the minimum speed the row is the
+mean over an on/off period with the latent heat scaled like every other
+rate; the water that evaporates off a wet coil while the compressor is off
+(the latent degradation of EnergyPlus) is not modelled.</p></li>
+<li><p><strong>Exergy.</strong> <code class="docutils literal notranslate"><span class="pre">X_a_iu_*</span></code> are the thermal exergy of a dry air stream, with
+or without a wet coil. A moist-air exergy balance — a reference humidity
+for the dead state, the chemical exergy of the water vapour, the
+condensate — is not modelled. On a row whose coil removes water the
+refrigerant side of the indoor coil carries the latent heat and the air
+side only the temperature change, so their difference is not the coil’s
+destruction (a 2.5 kW unit at 2 kW, 15 °C outdoor, 35 °C room and 90 %:
+−2.6 W). <code class="docutils literal notranslate"><span class="pre">Xc_iu_hx</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">X_eff_iu_hx</span> <span class="pre">[-]</span></code> and <code class="docutils literal notranslate"><span class="pre">X_eff_sys</span> <span class="pre">[-]</span></code> are
+therefore NaN on those rows; rows that remove no water keep their values.
+(<code class="docutils literal notranslate"><span class="pre">X_eff_sys</span> <span class="pre">[-]</span></code> is the thermal exergy the room air gains over the
+electrical input, and is negative on the dry coil too wherever the outdoor
+air, the dead state, is colder than the room: cooling a room towards the
+dead state lowers its air’s exergy.)</p></li>
+<li><p><strong>Rating and defaults.</strong> The reference state, the default inputs and
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">operating_range()</span></code> are those of the dry coil.</p></li>
+<li><p>Heating humidification and condensate on the outdoor coil above the frost
+range are not modelled.</p></li>
+</ul>
+</section>
 <section id="part-load-cycling-and-unmet-load">
 <h2>Part load: cycling and unmet load<a class="headerlink" href="#part-load-cycling-and-unmet-load" title="Link to this heading">¶</a></h2>
 <p>The compressor modulates between <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> and <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>. A request outside
@@ -535,9 +918,9 @@ efficiencies are those of the running machine.</p></li>
 outdoor fan draw beyond <em>CR</em> times their continuous power — the cost of the
 starts.</p></li>
 </ul>
-<div class="table-wrapper colwidths-given docutils container" id="id2">
-<table class="docutils align-default" id="id2">
-<caption><span class="caption-text">EN 14825 degradation with <code class="docutils literal notranslate"><span class="pre">Cd</span> <span class="pre">=</span> <span class="pre">0.25</span></code></span><a class="headerlink" href="#id2" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id3">
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">EN 14825 degradation with <code class="docutils literal notranslate"><span class="pre">Cd</span> <span class="pre">=</span> <span class="pre">0.25</span></code></span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 22.0%" />
 <col style="width: 24.0%" />
@@ -753,9 +1136,9 @@ power is averaged with the heat it delivers.</p></li>
 cycle the row was solved at; heat and flow rates of the row are that cycle’s
 times the delivered-heat factor, and state points are that cycle’s.</p></li>
 </ul>
-<div class="table-wrapper colwidths-given docutils container" id="id3">
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-text">Frost adjustment at 84 % relative humidity</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id4">
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Frost adjustment at 84 % relative humidity</span><a class="headerlink" href="#id4" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 20.0%" />
 <col style="width: 20.0%" />
@@ -827,9 +1210,9 @@ describes at that outdoor temperature — the nameplate, declared at 7 °C
 difference shrinks (10.1 K at 8.3 °C, 5.9 K at −15 °C). A unit that delivers
 0.6 of its nameplate at −15 °C because that is its capacity there is at
 <span class="math notranslate nohighlight">\(r = 1\)</span>, not part-loaded. The default 4 kW unit against a 20 °C room:</p>
-<div class="table-wrapper colwidths-given docutils container" id="id4">
-<table class="docutils align-default" id="id4">
-<caption><span class="caption-text">System COP under frost, by load (84 % relative humidity)</span><a class="headerlink" href="#id4" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id5">
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">System COP under frost, by load (84 % relative humidity)</span><a class="headerlink" href="#id5" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 28.0%" />
 <col style="width: 18.0%" />
@@ -928,9 +1311,9 @@ The band ends at 0 °C whatever its width — air with a dew point at or above
 freezing leaves all the frost a coil can take — so any finite width is valid.
 <code class="docutils literal notranslate"><span class="pre">DefrostModel(frost_point_band_K=0)</span></code> switches the fixed losses at the frost
 point and <code class="docutils literal notranslate"><span class="pre">frost_point_band_K=None</span></code> is EnergyPlus.</p>
-<div class="table-wrapper colwidths-given docutils container" id="id5">
-<table class="docutils align-default" id="id5">
-<caption><span class="caption-text">COP multiplier of the frost adjustment at the rated load, by outdoor humidity</span><a class="headerlink" href="#id5" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id6">
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">COP multiplier of the frost adjustment at the rated load, by outdoor humidity</span><a class="headerlink" href="#id6" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 16.0%" />
 <col style="width: 14.0%" />
@@ -1005,9 +1388,14 @@ ceiling, with the frost-free one as <code class="docutils literal notranslate"><
 <p><code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code> is the coil requirement before fan heat, not net room delivery.
 It retains its sign convention and governs compressor speed, rated capacity,
 part-load ratio and the operating-point search. <code class="docutils literal notranslate"><span class="pre">cop_ref</span> <span class="pre">[-]</span></code> remains
-<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span> <span class="pre">/</span> <span class="pre">E_cmp</span> <span class="pre">[W]</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span> <span class="pre">/</span> <span class="pre">E_cmp</span> <span class="pre">[W]</span></code>. <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> are on the
+same basis: refrigerant-side coil heat. What the room receives is reported
+under its own names — <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code>, the coil’s sensible heat with
+the indoor fan’s heat counted (3 977 W of a 4 000 W dry-coil request at
+35/27 °C), and, with a wet coil, <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code>.</p>
 <p>The space-conditioning system metric is
-<code class="docutils literal notranslate"><span class="pre">abs(Q_a_iu_out</span> <span class="pre">[W]</span> <span class="pre">-</span> <span class="pre">Q_a_iu_in</span> <span class="pre">[W])</span> <span class="pre">/</span> <span class="pre">E_tot</span> <span class="pre">[W]</span></code>. Both air energy
+<code class="docutils literal notranslate"><span class="pre">abs(Q_a_iu_out</span> <span class="pre">[W]</span> <span class="pre">-</span> <span class="pre">Q_a_iu_in</span> <span class="pre">[W])</span> <span class="pre">/</span> <span class="pre">E_tot</span> <span class="pre">[W]</span></code> — with a wet coil that
+sensible difference plus <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code>, over <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code>. Both air energy
 flows use the actual indoor airflow and the same outdoor reference temperature.
 The final outlet already includes indoor fan heat: net cooling equals coil
 duty minus indoor fan power, while net heating equals coil duty plus that
@@ -1017,13 +1405,24 @@ compressor, indoor fan and outdoor fan electricity.</p>
 Opposite-direction transfer or zero airflow during active operation gives
 NaN system COP; off operation has zero air energy flows and NaN COP.
 This reporting diagnostic does not alter the coil-load solver.</p>
-<p>This dry-coil model reports sensible cooling, not total latent-plus-sensible
-cooling or a certified rating. Catalogue comparisons must use the catalogue’s
+<p>Without <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> the coil is dry and the model reports sensible cooling,
+not total latent-plus-sensible cooling or a certified rating. With it
+(<a class="reference internal" href="#wet-indoor-coil-cooling">Wet indoor coil (cooling)</a>) the numerator of <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> is what the
+room air gives up in total: <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span> <span class="pre">+</span> <span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code>, that
+is, the coil’s sensible and latent heat less the indoor fan’s heat.
+Catalogue comparisons must use the catalogue’s
 own capacity and electrical-input boundary. Earlier results through commit
 <code class="docutils literal notranslate"><span class="pre">c5d673e</span></code> used <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">/</span> <span class="pre">E_tot</span></code> and must be labelled as coil-duty COP.
 For a seasonal performance factor, sum actual mode-specific air delivery
 times timestep duration and divide by summed system electricity times duration;
 an arithmetic mean of hourly COP is a different statistic.</p>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
+<p>Braun, J. E., Klein, S. A., &amp; Mitchell, J. W. (1989). Effectiveness models
+for cooling towers and cooling coils. <em>ASHRAE Transactions</em>, 95(2), 164-174.</p>
+<p>Threlkeld, J. L. (1970). <em>Thermal Environmental Engineering</em> (2nd ed.).
+Prentice-Hall.</p>
 </section>
 <section id="module-tmhp.air_source_heat_pump">
 <span id="api-reference"></span><h2>API reference<a class="headerlink" href="#module-tmhp.air_source_heat_pump" title="Link to this heading">¶</a></h2>
@@ -1117,6 +1516,16 @@ speed, the discharge runs above its limit there
 (<code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>), and a request below the smallest duty that
 stays inside is met by cycling at that duty (<code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code>), not answered
 with the unit switched off.</p>
+<p>The indoor coil is dry unless the room humidity is given. With
+<code class="docutils literal notranslate"><span class="pre">RH_room</span></code> (<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>, <code class="docutils literal notranslate"><span class="pre">max_capacity</span></code>; <code class="docutils literal notranslate"><span class="pre">RH_room_schedule</span></code> in
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code>) a cooling coil whose surface – taken at the
+evaporating temperature – is below the room air’s dew point also
+condenses water: <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> is then sensible plus latent heat
+(<code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">SHR_iu</span> <span class="pre">[-]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">m_dot_iu_condensate</span> <span class="pre">[kg/s]</span></code>), by the apparatus-dew-point / bypass-factor
+model of <code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.heat_exchanger.calc_HX_perf_for_target_heat()</span></code>. Above
+the dew point, in heating and without <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> the coil is the dry one.
+The rated state and the default inputs are those of the dry coil.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1434,7 +1843,7 @@ steady state). Set by the constructor.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity">
-<span class="sig-name descname"><span class="pre">max_capacity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.max_capacity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">max_capacity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.max_capacity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="Link to this definition">¶</a></dt>
 <dd><p>Largest duty the unit can actually deliver at this condition.</p>
 <p>Nameplate capacity is a label attached to one rating point, not a
 ceiling. A real unit delivers more than nameplate when the outdoor air
@@ -1483,6 +1892,9 @@ unit cannot run flat out. A flat-out ceiling and one set by the
 indoor coil are exact.</p></li>
 <li><p><strong>RH_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Outdoor relative humidity as a fraction (0-1) for the frost
 correction in heating. None: the frost model’s default.</p></li>
+<li><p><strong>RH_room</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Room relative humidity as a fraction (0-1), for the wet indoor
+coil in cooling (see <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a>). None: the dry coil.
+Not read in heating, whatever is given.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1504,22 +1916,58 @@ the COP are the mean over frosting and defrost – what
 <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a> delivers there – and
 <code class="docutils literal notranslate"><span class="pre">Q_max_frost_free</span> <span class="pre">[W]</span></code> is the frost-free ceiling they come from
 (<code class="docutils literal notranslate"><span class="pre">defrost_fraction</span> <span class="pre">[-]</span></code> &gt; 0). Otherwise the two are equal.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> is the refrigerant-side coil heat, as
+<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> is: with <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> in cooling it is sensible
+plus latent, and <code class="docutils literal notranslate"><span class="pre">SHR_iu</span> <span class="pre">[-]</span></code> is the sensible share of it there
+(1 for a dry coil and in heating, NaN when the unit cannot run).</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> in cooling the ceiling is searched together with the
+other two searches of the condition, and each takes the others’
+verified operating points for candidates: where the search on the
+duty finds none, the duty the low-load search ends on (the one
+<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a> cycles a small request at) runs, and the
+ceiling is searched upwards from it; and a flat-out ceiling of a
+unit with a fan held at one flow, on the pressure-ratio floor, is
+what the ordinary search delivers there. The answer is the same
+whatever was solved before. A request for the <code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code>
+returned, with the same <code class="docutils literal notranslate"><span class="pre">RH_room</span></code>, is delivered that duty with
+nothing unmet (<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a>): by the search of the
+request where it arrives there, else at this state
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>).</p>
+<p>A fan held at one flow (<code class="docutils literal notranslate"><span class="pre">dV_*_fan_a_min</span> <span class="pre">==</span> <span class="pre">dV_*_fan_a_max</span></code>) leaves
+its coil one approach temperature per duty. On the pressure-ratio
+floor, with both fans held, the duties that run in continuous
+operation can then be a window a fraction of a percent wide (4 kW
+unit, 8 degC outdoor, room 35 degC saturated: 14.31 to 14.35 kW),
+or none. The searches sample the duty – a ladder and a
+bisection, to <code class="docutils literal notranslate"><span class="pre">rel_tol</span></code> here – and can miss a window narrower
+than the spacing of their samples. The result is then
+<code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span> <span class="pre">==</span> <span class="pre">0</span></code> with <code class="docutils literal notranslate"><span class="pre">binding</span> <span class="pre">==</span> <span class="pre">&quot;infeasible&quot;</span></code> (and
+<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a> answers a request with the unit off,
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;hx_not_converged&quot;</span></code>) although a duty inside the
+window would run. Give the fan a flow range, or request a duty
+inside the window.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady">
-<span class="sig-name descname"><span class="pre">analyze_steady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_r_iu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.analyze_steady"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">analyze_steady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_r_iu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.analyze_steady"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="Link to this definition">¶</a></dt>
 <dd><p>Run a steady-state performance snapshot.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Q_r_iu</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Indoor thermal load [W]. &gt;0 cooling, &lt;0 heating, 0 off.</p></li>
+<li><p><strong>Q_r_iu</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Indoor thermal load [W]. &gt;0 cooling, &lt;0 heating, 0 off. It is the
+heat the refrigerant exchanges with the room air at the indoor
+coil (<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>): in cooling the coil’s total heat,
+sensible plus latent, before the indoor fan’s heat. What the room
+receives is reported as <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> (below).</p></li>
 <li><p><strong>T0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead-state / outdoor-air temperature [°C].</p></li>
 <li><p><strong>T_a_room</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Room air temperature [°C]. Uses constructor default if None.</p></li>
 <li><p><strong>return_dict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True return dict; else single-row DataFrame.</p></li>
@@ -1528,6 +1976,17 @@ the COP are the mean over frosting and defrost – what
 is not issued (the row is the same).</p></li>
 <li><p><strong>RH_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Outdoor relative humidity as a fraction (0-1), used by the frost
 correction in heating. None: the frost model’s default (0.84).</p></li>
+<li><p><strong>RH_room</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Room relative humidity as a fraction (0-1) at <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code> and
+one standard atmosphere. With it, a cooling coil whose surface –
+taken at the evaporating temperature – is below the room air’s
+dew point condenses water (the wet coil of
+<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.heat_exchanger.calc_HX_perf_for_target_heat()</span></code>), and
+the request <code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code> is met by sensible plus latent heat. None
+(default): the dry coil, all of the coil heat sensible. Not read
+on a heating request, where the indoor coil is the condenser, nor
+on an off one (<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span> <span class="pre">&lt;=</span> <span class="pre">0</span></code>): anything may be given there. On
+a cooling request a value that is not a number in 0-1 raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1583,6 +2042,56 @@ heat the defrost takes, and <code class="docutils literal notranslate"><span cla
 <code class="docutils literal notranslate"><span class="pre">E_tot_frost_free</span> <span class="pre">[W]</span></code> the frost-free cycle the row was solved
 at. Without frost those two repeat <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code>.</p>
+<p>The indoor coil’s heat is split on every row:
+<code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> (air side, before
+the fan; their sum is <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> within the coil solver’s
+tolerance), <code class="docutils literal notranslate"><span class="pre">SHR_iu</span> <span class="pre">[-]</span></code> their sensible share,
+<code class="docutils literal notranslate"><span class="pre">m_dot_iu_condensate</span> <span class="pre">[kg/s]</span></code> the water condensed, and
+<code class="docutils literal notranslate"><span class="pre">w_iu_a_in</span> <span class="pre">[kg/kg]</span></code> / <code class="docutils literal notranslate"><span class="pre">w_iu_a_out</span> <span class="pre">[kg/kg]</span></code> the humidity ratio
+of the air entering and leaving the unit, with <code class="docutils literal notranslate"><span class="pre">RH_room</span> <span class="pre">[-]</span></code>
+the room humidity used (the three NaN without one). Latent heat
+is zero for a dry coil. <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> is the net
+sensible heat the room air gives up (cooling:
+<code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">-</span> <span class="pre">E_iu_fan</span></code>) or receives (heating:
+<code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">+</span> <span class="pre">E_iu_fan</span></code>), the indoor fan’s heat counted.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> in cooling both ends of the range are the wet
+coil’s. A request above its ceiling runs there
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>; <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code></a> with the
+same <code class="docutils literal notranslate"><span class="pre">RH_room</span></code>). A request equal to the ceiling is delivered
+it, with <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> zero: as an ordinary row
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span></code> <code class="docutils literal notranslate"><span class="pre">None</span></code>) where the search of the request
+delivers that duty, and otherwise as the ceiling’s own state
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> the
+<code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code></a> reports, to rounding). The
+ceiling’s state also answers a request the search does not
+deliver that is under the ceiling by no more than the 0.1 % the
+ceiling is searched to, which is up to that 0.1 % more than was
+asked (measured on default units: 0.006 %). A request the
+search delivers is an ordinary row at any distance from the
+ceiling. In mild weather, on the pressure-ratio floor,
+the fans’ smallest airflows leave no continuous operation below
+some duty; a smaller request is met by cycling at that duty
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code>). Where the
+search above the request finds no such duty, the state the unit
+runs flat out at is taken – the one the ceiling search of
+<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code></a> starts with – which the request is met by
+cycling at when it lies above the request and where the unit
+runs when it lies under it; and where no duty is
+found to run the row is off with
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;hx_not_converged&quot;</span></code> (a fan held at one flow
+can leave a window of duties too narrow for the searches to hit:
+see the notes of <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">max_capacity()</span></code></a>). Without <code class="docutils literal notranslate"><span class="pre">RH_room</span></code>
+such a request is answered as before, with the unit off and
+<code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>. On a row whose coil removes water
+(<code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> &gt; 0) the exergy columns <code class="docutils literal notranslate"><span class="pre">Xc_iu_hx</span> <span class="pre">[W]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">X_eff_iu_hx</span> <span class="pre">[-]</span></code> and <code class="docutils literal notranslate"><span class="pre">X_eff_sys</span> <span class="pre">[-]</span></code> are NaN
+(<a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.postprocess_exergy" title="tmhp.air_source_heat_pump.AirSourceHeatPump.postprocess_exergy"><code class="xref py py-meth docutils literal notranslate"><span class="pre">postprocess_exergy()</span></code></a>).</p>
+<p><code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code> are on the basis of
+<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>: refrigerant-side coil heat, total (sensible plus
+latent) and before the fan heat – not the room-side
+<code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code>. <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> is on the room side:
+<code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code> plus <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> over
+<code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code>.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1601,7 +2110,7 @@ what removes it. Issued once per model and limit unless the
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_dynamic">
-<span class="sig-name descname"><span class="pre">analyze_dynamic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulation_period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_iu_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_save_csv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.analyze_dynamic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_dynamic" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">analyze_dynamic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulation_period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_iu_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_save_csv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_out_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_room_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.analyze_dynamic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_dynamic" title="Link to this definition">¶</a></dt>
 <dd><p>Run a time-stepping dynamic simulation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1615,6 +2124,14 @@ If None, uses constructor default.</p></li>
 <li><p><strong>result_save_csv_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional CSV output path.</p></li>
 <li><p><strong>RH_out_schedule</strong> (<em>array-like</em><em> | </em><em>None</em>) – Outdoor relative humidity per step, as a fraction (0-1), for the
 frost correction in heating. If None, the frost model’s default.</p></li>
+<li><p><strong>RH_room_schedule</strong> (<em>array-like</em><em> | </em><em>None</em>) – Room relative humidity per step, as a fraction (0-1), for the wet
+indoor coil in cooling (<code class="docutils literal notranslate"><span class="pre">RH_room</span></code> of <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a>).
+If None, the dry coil on every step. One entry per step (a
+list, an array or a Series). Only the cooling steps are read,
+each as <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> of <a class="reference internal" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady" title="tmhp.air_source_heat_pump.AirSourceHeatPump.analyze_steady"><code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a> is: a cooling step
+whose entry is not a number in 0-1 raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming
+the step; what a heating or an off step holds (a missing value)
+is not looked at.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1648,6 +2165,19 @@ with adaptations for indoor-unit air exchange.</p>
 <li><p>Component-level exergy destruction</p></li>
 <li><p>Exergetic efficiency metrics</p></li>
 </ol>
+<p>The air columns (<code class="docutils literal notranslate"><span class="pre">X_a_iu_*</span></code>, <code class="docutils literal notranslate"><span class="pre">X_a_ou_*</span></code>) are the thermal exergy
+of a dry air stream: heat capacity rate times
+<code class="docutils literal notranslate"><span class="pre">(T</span> <span class="pre">-</span> <span class="pre">T0)</span> <span class="pre">-</span> <span class="pre">T0</span> <span class="pre">ln(T</span> <span class="pre">/</span> <span class="pre">T0)</span></code>. A moist-air exergy balance – a
+reference humidity for the dead state, the chemical exergy of the
+water vapour, the condensate leaving the coil – is not modelled. On
+a row whose indoor coil removes water (<code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> &gt; 0) the
+refrigerant side of that coil carries the latent heat while the air
+side counts the temperature change only, so their difference is not
+the coil’s exergy destruction (it comes out negative at a low
+sensible heat ratio). There <code class="docutils literal notranslate"><span class="pre">Xc_iu_hx</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">X_eff_iu_hx</span> <span class="pre">[-]</span></code>
+and <code class="docutils literal notranslate"><span class="pre">X_eff_sys</span> <span class="pre">[-]</span></code> are NaN; every other column, the thermal
+exergy of the air streams included, is reported as on a dry row. Rows
+that remove no water are not touched.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>)</p>
@@ -1690,7 +2220,7 @@ changed.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 26, 2026
+  Last updated Nov 28, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

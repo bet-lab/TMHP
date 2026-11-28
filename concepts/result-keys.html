@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="analyze_steady returns a flat dict and analyze_dynamic a pandas.DataFrame whose columns are the same keys, one row per time step. This page lists every key the five released families return with th..." />
 
-    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
+    <meta property="article:modified_time" content="2026-11-28T12:05:53+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -313,7 +313,7 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">indoor_heat_direction_valid</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
-<td><p>The indoor air receives heat in heating and gives it up in cooling. <code class="docutils literal notranslate"><span class="pre">False</span></code> makes <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> NaN.</p></td>
+<td><p>The indoor air receives heat in heating and gives it up in cooling (with a wet coil: sensible plus latent, net of the fan heat). <code class="docutils literal notranslate"><span class="pre">False</span></code> makes <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> NaN.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ou_fan_flow_min_limit</span></code></p></td>
 <td><p>ASHP, ASHPB</p></td>
@@ -355,11 +355,11 @@ are an operating point, a reduced one, a time average, or placeholders.</p>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code></p></td>
 <td><p>all</p></td>
-<td><p>The duty asked for, with the sign it was given (<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>: negative heating, positive cooling; boilers: positive), on every row. A boiler’s <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>: the <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code> argument. A boiler’s dynamic step: <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> when the thermostat called the compressor during the step (whether it ran or failed), 0 when it did not; the duty asked for over the whole step is <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> times <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>. On a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row compare it with the heat delivered (<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code>) for the shortfall.</p></td>
+<td><p>The duty asked for, with the sign it was given (<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>: negative heating, positive cooling; boilers: positive), on every row. For ASHP and GSHP it is refrigerant-side coil heat, the basis of <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>: in cooling the coil’s total heat (sensible plus latent with a wet coil), before the indoor fan’s heat – not the net heat the room receives (ASHP: <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code>). A boiler’s <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>: the <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code> argument. A boiler’s dynamic step: <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> when the thermostat called the compressor during the step (whether it ran or failed), 0 when it did not; the duty asked for over the whole step is <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> times <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>. On a <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code> row compare it with the heat delivered (<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code>) for the shortfall.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_unmet</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
-<td><p>Part of the request not delivered, ≥ 0. Sum it times the time step for a schedule’s unmet energy.</p></td>
+<td><p>Part of the request not delivered, ≥ 0, on the basis of <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code> (refrigerant-side coil heat, <code class="docutils literal notranslate"><span class="pre">Q_request</span></code> less <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span></code>). Sum it times the time step for a schedule’s unmet energy.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code></p></td>
 <td><p>all</p></td>
@@ -435,7 +435,7 @@ temperature of the row and can be negative; only their differences are heat rate
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
-<td><p>Indoor-coil duty: heat delivered in heating, heat removed in cooling (sensible, before indoor-fan heat).</p></td>
+<td><p>Indoor-coil duty on the refrigerant side, before indoor-fan heat: heat delivered in heating, heat removed in cooling. All sensible for a dry coil; with <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> given (ASHP) the sum of <code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_ref_ou</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, ASHPB</p></td>
@@ -467,33 +467,45 @@ temperature of the row and can be negative; only their differences are heat rate
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_a_iu_out</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
-<td><p>Enthalpy flow of the air leaving the indoor unit (after the fan), from <code class="docutils literal notranslate"><span class="pre">T0</span></code>. <code class="docutils literal notranslate"><span class="pre">Q_a_iu_out</span> <span class="pre">−</span> <span class="pre">Q_a_iu_in</span></code> is the heat the room receives (negative in cooling).</p></td>
+<td><p>Enthalpy flow of the dry air leaving the indoor unit (after the fan), from <code class="docutils literal notranslate"><span class="pre">T0</span></code>. <code class="docutils literal notranslate"><span class="pre">Q_a_iu_out</span> <span class="pre">−</span> <span class="pre">Q_a_iu_in</span></code> is the sensible heat the room receives (negative in cooling): the coil’s sensible heat with the indoor fan’s heat counted, <code class="docutils literal notranslate"><span class="pre">∓Q_room_sensible</span></code>. With a wet coil the latent heat <code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span></code> is not in it.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_tank_loss</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">[W]</span></code></p></td>
+<td><p>ASHP</p></td>
+<td><p>Sensible heat across the indoor coil, air side, before the indoor fan: air heat capacity rate times <code class="docutils literal notranslate"><span class="pre">|T_iu_a_in</span> <span class="pre">−</span> <span class="pre">T_iu_a_mid|</span></code>, ≥ 0. All of the coil heat for a dry coil and in heating.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code></p></td>
+<td><p>ASHP</p></td>
+<td><p>Latent heat the indoor coil takes from the room air in cooling: <code class="docutils literal notranslate"><span class="pre">m_dot_iu_condensate</span> <span class="pre">[kg/s]</span></code> times the latent heat of water at the evaporating temperature. 0 unless <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> is given and the coil is below the room air’s dew point. <code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">+</span> <span class="pre">Q_iu_latent</span></code> equals <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code> within the coil solver’s tolerance (1e-5 of the duty).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">[W]</span></code></p></td>
+<td><p>ASHP</p></td>
+<td><p>Net sensible heat the room air gives up in cooling (<code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">−</span> <span class="pre">E_iu_fan</span></code>) or receives in heating (<code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">+</span> <span class="pre">E_iu_fan</span></code>): the coil’s sensible heat with the indoor fan’s heat counted, the magnitude of <code class="docutils literal notranslate"><span class="pre">Q_a_iu_out</span> <span class="pre">−</span> <span class="pre">Q_a_iu_in</span></code>. Negative in cooling where the fan heat exceeds the coil’s sensible cooling. This, not <code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">[W]</span></code>, is the sensible load a zone model takes off its air node; the moisture it loses is <code class="docutils literal notranslate"><span class="pre">m_dot_iu_condensate</span> <span class="pre">[kg/s]</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_tank_loss</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB, GSHPB, WSHPB</p></td>
 <td><p>Heat lost through the tank wall to its surroundings (<code class="docutils literal notranslate"><span class="pre">T_sur</span></code>); 0 in <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_tank_w_in</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_tank_w_in</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB</p></td>
 <td><p>Enthalpy flow of the make-up water entering the tank, from <code class="docutils literal notranslate"><span class="pre">T0</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_tank_w_out</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_tank_w_out</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB, GSHPB (d), WSHPB (d)</p></td>
 <td><p>Enthalpy flow of the hot water leaving the tank, from <code class="docutils literal notranslate"><span class="pre">T0</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_mix_sup_w_in</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_mix_sup_w_in</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB</p></td>
 <td><p>Enthalpy flow of the mains water entering the mixing valve, from <code class="docutils literal notranslate"><span class="pre">T0</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_mix_w_out</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_mix_w_out</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB</p></td>
 <td><p>Enthalpy flow of the mixed water delivered to the tap, from <code class="docutils literal notranslate"><span class="pre">T0</span></code>; 0 when nothing is drawn.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB (d), GSHPB (d), WSHPB (d)</p></td>
 <td><p>Hot-water heat the step was asked for: scheduled draw at the set point <code class="docutils literal notranslate"><span class="pre">T_mix_w_out</span></code>, counted from the mains temperature.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB (d), GSHPB (d), WSHPB (d)</p></td>
 <td><p>Part of <code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span></code> not delivered, ≥ 0 (water left below the set point, or a level-varying tank cut the draw).</p></td>
 </tr>
@@ -556,7 +568,7 @@ temperature of the row and can be negative; only their differences are heat rate
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code></p></td>
 <td><p>all</p></td>
-<td><p>System COP. Boilers: <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">/</span> <span class="pre">E_tot</span></code>. ASHP, GSHP: heat the room air receives or gives up, <code class="docutils literal notranslate"><span class="pre">|Q_a_iu_out</span> <span class="pre">−</span> <span class="pre">Q_a_iu_in|</span></code>, over <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> (indoor-fan heat counted once, on the air).</p></td>
+<td><p>System COP. Boilers: <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">/</span> <span class="pre">E_tot</span></code>. ASHP, GSHP: heat the room air receives or gives up, <code class="docutils literal notranslate"><span class="pre">|Q_a_iu_out</span> <span class="pre">−</span> <span class="pre">Q_a_iu_in|</span></code>, over <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> (indoor-fan heat counted once, on the air). ASHP with a wet coil: <code class="docutils literal notranslate"><span class="pre">Q_room_sensible</span> <span class="pre">+</span> <span class="pre">Q_iu_latent</span></code> over <code class="docutils literal notranslate"><span class="pre">E_tot</span></code>.</p></td>
 </tr>
 </tbody>
 </table>
@@ -705,83 +717,103 @@ temperature of the row and can be negative; only their differences are heat rate
 <td><p>ASHP, GSHP</p></td>
 <td><p>Room air temperature given for the row.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T_ou_a_in</span> <span class="pre">[°C]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RH_room</span> <span class="pre">[-]</span></code></p></td>
+<td><p>ASHP</p></td>
+<td><p>Room relative humidity the wet indoor coil was solved with (fraction): the <code class="docutils literal notranslate"><span class="pre">RH_room</span></code> given for a cooling row. NaN where none applies (not given, heating, a row not asked to cool).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">w_iu_a_in</span> <span class="pre">[kg/kg]</span></code></p></td>
+<td><p>ASHP</p></td>
+<td><p>Humidity ratio of the air entering the indoor coil [kg water per kg dry air]: room air at <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code> and <code class="docutils literal notranslate"><span class="pre">RH_room</span></code>, one standard atmosphere. NaN without <code class="docutils literal notranslate"><span class="pre">RH_room</span> <span class="pre">[-]</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">w_iu_a_out</span> <span class="pre">[kg/kg]</span></code></p></td>
+<td><p>ASHP</p></td>
+<td><p>Humidity ratio of the air leaving the indoor coil, and the unit (the fan does not change it): the supply air’s. Equal to <code class="docutils literal notranslate"><span class="pre">w_iu_a_in</span></code> where the coil is dry or the unit off; NaN without <code class="docutils literal notranslate"><span class="pre">RH_room</span> <span class="pre">[-]</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SHR_iu</span> <span class="pre">[-]</span></code></p></td>
+<td><p>ASHP</p></td>
+<td><p>Sensible heat ratio of the indoor coil, <code class="docutils literal notranslate"><span class="pre">Q_iu_sensible</span> <span class="pre">/</span> <span class="pre">(Q_iu_sensible</span> <span class="pre">+</span> <span class="pre">Q_iu_latent)</span></code>: 1 for a dry coil and in heating, below 1 where the coil condenses water, NaN on an off row. The coil’s own ratio (gross); a catalogue’s is usually net of the fan heat.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">m_dot_iu_condensate</span> <span class="pre">[kg/s]</span></code></p></td>
+<td><p>ASHP</p></td>
+<td><p>Water the indoor coil condenses out of the room air: the air’s dry mass flow times <code class="docutils literal notranslate"><span class="pre">w_iu_a_in</span> <span class="pre">−</span> <span class="pre">w_iu_a_out</span></code> (a mean on a cycling row). 0 for a dry coil.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_ou_a_in</span> <span class="pre">[°C]</span></code></p></td>
 <td><p>ASHP, ASHPB</p></td>
 <td><p>Air entering the outdoor coil (equals <code class="docutils literal notranslate"><span class="pre">T0</span></code>).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_ou_a_mid</span> <span class="pre">[°C]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T_ou_a_mid</span> <span class="pre">[°C]</span></code></p></td>
 <td><p>ASHP, ASHPB</p></td>
 <td><p>Air leaving the outdoor coil, before the fan.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T_ou_a_out</span> <span class="pre">[°C]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_ou_a_out</span> <span class="pre">[°C]</span></code></p></td>
 <td><p>ASHP, ASHPB</p></td>
 <td><p>Air leaving the outdoor unit, fan heat included.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_iu_a_in</span> <span class="pre">[°C]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T_iu_a_in</span> <span class="pre">[°C]</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
 <td><p>Air entering the indoor coil (equals <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code>).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T_iu_a_mid</span> <span class="pre">[°C]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_iu_a_mid</span> <span class="pre">[°C]</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
 <td><p>Air leaving the indoor coil, before the fan.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_iu_a_out</span> <span class="pre">[°C]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T_iu_a_out</span> <span class="pre">[°C]</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
 <td><p>Supply air, fan heat included.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dV_ou_a</span> <span class="pre">[m3/s]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dV_ou_a</span> <span class="pre">[m3/s]</span></code></p></td>
 <td><p>ASHP, ASHPB</p></td>
 <td><p>Outdoor airflow, a volume at the coil inlet temperature (a mean on a cycling row).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dV_iu_a</span> <span class="pre">[m3/s]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dV_iu_a</span> <span class="pre">[m3/s]</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
 <td><p>Indoor airflow, a volume at the coil inlet temperature (a mean on a cycling row).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">v_ou_a</span> <span class="pre">[m/s]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">v_ou_a</span> <span class="pre">[m/s]</span></code></p></td>
 <td><p>ASHP, ASHPB</p></td>
 <td><p>Face velocity at the outdoor coil.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">v_iu_a</span> <span class="pre">[m/s]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">v_iu_a</span> <span class="pre">[m/s]</span></code></p></td>
 <td><p>ASHP, GSHP</p></td>
 <td><p>Face velocity at the indoor coil.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">UA_ou</span> <span class="pre">[W/K]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">UA_ou</span> <span class="pre">[W/K]</span></code></p></td>
 <td><p>ASHPB (s)</p></td>
 <td><p>Outdoor-coil conductance at this airflow.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">NTU_ou</span> <span class="pre">[-]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">NTU_ou</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHPB (s)</p></td>
 <td><p>Outdoor-coil number of transfer units at this airflow.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">epsilon_ou</span> <span class="pre">[-]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">epsilon_ou</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHPB (s)</p></td>
 <td><p>Outdoor-coil effectiveness.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">UA_iu_rated</span> <span class="pre">[W/K]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">UA_iu_rated</span> <span class="pre">[W/K]</span></code></p></td>
 <td><p>GSHP</p></td>
 <td><p>Rated indoor-coil conductance of the machine (echo of the model value).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">indoor_approach</span> <span class="pre">[K]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">indoor_approach</span> <span class="pre">[K]</span></code></p></td>
 <td><p>GSHP</p></td>
 <td><p>Temperature difference between room air and refrigerant saturation the indoor coil ran at.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_iu_HX_available</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_iu_HX_available</span> <span class="pre">[W]</span></code></p></td>
 <td><p>GSHP</p></td>
 <td><p>Heat the indoor coil transfers at the solved approach (running machine).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Q_iu_ref_required</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Q_iu_ref_required</span> <span class="pre">[W]</span></code></p></td>
 <td><p>GSHP</p></td>
 <td><p>Refrigerant duty the indoor coil has to carry (running machine). A requirement of the solved cycle, not the caller’s request (that is <code class="docutils literal notranslate"><span class="pre">Q_request</span> <span class="pre">[W]</span></code>).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iu_hx_capacity_margin</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iu_hx_capacity_margin</span> <span class="pre">[W]</span></code></p></td>
 <td><p>GSHP</p></td>
 <td><p>Available minus required indoor-coil heat at the solved airflow; 0 when balanced.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iu_hx_min_flow_margin</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iu_hx_min_flow_margin</span> <span class="pre">[W]</span></code></p></td>
 <td><p>GSHP</p></td>
 <td><p>The same margin at the smallest indoor airflow.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iu_hx_max_flow_margin</span> <span class="pre">[W]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iu_hx_max_flow_margin</span> <span class="pre">[W]</span></code></p></td>
 <td><p>GSHP</p></td>
 <td><p>The same margin at the largest indoor airflow.</p></td>
 </tr>
@@ -1175,15 +1207,15 @@ without a running cycle carry NaN or 0.</p>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">X_a_iu_in</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP (d)</p></td>
-<td><p>Flow exergy of the air entering the indoor coil.</p></td>
+<td><p>Flow exergy of the air entering the indoor coil: the thermal exergy of a dry air stream (heat capacity rate times <code class="docutils literal notranslate"><span class="pre">(T</span> <span class="pre">−</span> <span class="pre">T0)</span> <span class="pre">−</span> <span class="pre">T0</span> <span class="pre">ln(T</span> <span class="pre">/</span> <span class="pre">T0)</span></code>), also with a wet ASHP coil. A moist-air exergy (reference humidity, water vapour, condensate) is not modelled.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">X_a_iu_mid</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP (d)</p></td>
-<td><p>Flow exergy of the air leaving the indoor coil, before the fan.</p></td>
+<td><p>Flow exergy of the air leaving the indoor coil, before the fan (thermal part, as <code class="docutils literal notranslate"><span class="pre">X_a_iu_in</span></code>).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">X_a_iu_out</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP (d)</p></td>
-<td><p>Flow exergy of the supply air.</p></td>
+<td><p>Flow exergy of the supply air (thermal part, as <code class="docutils literal notranslate"><span class="pre">X_a_iu_in</span></code>).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">X_a_ou_in</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, ASHPB (d)</p></td>
@@ -1247,7 +1279,7 @@ without a running cycle carry NaN or 0.</p>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">X_eff_iu_hx</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHP, GSHP (d)</p></td>
-<td><p>Exergy efficiency of the indoor coil.</p></td>
+<td><p>Exergy efficiency of the indoor coil. NaN on an ASHP row whose coil removes water (<code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> &gt; 0): see <code class="docutils literal notranslate"><span class="pre">Xc_iu_hx</span> <span class="pre">[W]</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">X_eff_mix</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHPB (d)</p></td>
@@ -1275,7 +1307,7 @@ without a running cycle carry NaN or 0.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">X_eff_sys</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)</p></td>
-<td><p>Exergy efficiency of the whole system.</p></td>
+<td><p>Exergy efficiency of the whole system. ASHP: the thermal exergy the room air gains over the electrical input; NaN on a row whose coil removes water (the dehumidification is not in the air’s thermal exergy), and negative in cooling where the outdoor air, the dead state, is colder than the room.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">X_eff_tank</span> <span class="pre">[-]</span></code></p></td>
 <td><p>ASHPB (d)</p></td>
@@ -1447,7 +1479,7 @@ without a running cycle carry NaN or 0.</p>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Xc_iu_hx</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHP, GSHP (d)</p></td>
-<td><p>Exergy consumed (destroyed) in the indoor coil.</p></td>
+<td><p>Exergy consumed (destroyed) in the indoor coil. NaN on an ASHP row whose coil removes water (<code class="docutils literal notranslate"><span class="pre">Q_iu_latent</span> <span class="pre">[W]</span></code> &gt; 0): the refrigerant side carries the latent heat and the air side only the thermal exergy of dry air, so <code class="docutils literal notranslate"><span class="pre">X_in_iu_hx</span> <span class="pre">−</span> <span class="pre">X_out_iu_hx</span></code> is not the coil’s destruction there.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Xc_mix</span> <span class="pre">[W]</span></code></p></td>
 <td><p>ASHPB (d), GSHPB (d), WSHPB (d)</p></td>
@@ -1663,7 +1695,7 @@ carries a key this page does not name.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 22, 2026
+  Last updated Nov 28, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

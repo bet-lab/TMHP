@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This procedure is fixed. Follow it and the documentation site picks the new unit up on the next push to main — parity plot, error table and summary, all of it. The design goal is that adding a mach..." />
 
-    <meta property="article:modified_time" content="2026-11-22T00:36:05+00:00" />
+    <meta property="article:modified_time" content="2026-11-28T12:05:53+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -373,17 +373,24 @@ the inversion catches most of what slips past that.</p>
 <section id="latent-load">
 <h2>Latent load<a class="headerlink" href="#latent-load" title="Link to this heading">¶</a></h2>
 <p>Cooling grids publish total capacity and sensible capacity; the difference is
-dehumidification. TMHP’s indoor coil is a dry sensible exchanger, so a row with
-a low sensible heat ratio asks the model to carry a latent duty it does not
-compute. The Daikin catalogues record each cooling point’s sensible heat ratio
-in its <code class="docutils literal notranslate"><span class="pre">note</span></code> field for exactly this reason. Report such rows; do not quietly
-drop them.</p>
+dehumidification. The parity harness runs the dry indoor coil, so a row with
+a low sensible heat ratio asks the model to carry as sensible heat a duty that
+is partly latent. The air-to-air catalogues record each cooling point’s
+sensible heat ratio in its <code class="docutils literal notranslate"><span class="pre">note</span></code> field for exactly this reason, and its
+indoor wet bulb with it (<code class="docutils literal notranslate"><span class="pre">&quot;WB</span> <span class="pre">19</span> <span class="pre">C,</span> <span class="pre">SHR</span> <span class="pre">0.74,</span> <span class="pre">wet</span> <span class="pre">coil&quot;</span></code>). Record both: the
+wet-coil study (<code class="docutils literal notranslate"><span class="pre">validation/wet_coil_shr/simulate.py</span></code>; <a class="reference internal" href="index.html"><span class="doc">Validation</span></a>, <em>Cooling
+and latent load</em>) needs the wet bulb to run a row at the humidity it was
+published at. Look for the wet bulb in the table’s header before concluding
+that a source does not give one: Fujitsu prints it on a line of its own under
+the indoor dry bulbs (<code class="docutils literal notranslate"><span class="pre">°CDB</span> <span class="pre">17.8</span> <span class="pre">21.1</span> <span class="pre">…</span></code> / <code class="docutils literal notranslate"><span class="pre">°CWB</span> <span class="pre">12.2</span> <span class="pre">15.6</span> <span class="pre">…</span></code>), one per
+column, and the first transcription of those tables kept the dry bulbs only.
+Report such rows; do not quietly drop them.</p>
 <p>Heating rows have no latent component and need no qualification.</p>
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 22, 2026
+  Last updated Nov 28, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -513,14 +513,11 @@ A bare ``AirSourceHeatPumpBoiler`` takes its volumetric (``eta_cmp_vol``),
 isentropic (``eta_cmp_isen``) and electro-mechanical (``eta_cmp``)
 efficiencies from the default maps of :mod:`tmhp.compressor_efficiency`
 (coefficient set ``ossorio-r290-te-2026-11-21``). Every family takes the same
-maps, whatever its refrigerant and compressor: they are fitted to 134
-measured points of one 46 cm³/rev R290 scroll, not to heat-pump catalogues,
-and are evaluated at the pressure ratio, the shaft speed in rev/s and the
-evaporating saturation temperature. They are fitted on the power of
-compressor and inverter together, so ``E_cmp [W]`` is the inverter input;
-there is no separate drive model. The maps, their data and their limits are
-described in :doc:`/validation/defaults` and in the coefficient archive
-``validation/coefficients/ossorio-r290-te-2026-11-21/`` (its README).
+maps of one R290 scroll, whatever its refrigerant and compressor, and
+``E_cmp [W]`` is the inverter input. :doc:`/concepts/compressor-efficiency`
+explains how the cycle uses the maps, where they come from, their form and
+their limits, with an interactive explorer; their validation record is in
+:doc:`/validation/defaults`.
 
 .. warning::
 

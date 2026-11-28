@@ -869,10 +869,13 @@ The default compressor efficiencies are three maps of one compressor, version
 ``ossorio-r290-te-2026-11-21`` (:mod:`tmhp.compressor_efficiency`): a
 46 cm³/rev R290 scroll, measured at 134 operating points. The same maps serve
 every refrigerant and every compressor; the library has no compressor type to
-choose (#217). A particular machine is followed by calibrating the maps to its
-data (#90), not by a form of its own. This section says what the maps are,
-what they were fitted to, how their axes were chosen and where they are weak.
-The authority for every statement is the archive,
+choose (#217). A particular machine is to be followed by calibrating the maps to its
+data, not by a form of its own; that calibration is planned (#189) and not
+in the library. How the cycle uses the maps, where
+they come from, their form and their limits are explained, with an
+interactive explorer, on :doc:`/concepts/compressor-efficiency`. This section
+keeps the validation record: the fit, the data, the choice of axes and where
+the maps are weak. The authority for every statement is the archive,
 ``validation/coefficients/ossorio-r290-te-2026-11-21/``, and its README.
 
 .. admonition:: Two things to know before the detail
@@ -889,28 +892,14 @@ What is modelled, and where each loss sits
 ------------------------------------------
 
 The maps are fitted on the power the compressor and its inverter draw
-together, :math:`W`. Three quantities are computed from each measured point
-with CoolProp (propane):
-
-.. math::
-
-    \eta_v = \frac{\dot m}{\rho_1\, V N},
-    \qquad
-    \eta_{ov} = \frac{\dot m\,(h_{2s} - h_1)}{W},
-    \qquad
-    f_{loss} = 1 - \frac{\dot m\,(h_2 - h_1)}{W}
-
-with :math:`h_2` from the measured discharge temperature. :math:`\eta_v` is
-the delivered fraction of the swept volume, :math:`\eta_{ov}` the overall
-efficiency, and :math:`f_{loss}` the share of the electrical input that never
-reaches the gas: the losses of the motor and the inverter and the heat the
-shell gives off. A model reports three quantities, as it always has:
-``eta_cmp_vol`` is :math:`\eta_v`, ``eta_cmp`` is :math:`1 - f_{loss}` and
-``eta_cmp_isen`` is :math:`\eta_{ov} / (1 - f_{loss})`, so
-``eta_cmp_isen · eta_cmp`` is :math:`\eta_{ov}`. ``eta_cmp_isen`` sets the
-discharge enthalpy, and so the heating duty and the discharge temperature;
-``eta_cmp`` sets the electrical input ``E_cmp = ṁ (h_2 − h_1) / eta_cmp``,
-which is therefore the power at the **inverter input**. There is no separate
+together, :math:`W`, to three quantities computed from each measured point
+with CoolProp (propane): the volumetric efficiency :math:`\eta_v`, the overall
+efficiency :math:`\eta_{ov}` and the loss fraction :math:`f_{loss}`. Their
+definitions and how the cycle uses them are on
+:doc:`/concepts/compressor-efficiency`. A model reports three quantities, as
+it always has: ``eta_cmp_vol`` is :math:`\eta_v`, ``eta_cmp`` is
+:math:`1 - f_{loss}` and ``eta_cmp_isen`` is :math:`\eta_{ov} / (1 - f_{loss})`,
+and ``E_cmp`` is the power at the **inverter input**. There is no separate
 drive model (#217): the inverter loss is the one measured with this
 compressor, inside :math:`f_{loss}`. An efficiency you pass yourself
 (``eta_cmp_isen=…``) is a number or a function of the pressure ratio and the
@@ -961,15 +950,10 @@ the points at a time.
 The data
 --------
 
-``ossorio_thesis_r290_134.csv`` holds 134 measured points of a 46 cm³/rev R290
-scroll compressor at 30, 50, 70, 90 and 110 rev/s with a superheat of about
-10 K, evaporating at −30.2 to 25.1 °C. They are extracted row by row from
-R. Ossorio's PhD thesis (Universitat Politècnica de València, Appendix 1, PDF
-pp. 244–252); the page and the row of each point are in the file. They are
-the tests of Compressor A of `Ossorio & Navarro-Peris (2023)
-<https://doi.org/10.1016/j.applthermaleng.2023.120725>`_. The thesis tabulates
-the power of the compressor and that of compressor and inverter together; the
-maps use the second.
+``ossorio_thesis_r290_134.csv`` holds the 134 measured points, extracted row
+by row from Ossorio's PhD thesis; the page and the row of each point are in
+the file. The source, the test conditions and the references are on
+:doc:`/concepts/compressor-efficiency`.
 
 The efficiencies computed from the points (``points.csv``) agree with the
 author's tabulated values to 0.005 for :math:`\eta_v` and 0.008 for
@@ -982,20 +966,13 @@ committed.
 Why the evaporating temperature
 -------------------------------
 
-The measured efficiencies depend on :math:`T_e`. At one pressure ratio and
-speed the measured :math:`\eta_{ov}` and :math:`\eta_v` differ with the
-evaporating temperature, and without the :math:`T_e` term the residual
-follows it (``figures/te_residuals.png`` of the archive). With the term the
-cross-validated RMSE falls from 0.034 to 0.022 for :math:`\eta_{ov}` and from
-0.015 to 0.008 for :math:`\eta_v`.
-
-The correlation behind the earlier quadratic says the same. In the 2024
-correlation the specific consumption carries
-:math:`(P_c + 6.70)/(P_e + 0.51)`, which is not the pressure ratio; at a
-pressure ratio of 3 and 70 rev/s its :math:`\eta_{ov}` rises from 0.60 to 0.70
-between :math:`T_e` = −10 and 15 °C. The map gives 0.62 and 0.69 there.
-
-:math:`f_{loss}` does not need the term: one changes its error by 0.0001.
+Without the :math:`T_e` term the residual of :math:`\eta_{ov}` and
+:math:`\eta_v` follows the evaporating temperature
+(``figures/te_residuals.png`` of the archive). With the term the
+10-fold cross-validated RMSE falls from 0.0345 to 0.0221 for
+:math:`\eta_{ov}` and from 0.0148 to 0.0081 for :math:`\eta_v`;
+:math:`f_{loss}` does not need it. The evidence, with the 2024 correlation, is
+on :doc:`/concepts/compressor-efficiency`.
 
 The comparison that chose the axes
 ----------------------------------
@@ -1070,7 +1047,7 @@ low flow temperatures in mild weather.
 **Outside 30–110 rev/s the maps are extrapolated.** The default speed floor is
 15 rev/s and the ceiling 120 rev/s or more, so part load below 30 rev/s and
 full load in cold weather above 110 rev/s lie outside the data. The speed
-terms, a quadratic in :math:`n`, are followed as they are, and
+terms, a quadratic in :math:`N`, are followed as they are, and
 ``efficiency_extrapolated`` is set. At a pressure ratio of 3 and
 :math:`T_e` = 0 °C the map's :math:`\eta_{ov}` is 0.649 at 70 rev/s, 0.616 at
 30 and 0.582 at 15 rev/s, and 0.598 at 110 and 0.572 at 120 rev/s. In a

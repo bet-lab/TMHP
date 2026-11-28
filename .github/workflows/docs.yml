@@ -12,6 +12,8 @@ on:
       - validation/parity/*.py
       - validation/catalogs/*.yaml
       - validation/results/*.csv
+      - validation/coefficients/*/points.csv
+      - validation/coefficients/*/figures/*.svg
       - pyproject.toml
       - uv.lock
       - .github/workflows/docs.yml

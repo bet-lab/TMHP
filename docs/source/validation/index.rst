@@ -112,8 +112,9 @@ maps are read with every figure below:
 - **They are one compressor's.** The maps are fitted to 134 measured points
   of one 46 cm³/rev R290 scroll. Every unit runs on them, whatever its
   refrigerant and its compressor: the rotary and swing compressors of the set
-  as much as its scrolls. A particular machine is followed by calibrating the
-  maps (#90), which no figure on this page does.
+  as much as its scrolls. A particular machine is to be followed by calibrating
+  the maps, which is planned (#189) and not in the library; no figure on this
+  page is calibrated.
 - **Outside their data they are followed as they are.** The data cover 30 to
   110 rev/s and a hull in pressure ratio and evaporating temperature; outside
   it the result carries ``efficiency_extrapolated``.

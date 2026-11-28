@@ -1,15 +1,15 @@
-"""A request on the room's net sensible heat: ``request_basis="room_sensible"`` of ``AirSourceHeatPump`` (#219).
+"""A request on the room's net sensible heat: ``request_basis="sensible"`` of ``AirSourceHeatPump`` (#219).
 
 ``analyze_steady`` and ``analyze_dynamic`` take the request as the
-refrigerant-side heat of the indoor coil (``request_basis="coil"``, the
+refrigerant-side heat of the indoor coil (``request_basis="total"``, the
 default). A building simulation hands over the zone's sensible load, which
 differs from the coil's heat by the latent heat of a wet coil and, in both
-modes, by the indoor fan's heat. With ``request_basis="room_sensible"`` the
+modes, by the indoor fan's heat. With ``request_basis="sensible"`` the
 model finds the coil duty at which ``Q_room_sensible [W]`` -- as the row
 reports it, averaged over cycling and over frost and defrost -- equals the
 request:
 
-- the row is the coil-basis row of that duty, key for key; only
+- the row is the total-basis row of that duty, key for key; only
   ``Q_request [W]`` and ``Q_unmet [W]`` are in the requested basis, and
   ``request_basis`` says which it is;
 - the match is to 1e-6 of the request where three solves reach it (a dry coil
@@ -19,12 +19,12 @@ request:
   is unmet, in the basis; ``max_capacity`` reports that ceiling as
   ``Q_room_sensible_at_Q_max [W]``;
 - a row does not depend on what was solved before it;
-- the row says how many coil-basis solves the search took
+- the row says how many total-basis solves the search took
   (``request_solves [-]``, on a row of this basis only), twelve at most;
 - a default run does not hand the option to ``analyze_steady``: a subclass
   that overrides it with the signature it had before runs as it did.
 
-No test here looks at how the search calls the coil-basis solve: the row is
+No test here looks at how the search calls the total-basis solve: the row is
 checked through the public round trip (a coil request for the ``Q_ref_iu [W]``
 it reports repeats it) and the cost through the count the row carries.
 """
@@ -46,9 +46,9 @@ DRY_TOL = 1e-6
 #: The same on a row whose coil condenses water.
 WET_TOL = 1e-4
 #: Keys that are in the requested basis, or name it: the only ones a row may
-#: differ in from the coil-basis row of the same coil duty.
+#: differ in from the total-basis row of the same coil duty.
 BASIS_KEYS = frozenset({"Q_request [W]", "Q_unmet [W]", "request_basis"})
-#: The most coil-basis solves one request may take (the search's budget).
+#: The most total-basis solves one request may take (the search's budget).
 MAX_SOLVES = 12
 #: The count of those solves: on a row asked on the room's net sensible heat, and on no other.
 SOLVES_KEY = "request_solves [-]"
@@ -99,7 +99,7 @@ def _differing_keys(a: dict, b: dict, *, skip: frozenset[str] = BASIS_KEYS) -> l
     """Keys of both rows whose values are not the same object value, bit for bit (NaN equal to NaN).
 
     The rows have the same keys in the same order, but for the count of solves
-    where one of them is a coil-basis row.
+    where one of them is a total-basis row.
     """
     shared = [key for key in a if key in b]
     assert shared == [key for key in b if key in a], "the two rows do not have their keys in the same order"
@@ -118,37 +118,37 @@ def _tolerance(row: dict) -> float:
 
 def test_the_default_basis_is_the_coil_and_every_row_names_its_basis(hp: AirSourceHeatPump) -> None:
     default = _solve(hp, 4000.0, 35.0, 27.0, RH_room=0.5)
-    named = _solve(hp, 4000.0, 35.0, 27.0, RH_room=0.5, request_basis="coil")
-    assert default["request_basis"] == "coil"
+    named = _solve(hp, 4000.0, 35.0, 27.0, RH_room=0.5, request_basis="total")
+    assert default["request_basis"] == "total"
     assert _differing_keys(default, named, skip=frozenset()) == []
-    # The coil basis, as before: the request is the coil's total heat.
+    # The total basis, as before: the request is the coil's total heat.
     assert default["Q_request [W]"] == 4000.0
     assert default["Q_ref_iu [W]"] == pytest.approx(4000.0, rel=1e-9)
     assert default["Q_unmet [W]"] == 0.0
     off = _solve(hp, 0.0, 35.0, 27.0)
-    assert off["request_basis"] == "coil"
+    assert off["request_basis"] == "total"
 
 
 def test_the_number_of_solves_is_on_a_room_sensible_row_and_on_no_other(hp: AirSourceHeatPump) -> None:
     coil = _solve(hp, 4000.0, 35.0, 27.0, RH_room=0.5)
     assert SOLVES_KEY not in coil
-    room = _solve(hp, 4000.0, 35.0, 27.0, RH_room=0.5, request_basis="room_sensible")
-    # The coil-basis row's keys, in their order, and the count after them.
+    room = _solve(hp, 4000.0, 35.0, 27.0, RH_room=0.5, request_basis="sensible")
+    # The total-basis row's keys, in their order, and the count after them.
     assert list(room) == [*coil, SOLVES_KEY]
     assert type(room[SOLVES_KEY]) is int
     assert 2 <= room[SOLVES_KEY] <= MAX_SOLVES
     # One solve where the first trial is the answer: a request above the ceiling.
-    assert _solve(hp, 9000.0, 35.0, 27.0, RH_room=0.5, request_basis="room_sensible")[SOLVES_KEY] == 1
+    assert _solve(hp, 9000.0, 35.0, 27.0, RH_room=0.5, request_basis="sensible")[SOLVES_KEY] == 1
     # A zero request is not searched.
-    off = _solve(hp, 0.0, 35.0, 27.0, RH_room=0.5, request_basis="room_sensible")
+    off = _solve(hp, 0.0, 35.0, 27.0, RH_room=0.5, request_basis="sensible")
     assert type(off[SOLVES_KEY]) is int
     assert off[SOLVES_KEY] == 0
-    frame = hp.analyze_steady(4000.0, 35.0, 27.0, request_basis="room_sensible", return_dict=False, verbose=False)
+    frame = hp.analyze_steady(4000.0, 35.0, 27.0, request_basis="sensible", return_dict=False, verbose=False)
     assert isinstance(frame, pd.DataFrame)
     assert frame[SOLVES_KEY].iloc[0] == 3
 
 
-@pytest.mark.parametrize("basis", ["sensible", "Coil", "room", "", None, 1])
+@pytest.mark.parametrize("basis", ["room_sensible", "coil", "Total", "room", "", None, 1])
 def test_an_unknown_basis_raises(hp: AirSourceHeatPump, basis: object) -> None:
     with pytest.raises(ValueError, match="request_basis"):
         hp.analyze_steady(4000.0, 35.0, 27.0, request_basis=basis)  # type: ignore[arg-type]
@@ -158,8 +158,8 @@ def test_an_unknown_basis_raises(hp: AirSourceHeatPump, basis: object) -> None:
 
 def test_a_zero_request_is_the_unit_off_in_either_basis(hp: AirSourceHeatPump) -> None:
     coil = _solve(hp, 0.0, 35.0, 27.0, RH_room=0.5)
-    room = _solve(hp, 0.0, 35.0, 27.0, RH_room=0.5, request_basis="room_sensible")
-    assert room["request_basis"] == "room_sensible"
+    room = _solve(hp, 0.0, 35.0, 27.0, RH_room=0.5, request_basis="sensible")
+    assert room["request_basis"] == "sensible"
     assert room["hp_is_on"] is False
     assert room["Q_request [W]"] == 0.0
     assert room["Q_unmet [W]"] == 0.0
@@ -168,10 +168,10 @@ def test_a_zero_request_is_the_unit_off_in_either_basis(hp: AirSourceHeatPump) -
 
 
 def test_a_frame_is_returned_on_request(hp: AirSourceHeatPump) -> None:
-    frame = hp.analyze_steady(4000.0, 35.0, request_basis="room_sensible", return_dict=False, verbose=False)
+    frame = hp.analyze_steady(4000.0, 35.0, request_basis="sensible", return_dict=False, verbose=False)
     assert isinstance(frame, pd.DataFrame)
     assert len(frame) == 1
-    assert frame["request_basis"].iloc[0] == "room_sensible"
+    assert frame["request_basis"].iloc[0] == "sensible"
     # ``T_a_room`` left out: the constructor's room (27 degC).
     assert frame["T_a_room [°C]"].iloc[0] == 27.0
     assert frame["Q_room_sensible [W]"].iloc[0] == pytest.approx(4000.0, rel=DRY_TOL)
@@ -199,9 +199,9 @@ MET_CASES = {
 @pytest.mark.parametrize("case", list(MET_CASES), ids=list(MET_CASES))
 def test_the_net_sensible_heat_equals_the_request(hp: AirSourceHeatPump, case: str) -> None:
     request, T0, T_a_room, extra, kind = MET_CASES[case]
-    row = _solve(hp, request, T0, T_a_room, request_basis="room_sensible", **extra)
+    row = _solve(hp, request, T0, T_a_room, request_basis="sensible", **extra)
 
-    assert row["request_basis"] == "room_sensible"
+    assert row["request_basis"] == "sensible"
     assert row["hp_is_on"] is True
     assert row["failure_reason"] == "none"
     assert row["Q_request [W]"] == request
@@ -232,7 +232,7 @@ def test_the_example_of_the_issue(hp: AirSourceHeatPump) -> None:
     assert coil["Q_iu_sensible [W]"] == pytest.approx(3241.0, abs=1.0)
     assert coil["Q_room_sensible [W]"] == pytest.approx(3218.0, abs=1.0)
 
-    room = _solve(hp, 4000.0, 35.0, 27.0, RH_room=0.5, request_basis="room_sensible")
+    room = _solve(hp, 4000.0, 35.0, 27.0, RH_room=0.5, request_basis="sensible")
     assert room["Q_room_sensible [W]"] == pytest.approx(4000.0, rel=WET_TOL)
     assert room["Q_request [W]"] == 4000.0
     assert room["Q_unmet [W]"] == 0.0
@@ -246,26 +246,26 @@ def test_the_example_of_the_issue(hp: AirSourceHeatPump) -> None:
     assert room["E_tot [W]"] > 1.3 * coil["E_tot [W]"]
 
     # The dry coil: the fan's heat only.
-    dry = _solve(hp, 4000.0, 35.0, 27.0, request_basis="room_sensible")
+    dry = _solve(hp, 4000.0, 35.0, 27.0, request_basis="sensible")
     assert dry["Q_room_sensible [W]"] == pytest.approx(4000.0, rel=DRY_TOL)
     assert dry["Q_ref_iu [W]"] == pytest.approx(4000.0 + dry["E_iu_fan [W]"], rel=1e-6)
     assert dry["Q_ref_iu [W]"] == pytest.approx(4023.13, abs=0.01)
     # Heating: the fan's heat is part of what the room receives.
-    heat = _solve(hp, -4000.0, 7.0, 20.0, request_basis="room_sensible")
+    heat = _solve(hp, -4000.0, 7.0, 20.0, request_basis="sensible")
     assert heat["Q_ref_iu [W]"] == pytest.approx(4000.0 - heat["E_iu_fan [W]"], rel=1e-6)
     assert heat["Q_ref_iu [W]"] == pytest.approx(3976.87, abs=0.01)
 
 
 # ---------------------------------------------------------------------------
-# 3. The row is the coil-basis row of the duty found
+# 3. The row is the total-basis row of the duty found
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("case", list(MET_CASES), ids=list(MET_CASES))
 def test_few_solves_find_the_duty(hp: AirSourceHeatPump, case: str) -> None:
-    """The cost, as the row reports it: the coil-basis solves the search took."""
+    """The cost, as the row reports it: the total-basis solves the search took."""
     request, T0, T_a_room, extra, kind = MET_CASES[case]
-    row = _solve(hp, request, T0, T_a_room, request_basis="room_sensible", **extra)
+    row = _solve(hp, request, T0, T_a_room, request_basis="sensible", **extra)
     # Three solves where the duty is smooth along the request (the request, a
     # first guess from it, one secant step), a few more with a wet coil, never
     # more than the budget.
@@ -276,14 +276,14 @@ def test_few_solves_find_the_duty(hp: AirSourceHeatPump, case: str) -> None:
 def test_a_coil_request_for_the_duty_found_gives_the_same_row(hp: AirSourceHeatPump, case: str) -> None:
     """The coil duty the row reports is the duty that was solved, to rounding: asking for it repeats the row.
 
-    This is what says the row is a coil-basis row, whatever way the search
+    This is what says the row is a total-basis row, whatever way the search
     reaches the solve. Measured on 2,646 requests of default units: every
     numeric key to 1e-12 (worst 8e-13), wet rows included.
     """
     request, T0, T_a_room, extra, _ = MET_CASES[case]
-    room = _solve(hp, request, T0, T_a_room, request_basis="room_sensible", **extra)
+    room = _solve(hp, request, T0, T_a_room, request_basis="sensible", **extra)
     coil = _solve(hp, math.copysign(room["Q_ref_iu [W]"], request), T0, T_a_room, **extra)
-    assert coil["request_basis"] == "coil"
+    assert coil["request_basis"] == "total"
     assert [*coil, SOLVES_KEY] == list(room)
     for key, value in room.items():
         if key in BASIS_KEYS or key == SOLVES_KEY:
@@ -313,15 +313,15 @@ CEILING_CASES = {
 def test_above_the_ceiling_the_row_is_the_ceilings_and_the_rest_is_unmet(hp: AirSourceHeatPump, case: str) -> None:
     request, T0, T_a_room, extra, ceiling_extra = CEILING_CASES[case]
     mode = "cooling" if request > 0 else "heating"
-    row = _solve(hp, request, T0, T_a_room, request_basis="room_sensible", **extra)
-    # The coil-basis row of a request no unit of this size delivers: the ceiling's.
+    row = _solve(hp, request, T0, T_a_room, request_basis="sensible", **extra)
+    # The total-basis row of a request no unit of this size delivers: the ceiling's.
     flat_out = _solve(hp, math.copysign(50.0 * hp.hp_capacity, request), T0, T_a_room, **extra)
     ceiling = hp.max_capacity(T0, T_a_room, mode=mode, **ceiling_extra)
 
     assert flat_out["capacity_clamped"] == "max"
     assert _differing_keys(flat_out, row) == []
     assert row["capacity_clamped"] == "max"
-    assert row["request_basis"] == "room_sensible"
+    assert row["request_basis"] == "sensible"
     assert row["Q_request [W]"] == request
     # Unmet in the basis: what the room is short of, not what the coil is.
     assert 0.0 < row["Q_room_sensible [W]"] < abs(request)
@@ -344,11 +344,11 @@ def test_requests_around_the_ceiling_in_the_basis(hp: AirSourceHeatPump, case: s
     ]
     assert top > 0.0
 
-    under = _solve(hp, sign * 0.98 * top, T0, T_a_room, request_basis="room_sensible", **extra)
+    under = _solve(hp, sign * 0.98 * top, T0, T_a_room, request_basis="sensible", **extra)
     assert under["Q_unmet [W]"] == 0.0
     assert under["Q_room_sensible [W]"] == pytest.approx(0.98 * top, rel=_tolerance(under))
 
-    above = _solve(hp, sign * 1.02 * top, T0, T_a_room, request_basis="room_sensible", **extra)
+    above = _solve(hp, sign * 1.02 * top, T0, T_a_room, request_basis="sensible", **extra)
     assert above["capacity_clamped"] == "max"
     assert above["Q_room_sensible [W]"] == pytest.approx(top, rel=1e-9)
     assert above["Q_unmet [W]"] == pytest.approx(0.02 * top, rel=1e-6)
@@ -380,7 +380,7 @@ def test_a_unit_that_does_not_cycle_delivers_more_than_a_small_request() -> None
     coil = _solve(steady, 300.0, 30.0, 26.0)
     assert coil["capacity_clamped"] == "min"
     assert coil["Q_ref_iu [W]"] > 300.0
-    room = _solve(steady, 300.0, 30.0, 26.0, request_basis="room_sensible")
+    room = _solve(steady, 300.0, 30.0, 26.0, request_basis="sensible")
     assert room["capacity_clamped"] == "min"
     assert room["Q_room_sensible [W]"] > 300.0
     assert room["Q_request [W]"] == 300.0
@@ -395,9 +395,9 @@ def test_a_request_the_unit_is_off_for_is_the_off_row_with_all_of_it_unmet() -> 
     coil = _solve(hot, 4000.0, 55.0, 27.0)
     assert coil["hp_is_on"] is False
     assert coil["failure_reason"] != "none"
-    room = _solve(hot, 4000.0, 55.0, 27.0, request_basis="room_sensible")
+    room = _solve(hot, 4000.0, 55.0, 27.0, request_basis="sensible")
     assert _differing_keys(coil, room) == []
-    assert room["request_basis"] == "room_sensible"
+    assert room["request_basis"] == "sensible"
     assert room["Q_room_sensible [W]"] == 0.0
     assert room["Q_request [W]"] == 4000.0
     assert room["Q_unmet [W]"] == 4000.0
@@ -410,7 +410,7 @@ def test_a_request_is_met_where_the_first_trial_heats_the_room() -> None:
 
     Indoor fan held at its largest flow with a rated efficiency of 0.01
     (1,388 W of fan heat at full load), 35 degC outdoor, room 27 degC at
-    90 %. The coil-basis row of the request heats the room (measured: -87 W
+    90 %. The total-basis row of the request heats the room (measured: -87 W
     of net sensible heat at 300 W, -434 W at 1,500 W); a larger coil duty
     cools it. Before the fix the search ended on that first row and reported
     all of the request and more unmet. Without the cycling model the first
@@ -439,13 +439,13 @@ def test_a_request_is_met_where_the_first_trial_heats_the_room() -> None:
         assert first["hp_is_on"] is True
         assert first["Q_room_sensible [W]"] < 0.0
 
-        room = _solve(unit, request, request_basis="room_sensible", **conditions)
+        room = _solve(unit, request, request_basis="sensible", **conditions)
         assert room["hp_is_on"] is True
         assert room["Q_unmet [W]"] == 0.0
         assert room["Q_room_sensible [W]"] == pytest.approx(request, rel=_tolerance(room))
         assert room["Q_ref_iu [W]"] > request
         assert room[SOLVES_KEY] <= MAX_SOLVES
-        # The row is the coil-basis row of the duty it reports.
+        # The row is the total-basis row of the duty it reports.
         again = _solve(unit, room["Q_ref_iu [W]"], **conditions)
         assert again["Q_room_sensible [W]"] == pytest.approx(room["Q_room_sensible [W]"], rel=WET_TOL)
 
@@ -458,7 +458,7 @@ def test_a_unit_without_cycling_meets_a_request_above_its_smallest_duty_in_a_wet
     sensible heat. The search used to end there with 277 W unmet.
     """
     steady = AirSourceHeatPump(hp_capacity=4000.0, Cd_cycling=None)
-    room = _solve(steady, 1000.0, 35.0, 27.0, RH_room=0.9, request_basis="room_sensible")
+    room = _solve(steady, 1000.0, 35.0, 27.0, RH_room=0.9, request_basis="sensible")
     assert room["Q_unmet [W]"] == 0.0
     assert room["Q_room_sensible [W]"] == pytest.approx(1000.0, rel=WET_TOL)
     assert room[SOLVES_KEY] <= MAX_SOLVES
@@ -482,7 +482,7 @@ def test_a_search_ending_at_the_ceiling_keeps_a_better_earlier_trial() -> None:
     )
     conditions = dict(T0=35.0, T_a_room=27.0, RH_room=0.9)
     first = _solve(hopeless, 300.0, **conditions)
-    room = _solve(hopeless, 300.0, request_basis="room_sensible", **conditions)
+    room = _solve(hopeless, 300.0, request_basis="sensible", **conditions)
     assert room[SOLVES_KEY] > 1
     assert room["Q_room_sensible [W]"] == pytest.approx(first["Q_room_sensible [W]"], rel=1e-9)
     assert room["Q_unmet [W]"] == pytest.approx(300.0 - first["Q_room_sensible [W]"], rel=1e-9)
@@ -501,7 +501,7 @@ def test_a_request_is_met_where_the_net_sensible_heat_is_not_monotone_in_the_coi
     assert lower["capacity_clamped"] == higher["capacity_clamped"] == "min"
     assert higher["Q_room_sensible [W]"] < lower["Q_room_sensible [W]"] < 125.0
 
-    row = _solve(small, 125.0, request_basis="room_sensible", **conditions)
+    row = _solve(small, 125.0, request_basis="sensible", **conditions)
     assert row["Q_unmet [W]"] == 0.0
     assert row["Q_room_sensible [W]"] == pytest.approx(125.0, rel=WET_TOL)
     assert row["Q_ref_iu [W]"] > 158.2
@@ -522,7 +522,7 @@ def test_a_wet_cycling_load_just_above_a_kink_is_met(case: tuple[float, float, f
     request, T0, T_a_room, RH_room = case
     small = AirSourceHeatPump(hp_capacity=2500.0)
     conditions = dict(T0=T0, T_a_room=T_a_room, RH_room=RH_room)
-    row = _solve(small, request, request_basis="room_sensible", **conditions)
+    row = _solve(small, request, request_basis="sensible", **conditions)
     assert row["capacity_clamped"] == "min"
     assert row["Q_iu_latent [W]"] > 0.0
     assert row["Q_unmet [W]"] == 0.0
@@ -550,7 +550,7 @@ def _fans_held(capacity: float, *, indoor: bool, outdoor: bool) -> AirSourceHeat
 def test_a_fan_held_at_one_flow_is_matched_to_the_looser_tolerance() -> None:
     """A dry row of a unit with held fans scatters by about 1e-5 along the duty: met to 1e-4, nothing unmet."""
     held = _fans_held(4000.0, indoor=True, outdoor=True)
-    row = _solve(held, 2000.0, 46.0, 27.0, RH_room=0.6, request_basis="room_sensible")
+    row = _solve(held, 2000.0, 46.0, 27.0, RH_room=0.6, request_basis="sensible")
     assert row["Q_iu_latent [W]"] == 0.0
     assert row["Q_unmet [W]"] == 0.0
     assert row["Q_room_sensible [W]"] == pytest.approx(2000.0, rel=WET_TOL)
@@ -561,7 +561,7 @@ def test_a_request_no_duty_has_is_answered_from_below_with_the_rest_unmet() -> N
     """Outdoor fan held: neighbouring coil duties run at different indoor airflows, with a gap in sensible heat."""
     held = _fans_held(4000.0, indoor=False, outdoor=True)
     conditions = dict(T0=35.0, T_a_room=35.0, RH_room=0.6)
-    row = _solve(held, 2000.0, request_basis="room_sensible", **conditions)
+    row = _solve(held, 2000.0, request_basis="sensible", **conditions)
 
     assert row[SOLVES_KEY] <= MAX_SOLVES
     assert row["hp_is_on"] is True
@@ -573,7 +573,7 @@ def test_a_request_no_duty_has_is_answered_from_below_with_the_rest_unmet() -> N
         # Never more than was asked while something is reported unmet.
         assert sensible < 2000.0
         assert row["Q_unmet [W]"] == pytest.approx(2000.0 - sensible, rel=1e-12)
-        # The budget went into it, and the row is the coil-basis row of the duty it reports.
+        # The budget went into it, and the row is the total-basis row of the duty it reports.
         assert row[SOLVES_KEY] == MAX_SOLVES
         again = _solve(held, row["Q_ref_iu [W]"], **conditions)
         assert again["Q_room_sensible [W]"] == pytest.approx(sensible, rel=WET_TOL)
@@ -600,7 +600,7 @@ def test_the_ceilings_net_sensible_heat_is_that_of_the_largest_coil_duty_not_a_m
     # (measured: 2,739 W at 12.8 kW, under the 13.7 kW ceiling's 2,705 W),
     # and the ceiling's row with the rest unmet otherwise.
     request = 1.0125 * at_ceiling
-    row = _solve(held, request, request_basis="room_sensible", **conditions)
+    row = _solve(held, request, request_basis="sensible", **conditions)
     if row["Q_unmet [W]"] == 0.0:
         assert row["Q_room_sensible [W]"] == pytest.approx(request, rel=WET_TOL)
         assert row["Q_room_sensible [W]"] > at_ceiling
@@ -621,16 +621,16 @@ def test_the_warning_of_a_short_row_is_in_the_requested_basis() -> None:
     # 5.5 kW of sensible cooling: the wet coil's total heat at its ceiling is
     # 8.0 kW, its net sensible heat 4.95 kW.
     with pytest.warns(OperatingLimitWarning) as caught:
-        row = model.analyze_steady(5500.0, 35.0, 27.0, RH_room=0.5, request_basis="room_sensible")
+        row = model.analyze_steady(5500.0, 35.0, 27.0, RH_room=0.5, request_basis="sensible")
     assert isinstance(row, dict)
     assert len(caught) == 1
     text = str(caught[0].message)
     delivered = row["Q_room_sensible [W]"]
     assert f"delivers {delivered:.0f} W of the 5500 W of sensible cooling requested" in text
     assert f"({100.0 * delivered / 5500.0:.0f} %" in text
-    assert "request_basis='room_sensible'" in text
+    assert "request_basis='sensible'" in text
 
-    # The coil basis: worded as before.
+    # The total basis: worded as before.
     model = AirSourceHeatPump()
     with pytest.warns(OperatingLimitWarning) as caught:
         row = model.analyze_steady(9000.0, 35.0, 27.0, RH_room=0.5)
@@ -642,7 +642,7 @@ def test_the_warning_of_a_short_row_is_in_the_requested_basis() -> None:
     # A request that is met warns of nothing.
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        AirSourceHeatPump().analyze_steady(4000.0, 35.0, 27.0, RH_room=0.5, request_basis="room_sensible")
+        AirSourceHeatPump().analyze_steady(4000.0, 35.0, 27.0, RH_room=0.5, request_basis="sensible")
 
 
 # ---------------------------------------------------------------------------
@@ -680,11 +680,11 @@ def _run(model: AirSourceHeatPump, steps: list[tuple], **kwargs) -> pd.DataFrame
 
 @pytest.fixture(scope="module")
 def run(hp: AirSourceHeatPump) -> pd.DataFrame:
-    return _run(hp, STEPS, request_basis="room_sensible")
+    return _run(hp, STEPS, request_basis="sensible")
 
 
 def test_a_dynamic_run_meets_the_zone_loads_with_a_humidity_schedule(run: pd.DataFrame) -> None:
-    assert list(run["request_basis"]) == ["room_sensible"] * len(STEPS)
+    assert list(run["request_basis"]) == ["sensible"] * len(STEPS)
     assert list(run["Q_request [W]"]) == [s[0] for s in STEPS]
     short = {3, 7}
     for n, (load, *_rest) in enumerate(STEPS):
@@ -715,7 +715,7 @@ def test_a_dynamic_run_meets_the_zone_loads_with_a_humidity_schedule(run: pd.Dat
 
 def test_the_default_dynamic_run_is_on_the_coil_basis(hp: AirSourceHeatPump) -> None:
     frame = _run(hp, STEPS[:2])
-    assert list(frame["request_basis"]) == ["coil", "coil"]
+    assert list(frame["request_basis"]) == ["total", "total"]
     assert frame["Q_ref_iu [W]"].iloc[0] == pytest.approx(4000.0, rel=1e-9)
     # The count of solves is a column of a room-sensible run only.
     assert SOLVES_KEY not in frame.columns
@@ -762,15 +762,15 @@ class _EarlierSignature(AirSourceHeatPump):
         )
 
 
-@pytest.mark.parametrize("kwargs", [{}, {"request_basis": "coil"}], ids=["default", "coil"])
+@pytest.mark.parametrize("kwargs", [{}, {"request_basis": "total"}], ids=["default", "total"])
 def test_a_coil_basis_run_does_not_hand_the_basis_to_analyze_steady(hp: AirSourceHeatPump, kwargs: dict) -> None:
-    """A subclass that overrides ``analyze_steady`` without the option runs a coil-basis schedule as before."""
+    """A subclass that overrides ``analyze_steady`` without the option runs a total-basis schedule as before."""
     earlier = _EarlierSignature()
     frame = _run(earlier, STEPS, **kwargs)
     assert earlier.overridden_method_ran
     plain = _run(hp, STEPS)
     assert list(frame.columns) == list(plain.columns)
-    assert list(frame["request_basis"]) == ["coil"] * len(STEPS)
+    assert list(frame["request_basis"]) == ["total"] * len(STEPS)
     for n in range(len(STEPS)):
         assert _row_differences(frame.iloc[n], plain.iloc[n]) == [], n
     assert frame.attrs["operating_limits"] == plain.attrs["operating_limits"]
@@ -779,7 +779,7 @@ def test_a_coil_basis_run_does_not_hand_the_basis_to_analyze_steady(hp: AirSourc
 def test_a_room_sensible_run_hands_the_basis_to_analyze_steady() -> None:
     """Such a subclass has to take the option to be asked on the room's sensible heat: Python's ``TypeError``."""
     with pytest.raises(TypeError, match="request_basis"):
-        _run(_EarlierSignature(), STEPS[:1], request_basis="room_sensible")
+        _run(_EarlierSignature(), STEPS[:1], request_basis="sensible")
 
 
 def _row_differences(a: pd.Series, b: pd.Series) -> list[str]:
@@ -793,11 +793,11 @@ def _row_differences(a: pd.Series, b: pd.Series) -> list[str]:
 
 def test_a_dynamic_row_does_not_depend_on_the_steps_before(hp: AirSourceHeatPump, run: pd.DataFrame) -> None:
     """The same rows in reverse order, each step alone, and from a fresh model."""
-    backwards = _run(hp, STEPS[::-1], request_basis="room_sensible")
+    backwards = _run(hp, STEPS[::-1], request_basis="sensible")
     assert list(backwards.columns) == list(run.columns)
     for n in range(len(STEPS)):
         assert _row_differences(run.iloc[n], backwards.iloc[len(STEPS) - 1 - n]) == [], n
-        alone = _run(AirSourceHeatPump(), [STEPS[n]], request_basis="room_sensible")
+        alone = _run(AirSourceHeatPump(), [STEPS[n]], request_basis="sensible")
         assert _row_differences(run.iloc[n], alone.iloc[0]) == [], n
 
 
@@ -811,7 +811,7 @@ def test_a_dynamic_row_is_the_steady_row_of_its_step(hp: AirSourceHeatPump, run:
             T_a_room,
             RH_out=RH_out,
             RH_room=RH_room if humid else None,
-            request_basis="room_sensible",
+            request_basis="sensible",
             postprocess=False,
         )
         row = run.iloc[n]
@@ -833,10 +833,10 @@ def test_a_request_under_the_dry_discharge_floor_is_met_by_cycling_alone_and_in_
     assert coil["cmp_rpm [rpm]"] / 60.0 > arctic.rps_min + 1.0  # not the speed floor: the envelope's
 
     loads = [-200.0, -300.0, -400.0]
-    steady = [_solve(arctic, load, -25.0, 21.0, request_basis="room_sensible") for load in loads]
+    steady = [_solve(arctic, load, -25.0, 21.0, request_basis="sensible") for load in loads]
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", OperatingLimitWarning)
-        frame = arctic.analyze_dynamic(3 * 3600, 3600, loads, [-25.0] * 3, [21.0] * 3, request_basis="room_sensible")
+        frame = arctic.analyze_dynamic(3 * 3600, 3600, loads, [-25.0] * 3, [21.0] * 3, request_basis="sensible")
     for n, load in enumerate(loads):
         for row in (steady[n], frame.iloc[n]):
             assert row["capacity_clamped"] == "min"
@@ -856,10 +856,10 @@ def test_a_steady_row_does_not_depend_on_what_was_solved_before() -> None:
         (4000.0, 35.0, 27.0, {}),
     ]
     model = AirSourceHeatPump()
-    first = [_solve(model, q, T0, Tr, request_basis="room_sensible", **kw) for q, T0, Tr, kw in conditions]
-    again = [_solve(model, q, T0, Tr, request_basis="room_sensible", **kw) for q, T0, Tr, kw in conditions[::-1]][::-1]
+    first = [_solve(model, q, T0, Tr, request_basis="sensible", **kw) for q, T0, Tr, kw in conditions]
+    again = [_solve(model, q, T0, Tr, request_basis="sensible", **kw) for q, T0, Tr, kw in conditions[::-1]][::-1]
     alone = [
-        _solve(AirSourceHeatPump(), q, T0, Tr, request_basis="room_sensible", **kw) for q, T0, Tr, kw in conditions
+        _solve(AirSourceHeatPump(), q, T0, Tr, request_basis="sensible", **kw) for q, T0, Tr, kw in conditions
     ]
     for a, b, c in zip(first, again, alone, strict=True):
         assert _differing_keys(a, b, skip=frozenset()) == []
@@ -869,14 +869,14 @@ def test_a_steady_row_does_not_depend_on_what_was_solved_before() -> None:
 def test_the_coil_basis_is_not_touched_by_a_room_sensible_solve_before_it() -> None:
     model = AirSourceHeatPump()
     before = _solve(model, 4000.0, 35.0, 27.0, RH_room=0.5)
-    _solve(model, 4000.0, 35.0, 27.0, RH_room=0.5, request_basis="room_sensible")
+    _solve(model, 4000.0, 35.0, 27.0, RH_room=0.5, request_basis="sensible")
     after = _solve(model, 4000.0, 35.0, 27.0, RH_room=0.5)
     assert _differing_keys(before, after, skip=frozenset()) == []
     assert np.isfinite(after["Q_room_sensible [W]"])
 
 
 class _ScriptedRows(AirSourceHeatPump):
-    """A unit whose coil-basis rows follow a given net sensible heat along the coil duty (the search alone is tested)."""
+    """A unit whose total-basis rows follow a given net sensible heat along the coil duty (the search alone is tested)."""
 
     def __init__(self, sensible, ceiling: float, at_ceiling: float) -> None:
         super().__init__(hp_capacity=4000.0)

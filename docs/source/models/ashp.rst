@@ -1053,7 +1053,7 @@ hands over something else: the zone's **sensible** load, the heat its air
 node has to lose or gain. The two differ by the indoor fan's heat in both
 modes and, with a wet coil, by the latent heat. Asked for 4 kW as coil heat,
 the default unit takes 3 218 W of sensible heat out of a 27 °C / 50 % room —
-782 W short of a zone that wanted 4 kW. ``request_basis="room_sensible"``
+782 W short of a zone that wanted 4 kW. ``request_basis="sensible"``
 asks for the room's net sensible heat instead:
 
 .. code-block:: python
@@ -1063,8 +1063,8 @@ asks for the room's net sensible heat instead:
    ashp = AirSourceHeatPump()
    zone = dict(T0=35.0, T_a_room=27.0, RH_room=0.5)
 
-   coil = ashp.analyze_steady(Q_r_iu=4000, **zone)   # request_basis="coil", the default
-   room = ashp.analyze_steady(Q_r_iu=4000, **zone, request_basis="room_sensible")
+   coil = ashp.analyze_steady(Q_r_iu=4000, **zone)   # request_basis="total", the default
+   room = ashp.analyze_steady(Q_r_iu=4000, **zone, request_basis="sensible")
 
    coil["Q_room_sensible [W]"]   # 3218
    room["Q_room_sensible [W]"]   # 4000
@@ -1073,7 +1073,7 @@ asks for the room's net sensible heat instead:
    room["Q_iu_latent [W]"]       # 1914
    room["E_tot [W]"]             # 1647 (909 W for a coil heat of 4000 W)
    room["Q_request [W]"]         # 4000, on the basis the row names:
-   room["request_basis"]         # "room_sensible"
+   room["request_basis"]         # "sensible"
    room["Q_unmet [W]"]           # 0.0
 
 Use it wherever the load comes from a zone heat balance: with the zone's air
@@ -1092,20 +1092,20 @@ argument for a whole run — a year of hourly zone loads from EnergyPlus, say:
        T_a_room_schedule=zone_air_temperature,      # [°C]
        RH_out_schedule=outdoor_relative_humidity,   # 0-1, for the frost model
        RH_room_schedule=zone_relative_humidity,     # 0-1, for the wet coil
-       request_basis="room_sensible",
+       request_basis="sensible",
    )
 
-Keep the default, ``"coil"``, where the number is the coil's heat: a
+Keep the default, ``"total"``, where the number is the coil's heat: a
 catalogue's capacity before the fan's heat, a rating point, a coil load an
 air-loop model has already worked out.
 
 **What the model does.** It finds the coil duty at which the row's
 ``Q_room_sensible [W]`` equals the request and returns the row of that duty —
-the row ``request_basis="coil"`` gives for it, key for key. Only
+the row ``request_basis="total"`` gives for it, key for key. Only
 ``Q_request [W]`` and ``Q_unmet [W]`` are on the requested basis, and
 ``request_basis`` says which it is; ``Q_ref_iu [W]``, ``Q_max [W]`` and
 ``Q_min [W]`` stay coil heat. One key is added after them,
-``request_solves [-]``: the number of coil-basis solves the search took. In
+``request_solves [-]``: the number of total-basis solves the search took. In
 cooling the coil carries more than the request: the fan's heat (4 023 W for
 4 kW with a dry coil at 35/27 °C) and, below the room's dew point, the latent
 heat that comes with the sensible cooling. In heating it carries less: the
@@ -1169,18 +1169,18 @@ nameplate) every request under the ceiling was met: 1 093 of the 1 102
 dry-coil and heating rows to 1e-6 (the other nine to 9e-6), all 848 wet rows
 to 1e-4 (half of them to 8e-6); the other 696 are rows at the ceiling.
 
-**What it costs.** Every trial is a coil-basis solve, and the row says how
+**What it costs.** Every trial is a total-basis solve, and the row says how
 many it took (``request_solves [-]``; a run on this basis has the column). A
 dry-coil or heating request takes three (the request, a first guess from it,
 one secant step), a wet one four on average, a request above the ceiling one
 or two; twelve is the most a request may take, and eight the most one of
 these requests took (ten among 528 requests around the kink above). Over the
 same 2 646 requests the run took 3.0 times the wall time of those requests on
-the coil basis: 2.9 times on the dry-coil and heating rows, 5.0 times on the
+the total basis: 2.9 times on the dry-coil and heating rows, 5.0 times on the
 wet ones (their trials are at larger duties than the request), 1.8 times at
 the ceiling. A dynamic run
 solves each step as ``analyze_steady`` does, in either basis, and a row does
-not depend on the steps before it — with the exception the coil basis has: a
+not depend on the steps before it — with the exception the total basis has: a
 dry request the compressor envelope refuses from below is cycled at a
 smallest continuous duty that a run searches once per condition, to 0.5 %
 (`Wet indoor coil (cooling)`_, *the two ends of the operating range*).
@@ -1217,7 +1217,7 @@ smallest continuous duty that a run searches once per condition, to 0.5 %
   251 requests from 100 to 350 W at that condition; none of the 2 646
   above).
 - *Without the cycling model* (``Cd_cycling=None``) a request below the
-  smallest continuous duty is over-delivered, as on the coil basis, with
+  smallest continuous duty is over-delivered, as on the total basis, with
   nothing unmet.
 
 COP boundary

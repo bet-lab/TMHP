@@ -506,7 +506,7 @@ def steady_message(
 
     What is delivered is read from ``delivered_key``, the basis of
     ``Q_request [W]`` -- except on a row that says its request is the room's
-    net sensible heat (``request_basis == "room_sensible"``, the air-source
+    net sensible heat (``request_basis == "sensible"``, the air-source
     heat pump's option), where it is ``Q_room_sensible [W]`` and the text
     names the basis.
     """
@@ -517,7 +517,7 @@ def steady_message(
     running = bool(row.get("hp_is_on", False))
     # A space load asked for as the room's net sensible heat (the air-source
     # heat pump's ``request_basis``) is delivered as that, not as coil heat.
-    room_sensible = _text(row.get("request_basis")) == "room_sensible"
+    room_sensible = _text(row.get("request_basis")) == "sensible"
     delivered = abs(_number(row, "Q_room_sensible [W]" if room_sensible else delivered_key))
     delivered = delivered if math.isfinite(delivered) else 0.0
     service = ""
@@ -551,7 +551,7 @@ def steady_message(
     note = _note_for(notes or [], limit.reason) if limit.reason is not None else None
     named = "capacity_clamped='max'" + (f", capacity_binding={binding!r}" if binding else "")
     if room_sensible:
-        named += ", request_basis='room_sensible'"
+        named += ", request_basis='sensible'"
     text = (
         f"{who}: the heat pump delivers {delivered:.0f} W of the {request:.0f} W{service} requested "
         f"({100.0 * delivered / request:.0f} %; {named}): the largest duty that runs at this point. "

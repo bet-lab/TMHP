@@ -526,22 +526,22 @@ def _room_humidity_of_step(value: Any, step: int) -> float:
 
 #: ``request_basis``: the request is the refrigerant-side heat of the indoor
 #: coil (``Q_ref_iu [W]``; in cooling its total heat, before the fan's heat).
-REQUEST_BASIS_COIL = "coil"
+REQUEST_BASIS_TOTAL = "total"
 #: ``request_basis``: the request is the net sensible heat the room air gives
 #: up or receives (``Q_room_sensible [W]``), a zone's sensible load.
-REQUEST_BASIS_ROOM_SENSIBLE = "room_sensible"
+REQUEST_BASIS_SENSIBLE = "sensible"
 #: Result key naming the basis of ``Q_request [W]`` and ``Q_unmet [W]``.
 REQUEST_BASIS_KEY = "request_basis"
 #: Result key of a row asked on the room's net sensible heat, and of no other:
-#: the coil-basis solves the search of the request took.
+#: the total-basis solves the search of the request took.
 REQUEST_SOLVES_KEY = "request_solves [-]"
 
 
 def _check_request_basis(value: Any) -> str:
     """``request_basis`` as given, or ``ValueError``: one of the two names."""
-    if isinstance(value, str) and value in (REQUEST_BASIS_COIL, REQUEST_BASIS_ROOM_SENSIBLE):
+    if isinstance(value, str) and value in (REQUEST_BASIS_TOTAL, REQUEST_BASIS_SENSIBLE):
         return value
-    raise ValueError(f"request_basis must be {REQUEST_BASIS_COIL!r} or {REQUEST_BASIS_ROOM_SENSIBLE!r}, got {value!r}")
+    raise ValueError(f"request_basis must be {REQUEST_BASIS_TOTAL!r} or {REQUEST_BASIS_SENSIBLE!r}, got {value!r}")
 
 
 class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
@@ -586,14 +586,14 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
     The rated state and the default inputs are those of the dry coil.
 
     A request is the heat of the indoor coil unless ``request_basis`` says
-    otherwise. With ``request_basis="room_sensible"`` (``analyze_steady``,
+    otherwise. With ``request_basis="sensible"`` (``analyze_steady``,
     ``analyze_dynamic``) it is the net sensible heat the room air gives up or
     receives -- a zone's sensible load -- and the model finds the coil duty
     whose ``Q_room_sensible [W]`` equals it: more than the request in cooling
     (the indoor fan's heat, and the latent heat of a wet coil), less in
     heating. ``Q_request [W]`` and ``Q_unmet [W]`` are then on that basis, and
     every row names its basis (``request_basis``). Such a row also says how
-    many coil-basis solves its search took (``request_solves [-]``).
+    many total-basis solves its search took (``request_solves [-]``).
     """
 
     #: Heat and flow rates averaged with the capacity ratio while cycling.
@@ -1968,7 +1968,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
 
         Every row gets ``Q_request [W]`` (signed, as asked), ``Q_unmet [W]``
         (how far the delivered heat falls short of the request, >= 0),
-        ``request_basis`` (``"coil"``: the two are coil heat) and the
+        ``request_basis`` (``"total"``: the two are coil heat) and the
         cycling keys of :mod:`tmhp.cycling`. A row on the compressor's speed
         floor is averaged over the cycling period; one at its ceiling gains
         ``Q_max [W]`` and ``capacity_binding`` when the search did not already
@@ -2008,7 +2008,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
         result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
         # A solved row is the row of a coil duty; a request on another basis
         # is the caller's to write over these three (:meth:`_solve_room_sensible`).
-        result[REQUEST_BASIS_KEY] = REQUEST_BASIS_COIL
+        result[REQUEST_BASIS_KEY] = REQUEST_BASIS_TOTAL
         if clamp == CAPACITY_CLAMPED_MAX:
             result.setdefault("Q_max [W]", delivered)
             result.setdefault("capacity_binding", "compressor")
@@ -3264,7 +3264,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
             runs at there -- the coil's sensible heat less the indoor fan's
             heat in cooling, plus it in heating, under frost the mean over
             frosting and defrost -- and 0.0 when the unit cannot run. It is
-            what a request made with ``request_basis="room_sensible"``
+            what a request made with ``request_basis="sensible"``
             gets when the search arrives at the ceiling
             (:meth:`analyze_steady`). It is the net sensible heat at the
             largest coil duty, not a maximum over the coil duties: the two
@@ -3882,7 +3882,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
         verbose: bool = True,
         RH_out: float | None = None,
         RH_room: float | None = None,
-        request_basis: str = REQUEST_BASIS_COIL,
+        request_basis: str = REQUEST_BASIS_TOTAL,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
 
@@ -3896,7 +3896,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
             sensible plus latent, before the indoor fan's heat. What the room
             receives is reported as ``Q_room_sensible [W]`` and
             ``Q_iu_latent [W]`` (below). With
-            ``request_basis="room_sensible"`` it is the net sensible heat
+            ``request_basis="sensible"`` it is the net sensible heat
             the room air gives up (cooling) or receives (heating).
         T0 : float
             Dead-state / outdoor-air temperature [°C].
@@ -3925,9 +3925,9 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
             a cooling request a value that is not a number in 0-1 raises
             ``ValueError``.
         request_basis : str
-            What ``Q_r_iu`` is a request for. ``"coil"`` (default): the
+            What ``Q_r_iu`` is a request for. ``"total"`` (default): the
             refrigerant-side heat of the indoor coil, ``Q_ref_iu [W]``.
-            ``"room_sensible"``: the net sensible heat of the room air,
+            ``"sensible"``: the net sensible heat of the room air,
             ``Q_room_sensible [W]`` -- the sensible load a zone of a building
             simulation hands over. The coil then has to carry more than the
             request in cooling (the indoor fan's heat, and with ``RH_room``
@@ -4044,9 +4044,9 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
 
             ``Q_request [W]`` and ``Q_unmet [W]`` are on the basis of
             ``Q_r_iu``, which ``request_basis`` names on every row. With
-            ``"coil"``: refrigerant-side coil heat, total (sensible plus
+            ``"total"``: refrigerant-side coil heat, total (sensible plus
             latent) and before the fan heat -- not the room-side
-            ``Q_room_sensible [W]``. With ``"room_sensible"``: that
+            ``Q_room_sensible [W]``. With ``"sensible"``: that
             room-side heat, ``Q_unmet [W]`` being what
             ``Q_room_sensible [W]`` is short of the request. Every other key
             means the same on either basis: ``Q_ref_iu [W]``, ``Q_max [W]``
@@ -4054,14 +4054,14 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
             side: ``Q_room_sensible [W]`` plus ``Q_iu_latent [W]`` over
             ``E_tot [W]``.
 
-            A row asked with ``"room_sensible"`` has one key more, after the
-            others: ``request_solves [-]`` (int), the number of coil-basis
+            A row asked with ``"sensible"`` has one key more, after the
+            others: ``request_solves [-]`` (int), the number of total-basis
             solves the search of the request took -- what the row cost, in
-            solves of ``request_basis="coil"``. It is 0 for a zero request,
+            solves of ``request_basis="total"``. It is 0 for a zero request,
             which is not searched, and never above
             :attr:`_ROOM_SENSIBLE_MAX_SOLVES`; a row short of its request
             that took them all is one the search did not finish (*Notes*). A
-            coil-basis row does not have the key.
+            total-basis row does not have the key.
 
         Warns
         -----
@@ -4076,8 +4076,8 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
         Notes
         -----
         A request on the room's net sensible heat
-        (``request_basis="room_sensible"``) is answered with the row of a
-        coil duty -- the row ``request_basis="coil"`` returns for that duty,
+        (``request_basis="sensible"``) is answered with the row of a
+        coil duty -- the row ``request_basis="total"`` returns for that duty,
         key for key, with ``Q_request [W]``, ``Q_unmet [W]`` and
         ``request_basis`` written over, and ``request_solves [-]`` added.
         The duty is searched: the request itself first, then that duty
@@ -4107,7 +4107,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
         (:attr:`_ROOM_SENSIBLE_LOOSE_RTOL`). A row inside the tolerance is
         met, ``Q_unmet [W]`` zero. The ``Q_ref_iu [W]`` the row reports is
         the coil duty that was solved, to rounding: asked again for it as
-        ``request_basis="coil"``, a unit whose fans modulate repeats the row
+        ``request_basis="total"``, a unit whose fans modulate repeats the row
         (every numeric key to 1e-12 on 2,646 requests of default units, wet
         rows included). A unit with a fan held at one flow repeats it to the
         scatter of its own rows: its search can end on either of two
@@ -4157,7 +4157,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
         RH_room = _check_room_humidity(RH_room) if RH_room is not None and Q_r_iu > 0 else None
 
         solves = 0
-        if request_basis == REQUEST_BASIS_ROOM_SENSIBLE and Q_r_iu != 0:
+        if request_basis == REQUEST_BASIS_SENSIBLE and Q_r_iu != 0:
             # The coil duty whose row has the requested net sensible heat.
             result, solves = self._solve_room_sensible(
                 Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose, RH_out=RH_out, RH_room=RH_room
@@ -4171,7 +4171,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
                 )
         if result:
             result[REQUEST_BASIS_KEY] = request_basis
-            if request_basis == REQUEST_BASIS_ROOM_SENSIBLE:
+            if request_basis == REQUEST_BASIS_SENSIBLE:
                 # What the row cost: the last key, on rows of this basis only.
                 result[REQUEST_SOLVES_KEY] = solves
 
@@ -4180,7 +4180,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
         return pd.DataFrame([result]) if result else pd.DataFrame()
 
     #: Relative tolerance to which ``Q_room_sensible [W]`` is matched with a
-    #: request on that basis (``request_basis="room_sensible"``) by the first
+    #: request on that basis (``request_basis="sensible"``) by the first
     #: :attr:`_ROOM_SENSIBLE_STRICT_SOLVES` solves of a row whose coil is dry.
     #: A search tolerance, not a physical constant: such a row of a unit
     #: whose fans modulate is smooth along the coil duty (its net sensible
@@ -4238,7 +4238,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
     #: above the kink, was 0.05 W short after twelve such secants and is met
     #: in eight solves by the steps from the sides.
     _ROOM_SENSIBLE_SECANT_SOLVES = 5
-    #: Coil-basis solves one request on the room's net sensible heat may
+    #: Total-basis solves one request on the room's net sensible heat may
     #: take. A budget of the search, not a physical constant: on 2,646
     #: requests of three default units (2.5 to 10 kW, dry and wet, cooling
     #: and heating) a request that was met took 2.8 solves on a dry row and
@@ -4265,12 +4265,12 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
     ) -> tuple[dict, int]:
         """:meth:`analyze_steady` for a request on the room's net sensible heat (checked arguments, not zero).
 
-        Returns the row and the number of coil-basis solves it took
+        Returns the row and the number of total-basis solves it took
         (``request_solves [-]``). The row is the row of a coil duty, solved
         the ordinary way
-        (``request_basis="coil"``), in which ``Q_request [W]`` and
+        (``request_basis="total"``), in which ``Q_request [W]`` and
         ``Q_unmet [W]`` are then written on the basis of the request. The
-        duty is found by an outer search on it, every trial a coil-basis
+        duty is found by an outer search on it, every trial a total-basis
         solve whose ``Q_room_sensible [W]`` is read as the row reports it
         (the mean over a cycling period, and over frosting and defrost):
 
@@ -4368,7 +4368,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
         requested net sensible heat. The answer is then the trial that comes
         closest to the request from below, so that what is missing shows as
         ``Q_unmet [W]``; where every trial delivers more than the request,
-        the one that delivers least. This is where the coil-basis rows of
+        the one that delivers least. This is where the total-basis rows of
         neighbouring duties are not neighbours themselves -- a unit with its
         outdoor fan held at one flow whose operating point passes from one
         indoor airflow to another between two duties (4 kW unit, 35 degC
@@ -4395,7 +4395,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
             return (self._ROOM_SENSIBLE_RTOL if strict else self._ROOM_SENSIBLE_LOOSE_RTOL) * request
 
         def solve(duty: float) -> bool:
-            """Solve the coil-basis row of ``duty``; whether the search ends on it."""
+            """Solve the total-basis row of ``duty``; whether the search ends on it."""
             nonlocal met
             row = self.analyze_steady(
                 Q_r_iu=sign * duty,
@@ -4722,7 +4722,7 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
         RH_out_schedule=None,
         *,
         RH_room_schedule=None,
-        request_basis: str = REQUEST_BASIS_COIL,
+        request_basis: str = REQUEST_BASIS_TOTAL,
     ) -> pd.DataFrame:
         """Run a time-stepping dynamic simulation.
 
@@ -4755,19 +4755,19 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
             is not looked at.
         request_basis : str
             What the entries of ``Q_r_iu_schedule`` are requests for, on
-            every step: ``"coil"`` (default), the refrigerant-side heat of
-            the indoor coil, or ``"room_sensible"``, the net sensible heat
+            every step: ``"total"`` (default), the refrigerant-side heat of
+            the indoor coil, or ``"sensible"``, the net sensible heat
             of the room air -- the zone sensible loads of a building
             simulation, with its room temperatures and humidities as
             ``T_a_room_schedule`` and ``RH_room_schedule``
             (``request_basis`` of :meth:`analyze_steady`, which solves each
             step). Any other value raises ``ValueError``. The argument is
             handed to :meth:`analyze_steady` only where it is not
-            ``"coil"``: a subclass that overrides :meth:`analyze_steady`
-            without it runs a coil-basis schedule as before, and has to
+            ``"total"``: a subclass that overrides :meth:`analyze_steady`
+            without it runs a total-basis schedule as before, and has to
             accept it to run another (Python's ``TypeError`` otherwise).
-            A run on ``"room_sensible"`` has one column more,
-            ``request_solves [-]``: the coil-basis solves of each step.
+            A run on ``"sensible"`` has one column more,
+            ``request_solves [-]``: the total-basis solves of each step.
 
         Returns
         -------
@@ -4827,10 +4827,10 @@ class AirSourceHeatPump(ReferenceStateMixin, CompressorMapPlotMixin):
 
         results_data: list[dict] = []
 
-        # A coil-basis run calls ``analyze_steady`` as it was called before the
+        # A total-basis run calls ``analyze_steady`` as it was called before the
         # option existed, so a subclass that overrides it without the option
         # still runs; only another basis is handed over.
-        basis = {} if request_basis == REQUEST_BASIS_COIL else {"request_basis": request_basis}
+        basis = {} if request_basis == REQUEST_BASIS_TOTAL else {"request_basis": request_basis}
 
         # The model does not change during a run: the smallest continuous
         # duty of a condition (where the envelope refuses lower speeds) is searched once,

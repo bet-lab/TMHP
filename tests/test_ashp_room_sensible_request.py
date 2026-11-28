@@ -858,9 +858,7 @@ def test_a_steady_row_does_not_depend_on_what_was_solved_before() -> None:
     model = AirSourceHeatPump()
     first = [_solve(model, q, T0, Tr, request_basis="sensible", **kw) for q, T0, Tr, kw in conditions]
     again = [_solve(model, q, T0, Tr, request_basis="sensible", **kw) for q, T0, Tr, kw in conditions[::-1]][::-1]
-    alone = [
-        _solve(AirSourceHeatPump(), q, T0, Tr, request_basis="sensible", **kw) for q, T0, Tr, kw in conditions
-    ]
+    alone = [_solve(AirSourceHeatPump(), q, T0, Tr, request_basis="sensible", **kw) for q, T0, Tr, kw in conditions]
     for a, b, c in zip(first, again, alone, strict=True):
         assert _differing_keys(a, b, skip=frozenset()) == []
         assert _differing_keys(a, c, skip=frozenset()) == []

@@ -32,9 +32,19 @@ published_inputs:
   compressor_type: scroll
   injection: flash
 notes: >-
-  The paper applies a 2.5 K leaving-water-to-tank offset below 60 degC and
-  5 K above it. The harness carries a single offset, so the three 65 degC rows
-  are evaluated at 2.5 K, which makes them slightly harder rather than easier.
+  Sink convention. The harness evaluates every row through EN 14511 condenser
+  water (tmhp.standard_conditions.en14511_condenser_water): entering water is
+  the catalogue's leaving water minus the standard's rise, and the flow is the
+  one that carries the published duty at that rise. The rise is 5 K at or below
+  45 degC leaving, 8 K at 55 degC and 10 K at 65 degC, linear in between, so the
+  40 / 50 / 65 degC columns enter at 35.0 / 43.5 / 55.0 degC.
+  The paper this catalogue was first assembled for used a different convention,
+  a 2.5 K leaving-water-to-tank offset below 60 degC and 5 K above it, and an
+  intermediate revision of the harness carried a single 2.5 K offset. Neither is
+  what runs now. Reproducing the paper's reported cycle state points therefore
+  needs the paper's own offset: under EN 14511 water the same operating point
+  lands up to about 2 K away, and the difference is the tank temperature rather
+  than the cycle.
 points:
   - {id: 1,  t_source_C: -10, t_sink_C: 40, q_kW: 13.45, cop: 2.30, mode: heating}
   - {id: 2,  t_source_C: 2,   t_sink_C: 40, q_kW: 12.42, cop: 3.04, mode: heating}

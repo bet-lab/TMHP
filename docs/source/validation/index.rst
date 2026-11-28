@@ -857,7 +857,12 @@ average, and it is not the whole of their low bias: the rows with the least
 latent load run 15 to 17 % low with either coil. The study does not say where
 that comes from, nor why the wettest rows pass the catalogue: the indoor
 conductance rule (0.16 W/K per W of nameplate, provisional, not derived for a
-wet coil), the compressor level and the airflow all enter. As a sensitivity,
+wet coil), the compressor level and the airflow all enter. The size trend at
+least is the rule's: a conductance solved from each row's published ratio is
+nearly constant within a unit (1.8–3.3 % scatter over its rows) and runs from
+382 W/K (2.0 kW) to 337 W/K (5.0 kW), where the rule gives 320 to 800 W/K;
+with it the spread of the unit biases goes from 26.1 to 15.3 points (#220,
+#237). As a sensitivity,
 not a calibration: with the indoor coil's rated conductance halved the
 wet-coil bias is −9.4 % and the ratio 0.71 (0.08 low); doubled, −1.0 % and
 0.86 (0.07 high). A smaller coil runs colder, which lowers the ratio and the

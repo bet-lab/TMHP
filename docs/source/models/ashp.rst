@@ -302,7 +302,14 @@ heating or an off step holds — a missing value, say — is not looked at.
 
 The coil is the apparatus-dew-point / bypass-factor coil, the family
 EnergyPlus uses for DX cooling coils, written so that it reduces to the dry
-coil. With room air at :math:`T_{in}`, :math:`w_{in}`, the evaporating
+coil. It is also the classic wet-coil analysis — the heat driven by the
+difference between the air's enthalpy and that of saturated air at the
+surface, with the coil-side resistance entering through the slope of the
+saturated-air enthalpy (Threlkeld, 1970; Braun, Klein & Mitchell, 1989) —
+with the refrigerant-side resistance set to zero, so that the surface is at
+the evaporating temperature.
+
+With room air at :math:`T_{in}`, :math:`w_{in}`, the evaporating
 temperature :math:`T_e`, the air heat capacity rate :math:`C` and the
 effectiveness :math:`\varepsilon = 1 - e^{-UA/C}` of the dry coil,
 
@@ -338,7 +345,25 @@ What the model assumes:
 - **The surface is at the refrigerant saturation temperature.** The dry coil
   already works that way through its overall ``UA``; the wet coil keeps it, so
   condensation starts where the evaporating temperature — not a warmer fin
-  surface — reaches the dew point.
+  surface — reaches the dew point. ``UA`` is therefore the coil's effective
+  air-side conductance: the refrigerant-side, tube and fin resistance that
+  would put the surface above :math:`T_e` is not modelled (co-author decision
+  on #262). A catalogue cannot pin that resistance: the published sensible
+  heat ratio fixes the air side only, and what the resistance does — a lower
+  evaporating temperature — shows only in the COP, where it cannot be told
+  apart from the compressor's efficiency. Leaving it out runs the evaporating
+  temperature slightly high and the COP slightly high by a nearly constant
+  factor, which a compressor calibration to the same catalogue (#189) takes
+  up in its efficiency multiplier. On the 180 Daikin cooling rows, a
+  refrigerant side of a fifth of the coil's resistance at the default ``UA``
+  lowers the evaporating temperature by 0.3–0.9 K (0.5 K on average) and the
+  COP by 0.7–3.2 % (1.6 % at the median); one factor per unit leaves 0.2 % on
+  average (1.3 % at most). With the ``UA`` solved instead from each row's
+  published ratio the same resistance lowers the COP by 1.5–12.9 % (5.3 % at
+  the median) and one factor per unit leaves 0.8 % (3.3 % at most): the
+  larger the resistance, the more that take-up is an approximation. (The
+  factor here is one on the COP; the calibration's multiplier acts on the
+  compressor alone.)
 - **The same ``UA`` wet and dry.** No wet-surface enhancement and no change of
   fin efficiency; ``UA_iu_rated`` and its airflow law are those of the dry
   coil. The default (0.16 W/K per W of nameplate) is a provisional rule that
@@ -1082,6 +1107,15 @@ own capacity and electrical-input boundary. Earlier results through commit
 For a seasonal performance factor, sum actual mode-specific air delivery
 times timestep duration and divide by summed system electricity times duration;
 an arithmetic mean of hourly COP is a different statistic.
+
+References
+==========
+
+Braun, J. E., Klein, S. A., & Mitchell, J. W. (1989). Effectiveness models
+for cooling towers and cooling coils. *ASHRAE Transactions*, 95(2), 164-174.
+
+Threlkeld, J. L. (1970). *Thermal Environmental Engineering* (2nd ed.).
+Prentice-Hall.
 
 API reference
 =============
